@@ -84,8 +84,7 @@ func Home(ctx *context.Context) {
 		OwnerID:            org.ID,
 		OrderBy:            orderBy,
 		Private:            ctx.IsSigned,
-		UserIsAdmin:        ctx.IsUserSiteAdmin(),
-		UserID:             ctx.Data["SignedUserID"].(int64),
+		Actor:              ctx.User,
 		IsProfile:          true,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})

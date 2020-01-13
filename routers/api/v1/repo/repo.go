@@ -127,6 +127,7 @@ func Search(ctx *context.APIContext) {
 
 	opts := &models.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
+		Actor:              ctx.User,
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
 		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
@@ -134,8 +135,6 @@ func Search(ctx *context.APIContext) {
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
 		Template:           util.OptionalBoolNone,
-		UserIsAdmin:        ctx.IsUserSiteAdmin(),
-		UserID:             ctx.Data["SignedUserID"].(int64),
 		StarredByID:        ctx.QueryInt64("starredBy"),
 		IncludeDescription: ctx.QueryBool("includeDesc"),
 	}

@@ -72,10 +72,11 @@ func Home(ctx *context.Context) {
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
-	OwnerID  int64
-	Private  bool
-	PageSize int
-	TplName  base.TplName
+	OwnerID    int64
+	Private    bool
+	Restricted bool
+	PageSize   int
+	TplName    base.TplName
 }
 
 var (
@@ -140,6 +141,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 			Page:     page,
 			PageSize: opts.PageSize,
 		},
+		Actor:              ctx.User,
 		OrderBy:            orderBy,
 		Private:            opts.Private,
 		Keyword:            keyword,
@@ -192,6 +194,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	if opts.Page <= 1 {
 		opts.Page = 1
 	}
+	opts.Actor = ctx.User
 
 	var (
 		users   []*models.User
@@ -263,22 +266,16 @@ func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["PageIsExploreOrganizations"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
-	var ownerID int64
-	if ctx.User != nil && !ctx.User.IsAdmin {
-		ownerID = ctx.User.ID
+	visibleTypes := []structs.VisibleType{structs.VisibleTypePublic}
+	if ctx.User != nil {
+		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
 	}
 
-	opts := models.SearchUserOptions{
+	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:        models.UserTypeOrganization,
 		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
-		OwnerID:     ownerID,
-	}
-	if ctx.User != nil {
-		opts.Visible = []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate}
-	} else {
-		opts.Visible = []structs.VisibleType{structs.VisibleTypePublic}
-	}
-	RenderUserSearch(ctx, &opts, tplExploreOrganizations)
+		Visible:     visibleTypes,
+	}, tplExploreOrganizations)
 }
 
 // ExploreCode render explore code page
@@ -312,7 +309,7 @@ func ExploreCode(ctx *context.Context) {
 
 	// guest user or non-admin user
 	if ctx.User == nil || !isAdmin {
-		repoIDs, err = models.FindUserAccessibleRepoIDs(userID)
+		repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.User)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return

@@ -85,6 +85,12 @@
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.users.is_restricted"}}</strong></label>
+						<input name="restricted" type="checkbox" {{if .User.IsRestricted}}checked{{end}}>
+					</div>
+				</div>
+				<div class="inline field">
+					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>

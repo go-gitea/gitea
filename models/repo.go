@@ -1757,7 +1757,7 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, error) {
 	}
 
 	sess := x.
-		Where("owner_id = ?", opts.UserID).
+		Where("owner_id = ?", opts.Actor.ID).
 		OrderBy(opts.OrderBy.String())
 	if !opts.Private {
 		sess.And("is_private=?", false)

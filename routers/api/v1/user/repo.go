@@ -16,7 +16,7 @@ import (
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 	repos, err := models.GetUserRepositories(&models.SearchRepoOptions{
-		UserID:      u.ID,
+		Actor:       u,
 		Private:     private,
 		ListOptions: utils.GetListOptions(ctx),
 	})
@@ -93,7 +93,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 
 	ownRepos, err := models.GetUserRepositories(&models.SearchRepoOptions{
-		UserID:      ctx.User.ID,
+		Actor:       ctx.User,
 		Private:     true,
 		ListOptions: utils.GetListOptions(ctx),
 	})
