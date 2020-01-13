@@ -153,13 +153,13 @@ func getWorkwechatPushPayload(p *api.PushPayload, meta *WorkwechatMeta) (*Workwe
 }
 
 func getWorkwechatIssuesPayload(p *api.IssuePayload, meta *WorkwechatMeta) (*WorkwechatPayload, error) {
-	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter)
+	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 
 	return &WorkwechatPayload{
 		ChatID:  meta.ChatID,
 		MsgType: "textcard",
 		TextCard: TextCard{
-			Description: title + "\r\n\r\n" + attachmentText,
+			Description: text + "\r\n\r\n" + attachmentText,
 			Title:       issueTitle,
 			ButtonText:  "view issue",
 			URL:         p.Issue.URL,
@@ -168,7 +168,7 @@ func getWorkwechatIssuesPayload(p *api.IssuePayload, meta *WorkwechatMeta) (*Wor
 }
 
 func getWorkwechatIssueCommentPayload(p *api.IssueCommentPayload, meta *WorkwechatMeta) (*WorkwechatPayload, error) {
-	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter)
+	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
 
 	return &WorkwechatPayload{
 		ChatID:  meta.ChatID,
@@ -183,7 +183,7 @@ func getWorkwechatIssueCommentPayload(p *api.IssueCommentPayload, meta *Workwech
 }
 
 func getWorkwechatPullRequestPayload(p *api.PullRequestPayload, meta *WorkwechatMeta) (*WorkwechatPayload, error) {
-	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter)
+	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 
 	return &WorkwechatPayload{
 		ChatID:  meta.ChatID,
@@ -229,7 +229,7 @@ func getWorkwechatRepositoryPayload(p *api.RepositoryPayload, meta *WorkwechatMe
 }
 
 func getWorkwechatReleasePayload(p *api.ReleasePayload, meta *WorkwechatMeta) (*WorkwechatPayload, error) {
-	text, _ := getReleasePayloadInfo(p, noneLinkFormatter)
+	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
 
 	return &WorkwechatPayload{
 		ChatID:  meta.ChatID,
@@ -244,7 +244,7 @@ func getWorkwechatReleasePayload(p *api.ReleasePayload, meta *WorkwechatMeta) (*
 }
 
 // GetWorkwechatPayload converts a work wechat webhook into a WorkwechatPayload
-func GetWorkwechatPayload(p api.Payloader, event HookEventType, meta string) (*WorkwechatPayload, error) {
+func GetWorkwechatPayload(p api.Payloader, event models.HookEventType, meta string) (*WorkwechatPayload, error) {
 	s := new(WorkwechatPayload)
 
 	workwechatMeta := &WorkwechatMeta{}
