@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -100,13 +101,14 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 
 	var r *models.Repository
 	if opts.MigrateToRepoID <= 0 {
-		r, err = models.CreateRepository(g.doer, owner, models.CreateRepoOptions{
-			Name:        g.repoName,
-			Description: repo.Description,
-			OriginalURL: repo.OriginalURL,
-			IsPrivate:   opts.Private,
-			IsMirror:    opts.Mirror,
-			Status:      models.RepositoryBeingMigrated,
+		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
+			Name:           g.repoName,
+			Description:    repo.Description,
+			OriginalURL:    repo.OriginalURL,
+			GitServiceType: opts.GitServiceType,
+			IsPrivate:      opts.Private,
+			IsMirror:       opts.Mirror,
+			Status:         models.RepositoryBeingMigrated,
 		})
 	} else {
 		r, err = models.GetRepositoryByID(opts.MigrateToRepoID)
@@ -332,6 +334,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			MilestoneID: milestoneID,
 			Labels:      labels,
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
+			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
 		}
 
 		userid, ok := g.userMap[issue.PosterID]
@@ -406,6 +409,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			Type:        models.CommentTypeComment,
 			Content:     comment.Content,
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
+			UpdatedUnix: timeutil.TimeStamp(comment.Updated.Unix()),
 		}
 
 		if userid > 0 {
@@ -574,6 +578,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		IsLocked:    pr.IsLocked,
 		Labels:      labels,
 		CreatedUnix: timeutil.TimeStamp(pr.Created.Unix()),
+		UpdatedUnix: timeutil.TimeStamp(pr.Updated.Unix()),
 	}
 
 	userid, ok := g.userMap[pr.PosterID]

@@ -236,7 +236,7 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 			{
 				Title:       text,
 				Description: attachmentText,
-				URL:         p.Issue.URL,
+				URL:         p.Issue.HTMLURL,
 				Color:       color,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,

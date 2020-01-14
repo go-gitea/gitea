@@ -290,6 +290,14 @@ var migrations = []Migration{
 	NewMigration("Extend TrackedTimes", extendTrackedTimes),
 	// v117 -> v118
 	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
+	// v118 -> v119
+	NewMigration("Add commit id and stale to reviews", addReviewCommitAndStale),
+	// v119 -> v120
+	NewMigration("Fix migrated repositories' git service type", fixMigratedRepositoryServiceType),
+	// v120 -> v121
+	NewMigration("Add owner_name on table repository", addOwnerNameOnRepository),
+	// v121 -> v122
+	NewMigration("add is_restricted column for users table", addIsRestricted),
 }
 
 // Migrate database to current version

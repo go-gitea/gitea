@@ -903,6 +903,7 @@ func ViewIssue(ctx *context.Context) {
 		pull := issue.PullRequest
 		pull.Issue = issue
 		canDelete := false
+		ctx.Data["AllowMerge"] = false
 
 		if ctx.IsSigned {
 			if err := pull.GetHeadRepo(); err != nil {
@@ -923,6 +924,20 @@ func ViewIssue(ctx *context.Context) {
 					}
 				}
 			}
+
+			if err := pull.GetBaseRepo(); err != nil {
+				log.Error("GetBaseRepo: %v", err)
+			}
+			perm, err := models.GetUserRepoPermission(pull.BaseRepo, ctx.User)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
+			ctx.Data["AllowMerge"], err = pull_service.IsUserAllowedToMerge(pull, perm, ctx.User)
+			if err != nil {
+				ctx.ServerError("IsUserAllowedToMerge", err)
+				return
+			}
 		}
 
 		prUnit, err := repo.GetUnit(models.UnitTypePullRequests)
@@ -931,15 +946,6 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		prConfig := prUnit.PullRequestsConfig()
-
-		ctx.Data["AllowMerge"] = ctx.Repo.CanWrite(models.UnitTypeCode)
-		if err := pull.CheckUserAllowedToMerge(ctx.User); err != nil {
-			if !models.IsErrNotAllowedToMerge(err) {
-				ctx.ServerError("CheckUserAllowedToMerge", err)
-				return
-			}
-			ctx.Data["AllowMerge"] = false
-		}
 
 		// Check correct values and select default
 		if ms, ok := ctx.Data["MergeStyle"].(models.MergeStyle); !ok ||
@@ -966,7 +972,10 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
 			ctx.Data["GrantedApprovals"] = cnt
 		}
-		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
+		ctx.Data["IsPullBranchDeletable"] = canDelete &&
+			pull.HeadRepo != nil &&
+			git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
+			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
 
 		ctx.Data["PullReviewers"], err = models.GetReviewersByIssueID(issue.ID)
 		if err != nil {

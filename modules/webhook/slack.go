@@ -158,7 +158,7 @@ func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload
 		pl.Attachments = []SlackAttachment{{
 			Color:     fmt.Sprintf("%x", color),
 			Title:     issueTitle,
-			TitleLink: p.Issue.URL,
+			TitleLink: p.Issue.HTMLURL,
 			Text:      attachmentText,
 		}}
 	}

@@ -8,6 +8,7 @@ package models
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -233,6 +234,22 @@ func (c *Comment) HTMLURL() string {
 		}
 	}
 	return fmt.Sprintf("%s#%s", c.Issue.HTMLURL(), c.HashTag())
+}
+
+// APIURL formats a API-string to the issue-comment
+func (c *Comment) APIURL() string {
+	err := c.LoadIssue()
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
+
+	return c.Issue.Repo.APIURL() + "/" + path.Join("issues/comments", fmt.Sprint(c.ID))
 }
 
 // IssueURL formats a URL-string to the issue
@@ -765,6 +782,7 @@ type FindCommentsOptions struct {
 	IssueID  int64
 	ReviewID int64
 	Since    int64
+	Before   int64
 	Type     CommentType
 }
 
@@ -781,6 +799,9 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	}
 	if opts.Since > 0 {
 		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
+	}
+	if opts.Before > 0 {
+		cond = cond.And(builder.Lte{"comment.updated_unix": opts.Before})
 	}
 	if opts.Type != CommentTypeUnknown {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})

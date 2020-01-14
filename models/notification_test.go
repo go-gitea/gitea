@@ -31,11 +31,13 @@ func TestNotificationsForUser(t *testing.T) {
 	statuses := []NotificationStatus{NotificationStatusRead, NotificationStatusUnread}
 	notfs, err := NotificationsForUser(user, statuses, 1, 10)
 	assert.NoError(t, err)
-	if assert.Len(t, notfs, 2) {
-		assert.EqualValues(t, 2, notfs[0].ID)
+	if assert.Len(t, notfs, 3) {
+		assert.EqualValues(t, 5, notfs[0].ID)
 		assert.EqualValues(t, user.ID, notfs[0].UserID)
 		assert.EqualValues(t, 4, notfs[1].ID)
 		assert.EqualValues(t, user.ID, notfs[1].UserID)
+		assert.EqualValues(t, 2, notfs[2].ID)
+		assert.EqualValues(t, user.ID, notfs[2].UserID)
 	}
 }
 

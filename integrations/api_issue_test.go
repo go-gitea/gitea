@@ -7,6 +7,7 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -119,4 +120,48 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, int64(0), int64(issueAfter.DeadlineUnix))
 	assert.Equal(t, body, issueAfter.Content)
 	assert.Equal(t, title, issueAfter.Title)
+}
+
+func TestAPISearchIssue(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+
+	link, _ := url.Parse("/api/v1/repos/issues/search")
+	req := NewRequest(t, "GET", link.String())
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var apiIssues []*api.Issue
+	DecodeJSON(t, resp, &apiIssues)
+
+	assert.Len(t, apiIssues, 8)
+
+	query := url.Values{}
+	query.Add("token", token)
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 8)
+
+	query.Add("state", "closed")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+
+	query.Set("state", "all")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 10) //there are more but 10 is page item limit
+
+	query.Add("page", "2")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 0)
 }

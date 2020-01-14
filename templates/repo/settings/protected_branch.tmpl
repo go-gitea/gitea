@@ -211,6 +211,14 @@
 							<p class="help">{{.i18n.Tr "repo.settings.block_rejected_reviews_desc"}}</p>
 						</div>
 					</div>					
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="dismiss_stale_approvals" type="checkbox" {{if .Branch.DismissStaleApprovals}}checked{{end}}>
+							<label for="dismiss_stale_approvals">{{.i18n.Tr "repo.settings.dismiss_stale_approvals"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.dismiss_stale_approvals_desc"}}</p>
+						</div>
+					</div>
+
 				</div>
 
 				<div class="ui divider"></div>

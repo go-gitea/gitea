@@ -155,6 +155,7 @@ var (
 	microcmdAuthDelete = cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
+		Flags:  []cli.Flag{idFlag},
 		Action: runDeleteAuth,
 	}
 
@@ -533,9 +534,9 @@ func runListAuth(c *cli.Context) error {
 
 	// loop through each source and print
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
-	fmt.Fprintf(w, "ID\tName\tType\tEnabled")
+	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
 	}
 	w.Flush()
 
