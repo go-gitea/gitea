@@ -599,7 +599,7 @@ func Issues(ctx *context.Context) {
 		totalIssues = int(userIssueStats.OpenCount)
 	} else {
 		shownIssues = int(shownIssueStats.ClosedCount)
-		totalIssues = int(userIssueStats.OpenCount)
+		totalIssues = int(userIssueStats.ClosedCount)
 	}
 
 	ctx.Data["Issues"] = issues
