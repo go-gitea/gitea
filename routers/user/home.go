@@ -144,6 +144,7 @@ func Dashboard(ctx *context.Context) {
 
 	retrieveFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
+		Actor:           ctx.User,
 		IncludePrivate:  true,
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,

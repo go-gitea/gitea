@@ -15,6 +15,7 @@ import (
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
 )
@@ -71,10 +72,11 @@ func Home(ctx *context.Context) {
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
-	OwnerID  int64
-	Private  bool
-	PageSize int
-	TplName  base.TplName
+	OwnerID    int64
+	Private    bool
+	Restricted bool
+	PageSize   int
+	TplName    base.TplName
 }
 
 var (
@@ -135,6 +137,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["TopicOnly"] = topicOnly
 
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		Actor:              ctx.User,
 		Page:               page,
 		PageSize:           opts.PageSize,
 		OrderBy:            orderBy,
@@ -189,6 +192,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	if opts.Page <= 1 {
 		opts.Page = 1
 	}
+	opts.Actor = ctx.User
 
 	var (
 		users   []*models.User
@@ -249,7 +253,7 @@ func ExploreUsers(ctx *context.Context) {
 		Type:     models.UserTypeIndividual,
 		PageSize: setting.UI.ExplorePagingNum,
 		IsActive: util.OptionalBoolTrue,
-		Private:  true,
+		Visible:  []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplExploreUsers)
 }
 
@@ -260,16 +264,15 @@ func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["PageIsExploreOrganizations"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
-	var ownerID int64
-	if ctx.User != nil && !ctx.User.IsAdmin {
-		ownerID = ctx.User.ID
+	visibleTypes := []structs.VisibleType{structs.VisibleTypePublic}
+	if ctx.User != nil {
+		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
 	}
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		PageSize: setting.UI.ExplorePagingNum,
-		Private:  ctx.User != nil,
-		OwnerID:  ownerID,
+		Visible:  visibleTypes,
 	}, tplExploreOrganizations)
 }
 
@@ -304,7 +307,7 @@ func ExploreCode(ctx *context.Context) {
 
 	// guest user or non-admin user
 	if ctx.User == nil || !isAdmin {
-		repoIDs, err = models.FindUserAccessibleRepoIDs(userID)
+		repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.User)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
