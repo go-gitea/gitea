@@ -24,6 +24,40 @@ const (
 	StateAll StateType = "all"
 )
 
+// Severity issue severity type
+type SeverityType struct {
+	Name  string
+	Color string
+}
+type Severity string
+
+const (
+	SeverityLow    Severity = "Low"
+	SeverityMedium Severity = "Medium"
+	SeverityHigh   Severity = "High"
+	SeverityUrgent Severity = "Urgent"
+)
+
+var (
+	SeverityTypeLow    = SeverityType{Name: "Low", Color: "#009800"}
+	SeverityTypeMedium = SeverityType{Name: "Medium", Color: "#fbca04"}
+	SeverityTypeHigh   = SeverityType{Name: "High", Color: "#eb6420"}
+	SeverityTypeUrgent = SeverityType{Name: "Urgent", Color: "#e11d21"}
+
+	SeverityTypesMap = map[Severity]SeverityType{
+		SeverityLow:    SeverityTypeLow,
+		SeverityMedium: SeverityTypeMedium,
+		SeverityHigh:   SeverityTypeHigh,
+		SeverityUrgent: SeverityTypeUrgent,
+	}
+	SeverityTypesSlice = []SeverityType{
+		SeverityTypeLow,
+		SeverityTypeMedium,
+		SeverityTypeHigh,
+		SeverityTypeUrgent,
+	}
+)
+
 // PullRequestMeta PR info if an issue is a PR
 type PullRequestMeta struct {
 	HasMerged bool       `json:"merged"`
@@ -42,6 +76,7 @@ type Issue struct {
 	Title            string     `json:"title"`
 	Body             string     `json:"body"`
 	Labels           []*Label   `json:"labels"`
+	Severity         string     `json:"severity"`
 	Milestone        *Milestone `json:"milestone"`
 	Assignee         *User      `json:"assignee"`
 	Assignees        []*User    `json:"assignees"`

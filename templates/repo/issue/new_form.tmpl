@@ -37,6 +37,27 @@
 		<div class="ui segment metas">
 			{{template "repo/issue/branch_selector_field" .}}
 
+			<input id="severity_id" name="severity_id" type="hidden" value="{{.Severity.Name}}">
+			<div class="ui floating jump select-severity dropdown">
+			<span class="text">
+				<strong>{{.i18n.Tr "repo.issues.severity"}}</strong>
+				<span class="octicon octicon-gear"></span>
+			</span>
+				<div class="filter menu" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/severity">
+					{{range .Severities}}
+						<div class="item has-emoji" data-style="color:#fff;background-color:{{.Color}}" data-id="{{.Name}}" data-href="{{$.RepoLink}}/issues?severity={{.Name}}" data-id-selector="#severity_{{.Name}}" style="margin-left:-10px">
+							<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</div>
+					{{end}}
+				</div>
+			</div>
+			<div class="ui select-severity labels list">
+				<div class="selected">
+					<a class="ui label has-emoji" href="{{$.RepoLink}}/issues?severity={{.Severity.Name}}" style="color: #fff; background-color: {{.Severity.Color}}">{{.Severity.Name}}</a>
+				</div>
+			</div>
+
+			<div class="ui divider"></div>
+
 			<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
 			<div class="ui {{if not .Labels}}disabled{{end}} floating jump select-label dropdown">
 				<span class="text">

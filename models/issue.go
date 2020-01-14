@@ -39,6 +39,7 @@ type Issue struct {
 	Content          string     `xorm:"TEXT"`
 	RenderedContent  string     `xorm:"-"`
 	Labels           []*Label   `xorm:"-"`
+	Severity         string     `xorm:"VARCHAR(6) INDEX DEFAULT 'Low'"`
 	MilestoneID      int64      `xorm:"INDEX"`
 	Milestone        *Milestone `xorm:"-"`
 	Priority         int
@@ -1051,6 +1052,7 @@ func (issue *Issue) GetLastEventLabelFake() string {
 type NewIssueOptions struct {
 	Repo        *Repository
 	Issue       *Issue
+	Severity    string
 	LabelIDs    []int64
 	AssigneeIDs []int64
 	Attachments []string // In UUID format.
@@ -1227,6 +1229,7 @@ func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, assigneeI
 		Repo:        repo,
 		Issue:       issue,
 		LabelIDs:    labelIDs,
+		Severity:    issue.Severity,
 		Attachments: uuids,
 		AssigneeIDs: assigneeIDs,
 	}); err != nil {
@@ -1326,6 +1329,7 @@ type IssuesOptions struct {
 	IsClosed    util.OptionalBool
 	IsPull      util.OptionalBool
 	LabelIDs    []int64
+	Severity    string
 	SortType    string
 	IssueIDs    []int64
 }
@@ -1397,6 +1401,10 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
 			And("issue_user.is_mentioned = ?", true).
 			And("issue_user.uid = ?", opts.MentionedID)
+	}
+
+	if opts.Severity != "" {
+		sess.And("issue.severity=?", opts.Severity)
 	}
 
 	if opts.MilestoneID > 0 {
@@ -1535,6 +1543,7 @@ func parseCountResult(results []map[string][]byte) int64 {
 type IssueStatsOptions struct {
 	RepoID      int64
 	Labels      string
+	Severity    string
 	MilestoneID int64
 	AssigneeID  int64
 	MentionedID int64
@@ -1550,6 +1559,10 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	countSession := func(opts *IssueStatsOptions) *xorm.Session {
 		sess := x.
 			Where("issue.repo_id = ?", opts.RepoID)
+
+		if opts.Severity != "" {
+			sess.In("issue.severity", opts.Severity)
+		}
 
 		if len(opts.IssueIDs) > 0 {
 			sess.In("issue.id", opts.IssueIDs)

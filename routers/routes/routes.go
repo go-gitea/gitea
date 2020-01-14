@@ -712,6 +712,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
 			}, context.RepoMustNotBeArchived())
 
+			m.Post("/severity", reqRepoIssuesOrPullsWriter, repo.UpdateIssueSeverity)
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)

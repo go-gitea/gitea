@@ -312,6 +312,7 @@ type CreateIssueForm struct {
 	LabelIDs    string `form:"label_ids"`
 	AssigneeIDs string `form:"assignee_ids"`
 	Ref         string `form:"ref"`
+	SeverityID  string
 	MilestoneID int64
 	AssigneeID  int64
 	Content     string

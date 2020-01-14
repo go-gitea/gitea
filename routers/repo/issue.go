@@ -107,6 +107,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	var err error
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
+	severity := ctx.Query("severity")
 	stateType := ctx.Query("state")
 	if stateType == "" {
 		stateType = "open"
@@ -168,6 +169,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	} else {
 		issueStats, err = models.GetIssueStats(&models.IssueStatsOptions{
 			RepoID:      repo.ID,
+			Severity:    severity,
 			Labels:      selectLabels,
 			MilestoneID: milestoneID,
 			AssigneeID:  assigneeID,
@@ -187,9 +189,14 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	}
 
 	var total int
-	if !isShowClosed {
+	switch api.StateType(stateType) {
+	case api.StateOpen:
 		total = int(issueStats.OpenCount)
-	} else {
+	case api.StateInProgress:
+		total = int(issueStats.InProgressCount)
+	case api.StateReview:
+		total = int(issueStats.ReviewCount)
+	case api.StateClosed:
 		total = int(issueStats.ClosedCount)
 	}
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
@@ -209,6 +216,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			StateType:   api.StateType(stateType),
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      isPullOption,
+			Severity:    severity,
 			LabelIDs:    labelIDs,
 			SortType:    sortType,
 			IssueIDs:    issueIDs,
@@ -267,6 +275,8 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	}
 
 	ctx.Data["IssueStats"] = issueStats
+	ctx.Data["Severities"] = api.SeverityTypesSlice
+	ctx.Data["Severity"] = severity
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
@@ -281,6 +291,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	pager.AddParam(ctx, "type", "ViewType")
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
+	pager.AddParam(ctx, "severity", "Severity")
 	pager.AddParam(ctx, "labels", "SelectLabels")
 	pager.AddParam(ctx, "milestone", "MilestoneID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
@@ -428,6 +439,8 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	body := ctx.Query("body")
 	ctx.Data["BodyQuery"] = body
+	ctx.Data["Severities"] = api.SeverityTypesSlice
+	ctx.Data["Severity"] = api.SeverityTypesMap[api.SeverityLow]
 
 	milestoneID := ctx.QueryInt64("milestone")
 	if milestoneID > 0 {
@@ -546,8 +559,9 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		repo        = ctx.Repo.Repository
 		attachments []string
 	)
-
+	severity := form.SeverityID
 	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, false)
+
 	if ctx.Written() {
 		return
 	}
@@ -572,6 +586,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		PosterID:    ctx.User.ID,
 		Poster:      ctx.User,
 		MilestoneID: milestoneID,
+		Severity:    severity,
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
@@ -698,6 +713,11 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Metas.
+	// Check severities.
+	severity := api.Severity(issue.Severity)
+	ctx.Data["Severities"] = api.SeverityTypesSlice
+	ctx.Data["Severity"] = api.SeverityTypesMap[severity]
+
 	// Check labels.
 	labelIDMark := make(map[int64]bool)
 	for i := range issue.Labels {
@@ -1082,6 +1102,30 @@ func UpdateIssueContent(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"content": string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+	})
+}
+
+// UpdateIssueSeverity change issue's severity
+func UpdateIssueSeverity(ctx *context.Context) {
+	issues := getActionIssues(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	severityID := ctx.Query("id")
+	for _, issue := range issues {
+		oldSeverityID := issue.Severity
+		if oldSeverityID == severityID {
+			continue
+		}
+		issue.Severity = severityID
+		if err := models.ChangeSeverity(issue, ctx.User); err != nil {
+			return
+		}
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
 	})
 }
 

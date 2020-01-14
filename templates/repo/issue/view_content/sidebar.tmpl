@@ -2,6 +2,26 @@
 	<div class="ui segment metas">
 		{{template "repo/issue/branch_selector_field" .}}
 
+		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-severity dropdown">
+			<span class="text">
+				<strong>{{.i18n.Tr "repo.issues.severity"}}</strong>
+				<span class="octicon octicon-gear"></span>
+			</span>
+			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/severity">
+				{{range .Severities}}
+					<div class="item has-emoji" data-id="{{.Name}}" data-href="{{$.RepoLink}}/issues?severity={{.Name}}" data-id-selector="#severity_{{.Name}}" style="margin-left:-10px;{{if eq $.Severity.Name .Name}}display:none;{{end}}">
+						<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</div>
+				{{end}}
+			</div>
+		</div>
+		<div class="ui labels list">
+				<div class="item">
+					<a class="ui label has-emoji" href="{{$.RepoLink}}/issues?severity={{.Severity.Name}}" style="color: #fff; background-color: {{.Severity.Color}}" >{{.Severity.Name}}</a>
+				</div>
+		</div>
+
+		<div class="ui divider"></div>
+
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
@@ -11,7 +31,7 @@
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 				{{range .Labels}}
 					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon {{if .IsChecked}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
-					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 				{{end}}
 			</div>
 		</div>

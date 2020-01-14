@@ -572,6 +572,10 @@ function initCommentForm() {
                 ).then(reload);
             }
             switch (input_id) {
+                case '#severity_id':
+                    $list.find('.selected').html('<a class="ui label has-emoji" href=' + $(this).data('href') +  ' style=' + $(this).data("style") + '>' +
+                        htmlEncode($(this).text()) + '</a>');
+                    break;
                 case '#milestone_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
                         htmlEncode($(this).text()) + '</a>');
@@ -605,6 +609,7 @@ function initCommentForm() {
     }
 
     // Milestone and assignee
+    selectItem('.select-severity', '#severity_id');
     selectItem('.select-milestone', '#milestone_id');
     selectItem('.select-assignee', '#assignee_id');
 }
