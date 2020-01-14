@@ -272,7 +272,7 @@
 					   style="color: #fff; background-color: {{if eq .Severity "Low"}}#009800{{else if eq .Severity "Medium"}}#fbca04{{else if eq .Severity "High"}}#eb6420{{else}}#e11d21{{end}}" title="{{.Severity}}">{{.Severity}}</a>
 
 					{{range .Labels}}
-						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&severity={{.Severity}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&severity={{$.Severity}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 					{{end}}
 
 					{{if .NumComments}}
