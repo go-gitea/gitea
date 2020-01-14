@@ -645,6 +645,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 			return
 		}
 		ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
+		return
 	}
 
 	if len(form.Do) == 0 {

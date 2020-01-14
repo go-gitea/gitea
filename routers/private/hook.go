@@ -29,7 +29,7 @@ import (
 func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to create os.Pipe in %s", repo.Path)
+		log.Error("Unable to create os.Pipe for %s", repo.Path)
 		return err
 	}
 	defer func() {
@@ -72,7 +72,7 @@ func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository
 func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to create pipe in %s: %v", repo.Path, err)
+		log.Error("Unable to create pipe for %s: %v", repo.Path, err)
 		return err
 	}
 	defer func() {
