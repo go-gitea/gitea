@@ -157,7 +157,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "guillep2k",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 9, 17, 0, 29, 0, time.UTC),
-			Updated:    time.Date(2019, 11, 9, 17, 0, 29, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 20, 29, 53, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "bug",
@@ -190,7 +190,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 12, 21, 0, 6, 0, time.UTC),
-			Updated:    time.Date(2019, 11, 12, 21, 0, 6, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 22, 7, 14, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "duplicate",
@@ -270,7 +270,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 12, 21, 21, 43, 0, time.UTC),
-			Updated:    time.Date(2019, 11, 12, 21, 21, 43, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 21, 39, 28, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "documentation",
@@ -307,7 +307,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "open",
 			Created:    time.Date(2019, 11, 12, 21, 54, 18, 0, time.UTC),
-			Updated:    time.Date(2019, 11, 12, 21, 54, 18, 0, time.UTC),
+			Updated:    time.Date(2020, 1, 4, 11, 30, 1, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "bug",

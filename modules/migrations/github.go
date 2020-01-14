@@ -525,6 +525,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			Milestone:      milestone,
 			State:          *pr.State,
 			Created:        *pr.CreatedAt,
+			Updated:        *pr.UpdatedAt,
 			Closed:         pr.ClosedAt,
 			Labels:         labels,
 			Merged:         merged,
