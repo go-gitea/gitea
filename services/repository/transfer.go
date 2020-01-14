@@ -12,8 +12,8 @@ import (
 	"github.com/unknwon/com"
 )
 
-// RepoWorkingPool represents a working pool to order the parallel changes to the same repository
-var RepoWorkingPool = sync.NewExclusivePool()
+// repoWorkingPool represents a working pool to order the parallel changes to the same repository
+var repoWorkingPool = sync.NewExclusivePool()
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
 func TransferOwnership(doer *models.User, newOwnerName string, repo *models.Repository) error {
@@ -23,12 +23,12 @@ func TransferOwnership(doer *models.User, newOwnerName string, repo *models.Repo
 
 	oldOwner := repo.Owner
 
-	RepoWorkingPool.CheckIn(com.ToStr(repo.ID))
+	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
 	if err := models.TransferOwnership(doer, newOwnerName, repo); err != nil {
-		RepoWorkingPool.CheckOut(com.ToStr(repo.ID))
+		repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 		return err
 	}
-	RepoWorkingPool.CheckOut(com.ToStr(repo.ID))
+	repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
 	notification.NotifyTransferRepository(doer, repo, oldOwner.Name)
 
@@ -43,12 +43,12 @@ func ChangeRepositoryName(doer *models.User, repo *models.Repository, newRepoNam
 	// repo so that we can atomically rename the repo path and updates the
 	// local copy's origin accordingly.
 
-	RepoWorkingPool.CheckIn(com.ToStr(repo.ID))
+	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
 	if err := models.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
-		RepoWorkingPool.CheckOut(com.ToStr(repo.ID))
+		repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 		return err
 	}
-	RepoWorkingPool.CheckOut(com.ToStr(repo.ID))
+	repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
 	notification.NotifyRenameRepository(doer, repo, oldRepoName)
 
