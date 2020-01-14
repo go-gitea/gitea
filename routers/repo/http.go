@@ -65,12 +65,11 @@ func HTTP(ctx *context.Context) {
 		return
 	}
 
-	var isPull, pushCreate bool
+	var isPull bool
 	service := ctx.Query("service")
 	if service == "git-receive-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
 		isPull = false
-		pushCreate = true
 	} else if service == "git-upload-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") {
 		isPull = true
@@ -283,7 +282,7 @@ func HTTP(ctx *context.Context) {
 	}
 
 	if !repoExist {
-		if !pushCreate {
+		if !(infoRefRegex.MatchString(ctx.Req.URL.Path) && ctx.Query("service") == "git-receive-pack") {
 			ctx.HandleText(http.StatusNotFound, "Repository not found")
 			return
 		}
@@ -407,19 +406,22 @@ type route struct {
 	handler func(serviceHandler)
 }
 
-var routes = []route{
-	{regexp.MustCompile(`(.*?)/git-upload-pack$`), "POST", serviceUploadPack},
-	{regexp.MustCompile(`(.*?)/git-receive-pack$`), "POST", serviceReceivePack},
-	{regexp.MustCompile(`(.*?)/info/refs$`), "GET", getInfoRefs},
-	{regexp.MustCompile(`(.*?)/HEAD$`), "GET", getTextFile},
-	{regexp.MustCompile(`(.*?)/objects/info/alternates$`), "GET", getTextFile},
-	{regexp.MustCompile(`(.*?)/objects/info/http-alternates$`), "GET", getTextFile},
-	{regexp.MustCompile(`(.*?)/objects/info/packs$`), "GET", getInfoPacks},
-	{regexp.MustCompile(`(.*?)/objects/info/[^/]*$`), "GET", getTextFile},
-	{regexp.MustCompile(`(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$`), "GET", getLooseObject},
-	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.pack$`), "GET", getPackFile},
-	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
-}
+var (
+	infoRefRegex = regexp.MustCompile(`(.*?)/info/refs$`)
+	routes       = []route{
+		{regexp.MustCompile(`(.*?)/git-upload-pack$`), "POST", serviceUploadPack},
+		{regexp.MustCompile(`(.*?)/git-receive-pack$`), "POST", serviceReceivePack},
+		{infoRefRegex, "GET", getInfoRefs},
+		{regexp.MustCompile(`(.*?)/HEAD$`), "GET", getTextFile},
+		{regexp.MustCompile(`(.*?)/objects/info/alternates$`), "GET", getTextFile},
+		{regexp.MustCompile(`(.*?)/objects/info/http-alternates$`), "GET", getTextFile},
+		{regexp.MustCompile(`(.*?)/objects/info/packs$`), "GET", getInfoPacks},
+		{regexp.MustCompile(`(.*?)/objects/info/[^/]*$`), "GET", getTextFile},
+		{regexp.MustCompile(`(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$`), "GET", getLooseObject},
+		{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.pack$`), "GET", getPackFile},
+		{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
+	}
+)
 
 func getGitConfig(option, dir string) string {
 	out, err := git.NewCommand("config", option).RunInDir(dir)
