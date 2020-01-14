@@ -119,6 +119,13 @@ go-check:
 		exit 1; \
 	fi
 
+.PHONY: git-check
+git-check:
+	@if git lfs >/dev/null 2>&1 ; then : ; else \
+		echo "Gitea requires git with lfs support to run tests." ; \
+		exit 1; \
+	fi
+
 .PHONY: node-check
 node-check:
 	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?' | tr '.' ' ');))
@@ -181,10 +188,6 @@ errcheck:
 	fi
 	errcheck $(PACKAGES)
 
-.PHONY: lint
-lint:
-	@echo 'make lint is depricated. Use "make revive" if you want to use the old lint tool, or "make golangci-lint" to run a complete code check.'
-
 .PHONY: revive
 revive:
 	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
@@ -217,7 +220,7 @@ fmt-check:
 	fi;
 
 .PHONY: test
-test:
+test: git-check
 	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: test\#%
@@ -279,7 +282,6 @@ test-mysql\#%: integrations.mysql.test generate-ini-mysql
 test-mysql-migration: migrations.mysql.test generate-ini-mysql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./migrations.mysql.test
 
-
 generate-ini-mysql8:
 	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
 		-e 's|{{TEST_MYSQL8_DBNAME}}|${TEST_MYSQL8_DBNAME}|g' \
@@ -298,7 +300,6 @@ test-mysql8\#%: integrations.mysql8.test generate-ini-mysql8
 .PHONY: test-mysql8-migration
 test-mysql8-migration: migrations.mysql8.test generate-ini-mysql8
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./migrations.mysql8.test
-
 
 generate-ini-pgsql:
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
@@ -319,7 +320,6 @@ test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql
 test-pgsql-migration: migrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./migrations.pgsql.test
 
-
 generate-ini-mssql:
 	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
 		-e 's|{{TEST_MSSQL_DBNAME}}|${TEST_MSSQL_DBNAME}|g' \
@@ -339,7 +339,6 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 test-mssql-migration: migrations.mssql.test generate-ini-mssql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test
 
-
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
@@ -356,24 +355,23 @@ bench-mssql: integrations.mssql.test generate-ini-mssql
 bench-pgsql: integrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
-
 .PHONY: integration-test-coverage
 integration-test-coverage: integrations.cover.test generate-ini-mysql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
-integrations.mysql.test: $(GO_SOURCES)
+integrations.mysql.test: git-check $(GO_SOURCES)
 	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql.test
 
-integrations.mysql8.test: $(GO_SOURCES)
+integrations.mysql8.test: git-check $(GO_SOURCES)
 	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql8.test
 
-integrations.pgsql.test: $(GO_SOURCES)
+integrations.pgsql.test: git-check $(GO_SOURCES)
 	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
 
-integrations.mssql.test: $(GO_SOURCES)
+integrations.mssql.test: git-check $(GO_SOURCES)
 	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mssql.test
 
-integrations.sqlite.test: $(GO_SOURCES)
+integrations.sqlite.test: git-check $(GO_SOURCES)
 	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 integrations.cover.test: $(GO_SOURCES)
@@ -489,21 +487,6 @@ $(CSS_DEST): node_modules $(CSS_SOURCES)
 	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 	npx postcss --use autoprefixer --use cssnano --no-map --replace public/css/*
 
-.PHONY: javascripts
-javascripts:
-	echo "'make javascripts' is deprecated, please use 'make js'"
-	$(MAKE) js
-
-.PHONY: stylesheets-check
-stylesheets-check:
-	echo "'make stylesheets-check' is deprecated, please use 'make css'"
-	$(MAKE) css
-
-.PHONY: generate-stylesheets
-generate-stylesheets:
-	echo "'make generate-stylesheets' is deprecated, please use 'make css'"
-	$(MAKE) css
-
 .PHONY: swagger-ui
 swagger-ui:
 	rm -Rf public/vendor/assets/swagger-ui
@@ -558,6 +541,6 @@ pr:
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.22.2; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.20.0; \
 	fi
 	golangci-lint run --timeout 5m
