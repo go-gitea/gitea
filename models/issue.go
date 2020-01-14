@@ -7,7 +7,6 @@ package models
 
 import (
 	"fmt"
-	"path"
 	"regexp"
 	"sort"
 	"strconv"
@@ -324,7 +323,7 @@ func (issue *Issue) GetIsRead(userID int64) error {
 
 // APIURL returns the absolute APIURL to this issue.
 func (issue *Issue) APIURL() string {
-	return issue.Repo.APIURL() + "/" + path.Join("issues", fmt.Sprint(issue.Index))
+	return fmt.Sprintf("%s/issues/%d", issue.Repo.APIURL(), issue.Index)
 }
 
 // HTMLURL returns the absolute URL to this issue.
