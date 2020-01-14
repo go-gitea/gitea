@@ -83,7 +83,7 @@ func TestAPINotification(t *testing.T) {
 
 	// -- check notifications --
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/new?token=%s", token))
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	// -- mark notifications as read --
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?token=%s", token))

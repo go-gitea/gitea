@@ -502,11 +502,11 @@
         "summary": "Check if unread notifications exist",
         "operationId": "notifyNewAvailable",
         "responses": {
+          "200": {
+            "$ref": "#/responses/NotificationCount"
+          },
           "204": {
             "description": "No unread notification"
-          },
-          "302": {
-            "$ref": "#/responses/NotificationCount"
           }
         }
       }

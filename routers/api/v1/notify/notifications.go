@@ -18,15 +18,15 @@ func NewAvailable(ctx *context.APIContext) {
 	// ---
 	// summary: Check if unread notifications exist
 	// responses:
+	//   "200":
+	//    "$ref": "#/responses/NotificationCount"
 	//   "204":
 	//     description: No unread notification
-	//   "302":
-	//    "$ref": "#/responses/NotificationCount"
 
 	count := models.CountUnread(ctx.User)
 
 	if count > 0 {
-		ctx.JSON(http.StatusFound, api.NotificationCount{New: count})
+		ctx.JSON(http.StatusOK, api.NotificationCount{New: count})
 	} else {
 		ctx.Status(http.StatusNoContent)
 	}
