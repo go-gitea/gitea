@@ -27,13 +27,28 @@ func CommitFromReader(gitRepo *Repository, sha plumbing.Hash, reader io.Reader) 
 	pgpsig := false
 
 	scanner := bufio.NewScanner(reader)
+	// Split by '\n' but include the '\n'
+	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if atEOF && len(data) == 0 {
+			return 0, nil, nil
+		}
+		if i := bytes.IndexByte(data, '\n'); i >= 0 {
+			// We have a full newline-terminated line.
+			return i + 1, data[0 : i+1], nil
+		}
+		// If we're at EOF, we have a final, non-terminated line. Return it.
+		if atEOF {
+			return len(data), data, nil
+		}
+		// Request more data.
+		return 0, nil, nil
+	})
+
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if pgpsig {
 			if len(line) > 0 && line[0] == ' ' {
-				line = bytes.TrimLeft(line, " ")
-				_, _ = signatureSB.Write(line)
-				_ = signatureSB.WriteByte('\n')
+				_, _ = signatureSB.Write(line[1:])
 				continue
 			} else {
 				pgpsig = false
@@ -41,42 +56,41 @@ func CommitFromReader(gitRepo *Repository, sha plumbing.Hash, reader io.Reader) 
 		}
 
 		if !message {
+			// This is probably not correct but is copied from go-gits interpretation...
 			trimmed := bytes.TrimSpace(line)
 			if len(trimmed) == 0 {
 				message = true
-				_, _ = payloadSB.WriteString("\n")
+				_, _ = payloadSB.Write(line)
 				continue
 			}
 
 			split := bytes.SplitN(trimmed, []byte{' '}, 2)
+			var data []byte
+			if len(split) > 1 {
+				data = split[1]
+			}
 
 			switch string(split[0]) {
 			case "tree":
-				commit.Tree = *NewTree(gitRepo, plumbing.NewHash(string(split[1])))
+				commit.Tree = *NewTree(gitRepo, plumbing.NewHash(string(data)))
 				_, _ = payloadSB.Write(line)
-				_ = payloadSB.WriteByte('\n')
 			case "parent":
-				commit.Parents = append(commit.Parents, plumbing.NewHash(string(split[1])))
+				commit.Parents = append(commit.Parents, plumbing.NewHash(string(data)))
 				_, _ = payloadSB.Write(line)
-				_ = payloadSB.WriteByte('\n')
 			case "author":
 				commit.Author = &Signature{}
-				commit.Author.Decode(split[1])
+				commit.Author.Decode(data)
 				_, _ = payloadSB.Write(line)
-				_ = payloadSB.WriteByte('\n')
 			case "committer":
 				commit.Committer = &Signature{}
-				commit.Committer.Decode(split[1])
+				commit.Committer.Decode(data)
 				_, _ = payloadSB.Write(line)
-				_ = payloadSB.WriteByte('\n')
 			case "gpgsig":
-				_, _ = signatureSB.Write(split[1])
-				_ = signatureSB.WriteByte('\n')
+				_, _ = signatureSB.Write(data)
 				pgpsig = true
 			}
 		} else {
 			_, _ = messageSB.Write(line)
-			_ = messageSB.WriteByte('\n')
 		}
 	}
 	commit.CommitMessage = messageSB.String()
