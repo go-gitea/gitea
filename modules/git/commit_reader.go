@@ -87,6 +87,7 @@ func CommitFromReader(gitRepo *Repository, sha plumbing.Hash, reader io.Reader) 
 				_, _ = payloadSB.Write(line)
 			case "gpgsig":
 				_, _ = signatureSB.Write(data)
+				_ = signatureSB.WriteByte('\n')
 				pgpsig = true
 			}
 		} else {
