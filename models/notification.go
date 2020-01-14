@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -294,6 +295,20 @@ func notificationsForUser(e Engine, user *User, statuses []NotificationStatus, p
 	return
 }
 
+// CountUnread count unread notifications for a user
+func CountUnread(user *User) int64 {
+	return countUnread(x, user.ID)
+}
+
+func countUnread(e Engine, userID int64) int64 {
+	exist, err := e.Where("user_id = ?", userID).And("status = ?", NotificationStatusUnread).Count(new(Notification))
+	if err != nil {
+		log.Error("countUnread", err)
+		return 0
+	}
+	return exist
+}
+
 // APIFormat converts a Notification to api.NotificationThread
 func (n *Notification) APIFormat() *api.NotificationThread {
 	result := &api.NotificationThread{
@@ -388,7 +403,7 @@ func (n *Notification) loadComment(e Engine) (err error) {
 	if n.Comment == nil && n.CommentID > 0 {
 		n.Comment, err = GetCommentByID(n.CommentID)
 		if err != nil {
-			return fmt.Errorf("GetCommentByID [%d]: %v", n.CommentID, err)
+			return fmt.Errorf("GetCommentByID [%d] for issue ID [%d]: %v", n.CommentID, n.IssueID, err)
 		}
 	}
 	return nil
