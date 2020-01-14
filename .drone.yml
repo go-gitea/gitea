@@ -756,12 +756,15 @@ clone:
   disable: true
 
 trigger:
-  ref:
-  - refs/heads/master
-  - refs/tags/**
+  branch:
+    - master
+    - "release/*"
+  event:
+    - push
+    - tag
   status:
-  - success
-  - failure
+    - success
+    - failure
 
 depends_on:
   - testing
