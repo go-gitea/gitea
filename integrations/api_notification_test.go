@@ -81,6 +81,10 @@ func TestAPINotification(t *testing.T) {
 	assert.EqualValues(t, thread5.Issue.APIURL(), apiN.Subject.URL)
 	assert.EqualValues(t, thread5.Repository.HTMLURL(), apiN.Repository.HTMLURL)
 
+	// -- check notifications --
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/new?token=%s", token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
 	// -- mark notifications as read --
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?token=%s", token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -103,4 +107,8 @@ func TestAPINotification(t *testing.T) {
 	assert.Equal(t, models.NotificationStatusUnread, thread5.Status)
 	thread5 = models.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
 	assert.Equal(t, models.NotificationStatusRead, thread5.Status)
+
+	// -- check notifications --
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/new?token=%s", token))
+	resp = session.MakeRequest(t, req, http.StatusNoContent)
 }
