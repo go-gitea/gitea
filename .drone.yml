@@ -779,7 +779,7 @@ steps:
     pull: always
     image: appleboy/drone-discord:1.2.4
     environment:
-      DISCORD_WEBHOOK_ID:
+      WEBHOOK_ID:
         from_secret: discord_webhook_id
-      DISCORD_WEBHOOK_TOKEN:
+      WEBHOOK_TOKEN:
         from_secret: discord_webhook_token
