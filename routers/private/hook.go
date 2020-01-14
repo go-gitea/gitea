@@ -139,6 +139,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					})
 					return
 				}
+				// Check all status checks and reviews is ok, unless repo admin which can bypass this.
 				if !perm.IsAdmin() {
 					if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
 						if models.IsErrNotAllowedToMerge(err) {
