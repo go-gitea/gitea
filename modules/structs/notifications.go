@@ -26,3 +26,8 @@ type NotificationSubject struct {
 	LatestCommentURL string `json:"latest_comment_url"`
 	Type             string `json:"type" binding:"In(Issue,Pull,Commit)"`
 }
+
+// NotificationCount number of unread notifications
+type NotificationCount struct {
+	New int64 `json:"new"`
+}
