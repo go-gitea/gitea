@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -48,7 +49,7 @@ func GetBranch(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	branch, err := ctx.Repo.Repository.GetBranch(ctx.Repo.BranchName)
+	branch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.BranchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
@@ -95,7 +96,7 @@ func ListBranches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
 
-	branches, err := ctx.Repo.Repository.GetBranches()
+	branches, err := repo_module.GetBranches(ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 		return
