@@ -33,11 +33,11 @@ func TestGetFeeds(t *testing.T) {
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	actions, err := GetFeeds(GetFeedsOptions{
-		RequestedUser:    user,
-		RequestingUserID: user.ID,
-		IncludePrivate:   true,
-		OnlyPerformedBy:  false,
-		IncludeDeleted:   true,
+		RequestedUser:   user,
+		Actor:           user,
+		IncludePrivate:  true,
+		OnlyPerformedBy: false,
+		IncludeDeleted:  true,
 	})
 	assert.NoError(t, err)
 	if assert.Len(t, actions, 1) {
@@ -46,10 +46,10 @@ func TestGetFeeds(t *testing.T) {
 	}
 
 	actions, err = GetFeeds(GetFeedsOptions{
-		RequestedUser:    user,
-		RequestingUserID: user.ID,
-		IncludePrivate:   false,
-		OnlyPerformedBy:  false,
+		RequestedUser:   user,
+		Actor:           user,
+		IncludePrivate:  false,
+		OnlyPerformedBy: false,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 0)
@@ -59,14 +59,14 @@ func TestGetFeeds2(t *testing.T) {
 	// test with an organization user
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	const userID = 2 // user2 is an owner of the organization
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	actions, err := GetFeeds(GetFeedsOptions{
-		RequestedUser:    org,
-		RequestingUserID: userID,
-		IncludePrivate:   true,
-		OnlyPerformedBy:  false,
-		IncludeDeleted:   true,
+		RequestedUser:   org,
+		Actor:           user,
+		IncludePrivate:  true,
+		OnlyPerformedBy: false,
+		IncludeDeleted:  true,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
@@ -76,11 +76,11 @@ func TestGetFeeds2(t *testing.T) {
 	}
 
 	actions, err = GetFeeds(GetFeedsOptions{
-		RequestedUser:    org,
-		RequestingUserID: userID,
-		IncludePrivate:   false,
-		OnlyPerformedBy:  false,
-		IncludeDeleted:   true,
+		RequestedUser:   org,
+		Actor:           user,
+		IncludePrivate:  false,
+		OnlyPerformedBy: false,
+		IncludeDeleted:  true,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 0)

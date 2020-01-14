@@ -30,11 +30,11 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 
 		// get the action for comparison
 		actions, err := GetFeeds(GetFeedsOptions{
-			RequestedUser:    user,
-			RequestingUserID: user.ID,
-			IncludePrivate:   true,
-			OnlyPerformedBy:  false,
-			IncludeDeleted:   true,
+			RequestedUser:   user,
+			Actor:           user,
+			IncludePrivate:  true,
+			OnlyPerformedBy: false,
+			IncludeDeleted:  true,
 		})
 		assert.NoError(t, err)
 
