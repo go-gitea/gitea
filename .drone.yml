@@ -778,8 +778,5 @@ steps:
   - name: discord
     pull: always
     image: appleboy/drone-discord:1.2.4
-    environment:
-      WEBHOOK_ID:
-        from_secret: discord_webhook_id
-      WEBHOOK_TOKEN:
-        from_secret: discord_webhook_token
+    settings:
+      secrets: [ discord_webhook_id, discord_webhook_token ]
