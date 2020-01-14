@@ -8,7 +8,6 @@ package models
 
 import (
 	"fmt"
-	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -249,7 +248,7 @@ func (c *Comment) APIURL() string {
 		return ""
 	}
 
-	return c.Issue.Repo.APIURL() + "/" + path.Join("issues/comments", fmt.Sprint(c.ID))
+	return fmt.Sprintf("%s/issues/comments/%d", c.Issue.Repo.APIURL(), c.ID)
 }
 
 // IssueURL formats a URL-string to the issue

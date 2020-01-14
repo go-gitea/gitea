@@ -518,6 +518,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Combo("").
 				Get(notify.ListNotifications).
 				Put(notify.ReadNotifications)
+			m.Get("/new", notify.NewAvailable)
 			m.Combo("/threads/:id").
 				Get(notify.GetThread).
 				Patch(notify.ReadThread)
