@@ -750,7 +750,7 @@ name: notify
 
 platform:
   os: linux
-  arch: amd64
+  arch: arm64
 
 workspace:
   base: /go
@@ -777,7 +777,7 @@ depends_on:
 steps:
   - name: discord
     pull: always
-    image: appleboy/drone-discord:1.0.0
+    image: appleboy/drone-discord:1.2.4
     environment:
       DISCORD_WEBHOOK_ID:
         from_secret: discord_webhook_id
