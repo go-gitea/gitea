@@ -301,7 +301,6 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 }
 
 func TestGetRepoIDsForIssuesOptions(t *testing.T) {
-	//TODO
 	assert.NoError(t, PrepareTestDatabase())
 	for _, test := range []struct {
 		Opts            IssuesOptions
