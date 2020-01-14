@@ -65,11 +65,12 @@ func HTTP(ctx *context.Context) {
 		return
 	}
 
-	var isPull bool
+	var isPull, pushCreate bool
 	service := ctx.Query("service")
 	if service == "git-receive-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
 		isPull = false
+		pushCreate = true
 	} else if service == "git-upload-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") {
 		isPull = true
@@ -282,6 +283,10 @@ func HTTP(ctx *context.Context) {
 	}
 
 	if !repoExist {
+		if !pushCreate {
+			ctx.HandleText(http.StatusNotFound, "Repository not found")
+			return
+		}
 		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
 			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for organizations.")
 			return
