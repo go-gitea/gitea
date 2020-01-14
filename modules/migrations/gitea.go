@@ -332,6 +332,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			MilestoneID: milestoneID,
 			Labels:      labels,
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
+			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
 		}
 
 		userid, ok := g.userMap[issue.PosterID]
@@ -406,6 +407,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			Type:        models.CommentTypeComment,
 			Content:     comment.Content,
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
+			UpdatedUnix: timeutil.TimeStamp(comment.Updated.Unix()),
 		}
 
 		if userid > 0 {
@@ -574,6 +576,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		IsLocked:    pr.IsLocked,
 		Labels:      labels,
 		CreatedUnix: timeutil.TimeStamp(pr.Created.Unix()),
+		UpdatedUnix: timeutil.TimeStamp(pr.Updated.Unix()),
 	}
 
 	userid, ok := g.userMap[pr.PosterID]
