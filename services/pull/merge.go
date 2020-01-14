@@ -472,10 +472,8 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 
 // IsSignedIfRequired check if merge will be signed if required
 func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error) {
-	if pr.ProtectedBranch == nil {
-		if err := pr.LoadProtectedBranch(); err != nil {
-			return false, err
-		}
+	if err := pr.LoadProtectedBranch(); err != nil {
+		return false, err
 	}
 
 	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
