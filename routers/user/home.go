@@ -592,10 +592,13 @@ func Issues(ctx *context.Context) {
 	}
 
 	var shownIssues int
+	var totalIssues int
 	if !isShowClosed {
 		shownIssues = int(shownIssueStats.OpenCount)
+		totalIssues = int(userIssueStats.OpenCount)
 	} else {
 		shownIssues = int(shownIssueStats.ClosedCount)
+		totalIssues = int(userIssueStats.OpenCount)
 	}
 
 	ctx.Data["Issues"] = issues
@@ -608,7 +611,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
-	ctx.Data["ShownIssueCount"] = shownIssues
+	ctx.Data["TotalIssueCount"] = totalIssues
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
