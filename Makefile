@@ -487,14 +487,6 @@ $(CSS_DEST): node_modules $(CSS_SOURCES)
 	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 	npx postcss --use autoprefixer --use cssnano --no-map --replace public/css/*
 
-.PHONY: swagger-ui
-swagger-ui:
-	rm -Rf public/vendor/assets/swagger-ui
-	git clone --depth=10 -b v3.13.4 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
-	mv $(TMPDIR)/swagger-ui/dist public/vendor/assets/swagger-ui
-	rm -Rf $(TMPDIR)/swagger-ui
-	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../../swagger.v1.json;g" public/vendor/assets/swagger-ui/index.html
-
 .PHONY: update-translations
 update-translations:
 	mkdir -p ./translations
