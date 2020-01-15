@@ -2319,6 +2319,16 @@ function initTemplateSearch() {
   changeOwner();
 }
 
+function initIssuePopup() {
+  $('.ref-issue').hover(function () {
+    $(this).popup({
+      html: '',
+    });
+  }, function () {
+    $(this).popup('hide');
+  });
+}
+
 $(document).ready(() => {
   csrf = $('meta[name=_csrf]').attr('content');
   suburl = $('meta[name=_suburl]').attr('content');
@@ -2556,6 +2566,7 @@ $(document).ready(() => {
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
+  initIssuePopup();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
