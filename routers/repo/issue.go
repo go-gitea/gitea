@@ -1608,7 +1608,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 		}
 		// Reload new reactions
 		comment.Reactions = nil
-		if err = comment.LoadReactions(); err != nil {
+		if err = comment.LoadReactions(ctx.Repo.Repository); err != nil {
 			log.Info("comment.LoadReactions: %s", err)
 			break
 		}
@@ -1622,7 +1622,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 
 		// Reload new reactions
 		comment.Reactions = nil
-		if err = comment.LoadReactions(); err != nil {
+		if err = comment.LoadReactions(ctx.Repo.Repository); err != nil {
 			log.Info("comment.LoadReactions: %s", err)
 			break
 		}

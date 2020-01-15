@@ -300,6 +300,8 @@ var migrations = []Migration{
 	NewMigration("add is_restricted column for users table", addIsRestricted),
 	// v122 -> v123
 	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
+	// v123 -> v124
+	NewMigration("Add original informations for reactions", addReactionOriginals),
 }
 
 // Migrate database to current version
