@@ -9,8 +9,8 @@ menu:
   sidebar:
     parent: "advanced"
     name: "Customizing Gitea"
-    weight: 9
     identifier: "customizing-gitea"
+    weight: 9
 ---
 
 # Customizing Gitea
@@ -81,6 +81,8 @@ just place it under your "custom/public/" directory (for instance `custom/public
 
 To match the current style, the link should have the class name "item", and you can use `{{AppSubUrl}}` to get the base URL:
 `<a class="item" href="{{AppSubUrl}}/impressum.html">Impressum</a>`
+
+For more information, see [Adding Legal Pages](https://docs.gitea.io/en-us/adding-legal-pages).
 
 You can add new tabs in the same way, putting them in `extra_tabs.tmpl`.
 The exact HTML needed to match the style of other tabs is in the file

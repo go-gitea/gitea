@@ -319,18 +319,6 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 	return releases, nil
 }
 
-func convertGithubReactions(reactions *github.Reactions) *base.Reactions {
-	return &base.Reactions{
-		TotalCount: *reactions.TotalCount,
-		PlusOne:    *reactions.PlusOne,
-		MinusOne:   *reactions.MinusOne,
-		Laugh:      *reactions.Laugh,
-		Confused:   *reactions.Confused,
-		Heart:      *reactions.Heart,
-		Hooray:     *reactions.Hooray,
-	}
-}
-
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	opt := &github.IssueListByRepoOptions{
@@ -366,15 +354,36 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		for _, l := range issue.Labels {
 			labels = append(labels, convertGithubLabel(&l))
 		}
-		var reactions *base.Reactions
-		if issue.Reactions != nil {
-			reactions = convertGithubReactions(issue.Reactions)
-		}
 
 		var email string
 		if issue.User.Email != nil {
 			email = *issue.User.Email
 		}
+
+		// get reactions
+		var reactions []*base.Reaction
+		for i := 1; ; i++ {
+			g.sleep()
+			res, resp, err := g.client.Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListOptions{
+				Page:    i,
+				PerPage: perPage,
+			})
+			if err != nil {
+				return nil, false, err
+			}
+			g.rate = &resp.Rate
+			if len(res) == 0 {
+				break
+			}
+			for _, reaction := range res {
+				reactions = append(reactions, &base.Reaction{
+					UserID:   reaction.User.GetID(),
+					UserName: reaction.User.GetLogin(),
+					Content:  reaction.GetContent(),
+				})
+			}
+		}
+
 		allIssues = append(allIssues, &base.Issue{
 			Title:       *issue.Title,
 			Number:      int64(*issue.Number),
@@ -418,9 +427,29 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 			if comment.User.Email != nil {
 				email = *comment.User.Email
 			}
-			var reactions *base.Reactions
-			if comment.Reactions != nil {
-				reactions = convertGithubReactions(comment.Reactions)
+
+			// get reactions
+			var reactions []*base.Reaction
+			for i := 1; ; i++ {
+				g.sleep()
+				res, resp, err := g.client.Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
+					Page:    i,
+					PerPage: 100,
+				})
+				if err != nil {
+					return nil, err
+				}
+				g.rate = &resp.Rate
+				if len(res) == 0 {
+					break
+				}
+				for _, reaction := range res {
+					reactions = append(reactions, &base.Reaction{
+						UserID:   reaction.User.GetID(),
+						UserName: reaction.User.GetLogin(),
+						Content:  reaction.GetContent(),
+					})
+				}
 			}
 			allComments = append(allComments, &base.Comment{
 				IssueIndex:  issueNumber,
@@ -473,8 +502,6 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			labels = append(labels, convertGithubLabel(l))
 		}
 
-		// FIXME: This API missing reactions, we may need another extra request to get reactions
-
 		var email string
 		if pr.User.Email != nil {
 			email = *pr.User.Email
@@ -515,6 +542,30 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			headUserName = *pr.Head.User.Login
 		}
 
+		// get reactions
+		var reactions []*base.Reaction
+		for i := 1; ; i++ {
+			g.sleep()
+			res, resp, err := g.client.Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListOptions{
+				Page:    i,
+				PerPage: perPage,
+			})
+			if err != nil {
+				return nil, err
+			}
+			g.rate = &resp.Rate
+			if len(res) == 0 {
+				break
+			}
+			for _, reaction := range res {
+				reactions = append(reactions, &base.Reaction{
+					UserID:   reaction.User.GetID(),
+					UserName: reaction.User.GetLogin(),
+					Content:  reaction.GetContent(),
+				})
+			}
+		}
+
 		allPRs = append(allPRs, &base.PullRequest{
 			Title:          *pr.Title,
 			Number:         int64(*pr.Number),
@@ -545,7 +596,8 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 				RepoName:  *pr.Base.Repo.Name,
 				OwnerName: *pr.Base.User.Login,
 			},
-			PatchURL: *pr.PatchURL,
+			PatchURL:  *pr.PatchURL,
+			Reactions: reactions,
 		})
 	}
 

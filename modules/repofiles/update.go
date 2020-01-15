@@ -151,8 +151,27 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-		return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
+	} else {
+		protectedBranch, err := repo.GetBranchProtection(opts.OldBranch)
+		if err != nil {
+			return nil, err
+		}
+		if protectedBranch != nil && !protectedBranch.CanUserPush(doer.ID) {
+			return nil, models.ErrUserCannotCommit{
+				UserName: doer.LowerName,
+			}
+		}
+		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
+			_, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
+			if err != nil {
+				if !models.IsErrWontSign(err) {
+					return nil, err
+				}
+				return nil, models.ErrUserCannotCommit{
+					UserName: doer.LowerName,
+				}
+			}
+		}
 	}
 
 	// If FromTreePath is not set, set it to the opts.TreePath

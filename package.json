@@ -4,6 +4,9 @@
   "engines": {
     "node": ">=10"
   },
+  "dependencies": {
+    "swagger-ui": "3.24.3"
+  },
   "devDependencies": {
     "@babel/core": "7.7.7",
     "@babel/plugin-transform-runtime": "7.7.6",
