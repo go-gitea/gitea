@@ -194,7 +194,7 @@ func RebuildUserUnits(e Engine, user *User) error {
 	return nil
 }
 
-// RebuildUserUnits will rebuild all permissions for generic logged in users
+// RebuildLoggedInUnits will rebuild all permissions for generic logged in users
 func RebuildLoggedInUnits(e Engine) error {
 
 	batchID, err := userRepoUnitStartBatch(e)
@@ -268,7 +268,7 @@ func RebuildAnonymousUnits(e Engine) error {
 	return nil
 }
 
-// RebuildUserUnits will rebuild permissions for a given (real) user on a given repository
+// RebuildUserRepoUnits will rebuild permissions for a given (real) user on a given repository
 func RebuildUserRepoUnits(e Engine, user *User, repo *Repository) error {
 
 	batchID, err := userRepoUnitStartBatch(e)
@@ -1038,6 +1038,7 @@ func userRepoUnitStartBatch(e Engine) (int64, error) {
 	return batchnum.ID, nil
 }
 
+// userRepoUnitStartBatch will remove temporary data used for a batch update
 func userRepoUnitsFinishBatch(e Engine, batchID int64) error {
 	_, err := e.Delete(&UserRepoUnitWork{BatchID: batchID})
 	if err != nil {
@@ -1047,9 +1048,10 @@ func userRepoUnitsFinishBatch(e Engine, batchID int64) error {
 	return err
 }
 
+// userRepoUnitStartBatch dumps a user_repo_unit_work batch into user_repo_unit
 func batchConsolidateWorkData(e Engine, batchID int64) error {
 	// This function will combine all records into the best set of permissions
-	// for each user and insert them into UserRepoUnit.
+	// for each user and insert them into user_repo_unit.
 	if _, err := e.Exec("INSERT INTO user_repo_unit (user_id, repo_id, type, mode) "+
 		"SELECT user_id, repo_id, type, MAX(mode) "+
 		"FROM user_repo_unit_work WHERE batch_id = ? "+
