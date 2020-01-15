@@ -604,17 +604,14 @@ name: docs
 
 platform:
   os: linux
-  arch: amd64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
+  arch: arm64
 
 steps:
   - name: build-docs
     pull: always
-    image: webhippie/hugo:latest
+    image: plugins/hugo:latest
     commands:
+      - apk add --no-cache make bash curl
       - cd docs
       - make trans-copy
       - make clean
@@ -622,7 +619,7 @@ steps:
 
   - name: publish-docs
     pull: always
-    image: lucap/drone-netlify:latest
+    image: techknowlogick/drone-netlify:latest
     settings:
       path: docs/public/
       site_id: d2260bae-7861-4c02-8646-8f6440b12672
