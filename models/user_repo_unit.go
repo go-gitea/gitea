@@ -67,10 +67,10 @@ const (
 // UserRepoUnit is an explosion (cartesian product) of all user permissions
 // on all repositories, and all types of relevant unit types.
 type UserRepoUnit struct {
-	UserID               int64      `xorm:"pk"`
-	RepoID               int64      `xorm:"pk INDEX"`
-	Type                 UnitType   `xorm:"pk"`
-	Mode                 AccessMode `xorm:"NOT NULL"`
+	UserID int64      `xorm:"pk"`
+	RepoID int64      `xorm:"pk INDEX"`
+	Type   UnitType   `xorm:"pk"`
+	Mode   AccessMode `xorm:"NOT NULL"`
 }
 
 // UserRepoUnitWork is a table used for temporarily accumulate all the work performed
@@ -79,11 +79,11 @@ type UserRepoUnit struct {
 // Lack of primary key is intentional; this table is not intended for replication
 // as it should never contain rows after the transaction is completed.
 type UserRepoUnitWork struct {
-	BatchID              int64      `xorm:"NOT NULL INDEX"`
-	UserID               int64      `xorm:"NOT NULL"`
-	RepoID               int64      `xorm:"NOT NULL"`
-	Type                 UnitType   `xorm:"NOT NULL"`
-	Mode                 AccessMode `xorm:"NOT NULL"`
+	BatchID int64      `xorm:"NOT NULL INDEX"`
+	UserID  int64      `xorm:"NOT NULL"`
+	RepoID  int64      `xorm:"NOT NULL"`
+	Type    UnitType   `xorm:"NOT NULL"`
+	Mode    AccessMode `xorm:"NOT NULL"`
 }
 
 // UserRepoUnitBatchNumber provides in a safe way unique ID values
@@ -99,7 +99,7 @@ var (
 	// This list may be updated as needed. Requisites are:
 	// - New units need to abide by the same rules as the others
 	// - Units from all repos must be rebuilt after this change
-	supportedUnits = []UnitType {
+	supportedUnits = []UnitType{
 		UnitTypeCode,
 		UnitTypeIssues,
 		UnitTypePullRequests,
@@ -108,14 +108,14 @@ var (
 
 	// Pre-built SQL condition to filter-out unsupported unit types
 	// "repo_unit.`type` IN (UnitTypeCode, UnitTypeIssues, etc.)"
-	userRepoUnitSupported		string
+	userRepoUnitSupported string
 )
 
 func init() {
 	// Build some data that we will use quite often
 	uts := make([]string, len(supportedUnits))
 	for i, su := range supportedUnits {
-		uts[i] = fmt.Sprintf("%d",su)
+		uts[i] = fmt.Sprintf("%d", su)
 	}
 	userRepoUnitSupported = "repo_unit.`type` IN (" + strings.Join(uts, ",") + ")"
 }
@@ -315,7 +315,7 @@ func RemoveTeamUnits(e Engine, team *Team) error {
 	}
 
 	log.Trace("RemoveTeamUnits: removing permissions for team %d on batch %d", team.ID, batchID)
-	
+
 	// Since there's no specific set of records that we can identify as belonging
 	// to the team (they're associated to a user and a repository instead) we have
 	// no basis on how to remove any permissions that may come from this team.
@@ -329,14 +329,14 @@ func RemoveTeamUnits(e Engine, team *Team) error {
 		for start := 0; ; start += batchSize {
 			repos := make([]*Repository, 0, batchSize)
 			if err := x.Asc("id").Limit(batchSize, start).
-					Where("repository.owner_id = ?", team.OrgID).
-					Find(&repos); err != nil {
+				Where("repository.owner_id = ?", team.OrgID).
+				Find(&repos); err != nil {
 				return err
 			}
 			if len(repos) == 0 {
 				break
 			}
-			for _, repo := range repos {			
+			for _, repo := range repos {
 				// Make sure we start from scratch; we intend to recreate all pairs
 				log.Trace("RemoveTeamUnits: rebuilding permissions for repository %d on batch %d", repo.ID, batchID)
 				_, err = e.Delete(&UserRepoUnit{RepoID: repo.ID})
@@ -350,14 +350,14 @@ func RemoveTeamUnits(e Engine, team *Team) error {
 				log.Trace("RemoveTeamUnits: permissions for repository %d on batch %d rebuilt", repo.ID, batchID)
 			}
 		}
-		
+
 	} else {
 
 		if err = team.getRepositories(e); err != nil {
 			return fmt.Errorf("team.getRepositories(batch:%d): %v", batchID, err)
 		}
 
-		for _, repo := range team.Repos {				
+		for _, repo := range team.Repos {
 			// Make sure we start from scratch; we intend to recreate all pairs
 			log.Trace("RemoveTeamUnits: rebuilding permissions for repository %d on batch %d", repo.ID, batchID)
 			_, err = e.Delete(&UserRepoUnit{RepoID: repo.ID})
@@ -514,8 +514,8 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 			"WHERE team_repo.repo_id = ? AND team.includes_all_repositories = ? "+
 			"AND `user`.is_active = ? AND `user`.prohibit_login = ? AND `user`.type = ? "+
 			"AND "+userRepoUnitSupported+" "+
-			"AND team.id <> ? "+	// excludeTeamID will be -1 if no team is to be excluded
-			"AND team.org_id = ?",	// Sanity check, just in case
+			"AND team.id <> ? "+ // excludeTeamID will be -1 if no team is to be excluded
+			"AND team.org_id = ?", // Sanity check, just in case
 			batchID, repo.ID, false, true, false, UserTypeIndividual, excludeTeamID, repo.OwnerID)
 		if err != nil {
 			return fmt.Errorf("INSERT user_repo_unit_work (repo teams, !include_all): %v", err)
@@ -535,7 +535,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 			"WHERE team.org_id = ? AND team.includes_all_repositories = ? "+
 			"AND "+userRepoUnitSupported+" "+
 			"AND `user`.is_active = ? AND `user`.prohibit_login = ? AND `user`.type = ? "+
-			"AND team.id <> ?",		// excludeTeamID will be -1 if no team is to be excluded
+			"AND team.id <> ?", // excludeTeamID will be -1 if no team is to be excluded
 			batchID, repo.ID, repo.OwnerID, true, true, false, UserTypeIndividual, excludeTeamID)
 		if err != nil {
 			return fmt.Errorf("INSERT user_repo_unit_work (repo teams, include_all): %v", err)
@@ -566,7 +566,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 	// ****************************************************************************
 
 	// "Find all users collaborating on this repository; cross with all relevant units
-	//  enabled for this repo. Assign access specified by the collaboration." 
+	//  enabled for this repo. Assign access specified by the collaboration."
 	_, err = e.Exec("INSERT INTO user_repo_unit_work (batch_id, user_id, repo_id, `type`, `mode`) "+
 		"SELECT ?, `user`.id, repo_unit.repo_id, repo_unit.`type`, collaboration.`mode` "+
 		"FROM collaboration "+
@@ -600,7 +600,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 				// All members of the organization get at least read access to the repository
 				// "Find all valid users belonging to the same organization as the repo;
 				//  cross with all relevant units enabled for this repo. Assign AccessModeRead
-				//  to each user." 
+				//  to each user."
 				_, err = e.Exec("INSERT INTO user_repo_unit_work (batch_id, user_id, repo_id, `type`, `mode`) "+
 					"SELECT ?, `user`.id, repo_unit.repo_id, repo_unit.`type`, ? "+
 					"FROM `user` "+
@@ -737,7 +737,7 @@ func buildUserUnits(e Engine, batchID int64, user *User) error {
 	// ****************************************************************************
 
 	// "Find all repositories where the user is collaborating; cross with all relevant units
-	//  enabled for them. Assign access specified by the collaboration to the user." 
+	//  enabled for them. Assign access specified by the collaboration to the user."
 	_, err = e.Exec("INSERT INTO user_repo_unit_work (batch_id, user_id, repo_id, `type`, `mode`) "+
 		"SELECT ?, collaboration.user_id, collaboration.repo_id, repo_unit.`type`, collaboration.`mode` "+
 		"FROM collaboration "+
@@ -842,7 +842,7 @@ func buildAnonymousUnits(e Engine, batchID int64) error {
 	if err != nil {
 		return fmt.Errorf("INSERT user_repo_unit_work (logged in): %v", err)
 	}
-	
+
 	return nil
 }
 
@@ -880,7 +880,7 @@ func buildUserRepoUnits(e Engine, batchID int64, user *User, repo *Repository) e
 		// Owner permission on a 1:1 relationship is the best the user can get
 		return nil
 	}
-	
+
 	if user.IsAdmin {
 		// ****************************************************************************
 		// Site admin user
@@ -1067,10 +1067,10 @@ func userRepoUnitRemoveWorking(e Engine, batchID int64) error {
 	// when a multicolumn key is required.
 	// NOTE: we're leaving out any match for `type` because the current
 	// logic doesn't require that (so the statement runs faster).
-	_, err := e.Exec("DELETE FROM user_repo_unit WHERE EXISTS " +
-		"(SELECT 1 FROM user_repo_unit_work WHERE " +
-		"user_repo_unit_work.user_id = user_repo_unit.user_id AND " +
-		"user_repo_unit_work.repo_id = user_repo_unit.repo_id AND " +
+	_, err := e.Exec("DELETE FROM user_repo_unit WHERE EXISTS "+
+		"(SELECT 1 FROM user_repo_unit_work WHERE "+
+		"user_repo_unit_work.user_id = user_repo_unit.user_id AND "+
+		"user_repo_unit_work.repo_id = user_repo_unit.repo_id AND "+
 		"user_repo_unit_work.batch_id = ?)", batchID)
 	if err != nil {
 		return fmt.Errorf("DELETE user_repo_unit (existing work entries): %v", err)

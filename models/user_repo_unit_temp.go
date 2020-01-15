@@ -6,8 +6,8 @@ package models
 
 import (
 	"crypto/sha1"
-	"io"
 	"fmt"
+	"io"
 	"sort"
 	"testing"
 
@@ -22,9 +22,9 @@ import (
 // VERSION OF THE PR.
 
 type sumdata struct {
-	Count	int
-	Type	int
-	Mode	int
+	Count int
+	Type  int
+	Mode  int
 }
 
 // UserRepoUnitTest_Temporary FIXME: remove
@@ -38,7 +38,7 @@ func UserRepoUnitTest(t *testing.T) {
 	assert.NoError(t, UserRepoUnitTestDo(x))
 }
 
-func UserRepoUnitTestDo(x* xorm.Engine) error {
+func UserRepoUnitTestDo(x *xorm.Engine) error {
 
 	var err error
 
@@ -178,13 +178,13 @@ func batchBuildByUsers(x *xorm.Engine) error {
 		return fmt.Errorf("addUserRepoUnit: DELETE old data: %v", err)
 	}
 
-	var	maxid int64
+	var maxid int64
 	if _, err := x.Table("user").Select("MAX(id)").Get(&maxid); err != nil {
 		return fmt.Errorf("addUserRepoUnit: get MAX(user_id): %v", err)
 	}
 
 	// Create access data for the first time
-	for i := int64(1) ; i <= maxid ; i += userBatchCount {
+	for i := int64(1); i <= maxid; i += userBatchCount {
 		if err := batchBuildUserUnits(x, i, userBatchCount); err != nil {
 			return fmt.Errorf("batchBuildUserUnits(%d,%d): %v", i, userBatchCount, err)
 		}
@@ -217,13 +217,13 @@ func batchBuildByRepos(x *xorm.Engine) error {
 		return fmt.Errorf("addUserRepoUnit: DELETE old data: %v", err)
 	}
 
-	var	maxid int64
+	var maxid int64
 	if _, err := x.Table("repository").Select("MAX(id)").Get(&maxid); err != nil {
 		return fmt.Errorf("addUserRepoUnit: get MAX(repo_id): %v", err)
 	}
 
 	// Create access data for the first time
-	for i := int64(1) ; i <= maxid ; i += repoBatchCount {
+	for i := int64(1); i <= maxid; i += repoBatchCount {
 		if err := batchBuildRepoUnits(x, i, repoBatchCount); err != nil {
 			return fmt.Errorf("batchBuildRepoUnits(%d,%d): %v", i, repoBatchCount, err)
 		}
@@ -241,19 +241,19 @@ func batchBuildByReposUsers(x *xorm.Engine) error {
 		return fmt.Errorf("batchBuildByReposUsers: DELETE old data: %v", err)
 	}
 
-	var	maxuserid int64
+	var maxuserid int64
 	if _, err := x.Table("user").Select("MAX(id)").Get(&maxuserid); err != nil {
 		return fmt.Errorf("batchBuildByReposUsers: get MAX(user_id): %v", err)
 	}
 
-	var	maxrepoid int64
+	var maxrepoid int64
 	if _, err := x.Table("repository").Select("MAX(id)").Get(&maxrepoid); err != nil {
 		return fmt.Errorf("batchBuildByReposUsers: get MAX(repo_id): %v", err)
 	}
 
 	// Create access data for the first time
-	for u := int64(1) ; u <= maxuserid ; u++ {
-		for r := int64(1) ; r <= maxrepoid ; r++ {
+	for u := int64(1); u <= maxuserid; u++ {
+		for r := int64(1); r <= maxrepoid; r++ {
 			if err := batchBuildUserRepoUnits(x, u, r); err != nil {
 				return fmt.Errorf("batchBuildUserRepoUnits(%d,%d): %v", u, r, err)
 			}
@@ -280,14 +280,14 @@ func batchBuildByReposUsers(x *xorm.Engine) error {
 
 func batchRebuildByTeams(x *xorm.Engine, sharepo string, usercntrepo, repocntrepo map[int64]*sumdata) error {
 
-	var	maxteamid int64
+	var maxteamid int64
 	if _, err := x.Table("team").Select("MAX(id)").Get(&maxteamid); err != nil {
 		return fmt.Errorf("batchRebuildByTeams: get MAX(team_id): %v", err)
 	}
 
 	// dumpUserOrRepo(x, "batchRebuildByTeams(before)", -2, 0)
 
-	for id := int64(1) ; id <= maxteamid ; id++ {
+	for id := int64(1); id <= maxteamid; id++ {
 		log.Info("Rebuilding team %d", id)
 		if err := batchRebuildTeam(x, id); err != nil {
 			return fmt.Errorf("batchRebuildTeam(%d): %v", id, err)
@@ -300,7 +300,7 @@ func batchRebuildByTeams(x *xorm.Engine, sharepo string, usercntrepo, repocntrep
 		}
 
 		// dumpUserOrRepo(x, desc, -2, 0)
-	
+
 		if err = compareShas(sharepo, shaother, desc, usercntrepo, repocntrepo, usercntother, repocntother); err != nil {
 			return err
 		}
@@ -316,7 +316,7 @@ func batchBuildUserUnits(x *xorm.Engine, fromID int64, count int) error {
 		return err
 	}
 
-	users := make([]*User,0,count)
+	users := make([]*User, 0, count)
 	if err := sess.Where("id BETWEEN ? AND ?", fromID, fromID+int64(count-1)).Find(&users); err != nil {
 		return fmt.Errorf("Find repositories: %v", err)
 	}
@@ -343,7 +343,7 @@ func batchBuildRepoUnits(x *xorm.Engine, fromID int64, count int) error {
 		return err
 	}
 
-	repos := make([]*Repository,0,count)
+	repos := make([]*Repository, 0, count)
 	if err := sess.Where("id BETWEEN ? AND ?", fromID, fromID+int64(count-1)).Find(&repos); err != nil {
 		return fmt.Errorf("Find repositories: %v", err)
 	}
@@ -415,13 +415,13 @@ func batchRebuildTeam(x *xorm.Engine, teamID int64) error {
 // of the user_repo_unit table by different means.
 func getUserRepoUnitsSha(x *xorm.Engine, source string) (string, map[int64]*sumdata, map[int64]*sumdata, error) {
 	type totdata struct {
-		User	int64
-		Repo	int64
-		Count	int
-		Type	int
-		Mode	int
+		User  int64
+		Repo  int64
+		Count int
+		Type  int
+		Mode  int
 	}
-	data := make([]*UserRepoUnit,0,1024)
+	data := make([]*UserRepoUnit, 0, 1024)
 	usercnt := make(map[int64]*sumdata)
 	repocnt := make(map[int64]*sumdata)
 	if err := x.Table("user_repo_unit").
@@ -430,9 +430,9 @@ func getUserRepoUnitsSha(x *xorm.Engine, source string) (string, map[int64]*sumd
 		return "", nil, nil, fmt.Errorf("Find user_repo_unit: %v", err)
 	}
 	var (
-		sum totdata
+		sum  totdata
 		pair *sumdata
-		ok bool
+		ok   bool
 	)
 
 	h := sha1.New()
@@ -468,7 +468,7 @@ func dumpUserOrRepo(x *xorm.Engine, str string, userID, repoID int64) {
 	if userID == 0 && repoID == 0 {
 		return
 	}
-	data := make([]*UserRepoUnit,0,32)
+	data := make([]*UserRepoUnit, 0, 32)
 	sess := x.Table("user_repo_unit").Where("1 = 1")
 	if userID != 0 {
 		sess.And("user_id = ?", userID)
@@ -487,7 +487,7 @@ func dumpUserOrRepo(x *xorm.Engine, str string, userID, repoID int64) {
 }
 
 func orderMapKeys(m map[int64]*sumdata) []int64 {
-	keys := make([]int64,0,len(m))
+	keys := make([]int64, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
 	}

@@ -18,18 +18,18 @@ func addUserRepoUnit(x *xorm.Engine) error {
 	type UnitType int
 
 	type UserRepoUnit struct {
-		UserID               int64      `xorm:"pk"`
-		RepoID               int64      `xorm:"pk INDEX"`
-		Type                 UnitType   `xorm:"pk"`
-		Mode                 AccessMode `xorm:"NOT NULL"`
+		UserID int64      `xorm:"pk"`
+		RepoID int64      `xorm:"pk INDEX"`
+		Type   UnitType   `xorm:"pk"`
+		Mode   AccessMode `xorm:"NOT NULL"`
 	}
 
 	type UserRepoUnitWork struct {
-		BatchID              int64      `xorm:"NOT NULL INDEX"`
-		UserID               int64      `xorm:"NOT NULL"`
-		RepoID               int64      `xorm:"NOT NULL"`
-		Type                 UnitType   `xorm:"NOT NULL"`
-		Mode                 AccessMode `xorm:"NOT NULL"`
+		BatchID int64      `xorm:"NOT NULL INDEX"`
+		UserID  int64      `xorm:"NOT NULL"`
+		RepoID  int64      `xorm:"NOT NULL"`
+		Type    UnitType   `xorm:"NOT NULL"`
+		Mode    AccessMode `xorm:"NOT NULL"`
 	}
 
 	type UserRepoUnitBatchNumber struct {
