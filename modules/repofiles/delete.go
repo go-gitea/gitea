@@ -46,7 +46,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
 		newBranch, err := repo.GetBranch(opts.NewBranch)
-		if git.IsErrNotExist(err) {
+		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
 		if newBranch != nil {
