@@ -1,15 +1,17 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
+const { SourceMapDevToolPlugin } = require('webpack');
 
 module.exports = {
   mode: 'production',
   entry: {
-    index: ['./web_src/js/index']
+    index: ['./web_src/js/index'],
+    swagger: ['./web_src/js/swagger'],
   },
-  devtool: 'source-map',
+  devtool: false,
   output: {
     path: path.resolve(__dirname, 'public/js'),
-    filename: 'index.js',
+    filename: '[name].js',
     chunkFilename: '[name].js',
   },
   optimization: {
@@ -57,5 +59,18 @@ module.exports = {
         use: ['style-loader', 'css-loader'],
       },
     ]
-  }
+  },
+  plugins: [
+    new SourceMapDevToolPlugin({
+      filename: '[name].js.map',
+      exclude: [
+        'swagger.js',
+      ],
+    }),
+  ],
+  performance: {
+    assetFilter: (filename) => {
+      return !filename.endsWith('.map') && filename !== 'swagger.js';
+    }
+  },
 };

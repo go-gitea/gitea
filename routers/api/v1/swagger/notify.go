@@ -21,3 +21,10 @@ type swaggerNotificationThreadList struct {
 	// in:body
 	Body []api.NotificationThread `json:"body"`
 }
+
+// Number of unread notifications
+// swagger:response NotificationCount
+type swaggerNotificationCount struct {
+	// in:body
+	Body api.NotificationCount `json:"body"`
+}

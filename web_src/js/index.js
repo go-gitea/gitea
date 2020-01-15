@@ -323,12 +323,14 @@ function initSimpleMDEImagePaste(simplemde, files) {
   });
 }
 
+let autoSimpleMDE;
+
 function initCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
 
-  setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
+  autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));
@@ -826,25 +828,27 @@ function initRepository() {
     $('.quote-reply').click(function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const target = $(this).data('target');
+      const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
+      const content = `> ${quote}\n\n`;
 
       let $content;
       if ($(this).hasClass('quote-reply-diff')) {
         const $parent = $(this).closest('.comment-code-cloud');
         $parent.find('button.comment-form-reply').click();
         $content = $parent.find('[name="content"]');
-      } else {
-        $content = $('#content');
+        if ($content.val() !== '') {
+          $content.val(`${$content.val()}\n\n${content}`);
+        } else {
+          $content.val(`${content}`);
+        }
+        $content.focus();
+      } else if (autoSimpleMDE !== null) {
+        if (autoSimpleMDE.value() !== '') {
+          autoSimpleMDE.value(`${autoSimpleMDE.value()}\n\n${content}`);
+        } else {
+          autoSimpleMDE.value(`${content}`);
+        }
       }
-
-      const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
-      const content = `> ${quote}\n\n`;
-
-      if ($content.val() !== '') {
-        $content.val(`${$content.val()}\n\n${content}`);
-      } else {
-        $content.val(`${content}`);
-      }
-      $content.focus();
       event.preventDefault();
     });
 
