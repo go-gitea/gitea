@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -134,7 +134,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// oldBranch must exist for this operation
-	if _, err := repo.GetBranch(opts.OldBranch); err != nil {
+	if _, err := repo_module.GetBranch(repo, opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -142,7 +142,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := repo.GetBranch(opts.NewBranch)
+		existingBranch, err := repo_module.GetBranch(repo, opts.NewBranch)
 		if existingBranch != nil {
 			return nil, models.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
@@ -550,7 +550,7 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 		if isNewRef && isDelRef {
 			return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 		}
-		var commits = &repository.PushCommits{}
+		var commits = &repo_module.PushCommits{}
 		if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 			// If is tag reference
 			tagName := opts.RefFullName[len(git.TagPrefix):]
@@ -585,7 +585,7 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 				}
 			}
 
-			commits = repository.ListToPushCommits(l)
+			commits = repo_module.ListToPushCommits(l)
 		}
 		actions = append(actions, &CommitRepoActionOptions{
 			PusherName:  opts.PusherName,
@@ -610,7 +610,7 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 		return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
 
-	var commits = &repository.PushCommits{}
+	var commits = &repo_module.PushCommits{}
 	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		// If is tag reference
 		tagName := opts.RefFullName[len(git.TagPrefix):]
@@ -621,7 +621,7 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 		} else {
 			// Clear cache for tag commit count
 			cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
-			if err := repository.PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
+			if err := repo_module.PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
 				return nil, fmt.Errorf("PushUpdateAddTag: %v", err)
 			}
 		}
@@ -650,7 +650,7 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 			}
 		}
 
-		commits = repository.ListToPushCommits(l)
+		commits = repo_module.ListToPushCommits(l)
 	}
 
 	return &CommitRepoActionOptions{
