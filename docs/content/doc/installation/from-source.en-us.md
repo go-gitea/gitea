@@ -44,7 +44,6 @@ gitea built from within the GOPATH.
 
 ```bash
 # From within your src directory
-cd "$HOME"/src
 git clone https://github.com/go-gitea/gitea
 ```
 
