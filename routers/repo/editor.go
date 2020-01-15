@@ -36,12 +36,13 @@ const (
 )
 
 func renderCommitRights(ctx *context.Context) bool {
-	canCommit, err := ctx.Repo.CanCommitToBranch(ctx.User)
+	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx.User)
 	if err != nil {
 		log.Error("CanCommitToBranch: %v", err)
 	}
-	ctx.Data["CanCommitToBranch"] = canCommit
-	return canCommit
+	ctx.Data["CanCommitToBranch"] = canCommitToBranch
+
+	return canCommitToBranch.CanCommitToBranch
 }
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths

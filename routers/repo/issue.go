@@ -971,6 +971,21 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
 			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
 			ctx.Data["GrantedApprovals"] = cnt
+			ctx.Data["RequireSigned"] = pull.ProtectedBranch.RequireSignedCommits
+		}
+		ctx.Data["WillSign"] = false
+		if ctx.User != nil {
+			sign, key, err := pull.SignMerge(ctx.User, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitRefName())
+			ctx.Data["WillSign"] = sign
+			ctx.Data["SigningKey"] = key
+			if err != nil {
+				if models.IsErrWontSign(err) {
+					ctx.Data["WontSignReason"] = err.(*models.ErrWontSign).Reason
+				} else {
+					ctx.Data["WontSignReason"] = "error"
+					log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
+				}
+			}
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete &&
 			pull.HeadRepo != nil &&

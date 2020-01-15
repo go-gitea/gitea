@@ -65,7 +65,7 @@
                 <div class="milestone list">
                     {{range .Milestones}}
                         <li class="item">
-                            <div class="ui label">{{if not $.RepoIDs}}{{.Repo.FullName}}{{end}}</div>
+                            <div class="ui label">{{.Repo.FullName}}</div>
                             <i class="octicon octicon-milestone"></i> <a href="{{.Repo.Link }}/milestone/{{.ID}}">{{.Name}}</a>
                             <div class="ui right green progress" data-percent="{{.Completeness}}">
                                 <div class="bar" {{if not .Completeness}}style="background-color: transparent"{{end}}>
