@@ -220,7 +220,7 @@ fmt-check:
 	fi;
 
 .PHONY: test
-test: git-check
+test:
 	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: test\#%
@@ -235,7 +235,7 @@ coverage:
 	gocovmerge integration.coverage.out $(shell find . -type f -name "coverage.out") > coverage.all;\
 
 .PHONY: unit-test-coverage
-unit-test-coverage: git-check
+unit-test-coverage:
 	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
