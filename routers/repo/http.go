@@ -305,7 +305,7 @@ func HTTP(ctx *context.Context) {
 			ctx.Header().Set("Content-Type", "application/x-git-receive-pack-advertisement")
 			_, _ = ctx.Write(packetWrite("# service=git-receive-pack\n"))
 			_, _ = ctx.Write([]byte("0000"))
-			_, _ = ctx.Write([]byte("008d0000000000000000000000000000000000000000 capabilities^{} report-status delete-refs side-band-64k quiet atomic ofs-delta agent=git/2.17.1\n"))
+			_, _ = ctx.Write([]byte("008d0000000000000000000000000000000000000000 capabilities^{}\000report-status delete-refs side-band-64k quiet atomic ofs-delta agent=git/2.17.1\n"))
 			_, _ = ctx.Write([]byte("0000"))
 			return
 		}
