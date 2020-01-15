@@ -48,6 +48,7 @@
 	{{else if .IsBlockedByApprovals}}red
 	{{else if .IsBlockedByRejection}}red
 	{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}red
+	{{else if and .RequireSigned (not .WillSign)}}}red
 	{{else if .Issue.PullRequest.IsChecking}}yellow
 	{{else if .Issue.PullRequest.CanAutoMerge}}green
 	{{else}}red{{end}}"><span class="mega-octicon octicon-git-merge"></span></a>
@@ -93,47 +94,67 @@
 				</div>
 			{{else if .IsPullRequestBroken}}
 				<div class="item text red">
-					<span class="octicon octicon-x"></span>
+					<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
 					{{$.i18n.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
 				<div class="item text grey">
-					<span class="octicon octicon-x"></span>
+					<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
 					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">
-					<span class="octicon octicon-sync"></span>
+					<i class="icon icon-octicon"><span class="octicon octicon-sync"></span></i>
 					{{$.i18n.Tr "repo.pulls.is_checking"}}
 				</div>
 			{{else if .Issue.PullRequest.CanAutoMerge}}
 				{{if .IsBlockedByApprovals}}
 					<div class="item text red">
-						<span class="octicon octicon-x"></span>
+						<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item text red">
-						<span class="octicon octicon-x"></span>
+						<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
 					</div>
 				{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
 					<div class="item text red">
-						<span class="octicon octicon-x"></span>
+						<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
 						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
 					</div>
+				{{else if and .RequireSigned (not .WillSign)}}
+					<div class="item text red">
+						<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
+						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
+					</div>
+					<div class="item text yellow">
+						<i class="icon unlock grey"></i>
+						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
+					</div>
 				{{end}}
-				{{$notAllOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}	
-				{{if or $.IsRepoAdmin (not $notAllOk)}}
+				{{$notAllOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .RequireSigned (not .WillSign)) (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}
+				{{if and (or $.IsRepoAdmin (not $notAllOk)) (or (not .RequireSigned) .WillSign)}}
 					{{if $notAllOk}}
 						<div class="item text yellow">
-							<span class="octicon octicon-primitive-dot"></span>
+							<i class="icon icon-octicon"><span class="octicon octicon-primitive-dot"></span></i>
 							{{$.i18n.Tr "repo.pulls.required_status_check_administrator"}}
 						</div>
 					{{else}}
 						<div class="item text green">
-							<span class="octicon octicon-check"></span>
+							<i class="icon icon-octicon"><span class="octicon octicon-check"></span></i>
 							{{$.i18n.Tr "repo.pulls.can_auto_merge_desc"}}
+						</div>
+					{{end}}
+					{{if .WillSign}}
+						<div class="item text green">
+							<i class="icon lock green"></i>
+							{{$.i18n.Tr "repo.signing.will_sign" .SigningKey}}
+						</div>
+					{{else}}
+						<div class="item text yellow">
+							<i class="icon unlock grey"></i>
+							{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 						</div>
 					{{end}}
 					{{if .AllowMerge}}
@@ -281,6 +302,11 @@
 					<div class="item text red">
 						<span class="octicon octicon-x"></span>
 						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
+					</div>
+				{{else if and .RequireSigned (not .WillSign)}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 				{{else}}
 					<div class="item text red">
