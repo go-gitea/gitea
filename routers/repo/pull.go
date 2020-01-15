@@ -342,6 +342,13 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	setMergeTarget(ctx, pull)
 
+	divergence, divergenceError := repofiles.CountDivergingCommits(repo, pull.HeadBranch)
+	if divergenceError != nil {
+		ctx.ServerError("CountDivergingCommits", divergenceError)
+		return nil
+	}
+	ctx.Data["Divergence"] = divergence
+
 	if err := pull.LoadProtectedBranch(); err != nil {
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return nil
