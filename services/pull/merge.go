@@ -158,7 +158,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	// Determine if we should sign
 	signArg := ""
 	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := pr.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
+		sign, keyID, _ := pr.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
 		if sign {
 			signArg = "-S" + keyID
 		} else if version.Compare(binVersion, "2.0.0", ">=") {
@@ -468,6 +468,21 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	}
 
 	return out.String(), nil
+}
+
+// IsSignedIfRequired check if merge will be signed if required
+func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error) {
+	if err := pr.LoadProtectedBranch(); err != nil {
+		return false, err
+	}
+
+	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
+		return true, nil
+	}
+
+	sign, _, err := pr.SignMerge(doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+
+	return sign, err
 }
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections

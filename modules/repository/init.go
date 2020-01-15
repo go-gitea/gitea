@@ -130,7 +130,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User) (er
 	}
 
 	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := models.SignInitialCommit(tmpPath, u)
+		sign, keyID, _ := models.SignInitialCommit(tmpPath, u)
 		if sign {
 			args = append(args, "-S"+keyID)
 		} else if version.Compare(binVersion, "2.0.0", ">=") {
