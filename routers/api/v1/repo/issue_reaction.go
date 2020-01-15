@@ -66,7 +66,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
 		return
 	}
-	_, err = reactions.LoadUsers()
+	_, err = reactions.LoadUsers(ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ReactionList.LoadUsers()", err)
 		return
@@ -280,7 +280,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
 		return
 	}
-	_, err = reactions.LoadUsers()
+	_, err = reactions.LoadUsers(ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ReactionList.LoadUsers()", err)
 		return

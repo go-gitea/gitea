@@ -14,6 +14,7 @@ type Comment struct {
 	PosterName  string
 	PosterEmail string
 	Created     time.Time
+	Updated     time.Time
 	Content     string
-	Reactions   *Reactions
+	Reactions   []*Reaction
 }

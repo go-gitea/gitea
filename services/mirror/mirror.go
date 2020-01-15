@@ -11,14 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/graceful"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -211,7 +210,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
 	}
-	if err = repository.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
+	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
 		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
@@ -253,7 +252,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		}
 	}
 
-	branches, err := m.Repo.GetBranches()
+	branches, err := repo_module.GetBranches(m.Repo)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		return nil, false
@@ -403,7 +402,7 @@ func syncMirror(repoID string) {
 			continue
 		}
 
-		theCommits := repository.ListToPushCommits(commits)
+		theCommits := repo_module.ListToPushCommits(commits)
 		if len(theCommits.Commits) > setting.UI.FeedMaxCommitNum {
 			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
 		}

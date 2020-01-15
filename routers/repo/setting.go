@@ -581,7 +581,7 @@ func AddTeamPost(ctx *context.Context) {
 	}
 
 	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Query("team")))
-	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
+	if len(name) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
 	}
