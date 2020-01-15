@@ -65,11 +65,12 @@ func HTTP(ctx *context.Context) {
 		return
 	}
 
-	var isPull bool
+	var isPull, receivePack bool
 	service := ctx.Query("service")
 	if service == "git-receive-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
 		isPull = false
+		receivePack = true
 	} else if service == "git-upload-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") {
 		isPull = true
@@ -282,10 +283,11 @@ func HTTP(ctx *context.Context) {
 	}
 
 	if !repoExist {
-		if !(infoRefRegex.MatchString(ctx.Req.URL.Path) && ctx.Query("service") == "git-receive-pack") {
+		if !receivePack {
 			ctx.HandleText(http.StatusNotFound, "Repository not found")
 			return
 		}
+
 		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
 			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for organizations.")
 			return
@@ -294,6 +296,20 @@ func HTTP(ctx *context.Context) {
 			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for users.")
 			return
 		}
+
+		// Return dummy payload if GET receive-pack
+		if ctx.Req.Method == http.MethodGet {
+			ctx.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
+			ctx.Header().Set("Pragma", "no-cache")
+			ctx.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+			ctx.Header().Set("Content-Type", "application/x-git-receive-pack-advertisement")
+			_, _ = ctx.Write(packetWrite("# service=git-receive-pack\n"))
+			_, _ = ctx.Write([]byte("0000"))
+			_, _ = ctx.Write([]byte("008d0000000000000000000000000000000000000000 capabilities^{} report-status delete-refs side-band-64k quiet atomic ofs-delta agent=git/2.17.1\n"))
+			_, _ = ctx.Write([]byte("0000"))
+			return
+		}
+
 		repo, err = repo_service.PushCreateRepo(authUser, owner, reponame)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
@@ -406,22 +422,19 @@ type route struct {
 	handler func(serviceHandler)
 }
 
-var (
-	infoRefRegex = regexp.MustCompile(`(.*?)/info/refs$`)
-	routes       = []route{
-		{regexp.MustCompile(`(.*?)/git-upload-pack$`), "POST", serviceUploadPack},
-		{regexp.MustCompile(`(.*?)/git-receive-pack$`), "POST", serviceReceivePack},
-		{infoRefRegex, "GET", getInfoRefs},
-		{regexp.MustCompile(`(.*?)/HEAD$`), "GET", getTextFile},
-		{regexp.MustCompile(`(.*?)/objects/info/alternates$`), "GET", getTextFile},
-		{regexp.MustCompile(`(.*?)/objects/info/http-alternates$`), "GET", getTextFile},
-		{regexp.MustCompile(`(.*?)/objects/info/packs$`), "GET", getInfoPacks},
-		{regexp.MustCompile(`(.*?)/objects/info/[^/]*$`), "GET", getTextFile},
-		{regexp.MustCompile(`(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$`), "GET", getLooseObject},
-		{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.pack$`), "GET", getPackFile},
-		{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
-	}
-)
+var routes = []route{
+	{regexp.MustCompile(`(.*?)/git-upload-pack$`), "POST", serviceUploadPack},
+	{regexp.MustCompile(`(.*?)/git-receive-pack$`), "POST", serviceReceivePack},
+	{regexp.MustCompile(`(.*?)/info/refs$`), "GET", getInfoRefs},
+	{regexp.MustCompile(`(.*?)/HEAD$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/alternates$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/http-alternates$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/packs$`), "GET", getInfoPacks},
+	{regexp.MustCompile(`(.*?)/objects/info/[^/]*$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$`), "GET", getLooseObject},
+	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.pack$`), "GET", getPackFile},
+	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
+}
 
 func getGitConfig(option, dir string) string {
 	out, err := git.NewCommand("config", option).RunInDir(dir)
