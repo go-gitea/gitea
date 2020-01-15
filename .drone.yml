@@ -568,7 +568,7 @@ steps:
     pull: always
     image: plugins/hugo:latest
     commands:
-      - apk add --no-cache make bash
+      - apk add --no-cache make bash curl
       - cd docs
       - make trans-copy
       - make clean
