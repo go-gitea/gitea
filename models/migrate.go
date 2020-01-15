@@ -63,6 +63,13 @@ func insertIssue(sess *xorm.Session, issue *Issue) error {
 		return err
 	}
 
+	for _, reaction := range issue.Reactions {
+		reaction.IssueID = issue.ID
+	}
+	if _, err := sess.Insert(issue.Reactions); err != nil {
+		return err
+	}
+
 	cols := make([]string, 0)
 	if !issue.IsPull {
 		sess.ID(issue.RepoID).Incr("num_issues")
@@ -130,9 +137,20 @@ func InsertIssueComments(comments []*Comment) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := sess.NoAutoTime().Insert(comments); err != nil {
-		return err
+	for _, comment := range comments {
+		if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+			return err
+		}
+
+		for _, reaction := range comment.Reactions {
+			reaction.IssueID = comment.IssueID
+			reaction.CommentID = comment.ID
+		}
+		if _, err := sess.Insert(comment.Reactions); err != nil {
+			return err
+		}
 	}
+
 	for issueID := range issueIDs {
 		if _, err := sess.Exec("UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ?) WHERE id = ?", issueID, issueID); err != nil {
 			return err
