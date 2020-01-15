@@ -568,6 +568,7 @@ steps:
     pull: always
     image: plugins/hugo:latest
     commands:
+      - apk add --no-cache make
       - cd docs
       - make trans-copy
       - make clean
