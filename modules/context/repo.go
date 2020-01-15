@@ -74,14 +74,57 @@ func RepoMustNotBeArchived() macaron.Handler {
 	}
 }
 
+// CanCommitToBranchResults represents the results of CanCommitToBranch
+type CanCommitToBranchResults struct {
+	CanCommitToBranch bool
+	EditorEnabled     bool
+	UserCanPush       bool
+	RequireSigned     bool
+	WillSign          bool
+	SigningKey        string
+	WontSignReason    string
+}
+
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
-func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
-	protectedBranch, err := r.Repository.IsProtectedBranchForPush(r.BranchName, doer)
+func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResults, error) {
+	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
+
 	if err != nil {
-		return false, err
+		return CanCommitToBranchResults{}, err
 	}
-	return r.CanEnableEditor() && !protectedBranch, nil
+	userCanPush := true
+	requireSigned := false
+	if protectedBranch != nil {
+		userCanPush = protectedBranch.CanUserPush(doer.ID)
+		requireSigned = protectedBranch.RequireSignedCommits
+	}
+
+	sign, keyID, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+
+	canCommit := r.CanEnableEditor() && userCanPush
+	if requireSigned {
+		canCommit = canCommit && sign
+	}
+	wontSignReason := ""
+	if err != nil {
+		if models.IsErrWontSign(err) {
+			wontSignReason = string(err.(*models.ErrWontSign).Reason)
+			err = nil
+		} else {
+			wontSignReason = "error"
+		}
+	}
+
+	return CanCommitToBranchResults{
+		CanCommitToBranch: canCommit,
+		EditorEnabled:     r.CanEnableEditor(),
+		UserCanPush:       userCanPush,
+		RequireSigned:     requireSigned,
+		WillSign:          sign,
+		SigningKey:        keyID,
+		WontSignReason:    wontSignReason,
+	}, err
 }
 
 // CanUseTimetracker returns whether or not a user can use the timetracker.
