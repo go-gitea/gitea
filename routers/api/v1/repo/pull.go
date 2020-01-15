@@ -639,6 +639,15 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		}
 	}
 
+	if _, err := pull_service.IsSignedIfRequired(pr, ctx.User); err != nil {
+		if !models.IsErrWontSign(err) {
+			ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
+			return
+		}
+		ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
+		return
+	}
+
 	if len(form.Do) == 0 {
 		form.Do = string(models.MergeStyleMerge)
 	}
