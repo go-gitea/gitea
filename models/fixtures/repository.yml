@@ -449,6 +449,7 @@
   owner_name: user2
   lower_name: repo20
   name: repo20
+  is_private: false
   num_stars: 0
   num_forks: 0
   num_issues: 0
