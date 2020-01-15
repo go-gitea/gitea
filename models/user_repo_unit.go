@@ -27,7 +27,7 @@ const (
 
 // UserRepoUnit is an explosion (cartesian product) of all user permissions
 // on all repositories, with one record for each combination of user+repo+unittype,
-// except unespecific permissions on public repos. General permissions for public
+// except unspecific permissions on public repos. General permissions for public
 // repos shared among all users (e.g. UnitTypeCode:AccessModeRead) are set for
 // UserID == UserRepoUnitLoggedInUser and UserID == UserRepoUnitAnyUser
 // in order to reduce the number of records on the table. Special permissions on public
