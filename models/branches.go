@@ -46,6 +46,7 @@ type ProtectedBranch struct {
 	RequiredApprovals         int64    `xorm:"NOT NULL DEFAULT 0"`
 	BlockOnRejectedReviews    bool     `xorm:"NOT NULL DEFAULT false"`
 	DismissStaleApprovals     bool     `xorm:"NOT NULL DEFAULT false"`
+	RequireSignedCommits      bool     `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`

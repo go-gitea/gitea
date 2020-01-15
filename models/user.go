@@ -793,6 +793,15 @@ func NewGhostUser() *User {
 	}
 }
 
+// NewReplaceUser creates and returns a fake user for external user
+func NewReplaceUser(name string) *User {
+	return &User{
+		ID:        -1,
+		Name:      name,
+		LowerName: strings.ToLower(name),
+	}
+}
+
 // IsGhost check if user is fake user for a deleted account
 func (u *User) IsGhost() bool {
 	if u == nil {
