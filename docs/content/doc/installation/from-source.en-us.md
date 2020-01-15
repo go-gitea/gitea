@@ -43,7 +43,6 @@ simplest way of doing this is to use git directly as we no longer have to have
 gitea built from within the GOPATH. 
 
 ```bash
-# From within your src directory
 git clone https://github.com/go-gitea/gitea
 ```
 

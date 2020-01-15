@@ -53,7 +53,6 @@ is the relevant line - but this may change.)
 The recommended method of obtaining the source code is by using `git clone`.
 
 ```bash
-# from within your src directory
 git clone https://github.com/go-gitea/gitea
 ```
 
