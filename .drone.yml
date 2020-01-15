@@ -746,20 +746,22 @@ depends_on:
 
 ---
 kind: pipeline
-name: notify
+name: notifications
 
 platform:
   os: linux
-  arch: amd64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
+  arch: arm64
 
 clone:
   disable: true
 
-when:
+trigger:
+  branch:
+    - master
+    - "release/*"
+  event:
+    - push
+    - tag
   status:
     - success
     - failure
@@ -777,9 +779,10 @@ depends_on:
 steps:
   - name: discord
     pull: always
-    image: appleboy/drone-discord:1.0.0
-    environment:
-      DISCORD_WEBHOOK_ID:
+    image: appleboy/drone-discord:1.2.4
+    settings:
+      message: "{{#success build.status}} ✅  Build #{{build.number}} of `{{repo.name}}` succeeded.\n\n📝 Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n\n🌐 {{ build.link }} {{else}} ❌  Build #{{build.number}} of `{{repo.name}}` failed.\n\n📝 Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n\n🌐 {{ build.link }} {{/success}}\n"
+      webhook_id:
         from_secret: discord_webhook_id
-      DISCORD_WEBHOOK_TOKEN:
+      webhook_token:
         from_secret: discord_webhook_token
