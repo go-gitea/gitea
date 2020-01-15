@@ -38,7 +38,6 @@ func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit st
 			if err != nil {
 				return false, "", err
 			}
-
 			if len(keys) == 0 {
 				return false, "", &ErrWontSign{pubkey}
 			}

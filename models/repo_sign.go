@@ -111,7 +111,7 @@ func SignInitialCommit(repoPath string, u *User) (bool, string, error) {
 			break
 		case pubkey:
 			keys, err := ListGPGKeys(u.ID, ListOptions{})
-			if err != nil || len(keys) == 0 {
+			if err != nil {
 				return false, "", err
 			}
 			if len(keys) == 0 {
@@ -198,7 +198,7 @@ func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string
 			break
 		case pubkey:
 			keys, err := ListGPGKeys(u.ID, ListOptions{})
-			if err != nil || len(keys) == 0 {
+			if err != nil {
 				return false, "", err
 			}
 			if len(keys) == 0 {
