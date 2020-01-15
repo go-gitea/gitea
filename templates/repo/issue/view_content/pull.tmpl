@@ -269,6 +269,13 @@
 									</div>
 								</div>
 							</div>
+							{{if gt .Divergence.Behind 0}}
+								<div class="ui buttons update-button">
+									<button class="ui button" data-do="update">
+										<span class="button-text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+									</button>
+								</div>
+							{{end}}
 						{{else}}
 							<div class="item text red">
 								<span class="octicon octicon-x"></span>
