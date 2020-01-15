@@ -425,7 +425,7 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	return err
 }
 
-func (c *Comment) loadReactions(e Engine) (err error) {
+func (c *Comment) loadReactions(e Engine, repo *Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
@@ -437,15 +437,15 @@ func (c *Comment) loadReactions(e Engine) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := c.Reactions.LoadUsers(); err != nil {
+	if _, err := c.Reactions.loadUsers(e, repo); err != nil {
 		return err
 	}
 	return nil
 }
 
 // LoadReactions loads comment reactions
-func (c *Comment) LoadReactions() error {
-	return c.loadReactions(x)
+func (c *Comment) LoadReactions(repo *Repository) error {
+	return c.loadReactions(x, repo)
 }
 
 func (c *Comment) loadReview(e Engine) (err error) {
