@@ -18,6 +18,7 @@ require (
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/RoaringBitmap/roaring v0.4.21 // indirect
+	github.com/alecthomas/chroma v0.7.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/blevesearch/bleve v0.8.1
 	github.com/blevesearch/blevex v0.0.0-20180227211930-4b158bb555a3 // indirect
@@ -70,7 +71,7 @@ require (
 	github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
-	github.com/niklasfasching/go-org v0.1.8
+	github.com/niklasfasching/go-org v0.1.9
 	github.com/oliamb/cutter v0.2.2
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e
