@@ -18,7 +18,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/jaytaylor/html2text"
@@ -257,18 +259,7 @@ func (s *dummySender) Send(from string, to []string, msg io.WriterTo) error {
 	return nil
 }
 
-func processMailQueue() {
-	for msg := range mailQueue {
-		log.Trace("New e-mail sending request %s: %s", msg.GetHeader("To"), msg.Info)
-		if err := gomail.Send(Sender, msg.Message); err != nil {
-			log.Error("Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
-		} else {
-			log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
-		}
-	}
-}
-
-var mailQueue chan *Message
+var mailQueue queue.Queue
 
 // Sender sender for sending mail synchronously
 var Sender gomail.Sender
@@ -291,14 +282,25 @@ func NewContext() {
 		Sender = &dummySender{}
 	}
 
-	mailQueue = make(chan *Message, setting.MailService.QueueLength)
-	go processMailQueue()
+	mailQueue = queue.CreateQueue("mail", func(data ...queue.Data) {
+		for _, datum := range data {
+			msg := datum.(*Message)
+			log.Trace("New e-mail sending request %s: %s", msg.GetHeader("To"), msg.Info)
+			if err := gomail.Send(Sender, msg.Message); err != nil {
+				log.Error("Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
+			} else {
+				log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
+			}
+		}
+	}, &Message{})
+
+	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
 }
 
 // SendAsync send mail asynchronously
 func SendAsync(msg *Message) {
 	go func() {
-		mailQueue <- msg
+		_ = mailQueue.Push(msg)
 	}()
 }
 
@@ -306,7 +308,7 @@ func SendAsync(msg *Message) {
 func SendAsyncs(msgs []*Message) {
 	go func() {
 		for _, msg := range msgs {
-			mailQueue <- msg
+			_ = mailQueue.Push(msg)
 		}
 	}()
 }
