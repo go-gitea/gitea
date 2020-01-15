@@ -585,21 +585,39 @@ func Issues(ctx *context.Context) {
 		}
 		shownIssueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
-			ctx.ServerError("GetUserIssueStats Search", err)
+			ctx.ServerError("GetUserIssueStats Shown", err)
 			return
 		}
 	} else {
 		shownIssueStats = &models.IssueStats{}
 	}
 
+	var allIssueStats *models.IssueStats
+	if !forceEmpty {
+		allIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
+			UserID:      ctxUser.ID,
+			UserRepoIDs: userRepoIDs,
+			FilterMode:  filterMode,
+			IsPull:      isPullList,
+			IsClosed:    isShowClosed,
+			IssueIDs:    issueIDsFromSearch,
+		})
+		if err != nil {
+			ctx.ServerError("GetUserIssueStats All", err)
+			return
+		}
+	} else {
+		allIssueStats = &models.IssueStats{}
+	}
+
 	var shownIssues int
 	var totalIssues int
 	if !isShowClosed {
 		shownIssues = int(shownIssueStats.OpenCount)
-		totalIssues = int(userIssueStats.OpenCount)
+		totalIssues = int(allIssueStats.OpenCount)
 	} else {
 		shownIssues = int(shownIssueStats.ClosedCount)
-		totalIssues = int(userIssueStats.ClosedCount)
+		totalIssues = int(allIssueStats.ClosedCount)
 	}
 
 	ctx.Data["Issues"] = issues
