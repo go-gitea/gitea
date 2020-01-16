@@ -655,6 +655,8 @@ func UpdatePullRequest(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 	}
+	ctx.Flash.Success(ctx.Tr("repo.pulls.update_branch_success"))
+	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 }
 
 // MergePullRequest response for merging pull request
