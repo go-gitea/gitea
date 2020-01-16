@@ -103,9 +103,9 @@ func NewQueueService() {
 
 	// Now handle the old issue_indexer configuration
 	section := Cfg.Section("queue.issue_indexer")
-	sectionMap := map[string]string{}
+	sectionMap := map[string]bool{}
 	for _, key := range section.Keys() {
-		sectionMap[key.Name()] = key.Value()
+		sectionMap[key.Name()] = true
 	}
 	if _, ok := sectionMap["TYPE"]; !ok {
 		switch Indexer.IssueQueueType {
@@ -135,9 +135,9 @@ func NewQueueService() {
 
 	// Handle the old mailer configuration
 	section = Cfg.Section("queue.mailer")
-	sectionMap = map[string]string{}
+	sectionMap = map[string]bool{}
 	for _, key := range section.Keys() {
-		sectionMap[key.Name()] = key.Value()
+		sectionMap[key.Name()] = true
 	}
 	if _, ok := sectionMap["LENGTH"]; !ok {
 		section.Key("LENGTH").SetValue(fmt.Sprintf("%d", Cfg.Section("mailer").Key("SEND_BUFFER_LEN").MustInt(100)))
