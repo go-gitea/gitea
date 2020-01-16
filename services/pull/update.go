@@ -14,9 +14,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// Update ToDo wip ...
+// Update updates pull request with base branch.
 func Update(pull *models.PullRequest, doer *models.User, message string) (err error) {
-	//use merge functions but switch repo's and branches
+	//use merge functions but switch repo's and branche's
 	pr := &models.PullRequest{
 		HeadRepoID: pull.BaseRepoID,
 		BaseRepoID: pull.HeadRepoID,
