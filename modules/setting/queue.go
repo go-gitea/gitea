@@ -103,11 +103,11 @@ func NewQueueService() {
 
 	// Now handle the old issue_indexer configuration
 	section := Cfg.Section("queue.issue_indexer")
-	issueIndexerSectionMap := map[string]string{}
+	sectionMap := map[string]bool{}
 	for _, key := range section.Keys() {
-		issueIndexerSectionMap[key.Name()] = key.Value()
+		sectionMap[key.Name()] = true
 	}
-	if _, ok := issueIndexerSectionMap["TYPE"]; !ok {
+	if _, ok := sectionMap["TYPE"]; !ok {
 		switch Indexer.IssueQueueType {
 		case LevelQueueType:
 			section.Key("TYPE").SetValue("level")
@@ -120,17 +120,27 @@ func NewQueueService() {
 				Indexer.IssueQueueType)
 		}
 	}
-	if _, ok := issueIndexerSectionMap["LENGTH"]; !ok {
+	if _, ok := sectionMap["LENGTH"]; !ok {
 		section.Key("LENGTH").SetValue(fmt.Sprintf("%d", Indexer.UpdateQueueLength))
 	}
-	if _, ok := issueIndexerSectionMap["BATCH_LENGTH"]; !ok {
+	if _, ok := sectionMap["BATCH_LENGTH"]; !ok {
 		section.Key("BATCH_LENGTH").SetValue(fmt.Sprintf("%d", Indexer.IssueQueueBatchNumber))
 	}
-	if _, ok := issueIndexerSectionMap["DATADIR"]; !ok {
+	if _, ok := sectionMap["DATADIR"]; !ok {
 		section.Key("DATADIR").SetValue(Indexer.IssueQueueDir)
 	}
-	if _, ok := issueIndexerSectionMap["CONN_STR"]; !ok {
+	if _, ok := sectionMap["CONN_STR"]; !ok {
 		section.Key("CONN_STR").SetValue(Indexer.IssueQueueConnStr)
+	}
+
+	// Handle the old mailer configuration
+	section = Cfg.Section("queue.mailer")
+	sectionMap = map[string]bool{}
+	for _, key := range section.Keys() {
+		sectionMap[key.Name()] = true
+	}
+	if _, ok := sectionMap["LENGTH"]; !ok {
+		section.Key("LENGTH").SetValue(fmt.Sprintf("%d", Cfg.Section("mailer").Key("SEND_BUFFER_LEN").MustInt(100)))
 	}
 }
 
