@@ -350,7 +350,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
-	notification.NotifyMergePullRequest(pr, doer, baseGitRepo)
+	notification.NotifyMergePullRequest(pr, doer)
 
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
