@@ -402,8 +402,8 @@ github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc/go.mod h1:np1wUFZ6ty
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5 h1:BvoENQQU+fZ9uukda/RzCAL/191HHwJA5b13R6diVlY=
 github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
-github.com/niklasfasching/go-org v0.1.8 h1:Kjvs6lP+LIILHhc9zIJ4Gu90a/pVY483if2Qmu8v4Fg=
-github.com/niklasfasching/go-org v0.1.8/go.mod h1:AsLD6X7djzRIz4/RFZu8vwRL0VGjUvGZCCH1Nz0VdrU=
+github.com/niklasfasching/go-org v0.1.9 h1:Toz8WMIt+qJb52uYEk1YD/muLuOOmRt1CfkV+bKVMkI=
+github.com/niklasfasching/go-org v0.1.9/go.mod h1:AsLD6X7djzRIz4/RFZu8vwRL0VGjUvGZCCH1Nz0VdrU=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/oliamb/cutter v0.2.2 h1:Lfwkya0HHNU1YLnGv2hTkzHfasrSMkgv4Dn+5rmlk3k=
 github.com/oliamb/cutter v0.2.2/go.mod h1:4BenG2/4GuRBDbVm/OPahDVqbrOemzpPiG5mi1iryBU=
