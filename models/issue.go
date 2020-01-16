@@ -7,7 +7,6 @@ package models
 
 import (
 	"fmt"
-	"path"
 	"regexp"
 	"sort"
 	"strconv"
@@ -219,8 +218,11 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 	if err != nil {
 		return err
 	}
+	if err = issue.loadRepo(e); err != nil {
+		return err
+	}
 	// Load reaction user data
-	if _, err := ReactionList(reactions).loadUsers(e); err != nil {
+	if _, err := ReactionList(reactions).loadUsers(e, issue.Repo); err != nil {
 		return err
 	}
 
@@ -324,7 +326,7 @@ func (issue *Issue) GetIsRead(userID int64) error {
 
 // APIURL returns the absolute APIURL to this issue.
 func (issue *Issue) APIURL() string {
-	return issue.Repo.APIURL() + "/" + path.Join("issues", fmt.Sprint(issue.Index))
+	return fmt.Sprintf("%s/issues/%d", issue.Repo.APIURL(), issue.Index)
 }
 
 // HTMLURL returns the absolute URL to this issue.
@@ -1832,6 +1834,20 @@ func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, origina
 		And("original_author_id = ?", originalAuthorID).
 		Update(map[string]interface{}{
 			"poster_id":          posterID,
+			"original_author":    "",
+			"original_author_id": 0,
+		})
+	return err
+}
+
+// UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
+func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, userID int64) error {
+	_, err := x.Table("reaction").
+		Join("INNER", "issue", "issue.id = reaction.issue_id").
+		Where("issue.repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
+		And("reaction.original_author_id = ?", originalAuthorID).
+		Update(map[string]interface{}{
+			"user_id":            userID,
 			"original_author":    "",
 			"original_author_id": 0,
 		})

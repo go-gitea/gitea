@@ -81,12 +81,15 @@ func (d *Document) parseList(i int, parentStop stopFn) (int, Node) {
 func (d *Document) parseListItem(l List, i int, parentStop stopFn) (int, Node) {
 	start, nodes, bullet := i, []Node{}, d.tokens[i].matches[2]
 	minIndent, dterm, content, status := d.tokens[i].lvl+len(bullet), "", d.tokens[i].content, ""
+	originalBaseLvl := d.baseLvl
+	d.baseLvl = minIndent + 1
 	if m := listItemStatusRegexp.FindStringSubmatch(content); m != nil {
 		status, content = m[1], content[len("[ ] "):]
 	}
 	if l.Kind == "descriptive" {
 		if m := descriptiveListItemRegexp.FindStringIndex(content); m != nil {
 			dterm, content = content[:m[0]], content[m[1]:]
+			d.baseLvl = strings.Index(d.tokens[i].matches[0], " ::") + 4
 		}
 	}
 
@@ -103,6 +106,7 @@ func (d *Document) parseListItem(l List, i int, parentStop stopFn) (int, Node) {
 		i += consumed
 		nodes = append(nodes, node)
 	}
+	d.baseLvl = originalBaseLvl
 	if l.Kind == "descriptive" {
 		return i - start, DescriptiveListItem{bullet, status, d.parseInline(dterm), nodes}
 	}

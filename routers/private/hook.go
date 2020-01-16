@@ -6,7 +6,10 @@
 package private
 
 import (
+	"bufio"
+	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -18,9 +21,100 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
 	pull_service "code.gitea.io/gitea/services/pull"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 
 	"gitea.com/macaron/macaron"
 )
+
+func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	if err != nil {
+		log.Error("Unable to create os.Pipe for %s", repo.Path)
+		return err
+	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+
+	err = git.NewCommand("rev-list", oldCommitID+"..."+newCommitID).
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+			stdoutWriter, nil, nil,
+			func(ctx context.Context, cancel context.CancelFunc) error {
+				_ = stdoutWriter.Close()
+				err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
+				if err != nil {
+					log.Error("%v", err)
+					cancel()
+				}
+				_ = stdoutReader.Close()
+				return err
+			})
+	if err != nil && !isErrUnverifiedCommit(err) {
+		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+	}
+	return err
+}
+
+func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository, env []string) error {
+	scanner := bufio.NewScanner(input)
+	for scanner.Scan() {
+		line := scanner.Text()
+		err := readAndVerifyCommit(line, repo, env)
+		if err != nil {
+			log.Error("%v", err)
+			return err
+		}
+	}
+	return scanner.Err()
+}
+
+func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	if err != nil {
+		log.Error("Unable to create pipe for %s: %v", repo.Path, err)
+		return err
+	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+	hash := plumbing.NewHash(sha)
+
+	return git.NewCommand("cat-file", "commit", sha).
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+			stdoutWriter, nil, nil,
+			func(ctx context.Context, cancel context.CancelFunc) error {
+				_ = stdoutWriter.Close()
+				commit, err := git.CommitFromReader(repo, hash, stdoutReader)
+				if err != nil {
+					return err
+				}
+				log.Info("have commit %s", commit.ID.String())
+				verification := models.ParseCommitWithSignature(commit)
+				if !verification.Verified {
+					log.Info("unverified commit %s", commit.ID.String())
+					cancel()
+					return &errUnverifiedCommit{
+						commit.ID.String(),
+					}
+				}
+				return nil
+			})
+}
+
+type errUnverifiedCommit struct {
+	sha string
+}
+
+func (e *errUnverifiedCommit) Error() string {
+	return fmt.Sprintf("Unverified commit: %s", e.sha)
+}
+
+func isErrUnverifiedCommit(err error) bool {
+	_, ok := err.(*errUnverifiedCommit)
+	return ok
+}
 
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
@@ -35,6 +129,30 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 		return
 	}
 	repo.OwnerName = ownerName
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		log.Error("Unable to get git repository for: %s/%s Error: %v", ownerName, repoName, err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	defer gitRepo.Close()
+
+	// Generate git environment for checking commits
+	env := os.Environ()
+	if opts.GitAlternativeObjectDirectories != "" {
+		env = append(env,
+			private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
+	}
+	if opts.GitObjectDirectory != "" {
+		env = append(env,
+			private.GitObjectDirectory+"="+opts.GitObjectDirectory)
+	}
+	if opts.GitQuarantinePath != "" {
+		env = append(env,
+			private.GitQuarantinePath+"="+opts.GitQuarantinePath)
+	}
 
 	for i := range opts.OldCommitIDs {
 		oldCommitID := opts.OldCommitIDs[i]
@@ -51,7 +169,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 			return
 		}
 		if protectBranch != nil && protectBranch.IsProtected() {
-			// check and deletion
+			// detect and prevent deletion
 			if newCommitID == git.EmptySHA {
 				log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
@@ -62,20 +180,6 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 
 			// detect force push
 			if git.EmptySHA != oldCommitID {
-				env := os.Environ()
-				if opts.GitAlternativeObjectDirectories != "" {
-					env = append(env,
-						private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
-				}
-				if opts.GitObjectDirectory != "" {
-					env = append(env,
-						private.GitObjectDirectory+"="+opts.GitObjectDirectory)
-				}
-				if opts.GitQuarantinePath != "" {
-					env = append(env,
-						private.GitQuarantinePath+"="+opts.GitQuarantinePath)
-				}
-
 				output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), env)
 				if err != nil {
 					log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
@@ -92,6 +196,27 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 
 				}
 			}
+
+			// Require signed commits
+			if protectBranch.RequireSignedCommits {
+				err := verifyCommits(oldCommitID, newCommitID, gitRepo, env)
+				if err != nil {
+					if !isErrUnverifiedCommit(err) {
+						log.Error("Unable to check commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
+						ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+							"err": fmt.Sprintf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err),
+						})
+						return
+					}
+					unverifiedCommit := err.(*errUnverifiedCommit).sha
+					log.Warn("Forbidden: Branch: %s in %-v is protected from unverified commit %s", branchName, repo, unverifiedCommit)
+					ctx.JSON(http.StatusForbidden, map[string]interface{}{
+						"err": fmt.Sprintf("branch %s is protected from unverified commit %s", branchName, unverifiedCommit),
+					})
+					return
+				}
+			}
+
 			canPush := false
 			if opts.IsDeployKey {
 				canPush = protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)

@@ -15,12 +15,19 @@ func TestAccessLevel(t *testing.T) {
 
 	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	user5 := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	user29 := AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
 	// A public repository owned by User 2
 	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.False(t, repo1.IsPrivate)
 	// A private repository owned by Org 3
 	repo3 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	assert.True(t, repo3.IsPrivate)
+
+	// Another public repository
+	repo4 := AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
+	assert.False(t, repo4.IsPrivate)
+	// org. owned private repo
+	repo24 := AssertExistsAndLoadBean(t, &Repository{ID: 24}).(*Repository)
 
 	level, err := AccessLevel(user2, repo1)
 	assert.NoError(t, err)
@@ -37,6 +44,21 @@ func TestAccessLevel(t *testing.T) {
 	level, err = AccessLevel(user5, repo3)
 	assert.NoError(t, err)
 	assert.Equal(t, AccessModeNone, level)
+
+	// restricted user has no access to a public repo
+	level, err = AccessLevel(user29, repo1)
+	assert.NoError(t, err)
+	assert.Equal(t, AccessModeNone, level)
+
+	// ... unless he's a collaborator
+	level, err = AccessLevel(user29, repo4)
+	assert.NoError(t, err)
+	assert.Equal(t, AccessModeWrite, level)
+
+	// ... or a team member
+	level, err = AccessLevel(user29, repo24)
+	assert.NoError(t, err)
+	assert.Equal(t, AccessModeRead, level)
 }
 
 func TestHasAccess(t *testing.T) {
@@ -72,6 +94,11 @@ func TestUser_GetRepositoryAccesses(t *testing.T) {
 	accesses, err := user1.GetRepositoryAccesses()
 	assert.NoError(t, err)
 	assert.Len(t, accesses, 0)
+
+	user29 := AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
+	accesses, err = user29.GetRepositoryAccesses()
+	assert.NoError(t, err)
+	assert.Len(t, accesses, 2)
 }
 
 func TestUser_GetAccessibleRepositories(t *testing.T) {
@@ -86,6 +113,11 @@ func TestUser_GetAccessibleRepositories(t *testing.T) {
 	repos, err = user2.GetAccessibleRepositories(0)
 	assert.NoError(t, err)
 	assert.Len(t, repos, 1)
+
+	user29 := AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
+	repos, err = user29.GetAccessibleRepositories(0)
+	assert.NoError(t, err)
+	assert.Len(t, repos, 2)
 }
 
 func TestRepository_RecalculateAccesses(t *testing.T) {
@@ -118,4 +150,22 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 	has, err := x.Get(&Access{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)
 	assert.False(t, has)
+}
+
+func TestRepository_RecalculateAccesses3(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	team5 := AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
+	user29 := AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
+
+	has, err := x.Get(&Access{UserID: 29, RepoID: 23})
+	assert.NoError(t, err)
+	assert.False(t, has)
+
+	// adding user29 to team5 should add an explicit access row for repo 23
+	// even though repo 23 is public
+	assert.NoError(t, AddTeamMember(team5, user29.ID))
+
+	has, err = x.Get(&Access{UserID: 29, RepoID: 23})
+	assert.NoError(t, err)
+	assert.True(t, has)
 }
