@@ -62,7 +62,7 @@ _Symbols used in table:_
 | Granular user roles (Code, Issues, Wiki etc) | ✓ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Verified Committer | ✘ | ✘ | ? | ✓ | ✓ | ✓ | ✘ |
 | GPG Signed Commits | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Reject unsigned commits | [✘](https://github.com/go-gitea/gitea/issues/2770) | ✘ | ✓ | ✓ | ✓ | ✘ | ✓ |
+| Reject unsigned commits | [✓](https://github.com/go-gitea/gitea/pull/9708) | ✘ | ✓ | ✓ | ✓ | ✘ | ✓ |
 | Repository Activity page | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Branch manager | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Create new branches | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
@@ -80,7 +80,7 @@ _Symbols used in table:_
 | Time tracking | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Multiple assignees for issues | ✓ | ✘ | ✓ | ✘ | ✓ | ✘ | ✘ |
 | Related issues | ✘ | ✘ | ⁄ | ✘ | ✓ | ✘ | ✘ |
-| Confidential issues | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
+| Confidential issues | [✘](https://github.com/go-gitea/gitea/issues/3217) | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Comment reactions | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Lock Discussion | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Batch issue handling | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
