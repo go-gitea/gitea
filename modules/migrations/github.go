@@ -24,6 +24,7 @@ import (
 var (
 	_ base.Downloader        = &GithubDownloaderV3{}
 	_ base.DownloaderFactory = &GithubDownloaderV3Factory{}
+	LimitRateRemaining = 0
 )
 
 func init() {
@@ -115,7 +116,7 @@ func (g *GithubDownloaderV3) SetContext(ctx context.Context) {
 }
 
 func (g *GithubDownloaderV3) sleep() {
-	for g.rate != nil && g.rate.Remaining <= 0 {
+	for g.rate != nil && g.rate.Remaining <= LimitRateRemaining {
 		timer := time.NewTimer(time.Until(g.rate.Reset.Time))
 		select {
 		case <-g.ctx.Done():
