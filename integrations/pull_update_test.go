@@ -48,7 +48,7 @@ func TestPullUpdate(t *testing.T) {
 func createOutdatedPR(t *testing.T, actor, forkOrg *models.User) *models.PullRequest {
 	baseRepo, err := repo_service.CreateRepository(actor, actor, models.CreateRepoOptions{
 		Name:        "repo-pr-update",
-		Description: "repo-tmp-pr-update descritpion",
+		Description: "repo-tmp-pr-update description",
 		AutoInit:    true,
 		Gitignores:  "C,C++",
 		License:     "MIT",
