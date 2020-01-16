@@ -342,12 +342,18 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	setMergeTarget(ctx, pull)
 
-	divergence, divergenceError := pull_service.GetDiverging(pull)
-	if divergenceError != nil {
-		ctx.ServerError("GetDiverging", divergenceError)
+	divergence, err := pull_service.GetDiverging(pull)
+	if err != nil {
+		ctx.ServerError("GetDiverging", err)
 		return nil
 	}
 	ctx.Data["Divergence"] = divergence
+	allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetDiverging", err)
+		return nil
+	}
+	ctx.Data["UpdateAllowed"] = allowUpdate
 
 	if err := pull.LoadProtectedBranch(); err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)

@@ -270,13 +270,21 @@
 								</div>
 							</div>
 							{{if and .Divergence (gt .Divergence.Behind 0)}}
-								<div class="ui buttons update-button">
-									<form action="{{.Link}}/update" method="post">
-										{{.CsrfTokenHtml}}
-										<button class="ui button" data-do="update">
-											<span class="button-text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
-										</button>
-									</form>
+							  <div class="ui divider"></div>
+								<div class="ui two horizontal list maxwidth">
+									<div class="item text yellow">
+										<i class="icon icon-octicon"><span class="octicon octicon-alert">&nbsp;&nbsp;&nbsp;&nbsp;{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}</span></i>
+									</div>
+									{{if .UpdateAllowed}}
+										<div class="ui buttons update-button">
+											<form action="{{.Link}}/update" method="post">
+												{{.CsrfTokenHtml}}
+												<button class="ui button" data-do="update">
+													<span class="button-text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+												</button>
+											</form>
+										</div>
+									{{end}}
 								</div>
 							{{end}}
 						{{else}}
