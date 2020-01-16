@@ -361,7 +361,32 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		if issue.Closed != nil {
 			is.ClosedUnix = timeutil.TimeStamp(issue.Closed.Unix())
 		}
-		// TODO: add reactions
+		// add reactions
+		for _, reaction := range issue.Reactions {
+			userid, ok := g.userMap[reaction.UserID]
+			if !ok && tp != "" {
+				var err error
+				userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
+				if err != nil {
+					log.Error("GetUserIDByExternalUserID: %v", err)
+				}
+				if userid > 0 {
+					g.userMap[reaction.UserID] = userid
+				}
+			}
+			var res = models.Reaction{
+				Type:        reaction.Content,
+				CreatedUnix: timeutil.TimeStampNow(),
+			}
+			if userid > 0 {
+				res.UserID = userid
+			} else {
+				res.UserID = g.doer.ID
+				res.OriginalAuthorID = reaction.UserID
+				res.OriginalAuthor = reaction.UserName
+			}
+			is.Reactions = append(is.Reactions, &res)
+		}
 		iss = append(iss, &is)
 	}
 
@@ -420,9 +445,34 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			cm.OriginalAuthorID = comment.PosterID
 		}
 
-		cms = append(cms, &cm)
+		// add reactions
+		for _, reaction := range comment.Reactions {
+			userid, ok := g.userMap[reaction.UserID]
+			if !ok && tp != "" {
+				var err error
+				userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
+				if err != nil {
+					log.Error("GetUserIDByExternalUserID: %v", err)
+				}
+				if userid > 0 {
+					g.userMap[reaction.UserID] = userid
+				}
+			}
+			var res = models.Reaction{
+				Type:        reaction.Content,
+				CreatedUnix: timeutil.TimeStampNow(),
+			}
+			if userid > 0 {
+				res.UserID = userid
+			} else {
+				res.UserID = g.doer.ID
+				res.OriginalAuthorID = reaction.UserID
+				res.OriginalAuthor = reaction.UserName
+			}
+			cm.Reactions = append(cm.Reactions, &res)
+		}
 
-		// TODO: Reactions
+		cms = append(cms, &cm)
 	}
 
 	return models.InsertIssueComments(cms)
@@ -581,10 +631,12 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		UpdatedUnix: timeutil.TimeStamp(pr.Updated.Unix()),
 	}
 
+	tp := g.gitServiceType.Name()
+
 	userid, ok := g.userMap[pr.PosterID]
-	if !ok {
+	if !ok && tp != "" {
 		var err error
-		userid, err = models.GetUserIDByExternalUserID("github", fmt.Sprintf("%v", pr.PosterID))
+		userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", pr.PosterID))
 		if err != nil {
 			log.Error("GetUserIDByExternalUserID: %v", err)
 		}
@@ -599,6 +651,33 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		issue.PosterID = g.doer.ID
 		issue.OriginalAuthor = pr.PosterName
 		issue.OriginalAuthorID = pr.PosterID
+	}
+
+	// add reactions
+	for _, reaction := range pr.Reactions {
+		userid, ok := g.userMap[reaction.UserID]
+		if !ok && tp != "" {
+			var err error
+			userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
+			if err != nil {
+				log.Error("GetUserIDByExternalUserID: %v", err)
+			}
+			if userid > 0 {
+				g.userMap[reaction.UserID] = userid
+			}
+		}
+		var res = models.Reaction{
+			Type:        reaction.Content,
+			CreatedUnix: timeutil.TimeStampNow(),
+		}
+		if userid > 0 {
+			res.UserID = userid
+		} else {
+			res.UserID = g.doer.ID
+			res.OriginalAuthorID = reaction.UserID
+			res.OriginalAuthor = reaction.UserName
+		}
+		issue.Reactions = append(issue.Reactions, &res)
 	}
 
 	var pullRequest = models.PullRequest{
@@ -622,7 +701,6 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		pullRequest.MergerID = g.doer.ID
 	}
 
-	// TODO: reactions
 	// TODO: assignees
 
 	return &pullRequest, nil
