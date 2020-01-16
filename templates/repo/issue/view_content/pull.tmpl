@@ -133,8 +133,8 @@
 						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 					</div>
 				{{end}}
-				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .RequireSigned (not .WillSign)) (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}
-				{{if and (or (not $notAllOverridableChecksOk) (and $.IsRepoAdmin .AllowMerge))}}
+				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}
+				{{if and (or $.IsRepoAdmin (not $notAllOk)) (or (not .RequireSigned) .WillSign)}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item text yellow">
 							<i class="icon icon-octicon"><span class="octicon octicon-primitive-dot"></span></i>
