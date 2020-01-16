@@ -38,7 +38,7 @@ type ReviewComment struct {
 	Position  int
 	CommitID  string
 	PosterID  int64
-	Reactions *Reactions
+	Reactions []*Reaction
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

@@ -631,9 +631,33 @@ func convertGithubReview(r *github.PullRequestReview) *base.Review {
 	}
 }
 
-func convertGithubReviewComments(cs []*github.PullRequestComment) []*base.ReviewComment {
+func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullRequestComment) ([]*base.ReviewComment,error) {
 	var rcs = make([]*base.ReviewComment, 0, len(cs))
 	for _, c := range cs {
+		// get reactions
+		var reactions []*base.Reaction
+		for i := 1; ; i++ {
+			g.sleep()
+			res, resp, err := g.client.Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, c.GetID(), &github.ListOptions{
+				Page:    i,
+				PerPage: 100,
+			})
+			if err != nil {
+				return nil, err
+			}
+			g.rate = &resp.Rate
+			if len(res) == 0 {
+				break
+			}
+			for _, reaction := range res {
+				reactions = append(reactions, &base.Reaction{
+					UserID:   reaction.User.GetID(),
+					UserName: reaction.User.GetLogin(),
+					Content:  reaction.GetContent(),
+				})
+			}
+		}
+
 		rcs = append(rcs, &base.ReviewComment{
 			ID:        c.GetID(),
 			InReplyTo: c.GetInReplyTo(),
@@ -643,12 +667,12 @@ func convertGithubReviewComments(cs []*github.PullRequestComment) []*base.Review
 			Position:  c.GetPosition(),
 			CommitID:  c.GetCommitID(),
 			PosterID:  c.GetUser().GetID(),
-			Reactions: convertGithubReactions(c.Reactions),
+			Reactions: reactions,
 			CreatedAt: c.GetCreatedAt(),
 			UpdatedAt: c.GetUpdatedAt(),
 		})
 	}
-	return rcs
+	return rcs,nil
 }
 
 // GetReviews returns pull requests review
@@ -678,7 +702,12 @@ func (g *GithubDownloaderV3) GetReviews(pullRequestNumber int64) ([]*base.Review
 					return nil, fmt.Errorf("error while listing repos: %v", err)
 				}
 				g.rate = &resp.Rate
-				r.Comments = append(r.Comments, convertGithubReviewComments(reviewComments)...)
+
+				cs, err := g.convertGithubReviewComments(reviewComments)
+				if err != nil {
+					return nil, err
+				}
+				r.Comments = append(r.Comments, cs...)
 				if resp.NextPage == 0 {
 					break
 				}
