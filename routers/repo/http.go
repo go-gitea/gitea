@@ -10,6 +10,7 @@ import (
 	"compress/gzip"
 	gocontext "context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -17,6 +18,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -65,11 +67,12 @@ func HTTP(ctx *context.Context) {
 		return
 	}
 
-	var isPull bool
+	var isPull, receivePack bool
 	service := ctx.Query("service")
 	if service == "git-receive-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
 		isPull = false
+		receivePack = true
 	} else if service == "git-upload-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") {
 		isPull = true
@@ -282,6 +285,11 @@ func HTTP(ctx *context.Context) {
 	}
 
 	if !repoExist {
+		if !receivePack {
+			ctx.HandleText(http.StatusNotFound, "Repository not found")
+			return
+		}
+
 		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
 			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for organizations.")
 			return
@@ -290,6 +298,13 @@ func HTTP(ctx *context.Context) {
 			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for users.")
 			return
 		}
+
+		// Return dummy payload if GET receive-pack
+		if ctx.Req.Method == http.MethodGet {
+			dummyInfoRefs(ctx)
+			return
+		}
+
 		repo, err = repo_service.PushCreateRepo(authUser, owner, reponame)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
@@ -350,6 +365,48 @@ func HTTP(ctx *context.Context) {
 	}
 
 	ctx.NotFound("Smart Git HTTP", nil)
+}
+
+var (
+	infoRefsCache []byte
+	infoRefsOnce  sync.Once
+)
+
+func dummyInfoRefs(ctx *context.Context) {
+	infoRefsOnce.Do(func() {
+		tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-info-refs-cache")
+		if err != nil {
+			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
+			return
+		}
+
+		defer func() {
+			if err := os.RemoveAll(tmpDir); err != nil {
+				log.Error("RemoveAll: %v", err)
+			}
+		}()
+
+		if err := git.InitRepository(tmpDir, true); err != nil {
+			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
+			return
+		}
+
+		refs, err := git.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
+		if err != nil {
+			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
+		}
+
+		log.Debug("populating infoRefsCache: \n%s", string(refs))
+		infoRefsCache = refs
+	})
+
+	ctx.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
+	ctx.Header().Set("Pragma", "no-cache")
+	ctx.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+	ctx.Header().Set("Content-Type", "application/x-git-receive-pack-advertisement")
+	_, _ = ctx.Write(packetWrite("# service=git-receive-pack\n"))
+	_, _ = ctx.Write([]byte("0000"))
+	_, _ = ctx.Write(infoRefsCache)
 }
 
 type serviceConfig struct {
