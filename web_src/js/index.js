@@ -2320,12 +2320,11 @@ function initTemplateSearch() {
 }
 
 function initIssuePopup() {
-  $('.ref-issue').hover(function () {
-    $(this).popup({
-      html: '',
-    });
-  }, function () {
-    $(this).popup('hide');
+  $('.ref-issue').each(function () {
+    const owner = $(this).data('owner');
+    const repo = $(this).data('repo');
+    const index = $(this).data('index');
+    // TODO popup
   });
 }
 
