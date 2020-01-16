@@ -4,6 +4,9 @@
   "engines": {
     "node": ">=10"
   },
+  "dependencies": {
+    "swagger-ui": "3.24.3"
+  },
   "devDependencies": {
     "@babel/core": "7.7.7",
     "@babel/plugin-transform-runtime": "7.7.6",
@@ -28,9 +31,6 @@
     "webpack-cli": "3.3.10"
   },
   "browserslist": [
-    "> 1%",
-    "last 2 firefox versions",
-    "last 2 safari versions",
-    "ie 11"
+    "defaults"
   ]
 }

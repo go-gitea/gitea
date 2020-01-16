@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -69,7 +70,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
 	}
-	baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch)
+	baseBranch, err = repo_module.GetBranch(pr.BaseRepo, pr.BaseBranch)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			apiPullRequest.Base = nil
@@ -98,7 +99,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		apiPullRequest.Base = apiBaseBranchInfo
 	}
 
-	headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch)
+	headBranch, err = repo_module.GetBranch(pr.HeadRepo, pr.HeadBranch)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			apiPullRequest.Head = nil

@@ -157,6 +157,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "guillep2k",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 9, 17, 0, 29, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 20, 29, 53, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "bug",
@@ -169,14 +170,12 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Description: "Good for newcomers",
 				},
 			},
-			Reactions: &base.Reactions{
-				TotalCount: 1,
-				PlusOne:    1,
-				MinusOne:   0,
-				Laugh:      0,
-				Confused:   0,
-				Heart:      0,
-				Hooray:     0,
+			Reactions: []*base.Reaction{
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "+1",
+				},
 			},
 			Closed: &closed1,
 		},
@@ -189,6 +188,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 12, 21, 0, 6, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 22, 7, 14, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "duplicate",
@@ -196,14 +196,37 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Description: "This issue or pull request already exists",
 				},
 			},
-			Reactions: &base.Reactions{
-				TotalCount: 6,
-				PlusOne:    1,
-				MinusOne:   1,
-				Laugh:      1,
-				Confused:   1,
-				Heart:      1,
-				Hooray:     1,
+			Reactions: []*base.Reaction{
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "heart",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "laugh",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "-1",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "confused",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "hooray",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "+1",
+				},
 			},
 			Closed: &closed2,
 		},
@@ -219,15 +242,14 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterID:   1669571,
 			PosterName: "mrsdizzie",
 			Created:    time.Date(2019, 11, 12, 21, 0, 13, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 21, 0, 13, 0, time.UTC),
 			Content:    "This is a comment",
-			Reactions: &base.Reactions{
-				TotalCount: 1,
-				PlusOne:    1,
-				MinusOne:   0,
-				Laugh:      0,
-				Confused:   0,
-				Heart:      0,
-				Hooray:     0,
+			Reactions: []*base.Reaction{
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "+1",
+				},
 			},
 		},
 		{
@@ -235,16 +257,9 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterID:   1669571,
 			PosterName: "mrsdizzie",
 			Created:    time.Date(2019, 11, 12, 22, 7, 14, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 22, 7, 14, 0, time.UTC),
 			Content:    "A second comment",
-			Reactions: &base.Reactions{
-				TotalCount: 0,
-				PlusOne:    0,
-				MinusOne:   0,
-				Laugh:      0,
-				Confused:   0,
-				Heart:      0,
-				Hooray:     0,
-			},
+			Reactions:  nil,
 		},
 	}, comments[:2])
 
@@ -266,6 +281,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 12, 21, 21, 43, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 21, 39, 28, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "documentation",
@@ -302,6 +318,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "open",
 			Created:    time.Date(2019, 11, 12, 21, 54, 18, 0, time.UTC),
+			Updated:    time.Date(2020, 1, 4, 11, 30, 1, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "bug",
@@ -325,6 +342,18 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			},
 			Merged:         false,
 			MergeCommitSHA: "565d1208f5fffdc1c5ae1a2436491eb9a5e4ebae",
+			Reactions: []*base.Reaction{
+				{
+					UserID:   81045,
+					UserName: "lunny",
+					Content:  "heart",
+				},
+				{
+					UserID:   81045,
+					UserName: "lunny",
+					Content:  "+1",
+				},
+			},
 		},
 	}, prs)
 }
