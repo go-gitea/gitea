@@ -108,11 +108,6 @@ func (h *pagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	url := fmt.Sprintf("%s/%s/%s/raw/branch/%s/%s", h.remote, match[0][1], match[0][2], h.branch, match[0][3])
 	log.Debug("Retrieving %s", url)
 	req, err := http.NewRequest("GET", url, nil)
-	if h.token != "" {
-		req.Header.Add("Authorization", fmt.Sprintf("token %s", h.token))
-	}
-	resp, err := http.DefaultClient.Do(req)
-	defer resp.Body.Close()
 	if err != nil {
 		log.Error("%#v", err)
 		err := pageErrorHandler(w)
@@ -121,6 +116,19 @@ func (h *pagesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if h.token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("token %s", h.token))
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Error("%#v", err)
+		err := pageErrorHandler(w)
+		if err != nil {
+			log.Error("%#v", err)
+		}
+		return
+	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		err := pageErrorHandler(w)
