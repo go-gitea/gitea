@@ -344,13 +344,13 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	divergence, divergenceError := pull_service.GetDiverging(pull)
 	if divergenceError != nil {
-		ctx.ServerError("CountDivergingCommits", divergenceError)
+		ctx.ServerError("GetDiverging", divergenceError)
 		return nil
 	}
 	ctx.Data["Divergence"] = divergence
 
 	if err := pull.LoadProtectedBranch(); err != nil {
-		ctx.ServerError("GetLatestCommitStatus", err)
+		ctx.ServerError("LoadProtectedBranch", err)
 		return nil
 	}
 	ctx.Data["EnableStatusCheck"] = pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck
