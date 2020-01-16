@@ -487,6 +487,7 @@ fomantic: node-check $(FOMANTIC_DEST_DIR)
 
 $(FOMANTIC_DEST_DIR): node_modules semantic.json web_src/fomantic/theme.config.less
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
+	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 
 .PHONY: css
