@@ -487,9 +487,6 @@ func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error)
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
 func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
-	if p.IsAdmin() {
-		return true, nil
-	}
 	if !p.CanWrite(models.UnitTypeCode) {
 		return false, nil
 	}
