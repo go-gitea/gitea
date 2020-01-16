@@ -112,8 +112,7 @@ func GetDiverging(pr *models.PullRequest) (*git.DivergeObject, error) {
 		return &git.DivergeObject{}, errorBehind
 	}
 
-	diffCount := git.DivergeObject{ahead, behind}
-	return &diffCount, nil
+	return &git.DivergeObject{Ahead: ahead, Behind: behind}, nil
 }
 
 func checkDivergence(repoPath string, baseBranch string, targetBranch string) (int, error) {
