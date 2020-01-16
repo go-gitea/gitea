@@ -600,13 +600,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-		return
-	}
-
-	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, perm, ctx.User)
+	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
 		return
