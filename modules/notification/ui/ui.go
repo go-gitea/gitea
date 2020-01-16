@@ -6,7 +6,6 @@ package ui
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 )
@@ -69,7 +68,7 @@ func (ns *notificationService) NotifyIssueChangeStatus(doer *models.User, issue 
 	}
 }
 
-func (ns *notificationService) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, gitRepo *git.Repository) {
+func (ns *notificationService) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	ns.issueQueue <- issueNotificationOpts{
 		issueID:              pr.Issue.ID,
 		notificationAuthorID: doer.ID,
