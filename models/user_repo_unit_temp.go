@@ -33,6 +33,7 @@ func UserRepoUnitTest(t *testing.T) {
 	assert.NoError(t, UserRepoUnitTestDo(x))
 }
 
+// UserRepoUnitTestDo is a temporary function for testing during development
 func UserRepoUnitTestDo(x *xorm.Engine) error {
 
 	var err error
