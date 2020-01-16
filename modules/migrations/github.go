@@ -24,7 +24,7 @@ import (
 var (
 	_ base.Downloader        = &GithubDownloaderV3{}
 	_ base.DownloaderFactory = &GithubDownloaderV3Factory{}
-	//GithubLimitRateRemaining limit to wait for new rate to apply 
+	// GithubLimitRateRemaining limit to wait for new rate to apply 
 	GithubLimitRateRemaining = 0
 )
 
