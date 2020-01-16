@@ -8,6 +8,7 @@ module.exports = {
   entry: {
     index: ['./web_src/js/index'],
     swagger: ['./web_src/js/swagger'],
+    jquery: ['./web_src/js/jquery'],
   },
   devtool: false,
   output: {
@@ -77,6 +78,8 @@ module.exports = {
     }),
   ],
   performance: {
+    maxEntrypointSize: 512000,
+    maxAssetSize: 512000,
     assetFilter: (filename) => {
       return !filename.endsWith('.map') && filename !== 'swagger.js';
     }
