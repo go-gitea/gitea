@@ -92,11 +92,7 @@ func UserRepoUnitTestDo(x *xorm.Engine) error {
 
 	dumpUserOrRepo(x, "batchRebuildByTeams", duser, drepo)
 
-	if err = compareShas(sharepo, shaother, "RebuildByTeams", usercntrepo, repocntrepo, usercntother, repocntother); err != nil {
-		return err
-	}
-
-	return nil
+	return compareShas(sharepo, shaother, "RebuildByTeams", usercntrepo, repocntrepo, usercntother, repocntother)
 }
 
 func compareShas(sharepo, shaother, othername string,
