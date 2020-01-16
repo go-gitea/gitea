@@ -22,9 +22,9 @@ import (
 )
 
 var (
-	_ base.Downloader        = &GithubDownloaderV3{}
-	_ base.DownloaderFactory = &GithubDownloaderV3Factory{}
-	GithubLimitRateRemaining = 0
+	_                        base.Downloader        = &GithubDownloaderV3{}
+	_                        base.DownloaderFactory = &GithubDownloaderV3Factory{}
+	GithubLimitRateRemaining                        = 0
 )
 
 func init() {
@@ -125,13 +125,22 @@ func (g *GithubDownloaderV3) sleep() {
 		case <-timer.C:
 		}
 
-		rates, _, err := g.client.RateLimits(g.ctx)
+		err := g.RefreshRate()
 		if err != nil {
 			log.Error("g.client.RateLimits: %s", err)
 		}
-
-		g.rate = rates.GetCore()
 	}
+}
+
+// RefreshRate update the current rate (doesn't count in rate limit)
+func (g *GithubDownloaderV3) RefreshRate() error {
+	rates, _, err := g.client.RateLimits(g.ctx)
+	if err != nil {
+		return err
+	}
+
+	g.rate = rates.GetCore()
+	return nil
 }
 
 // GetRepoInfo returns a repository information

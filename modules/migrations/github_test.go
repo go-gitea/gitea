@@ -64,6 +64,9 @@ func assertLabelEqual(t *testing.T, name, color, description string, label *base
 func TestGitHubDownloadRepo(t *testing.T) {
 	GithubLimitRateRemaining = 3 //Wait at 3 remaining since we could have 3 CI in //
 	downloader := NewGithubDownloaderV3("", "", "go-gitea", "test_repo")
+	err := downloader.RefreshRate()
+	assert.NoError(t, err)
+
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 	assert.EqualValues(t, &base.Repository{
