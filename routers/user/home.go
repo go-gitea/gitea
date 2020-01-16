@@ -432,7 +432,6 @@ func Issues(ctx *context.Context) {
 	}
 
 	opts := &models.IssuesOptions{
-		IsClosed: util.OptionalBoolOf(isShowClosed),
 		IsPull:   util.OptionalBoolOf(isPullList),
 		SortType: sortType,
 	}
@@ -476,6 +475,8 @@ func Issues(ctx *context.Context) {
 		}
 	}
 	ctx.Data["Keyword"] = keyword
+
+	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
 
 	var counts map[int64]int64
 	if !forceEmpty {
