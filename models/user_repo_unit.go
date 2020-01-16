@@ -488,9 +488,8 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 			log.Warn("buildRepoUnits: missing owner %d for repository %d", repo.OwnerID, repo.ID)
 			// Since the repository has no owner, nobody but the admins should have permissions
 			return nil
-		} else {
-			return fmt.Errorf("getOwner: %v", err)
 		}
+		return fmt.Errorf("getOwner: %v", err)
 	}
 
 	if repo.Owner.IsOrganization() {
@@ -731,6 +730,9 @@ func buildUserUnits(e Engine, batchID int64, user *User) error {
 		"INNER JOIN repo_unit ON repo_unit.repo_id = repository.id "+
 		"WHERE repository.owner_id = ? AND "+userRepoUnitSupported,
 		batchID, AccessModeOwner, user.ID)
+	if err != nil {
+		return fmt.Errorf("INSERT user_repo_unit_work (user: owner): %v", err)
+	}
 
 	// ****************************************************************************
 	// Normal user, collaborations on repositories

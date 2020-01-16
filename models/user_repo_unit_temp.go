@@ -27,11 +27,6 @@ type sumdata struct {
 	Mode  int
 }
 
-// UserRepoUnitTest_Temporary FIXME: remove
-func UserRepoUnitTest_Temporary() error {
-	return UserRepoUnitTestDo(x)
-}
-
 // UserRepoUnitTest FIXME: remove export
 func UserRepoUnitTest(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
@@ -117,14 +112,12 @@ func compareShas(sharepo, shaother, othername string,
 			log.Info("User %d not in repo list", id)
 		} else if !oko {
 			log.Info("User %d not in %s list", id, othername)
-		} else {
-			if pr.Count != po.Count ||
-				pr.Type != po.Type ||
-				pr.Mode != po.Mode {
-				log.Info("User %d %s %d,%d,%d != repo %d,%d,%d", id, othername,
-					po.Count, po.Type, po.Mode,
-					pr.Count, pr.Type, pr.Mode)
-			}
+		} else if pr.Count != po.Count ||
+			pr.Type != po.Type ||
+			pr.Mode != po.Mode {
+			log.Info("User %d %s %d,%d,%d != repo %d,%d,%d", id, othername,
+				po.Count, po.Type, po.Mode,
+				pr.Count, pr.Type, pr.Mode)
 		}
 	}
 	users2 := orderMapKeys(usercntother)
@@ -145,14 +138,12 @@ func compareShas(sharepo, shaother, othername string,
 			log.Info("Repo %d not in repo list", id)
 		} else if !oko {
 			log.Info("Repo %d not in %s list", id, othername)
-		} else {
-			if pr.Count != po.Count ||
-				pr.Type != po.Type ||
-				pr.Mode != po.Mode {
-				log.Info("Repo %d %s %d,%d,%d != repo %d,%d,%d", id, othername,
-					po.Count, po.Type, po.Mode,
-					pr.Count, pr.Type, pr.Mode)
-			}
+		} else if pr.Count != po.Count ||
+			pr.Type != po.Type ||
+			pr.Mode != po.Mode {
+			log.Info("Repo %d %s %d,%d,%d != repo %d,%d,%d", id, othername,
+				po.Count, po.Type, po.Mode,
+				pr.Count, pr.Type, pr.Mode)
 		}
 	}
 	repos2 := orderMapKeys(repocntother)
@@ -232,10 +223,6 @@ func batchBuildByRepos(x *xorm.Engine) error {
 }
 
 func batchBuildByReposUsers(x *xorm.Engine) error {
-
-	// Don't get too greedy on the batches
-	const userBatchCount = 20
-	const repoBatchCount = 20
 
 	if _, err := x.Exec("DELETE FROM user_repo_unit"); err != nil {
 		return fmt.Errorf("batchBuildByReposUsers: DELETE old data: %v", err)
@@ -437,7 +424,7 @@ func getUserRepoUnitsSha(x *xorm.Engine, source string) (string, map[int64]*sumd
 
 	h := sha1.New()
 	for _, u := range data {
-		io.WriteString(h, fmt.Sprintf("%d,%d,%d,%d", u.UserID, u.RepoID, u.Type, u.Mode))
+		_, _ = io.WriteString(h, fmt.Sprintf("%d,%d,%d,%d", u.UserID, u.RepoID, u.Type, u.Mode))
 		sum.Count++
 		sum.User += u.UserID
 		sum.Repo += u.RepoID
