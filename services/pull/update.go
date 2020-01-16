@@ -15,8 +15,8 @@ import (
 )
 
 // Update updates pull request with base branch.
-func Update(pull *models.PullRequest, doer *models.User, message string) (err error) {
-	//use merge functions but switch repo's and branche's
+func Update(pull *models.PullRequest, doer *models.User, message string) error {
+	//use merge functions but switch repo's and branch's
 	pr := &models.PullRequest{
 		HeadRepoID: pull.BaseRepoID,
 		BaseRepoID: pull.HeadRepoID,
@@ -24,7 +24,7 @@ func Update(pull *models.PullRequest, doer *models.User, message string) (err er
 		BaseBranch: pull.HeadBranch,
 	}
 
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %v", err)
 	} else if err = pr.LoadBaseRepo(); err != nil {
@@ -43,11 +43,7 @@ func Update(pull *models.PullRequest, doer *models.User, message string) (err er
 		go AddTestPullRequestTask(doer, pr.HeadRepo.ID, pr.HeadBranch, false, "", "")
 	}()
 
-	if err := rawMerge(pr, doer, models.MergeStyleMerge, message); err != nil {
-		return err
-	}
-
-	return nil
+	return rawMerge(pr, doer, models.MergeStyleMerge, message)
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
