@@ -158,7 +158,6 @@
 						</div>
 					{{end}}
 					{{if and .Divergence (gt .Divergence.Behind 0)}}
-						<div class="ui divider"></div>
 						<div class="ui two horizontal list maxwidth">
 							<div class="item text gray">
 								<i class="icon icon-octicon"><span class="octicon octicon-alert">&nbsp;&nbsp;&nbsp;<strong>{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}</strong></span></i>
