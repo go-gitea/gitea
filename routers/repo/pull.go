@@ -658,8 +658,8 @@ func UpdatePullRequest(ctx *context.Context) {
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 			return
 		}
-		ctx.ServerError("Update", err)
-		return
+		ctx.Flash.Error(err.Error())
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 	}
 }
 
