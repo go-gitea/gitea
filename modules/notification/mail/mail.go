@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/services/mailer"
@@ -101,7 +100,7 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 	}
 }
 
-func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("pr.LoadIssue: %v", err)
 		return
