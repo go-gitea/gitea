@@ -151,7 +151,7 @@
 							<i class="icon lock green"></i>
 							{{$.i18n.Tr "repo.signing.will_sign" .SigningKey}}
 						</div>
-					{{else}}
+					{{else if .IsSigned}}
 						<div class="item text yellow">
 							<i class="icon unlock grey"></i>
 							{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
