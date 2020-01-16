@@ -134,7 +134,7 @@
 					</div>
 				{{end}}
 				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}
-				{{if and (or $.IsRepoAdmin (not $notAllOk)) (or (not .RequireSigned) .WillSign)}}
+				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item text yellow">
 							<i class="icon icon-octicon"><span class="octicon octicon-primitive-dot"></span></i>
