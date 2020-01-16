@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -661,6 +662,9 @@ func UpdatePullRequest(ctx *context.Context) {
 		ctx.Flash.Error(err.Error())
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 	}
+
+	time.Sleep(1 * time.Second)
+
 	ctx.Flash.Success(ctx.Tr("repo.pulls.update_branch_success"))
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 }
