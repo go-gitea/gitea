@@ -130,12 +130,6 @@ func RebuildRepoUnits(e Engine, repo *Repository) error {
 
 	log.Trace("RebuildUserUnits: rebuilding permissions for repository %d on batch %d", repo.ID, batchID)
 
-	// Make sure we start from scratch; we intend to recreate all pairs
-	_, err = e.Delete(&UserRepoUnit{RepoID: repo.ID})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit (batch:%d): %v", batchID, err)
-	}
-
 	if err = buildRepoUnits(e, batchID, repo, -1); err != nil {
 		return fmt.Errorf("buildRepoUnits(batch:%d): %v", batchID, err)
 	}
@@ -143,6 +137,12 @@ func RebuildRepoUnits(e Engine, repo *Repository) error {
 	// ***********************************************************************************
 	// Consolidate the best permissions for each user into the user_repo_unit table
 	// ***********************************************************************************
+
+	// Delete current data; we intend to replace all pairs
+	_, err = e.Delete(&UserRepoUnit{RepoID: repo.ID})
+	if err != nil {
+		return fmt.Errorf("DELETE user_repo_unit (batch:%d): %v", batchID, err)
+	}
 
 	if err = batchConsolidateWorkData(e, batchID); err != nil {
 		return fmt.Errorf("batchConsolidateWorkData(batch:%d): %v", batchID, err)
@@ -167,12 +167,6 @@ func RebuildUserUnits(e Engine, user *User) error {
 
 	log.Trace("RebuildUserUnits: rebuilding permissions for user %d on batch %d", user.ID, batchID)
 
-	// Make sure we start from scratch; we intend to recreate all pairs
-	_, err = e.Delete(&UserRepoUnit{UserID: user.ID})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit (batch:%d): %v", batchID, err)
-	}
-
 	if err = buildUserUnits(e, batchID, user); err != nil {
 		return fmt.Errorf("buildUserUnits(batch:%d): %v", batchID, err)
 	}
@@ -180,6 +174,12 @@ func RebuildUserUnits(e Engine, user *User) error {
 	// ***********************************************************************************
 	// Consolidate the best permissions for each user into the user_repo_unit table
 	// ***********************************************************************************
+
+	// Delete current data; we intend to replace all pairs
+	_, err = e.Delete(&UserRepoUnit{UserID: user.ID})
+	if err != nil {
+		return fmt.Errorf("DELETE user_repo_unit (batch:%d): %v", batchID, err)
+	}
 
 	if err = batchConsolidateWorkData(e, batchID); err != nil {
 		return fmt.Errorf("batchConsolidateWorkData(batch:%d): %v", batchID, err)
@@ -204,12 +204,6 @@ func RebuildLoggedInUnits(e Engine) error {
 
 	log.Trace("RebuildLoggedInUnits: rebuilding permissions for logged in users on batch %d", batchID)
 
-	// Make sure we start from scratch; we intend to recreate all pairs
-	_, err = e.Delete(&UserRepoUnit{UserID: UserRepoUnitLoggedInUser})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit (batch:%d): %v", batchID, err)
-	}
-
 	if err = buildLoggedInUnits(e, batchID); err != nil {
 		return fmt.Errorf("buildLoggedInUnits(batch:%d): %v", batchID, err)
 	}
@@ -217,6 +211,12 @@ func RebuildLoggedInUnits(e Engine) error {
 	// ***********************************************************************************
 	// Consolidate the best permissions for each user into the user_repo_unit table
 	// ***********************************************************************************
+
+	// Delete current data; we intend to replace all pairs
+	_, err = e.Delete(&UserRepoUnit{UserID: UserRepoUnitLoggedInUser})
+	if err != nil {
+		return fmt.Errorf("DELETE user_repo_unit (batch:%d): %v", batchID, err)
+	}
 
 	if err = batchConsolidateWorkData(e, batchID); err != nil {
 		return fmt.Errorf("batchConsolidateWorkData(batch:%d): %v", batchID, err)
@@ -241,12 +241,6 @@ func RebuildAnonymousUnits(e Engine) error {
 
 	log.Trace("RebuildAnonymousUnits: rebuilding permissions for unidentified users on batch %d", batchID)
 
-	// Make sure we start from scratch; we intend to recreate all pairs
-	_, err = e.Delete(&UserRepoUnit{UserID: UserRepoUnitAnyUser})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit (batch:%d): %v", batchID, err)
-	}
-
 	if err = buildAnonymousUnits(e, batchID); err != nil {
 		return fmt.Errorf("buildAnonymousUnits(batch:%d): %v", batchID, err)
 	}
@@ -254,6 +248,12 @@ func RebuildAnonymousUnits(e Engine) error {
 	// ***********************************************************************************
 	// Consolidate the best permissions for each user into the user_repo_unit table
 	// ***********************************************************************************
+
+	// Delete current data; we intend to replace all pairs
+	_, err = e.Delete(&UserRepoUnit{UserID: UserRepoUnitAnyUser})
+	if err != nil {
+		return fmt.Errorf("DELETE user_repo_unit (batch:%d): %v", batchID, err)
+	}
 
 	if err = batchConsolidateWorkData(e, batchID); err != nil {
 		return fmt.Errorf("batchConsolidateWorkData(batch:%d): %v", batchID, err)
@@ -278,12 +278,6 @@ func RebuildUserRepoUnits(e Engine, user *User, repo *Repository) error {
 
 	log.Trace("RebuildUserUnits: rebuilding permissions for user %d, repo %d on batch %d", user.ID, repo.ID, batchID)
 
-	// Make sure we start from scratch; we intend to recreate all pairs
-	_, err = e.Delete(&UserRepoUnit{UserID: user.ID, RepoID: repo.ID})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit (batch:%d): %v", batchID, err)
-	}
-
 	if err = buildUserRepoUnits(e, batchID, user, repo); err != nil {
 		return fmt.Errorf("buildUserRepoUnits(batch:%d): %v", batchID, err)
 	}
@@ -291,6 +285,12 @@ func RebuildUserRepoUnits(e Engine, user *User, repo *Repository) error {
 	// ***********************************************************************************
 	// Consolidate the best permissions for the user into the user_repo_unit table
 	// ***********************************************************************************
+
+	// Delete current data; we intend to replace all pairs
+	_, err = e.Delete(&UserRepoUnit{UserID: user.ID, RepoID: repo.ID})
+	if err != nil {
+		return fmt.Errorf("DELETE user_repo_unit (batch:%d): %v", batchID, err)
+	}
 
 	if err = batchConsolidateWorkData(e, batchID); err != nil {
 		return fmt.Errorf("batchConsolidateWorkData(batch:%d): %v", batchID, err)
