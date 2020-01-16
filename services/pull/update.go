@@ -6,8 +6,11 @@ package pull
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -29,6 +32,17 @@ func Update(pull *models.PullRequest, doer *models.User, message string) (err er
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
+	diffCount, err := GetDiverging(pull)
+	if err != nil {
+		return err
+	} else if diffCount.Behind == 0 {
+		return fmt.Errorf("HeadBranch of PR %d is up to date", pull.Index)
+	}
+
+	defer func() {
+		go AddTestPullRequestTask(doer, pr.HeadRepo.ID, pr.HeadBranch, false, "", "")
+	}()
+
 	if err := rawMerge(pr, doer, models.MergeStyleMerge, message); err != nil {
 		return err
 	}
@@ -48,4 +62,71 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, p models.Permission, user *
 		BaseBranch: pull.HeadBranch,
 	}
 	return IsUserAllowedToMerge(pr, p, user)
+}
+
+// GetDiverging determines how many commits a PR is ahead or behind the PR base branch
+func GetDiverging(pr *models.PullRequest) (*git.DivergeObject, error) {
+	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
+
+	if pr.BaseRepo == nil {
+		if err := pr.LoadBaseRepo(); err != nil {
+			return nil, err
+		}
+	}
+	if pr.HeadRepo == nil {
+		if err := pr.LoadHeadRepo(); err != nil {
+			return nil, err
+		}
+	}
+
+	headRepoPath := pr.HeadRepo.RepoPath()
+	headGitRepo, err := git.OpenRepository(headRepoPath)
+	if err != nil {
+		return nil, fmt.Errorf("OpenRepository: %v", err)
+	}
+	defer headGitRepo.Close()
+
+	if pr.BaseRepoID == pr.HeadRepoID {
+		diff, err := git.GetDivergingCommits(pr.HeadRepo.RepoPath(), pr.BaseBranch, pr.HeadBranch)
+		return &diff, err
+	}
+
+	tmpRemoteName := fmt.Sprintf("tmp-pull-%d-base", pr.ID)
+	if err = headGitRepo.AddRemote(tmpRemoteName, pr.BaseRepo.RepoPath(), true); err != nil {
+		return nil, fmt.Errorf("headGitRepo.AddRemote: %v", err)
+	}
+	// Make sure to remove the remote even if the push fails
+	defer func() {
+		if err := headGitRepo.RemoveRemote(tmpRemoteName); err != nil {
+			log.Error("CountDiverging: RemoveRemote: %s", err)
+		}
+	}()
+
+	// $(git rev-list --count tmp-pull-1-base/master..feature) commits ahead of master
+	ahead, errorAhead := checkDivergence(headRepoPath, fmt.Sprintf("%s/%s", tmpRemoteName, pr.BaseBranch), pr.HeadBranch)
+	if errorAhead != nil {
+		return &git.DivergeObject{}, errorAhead
+	}
+
+	// $(git rev-list --count feature..tmp-pull-1-base/master) commits behind master
+	behind, errorBehind := checkDivergence(headRepoPath, pr.HeadBranch, fmt.Sprintf("%s/%s", tmpRemoteName, pr.BaseBranch))
+	if errorBehind != nil {
+		return &git.DivergeObject{}, errorBehind
+	}
+
+	return &git.DivergeObject{ahead, behind}, nil
+}
+
+func checkDivergence(repoPath string, baseBranch string, targetBranch string) (int, error) {
+	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
+	cmd := git.NewCommand("rev-list", "--count", branches)
+	stdout, err := cmd.RunInDir(repoPath)
+	if err != nil {
+		return -1, err
+	}
+	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
+	if errInteger != nil {
+		return -1, errInteger
+	}
+	return outInteger, nil
 }
