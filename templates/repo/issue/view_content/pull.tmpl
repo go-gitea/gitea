@@ -133,9 +133,9 @@
 						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 					</div>
 				{{end}}
-				{{$notAllOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .RequireSigned (not .WillSign)) (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}
-				{{if and (or $.IsRepoAdmin (not $notAllOk)) (or (not .RequireSigned) .WillSign)}}
-					{{if $notAllOk}}
+				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}
+				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
+					{{if $notAllOverridableChecksOk}}
 						<div class="item text yellow">
 							<i class="icon icon-octicon"><span class="octicon octicon-primitive-dot"></span></i>
 							{{$.i18n.Tr "repo.pulls.required_status_check_administrator"}}
@@ -233,7 +233,7 @@
 								</form>
 							</div>
 							{{end}}
-							<div class="ui {{if $notAllOk}}red{{else}}green{{end}} buttons merge-button">
+							<div class="ui {{if $notAllOverridableChecksOk}}red{{else}}green{{end}} buttons merge-button">
 								<button class="ui button" data-do="{{.MergeStyle}}">
 									<span class="octicon octicon-git-merge"></span>
 									<span class="button-text">
