@@ -122,6 +122,8 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
+      GITHUB_READ_TOKEN:
+        from_secret: github_read_token
     when:
       branch:
         - master
