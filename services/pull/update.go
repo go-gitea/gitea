@@ -234,26 +234,11 @@ func Update(pull *models.PullRequest, doer *models.User, message string) (err er
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
 func IsUserAllowedToUpdate(pull *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
-	if p.IsAdmin() {
-		return true, nil
-	}
-	if !p.CanWrite(models.UnitTypeCode) {
-		return false, nil
-	}
 	pr := &models.PullRequest{
 		HeadRepoID: pull.BaseRepoID,
 		BaseRepoID: pull.HeadRepoID,
 		HeadBranch: pull.BaseBranch,
 		BaseBranch: pull.HeadBranch,
 	}
-	err := pr.LoadProtectedBranch()
-	if err != nil {
-		return false, err
-	}
-
-	if pr.ProtectedBranch == nil || pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID) {
-		return true, nil
-	}
-
-	return false, nil
+	return IsUserAllowedToMerge(pr, p, user)
 }
