@@ -620,13 +620,7 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	headRepoPerm, err := models.GetUserRepoPermission(issue.PullRequest.HeadRepo, ctx.User)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return
-	}
-
-	allowedUpdate, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, headRepoPerm, ctx.User)
+	allowedUpdate, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, ctx.User)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return

@@ -51,14 +51,19 @@ func Update(pull *models.PullRequest, doer *models.User, message string) (err er
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
-func IsUserAllowedToUpdate(pull *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
+func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User) (bool, error) {
+	headRepoPerm, err := models.GetUserRepoPermission(pull.HeadRepo, user)
+	if err != nil {
+		return false, err
+	}
+
 	pr := &models.PullRequest{
 		HeadRepoID: pull.BaseRepoID,
 		BaseRepoID: pull.HeadRepoID,
 		HeadBranch: pull.BaseBranch,
 		BaseBranch: pull.HeadBranch,
 	}
-	return IsUserAllowedToMerge(pr, p, user)
+	return IsUserAllowedToMerge(pr, headRepoPerm, user)
 }
 
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch
