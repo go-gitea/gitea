@@ -61,10 +61,11 @@ func TestPullRequestsNewest(t *testing.T) {
 		Labels:   []string{},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
-	if assert.Len(t, prs, 2) {
-		assert.Equal(t, int64(2), prs[0].ID)
-		assert.Equal(t, int64(1), prs[1].ID)
+	assert.EqualValues(t, 3, count)
+	if assert.Len(t, prs, 3) {
+		assert.EqualValues(t, 5, prs[0].ID)
+		assert.EqualValues(t, 2, prs[1].ID)
+		assert.EqualValues(t, 1, prs[2].ID)
 	}
 }
 
@@ -77,10 +78,11 @@ func TestPullRequestsOldest(t *testing.T) {
 		Labels:   []string{},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
-	if assert.Len(t, prs, 2) {
-		assert.Equal(t, int64(1), prs[0].ID)
-		assert.Equal(t, int64(2), prs[1].ID)
+	assert.EqualValues(t, 3, count)
+	if assert.Len(t, prs, 3) {
+		assert.EqualValues(t, 1, prs[0].ID)
+		assert.EqualValues(t, 2, prs[1].ID)
+		assert.EqualValues(t, 5, prs[2].ID)
 	}
 }
 
