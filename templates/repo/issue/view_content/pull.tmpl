@@ -269,11 +269,14 @@
 									</div>
 								</div>
 							</div>
-							{{if gt .Divergence.Behind 0}}
+							{{if and .Divergence (gt .Divergence.Behind 0)}}
 								<div class="ui buttons update-button">
-									<button class="ui button" data-do="update">
-										<span class="button-text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
-									</button>
+									<form action="{{.Link}}/update" method="post">
+										{{.CsrfTokenHtml}}
+										<button class="ui button" data-do="update">
+											<span class="button-text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+										</button>
+									</form>
 								</div>
 							{{end}}
 						{{else}}

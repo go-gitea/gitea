@@ -1037,17 +1037,6 @@ function initRepository() {
       $('#comment-form').submit();
     });
 
-    // Pull Request update button
-    const $updatePRButton = $('#update-button');
-    $updatePRButton.on('click', () => {
-      $.post(`${window.location}/update`, {
-        _csrf: csrf
-      }).success(() => {
-        // eslint-disable-next-line no-restricted-globals
-        location.reload();
-      });
-    });
-
     // Pull Request merge button
     const $mergeButton = $('.merge-button > button');
     $mergeButton.on('click', function (e) {
