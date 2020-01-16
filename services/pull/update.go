@@ -47,9 +47,6 @@ func Update(pull *models.PullRequest, doer *models.User, message string) (err er
 		return err
 	}
 
-	//notification.NotifyPullRequestUpdated(pr, doer)
-	//trigger hooks and co ..
-
 	return nil
 }
 
