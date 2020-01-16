@@ -71,7 +71,7 @@
 						{{$.i18n.Tr "repo.pulls.reopen_to_merge"}}
 					{{end}}
 				</div>
-				{{if .IsPullBranchDeletable}}
+				{{if and .IsPullBranchDeletable ( not .IsPullRequestBroken )}}
 					<div class="ui divider"></div>
 					<div>
 						<a class="delete-button ui red button" href="" data-url="{{.DeleteBranchLink}}">{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</a>

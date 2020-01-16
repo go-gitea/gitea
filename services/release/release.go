@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -37,6 +38,54 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 				return err
 			}
 			rel.LowerTagName = strings.ToLower(rel.TagName)
+			// Prepare Notify
+			if err := rel.LoadAttributes(); err != nil {
+				log.Error("LoadAttributes: %v", err)
+				return err
+			}
+
+			refName := git.TagPrefix + rel.TagName
+			apiPusher := rel.Publisher.APIFormat()
+			apiRepo := rel.Repo.APIFormat(models.AccessModeNone)
+			apiCommits, err := models.NewPushCommits().ToAPIPayloadCommits(rel.Repo.RepoPath(), rel.Repo.HTMLURL())
+			if err != nil {
+				log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+				return err
+			}
+
+			if err := models.PrepareWebhooks(rel.Repo, models.HookEventPush, &api.PushPayload{
+				Ref:        refName,
+				Before:     git.EmptySHA,
+				After:      commit.ID.String(),
+				CompareURL: setting.AppURL + models.NewPushCommits().CompareURL,
+				Commits:    apiCommits,
+				Repo:       apiRepo,
+				Pusher:     apiPusher,
+				Sender:     apiPusher,
+			}); err != nil {
+				log.Error("PrepareWebhooks: %v", err)
+			}
+
+			gitRepo, err := git.OpenRepository(rel.Repo.RepoPath())
+			if err != nil {
+				log.Error("OpenRepository[%s]: %v", rel.Repo.RepoPath(), err)
+			}
+			shaSum, err := gitRepo.GetTagCommitID(refName)
+			if err != nil {
+				gitRepo.Close()
+				log.Error("GetTagCommitID[%s]: %v", refName, err)
+			}
+			gitRepo.Close()
+
+			if err = models.PrepareWebhooks(rel.Repo, models.HookEventCreate, &api.CreatePayload{
+				Ref:     git.RefEndName(refName),
+				Sha:     shaSum,
+				RefType: "tag",
+				Repo:    apiRepo,
+				Sender:  apiPusher,
+			}); err != nil {
+				return fmt.Errorf("PrepareWebhooks: %v", err)
+			}
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
