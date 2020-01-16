@@ -594,6 +594,75 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.HTML(200, tplPullFiles)
 }
 
+// UpdatePullRequest merge master into PR
+func UpdatePullRequest(ctx *context.Context) {
+
+	issue := checkPullInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+	if issue.IsClosed {
+		ctx.NotFound("MergePullRequest", nil)
+		return
+	}
+
+	if issue.PullRequest.HasMerged {
+		ctx.NotFound("MergePullRequest", nil)
+		return
+	}
+
+	if err := issue.PullRequest.LoadBaseRepo(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if err := issue.PullRequest.LoadHeadRepo(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	headRepoPerm, err := models.GetUserRepoPermission(issue.PullRequest.HeadRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+
+	allowedUpdate, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, headRepoPerm, ctx.User)
+	if err != nil {
+		ctx.ServerError("IsUserAllowedToMerge", err)
+		return
+	}
+
+	// ToDo: add check if maintainers are allowed to change branch ... (need migration & co)
+	if !allowedUpdate {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		return
+	}
+
+	// default merge commit message
+	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
+
+	if err = pull_service.Update(issue.PullRequest, ctx.User, message); err != nil {
+		sanitize := func(x string) string {
+			runes := []rune(x)
+
+			if len(runes) > 512 {
+				x = "..." + string(runes[len(runes)-512:])
+			}
+
+			return strings.Replace(html.EscapeString(x), "\n", "<br>", -1)
+		}
+		if models.IsErrMergeConflicts(err) {
+			conflictError := err.(models.ErrMergeConflicts)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_conflict", sanitize(conflictError.StdErr), sanitize(conflictError.StdOut)))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+			return
+		}
+		ctx.ServerError("Update", err)
+		return
+	}
+}
+
 // MergePullRequest response for merging pull request
 func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	issue := checkPullInfo(ctx)
