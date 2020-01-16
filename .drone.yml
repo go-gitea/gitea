@@ -124,52 +124,6 @@ steps:
       TAGS: bindata sqlite sqlite_unlock_notify
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - pull_request
-
-  - name: release-test
-    pull: always
-    image: golang:1.13
-    commands:
-      - make test
-    environment:
-      GOPROXY: off
-      TAGS: bindata sqlite sqlite_unlock_notify
-    when:
-      branch:
-        - "release/*"
-      event:
-        - push
-        - pull_request
-
-  - name: tag-pre-condition
-    pull: always
-    image: alpine/git
-    commands:
-      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
-    depends_on:
-      - build
-    when:
-      event:
-        - tag
-
-  - name: tag-test
-    pull: always
-    image: golang:1.13
-    commands:
-      - make test
-    environment:
-      GOPROXY: off
-      TAGS: bindata
-    depends_on:
-      - tag-pre-condition
-    when:
-      event:
-        - tag
 
   - name: test-mysql
     pull: always
@@ -185,30 +139,6 @@ steps:
       TEST_LDAP: 1
     depends_on:
       - build
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - pull_request
-
-  - name: tag-test-mysql
-    pull: always
-    image: golang:1.13
-    commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
-      - timeout -s ABRT 20m make test-mysql-migration
-      - timeout -s ABRT 20m make test-mysql
-    environment:
-      GOPROXY: off
-      TAGS: bindata
-      TEST_LDAP: 1
-    depends_on:
-      - build
-    when:
-      event:
-        - tag
 
   - name: test-mysql8
     pull: always
