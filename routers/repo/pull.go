@@ -351,7 +351,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	ctx.Data["Divergence"] = divergence
 	allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
 	if err != nil {
-		ctx.ServerError("GetDiverging", err)
+		ctx.ServerError("IsUserAllowedToUpdate", err)
 		return nil
 	}
 	ctx.Data["UpdateAllowed"] = allowUpdate
