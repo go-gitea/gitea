@@ -440,7 +440,7 @@ func (issue *Issue) HashTag() string {
 
 // IsPoster returns true if given user by ID is the poster.
 func (issue *Issue) IsPoster(uid int64) bool {
-	return issue.PosterID == uid
+	return issue.OriginalAuthorID == 0 && issue.PosterID == uid
 }
 
 func (issue *Issue) hasLabel(e Engine, labelID int64) bool {
