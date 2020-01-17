@@ -5,6 +5,9 @@ without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.10.3](https://github.com/go-gitea/gitea/releases/tag/v1.10.3) - 2020-01-17
+* SECURITY
+  * Prevent redirect to Host (#9678) (#9680)
+  * Hide public repos owned by private orgs (#9609) (#9616)
 * BUGFIXES
   * Fix dump non-exist log directory (#9818) (#9820)
   * Fix compare (#9808) (#9815)
@@ -14,9 +17,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix cache problem on dashboard (#9358) (#9703)
   * Send tag create and push webhook when release created on UI (#8671) (#9702)
   * Branches not at ref commit ID should not be listed as Merged (#9614) (#9639)
-* SECURITY
-  * Prevent redirect to Host (#9678) (#9680)
-  * Hide public repos owned by private orgs (#9609) (#9616)
 * MISC
   * Never allow an empty password to validate (#9682) (#9684)
 
