@@ -261,6 +261,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}
 
 	m.Use(user.GetNotificationCount)
+	m.Use(func(ctx *context.Context) {
+		ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
+		ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
+		ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
+	})
 
 	// FIXME: not all routes need go through same middlewares.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
