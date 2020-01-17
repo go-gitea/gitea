@@ -151,8 +151,10 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	if err := z.AddDir("log", setting.LogRootPath); err != nil {
-		fatal("Failed to include log: %v", err)
+	if com.IsExist(setting.LogRootPath) {
+		if err := z.AddDir("log", setting.LogRootPath); err != nil {
+			fatal("Failed to include log: %v", err)
+		}
 	}
 
 	if err = z.Close(); err != nil {
