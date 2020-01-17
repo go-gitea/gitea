@@ -373,7 +373,8 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 	defer headGitRepo.Close()
-	if err := parseBaseRepoInfo(ctx, headRepo); err != nil {
+	var err error
+	if err = parseBaseRepoInfo(ctx, headRepo); err != nil {
 		ctx.ServerError("parseBaseRepoInfo", err)
 		return
 	}
@@ -414,6 +415,11 @@ func CompareDiff(ctx *context.Context) {
 	}
 	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
 	afterCommitID := ctx.Data["AfterCommitID"].(string)
+
+	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
 
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + "..." + base.ShortSha(afterCommitID)
 
