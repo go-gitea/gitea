@@ -603,7 +603,6 @@ func ViewPullFiles(ctx *context.Context) {
 
 // UpdatePullRequest merge master into PR
 func UpdatePullRequest(ctx *context.Context) {
-
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
 		return
@@ -612,7 +611,6 @@ func UpdatePullRequest(ctx *context.Context) {
 		ctx.NotFound("MergePullRequest", nil)
 		return
 	}
-
 	if issue.PullRequest.HasMerged {
 		ctx.NotFound("MergePullRequest", nil)
 		return
