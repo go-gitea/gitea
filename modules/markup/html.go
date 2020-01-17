@@ -695,11 +695,6 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		}
 		link = createLink(util.URLJoin(setting.AppURL, owner, repo, p, ref.Issue), reftext, "ref-issue")
 	}
-	link.Attr = append(link.Attr,
-		html.Attribute{Key: "data-owner", Val: owner},
-		html.Attribute{Key: "data-repo", Val: repo},
-		html.Attribute{Key: "data-index", Val: ref.Issue},
-	)
 
 	if ref.Action == references.XRefActionNone {
 		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)

@@ -54,7 +54,7 @@ func ReplaceSanitizer() {
 	sanitizer.policy.AllowElements("kbd")
 
 	// Allow classes for anchors
-	sanitizer.policy.AllowAttrs("class", "data-owner", "data-repo", "data-index").OnElements("a")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`ref-issue`)).OnElements("a")
 
 	// Custom keyword markup
 	for _, rule := range setting.ExternalSanitizerRules {
