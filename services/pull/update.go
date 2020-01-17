@@ -84,7 +84,7 @@ func GetDiverging(pr *models.PullRequest) (*git.DivergeObject, error) {
 	}
 	defer headGitRepo.Close()
 
-	if pr.BaseRepoID == pr.HeadRepoID {
+	if pr.IsSameRepo() {
 		diff, err := git.GetDivergingCommits(pr.HeadRepo.RepoPath(), pr.BaseBranch, pr.HeadBranch)
 		return &diff, err
 	}

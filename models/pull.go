@@ -742,3 +742,8 @@ func (pr *PullRequest) IsHeadEqualWithBranch(branchName string) (bool, error) {
 	}
 	return baseCommit.HasPreviousCommit(headCommit.ID)
 }
+
+// IsSameRepo returns true if base repo and head repo is the same
+func (pr *PullRequest) IsSameRepo() bool {
+	return pr.BaseRepoID == pr.HeadRepoID
+}
