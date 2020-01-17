@@ -6,7 +6,6 @@ package notification
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
@@ -61,9 +60,9 @@ func NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComme
 }
 
 // NotifyMergePullRequest notifies merge pull request to notifiers
-func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository) {
+func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	for _, notifier := range notifiers {
-		notifier.NotifyMergePullRequest(pr, doer, baseGitRepo)
+		notifier.NotifyMergePullRequest(pr, doer)
 	}
 }
 

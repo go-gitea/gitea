@@ -350,7 +350,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
-	notification.NotifyMergePullRequest(pr, doer, baseGitRepo)
+	notification.NotifyMergePullRequest(pr, doer)
 
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
@@ -487,9 +487,6 @@ func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error)
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
 func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
-	if p.IsAdmin() {
-		return true, nil
-	}
 	if !p.CanWrite(models.UnitTypeCode) {
 		return false, nil
 	}

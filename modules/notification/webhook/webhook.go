@@ -523,7 +523,7 @@ func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Re
 	}
 }
 
-func (*webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (*webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	// Reload pull request information.
 	if err := pr.LoadAttributes(); err != nil {
 		log.Error("LoadAttributes: %v", err)
