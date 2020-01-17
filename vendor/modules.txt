@@ -328,7 +328,7 @@ github.com/mschoch/smat
 github.com/msteinert/pam
 # github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
 github.com/nfnt/resize
-# github.com/niklasfasching/go-org v0.1.8
+# github.com/niklasfasching/go-org v0.1.9
 github.com/niklasfasching/go-org/org
 # github.com/oliamb/cutter v0.2.2
 github.com/oliamb/cutter
