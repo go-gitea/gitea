@@ -622,6 +622,7 @@ func (u *User) GetRepositories(page, pageSize int) (err error) {
 }
 
 // GetRepositoryIDs returns repositories IDs where user owned and has unittypes
+// Caller shall check that units is not globally disabled
 func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
 
@@ -636,6 +637,7 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 }
 
 // GetOrgRepositoryIDs returns repositories IDs where user's team owned and has unittypes
+// Caller shall check that units is not globally disabled
 func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
 
@@ -656,6 +658,7 @@ func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 }
 
 // GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
+// Caller shall check that units is not globally disabled
 func (u *User) GetAccessRepoIDs(units ...UnitType) ([]int64, error) {
 	ids, err := u.GetRepositoryIDs(units...)
 	if err != nil {

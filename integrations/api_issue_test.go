@@ -134,7 +134,7 @@ func TestAPISearchIssue(t *testing.T) {
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
 
-	assert.Len(t, apiIssues, 8)
+	assert.Len(t, apiIssues, 9)
 
 	query := url.Values{}
 	query.Add("token", token)
@@ -142,7 +142,7 @@ func TestAPISearchIssue(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 8)
+	assert.Len(t, apiIssues, 9)
 
 	query.Add("state", "closed")
 	link.RawQuery = query.Encode()
@@ -163,5 +163,5 @@ func TestAPISearchIssue(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 0)
+	assert.Len(t, apiIssues, 1)
 }
