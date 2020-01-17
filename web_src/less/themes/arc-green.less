@@ -1464,7 +1464,16 @@ a.ui.labels .label:hover {
     }
 }
 
-.ui.popup.issue-popup {
+.ui.popup {
     background-color: #383c4a;
     color: #9e9e9e;
+    border-color: #9e9e9e;
+
+    &.top::before {
+        background-color: #383c4a;
+    }
+
+    .ui.label {
+        margin-bottom: 5px;
+    }
 }

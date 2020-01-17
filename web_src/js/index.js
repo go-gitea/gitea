@@ -2360,9 +2360,6 @@ function issuePopup(owner, repo, index, $element) {
     }
 
     $element.popup({
-      className: {
-        popup: 'ui popup issue-popup'
-      },
       variation: 'wide',
       delay: {
         show: 250

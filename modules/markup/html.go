@@ -636,11 +636,11 @@ func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if matchOrg == ctx.metas["user"] && matchRepo == ctx.metas["repo"] {
 		// TODO if m[4]:m[5] is not nil, then link is to a comment,
 		// and we should indicate that in the text somehow
-		replaceContent(node, m[0], m[1], createLink(link, id, "issue"))
+		replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
 
 	} else {
 		orgRepoID := matchOrg + "/" + matchRepo + id
-		replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "issue"))
+		replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "ref-issue"))
 	}
 }
 
