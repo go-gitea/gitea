@@ -158,12 +158,14 @@
 						</div>
 					{{end}}
 					{{if and .Divergence (gt .Divergence.Behind 0)}}
-						<div class="ui two horizontal list maxwidth">
-							<div class="item text gray">
-								<i class="icon icon-octicon"><span class="octicon octicon-alert">&nbsp;&nbsp;&nbsp;<strong>{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}</strong></span></i>
+					<div class="ui very compact branch-update grid">
+  						<div class="row">
+							<div class="item text gray eleven wide left floated column">
+								<i class="icon icon-octicon"><span class="octicon octicon-alert"></span></i>
+								{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
 							</div>
 							{{if .UpdateAllowed}}
-								<div class="ui buttons update-button">
+								<div class="item text five wide right floated column">
 									<form action="{{.Link}}/update" method="post">
 										{{.CsrfTokenHtml}}
 										<button class="ui button" data-do="update">
@@ -173,6 +175,7 @@
 								</div>
 							{{end}}
 						</div>
+					</div>
 					{{end}}
 					{{if .AllowMerge}}
 						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
