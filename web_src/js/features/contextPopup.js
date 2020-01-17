@@ -1,21 +1,14 @@
-let suburl;
-
-window.addEventListener('load', () => {
-  suburl = $('meta[name=_suburl]').attr('content');
+export default function initContextPopups(suburl) {
   const refIssues = $('.ref-issue');
   if (!refIssues.length) return;
 
   refIssues.each(function () {
-    const href = $(this).attr('href').split('/');
-    const index = href.pop();
-    href.pop(); // issues
-    const repo = href.pop();
-    const owner = href.pop();
-    issuePopup(owner, repo, index, $(this));
+    const [index, _issues, repo, owner] = $(this).attr('href').split('/').reverse();
+    issuePopup(suburl, owner, repo, index, $(this));
   });
-});
+}
 
-function issuePopup(owner, repo, index, $element) {
+function issuePopup(suburl, owner, repo, index, $element) {
   $.get(`${suburl}/api/v1/repos/${owner}/${repo}/issues/${index}`, (issue) => {
     const createdAt = new Date(issue.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
