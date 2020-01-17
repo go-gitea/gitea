@@ -2350,13 +2350,19 @@ function initIssuePopup() {
         labels = `<p>${labels}</p>`;
       }
 
-      let octicon = 'green octicon-issue-opened';
-      if (issue.state === 'closed') {
-        if (issue.pull_request !== null && issue.pull_request.merged === true) {
-          octicon = 'purple octicon-git-pull-request';
+      let octicon;
+      if (issue.pull_request !== null) {
+        if (issue.state === 'open') {
+          octicon = 'green octicon-git-pull-request'; // Open PR
+        } else if (issue.pull_request.merged === true) {
+          octicon = 'purple octicon-git-merge'; // Merged PR
         } else {
-          octicon = 'red octicon-issue-closed';
+          octicon = 'red octicon-git-pull-request'; // Closed PR
         }
+      } else if (issue.state === 'open') {
+        octicon = 'green octicon-issue-opened'; // Open Issue
+      } else {
+        octicon = 'red octicon-issue-closed'; // Closed Issue
       }
 
       $(this).popup({
@@ -2364,6 +2370,9 @@ function initIssuePopup() {
           popup: 'ui popup issue-popup'
         },
         variation: 'wide',
+        delay: {
+          show: 250
+        },
         html: `<div>
 <p><small>${issue.repository.full_name} on ${createdAt}</small></p>
 <p><i class="octicon ${octicon}"></i> <strong>${issue.title}</strong> #${index}</p>
