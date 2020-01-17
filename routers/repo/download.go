@@ -39,7 +39,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)
 			cs = "utf-8"
 		}
-		ctx.Resp.Header().Set("Content-Type", "text/plain; charset="+cs)
+		ctx.Resp.Header().Set("Content-Type", "text/plain; charset="+strings.ToLower(cs))
 	} else if base.IsImageFile(buf) || base.IsPDFFile(buf) {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
 	} else {
