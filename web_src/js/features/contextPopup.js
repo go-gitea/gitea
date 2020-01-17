@@ -3,7 +3,7 @@ export default function initContextPopups(suburl) {
   if (!refIssues.length) return;
 
   refIssues.each(function () {
-    const [index, _issues, repo, owner] = $(this).attr('href').split('/').reverse();
+    const [index, _issues, repo, owner] = $(this).attr('href').replace(/[#?].*$/, '').split('/').reverse();
     issuePopup(suburl, owner, repo, index, $(this));
   });
 }
