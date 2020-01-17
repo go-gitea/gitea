@@ -33,11 +33,6 @@ import (
 // Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, mergeStyle models.MergeStyle, message string) (err error) {
-	binVersion, err := git.BinVersion()
-	if err != nil {
-		log.Error("git.BinVersion: %v", err)
-		return fmt.Errorf("Unable to get git version: %v", err)
-	}
 
 	if err = pr.GetHeadRepo(); err != nil {
 		log.Error("GetHeadRepo: %v", err)
@@ -62,6 +57,61 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	defer func() {
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 	}()
+
+	if err := rawMerge(pr, doer, mergeStyle, message); err != nil {
+		return err
+	}
+
+	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
+	if err != nil {
+		return fmt.Errorf("GetBranchCommit: %v", err)
+	}
+
+	pr.MergedUnix = timeutil.TimeStampNow()
+	pr.Merger = doer
+	pr.MergerID = doer.ID
+
+	if err = pr.SetMerged(); err != nil {
+		log.Error("setMerged [%d]: %v", pr.ID, err)
+	}
+
+	notification.NotifyMergePullRequest(pr, doer)
+
+	// Reset cached commit count
+	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
+
+	// Resolve cross references
+	refs, err := pr.ResolveCrossReferences()
+	if err != nil {
+		log.Error("ResolveCrossReferences: %v", err)
+		return nil
+	}
+
+	for _, ref := range refs {
+		if err = ref.LoadIssue(); err != nil {
+			return err
+		}
+		if err = ref.Issue.LoadRepo(); err != nil {
+			return err
+		}
+		close := (ref.RefAction == references.XRefActionCloses)
+		if close != ref.Issue.IsClosed {
+			if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// rawMerge perform the merge operation without changing any pull information in database
+func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.MergeStyle, message string) (err error) {
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		log.Error("git.BinVersion: %v", err)
+		return fmt.Errorf("Unable to get git version: %v", err)
+	}
 
 	// Clone base repo.
 	tmpBasePath, err := createTemporaryRepo(pr)
@@ -336,46 +386,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}
 	outbuf.Reset()
 	errbuf.Reset()
-
-	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
-	if err != nil {
-		return fmt.Errorf("GetBranchCommit: %v", err)
-	}
-
-	pr.MergedUnix = timeutil.TimeStampNow()
-	pr.Merger = doer
-	pr.MergerID = doer.ID
-
-	if err = pr.SetMerged(); err != nil {
-		log.Error("setMerged [%d]: %v", pr.ID, err)
-	}
-
-	notification.NotifyMergePullRequest(pr, doer)
-
-	// Reset cached commit count
-	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
-
-	// Resolve cross references
-	refs, err := pr.ResolveCrossReferences()
-	if err != nil {
-		log.Error("ResolveCrossReferences: %v", err)
-		return nil
-	}
-
-	for _, ref := range refs {
-		if err = ref.LoadIssue(); err != nil {
-			return err
-		}
-		if err = ref.Issue.LoadRepo(); err != nil {
-			return err
-		}
-		close := (ref.RefAction == references.XRefActionCloses)
-		if close != ref.Issue.IsClosed {
-			if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
-				return err
-			}
-		}
-	}
 
 	return nil
 }
