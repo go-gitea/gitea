@@ -103,6 +103,7 @@ var (
 		UnitTypeCode,
 		UnitTypeIssues,
 		UnitTypePullRequests,
+		UnitTypeReleases,
 		UnitTypeWiki,
 	}
 
