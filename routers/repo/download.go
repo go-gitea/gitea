@@ -36,7 +36,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	if base.IsTextFile(buf) || ctx.QueryBool("render") {
 		cs, err := charset.DetectEncoding(buf)
 		if err != nil {
-			log.Error("Detect raw file %s charset failed: %v, just ignored", name, err)
+			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)
 			cs = "utf-8"
 		}
 		ctx.Resp.Header().Set("Content-Type", "text/plain; charset="+cs)
