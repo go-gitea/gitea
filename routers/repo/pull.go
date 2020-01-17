@@ -351,7 +351,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	ctx.Data["Divergence"] = divergence
 	allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
 	if err != nil {
-		ctx.ServerError("GetDiverging", err)
+		ctx.ServerError("IsUserAllowedToUpdate", err)
 		return nil
 	}
 	ctx.Data["UpdateAllowed"] = allowUpdate
@@ -639,7 +639,7 @@ func UpdatePullRequest(ctx *context.Context) {
 	}
 
 	// default merge commit message
-	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
+	message := ctx.Tr("repo.pulls.update_commit_message", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
 
 	if err = pull_service.Update(issue.PullRequest, ctx.User, message); err != nil {
 		sanitize := func(x string) string {
