@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
+	repo_module "code.gitea.io/gitea/modules/repository"
 
 	"github.com/unknwon/com"
 )
@@ -74,7 +75,7 @@ func InitWiki(repo *models.Repository) error {
 
 	if err := git.InitRepository(repo.WikiPath(), true); err != nil {
 		return fmt.Errorf("InitRepository: %v", err)
-	} else if err = models.CreateDelegateHooks(repo.WikiPath()); err != nil {
+	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
 	}
 	return nil

@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"gopkg.in/ini.v1"
 )
 
@@ -156,11 +157,11 @@ func cleanUpMigrateGitConfig(configPath string) error {
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
 func CleanUpMigrateInfo(repo *models.Repository) (*models.Repository, error) {
 	repoPath := repo.RepoPath()
-	if err := models.CreateDelegateHooks(repoPath); err != nil {
+	if err := createDelegateHooks(repoPath); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %v", err)
 	}
 	if repo.HasWiki() {
-		if err := models.CreateDelegateHooks(repo.WikiPath()); err != nil {
+		if err := createDelegateHooks(repo.WikiPath()); err != nil {
 			return repo, fmt.Errorf("createDelegateHooks.(wiki): %v", err)
 		}
 	}
