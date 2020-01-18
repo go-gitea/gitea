@@ -43,7 +43,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * MISC
   * Backport Locales [2020-01-14] (#9773)
 
-
 ## [1.11.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.11.0-rc1) - 2020-01-07
 * BREAKING
   * Remove unused endpoints (#9538)
