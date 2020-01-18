@@ -99,7 +99,7 @@ Database instance can be on same machine as Gitea (local database setup), or on 
     su -c "psql" - postgres
     ```
 
-3.  Create database user (role in PostgreSQL terms) with login privilege and password:
+3.  Create database user (role in PostgreSQL terms) with login privilege and password. Please use a secure, strong password instead of `'gitea'` below:
 
     ```sql
     CREATE ROLE gitea WITH LOGIN PASSWORD 'gitea';
