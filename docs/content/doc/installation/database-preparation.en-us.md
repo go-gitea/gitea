@@ -27,7 +27,7 @@ Database instance can be on same machine as Gitea (local database setup), or on 
 
     Enter the password as prompted.
 
-2.  Create database user which will be used by Gitea, authenticated by password.
+2.  Create database user which will be used by Gitea, authenticated by password. This example uses `'gitea'` as password. Please use a secure password for your instance. 
 
     For local database:
 
@@ -73,7 +73,7 @@ Database instance can be on same machine as Gitea (local database setup), or on 
 
 5.  Quit from database console by `exit`.
 
-6.  On your Gitea instance, test connection to the database:
+6.  On your Gitea server, test connection to the database:
 
     ```
     mysql -u gitea -h 23.45.67.89 -p giteadb
@@ -85,7 +85,7 @@ Database instance can be on same machine as Gitea (local database setup), or on 
 
 ## PostgreSQL
 
-1.  PostgreSQL use `md5` challenge-response encryption scheme for password authentication by default. Nowadays this scheme is considered not secure anymore. Use SCRAM-SHA-256 scheme instead by edit `postgresql.conf` entry on database instance to:
+1.  PostgreSQL uses `md5` challenge-response encryption scheme for password authentication by default. Nowadays this scheme is not considered secure anymore. Use SCRAM-SHA-256 scheme instead by editing the `postgresql.conf` configuration file on the database server to:
 
     ```ini
     password_encryption = scram-sha-256
@@ -93,7 +93,7 @@ Database instance can be on same machine as Gitea (local database setup), or on 
 
     Restart PostgreSQL to apply the setting.
 
-2.  On database instance, login to database console as superuser:
+2.  On the database server, login to the database console as superuser:
 
     ```
     su -c "psql" - postgres
@@ -115,7 +115,7 @@ Database instance can be on same machine as Gitea (local database setup), or on 
 
     Replace database name as appropriate.
 
-5.  Allow database user to access the database created above by add following authentication rule to `pg_hba.conf`.
+5.  Allow the database user to access the database created above by adding the following authentication rule to `pg_hba.conf`.
 
     For local database:
 
@@ -134,7 +134,8 @@ Database instance can be on same machine as Gitea (local database setup), or on 
     Note: rules on `pg_hba.conf` are evaluated sequentially, that is the first matching rule will be used for authentication. Your PostgreSQL installation may come with generic authentication rules that match all users and databases. You may need to place the rules presented here above such generic rules if it is the case.
 
     Restart PostgreSQL to apply new authentication rules.
-6.  On your Gitea instance, test connection to the database.
+    
+6.  On your Gitea server, test connection to the database.
 
     For local database:
 
