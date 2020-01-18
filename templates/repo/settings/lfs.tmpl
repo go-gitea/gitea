@@ -5,9 +5,10 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "repo.settings.lfs_filelist"}}
+			{{.i18n.Tr "repo.settings.lfs_filelist"}} ({{.i18n.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui blue tiny show-panel button" href="{{.Link}}/pointers">{{.i18n.Tr "repo.settings.lfs_findpointerfiles"}}</a>
+				<a class="ui black tiny show-panel button" href="{{.Link}}/locks"><i class="octicon octicon-lock octicon-tiny"></i>{{.i18n.Tr "repo.settings.lfs_locks"}}</a>
+				<a class="ui blue tiny show-panel button" href="{{.Link}}/pointers"><i class="octicon octicon-search octicon-tiny"></i>&nbsp;{{.i18n.Tr "repo.settings.lfs_findpointerfiles"}}</a>
 			</div>
 		</h4>
 		<table id="lfs-files-table" class="ui attached segment single line table">

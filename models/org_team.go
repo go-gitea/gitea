@@ -34,6 +34,7 @@ type Team struct {
 	NumMembers              int
 	Units                   []*TeamUnit `xorm:"-"`
 	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
+	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
 }
 
 // SearchTeamOptions holds the search options
@@ -589,7 +590,8 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 		return ErrTeamAlreadyExist{t.OrgID, t.LowerName}
 	}
 
-	if _, err = sess.ID(t.ID).AllCols().Update(t); err != nil {
+	if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
+		"can_create_org_repo", "authorize", "includes_all_repositories").Update(t); err != nil {
 		return fmt.Errorf("update: %v", err)
 	}
 
@@ -604,8 +606,7 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 			Delete(new(TeamUnit)); err != nil {
 			return err
 		}
-
-		if _, err = sess.Insert(&t.Units); err != nil {
+		if _, err = sess.Cols("org_id", "team_id", "type").Insert(&t.Units); err != nil {
 			errRollback := sess.Rollback()
 			if errRollback != nil {
 				log.Error("UpdateTeam sess.Rollback: %v", errRollback)
@@ -913,7 +914,11 @@ func RemoveTeamMember(team *Team, userID int64) error {
 
 // IsUserInTeams returns if a user in some teams
 func IsUserInTeams(userID int64, teamIDs []int64) (bool, error) {
-	return x.Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))
+	return isUserInTeams(x, userID, teamIDs)
+}
+
+func isUserInTeams(e Engine, userID int64, teamIDs []int64) (bool, error) {
+	return e.Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))
 }
 
 // UsersInTeamsCount counts the number of users which are in userIDs and teamIDs

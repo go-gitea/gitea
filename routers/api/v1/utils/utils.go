@@ -4,7 +4,12 @@
 
 package utils
 
-import "code.gitea.io/gitea/modules/context"
+import (
+	"strings"
+	"time"
+
+	"code.gitea.io/gitea/modules/context"
+)
 
 // UserID user ID of authenticated user, or 0 if not authenticated
 func UserID(ctx *context.APIContext) int64 {
@@ -12,4 +17,30 @@ func UserID(ctx *context.APIContext) int64 {
 		return 0
 	}
 	return ctx.User.ID
+}
+
+// GetQueryBeforeSince return parsed time (unix format) from URL query's before and since
+func GetQueryBeforeSince(ctx *context.APIContext) (before, since int64, err error) {
+	qCreatedBefore := strings.Trim(ctx.Query("before"), " ")
+	if qCreatedBefore != "" {
+		createdBefore, err := time.Parse(time.RFC3339, qCreatedBefore)
+		if err != nil {
+			return 0, 0, err
+		}
+		if !createdBefore.IsZero() {
+			before = createdBefore.Unix()
+		}
+	}
+
+	qCreatedAfter := strings.Trim(ctx.Query("since"), " ")
+	if qCreatedAfter != "" {
+		createdAfter, err := time.Parse(time.RFC3339, qCreatedAfter)
+		if err != nil {
+			return 0, 0, err
+		}
+		if !createdAfter.IsZero() {
+			since = createdAfter.Unix()
+		}
+	}
+	return before, since, nil
 }

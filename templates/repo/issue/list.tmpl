@@ -155,7 +155,7 @@
 						<div class="menu">
 							{{range .Labels}}
 								<div class="item issue-action has-emoji" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									<span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+									<span class="octicon {{if contain $.SelLabelIDs .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 								</div>
 							{{end}}
 						</div>
@@ -246,7 +246,7 @@
 							</a>
 						{{end}}
 						{{if .Ref}}
-							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
+							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref | PathEscapeSegments}}">
 								<span class="octicon octicon-git-branch"></span> {{.Ref}}
 							</a>
 						{{end}}

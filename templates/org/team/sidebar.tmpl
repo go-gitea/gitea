@@ -40,6 +40,9 @@
 					{{.i18n.Tr "org.teams.admin_permission_desc" | Str2html}}
 				{{end}}
 			{{end}}
+			{{if .Team.CanCreateOrgRepo}}
+				<br><br>{{.i18n.Tr "org.teams.create_repo_permission_desc" | Str2html}}
+			{{end}}
 		</div>
 	</div>
 	{{if .IsOrganizationOwner}}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -27,7 +28,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	var (
 		downloader = NewGithubDownloaderV3("", "", "go-xorm", "builder")
 		repoName   = "builder-" + time.Now().Format("2006-01-02-15-04-05")
-		uploader   = NewGiteaLocalUploader(user, user.Name, repoName)
+		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
 	err := migrateRepository(downloader, uploader, structs.MigrateRepoOption{

@@ -5,24 +5,44 @@
 package password
 
 import (
+	"bytes"
 	"crypto/rand"
 	"math/big"
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 )
+
+// complexity contains information about a particular kind of password complexity
+type complexity struct {
+	ValidChars string
+	TrNameOne  string
+}
 
 var (
 	matchComplexityOnce sync.Once
 	validChars          string
-	requiredChars       []string
+	requiredList        []complexity
 
-	charComplexities = map[string]string{
-		"lower": `abcdefghijklmnopqrstuvwxyz`,
-		"upper": `ABCDEFGHIJKLMNOPQRSTUVWXYZ`,
-		"digit": `0123456789`,
-		"spec":  ` !"#$%&'()*+,-./:;<=>?@[\]^_{|}~` + "`",
+	charComplexities = map[string]complexity{
+		"lower": {
+			`abcdefghijklmnopqrstuvwxyz`,
+			"form.password_lowercase_one",
+		},
+		"upper": {
+			`ABCDEFGHIJKLMNOPQRSTUVWXYZ`,
+			"form.password_uppercase_one",
+		},
+		"digit": {
+			`0123456789`,
+			"form.password_digit_one",
+		},
+		"spec": {
+			` !"#$%&'()*+,-./:;<=>?@[\]^_{|}~` + "`",
+			"form.password_special_one",
+		},
 	}
 )
 
@@ -36,22 +56,22 @@ func NewComplexity() {
 func setupComplexity(values []string) {
 	if len(values) != 1 || values[0] != "off" {
 		for _, val := range values {
-			if chars, ok := charComplexities[val]; ok {
-				validChars += chars
-				requiredChars = append(requiredChars, chars)
+			if complex, ok := charComplexities[val]; ok {
+				validChars += complex.ValidChars
+				requiredList = append(requiredList, complex)
 			}
 		}
-		if len(requiredChars) == 0 {
+		if len(requiredList) == 0 {
 			// No valid character classes found; use all classes as default
-			for _, chars := range charComplexities {
-				validChars += chars
-				requiredChars = append(requiredChars, chars)
+			for _, complex := range charComplexities {
+				validChars += complex.ValidChars
+				requiredList = append(requiredList, complex)
 			}
 		}
 	}
 	if validChars == "" {
 		// No complexities to check; provide a sensible default for password generation
-		validChars = charComplexities["lower"] + charComplexities["upper"] + charComplexities["digit"]
+		validChars = charComplexities["lower"].ValidChars + charComplexities["upper"].ValidChars + charComplexities["digit"].ValidChars
 	}
 }
 
@@ -59,8 +79,8 @@ func setupComplexity(values []string) {
 func IsComplexEnough(pwd string) bool {
 	NewComplexity()
 	if len(validChars) > 0 {
-		for _, req := range requiredChars {
-			if !strings.ContainsAny(req, pwd) {
+		for _, req := range requiredList {
+			if !strings.ContainsAny(req.ValidChars, pwd) {
 				return false
 			}
 		}
@@ -85,4 +105,18 @@ func Generate(n int) (string, error) {
 			return string(buffer), nil
 		}
 	}
+}
+
+// BuildComplexityError builds the error message when password complexity checks fail
+func BuildComplexityError(ctx *context.Context) string {
+	var buffer bytes.Buffer
+	buffer.WriteString(ctx.Tr("form.password_complexity"))
+	buffer.WriteString("<ul>")
+	for _, c := range requiredList {
+		buffer.WriteString("<li>")
+		buffer.WriteString(ctx.Tr(c.TrNameOne))
+		buffer.WriteString("</li>")
+	}
+	buffer.WriteString("</ul>")
+	return buffer.String()
 }

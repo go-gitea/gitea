@@ -1,0 +1,61 @@
+{{template "base/head" .}}
+<div class="repository settings lfs">
+	{{template "repo/header" .}}
+	{{template "repo/settings/navbar" .}}
+	<div class="ui container repository file list">
+		{{template "base/alert" .}}
+		<div class="tab-size-8 non-diff-file-content">
+			<h4 class="ui top attached header">
+				<a href="{{.LFSFilesLink}}">{{.i18n.Tr "repo.settings.lfs"}}</a> / {{.i18n.Tr "repo.settings.lfs_locks"}} ({{.i18n.Tr "admin.total" .Total}})
+			</h4>
+			<div class="ui attached segment">
+				<form class="ui form ignore-dirty" method="POST">
+					{{$.CsrfTokenHtml}}
+					<div class="ui fluid action input">
+						<input name="path" value="" placeholder="{{.i18n.Tr "repo.settings.lfs_lock_path"}}" autofocus>
+						<button class="ui blue button">{{.i18n.Tr "repo.settings.lfs_lock"}}</button>
+					</div>
+				</form>
+			</div>
+			<table id="lfs-files-locks-table" class="ui attached segment single line table">
+				<tbody>
+					{{range $index, $lock := .LFSLocks}}
+						<tr>
+							<td>
+								{{if index $.Linkable $index}}
+								<span class="octicon octicon-file-text"></span>
+								<a href="{{EscapePound $.RepoLink}}/src/branch/{{EscapePound $lock.Repo.DefaultBranch}}/{{EscapePound $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
+								{{else}}
+								<span class="octicon octicon-diff"></span>
+								<span class="poping up" title="{{$.i18n.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
+								{{end}}
+								{{if not (index $.Lockables $index)}}
+									<i class="octicon octicon-alert poping up" title="{{$.i18n.Tr "repo.settings.lfs_noattribute"}}"></i>
+								{{end}}
+							</td>
+							<td>
+								<a href="{{$.AppSubUrl}}/{{$lock.Owner.Name}}">
+									<img class="ui avatar image" src="{{$lock.Owner.RelAvatarLink}}">
+									{{$lock.Owner.DisplayName}}
+								</a>
+							</td>
+							<td>{{TimeSince .Created $.Lang}}</td>
+							<td class="right aligned">
+								<form action="{{$.LFSFilesLink}}/locks/{{$lock.ID}}/unlock" method="POST">
+									{{$.CsrfTokenHtml}}
+									<button class="ui blue button"><i class="octicon octicon-lock btn-octicon"></i>{{$.i18n.Tr "repo.settings.lfs_force_unlock"}}</button>
+								</form>
+							</td>
+						</tr>
+					{{else}}
+						<tr>
+							<td colspan="4">{{.i18n.Tr "repo.settings.lfs_locks_no_locks"}}</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+			{{template "base/paginate" .}}
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

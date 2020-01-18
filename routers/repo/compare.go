@@ -5,21 +5,26 @@
 package repo
 
 import (
+	"bufio"
 	"fmt"
+	"html"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
 const (
-	tplCompare base.TplName = "repo/diff/compare"
+	tplCompare     base.TplName = "repo/diff/compare"
+	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
 )
 
 // setPathsCompareContext sets context data for source and raw paths
@@ -152,12 +157,12 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 			ctx.ServerError("OpenRepository", err)
 			return nil, nil, nil, nil, "", ""
 		}
+		defer headGitRepo.Close()
 	}
 
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
 	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
-		headGitRepo.Close()
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -168,42 +173,40 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				baseRepo,
 				permBase)
 		}
-		headGitRepo.Close()
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}
 
-	// user should have permission to read headrepo's codes
-	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
-	if err != nil {
-		headGitRepo.Close()
-		ctx.ServerError("GetUserRepoPermission", err)
-		return nil, nil, nil, nil, "", ""
-	}
-	if !permHead.CanRead(models.UnitTypeCode) {
-		if log.IsTrace() {
-			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
-				ctx.User,
-				headRepo,
-				permHead)
+	if !isSameRepo {
+		// user should have permission to read headrepo's codes
+		permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return nil, nil, nil, nil, "", ""
 		}
-		headGitRepo.Close()
-		ctx.NotFound("ParseCompareInfo", nil)
-		return nil, nil, nil, nil, "", ""
+		if !permHead.CanRead(models.UnitTypeCode) {
+			if log.IsTrace() {
+				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
+					ctx.User,
+					headRepo,
+					permHead)
+			}
+			ctx.NotFound("ParseCompareInfo", nil)
+			return nil, nil, nil, nil, "", ""
+		}
 	}
 
 	// Check if head branch is valid.
-	headIsCommit := ctx.Repo.GitRepo.IsCommitExist(headBranch)
+	headIsCommit := headGitRepo.IsCommitExist(headBranch)
 	headIsBranch := headGitRepo.IsBranchExist(headBranch)
 	headIsTag := headGitRepo.IsTagExist(headBranch)
 	if !headIsCommit && !headIsBranch && !headIsTag {
 		// Check if headBranch is short sha commit hash
-		if headCommit, _ := ctx.Repo.GitRepo.GetCommit(headBranch); headCommit != nil {
+		if headCommit, _ := headGitRepo.GetCommit(headBranch); headCommit != nil {
 			headBranch = headCommit.ID.String()
 			ctx.Data["HeadBranch"] = headBranch
 			headIsCommit = true
 		} else {
-			headGitRepo.Close()
 			ctx.NotFound("IsRefExist", nil)
 			return nil, nil, nil, nil, "", ""
 		}
@@ -224,14 +227,12 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				baseRepo,
 				permBase)
 		}
-		headGitRepo.Close()
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
+	compareInfo, err := headGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranch, headBranch)
 	if err != nil {
-		headGitRepo.Close()
 		ctx.ServerError("GetCompareInfo", err)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -356,10 +357,8 @@ func parseBaseRepoInfo(ctx *context.Context, repo *models.Repository) error {
 	if err := repo.GetBaseRepo(); err != nil {
 		return err
 	}
-	if err := repo.BaseRepo.GetOwnerName(); err != nil {
-		return err
-	}
-	baseGitRepo, err := git.OpenRepository(models.RepoPath(repo.BaseRepo.OwnerName, repo.BaseRepo.Name))
+
+	baseGitRepo, err := git.OpenRepository(repo.BaseRepo.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -380,7 +379,8 @@ func CompareDiff(ctx *context.Context) {
 	}
 	defer headGitRepo.Close()
 
-	if err := parseBaseRepoInfo(ctx, headRepo); err != nil {
+	var err error
+	if err = parseBaseRepoInfo(ctx, headRepo); err != nil {
 		ctx.ServerError("parseBaseRepoInfo", err)
 		return
 	}
@@ -422,15 +422,127 @@ func CompareDiff(ctx *context.Context) {
 	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
 	afterCommitID := ctx.Data["AfterCommitID"].(string)
 
+	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
+		ctx.ServerError("GetAssignees", err)
+		return
+	}
+
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + "..." + base.ShortSha(afterCommitID)
 
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
 	ctx.HTML(200, tplCompare)
+}
+
+// ExcerptBlob render blob excerpt contents
+func ExcerptBlob(ctx *context.Context) {
+	commitID := ctx.Params("sha")
+	lastLeft := ctx.QueryInt("last_left")
+	lastRight := ctx.QueryInt("last_right")
+	idxLeft := ctx.QueryInt("left")
+	idxRight := ctx.QueryInt("right")
+	leftHunkSize := ctx.QueryInt("left_hunk_size")
+	rightHunkSize := ctx.QueryInt("right_hunk_size")
+	anchor := ctx.Query("anchor")
+	direction := ctx.Query("direction")
+	filePath := ctx.Query("path")
+	gitRepo := ctx.Repo.GitRepo
+	chunkSize := gitdiff.BlobExceprtChunkSize
+	commit, err := gitRepo.GetCommit(commitID)
+	if err != nil {
+		ctx.Error(500, "GetCommit")
+		return
+	}
+	section := &gitdiff.DiffSection{
+		Name: filePath,
+	}
+	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
+		idxLeft -= chunkSize
+		idxRight -= chunkSize
+		leftHunkSize += chunkSize
+		rightHunkSize += chunkSize
+		section.Lines, err = getExcerptLines(commit, filePath, idxLeft-1, idxRight-1, chunkSize)
+	} else if direction == "down" && (idxLeft-lastLeft) > chunkSize {
+		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, chunkSize)
+		lastLeft += chunkSize
+		lastRight += chunkSize
+	} else {
+		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight-1)
+		leftHunkSize = 0
+		rightHunkSize = 0
+		idxLeft = lastLeft
+		idxRight = lastRight
+	}
+	if err != nil {
+		ctx.Error(500, "getExcerptLines")
+		return
+	}
+	if idxRight > lastRight {
+		lineText := " "
+		if rightHunkSize > 0 || leftHunkSize > 0 {
+			lineText = fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", idxLeft, leftHunkSize, idxRight, rightHunkSize)
+		}
+		lineText = html.EscapeString(lineText)
+		lineSection := &gitdiff.DiffLine{
+			Type:    gitdiff.DiffLineSection,
+			Content: lineText,
+			SectionInfo: &gitdiff.DiffLineSectionInfo{
+				Path:          filePath,
+				LastLeftIdx:   lastLeft,
+				LastRightIdx:  lastRight,
+				LeftIdx:       idxLeft,
+				RightIdx:      idxRight,
+				LeftHunkSize:  leftHunkSize,
+				RightHunkSize: rightHunkSize,
+			}}
+		if direction == "up" {
+			section.Lines = append([]*gitdiff.DiffLine{lineSection}, section.Lines...)
+		} else if direction == "down" {
+			section.Lines = append(section.Lines, lineSection)
+		}
+	}
+	ctx.Data["section"] = section
+	ctx.Data["fileName"] = filePath
+	ctx.Data["highlightClass"] = highlight.FileNameToHighlightClass(filepath.Base(filePath))
+	ctx.Data["AfterCommitID"] = commitID
+	ctx.Data["Anchor"] = anchor
+	ctx.HTML(200, tplBlobExcerpt)
+}
+
+func getExcerptLines(commit *git.Commit, filePath string, idxLeft int, idxRight int, chunkSize int) ([]*gitdiff.DiffLine, error) {
+	blob, err := commit.Tree.GetBlobByPath(filePath)
+	if err != nil {
+		return nil, err
+	}
+	reader, err := blob.DataAsync()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	scanner := bufio.NewScanner(reader)
+	var diffLines []*gitdiff.DiffLine
+	for line := 0; line < idxRight+chunkSize; line++ {
+		if ok := scanner.Scan(); !ok {
+			break
+		}
+		if line < idxRight {
+			continue
+		}
+		lineText := scanner.Text()
+		diffLine := &gitdiff.DiffLine{
+			LeftIdx:  idxLeft + (line - idxRight) + 1,
+			RightIdx: line + 1,
+			Type:     gitdiff.DiffLinePlain,
+			Content:  " " + lineText,
+		}
+		diffLines = append(diffLines, diffLine)
+	}
+	return diffLines, nil
 }

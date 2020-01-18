@@ -30,10 +30,28 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User) *api.Branch {
+	if bp == nil {
+		return &api.Branch{
+			Name:                b.Name,
+			Commit:              ToCommit(repo, c),
+			Protected:           false,
+			RequiredApprovals:   0,
+			EnableStatusCheck:   false,
+			StatusCheckContexts: []string{},
+			UserCanPush:         true,
+			UserCanMerge:        true,
+		}
+	}
 	return &api.Branch{
-		Name:   b.Name,
-		Commit: ToCommit(repo, c),
+		Name:                b.Name,
+		Commit:              ToCommit(repo, c),
+		Protected:           true,
+		RequiredApprovals:   bp.RequiredApprovals,
+		EnableStatusCheck:   bp.EnableStatusCheck,
+		StatusCheckContexts: bp.StatusCheckContexts,
+		UserCanPush:         bp.CanUserPush(user.ID),
+		UserCanMerge:        bp.IsUserMergeWhitelisted(user.ID),
 	}
 }
 
@@ -231,12 +249,14 @@ func ToTeam(team *models.Team) *api.Team {
 		Name:                    team.Name,
 		Description:             team.Description,
 		IncludesAllRepositories: team.IncludesAllRepositories,
+		CanCreateOrgRepo:        team.CanCreateOrgRepo,
 		Permission:              team.Authorize.String(),
 		Units:                   team.GetUnitNames(),
 	}
 }
 
 // ToUser convert models.User to api.User
+// signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
 func ToUser(user *models.User, signed, authed bool) *api.User {
 	result := &api.User{
 		UserName:  user.Name,
@@ -244,16 +264,16 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 		FullName:  markup.Sanitize(user.FullName),
 		Created:   user.CreatedUnix.AsTime(),
 	}
-	// hide primary email if API caller isn't user itself or an admin
-	if !signed {
-		result.Email = ""
-	} else if user.KeepEmailPrivate && !authed {
-		result.Email = user.GetEmail()
-	} else { // only user himself and admin could visit these information
-		result.ID = user.ID
+	// hide primary email if API caller is anonymous or user keep email private
+	if signed && (!user.KeepEmailPrivate || authed) {
 		result.Email = user.Email
+	}
+	// only site admin will get these information and possibly user himself
+	if authed {
+		result.ID = user.ID
 		result.IsAdmin = user.IsAdmin
 		result.LastLogin = user.LastLoginUnix.AsTime()
+		result.Language = user.Language
 	}
 	return result
 }

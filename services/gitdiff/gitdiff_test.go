@@ -6,11 +6,13 @@
 package gitdiff
 
 import (
+	"fmt"
 	"html/template"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
@@ -194,4 +196,16 @@ func TestDiffLine_CanComment(t *testing.T) {
 func TestDiffLine_GetCommentSide(t *testing.T) {
 	assert.Equal(t, "previous", (&DiffLine{Comments: []*models.Comment{{Line: -3}}}).GetCommentSide())
 	assert.Equal(t, "proposed", (&DiffLine{Comments: []*models.Comment{{Line: 3}}}).GetCommentSide())
+}
+
+func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
+	git.Debug = true
+	for _, behavior := range []string{"-w", "--ignore-space-at-eol", "-b", ""} {
+		diffs, err := GetDiffRangeWithWhitespaceBehavior("./testdata/academic-module", "559c156f8e0178b71cb44355428f24001b08fc68", "bd7063cc7c04689c4d082183d32a604ed27a24f9",
+			setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles, behavior)
+		assert.NoError(t, err, fmt.Sprintf("Error when diff with %s", behavior))
+		for _, f := range diffs.Files {
+			assert.True(t, len(f.Sections) > 0, fmt.Sprintf("%s should have sections", f.Name))
+		}
+	}
 }

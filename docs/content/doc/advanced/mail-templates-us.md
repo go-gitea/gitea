@@ -32,6 +32,8 @@ Currently, the following notification events make use of templates:
 | `close`       | An issue or pull request was closed.                                                                         |
 | `reopen`      | An issue or pull request was reopened.                                                                       |
 | `review`      | The head comment of a review in a pull request.                                                              |
+| `approve`     | The head comment of a approving review for a pull request.                                                   |
+| `reject`      | The head comment of a review requesting changes for a pull request.                                          |
 | `code`        | A single comment on the code of a pull request.                                                              |
 | `assigned`    | Used was assigned to an issue or pull request.                                                               |
 | `default`     | Any action not included in the above categories, or when the corresponding category template is not present. |
@@ -84,22 +86,23 @@ _subject_ and _mail body_ templates requires at least three dashes; no other cha
 _Subject_ and _mail body_ are parsed by [Golang's template engine](https://golang.org/pkg/text/template/) and
 are provided with a _metadata context_ assembled for each notification. The context contains the following elements:
 
-| Name               | Type           | Available     | Usage                                                                                                                                                                                                                                             |
-|--------------------|----------------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `.FallbackSubject` | string         | Always        | A default subject line. See Below.                                                                                                                                                                                                                |
-| `.Subject`         | string         | Only in body  | The _subject_, once resolved.                                                                                                                                                                                                                     |
-| `.Body`            | string         | Always        | The message of the issue, pull request or comment, parsed from Markdown into HTML and sanitized. Do not confuse with the _mail body_                                                                                                              |
-| `.Link`            | string         | Always        | The address of the originating issue, pull request or comment.                                                                                                                                                                                    |
-| `.Issue`           | models.Issue   | Always        | The issue (or pull request) originating the notification. To get data specific to a pull request (e.g. `HasMerged`), `.Issue.PullRequest` can be used, but care should be taken as this field will be `nil` if the issue is *not* a pull request. |
-| `.Comment`         | models.Comment | If applicable | If the notification is from a comment added to an issue or pull request, this will contain the information about the comment.                                                                                                                     |
-| `.IsPull`          | bool           | Always        | `true` if the mail notification is associated with a pull request (i.e. `.Issue.PullRequest` is not `nil`).                                                                                                                                       |
-| `.Repo`            | string         | Always        | Name of the repository, including owner name (e.g. `mike/stuff`)                                                                                                                                                                                  |
-| `.User`            | models.User    | Always        | Owner of the repository from which the event originated. To get the user name (e.g. `mike`),`.User.Name` can be used.                                                                                                                             |
-| `.Doer`            | models.User    | Always        | User that executed the action triggering the notification event. To get the user name (e.g. `rhonda`), `.Doer.Name` can be used.                                                                                                                  |
-| `.IsMention`       | bool           | Always        | `true` if this notification was only generated because the user was mentioned in the comment, while not being subscribed to the source. It will be `false` if the recipient was subscribed to the issue or repository.                            |
-| `.SubjectPrefix`   | string         | Always        | `Re: ` if the notification is about other than issue or pull request creation; otherwise an empty string.                                                                                                                                         |
-| `.ActionType`      | string         | Always        | `"issue"` or `"pull"`. Will correspond to the actual _action type_ independently of which template was selected.                                                                                                                                  |
-| `.ActionName`      | string         | Always        | It will be one of the action types described above (`new`, `comment`, etc.), and will correspond to the actual _action name_ independently of which template was selected.                                                                        |
+| Name               | Type             | Available     | Usage                                                                                                                                                |
+|--------------------|------------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `.FallbackSubject` | string           | Always        | A default subject line. See Below.                                                                                                                   |
+| `.Subject`         | string           | Only in body  | The _subject_, once resolved.                                                                                                                        |
+| `.Body`            | string           | Always        | The message of the issue, pull request or comment, parsed from Markdown into HTML and sanitized. Do not confuse with the _mail body_.                |
+| `.Link`            | string           | Always        | The address of the originating issue, pull request or comment.                                                                                       |
+| `.Issue`           | models.Issue     | Always        | The issue (or pull request) originating the notification. To get data specific to a pull request (e.g. `HasMerged`), `.Issue.PullRequest` can be used, but care should be taken as this field will be `nil` if the issue is *not* a pull request. |
+| `.Comment`         | models.Comment   | If applicable | If the notification is from a comment added to an issue or pull request, this will contain the information about the comment.                        |
+| `.IsPull`          | bool             | Always        | `true` if the mail notification is associated with a pull request (i.e. `.Issue.PullRequest` is not `nil`).                                          |
+| `.Repo`            | string           | Always        | Name of the repository, including owner name (e.g. `mike/stuff`)                                                                                     |
+| `.User`            | models.User      | Always        | Owner of the repository from which the event originated. To get the user name (e.g. `mike`),`.User.Name` can be used.                                |
+| `.Doer`            | models.User      | Always        | User that executed the action triggering the notification event. To get the user name (e.g. `rhonda`), `.Doer.Name` can be used.                     |
+| `.IsMention`       | bool             | Always        | `true` if this notification was only generated because the user was mentioned in the comment, while not being subscribed to the source. It will be `false` if the recipient was subscribed to the issue or repository. |
+| `.SubjectPrefix`   | string           | Always        | `Re: ` if the notification is about other than issue or pull request creation; otherwise an empty string.                                            |
+| `.ActionType`      | string           | Always        | `"issue"` or `"pull"`. Will correspond to the actual _action type_ independently of which template was selected.                                     |
+| `.ActionName`      | string           | Always        | It will be one of the action types described above (`new`, `comment`, etc.), and will correspond to the actual _action name_ independently of which template was selected. |
+| `.ReviewComments`  | []models.Comment | Always        | List of code comments in a review. The comment text will be in `.RenderedContent` and the referenced code will be in `.Patch`.                       |
 
 All names are case sensitive.
 
@@ -254,13 +257,14 @@ This template produces something along these lines:
 The template system contains several functions that can be used to further process and format
 the messages. Here's a list of some of them:
 
-| Name                 | Parameters  | Available | Usage                                                               |
-|----------------------|-------------|-----------|---------------------------------------------------------------------|
-| `AppUrl`             | -           | Any       | Gitea's URL                                                         |
-| `AppName`            | -           | Any       | Set from `app.ini`, usually "Gitea"                                 |
-| `AppDomain`          | -           | Any       | Gitea's host name                                                   |
-| `EllipsisString`     | string, int | Any       | Truncates a string to the specified length; adds ellipsis as needed |
-| `Str2html`           | string      | Body only | Sanitizes text by removing any HTML tags from it.                   |
+| Name                 | Parameters  | Available | Usage                                                                        |
+|----------------------|-------------|-----------|------------------------------------------------------------------------------|
+| `AppUrl`             | -           | Any       | Gitea's URL                                                                  |
+| `AppName`            | -           | Any       | Set from `app.ini`, usually "Gitea"                                          |
+| `AppDomain`          | -           | Any       | Gitea's host name                                                            |
+| `EllipsisString`     | string, int | Any       | Truncates a string to the specified length; adds ellipsis as needed          |
+| `Str2html`           | string      | Body only | Sanitizes text by removing any HTML tags from it.                            |
+| `Safe`               | string      | Body only | Takes the input as HTML; can be used for `.ReviewComments.RenderedContent`.  |
 
 These are _functions_, not metadata, so they have to be used:
 

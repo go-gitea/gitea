@@ -21,20 +21,18 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	issue_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/mcuadros/go-version"
 )
 
 // Merge merges pull request to base repository.
+// Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, mergeStyle models.MergeStyle, message string) (err error) {
-	binVersion, err := git.BinVersion()
-	if err != nil {
-		log.Error("git.BinVersion: %v", err)
-		return fmt.Errorf("Unable to get git version: %v", err)
-	}
 
 	if err = pr.GetHeadRepo(); err != nil {
 		log.Error("GetHeadRepo: %v", err)
@@ -51,109 +49,87 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}
 	prConfig := prUnit.PullRequestsConfig()
 
-	if err := pr.CheckUserAllowedToMerge(doer); err != nil {
-		log.Error("CheckUserAllowedToMerge(%v): %v", doer, err)
-		return fmt.Errorf("CheckUserAllowedToMerge: %v", err)
-	}
-
 	// Check if merge style is correct and allowed
 	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
 		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
 	defer func() {
-		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false)
+		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 	}()
 
+	if err := rawMerge(pr, doer, mergeStyle, message); err != nil {
+		return err
+	}
+
+	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
+	if err != nil {
+		return fmt.Errorf("GetBranchCommit: %v", err)
+	}
+
+	pr.MergedUnix = timeutil.TimeStampNow()
+	pr.Merger = doer
+	pr.MergerID = doer.ID
+
+	if err = pr.SetMerged(); err != nil {
+		log.Error("setMerged [%d]: %v", pr.ID, err)
+	}
+
+	notification.NotifyMergePullRequest(pr, doer)
+
+	// Reset cached commit count
+	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
+
+	// Resolve cross references
+	refs, err := pr.ResolveCrossReferences()
+	if err != nil {
+		log.Error("ResolveCrossReferences: %v", err)
+		return nil
+	}
+
+	for _, ref := range refs {
+		if err = ref.LoadIssue(); err != nil {
+			return err
+		}
+		if err = ref.Issue.LoadRepo(); err != nil {
+			return err
+		}
+		close := (ref.RefAction == references.XRefActionCloses)
+		if close != ref.Issue.IsClosed {
+			if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// rawMerge perform the merge operation without changing any pull information in database
+func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.MergeStyle, message string) (err error) {
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		log.Error("git.BinVersion: %v", err)
+		return fmt.Errorf("Unable to get git version: %v", err)
+	}
+
 	// Clone base repo.
-	tmpBasePath, err := models.CreateTemporaryPath("merge")
+	tmpBasePath, err := createTemporaryRepo(pr)
 	if err != nil {
 		log.Error("CreateTemporaryPath: %v", err)
 		return err
 	}
-
 	defer func() {
 		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()
 
-	headRepoPath := pr.HeadRepo.RepoPath()
-
-	if err := git.InitRepository(tmpBasePath, false); err != nil {
-		log.Error("git init tmpBasePath: %v", err)
-		return err
-	}
-
-	remoteRepoName := "head_repo"
 	baseBranch := "base"
-
-	// Add head repo remote.
-	addCacheRepo := func(staging, cache string) error {
-		p := filepath.Join(staging, ".git", "objects", "info", "alternates")
-		f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-		if err != nil {
-			log.Error("Could not create .git/objects/info/alternates file in %s: %v", staging, err)
-			return err
-		}
-		defer f.Close()
-		data := filepath.Join(cache, "objects")
-		if _, err := fmt.Fprintln(f, data); err != nil {
-			log.Error("Could not write to .git/objects/info/alternates file in %s: %v", staging, err)
-			return err
-		}
-		return nil
-	}
-
-	if err := addCacheRepo(tmpBasePath, baseGitRepo.Path); err != nil {
-		log.Error("Unable to add base repository to temporary repo [%s -> %s]: %v", pr.BaseRepo.FullName(), tmpBasePath, err)
-		return fmt.Errorf("Unable to add base repository to temporary repo [%s -> tmpBasePath]: %v", pr.BaseRepo.FullName(), err)
-	}
+	trackingBranch := "tracking"
+	stagingBranch := "staging"
 
 	var outbuf, errbuf strings.Builder
-	if err := git.NewCommand("remote", "add", "-t", pr.BaseBranch, "-m", pr.BaseBranch, "origin", baseGitRepo.Path).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-		log.Error("Unable to add base repository as origin [%s -> %s]: %v\n%s\n%s", pr.BaseRepo.FullName(), tmpBasePath, err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("Unable to add base repository as origin [%s -> tmpBasePath]: %v\n%s\n%s", pr.BaseRepo.FullName(), err, outbuf.String(), errbuf.String())
-	}
-	outbuf.Reset()
-	errbuf.Reset()
-
-	if err := git.NewCommand("fetch", "origin", "--no-tags", pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-		log.Error("Unable to fetch origin base branch [%s:%s -> base, original_base in %s]: %v:\n%s\n%s", pr.BaseRepo.FullName(), pr.BaseBranch, tmpBasePath, err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("Unable to fetch origin base branch [%s:%s -> base, original_base in tmpBasePath]: %v\n%s\n%s", pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-	}
-	outbuf.Reset()
-	errbuf.Reset()
-
-	if err := git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+baseBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-		log.Error("Unable to set HEAD as base branch [%s]: %v\n%s\n%s", tmpBasePath, err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("Unable to set HEAD as base branch [tmpBasePath]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
-	}
-	outbuf.Reset()
-	errbuf.Reset()
-
-	if err := addCacheRepo(tmpBasePath, headRepoPath); err != nil {
-		log.Error("Unable to add head repository to temporary repo [%s -> %s]: %v", pr.HeadRepo.FullName(), tmpBasePath, err)
-		return fmt.Errorf("Unable to head base repository to temporary repo [%s -> tmpBasePath]: %v", pr.HeadRepo.FullName(), err)
-	}
-
-	if err := git.NewCommand("remote", "add", remoteRepoName, headRepoPath).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-		log.Error("Unable to add head repository as head_repo [%s -> %s]: %v\n%s\n%s", pr.HeadRepo.FullName(), tmpBasePath, err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("Unable to add head repository as head_repo [%s -> tmpBasePath]: %v\n%s\n%s", pr.HeadRepo.FullName(), err, outbuf.String(), errbuf.String())
-	}
-	outbuf.Reset()
-	errbuf.Reset()
-
-	trackingBranch := "tracking"
-	// Fetch head branch
-	if err := git.NewCommand("fetch", "--no-tags", remoteRepoName, pr.HeadBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-		log.Error("Unable to fetch head_repo head branch [%s:%s -> tracking in %s]: %v:\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, tmpBasePath, err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("Unable to fetch head_repo head branch [%s:%s -> tracking in tmpBasePath]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, err, outbuf.String(), errbuf.String())
-	}
-	outbuf.Reset()
-	errbuf.Reset()
-
-	stagingBranch := "staging"
 
 	// Enable sparse-checkout
 	sparseCheckoutList, err := getDiffTree(tmpBasePath, baseBranch, trackingBranch)
@@ -232,7 +208,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	// Determine if we should sign
 	signArg := ""
 	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := pr.BaseRepo.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
+		sign, keyID, _ := pr.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
 		if sign {
 			signArg = "-S" + keyID
 		} else if version.Compare(binVersion, "2.0.0", ">=") {
@@ -411,34 +387,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	outbuf.Reset()
 	errbuf.Reset()
 
-	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
-	if err != nil {
-		return fmt.Errorf("GetBranchCommit: %v", err)
-	}
-
-	pr.MergedUnix = timeutil.TimeStampNow()
-	pr.Merger = doer
-	pr.MergerID = doer.ID
-
-	if err = pr.SetMerged(); err != nil {
-		log.Error("setMerged [%d]: %v", pr.ID, err)
-	}
-
-	if err = models.MergePullRequestAction(doer, pr.Issue.Repo, pr.Issue); err != nil {
-		log.Error("MergePullRequestAction [%d]: %v", pr.ID, err)
-	}
-
-	// Reset cached commit count
-	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
-
-	// Reload pull request information.
-	if err = pr.LoadAttributes(); err != nil {
-		log.Error("LoadAttributes: %v", err)
-		return nil
-	}
-
-	notification.NotifyIssueChangeStatus(doer, pr.Issue, true)
-
 	return nil
 }
 
@@ -530,4 +478,77 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	}
 
 	return out.String(), nil
+}
+
+// IsSignedIfRequired check if merge will be signed if required
+func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error) {
+	if err := pr.LoadProtectedBranch(); err != nil {
+		return false, err
+	}
+
+	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
+		return true, nil
+	}
+
+	sign, _, err := pr.SignMerge(doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+
+	return sign, err
+}
+
+// IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
+func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
+	if !p.CanWrite(models.UnitTypeCode) {
+		return false, nil
+	}
+
+	err := pr.LoadProtectedBranch()
+	if err != nil {
+		return false, err
+	}
+
+	if pr.ProtectedBranch == nil || pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// CheckPRReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
+func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
+	if pr.BaseRepo == nil {
+		if err = pr.GetBaseRepo(); err != nil {
+			return fmt.Errorf("GetBaseRepo: %v", err)
+		}
+	}
+	if pr.ProtectedBranch == nil {
+		if err = pr.LoadProtectedBranch(); err != nil {
+			return fmt.Errorf("LoadProtectedBranch: %v", err)
+		}
+		if pr.ProtectedBranch == nil {
+			return nil
+		}
+	}
+
+	isPass, err := IsPullCommitStatusPass(pr)
+	if err != nil {
+		return err
+	}
+	if !isPass {
+		return models.ErrNotAllowedToMerge{
+			Reason: "Not all required status checks successful",
+		}
+	}
+
+	if enoughApprovals := pr.ProtectedBranch.HasEnoughApprovals(pr); !enoughApprovals {
+		return models.ErrNotAllowedToMerge{
+			Reason: "Does not have enough approvals",
+		}
+	}
+	if rejected := pr.ProtectedBranch.MergeBlockedByRejectedReview(pr); rejected {
+		return models.ErrNotAllowedToMerge{
+			Reason: "There are requested changes",
+		}
+	}
+
+	return nil
 }

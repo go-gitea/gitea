@@ -17,13 +17,13 @@ import (
 )
 
 func TestViewDeployKeysNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/keys")
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestCreateDeployKeyNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/keys", api.CreateKeyOption{
 		Title: "title",
 		Key:   "key",
@@ -32,19 +32,19 @@ func TestCreateDeployKeyNoLogin(t *testing.T) {
 }
 
 func TestGetDeployKeyNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/keys/1")
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestDeleteDeployKeyNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	req := NewRequest(t, "DELETE", "/api/v1/repos/user2/repo1/keys/1")
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestCreateReadOnlyDeployKey(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{Name: "repo1"}).(*models.Repository)
 	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
@@ -70,7 +70,7 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 }
 
 func TestCreateReadWriteDeployKey(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{Name: "repo1"}).(*models.Repository)
 	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
@@ -95,7 +95,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 }
 
 func TestCreateUserKey(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
 
 	session := loginUser(t, "user1")

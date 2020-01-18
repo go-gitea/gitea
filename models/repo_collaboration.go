@@ -16,14 +16,13 @@ type Collaboration struct {
 	Mode   AccessMode `xorm:"DEFAULT 2 NOT NULL"`
 }
 
-// AddCollaborator adds new collaboration to a repository with default access mode.
-func (repo *Repository) AddCollaborator(u *User) error {
+func (repo *Repository) addCollaborator(e Engine, u *User) error {
 	collaboration := &Collaboration{
 		RepoID: repo.ID,
 		UserID: u.ID,
 	}
 
-	has, err := x.Get(collaboration)
+	has, err := e.Get(collaboration)
 	if err != nil {
 		return err
 	} else if has {
@@ -31,18 +30,23 @@ func (repo *Repository) AddCollaborator(u *User) error {
 	}
 	collaboration.Mode = AccessModeWrite
 
+	if _, err = e.InsertOne(collaboration); err != nil {
+		return err
+	}
+
+	return repo.recalculateUserAccess(e, u.ID)
+}
+
+// AddCollaborator adds new collaboration to a repository with default access mode.
+func (repo *Repository) AddCollaborator(u *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if _, err = sess.InsertOne(collaboration); err != nil {
+	if err := repo.addCollaborator(sess, u); err != nil {
 		return err
-	}
-
-	if err = repo.recalculateUserAccess(sess, u.ID); err != nil {
-		return fmt.Errorf("recalculateAccesses 'team=%v': %v", repo.Owner.IsOrganization(), err)
 	}
 
 	return sess.Commit()
@@ -105,8 +109,7 @@ func (repo *Repository) IsCollaborator(userID int64) (bool, error) {
 	return repo.isCollaborator(x, userID)
 }
 
-// ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode) error {
+func (repo *Repository) changeCollaborationAccessMode(e Engine, uid int64, mode AccessMode) error {
 	// Discard invalid input
 	if mode <= AccessModeNone || mode > AccessModeOwner {
 		return nil
@@ -116,7 +119,7 @@ func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode
 		RepoID: repo.ID,
 		UserID: uid,
 	}
-	has, err := x.Get(collaboration)
+	has, err := e.Get(collaboration)
 	if err != nil {
 		return fmt.Errorf("get collaboration: %v", err)
 	} else if !has {
@@ -128,19 +131,28 @@ func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode
 	}
 	collaboration.Mode = mode
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if _, err = sess.
+	if _, err = e.
 		ID(collaboration.ID).
 		Cols("mode").
 		Update(collaboration); err != nil {
 		return fmt.Errorf("update collaboration: %v", err)
-	} else if _, err = sess.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
+	} else if _, err = e.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
 		return fmt.Errorf("update access table: %v", err)
+	}
+
+	return nil
+}
+
+// ChangeCollaborationAccessMode sets new access mode for the collaboration.
+func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := repo.changeCollaborationAccessMode(sess, uid, mode); err != nil {
+		return err
 	}
 
 	return sess.Commit()

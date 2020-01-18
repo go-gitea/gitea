@@ -5,6 +5,8 @@
 package user
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -14,7 +16,7 @@ import (
 func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 	repos, err := models.GetUserRepositories(u.ID, private, 1, u.NumRepos, "")
 	if err != nil {
-		ctx.Error(500, "GetUserRepositories", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
 		return
 	}
 
@@ -22,14 +24,14 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 	for i := range repos {
 		access, err := models.AccessLevel(ctx.User, repos[i])
 		if err != nil {
-			ctx.Error(500, "AccessLevel", err)
+			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
 		if ctx.IsSigned && ctx.User.IsAdmin || access >= models.AccessModeRead {
 			apiRepos = append(apiRepos, repos[i].APIFormat(access))
 		}
 	}
-	ctx.JSON(200, &apiRepos)
+	ctx.JSON(http.StatusOK, &apiRepos)
 }
 
 // ListUserRepos - list the repos owned by the given user.
@@ -48,6 +50,7 @@ func ListUserRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	user := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -66,14 +69,15 @@ func ListMyRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, ctx.User.NumRepos, "")
 	if err != nil {
-		ctx.Error(500, "GetUserRepositories", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
 		return
 	}
 	accessibleReposMap, err := ctx.User.GetRepositoryAccesses()
 	if err != nil {
-		ctx.Error(500, "GetRepositoryAccesses", err)
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryAccesses", err)
 		return
 	}
 
@@ -86,7 +90,7 @@ func ListMyRepos(ctx *context.APIContext) {
 		apiRepos[i] = repo.APIFormat(access)
 		i++
 	}
-	ctx.JSON(200, &apiRepos)
+	ctx.JSON(http.StatusOK, &apiRepos)
 }
 
 // ListOrgRepos - list the repositories of an organization.
@@ -105,5 +109,6 @@ func ListOrgRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	listUserRepos(ctx, ctx.Org.Organization, ctx.IsSigned)
 }

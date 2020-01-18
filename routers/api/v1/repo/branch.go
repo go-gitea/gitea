@@ -6,9 +6,12 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -16,7 +19,7 @@ import (
 func GetBranch(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/branches/{branch} repository repoGetBranch
 	// ---
-	// summary: Retrieve a specific branch from a repository
+	// summary: Retrieve a specific branch from a repository, including its effective branch protection
 	// produces:
 	// - application/json
 	// parameters:
@@ -38,6 +41,7 @@ func GetBranch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Branch"
+
 	if ctx.Repo.TreePath != "" {
 		// if TreePath != "", then URL contained extra slashes
 		// (i.e. "master/subbranch" instead of "master"), so branch does
@@ -45,23 +49,29 @@ func GetBranch(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	branch, err := ctx.Repo.Repository.GetBranch(ctx.Repo.BranchName)
+	branch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.BranchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
 		} else {
-			ctx.Error(500, "GetBranch", err)
+			ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		}
 		return
 	}
 
 	c, err := branch.GetCommit()
 	if err != nil {
-		ctx.Error(500, "GetCommit", err)
+		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 		return
 	}
 
-	ctx.JSON(200, convert.ToBranch(ctx.Repo.Repository, branch, c))
+	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(ctx.Repo.BranchName)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToBranch(ctx.Repo.Repository, branch, c, branchProtection, ctx.User))
 }
 
 // ListBranches list all the branches of a repository
@@ -85,9 +95,10 @@ func ListBranches(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
-	branches, err := ctx.Repo.Repository.GetBranches()
+
+	branches, err := repo_module.GetBranches(ctx.Repo.Repository)
 	if err != nil {
-		ctx.Error(500, "GetBranches", err)
+		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 		return
 	}
 
@@ -95,11 +106,16 @@ func ListBranches(ctx *context.APIContext) {
 	for i := range branches {
 		c, err := branches[i].GetCommit()
 		if err != nil {
-			ctx.Error(500, "GetCommit", err)
+			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
-		apiBranches[i] = convert.ToBranch(ctx.Repo.Repository, branches[i], c)
+		branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branches[i].Name)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
+			return
+		}
+		apiBranches[i] = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.User)
 	}
 
-	ctx.JSON(200, &apiBranches)
+	ctx.JSON(http.StatusOK, &apiBranches)
 }

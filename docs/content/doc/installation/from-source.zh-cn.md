@@ -44,30 +44,32 @@ git checkout v{{< version >}}
 
 ## 编译
 
-我们已经将所有的依赖项拷贝到本工程，我们提供了一些 [编译选项](https://github.com/go-gitea/gitea/blob/master/Makefile) 来让编译更简单。你可以按照你的需求来设置编译开关，可用编译选项如下：
+要从源代码进行编译，以下依赖程序必须事先安装好：
+
+- `go` 1.11.0 或以上版本, 详见 [here](https://golang.org/dl/)
+- `node` 10.0.0 或以上版本，并且安装 `npm`, 详见 [here](https://nodejs.org/en/download/)
+- `make`, 详见 <a href='{{< relref "make.zh-cn.md" >}}'>这里</a>
+
+各种可用的 [make 任务](https://github.com/go-gitea/gitea/blob/master/Makefile)
+可以用来使编译过程更方便。
+
+按照您的编译需求，以下 tags 可以使用：
 
 * `bindata`: 这个编译选项将会把运行Gitea所需的所有外部资源都打包到可执行文件中，这样部署将非常简单因为除了可执行程序将不再需要任何其他文件。
 * `sqlite sqlite_unlock_notify`: 这个编译选项将启用SQLite3数据库的支持，建议只在少数人使用时使用这个模式。
 * `pam`: 这个编译选项将会启用 PAM (Linux Pluggable Authentication Modules) 认证，如果你使用这一认证模式的话需要开启这个选项。
 
-我们支持两种方式进行编译，Make 工具 和 Go 工具。不过我们推荐使用 Make工具，因为他将会给出更多的编译选项。
+使用 bindata 可以打包资源文件到二进制可以使开发和测试更容易，你可以根据自己的需求决定是否打包资源文件。
+要包含资源文件，请使用 `bindata` tag：
 
-**Note**: We recommend the Go version 1.6 or higher because we are using vendoring and we don't set the required env variable for 1.5 anywhere.
-
-* Make 工具
-
-这个编译方式要求你先安装Make工具，关于Make工具的安装你可以参考Make相关资料。同样如果要使用bindata选项，你可能需要先执行make generate：
-
-```
-TAGS="bindata" make generate build
+```bash
+TAGS="bindata" make build
 ```
 
-* Go 工具
+默认的发布版本中的编译选项是： `TAGS="bindata sqlite sqlite_unlock_notify"`。以下为推荐的编译方式：
 
-使用 Go 工具编译需要你至少安装了Go 1.5以上版本并且将 govendor 的支持打开。执行命令如下：
-
-```
-go build
+```bash
+TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
 ## 测试

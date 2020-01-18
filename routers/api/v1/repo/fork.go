@@ -5,6 +5,9 @@
 package repo
 
 import (
+	"fmt"
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -32,21 +35,22 @@ func ListForks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	forks, err := ctx.Repo.Repository.GetForks()
 	if err != nil {
-		ctx.Error(500, "GetForks", err)
+		ctx.Error(http.StatusInternalServerError, "GetForks", err)
 		return
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
 		access, err := models.AccessLevel(ctx.User, fork)
 		if err != nil {
-			ctx.Error(500, "AccessLevel", err)
+			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
 		apiForks[i] = fork.APIFormat(access)
 	}
-	ctx.JSON(200, apiForks)
+	ctx.JSON(http.StatusOK, apiForks)
 }
 
 // CreateFork create a fork of a repo
@@ -74,6 +78,11 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 	// responses:
 	//   "202":
 	//     "$ref": "#/responses/Repository"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	repo := ctx.Repo.Repository
 	var forker *models.User // user/org that will own the fork
 	if form.Organization == nil {
@@ -82,9 +91,9 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 		org, err := models.GetOrgByName(*form.Organization)
 		if err != nil {
 			if models.IsErrOrgNotExist(err) {
-				ctx.Error(422, "", err)
+				ctx.Error(http.StatusUnprocessableEntity, "", err)
 			} else {
-				ctx.Error(500, "GetOrgByName", err)
+				ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 			}
 			return
 		}
@@ -93,7 +102,7 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 			ctx.ServerError("IsOrgMember", err)
 			return
 		} else if !isMember {
-			ctx.Status(403)
+			ctx.Error(http.StatusForbidden, "isMemberNot", fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
 			return
 		}
 		forker = org
@@ -101,9 +110,10 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 
 	fork, err := repo_service.ForkRepository(ctx.User, forker, repo, repo.Name, repo.Description)
 	if err != nil {
-		ctx.Error(500, "ForkRepository", err)
+		ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
 		return
 	}
 
-	ctx.JSON(202, fork.APIFormat(models.AccessModeOwner))
+	//TODO change back to 201
+	ctx.JSON(http.StatusAccepted, fork.APIFormat(models.AccessModeOwner))
 }

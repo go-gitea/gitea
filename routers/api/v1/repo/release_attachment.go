@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -48,11 +49,12 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
+
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
-		ctx.Error(500, "GetAttachmentByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
 	}
 	if attach.ReleaseID != releaseID {
@@ -61,7 +63,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
-	ctx.JSON(200, attach.APIFormat())
+	ctx.JSON(http.StatusOK, attach.APIFormat())
 }
 
 // ListReleaseAttachments lists all attachments of the release
@@ -91,10 +93,11 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AttachmentList"
+
 	releaseID := ctx.ParamsInt64(":id")
 	release, err := models.GetReleaseByID(releaseID)
 	if err != nil {
-		ctx.Error(500, "GetReleaseByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
 	if release.RepoID != ctx.Repo.Repository.ID {
@@ -102,10 +105,10 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 		return
 	}
 	if err := release.LoadAttributes(); err != nil {
-		ctx.Error(500, "LoadAttributes", err)
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(200, release.APIFormat().Attachments)
+	ctx.JSON(http.StatusOK, release.APIFormat().Attachments)
 }
 
 // CreateReleaseAttachment creates an attachment and saves the given file
@@ -147,6 +150,8 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
+	//   "400":
+	//     "$ref": "#/responses/error"
 
 	// Check if attachments are enabled
 	if !setting.AttachmentEnabled {
@@ -158,14 +163,14 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	releaseID := ctx.ParamsInt64(":id")
 	release, err := models.GetReleaseByID(releaseID)
 	if err != nil {
-		ctx.Error(500, "GetReleaseByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
 
 	// Get uploaded file from request
 	file, header, err := ctx.GetFile("attachment")
 	if err != nil {
-		ctx.Error(500, "GetFile", err)
+		ctx.Error(http.StatusInternalServerError, "GetFile", err)
 		return
 	}
 	defer file.Close()
@@ -179,7 +184,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	// Check if the filetype is allowed by the settings
 	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
 	if err != nil {
-		ctx.Error(400, "DetectContentType", err)
+		ctx.Error(http.StatusBadRequest, "DetectContentType", err)
 		return
 	}
 
@@ -195,11 +200,11 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		ReleaseID:  release.ID,
 	}, buf, file)
 	if err != nil {
-		ctx.Error(500, "NewAttachment", err)
+		ctx.Error(http.StatusInternalServerError, "NewAttachment", err)
 		return
 	}
 
-	ctx.JSON(201, attach.APIFormat())
+	ctx.JSON(http.StatusCreated, attach.APIFormat())
 }
 
 // EditReleaseAttachment updates the given attachment
@@ -247,7 +252,7 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
-		ctx.Error(500, "GetAttachmentByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
 	}
 	if attach.ReleaseID != releaseID {
@@ -261,9 +266,9 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 	}
 
 	if err := models.UpdateAttachment(attach); err != nil {
-		ctx.Error(500, "UpdateAttachment", attach)
+		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
-	ctx.JSON(201, attach.APIFormat())
+	ctx.JSON(http.StatusCreated, attach.APIFormat())
 }
 
 // DeleteReleaseAttachment delete a given attachment
@@ -305,7 +310,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
-		ctx.Error(500, "GetAttachmentByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
 	}
 	if attach.ReleaseID != releaseID {
@@ -316,8 +321,8 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 
 	if err := models.DeleteAttachment(attach, true); err != nil {
-		ctx.Error(500, "DeleteAttachment", err)
+		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }

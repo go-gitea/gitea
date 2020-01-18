@@ -105,7 +105,7 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		prepareTestEnv(t)
+		defer prepareTestEnv(t)()
 
 		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
@@ -129,7 +129,7 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		prepareTestEnv(t)
+		defer prepareTestEnv(t)()
 
 		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
@@ -154,7 +154,7 @@ func TestPullSquash(t *testing.T) {
 
 func TestPullCleanUpAfterMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		prepareTestEnv(t)
+		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited)\n")
@@ -190,7 +190,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 func TestCantMergeWorkInProgress(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		prepareTestEnv(t)
+		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -212,7 +212,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 
 func TestCantMergeConflict(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		prepareTestEnv(t)
+		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -258,7 +258,7 @@ func TestCantMergeConflict(t *testing.T) {
 
 func TestCantMergeUnrelated(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		prepareTestEnv(t)
+		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base", "README.md", "Hello, World (Edited Twice)\n")

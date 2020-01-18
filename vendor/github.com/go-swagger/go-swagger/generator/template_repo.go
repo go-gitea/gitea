@@ -249,9 +249,10 @@ func NewRepository(funcs template.FuncMap) *Repository {
 
 // Repository is the repository for the generator templates
 type Repository struct {
-	files     map[string]string
-	templates map[string]*template.Template
-	funcs     template.FuncMap
+	files         map[string]string
+	templates     map[string]*template.Template
+	funcs         template.FuncMap
+	allowOverride bool
 }
 
 // LoadDefaults will load the embedded templates
@@ -329,7 +330,7 @@ func (t *Repository) addFile(name, data string, allowOverride bool) error {
 	}
 
 	// check if any protected templates are defined
-	if !allowOverride {
+	if !allowOverride && !t.allowOverride {
 		for _, template := range templ.Templates() {
 			if protectedTemplates[template.Name()] {
 				return fmt.Errorf("cannot overwrite protected template %s", template.Name())
@@ -364,6 +365,11 @@ func (t *Repository) MustGet(name string) *template.Template {
 // If the file contains a definition for a template that is protected the whole file will not be added
 func (t *Repository) AddFile(name, data string) error {
 	return t.addFile(name, data, false)
+}
+
+// SetAllowOverride allows setting allowOverride after the Repository was initialized
+func (t *Repository) SetAllowOverride(value bool) {
+	t.allowOverride = value
 }
 
 func findDependencies(n parse.Node) []string {

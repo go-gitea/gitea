@@ -5,9 +5,10 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	api "code.gitea.io/gitea/modules/structs"
 )
 
 // AddIssueSubscription Subscribe user to issue
@@ -47,41 +48,9 @@ func AddIssueSubscription(ctx *context.APIContext) {
 	//   "304":
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
-	//     description: Issue not found
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
-		}
+	//     "$ref": "#/responses/notFound"
 
-		return
-	}
-
-	user, err := models.GetUserByName(ctx.Params(":user"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(500, "GetUserByName", err)
-		}
-
-		return
-	}
-
-	//only admin and user for itself can change subscription
-	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
-		ctx.Error(403, "User", nil)
-		return
-	}
-
-	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, true); err != nil {
-		ctx.Error(500, "CreateOrUpdateIssueWatch", err)
-		return
-	}
-
-	ctx.Status(201)
+	setIssueSubscription(ctx, true)
 }
 
 // DelIssueSubscription Unsubscribe user from issue
@@ -121,13 +90,18 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//   "304":
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
+
+	setIssueSubscription(ctx, false)
+}
+
+func setIssueSubscription(ctx *context.APIContext, watch bool) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 
 		return
@@ -138,7 +112,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 		if models.IsErrUserNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 
 		return
@@ -146,20 +120,20 @@ func DelIssueSubscription(ctx *context.APIContext) {
 
 	//only admin and user for itself can change subscription
 	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
-		ctx.Error(403, "User", nil)
+		ctx.Error(http.StatusForbidden, "User", nil)
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, false); err != nil {
-		ctx.Error(500, "CreateOrUpdateIssueWatch", err)
+	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, watch); err != nil {
+		ctx.Error(http.StatusInternalServerError, "CreateOrUpdateIssueWatch", err)
 		return
 	}
 
-	ctx.Status(201)
+	ctx.Status(http.StatusCreated)
 }
 
 // GetIssueSubscribers return subscribers of an issue
-func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
+func GetIssueSubscribers(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/subscriptions issue issueSubscriptions
 	// ---
 	// summary: Get users who subscribed on an issue.
@@ -185,16 +159,17 @@ func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
 	//   format: int64
 	//   required: true
 	// responses:
-	//   "201":
-	//     "$ref": "#/responses/empty"
+	//   "200":
+	//     "$ref": "#/responses/UserList"
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 
 		return
@@ -202,15 +177,15 @@ func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
 
 	iwl, err := models.GetIssueWatchers(issue.ID)
 	if err != nil {
-		ctx.Error(500, "GetIssueWatchers", err)
+		ctx.Error(http.StatusInternalServerError, "GetIssueWatchers", err)
 		return
 	}
 
 	users, err := iwl.LoadWatchUsers()
 	if err != nil {
-		ctx.Error(500, "LoadWatchUsers", err)
+		ctx.Error(http.StatusInternalServerError, "LoadWatchUsers", err)
 		return
 	}
 
-	ctx.JSON(200, users.APIFormat())
+	ctx.JSON(http.StatusOK, users.APIFormat())
 }

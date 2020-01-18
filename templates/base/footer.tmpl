@@ -23,11 +23,6 @@
 		CodeMirror.modeURL =  "{{StaticUrlPrefix}}/vendor/plugins/codemirror/mode/%N/%N.js";
 	</script>
 {{end}}
-{{if .RequireGitGraph}}
-	<!-- graph -->
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/gitgraph/gitgraph.js"></script>
-	<script src="{{StaticUrlPrefix}}/js/draw.js"></script>
-{{end}}
 
 <!-- Third-party libraries -->
 {{if .RequireHighlightJS}}
@@ -117,13 +112,12 @@
 		}
 	</script>
 {{end}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/emojify/emojify.min.js"></script>
+	<script src="{{StaticUrlPrefix}}/vendor/plugins/emojify/emojify.custom.js"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/clipboard/clipboard.min.js"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/vue/vue.min.js"></script>
 
 	<!-- JavaScript -->
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/semantic/semantic.min.js"></script>
-	<script src="{{StaticUrlPrefix}}/js/semantic.dropdown.custom.js?v={{MD5 AppVer}}"></script>
+	<script src="{{StaticUrlPrefix}}/vendor/plugins/fomantic/semantic.min.js?v={{MD5 AppVer}}"></script>
 	<script src="{{StaticUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>
 {{if .EnableHeatmap}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/moment/moment.min.js" charset="utf-8"></script>

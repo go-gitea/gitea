@@ -226,7 +226,7 @@
 					{{if and .IsIssueWriter (not .Repository.IsArchived)}}
 						<br/>
 						<a style="cursor:pointer;" onclick="window.toggleDeadlineForm();"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
-						<a style="cursor:pointer;" onclick="updateDeadline('');"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
+						<a style="cursor:pointer;" onclick="window.updateDeadline('');"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
 					{{end}}
 				</p>
 			{{else}}
@@ -293,9 +293,9 @@
 
 				{{if .BlockedByDependencies}}
 					<span class="text" data-tooltip="{{if .Issue.IsPull}}
-						{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}
-					{{else}}
 						{{.i18n.Tr "repo.issues.dependency.pr_closing_blockedby"}}
+					{{else}}
+						{{.i18n.Tr "repo.issues.dependency.issue_closing_blockedby"}}
 					{{end}}" data-inverted="">
 					<strong>{{.i18n.Tr "repo.issues.dependency.blocked_by_short"}}</strong>
 					</span>

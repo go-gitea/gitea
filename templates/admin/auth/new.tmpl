@@ -43,6 +43,9 @@
 				<!-- OAuth2 -->
 				{{ template "admin/auth/source/oauth" . }}
 
+				<!-- SSPI -->
+				{{ template "admin/auth/source/sspi" . }}
+
 				<div class="ldap field">
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.auths.attributes_in_bind"}}</strong></label>

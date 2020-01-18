@@ -15,7 +15,7 @@ import (
 )
 
 func TestViewBranches(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/branches")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -26,13 +26,13 @@ func TestViewBranches(t *testing.T) {
 }
 
 func TestDeleteBranch(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	deleteBranch(t)
 }
 
 func TestUndoDeleteBranch(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	deleteBranch(t)
 	htmlDoc, name := branchAction(t, ".undo-button")

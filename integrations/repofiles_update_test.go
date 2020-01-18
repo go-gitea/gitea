@@ -277,7 +277,14 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.TreePath)
 		// assert that the old file no longer exists in the last commit of the branch
 		fromEntry, err := commit.GetTreeEntryByPath(opts.FromTreePath)
+		switch err.(type) {
+		case git.ErrNotExist:
+			// correct, continue
+		default:
+			t.Fatalf("expected git.ErrNotExist, got:%v", err)
+		}
 		toEntry, err := commit.GetTreeEntryByPath(opts.TreePath)
+		assert.Nil(t, err)
 		assert.Nil(t, fromEntry)  // Should no longer exist here
 		assert.NotNil(t, toEntry) // Should exist here
 		// assert SHA has remained the same but paths use the new file name

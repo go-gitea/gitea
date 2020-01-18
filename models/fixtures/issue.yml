@@ -97,3 +97,40 @@
   is_pull: true
   created_unix: 946684820
   updated_unix: 978307180
+
+-
+  id: 9
+  repo_id: 48
+  index: 1
+  poster_id: 11
+  name: pr1
+  content: a pull request
+  is_closed: false
+  is_pull: true
+  created_unix: 946684820
+  updated_unix: 978307180
+
+-
+  id: 10
+  repo_id: 42
+  index: 1
+  poster_id: 500
+  name: issue from deleted account
+  content: content from deleted account
+  is_closed: false
+  is_pull: false
+  created_unix: 946684830
+  updated_unix: 999307200
+  deadline_unix: 1019307200
+
+-
+  id: 11
+  repo_id: 1
+  index: 5
+  poster_id: 1
+  name: pull5
+  content: content for the a pull request
+  is_closed: false
+  is_pull: true
+  created_unix: 1579194806
+  updated_unix: 1579194806

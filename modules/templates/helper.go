@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -80,6 +81,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+		},
+		"AllowedReactions": func() []string {
+			return setting.UI.Reactions
 		},
 		"AvatarLink":    base.AvatarLink,
 		"Safe":          Safe,
@@ -147,6 +151,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"MetaKeywords": func() string {
 			return setting.UI.Meta.Keywords
+		},
+		"UseServiceWorker": func() bool {
+			return setting.UI.UseServiceWorker
 		},
 		"FilenameIsImage": func(filename string) bool {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
@@ -262,6 +269,14 @@ func NewFuncMap() []template.FuncMap {
 			default:
 				return ""
 			}
+		},
+		"contain": func(s []int64, id int64) bool {
+			for i := 0; i < len(s); i++ {
+				if s[i] == id {
+					return true
+				}
+			}
+			return false
 		},
 	}}
 }
@@ -545,7 +560,7 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-opened"
 	case models.ActionCreatePullRequest:
 		return "git-pull-request"
-	case models.ActionCommentIssue:
+	case models.ActionCommentIssue, models.ActionCommentPull:
 		return "comment-discussion"
 	case models.ActionMergePullRequest:
 		return "git-merge"
@@ -555,14 +570,18 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-reopened"
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
 		return "repo-clone"
+	case models.ActionApprovePullRequest:
+		return "eye"
+	case models.ActionRejectPullRequest:
+		return "x"
 	default:
 		return "invalid type"
 	}
 }
 
 // ActionContent2Commits converts action content to push commits
-func ActionContent2Commits(act Actioner) *models.PushCommits {
-	push := models.NewPushCommits()
+func ActionContent2Commits(act Actioner) *repository.PushCommits {
+	push := repository.NewPushCommits()
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}

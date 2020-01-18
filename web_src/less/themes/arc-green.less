@@ -305,7 +305,8 @@ footer {
     color: #dbdbdb;
 }
 
-.ui.label {
+.ui.label,
+.ui.label.basic {
     color: #dbdbdb;
     background-color: #404552;
 }
@@ -400,7 +401,8 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.blue.label,
-.ui.blue.labels .label {
+.ui.blue.labels .label,
+.repository .segment.reactions .ui.label.basic.blue {
     background-color: #26577b !important;
     border-color: #26577b !important;
 }
@@ -483,13 +485,18 @@ a.ui.basic.green.label:hover {
     color: #dbdbdb;
 }
 
-.ui.table thead th {
-    background: #404552;
-    color: #dbdbdb;
+.ui.table thead th,
+.ui.table > thead > tr > th {
+    background: #404552 !important;
+    color: #dbdbdb !important;
+}
+
+.repository.file.list #repo-files-table tr {
+    background: #2a2e3a;
 }
 
 .repository.file.list #repo-files-table tr:hover {
-    background-color: #393d4a;
+    background-color: #393d4a !important;
 }
 
 .ui.table {
@@ -514,6 +521,19 @@ a.ui.basic.green.label:hover {
 
 .markdown:not(code) h2 {
     border-bottom: 1px solid #304251;
+}
+
+.repository.wiki.new .ui.container form .ui.tabular.menu {
+    border-bottom: 1px solid rgba(187, 187, 187, 0.6);
+
+    .active.item {
+        border-top: 1px solid rgba(187, 187, 187, 0.6);
+        border-left: 1px solid rgba(187, 187, 187, 0.6);
+        border-right: 1px solid rgba(187, 187, 187, 0.6);
+        &:hover {
+            background: #4b5162;
+        }
+    }
 }
 
 .hljs,
@@ -553,7 +573,8 @@ a.ui.basic.green.label:hover {
     border-bottom: 1px solid rgba(187, 187, 187, 0.6);
 
     .editor-preview,
-    .editor-preview-side {
+    .editor-preview-side,
+    & + .editor-preview-side {
         background: #353945;
 
         .markdown:not(code).ui.segment {
@@ -586,6 +607,10 @@ a.ui.basic.green.label:hover {
     background: #353945;
     color: #9e9e9e !important;
     border: 1px solid #404552;
+}
+
+.ui.list > .item > .content {
+    color: #9e9e9e !important;
 }
 
 .ui.active.button:active,
@@ -1058,6 +1083,10 @@ input {
 .ui.basic.blue.buttons .button:focus {
     box-shadow: 0 0 0 1px #87ab63 inset !important;
     color: #87ab63 !important;
+}
+
+.repository.labels .ui.basic.black.label {
+    background-color: #bbbbbb !important;
 }
 
 .lines-commit {

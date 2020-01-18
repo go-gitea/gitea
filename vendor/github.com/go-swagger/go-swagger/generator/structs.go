@@ -543,6 +543,11 @@ func (g *GenApp) UsePFlags() bool {
 	return g.GenOpts != nil && strings.HasPrefix(g.GenOpts.FlagStrategy, "pflag")
 }
 
+// UseFlags returns true when the flag strategy is set to flag
+func (g *GenApp) UseFlags() bool {
+	return g.GenOpts != nil && strings.HasPrefix(g.GenOpts.FlagStrategy, "flag")
+}
+
 // UseIntermediateMode for https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29
 func (g *GenApp) UseIntermediateMode() bool {
 	return g.GenOpts != nil && g.GenOpts.CompatibilityMode == "intermediate"

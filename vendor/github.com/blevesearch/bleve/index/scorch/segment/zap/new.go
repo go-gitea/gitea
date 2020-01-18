@@ -33,6 +33,14 @@ var NewSegmentBufferNumResultsBump int = 100
 var NewSegmentBufferNumResultsFactor float64 = 1.0
 var NewSegmentBufferAvgBytesPerDocFactor float64 = 1.0
 
+// ValidateDocFields can be set by applications to perform additional checks
+// on fields in a document being added to a new segment, by default it does
+// nothing.
+// This API is experimental and may be removed at any time.
+var ValidateDocFields = func(field document.Field) error {
+	return nil
+}
+
 // AnalysisResultsToSegmentBase produces an in-memory zap-encoded
 // SegmentBase from analysis results
 func AnalysisResultsToSegmentBase(results []*index.AnalysisResult,
@@ -520,6 +528,11 @@ func (s *interim) writeStoredFields() (
 
 			if opts.IncludeDocValues() {
 				s.IncludeDocValues[fieldID] = true
+			}
+
+			err := ValidateDocFields(field)
+			if err != nil {
+				return 0, err
 			}
 		}
 

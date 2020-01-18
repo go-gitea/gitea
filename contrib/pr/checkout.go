@@ -5,6 +5,7 @@ Checkout a PR and load the tests data into sqlite database
 */
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -92,7 +93,7 @@ func runPR() {
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
 	var helper testfixtures.Helper = &testfixtures.SQLite{}
-	models.NewEngine(func(_ *xorm.Engine) error {
+	models.NewEngine(context.Background(), func(_ *xorm.Engine) error {
 		return nil
 	})
 	models.HasEngine = true

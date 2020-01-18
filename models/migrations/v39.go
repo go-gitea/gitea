@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repository"
 
 	"xorm.io/xorm"
 )
@@ -44,7 +45,7 @@ func releaseAddColumnIsTagAndSyncTags(x *xorm.Engine) error {
 				continue
 			}
 
-			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = repository.SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Warn("SyncReleasesWithTags: %v", err)
 			}
 			gitRepo.Close()

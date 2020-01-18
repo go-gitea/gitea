@@ -41,12 +41,14 @@ const Version uint8 = 2
 var ErrClosed = fmt.Errorf("scorch closed")
 
 type Scorch struct {
+	nextSegmentID uint64
+	stats         Stats
+	iStats        internalStats
+
 	readOnly      bool
 	version       uint8
 	config        map[string]interface{}
 	analysisQueue *index.AnalysisQueue
-	stats         Stats
-	nextSegmentID uint64
 	path          string
 
 	unsafeBatch bool
@@ -72,8 +74,6 @@ type Scorch struct {
 
 	onEvent      func(event Event)
 	onAsyncError func(err error)
-
-	iStats internalStats
 
 	pauseLock sync.RWMutex
 
@@ -312,7 +312,7 @@ func (s *Scorch) Batch(batch *index.Batch) (err error) {
 
 	// FIXME could sort ids list concurrent with analysis?
 
-	if len(batch.IndexOps) > 0 {
+	if numUpdates > 0 {
 		go func() {
 			for _, doc := range batch.IndexOps {
 				if doc != nil {
@@ -490,6 +490,9 @@ func (s *Scorch) StatsMap() map[string]interface{} {
 	m["CurOnDiskBytes"] = numBytesUsedDisk
 	m["CurOnDiskFiles"] = numFilesOnDisk
 
+	s.rootLock.RLock()
+	m["CurFilesIneligibleForRemoval"] = uint64(len(s.ineligibleForRemoval))
+	s.rootLock.RUnlock()
 	// TODO: consider one day removing these backwards compatible
 	// names for apps using the old names
 	m["updates"] = m["TotUpdates"]
