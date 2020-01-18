@@ -11,8 +11,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * Fix markdown anchor links (#9673) (#9840)
   * Fix download file wrong content-type (#9825) (#9834)
-  * Fix wrong identify poster on a migrated pull request when submit review (#9827) (#9830)
-  * Fix dump non-exist log directory (#9818) (#9819)
+  * Fix wrong poster identity on a migrated pull request when submit review (#9827) (#9830)
+  * Fix database dump when log directory is missing (#9818) (#9819)
   * Fix compare (#9808) (#9814)
   * Fix push-to-create (#9772) (#9797)
   * Fix missing msteam webhook on organization (#9781) (#9794)
@@ -37,7 +37,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add PR review webhook to Telegram (#9653) (#9655)
   * Fix #9648 | use filepath.IsAbs instead of path.IsAbs (#9651) (#9652)
 * TRANSLATION
-  * Fix (#9761) Korean locales (#9780)
+  * Fix Korean locales (#9761) (#9780)
 * BUILD
   * Fix webpack polyfills (#9735) (#9738)
 * MISC
