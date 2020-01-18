@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Never allow an empty password to validate (#9682) (#9683)
   * Prevent redirect to Host (#9678) (#9679)
 * BUGFIXES
+  * Explicitly refer to PR in squash-merge commit message in case of external tracker (#9844) (#9855)
   * Fix markdown anchor links (#9673) (#9840)
   * Allow assignee on Pull Creation when Issue Unit is deactivated (#9836) (#9837)
   * Fix download file wrong content-type (#9825) (#9834)
