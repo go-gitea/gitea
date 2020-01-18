@@ -14,9 +14,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
-	repo_module "code.gitea.io/gitea/modules/repository"
 
 	"github.com/unknwon/com"
 )
