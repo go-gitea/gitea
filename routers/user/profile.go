@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/org"
 	"code.gitea.io/gitea/routers/repo"
 )
 
@@ -83,7 +84,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	if ctxUser.IsOrganization() {
-		showOrgProfile(ctx)
+		org.Home(ctx)
 		return
 	}
 
@@ -160,6 +161,7 @@ func Profile(ctx *context.Context) {
 	switch tab {
 	case "activity":
 		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
@@ -170,11 +172,10 @@ func Profile(ctx *context.Context) {
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			Actor:              ctx.User,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			UserIsAdmin:        ctx.IsUserSiteAdmin(),
-			UserID:             ctx.Data["SignedUserID"].(int64),
 			Page:               page,
 			PageSize:           setting.UI.User.RepoPagingNum,
 			StarredByID:        ctxUser.ID,
@@ -190,12 +191,11 @@ func Profile(ctx *context.Context) {
 		total = int(count)
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			Actor:              ctx.User,
 			Keyword:            keyword,
 			OwnerID:            ctxUser.ID,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			UserIsAdmin:        ctx.IsUserSiteAdmin(),
-			UserID:             ctx.Data["SignedUserID"].(int64),
 			Page:               page,
 			IsProfile:          true,
 			PageSize:           setting.UI.User.RepoPagingNum,

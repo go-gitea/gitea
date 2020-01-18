@@ -6,7 +6,6 @@
 package git
 
 import (
-	"bytes"
 	"container/list"
 	"fmt"
 	"io"
@@ -94,19 +93,28 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 	return compareInfo, nil
 }
 
-// GetPatch generates and returns patch data between given revisions.
-func (repo *Repository) GetPatch(base, head string) ([]byte, error) {
-	return NewCommand("diff", "-p", "--binary", base, head).RunInDirBytes(repo.Path)
+// GetDiffOrPatch generates either diff or formatted patch data between given revisions
+func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, formatted bool) error {
+	if formatted {
+		return repo.GetPatch(base, head, w)
+	}
+	return repo.GetDiff(base, head, w)
 }
 
-// GetFormatPatch generates and returns format-patch data between given revisions.
-func (repo *Repository) GetFormatPatch(base, head string) (io.Reader, error) {
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
+// GetDiff generates and returns patch data between given revisions.
+func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
+	return NewCommand("diff", "-p", "--binary", base, head).
+		RunInDirPipeline(repo.Path, w, nil)
+}
 
-	if err := NewCommand("format-patch", "--binary", "--stdout", base+"..."+head).
-		RunInDirPipeline(repo.Path, stdout, stderr); err != nil {
-		return nil, concatenateError(err, stderr.String())
-	}
-	return stdout, nil
+// GetPatch generates and returns format-patch data between given revisions.
+func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
+	return NewCommand("format-patch", "--binary", "--stdout", base+"..."+head).
+		RunInDirPipeline(repo.Path, w, nil)
+}
+
+// GetDiffFromMergeBase generates and return patch data from merge base to head
+func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
+	return NewCommand("diff", "-p", "--binary", base+"..."+head).
+		RunInDirPipeline(repo.Path, w, nil)
 }

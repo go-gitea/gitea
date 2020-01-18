@@ -11,8 +11,10 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
@@ -87,7 +89,12 @@ func TestViewIssuesKeyword(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-
+	issue := models.AssertExistsAndLoadBean(t, &models.Issue{
+		RepoID: repo.ID,
+		Index:  1,
+	}).(*models.Issue)
+	issues.UpdateIssueIndexer(issue)
+	time.Sleep(time.Second * 1)
 	const keyword = "first"
 	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.RelLink(), keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -312,4 +319,24 @@ func testIssueChangeInfo(t *testing.T, user, issueURL, info string, value string
 		info:    value,
 	})
 	_ = session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestIssueRedirect(t *testing.T) {
+	defer prepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	// Test external tracker where style not set (shall default numeric)
+	req := NewRequest(t, "GET", path.Join("org26", "repo_external_tracker", "issues", "1"))
+	resp := session.MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker/issues/1", test.RedirectURL(resp))
+
+	// Test external tracker with numeric style
+	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_numeric", "issues", "1"))
+	resp = session.MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker_numeric/issues/1", test.RedirectURL(resp))
+
+	// Test external tracker with alphanumeric style (for a pull request)
+	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_alpha", "issues", "1"))
+	resp = session.MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "/"+path.Join("org26", "repo_external_tracker_alpha", "pulls", "1"), test.RedirectURL(resp))
 }

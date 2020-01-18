@@ -278,6 +278,30 @@ var migrations = []Migration{
 	NewMigration("change review content type to text", changeReviewContentToText),
 	// v111 -> v112
 	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
+	// v112 -> v113
+	NewMigration("remove release attachments which repository deleted", removeAttachmentMissedRepo),
+	// v113 -> v114
+	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
+	// v114 -> v115
+	NewMigration("Remove authentication credentials from stored URL", sanitizeOriginalURL),
+	// v115 -> v116
+	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
+	// v116 -> v117
+	NewMigration("Extend TrackedTimes", extendTrackedTimes),
+	// v117 -> v118
+	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
+	// v118 -> v119
+	NewMigration("Add commit id and stale to reviews", addReviewCommitAndStale),
+	// v119 -> v120
+	NewMigration("Fix migrated repositories' git service type", fixMigratedRepositoryServiceType),
+	// v120 -> v121
+	NewMigration("Add owner_name on table repository", addOwnerNameOnRepository),
+	// v121 -> v122
+	NewMigration("add is_restricted column for users table", addIsRestricted),
+	// v122 -> v123
+	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
+	// v123 -> v124
+	NewMigration("Add original informations for reactions", addReactionOriginals),
 }
 
 // Migrate database to current version

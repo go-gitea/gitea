@@ -15,7 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 const (
@@ -33,6 +35,7 @@ type Branch struct {
 	CommitsAhead      int
 	CommitsBehind     int
 	LatestPullRequest *models.PullRequest
+	MergeMovedOn      bool
 }
 
 // Branches render repository branch page
@@ -110,6 +113,22 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
+	// Don't return error below this
+	if err := repofiles.PushUpdate(
+		ctx.Repo.Repository,
+		deletedBranch.Name,
+		repofiles.PushUpdateOptions{
+			RefFullName:  git.BranchPrefix + deletedBranch.Name,
+			OldCommitID:  git.EmptySHA,
+			NewCommitID:  deletedBranch.Commit,
+			PusherID:     ctx.User.ID,
+			PusherName:   ctx.User.Name,
+			RepoUserName: ctx.Repo.Owner.Name,
+			RepoName:     ctx.Repo.Repository.Name,
+		}); err != nil {
+		log.Error("Update: %v", err)
+	}
+
 	ctx.Flash.Success(ctx.Tr("repo.branch.restore_success", deletedBranch.Name))
 }
 
@@ -157,7 +176,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 }
 
 func loadBranches(ctx *context.Context) []*Branch {
-	rawBranches, err := ctx.Repo.Repository.GetBranches()
+	rawBranches, err := repo_module.GetBranches(ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return nil
@@ -168,6 +187,12 @@ func loadBranches(ctx *context.Context) []*Branch {
 		ctx.ServerError("GetProtectedBranches", err)
 		return nil
 	}
+
+	repoIDToRepo := map[int64]*models.Repository{}
+	repoIDToRepo[ctx.Repo.Repository.ID] = ctx.Repo.Repository
+
+	repoIDToGitRepo := map[int64]*git.Repository{}
+	repoIDToGitRepo[ctx.Repo.Repository.ID] = ctx.Repo.GitRepo
 
 	branches := make([]*Branch, len(rawBranches))
 	for i := range rawBranches {
@@ -197,11 +222,46 @@ func loadBranches(ctx *context.Context) []*Branch {
 			ctx.ServerError("GetLatestPullRequestByHeadInfo", err)
 			return nil
 		}
+		headCommit := commit.ID.String()
+
+		mergeMovedOn := false
 		if pr != nil {
+			pr.HeadRepo = ctx.Repo.Repository
 			if err := pr.LoadIssue(); err != nil {
 				ctx.ServerError("pr.LoadIssue", err)
 				return nil
 			}
+			if repo, ok := repoIDToRepo[pr.BaseRepoID]; ok {
+				pr.BaseRepo = repo
+			} else if err := pr.LoadBaseRepo(); err != nil {
+				ctx.ServerError("pr.LoadBaseRepo", err)
+				return nil
+			} else {
+				repoIDToRepo[pr.BaseRepoID] = pr.BaseRepo
+			}
+
+			if pr.HasMerged {
+				baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
+				if !ok {
+					baseGitRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath())
+					if err != nil {
+						ctx.ServerError("OpenRepository", err)
+						return nil
+					}
+					defer baseGitRepo.Close()
+					repoIDToGitRepo[pr.BaseRepoID] = baseGitRepo
+				}
+				pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+				if err != nil && err != plumbing.ErrReferenceNotFound {
+					ctx.ServerError("GetBranchCommitID", err)
+					return nil
+				}
+				if err == nil && headCommit != pullCommit {
+					// the head has moved on from the merge - we shouldn't delete
+					mergeMovedOn = true
+				}
+			}
+
 		}
 
 		isIncluded := divergence.Ahead == 0 && ctx.Repo.Repository.DefaultBranch != branchName
@@ -214,6 +274,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 			CommitsAhead:      divergence.Ahead,
 			CommitsBehind:     divergence.Behind,
 			LatestPullRequest: pr,
+			MergeMovedOn:      mergeMovedOn,
 		}
 	}
 
@@ -264,9 +325,9 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 
 	var err error
 	if ctx.Repo.IsViewBranch {
-		err = ctx.Repo.Repository.CreateNewBranch(ctx.User, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = ctx.Repo.Repository.CreateNewBranchFromCommit(ctx.User, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	}
 	if err != nil {
 		if models.IsErrTagAlreadyExists(err) {

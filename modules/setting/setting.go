@@ -42,6 +42,7 @@ const (
 	HTTP       Scheme = "http"
 	HTTPS      Scheme = "https"
 	FCGI       Scheme = "fcgi"
+	FCGIUnix   Scheme = "fcgi+unix"
 	UnixSocket Scheme = "unix"
 )
 
@@ -53,6 +54,7 @@ const (
 	LandingPageHome          LandingPage = "/"
 	LandingPageExplore       LandingPage = "/explore"
 	LandingPageOrganizations LandingPage = "/explore/organizations"
+	LandingPageLogin         LandingPage = "/user/login"
 )
 
 // enumerates all the types of captchas
@@ -129,6 +131,7 @@ var (
 		ServerKeyExchanges: []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
 		ServerMACs:         []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
 		KeygenPath:         "ssh-keygen",
+		MinimumKeySizes:    map[string]int{"ed25519": 256, "ecdsa": 256, "rsa": 2048, "dsa": 1024},
 	}
 
 	LFS struct {
@@ -171,6 +174,7 @@ var (
 		DefaultTheme          string
 		Themes                []string
 		Reactions             []string
+		ReactionsMap          map[string]bool
 		SearchRepoDescription bool
 		UseServiceWorker      bool
 
@@ -552,6 +556,14 @@ func NewContext() {
 		KeyFile = sec.Key("KEY_FILE").String()
 	case "fcgi":
 		Protocol = FCGI
+	case "fcgi+unix":
+		Protocol = FCGIUnix
+		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
+		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
+		if err != nil || UnixSocketPermissionParsed > 0777 {
+			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
+		}
+		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	case "unix":
 		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
@@ -606,6 +618,8 @@ func NewContext() {
 		defaultLocalURL = "http://unix/"
 	case FCGI:
 		defaultLocalURL = AppURL
+	case FCGIUnix:
+		defaultLocalURL = AppURL
 	default:
 		defaultLocalURL = string(Protocol) + "://"
 		if HTTPAddr == "0.0.0.0" {
@@ -635,6 +649,8 @@ func NewContext() {
 		LandingPageURL = LandingPageExplore
 	case "organizations":
 		LandingPageURL = LandingPageOrganizations
+	case "login":
+		LandingPageURL = LandingPageLogin
 	default:
 		LandingPageURL = LandingPageHome
 	}
@@ -678,7 +694,6 @@ func NewContext() {
 	}
 
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool()
-	SSH.MinimumKeySizes = map[string]int{}
 	minimumKeySizes := Cfg.Section("ssh.minimum_key_sizes").Keys()
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
@@ -834,7 +849,8 @@ func NewContext() {
 			TimeFormat = timeFormatKey
 			TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
 			if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
-				log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+				log.Warn("Provided TimeFormat: %s does not create a fully specified date and time.", TimeFormat)
+				log.Warn("In order to display dates and times correctly please check your time format has 2006, 01, 02, 15, 04 and 05")
 			}
 			log.Trace("Custom TimeFormat: %s", TimeFormat)
 		}
@@ -985,6 +1001,11 @@ func NewContext() {
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
 
 	zip.Verbose = false
+
+	UI.ReactionsMap = make(map[string]bool)
+	for _, reaction := range UI.Reactions {
+		UI.ReactionsMap[reaction] = true
+	}
 }
 
 func loadInternalToken(sec *ini.Section) string {
@@ -1072,4 +1093,5 @@ func NewServices() {
 	newMigrationsService()
 	newIndexerService()
 	newTaskService()
+	NewQueueService()
 }

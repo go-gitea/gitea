@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -180,6 +182,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 
+	var repo *models.Repository
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := models.GenerateRepoOptions{
@@ -209,14 +212,14 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			return
 		}
 
-		repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
+		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 			return
 		}
 	} else {
-		repo, err := repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 			Name:        form.RepoName,
 			Description: form.Description,
 			Gitignores:  form.Gitignores,
@@ -329,22 +332,29 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
+	var gitServiceType = structs.PlainGitService
+	u, err := url.Parse(form.CloneAddr)
+	if err == nil && strings.EqualFold(u.Host, "github.com") {
+		gitServiceType = structs.GithubService
+	}
+
 	var opts = migrations.MigrateOptions{
-		OriginalURL:  form.CloneAddr,
-		CloneAddr:    remoteAddr,
-		RepoName:     form.RepoName,
-		Description:  form.Description,
-		Private:      form.Private || setting.Repository.ForcePrivate,
-		Mirror:       form.Mirror,
-		AuthUsername: form.AuthUsername,
-		AuthPassword: form.AuthPassword,
-		Wiki:         form.Wiki,
-		Issues:       form.Issues,
-		Milestones:   form.Milestones,
-		Labels:       form.Labels,
-		Comments:     true,
-		PullRequests: form.PullRequests,
-		Releases:     form.Releases,
+		OriginalURL:    form.CloneAddr,
+		GitServiceType: gitServiceType,
+		CloneAddr:      remoteAddr,
+		RepoName:       form.RepoName,
+		Description:    form.Description,
+		Private:        form.Private || setting.Repository.ForcePrivate,
+		Mirror:         form.Mirror,
+		AuthUsername:   form.AuthUsername,
+		AuthPassword:   form.AuthPassword,
+		Wiki:           form.Wiki,
+		Issues:         form.Issues,
+		Milestones:     form.Milestones,
+		Labels:         form.Labels,
+		Comments:       true,
+		PullRequests:   form.PullRequests,
+		Releases:       form.Releases,
 	}
 	if opts.Mirror {
 		opts.Issues = false
@@ -426,7 +436,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 		if att != nil {
-			ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
+			ctx.Redirect(att.DownloadURL())
 			return
 		}
 	}

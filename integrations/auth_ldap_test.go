@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strings"
@@ -147,7 +148,7 @@ func TestLDAPUserSync(t *testing.T) {
 	}
 	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
-	models.SyncExternalUsers()
+	models.SyncExternalUsers(context.Background())
 
 	session := loginUser(t, "user1")
 	// Check if users exists
@@ -206,7 +207,8 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 	}
 	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "sshPublicKey")
-	models.SyncExternalUsers()
+
+	models.SyncExternalUsers(context.Background())
 
 	// Check if users has SSH keys synced
 	for _, u := range gitLDAPUsers {

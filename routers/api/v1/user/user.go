@@ -49,6 +49,7 @@ func Search(ctx *context.APIContext) {
 	//           type: array
 	//           items:
 	//             "$ref": "#/definitions/User"
+
 	opts := &models.SearchUserOptions{
 		Keyword:  strings.Trim(ctx.Query("q"), " "),
 		UID:      com.StrTo(ctx.Query("uid")).MustInt64(),
@@ -58,7 +59,7 @@ func Search(ctx *context.APIContext) {
 
 	users, _, err := models.SearchUsers(opts)
 	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"ok":    false,
 			"error": err.Error(),
 		})
@@ -70,7 +71,7 @@ func Search(ctx *context.APIContext) {
 		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
 		"data": results,
 	})
@@ -94,17 +95,18 @@ func GetInfo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/User"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	u, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 		return
 	}
 
-	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
+	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
 }
 
 // GetAuthenticatedUser get current user's information
@@ -117,7 +119,8 @@ func GetAuthenticatedUser(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/User"
-	ctx.JSON(200, convert.ToUser(ctx.User, ctx.IsSigned, ctx.User != nil))
+
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx.User, ctx.IsSigned, ctx.User != nil))
 }
 
 // GetUserHeatmapData is the handler to get a users heatmap
@@ -155,5 +158,5 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
 		return
 	}
-	ctx.JSON(200, heatmap)
+	ctx.JSON(http.StatusOK, heatmap)
 }

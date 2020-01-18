@@ -22,9 +22,9 @@ var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
 // GetLabelTemplateFile loads the label template file by given name,
 // then parses and returns a list of name-color pairs and optionally description.
 func GetLabelTemplateFile(name string) ([][3]string, error) {
-	data, err := getRepoInitFile("label", name)
+	data, err := GetRepoInitFile("label", name)
 	if err != nil {
-		return nil, fmt.Errorf("getRepoInitFile: %v", err)
+		return nil, fmt.Errorf("GetRepoInitFile: %v", err)
 	}
 
 	lines := strings.Split(string(data), "\n")
@@ -132,6 +132,25 @@ func (label *Label) ForegroundColor() template.CSS {
 	return template.CSS("#000")
 }
 
+func loadLabels(labelTemplate string) ([]string, error) {
+	list, err := GetLabelTemplateFile(labelTemplate)
+	if err != nil {
+		return nil, ErrIssueLabelTemplateLoad{labelTemplate, err}
+	}
+
+	labels := make([]string, len(list))
+	for i := 0; i < len(list); i++ {
+		labels[i] = list[i][0]
+	}
+	return labels, nil
+}
+
+// LoadLabelsFormatted loads the labels' list of a template file as a string separated by comma
+func LoadLabelsFormatted(labelTemplate string) (string, error) {
+	labels, err := loadLabels(labelTemplate)
+	return strings.Join(labels, ", "), err
+}
+
 func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
@@ -156,8 +175,8 @@ func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
 }
 
 // InitalizeLabels adds a label set to a repository using a template
-func InitalizeLabels(repoID int64, labelTemplate string) error {
-	return initalizeLabels(x, repoID, labelTemplate)
+func InitalizeLabels(ctx DBContext, repoID int64, labelTemplate string) error {
+	return initalizeLabels(ctx.e, repoID, labelTemplate)
 }
 
 func newLabel(e Engine, label *Label) error {
@@ -414,7 +433,7 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		Label:   label,
 		Content: "1",
 	}
-	if _, err = createCommentWithNoAction(e, opts); err != nil {
+	if _, err = createComment(e, opts); err != nil {
 		return err
 	}
 
@@ -490,7 +509,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		Issue: issue,
 		Label: label,
 	}
-	if _, err = createCommentWithNoAction(e, opts); err != nil {
+	if _, err = createComment(e, opts); err != nil {
 		return err
 	}
 

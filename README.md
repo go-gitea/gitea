@@ -31,7 +31,7 @@ This project has been
 
 From the root of the source tree, run:
 
-    TAGS="bindata" make generate all
+    TAGS="bindata" make build
 
 More info: https://docs.gitea.io/en-us/install-from-source/
 

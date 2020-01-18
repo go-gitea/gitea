@@ -1,0 +1,147 @@
+{{template "base/head" .}}
+<div class="admin monitor">
+	{{template "admin/navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.monitor.queue" .Queue.Name}}
+		</h4>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table">
+				<thead>
+					<tr>
+						<th>{{.i18n.Tr "admin.monitor.queue.name"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.type"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.exemplar"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.numberworkers"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.maxnumberworkers"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>{{.Queue.Name}}</td>
+						<td>{{.Queue.Type}}</td>
+						<td>{{.Queue.ExemplarType}}</td>
+						<td>{{$sum := .Queue.NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+						<td>{{if lt $sum 0}}-{{else}}{{.Queue.MaxNumberOfWorkers}}{{end}}</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		{{if lt $sum 0 }}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.monitor.queue.nopool.title"}}
+		</h4>
+		<div class="ui attached segment">
+			{{if eq .Queue.Type "wrapped" }}
+			<p>{{.i18n.Tr "admin.monitor.queue.wrapped.desc"}}</p>
+			{{else if eq .Queue.Type "persistable-channel"}}
+			<p>{{.i18n.Tr "admin.monitor.queue.persistable-channel.desc"}}</p>
+			{{else}}
+			<p>{{.i18n.Tr "admin.monitor.queue.nopool.desc"}}</p>
+			{{end}}
+		</div>
+		{{else}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.monitor.queue.settings.title"}}
+		</h4>
+		<div class="ui attached segment">
+			<p>{{.i18n.Tr "admin.monitor.queue.settings.desc"}}</p>
+			<form method="POST" action="{{.Link}}/set">
+				{{$.CsrfTokenHtml}}
+				<div class="ui form">
+					<div class="inline field">
+						<label for="max-number">{{.i18n.Tr "admin.monitor.queue.settings.maxnumberworkers"}}</label>
+						<input name="max-number" type="text" placeholder="{{.i18n.Tr "admin.monitor.queue.settings.maxnumberworkers.placeholder" .Queue.MaxNumberOfWorkers}}">
+					</div>
+					<div class="inline field">
+						<label for="timeout">{{.i18n.Tr "admin.monitor.queue.settings.timeout"}}</label>
+						<input name="timeout" type="text" placeholder="{{.i18n.Tr "admin.monitor.queue.settings.timeout.placeholder" .Queue.BoostTimeout }}">
+					</div>
+					<div class="inline field">
+						<label for="number">{{.i18n.Tr "admin.monitor.queue.settings.numberworkers"}}</label>
+						<input name="number" type="text" placeholder="{{.i18n.Tr "admin.monitor.queue.settings.numberworkers.placeholder" .Queue.BoostWorkers}}">
+					</div>
+					<div class="inline field">
+						<label>{{.i18n.Tr "admin.monitor.queue.settings.blocktimeout"}}</label>
+						<span>{{.i18n.Tr "admin.monitor.queue.settings.blocktimeout.value" .Queue.BlockTimeout}}</span>
+					</div>
+					<button class="ui submit button">{{.i18n.Tr "admin.monitor.queue.settings.submit"}}</button>
+				</div>
+			</form>
+		</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.monitor.queue.pool.addworkers.title"}}
+		</h4>
+		<div class="ui attached segment">
+			<p>{{.i18n.Tr "admin.monitor.queue.pool.addworkers.desc"}}</p>
+			<form method="POST" action="{{.Link}}/add">
+				{{$.CsrfTokenHtml}}
+				<div class="ui form">
+					<div class="fields">
+						<div class="field">
+							<label>{{.i18n.Tr "admin.monitor.queue.numberworkers"}}</label>
+							<input name="number" type="text" placeholder="{{.i18n.Tr "admin.monitor.queue.pool.addworkers.numberworkers.placeholder"}}">
+						</div>
+						<div class="field">
+							<label>{{.i18n.Tr "admin.monitor.queue.pool.timeout"}}</label>
+							<input name="timeout" type="text" placeholder="{{.i18n.Tr "admin.monitor.queue.pool.addworkers.timeout.placeholder"}}">
+						</div>
+					</div>
+					<button class="ui submit button">{{.i18n.Tr "admin.monitor.queue.pool.addworkers.submit"}}</button>
+				</div>
+			</form>
+		</div>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.monitor.queue.pool.workers.title"}}
+		</h4>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table">
+				<thead>
+					<tr>
+						<th>{{.i18n.Tr "admin.monitor.queue.numberworkers"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.start"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.pool.timeout"}}</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Queue.Workers}}
+					<tr>
+						<td>{{.Workers}}</td>
+						<td>{{DateFmtLong .Start}}</td>
+						<td>{{if .HasTimeout}}{{DateFmtLong .Timeout}}{{else}}-{{end}}</td>
+						<td>
+							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}"><i class="close icon text red" title="{{$.i18n.Tr "remove"}}"></i></a>
+						</td>
+					</tr>
+					{{else}}
+						<tr>
+							<td colspan="4">{{.i18n.Tr "admin.monitor.queue.pool.workers.none" }}
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+		{{end}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.monitor.queue.configuration"}}
+		</h4>
+		<div class="ui attached segment">
+			<pre>{{.Queue.Configuration | JsonPrettyPrint}}
+		</div>
+	</div>
+</div>
+<div class="ui small basic delete modal">
+	<div class="ui icon header">
+		<i class="close icon"></i>
+		{{.i18n.Tr "admin.monitor.queue.pool.cancel"}}
+	</div>
+	<div class="content">
+		<p>{{$.i18n.Tr "admin.monitor.queue.pool.cancel_notices" `<span class="name"></span>` | Safe}}</p>
+		<p>{{$.i18n.Tr "admin.monitor.queue.pool.cancel_desc"}}</p>
+	</div>
+	{{template "base/delete_modal_actions" .}}
+</div>
+
+{{template "base/footer" .}}

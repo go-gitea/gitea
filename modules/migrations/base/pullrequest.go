@@ -21,6 +21,7 @@ type PullRequest struct {
 	Milestone      string
 	State          string
 	Created        time.Time
+	Updated        time.Time
 	Closed         *time.Time
 	Labels         []*Label
 	PatchURL       string
@@ -32,6 +33,7 @@ type PullRequest struct {
 	Assignee       string
 	Assignees      []string
 	IsLocked       bool
+	Reactions      []*Reaction
 }
 
 // IsForkPullRequest returns true if the pull request from a forked repository but not the same repository

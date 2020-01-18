@@ -8,6 +8,7 @@ package repo
 import (
 	"encoding/base64"
 	"net/http"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -43,6 +44,9 @@ func GetRawFile(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.NotFound()
 		return
@@ -88,6 +92,9 @@ func GetArchive(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -126,6 +133,9 @@ func GetEditorconfig(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -204,6 +214,16 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+		Dates: &repofiles.CommitDateOptions{
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
+		},
+	}
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
+	}
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {
@@ -268,6 +288,16 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+		Dates: &repofiles.CommitDateOptions{
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
+		},
+	}
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
+	}
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {
@@ -332,6 +362,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileDeleteResponse"
+
 	if !CanWriteFiles(ctx.Repo) {
 		ctx.Error(http.StatusInternalServerError, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
@@ -354,6 +385,16 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+		Dates: &repofiles.CommitDateOptions{
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
+		},
+	}
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
+	}
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {

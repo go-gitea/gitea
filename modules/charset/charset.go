@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/gogits/chardet"
+	"github.com/gogs/chardet"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 )

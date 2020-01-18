@@ -5,9 +5,7 @@
 package models
 
 import (
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,16 +27,6 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.NoError(t, pr.LoadIssue())
 	assert.NotNil(t, pr.Issue)
 	assert.Equal(t, int64(2), pr.Issue.ID)
-}
-
-func TestPullRequest_APIFormat(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	assert.NoError(t, pr.LoadAttributes())
-	assert.NoError(t, pr.LoadIssue())
-	apiPullRequest := pr.APIFormat()
-	assert.NotNil(t, apiPullRequest)
-	assert.Nil(t, apiPullRequest.Head)
 }
 
 func TestPullRequest_GetBaseRepo(t *testing.T) {
@@ -73,10 +61,11 @@ func TestPullRequestsNewest(t *testing.T) {
 		Labels:   []string{},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
-	if assert.Len(t, prs, 2) {
-		assert.Equal(t, int64(2), prs[0].ID)
-		assert.Equal(t, int64(1), prs[1].ID)
+	assert.EqualValues(t, 3, count)
+	if assert.Len(t, prs, 3) {
+		assert.EqualValues(t, 5, prs[0].ID)
+		assert.EqualValues(t, 2, prs[1].ID)
+		assert.EqualValues(t, 1, prs[2].ID)
 	}
 }
 
@@ -89,10 +78,11 @@ func TestPullRequestsOldest(t *testing.T) {
 		Labels:   []string{},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
-	if assert.Len(t, prs, 2) {
-		assert.Equal(t, int64(1), prs[0].ID)
-		assert.Equal(t, int64(2), prs[1].ID)
+	assert.EqualValues(t, 3, count)
+	if assert.Len(t, prs, 3) {
+		assert.EqualValues(t, 1, prs[0].ID)
+		assert.EqualValues(t, 2, prs[1].ID)
+		assert.EqualValues(t, 5, prs[2].ID)
 	}
 }
 
@@ -184,34 +174,12 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 		BaseBranch: "baseBranch",
 		HeadBranch: "headBranch",
 	}
-	pr.UpdateCols("head_branch")
+	assert.NoError(t, pr.UpdateCols("head_branch"))
 
 	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.Equal(t, "master", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
 	CheckConsistencyFor(t, pr)
-}
-
-// TODO TestPullRequest_UpdatePatch
-
-// TODO TestPullRequest_PushToBaseRepo
-
-func TestPullRequest_AddToTaskQueue(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	pr.AddToTaskQueue()
-
-	select {
-	case id := <-pullRequestQueue.Queue():
-		assert.EqualValues(t, strconv.FormatInt(pr.ID, 10), id)
-	case <-time.After(time.Second):
-		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
-	}
-
-	assert.True(t, pullRequestQueue.Exist(pr.ID))
-	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	assert.Equal(t, PullRequestStatusChecking, pr.Status)
 }
 
 func TestPullRequestList_LoadAttributes(t *testing.T) {

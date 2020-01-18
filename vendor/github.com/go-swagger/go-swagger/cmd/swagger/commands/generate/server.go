@@ -37,7 +37,7 @@ type Server struct {
 	ExcludeSpec                bool     `long:"exclude-spec" description:"don't embed the swagger specification"`
 	WithContext                bool     `long:"with-context" description:"handlers get a context as first arg (deprecated)"`
 	DumpData                   bool     `long:"dump-data" description:"when present dumps the json for the template generator instead of generating files"`
-	FlagStrategy               string   `long:"flag-strategy" description:"the strategy to provide flags for the server" default:"go-flags" choice:"go-flags" choice:"pflag"`
+	FlagStrategy               string   `long:"flag-strategy" description:"the strategy to provide flags for the server" default:"go-flags" choice:"go-flags" choice:"pflag" choice:"flag"`
 	CompatibilityMode          string   `long:"compatibility-mode" description:"the compatibility mode for the tls server" default:"modern" choice:"modern" choice:"intermediate"`
 	SkipValidation             bool     `long:"skip-validation" description:"skips validation of spec prior to generation"`
 	RegenerateConfigureAPI     bool     `long:"regenerate-configureapi" description:"Force regeneration of configureapi.go"`
@@ -83,6 +83,7 @@ func (s *Server) getOpts() (*generator.GenOpts, error) {
 		FlagStrategy:               s.FlagStrategy,
 		CompatibilityMode:          s.CompatibilityMode,
 		ExistingModels:             s.ExistingModels,
+		AllowTemplateOverride:      s.AllowTemplateOverride,
 	}, nil
 }
 
@@ -98,6 +99,8 @@ func (s *Server) log(rp string) {
 	var flagsPackage string
 	if strings.HasPrefix(s.FlagStrategy, "pflag") {
 		flagsPackage = "github.com/spf13/pflag"
+	} else if strings.HasPrefix(s.FlagStrategy, "flag") {
+		flagsPackage = "flag"
 	} else {
 		flagsPackage = "github.com/jessevdk/go-flags"
 	}

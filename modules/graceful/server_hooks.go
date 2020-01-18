@@ -14,15 +14,15 @@ import (
 // awaitShutdown waits for the shutdown signal from the Manager
 func (srv *Server) awaitShutdown() {
 	select {
-	case <-Manager.IsShutdown():
+	case <-GetManager().IsShutdown():
 		// Shutdown
 		srv.doShutdown()
-	case <-Manager.IsHammer():
+	case <-GetManager().IsHammer():
 		// Hammer
 		srv.doShutdown()
 		srv.doHammer()
 	}
-	<-Manager.IsHammer()
+	<-GetManager().IsHammer()
 	srv.doHammer()
 }
 
