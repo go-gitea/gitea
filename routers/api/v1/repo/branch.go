@@ -148,6 +148,8 @@ func GetBranchProtection(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BranchProtection"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
@@ -161,7 +163,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(200, convert.ToBranchProtection(bp))
+	ctx.JSON(http.StatusOK, convert.ToBranchProtection(bp))
 }
 
 // ListBranchProtections list branch protections for a repo
@@ -197,7 +199,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 		apiBps[i] = convert.ToBranchProtection(bps[i])
 	}
 
-	ctx.JSON(200, apiBps)
+	ctx.JSON(http.StatusOK, apiBps)
 }
 
 // CreateBranchProtection creates a branch protection for a repo
@@ -227,6 +229,10 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BranchProtection"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
 
@@ -241,7 +247,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 		ctx.ServerError("GetProtectBranchOfRepoByName", err)
 		return
 	} else if protectBranch != nil {
-		ctx.Error(403, "Branch protection already exist", err)
+		ctx.Error(http.StatusForbidden, "Branch protection already exist", err)
 		return
 	}
 
@@ -308,15 +314,15 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	// Reload from db to get all whitelists
 	bp, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, form.BranchName)
 	if err != nil {
-		ctx.Error(500, "GetProtectedBranchByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
 	}
 	if bp == nil || bp.RepoID != ctx.Repo.Repository.ID {
-		ctx.Error(500, "New branch protection not found", err)
+		ctx.Error(http.StatusInternalServerError, "New branch protection not found", err)
 		return
 	}
 
-	ctx.JSON(200, convert.ToBranchProtection(bp))
+	ctx.JSON(http.StatusOK, convert.ToBranchProtection(bp))
 
 }
 
@@ -351,14 +357,16 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	//   schema:
 	//     "$ref": "#/definitions/EditBranchProtectionOption"
 	// responses:
-	//   "204":
+	//   "200":
 	//     "$ref": "#/responses/BranchProtection"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
 	protectBranch, err := models.GetProtectedBranchBy(repo.ID, bpName)
 	if err != nil {
-		ctx.Error(500, "GetProtectedBranchByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
 	}
 	if protectBranch == nil || protectBranch.RepoID != repo.ID {
@@ -475,15 +483,15 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	// Reload from db to ensure get all whitelists
 	bp, err := models.GetProtectedBranchByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		ctx.Error(500, "GetProtectedBranchByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
 	}
 	if bp == nil || bp.RepoID != ctx.Repo.Repository.ID {
-		ctx.Error(500, "New branch protection not found", err)
+		ctx.Error(http.StatusInternalServerError, "New branch protection not found", err)
 		return
 	}
 
-	ctx.JSON(200, convert.ToBranchProtection(bp))
+	ctx.JSON(http.StatusOK, convert.ToBranchProtection(bp))
 }
 
 // DeleteBranchProtection deletes a branch protection for a repo
@@ -513,12 +521,14 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
 	bp, err := models.GetProtectedBranchBy(repo.ID, bpName)
 	if err != nil {
-		ctx.Error(500, "GetProtectedBranchByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
 	}
 	if bp == nil || bp.RepoID != repo.ID {
@@ -531,5 +541,5 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
