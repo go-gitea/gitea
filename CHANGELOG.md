@@ -36,7 +36,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix nil reference in repo generation (#9660) (#9666)
   * Add HTML URL to API Issues (#9654) (#9661)
   * Add PR review webhook to Telegram (#9653) (#9655)
-  * Fix #9648 | use filepath.IsAbs instead of path.IsAbs (#9651) (#9652)
+  * Use filepath.IsAbs instead of path.IsAbs (#9651) (#9652)
 * TRANSLATION
   * Fix Korean locales (#9761) (#9780)
 * BUILD
