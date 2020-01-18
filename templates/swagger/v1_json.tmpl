@@ -1785,50 +1785,6 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/branch_protections/{id}": {
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Delete a specific branch protection for the repository",
-        "operationId": "repoDeleteBranchProtection",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "ID of the branch protection",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
     "/repos/{owner}/{repo}/branch_protections/{name}": {
       "get": {
         "produces": [
@@ -1857,8 +1813,8 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "ID of the branch protection",
-            "name": "id",
+            "description": "name of protected branch",
+            "name": "name",
             "in": "path",
             "required": true
           }
@@ -1866,6 +1822,48 @@
         "responses": {
           "200": {
             "$ref": "#/responses/BranchProtection"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a specific branch protection for the repository",
+        "operationId": "repoDeleteBranchProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "name of protected branch",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -1902,8 +1900,8 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "ID of the branch protection",
-            "name": "id",
+            "description": "name of protected branch",
+            "name": "name",
             "in": "path",
             "required": true
           },

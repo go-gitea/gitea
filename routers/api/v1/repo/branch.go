@@ -139,9 +139,9 @@ func GetBranchProtection(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: name
 	//   in: path
-	//   description: ID of the branch protection
+	//   description: name of protected branch
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -346,9 +346,9 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: name
 	//   in: path
-	//   description: ID of the branch protection
+	//   description: name of protected branch
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -496,7 +496,7 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 
 // DeleteBranchProtection deletes a branch protection for a repo
 func DeleteBranchProtection(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/branch_protections/{id} repository repoDeleteBranchProtection
+	// swagger:operation DELETE /repos/{owner}/{repo}/branch_protections/{name} repository repoDeleteBranchProtection
 	// ---
 	// summary: Delete a specific branch protection for the repository
 	// produces:
@@ -512,9 +512,9 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: name
 	//   in: path
-	//   description: ID of the branch protection
+	//   description: name of protected branch
 	//   type: integer
 	//   format: int64
 	//   required: true
