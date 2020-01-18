@@ -1284,7 +1284,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.HTML(200, tplForgotPassword)
 }
 
-func commonResetPassword(ctx *context.Context) *models.User {
+func commonResetPassword(ctx *context.Context) (*models.User, *models.TwoFactor) {
 	code := ctx.Query("code")
 
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
@@ -1296,14 +1296,25 @@ func commonResetPassword(ctx *context.Context) *models.User {
 
 	if len(code) == 0 {
 		ctx.Flash.Error(ctx.Tr("auth.invalid_code"))
-		return nil
+		return nil, nil
 	}
 
 	// Fail early, don't frustrate the user
 	u := models.VerifyUserActiveCode(code)
 	if u == nil {
 		ctx.Flash.Error(ctx.Tr("auth.invalid_code"))
-		return nil
+		return nil, nil
+	}
+
+	twofa, err := models.GetTwoFactorByUID(u.ID)
+	if err != nil {
+		if !models.IsErrTwoFactorNotEnrolled(err) {
+			ctx.Error(http.StatusInternalServerError, "CommonResetPassword", err.Error())
+			return nil, nil
+		}
+	} else {
+		ctx.Data["has_two_factor"] = true
+		ctx.Data["scratch_code"] = ctx.QueryBool("scratch_code")
 	}
 
 	// Show the user that they are affecting the account that they intended to
@@ -1311,10 +1322,10 @@ func commonResetPassword(ctx *context.Context) *models.User {
 
 	if nil != ctx.User && u.ID != ctx.User.ID {
 		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.User.Email, u.Email))
-		return nil
+		return nil, nil
 	}
 
-	return u
+	return u, twofa
 }
 
 // ResetPasswd render the account recovery page
@@ -1322,18 +1333,51 @@ func ResetPasswd(ctx *context.Context) {
 	ctx.Data["IsResetForm"] = true
 
 	commonResetPassword(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	ctx.HTML(200, tplResetPassword)
 }
 
 // ResetPasswdPost response from account recovery request
 func ResetPasswdPost(ctx *context.Context) {
-	u := commonResetPassword(ctx)
+	u, twofa := commonResetPassword(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	if u == nil {
 		// Flash error has been set
 		ctx.HTML(200, tplResetPassword)
 		return
+	}
+
+	if twofa != nil {
+		useScratch := ctx.QueryBool("scratch_code")
+		if useScratch {
+			token := ctx.Query("token")
+			ok := twofa.VerifyScratchToken(token)
+			if !ok {
+				ctx.Data["IsResetForm"] = true
+				ctx.Data["Err_Token"] = true
+				ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
+				return
+			}
+		} else {
+			code := ctx.Query("passcode")
+			ok, err := twofa.ValidateTOTP(code)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err.Error())
+				return
+			}
+			if !ok {
+				ctx.Data["IsResetForm"] = true
+				ctx.Data["Err_Passcode"] = true
+				ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
+				return
+			}
+		}
 	}
 
 	// Validate password length.
