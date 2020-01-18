@@ -658,9 +658,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
 					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateBranchProtection)
-					m.Group("/:id", func() {
+					m.Group("/:name", func() {
 						m.Get("", repo.GetBranchProtection)
-						m.Put("", bind(api.EditBranchProtectionOption{}), repo.EditBranchProtection)
+						m.Patch("", bind(api.EditBranchProtectionOption{}), repo.EditBranchProtection)
 						m.Delete("", repo.DeleteBranchProtection)
 					})
 				}, reqToken(), reqAdmin())

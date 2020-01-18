@@ -1780,6 +1780,47 @@
       }
     },
     "/repos/{owner}/{repo}/branch_protections/{id}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a specific branch protection for the repository",
+        "operationId": "repoDeleteBranchProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the branch protection",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/branch_protections/{name}": {
       "get": {
         "produces": [
           "application/json"
@@ -1819,7 +1860,7 @@
           }
         }
       },
-      "put": {
+      "patch": {
         "consumes": [
           "application/json"
         ],
@@ -1865,45 +1906,6 @@
         "responses": {
           "204": {
             "$ref": "#/responses/BranchProtection"
-          }
-        }
-      },
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Delete a specific branch protection for the repository",
-        "operationId": "repoDeleteBranchProtection",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "ID of the branch protection",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
           }
         }
       }
@@ -8944,11 +8946,6 @@
         "commit": {
           "$ref": "#/definitions/PayloadCommit"
         },
-        "effective_branch_protection_id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "EffectiveBRanchProtectionID"
-        },
         "effective_branch_protection_name": {
           "type": "string",
           "x-go-name": "EffectiveBranchProtectionName"
@@ -8992,13 +8989,12 @@
       "description": "BranchProtection represents a branch protection for a repository",
       "type": "object",
       "properties": {
-        "approvals_whitelist_team_ids": {
+        "approvals_whitelist_teams": {
           "type": "array",
           "items": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
-          "x-go-name": "ApprovalsWhitelistTeamIDs"
+          "x-go-name": "ApprovalsWhitelistTeams"
         },
         "approvals_whitelist_username": {
           "type": "array",
@@ -9041,13 +9037,12 @@
           "format": "int64",
           "x-go-name": "ID"
         },
-        "merge_whitelist_ids": {
+        "merge_whitelist_teams": {
           "type": "array",
           "items": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
-          "x-go-name": "MergeWhitelistTeamIDs"
+          "x-go-name": "MergeWhitelistTeams"
         },
         "merge_whitelist_usernames": {
           "type": "array",
@@ -9060,13 +9055,12 @@
           "type": "boolean",
           "x-go-name": "PushWhitelistDeployKeys"
         },
-        "push_whitelist_team_ids": {
+        "push_whitelist_teams": {
           "type": "array",
           "items": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
-          "x-go-name": "PushWhitelistTeamIDs"
+          "x-go-name": "PushWhitelistTeams"
         },
         "push_whitelist_usernames": {
           "type": "array",
@@ -9304,13 +9298,12 @@
       "description": "CreateBranchProtectionOption options for creating a branch protection",
       "type": "object",
       "properties": {
-        "approvals_whitelist_team_ids": {
+        "approvals_whitelist_teams": {
           "type": "array",
           "items": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
-          "x-go-name": "ApprovalsWhitelistTeamIDs"
+          "x-go-name": "ApprovalsWhitelistTeams"
         },
         "approvals_whitelist_username": {
           "type": "array",
@@ -9343,13 +9336,12 @@
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
         },
-        "merge_whitelist_team_ids": {
+        "merge_whitelist_teams": {
           "type": "array",
           "items": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
-          "x-go-name": "MergeWhitelistTeamIDs"
+          "x-go-name": "MergeWhitelistTeams"
         },
         "merge_whitelist_usernames": {
           "type": "array",
@@ -9362,13 +9354,12 @@
           "type": "boolean",
           "x-go-name": "PushWhitelistDeployKeys"
         },
-        "push_whitelist_team_ids": {
+        "push_whitelist_teams": {
           "type": "array",
           "items": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
-          "x-go-name": "PushWhitelistTeamIDs"
+          "x-go-name": "PushWhitelistTeams"
         },
         "push_whitelist_usernames": {
           "type": "array",
@@ -10079,13 +10070,12 @@
       "description": "EditBranchProtectionOption options for editing a branch protection",
       "type": "object",
       "properties": {
-        "approvals_whitelist_team_ids": {
+        "approvals_whitelist_teams": {
           "type": "array",
           "items": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
-          "x-go-name": "ApprovalsWhitelistTeamIDs"
+          "x-go-name": "ApprovalsWhitelistTeams"
         },
         "approvals_whitelist_username": {
           "type": "array",
@@ -10114,13 +10104,12 @@
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
         },
-        "merge_whitelist_team_ids": {
+        "merge_whitelist_teams": {
           "type": "array",
           "items": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
-          "x-go-name": "MergeWhitelistTeamIDs"
+          "x-go-name": "MergeWhitelistTeams"
         },
         "merge_whitelist_usernames": {
           "type": "array",
@@ -10133,13 +10122,12 @@
           "type": "boolean",
           "x-go-name": "PushWhitelistDeployKeys"
         },
-        "push_whitelist_team_ids": {
+        "push_whitelist_teams": {
           "type": "array",
           "items": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
-          "x-go-name": "PushWhitelistTeamIDs"
+          "x-go-name": "PushWhitelistTeams"
         },
         "push_whitelist_usernames": {
           "type": "array",

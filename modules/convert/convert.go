@@ -42,14 +42,11 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 			UserCanPush:                   true,
 			UserCanMerge:                  true,
 			EffectiveBranchProtectionName: "",
-			EffectiveBRanchProtectionID:   0,
 		}
 	}
 	branchProtectionName := ""
-	var branchProtectionID int64
 	if isRepoAdmin {
 		branchProtectionName = bp.BranchName
-		branchProtectionID = bp.ID
 	}
 
 	return &api.Branch{
@@ -62,23 +59,34 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 		UserCanPush:                   bp.CanUserPush(user.ID),
 		UserCanMerge:                  bp.IsUserMergeWhitelisted(user.ID),
 		EffectiveBranchProtectionName: branchProtectionName,
-		EffectiveBRanchProtectionID:   branchProtectionID,
 	}
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
 func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
-	pushWhitelistUsernames, err := models.GetUsernamesByIDs(bp.WhitelistUserIDs)
+	pushWhitelistUsernames, err := models.GetUserNamesByIDs(bp.WhitelistUserIDs)
 	if err != nil {
-		log.Error("GetUsernamesByIDs (WhitelistUserIDs): %v", err)
+		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
 	}
-	mergeWhitelistUsernames, err := models.GetUsernamesByIDs(bp.MergeWhitelistUserIDs)
+	mergeWhitelistUsernames, err := models.GetUserNamesByIDs(bp.MergeWhitelistUserIDs)
 	if err != nil {
-		log.Error("GetUsernamesByIDs (MergeWhitelistUserIDs): %v", err)
+		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
 	}
-	approvalsWhitelistUsernames, err := models.GetUsernamesByIDs(bp.ApprovalsWhitelistUserIDs)
+	approvalsWhitelistUsernames, err := models.GetUserNamesByIDs(bp.ApprovalsWhitelistUserIDs)
 	if err != nil {
-		log.Error("GetUsernamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
+		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
+	}
+	pushWhitelistTeams, err := models.GetTeamNamesByID(bp.WhitelistTeamIDs)
+	if err != nil {
+		log.Error("GetTeamNamesByID (WhitelistTeamIDs): %v", err)
+	}
+	mergeWhitelistTeams, err := models.GetTeamNamesByID(bp.MergeWhitelistTeamIDs)
+	if err != nil {
+		log.Error("GetTeamNamesByID (MergeWhitelistTeamIDs): %v", err)
+	}
+	approvalsWhitelistTeams, err := models.GetTeamNamesByID(bp.ApprovalsWhitelistTeamIDs)
+	if err != nil {
+		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
 	}
 
 	return &api.BranchProtection{
@@ -87,17 +95,17 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 		EnablePush:                  bp.CanPush,
 		EnablePushWhitelist:         bp.EnableWhitelist,
 		PushWhitelistUsernames:      pushWhitelistUsernames,
-		PushWhitelistTeamIDs:        bp.WhitelistTeamIDs,
+		PushWhitelistTeams:          pushWhitelistTeams,
 		PushWhitelistDeployKeys:     bp.WhitelistDeployKeys,
 		EnableMergeWhitelist:        bp.EnableMergeWhitelist,
 		MergeWhitelistUsernames:     mergeWhitelistUsernames,
-		MergeWhitelistTeamIDs:       bp.MergeWhitelistTeamIDs,
+		MergeWhitelistTeams:         mergeWhitelistTeams,
 		EnableStatusCheck:           bp.EnableStatusCheck,
 		StatusCheckContexts:         bp.StatusCheckContexts,
 		RequiredApprovals:           bp.RequiredApprovals,
 		EnableApprovalsWhitelist:    bp.EnableApprovalsWhitelist,
 		ApprovalsWhitelistUsernames: approvalsWhitelistUsernames,
-		ApprovalsWhitelistTeamIDs:   bp.ApprovalsWhitelistTeamIDs,
+		ApprovalsWhitelistTeams:     approvalsWhitelistTeams,
 		Created:                     bp.CreatedUnix.AsTime(),
 		Updated:                     bp.UpdatedUnix.AsTime(),
 	}

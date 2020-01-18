@@ -19,7 +19,6 @@ type Branch struct {
 	UserCanPush                   bool           `json:"user_can_push"`
 	UserCanMerge                  bool           `json:"user_can_merge"`
 	EffectiveBranchProtectionName string         `json:"effective_branch_protection_name"`
-	EffectiveBRanchProtectionID   int64          `json:"effective_branch_protection_id"`
 }
 
 // BranchProtection represents a branch protection for a repository
@@ -29,17 +28,17 @@ type BranchProtection struct {
 	EnablePush                  bool     `json:"enable_push"`
 	EnablePushWhitelist         bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames      []string `json:"push_whitelist_usernames"`
-	PushWhitelistTeamIDs        []int64  `json:"push_whitelist_team_ids"`
+	PushWhitelistTeams          []string `json:"push_whitelist_teams"`
 	PushWhitelistDeployKeys     bool     `json:"push_whitelist_deploy_keys"`
 	EnableMergeWhitelist        bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames     []string `json:"merge_whitelist_usernames"`
-	MergeWhitelistTeamIDs       []int64  `json:"merge_whitelist_ids"`
+	MergeWhitelistTeams         []string `json:"merge_whitelist_teams"`
 	EnableStatusCheck           bool     `json:"enable_status_check"`
 	StatusCheckContexts         []string `json:"status_check_contexts"`
 	RequiredApprovals           int64    `json:"required_approvals"`
 	EnableApprovalsWhitelist    bool     `json:"enable_approvals_whitelist"`
 	ApprovalsWhitelistUsernames []string `json:"approvals_whitelist_username"`
-	ApprovalsWhitelistTeamIDs   []int64  `json:"approvals_whitelist_team_ids"`
+	ApprovalsWhitelistTeams     []string `json:"approvals_whitelist_teams"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -52,17 +51,17 @@ type CreateBranchProtectionOption struct {
 	EnablePush                  bool     `json:"enable_push"`
 	EnablePushWhitelist         bool     `json:"enable_push_whitelist"`
 	PushWhitelistUsernames      []string `json:"push_whitelist_usernames"`
-	PushWhitelistTeamIDs        []int64  `json:"push_whitelist_team_ids"`
+	PushWhitelistTeams          []string `json:"push_whitelist_teams"`
 	PushWhitelistDeployKeys     bool     `json:"push_whitelist_deploy_keys"`
 	EnableMergeWhitelist        bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames     []string `json:"merge_whitelist_usernames"`
-	MergeWhitelistTeamIDs       []int64  `json:"merge_whitelist_team_ids"`
+	MergeWhitelistTeams         []string `json:"merge_whitelist_teams"`
 	EnableStatusCheck           bool     `json:"enable_status_check"`
 	StatusCheckContexts         []string `json:"status_check_contexts"`
 	RequiredApprovals           int64    `json:"required_approvals"`
 	EnableApprovalsWhitelist    bool     `json:"enable_approvals_whitelist"`
 	ApprovalsWhitelistUsernames []string `json:"approvals_whitelist_username"`
-	ApprovalsWhitelistTeamIDs   []int64  `json:"approvals_whitelist_team_ids"`
+	ApprovalsWhitelistTeams     []string `json:"approvals_whitelist_teams"`
 }
 
 // EditBranchProtectionOption options for editing a branch protection
@@ -70,15 +69,15 @@ type EditBranchProtectionOption struct {
 	EnablePush                  *bool    `json:"enable_push"`
 	EnablePushWhitelist         *bool    `json:"enable_push_whitelist"`
 	PushWhitelistUsernames      []string `json:"push_whitelist_usernames"`
-	PushWhitelistTeamIDs        []int64  `json:"push_whitelist_team_ids"`
+	PushWhitelistTeams          []string `json:"push_whitelist_teams"`
 	PushWhitelistDeployKeys     *bool    `json:"push_whitelist_deploy_keys"`
 	EnableMergeWhitelist        *bool    `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames     []string `json:"merge_whitelist_usernames"`
-	MergeWhitelistTeamIDs       []int64  `json:"merge_whitelist_team_ids"`
+	MergeWhitelistTeams         []string `json:"merge_whitelist_teams"`
 	EnableStatusCheck           *bool    `json:"enable_status_check"`
 	StatusCheckContexts         []string `json:"status_check_contexts"`
 	RequiredApprovals           *int64   `json:"required_approvals"`
 	EnableApprovalsWhitelist    *bool    `json:"enable_approvals_whitelist"`
 	ApprovalsWhitelistUsernames []string `json:"approvals_whitelist_username"`
-	ApprovalsWhitelistTeamIDs   []int64  `json:"approvals_whitelist_team_ids"`
+	ApprovalsWhitelistTeams     []string `json:"approvals_whitelist_teams"`
 }

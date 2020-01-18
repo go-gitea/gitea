@@ -123,7 +123,7 @@ func ListBranches(ctx *context.APIContext) {
 
 // GetBranchProtection gets a branch protection
 func GetBranchProtection(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/branch_protections/{id} repository repoGetBranchProtection
+	// swagger:operation GET /repos/{owner}/{repo}/branch_protections/{name} repository repoGetBranchProtection
 	// ---
 	// summary: Get a specific branch protection for the repository
 	// produces:
@@ -150,10 +150,10 @@ func GetBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/BranchProtection"
 
 	repo := ctx.Repo.Repository
-	bpID := ctx.ParamsInt64(":id")
-	bp, err := models.GetProtectedBranchByID(bpID)
+	bpName := ctx.Params(":name")
+	bp, err := models.GetProtectedBranchBy(repo.ID, bpName)
 	if err != nil {
-		ctx.Error(500, "GetProtectedBranchByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
 	}
 	if bp == nil || bp.RepoID != repo.ID {
@@ -189,7 +189,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 	bps, err := repo.GetProtectedBranches()
 	if err != nil {
-		ctx.Error(500, "GetProtectedBranches", err)
+		ctx.Error(http.StatusInternalServerError, "GetProtectedBranches", err)
 		return
 	}
 	apiBps := make([]*api.BranchProtection, len(bps))
@@ -228,13 +228,15 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	//   "200":
 	//     "$ref": "#/responses/BranchProtection"
 
+	repo := ctx.Repo.Repository
+
 	// Currently protection must match an actual branch
 	if !git.IsBranchExist(ctx.Repo.Repository.RepoPath(), form.BranchName) {
 		ctx.NotFound()
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, form.BranchName)
+	protectBranch, err := models.GetProtectedBranchBy(repo.ID, form.BranchName)
 	if err != nil {
 		ctx.ServerError("GetProtectBranchOfRepoByName", err)
 		return
@@ -260,6 +262,21 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	if err != nil {
 		ctx.ServerError("GetUserIDsByNames", err)
 	}
+	var whitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+	if repo.Owner.IsOrganization() {
+		whitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.PushWhitelistTeams, false)
+		if err != nil {
+			ctx.ServerError("GetTeamIDsByNames", err)
+		}
+		mergeWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.MergeWhitelistTeams, false)
+		if err != nil {
+			ctx.ServerError("GetTeamIDsByNames", err)
+		}
+		approvalsWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.ApprovalsWhitelistTeams, false)
+		if err != nil {
+			ctx.ServerError("GetTeamIDsByNames", err)
+		}
+	}
 
 	protectBranch = &models.ProtectedBranch{
 		ID:                       0,
@@ -277,11 +294,11 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 
 	err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 		UserIDs:          whitelistUsers,
-		TeamIDs:          form.PushWhitelistTeamIDs,
+		TeamIDs:          whitelistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
-		MergeTeamIDs:     form.MergeWhitelistTeamIDs,
+		MergeTeamIDs:     mergeWhitelistTeams,
 		ApprovalsUserIDs: approvalsWhitelistUsers,
-		ApprovalsTeamIDs: form.ApprovalsWhitelistTeamIDs,
+		ApprovalsTeamIDs: approvalsWhitelistTeams,
 	})
 	if err != nil {
 		ctx.ServerError("UpdateProtectBranch", err)
@@ -305,7 +322,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 
 // EditBranchProtection edits a branch protection for a repo
 func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtectionOption) {
-	// swagger:operation PUT /repos/{owner}/{repo}/branch_protections/{id} repository repoEditBranchProtection
+	// swagger:operation PATCH /repos/{owner}/{repo}/branch_protections/{name} repository repoEditBranchProtection
 	// ---
 	// summary: Edit a branch protections for a repository. Only fields that are set will be changed
 	// consumes:
@@ -337,12 +354,15 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	//   "204":
 	//     "$ref": "#/responses/BranchProtection"
 
-	protectBranch, err := models.GetProtectedBranchByID(ctx.ParamsInt64(":id"))
-	if err != nil || protectBranch == nil {
-		ctx.ServerError("GetProtectBranchOfRepoByName", err)
+	repo := ctx.Repo.Repository
+	bpName := ctx.Params(":name")
+	protectBranch, err := models.GetProtectedBranchBy(repo.ID, bpName)
+	if err != nil {
+		ctx.Error(500, "GetProtectedBranchByID", err)
 		return
-	} else if protectBranch.RepoID != ctx.Repo.Repository.ID {
-		ctx.Error(403, "Branch protection for repo does not exist", err)
+	}
+	if protectBranch == nil || protectBranch.RepoID != repo.ID {
+		ctx.NotFound()
 		return
 	}
 
@@ -392,13 +412,6 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	} else {
 		whitelistUsers = protectBranch.WhitelistUserIDs
 	}
-	var whitelistTeams []int64
-	if form.PushWhitelistTeamIDs != nil {
-		whitelistTeams = form.PushWhitelistTeamIDs
-	} else {
-		whitelistTeams = protectBranch.WhitelistTeamIDs
-	}
-
 	var mergeWhitelistUsers []int64
 	if form.MergeWhitelistUsernames != nil {
 		mergeWhitelistUsers, err = models.GetUserIDsByNames(form.MergeWhitelistUsernames, false)
@@ -408,13 +421,6 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	} else {
 		mergeWhitelistUsers = protectBranch.MergeWhitelistUserIDs
 	}
-	var mergeWhitelistTeams []int64
-	if form.MergeWhitelistTeamIDs != nil {
-		mergeWhitelistTeams = form.MergeWhitelistTeamIDs
-	} else {
-		mergeWhitelistTeams = protectBranch.MergeWhitelistTeamIDs
-	}
-
 	var approvalsWhitelistUsers []int64
 	if form.ApprovalsWhitelistUsernames != nil {
 		approvalsWhitelistUsers, err = models.GetUserIDsByNames(form.ApprovalsWhitelistUsernames, false)
@@ -424,11 +430,33 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	} else {
 		approvalsWhitelistUsers = protectBranch.ApprovalsWhitelistUserIDs
 	}
-	var approvalsWhitelistTeams []int64
-	if form.ApprovalsWhitelistTeamIDs != nil {
-		approvalsWhitelistTeams = form.ApprovalsWhitelistTeamIDs
-	} else {
-		approvalsWhitelistTeams = protectBranch.ApprovalsWhitelistTeamIDs
+
+	var whitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+	if repo.Owner.IsOrganization() {
+		if form.PushWhitelistTeams != nil {
+			whitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.PushWhitelistTeams, false)
+			if err != nil {
+				ctx.ServerError("GetTeamIDsByNames", err)
+			}
+		} else {
+			whitelistTeams = protectBranch.WhitelistTeamIDs
+		}
+		if form.MergeWhitelistTeams != nil {
+			mergeWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.MergeWhitelistTeams, false)
+			if err != nil {
+				ctx.ServerError("GetTeamIDsByNames", err)
+			}
+		} else {
+			mergeWhitelistTeams = protectBranch.MergeWhitelistTeamIDs
+		}
+		if form.ApprovalsWhitelistTeams != nil {
+			approvalsWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.ApprovalsWhitelistTeams, false)
+			if err != nil {
+				ctx.ServerError("GetTeamIDsByNames", err)
+			}
+		} else {
+			approvalsWhitelistTeams = protectBranch.ApprovalsWhitelistTeamIDs
+		}
 	}
 
 	err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
@@ -486,7 +514,19 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := ctx.Repo.Repository.DeleteProtectedBranch(ctx.ParamsInt64(":id")); err != nil {
+	repo := ctx.Repo.Repository
+	bpName := ctx.Params(":name")
+	bp, err := models.GetProtectedBranchBy(repo.ID, bpName)
+	if err != nil {
+		ctx.Error(500, "GetProtectedBranchByID", err)
+		return
+	}
+	if bp == nil || bp.RepoID != repo.ID {
+		ctx.NotFound()
+		return
+	}
+
+	if err := ctx.Repo.Repository.DeleteProtectedBranch(bp.ID); err != nil {
 		ctx.ServerError("DeleteProtectedBranch", err)
 		return
 	}

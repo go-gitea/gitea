@@ -1349,8 +1349,8 @@ func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
 		Find(&ous)
 }
 
-// GetUsernamesByIDs returns usernames for all resolved users from a list of Ids.
-func GetUsernamesByIDs(ids []int64) ([]string, error) {
+// GetUserNamesByIDs returns usernames for all resolved users from a list of Ids.
+func GetUserNamesByIDs(ids []int64) ([]string, error) {
 	ous, err := GetUsersByIDs(ids)
 	unames := make([]string, 0, len(ous))
 	for _, u := range ous {
