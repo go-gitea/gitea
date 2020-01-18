@@ -384,6 +384,24 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update CodeMirror to version 5.49.0 (#8381)
   * Wiki editor: enable side-by-side button (#7242)
 
+## [1.10.3](https://github.com/go-gitea/gitea/releases/tag/v1.10.3) - 2020-01-17
+* SECURITY
+  * Hide credentials when submitting migration (#9102) (#9704)
+  * Never allow an empty password to validate (#9682) (#9684)
+  * Prevent redirect to Host (#9678) (#9680)
+  * Hide public repos owned by private orgs (#9609) (#9616)
+* BUGFIXES
+  * Allow assignee on Pull Creation when Issue Unit is deactivated (#9836) (#9838)
+  * Fix download file wrong content-type (#9825) (#9835)
+  * Fix wrong identify poster on a migrated pull request when submit review (#9827) (#9831)
+  * Fix dump non-exist log directory (#9818) (#9820)
+  * Fix compare (#9808) (#9815)
+  * Fix missing msteam webhook on organization (#9781) (#9795)
+  * Fix add team on collaborator page when same name as organization (#9783)
+  * Fix cache problem on dashboard (#9358) (#9703)
+  * Send tag create and push webhook when release created on UI (#8671) (#9702)
+  * Branches not at ref commit ID should not be listed as Merged (#9614) (#9639)
+
 ## [1.10.2](https://github.com/go-gitea/gitea/releases/tag/v1.10.2) - 2020-01-02
 * BUGFIXES
   * Allow only specific Columns to be updated on Issue via API (#9539) (#9580)
