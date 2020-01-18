@@ -49,7 +49,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace username and password above as appropriate.
 
-3.  Create database with UTF-8 charset and collation. If you expected to use emojis, use `utf8mb4` charset instead of `utf8`. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
+3.  Create database with UTF-8 charset and collation. If you expected to use emojis, or if you want complete character coverage, use `utf8mb4` charset instead of `utf8`. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
 
     ```sql
     CREATE DATABASE 'giteadb' CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
