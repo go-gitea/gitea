@@ -17,6 +17,8 @@ You need a database to use Gitea. Gitea supports PostgreSQL, MySQL, SQLite, and 
 
 Database instance can be on same machine as Gitea (local database setup), or on different machine (remote database).
 
+Note: All steps below requires that the database engine of your choice is installed on your system. For remote database setup, install the server part on database instance and client part on your Gitea server. In addition, make sure you use same engine version for both server and client for some engine features to work. For security reason, protect `root` (MySQL) or `postgres` (PostgreSQL) database superuser with secure password.  The steps assumes that you run Linux for both database and Gitea servers.
+
 ## MySQL
 
 1.  On database instance, login to database console as root:
