@@ -10,6 +10,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Prevent redirect to Host (#9678) (#9679)
 * BUGFIXES
   * Fix markdown anchor links (#9673) (#9840)
+  * Allow assignee on Pull Creation when Issue Unit is deactivated (#9836) (#9837)
   * Fix download file wrong content-type (#9825) (#9834)
   * Fix wrong poster identity on a migrated pull request when submit review (#9827) (#9830)
   * Fix database dump when log directory is missing (#9818) (#9819)
