@@ -56,7 +56,7 @@ Note: All steps below requires that the database engine of your choice is instal
     SET GLOBAL innodb_file_per_table=ON;
     SET GLOBAL innodb_large_prefix=1;
     ```
-3.  Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond *Basic Multilingual Plane*. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
+4.  Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond *Basic Multilingual Plane*. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
 
     ```sql
     CREATE DATABASE 'giteadb' CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
@@ -64,7 +64,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace database name as appropriate.
 
-4.  Grant all privileges on the database to database user created above.
+5.  Grant all privileges on the database to database user created above.
 
     For local database:
 
@@ -80,9 +80,9 @@ Note: All steps below requires that the database engine of your choice is instal
     FLUSH PRIVILEGES;
     ```
 
-5.  Quit from database console by `exit`.
+6.  Quit from database console by `exit`.
 
-6.  On your Gitea server, test connection to the database:
+7.  On your Gitea server, test connection to the database:
 
     ```
     mysql -u gitea -h 23.45.67.89 -p giteadb
