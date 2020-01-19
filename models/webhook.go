@@ -600,11 +600,13 @@ func (h HookEventType) Event() string {
 		return "fork"
 	case HookEventPush:
 		return "push"
-	case HookEventIssues, HookEventIssueAssign, HookEventIssueLabel, HookEventIssueMilestone, HookEventIssueComment:
+	case HookEventIssues, HookEventIssueAssign, HookEventIssueLabel, HookEventIssueMilestone:
 		return "issues"
 	case HookEventPullRequest, HookEventPullRequestAssign, HookEventPullRequestLabel, HookEventPullRequestMilestone,
-		HookEventPullRequestComment, HookEventPullRequestSync:
+		HookEventPullRequestSync:
 		return "pull_request"
+	case HookEventIssueComment, HookEventPullRequestComment:
+		return "issue_comment"
 	case HookEventPullRequestReviewApproved:
 		return "pull_request_approved"
 	case HookEventPullRequestReviewRejected:
