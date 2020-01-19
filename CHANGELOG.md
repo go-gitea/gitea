@@ -5,10 +5,13 @@ without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.11.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.11.0-rc2) - 2020-01-18
+* BREAKING
+  * Make CertFile and KeyFile relative to CustomPath (#9868) (#9874)
 * SECURITY
   * Never allow an empty password to validate (#9682) (#9683)
   * Prevent redirect to Host (#9678) (#9679)
 * BUGFIXES
+  * Fix issues/pulls dependencies problems (#9842) (#9864)
   * Explicitly refer to PR in squash-merge commit message in case of external tracker (#9844) (#9855)
   * Fix markdown anchor links (#9673) (#9840)
   * Allow assignee on Pull Creation when Issue Unit is deactivated (#9836) (#9837)
