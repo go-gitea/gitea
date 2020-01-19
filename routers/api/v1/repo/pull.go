@@ -600,13 +600,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-		return
-	}
-
-	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, perm, ctx.User)
+	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
 		return
@@ -637,6 +631,15 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
 			return
 		}
+	}
+
+	if _, err := pull_service.IsSignedIfRequired(pr, ctx.User); err != nil {
+		if !models.IsErrWontSign(err) {
+			ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
+			return
+		}
+		ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
+		return
 	}
 
 	if len(form.Do) == 0 {

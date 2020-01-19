@@ -184,7 +184,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		Message: message,
 	}
 
-	sign, signingKey := repo.SignWikiCommit(doer)
+	sign, signingKey, _ := repo.SignWikiCommit(doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
 	} else {
@@ -298,7 +298,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		Parents: []string{"HEAD"},
 	}
 
-	sign, signingKey := repo.SignWikiCommit(doer)
+	sign, signingKey, _ := repo.SignWikiCommit(doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
 	} else {

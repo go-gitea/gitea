@@ -494,6 +494,23 @@
         }
       }
     },
+    "/notifications/new": {
+      "get": {
+        "tags": [
+          "notification"
+        ],
+        "summary": "Check if unread notifications exist",
+        "operationId": "notifyNewAvailable",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/NotificationCount"
+          },
+          "204": {
+            "description": "No unread notification"
+          }
+        }
+      }
+    },
     "/notifications/threads/{id}": {
       "get": {
         "consumes": [
@@ -1379,6 +1396,12 @@
             "format": "int64",
             "description": "repository to prioritize in the results",
             "name": "priority_repo_id",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by type (issues / pulls) if set",
+            "name": "type",
             "in": "query"
           }
         ],
@@ -10911,6 +10934,18 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "NotificationCount": {
+      "description": "NotificationCount number of unread notifications",
+      "type": "object",
+      "properties": {
+        "new": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "New"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "NotificationSubject": {
       "description": "NotificationSubject contains the notification subject (Issue/Pull/Commit)",
       "type": "object",
@@ -12395,6 +12430,12 @@
         "items": {
           "$ref": "#/definitions/Milestone"
         }
+      }
+    },
+    "NotificationCount": {
+      "description": "Number of unread notifications",
+      "schema": {
+        "$ref": "#/definitions/NotificationCount"
       }
     },
     "NotificationThread": {

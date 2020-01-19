@@ -152,16 +152,18 @@ func (pr *PullRequest) LoadProtectedBranch() (err error) {
 }
 
 func (pr *PullRequest) loadProtectedBranch(e Engine) (err error) {
-	if pr.BaseRepo == nil {
-		if pr.BaseRepoID == 0 {
-			return nil
+	if pr.ProtectedBranch == nil {
+		if pr.BaseRepo == nil {
+			if pr.BaseRepoID == 0 {
+				return nil
+			}
+			pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
+			if err != nil {
+				return
+			}
 		}
-		pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
-		if err != nil {
-			return
-		}
+		pr.ProtectedBranch, err = getProtectedBranchBy(e, pr.BaseRepo.ID, pr.BaseBranch)
 	}
-	pr.ProtectedBranch, err = getProtectedBranchBy(e, pr.BaseRepo.ID, pr.BaseBranch)
 	return
 }
 
@@ -387,6 +389,13 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return ""
+	}
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return ""
+	}
+	if pr.BaseRepo.UnitEnabled(UnitTypeExternalTracker) {
+		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
 	}
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
 }
@@ -739,4 +748,9 @@ func (pr *PullRequest) IsHeadEqualWithBranch(branchName string) (bool, error) {
 		return false, err
 	}
 	return baseCommit.HasPreviousCommit(headCommit.ID)
+}
+
+// IsSameRepo returns true if base repo and head repo is the same
+func (pr *PullRequest) IsSameRepo() bool {
+	return pr.BaseRepoID == pr.HeadRepoID
 }

@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
@@ -253,7 +252,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 	}
 }
 
-func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
