@@ -631,7 +631,7 @@ func convertGithubReview(r *github.PullRequestReview) *base.Review {
 	}
 }
 
-func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullRequestComment) ([]*base.ReviewComment,error) {
+func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullRequestComment) ([]*base.ReviewComment, error) {
 	var rcs = make([]*base.ReviewComment, 0, len(cs))
 	for _, c := range cs {
 		// get reactions
@@ -672,7 +672,7 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 			UpdatedAt: c.GetUpdatedAt(),
 		})
 	}
-	return rcs,nil
+	return rcs, nil
 }
 
 // GetReviews returns pull requests review
