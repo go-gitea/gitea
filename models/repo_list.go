@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -317,43 +318,73 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 }
 
 // accessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
+// It does not check if a specific unit type is enabled.
 func accessibleRepositoryCondition(user *User) builder.Cond {
-	var cond = builder.NewCond()
-
-	if user == nil || !user.IsRestricted {
-		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
-		if user == nil {
-			orgVisibilityLimit = append(orgVisibilityLimit, structs.VisibleTypeLimited)
-		}
-		// 1. Be able to see all non-private repositories that either:
-		cond = cond.Or(builder.And(
-			builder.Eq{"`repository`.is_private": false},
-			builder.Or(
-				//   A. Aren't in organisations  __OR__
-				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
-				//   B. Isn't a private organisation. Limited is OK as long as we're logged in.
-				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.In("visibility", orgVisibilityLimit))))))
+	if user == nil || user.ID == 0 {
+		// Anonymous users (i.e. not logged in) can access whatever is public.
+		// Systems with restricted users must disable anonymous access. 
+		// FIXME: GAP: Remove log.Trace()
+		log.Trace("accessibleRepositoryCondition(UserRepoUnitAnyUser)")
+		return builder.In("`repository`.id", builder.
+			Select("repo_id").
+			From("user_repo_unit").
+			Where(builder.Eq{"user_id": UserRepoUnitAnyUser}))
 	}
 
-	if user != nil {
-		// 2. Be able to see all repositories that we have access to
-		cond = cond.Or(builder.Or(
-			builder.In("`repository`.id", builder.Select("repo_id").
-				From("`access`").
-				Where(builder.And(
-					builder.Eq{"user_id": user.ID},
-					builder.Gt{"mode": int(AccessModeNone)}))),
-			builder.In("`repository`.id", builder.Select("id").
-				From("`repository`").
-				Where(builder.Eq{"owner_id": user.ID}))))
-		// 3. Be able to see all repositories that we are in a team
-		cond = cond.Or(builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
-			From("team_repo").
-			Where(builder.Eq{"`team_user`.uid": user.ID}).
-			Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")))
+	if user.IsRestricted {
+		// Restricted users can only access whatever they've been explicitly allowed to.
+		// FIXME: GAP: Remove log.Trace()
+		log.Trace("accessibleRepositoryCondition(restricted user:%s(%d))", user.LowerName, user.ID)
+		return builder.In("`repository`.id", builder.
+			Select("repo_id").
+			From("user_repo_unit").
+			Where(builder.Eq{"user_id": user.ID}))
 	}
 
-	return cond
+	// Know users can access whatever is public or have been explicitly allowed to.
+	// FIXME: GAP: Remove log.Trace()
+	log.Trace("accessibleRepositoryCondition(user:%s(%d))", user.LowerName, user.ID)
+	return builder.In("`repository`.id", builder.
+		Select("repo_id").
+		From("user_repo_unit").
+		Where(builder.In("user_id", []int64{user.ID, UserRepoUnitLoggedInUser})))
+}
+
+// accessibleRepositoryConditionUnit takes a user a returns a condition for checking if a repository is accessible
+// for a given unit type
+func accessibleRepositoryConditionUnit(user *User, unitType UnitType) builder.Cond {
+	if user == nil || user.ID == 0 {
+		// Anonymous users (i.e. not logged in) can access whatever is public.
+		// Systems with restricted users must disable anonymous access. 
+		// FIXME: GAP: Remove log.Trace()
+		log.Trace("accessibleRepositoryConditionUnit(UserRepoUnitAnyUser, %d)", unitType)
+		return builder.In("`repository`.id", builder.
+			Select("repo_id").
+			From("user_repo_unit").
+			Where(builder.And(
+				builder.Eq{"user_id": UserRepoUnitAnyUser},
+				builder.Eq{"unit_type": unitType})))
+	}
+
+	if user.IsRestricted {
+		// Restricted users can only access whatever they've been explicitly allowed to.
+		// FIXME: GAP: Remove log.Trace()
+		log.Trace("accessibleRepositoryCondition(restricted user:%s(%d))", user.LowerName, user.ID)
+		return builder.In("`repository`.id", builder.
+			Select("repo_id").
+			From("user_repo_unit").
+			Where(builder.And(
+				builder.Eq{"user_id": user.ID},
+				builder.Eq{"unit_type": unitType})))
+	}
+
+	// Know users can access whatever is public or have been explicitly allowed to.
+	// FIXME: GAP: Remove log.Trace()
+	log.Trace("accessibleRepositoryConditionUnit(user:%s(%d), %d)", user.LowerName, user.ID, unitType)
+	return builder.In("`repository`.id", builder.Select("repo_id").From("user_repo_unit").
+		Where(builder.And(
+			builder.In("user_id", []int64{user.ID, UserRepoUnitLoggedInUser}),
+			builder.Eq{"unit_type": unitType})))
 }
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
@@ -380,3 +411,4 @@ func FindUserAccessibleRepoIDs(user *User) ([]int64, error) {
 	}
 	return repoIDs, nil
 }
+

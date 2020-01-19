@@ -99,7 +99,7 @@ var (
 	// This list may be updated as needed. Requisites are:
 	// - New units need to abide by the same rules as the others
 	// - Units from all repos must be rebuilt after this change
-	supportedUnits = []UnitType{
+	UserRepoUnitSelectableTypes = []UnitType{
 		UnitTypeCode,
 		UnitTypeIssues,
 		UnitTypePullRequests,
@@ -109,16 +109,16 @@ var (
 
 	// Pre-built SQL condition to filter-out unsupported unit types
 	// "repo_unit.`type` IN (UnitTypeCode, UnitTypeIssues, etc.)"
-	userRepoUnitSupported string
+	userRepoUnitIsSelectable string
 )
 
 func init() {
 	// Build some data that we will use quite often
-	uts := make([]string, len(supportedUnits))
-	for i, su := range supportedUnits {
+	uts := make([]string, len(UserRepoUnitSelectableTypes))
+	for i, su := range UserRepoUnitSelectableTypes {
 		uts[i] = fmt.Sprintf("%d", su)
 	}
-	userRepoUnitSupported = "repo_unit.`type` IN (" + strings.Join(uts, ",") + ")"
+	userRepoUnitIsSelectable = "repo_unit.`type` IN (" + strings.Join(uts, ",") + ")"
 }
 
 // RebuildRepoUnits will rebuild all permissions to a given repository for all users
@@ -477,7 +477,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 		"INNER JOIN repo_unit ON repo_unit.repo_id = ? "+
 		"WHERE `user`.is_admin = ? AND `user`.is_active = ? AND `user`.prohibit_login = ? "+
 		"AND `user`.type = ? "+
-		"AND "+userRepoUnitSupported,
+		"AND "+userRepoUnitIsSelectable,
 		batchID, AccessModeAdmin, repo.ID, true, true, false, UserTypeIndividual)
 	if err != nil {
 		return fmt.Errorf("INSERT user_repo_unit_work (repo admins): %v", err)
@@ -513,7 +513,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 			"INNER JOIN `user` ON `user`.id = team_user.uid "+
 			"WHERE team_repo.repo_id = ? AND team.includes_all_repositories = ? "+
 			"AND `user`.is_active = ? AND `user`.prohibit_login = ? AND `user`.type = ? "+
-			"AND "+userRepoUnitSupported+" "+
+			"AND "+userRepoUnitIsSelectable+" "+
 			"AND team.id <> ? "+ // excludeTeamID will be -1 if no team is to be excluded
 			"AND team.org_id = ?", // Sanity check, just in case
 			batchID, repo.ID, false, true, false, UserTypeIndividual, excludeTeamID, repo.OwnerID)
@@ -533,7 +533,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 			"INNER JOIN repo_unit ON repo_unit.repo_id = ? AND repo_unit.`type` = team_unit.`type` "+
 			"INNER JOIN `user` ON `user`.id = team_user.uid "+
 			"WHERE team.org_id = ? AND team.includes_all_repositories = ? "+
-			"AND "+userRepoUnitSupported+" "+
+			"AND "+userRepoUnitIsSelectable+" "+
 			"AND `user`.is_active = ? AND `user`.prohibit_login = ? AND `user`.type = ? "+
 			"AND team.id <> ?", // excludeTeamID will be -1 if no team is to be excluded
 			batchID, repo.ID, repo.OwnerID, true, true, false, UserTypeIndividual, excludeTeamID)
@@ -554,7 +554,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 		_, err := e.Exec("INSERT INTO user_repo_unit_work (batch_id, user_id, repo_id, `type`, `mode`) "+
 			"SELECT ?, ?, repo_unit.repo_id, repo_unit.`type`, ? "+
 			"FROM repo_unit "+
-			"WHERE repo_unit.repo_id = ? AND "+userRepoUnitSupported,
+			"WHERE repo_unit.repo_id = ? AND "+userRepoUnitIsSelectable,
 			batchID, repo.OwnerID, AccessModeOwner, repo.ID)
 		if err != nil {
 			return fmt.Errorf("INSERT user_repo_unit_work (repo owner): %v", err)
@@ -574,7 +574,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 		"INNER JOIN repo_unit ON repo_unit.repo_id = collaboration.repo_id "+
 		"WHERE collaboration.repo_id = ? "+
 		"AND `user`.is_active = ? AND `user`.prohibit_login = ? AND `user`.type = ? "+
-		"AND "+userRepoUnitSupported,
+		"AND "+userRepoUnitIsSelectable,
 		batchID, repo.ID, true, false, UserTypeIndividual)
 	if err != nil {
 		return fmt.Errorf("INSERT user_repo_unit_work (repo collaborators): %v", err)
@@ -612,7 +612,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 					"  WHERE team.id <> ? "+ // excludeTeamID will be -1 if no team is to be excluded
 					") "+
 					"AND `user`.is_active = ? AND `user`.prohibit_login = ? AND `user`.type = ? "+
-					"AND "+userRepoUnitSupported,
+					"AND "+userRepoUnitIsSelectable,
 					batchID, AccessModeRead, repo.ID, repo.OwnerID, excludeTeamID, true, false, UserTypeIndividual)
 				if err != nil {
 					return fmt.Errorf("INSERT INTO user_repo_unit_work (repo public for org): %v", err)
@@ -644,7 +644,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 			_, err := e.Exec("INSERT INTO user_repo_unit_work (batch_id, user_id, repo_id, `type`, `mode`) "+
 				"SELECT ?, ?, repo_unit.repo_id, repo_unit.`type`, ? "+
 				"FROM repo_unit "+
-				"WHERE repo_unit.repo_id = ? AND "+userRepoUnitSupported,
+				"WHERE repo_unit.repo_id = ? AND "+userRepoUnitIsSelectable,
 				batchID, UserRepoUnitLoggedInUser, AccessModeRead, repo.ID)
 			if err != nil {
 				return fmt.Errorf("INSERT user_repo_unit_work (repo, logged in): %v", err)
@@ -664,7 +664,7 @@ func buildRepoUnits(e Engine, batchID int64, repo *Repository, excludeTeamID int
 				_, err := e.Exec("INSERT INTO user_repo_unit_work (batch_id, user_id, repo_id, `type`, `mode`) "+
 					"SELECT ?, ?, repo_unit.repo_id, repo_unit.`type`, ? "+
 					"FROM repo_unit "+
-					"WHERE repo_unit.repo_id = ? AND "+userRepoUnitSupported,
+					"WHERE repo_unit.repo_id = ? AND "+userRepoUnitIsSelectable,
 					batchID, UserRepoUnitAnyUser, AccessModeRead, repo.ID)
 				if err != nil {
 					return fmt.Errorf("INSERT INTO user_repo_unit_work (repo public, anonymous): %v", err)
@@ -707,7 +707,7 @@ func buildUserUnits(e Engine, batchID int64, user *User) error {
 		_, err := e.Exec("INSERT INTO user_repo_unit_work (batch_id, user_id, repo_id, `type`, `mode`) "+
 			"SELECT ?, ?, repo_unit.repo_id, repo_unit.`type`, ? "+
 			"FROM repo_unit "+
-			"WHERE "+userRepoUnitSupported,
+			"WHERE "+userRepoUnitIsSelectable,
 			batchID, user.ID, AccessModeAdmin)
 		if err != nil {
 			return fmt.Errorf("INSERT user_repo_unit_work (user: admin): %v", err)
@@ -729,7 +729,7 @@ func buildUserUnits(e Engine, batchID int64, user *User) error {
 		"SELECT ?, repository.owner_id, repo_unit.repo_id, repo_unit.`type`, ? "+
 		"FROM repository "+
 		"INNER JOIN repo_unit ON repo_unit.repo_id = repository.id "+
-		"WHERE repository.owner_id = ? AND "+userRepoUnitSupported,
+		"WHERE repository.owner_id = ? AND "+userRepoUnitIsSelectable,
 		batchID, AccessModeOwner, user.ID)
 	if err != nil {
 		return fmt.Errorf("INSERT user_repo_unit_work (user: owner): %v", err)
@@ -746,7 +746,7 @@ func buildUserUnits(e Engine, batchID int64, user *User) error {
 		"FROM collaboration "+
 		"INNER JOIN repo_unit ON repo_unit.repo_id = collaboration.repo_id "+
 		"WHERE collaboration.user_id = ? "+
-		"AND "+userRepoUnitSupported,
+		"AND "+userRepoUnitIsSelectable,
 		batchID, user.ID)
 	if err != nil {
 		return fmt.Errorf("INSERT user_repo_unit_work (user collaborator): %v", err)
@@ -767,7 +767,7 @@ func buildUserUnits(e Engine, batchID int64, user *User) error {
 		"INNER JOIN team_unit ON team_unit.team_id = team.id "+
 		"INNER JOIN repo_unit ON repo_unit.repo_id = team_repo.repo_id AND repo_unit.`type` = team_unit.`type` "+
 		"WHERE team_user.uid = ? AND team.includes_all_repositories = ? "+
-		"AND "+userRepoUnitSupported,
+		"AND "+userRepoUnitIsSelectable,
 		batchID, user.ID, false)
 	if err != nil {
 		return fmt.Errorf("INSERT user_repo_unit_work (user teams, !include_all): %v", err)
@@ -784,7 +784,7 @@ func buildUserUnits(e Engine, batchID int64, user *User) error {
 		"INNER JOIN team_unit ON team_unit.team_id = team.id "+
 		"INNER JOIN repo_unit ON repo_unit.repo_id = repository.id AND repo_unit.`type` = team_unit.`type` "+
 		"WHERE team_user.uid = ? AND team.includes_all_repositories = ? "+
-		"AND "+userRepoUnitSupported,
+		"AND "+userRepoUnitIsSelectable,
 		batchID, user.ID, true)
 	if err != nil {
 		return fmt.Errorf("INSERT user_repo_unit_work (user teams, include_all): %v", err)
@@ -811,7 +811,7 @@ func buildLoggedInUnits(e Engine, batchID int64) error {
 		"INNER JOIN `user` ON `user`.id = repository.owner_id "+
 		"INNER JOIN repo_unit ON repo_unit.repo_id = repository.id "+
 		"WHERE repository.is_private = ? "+
-		"AND `user`.visibility IN (?,?) AND "+userRepoUnitSupported,
+		"AND `user`.visibility IN (?,?) AND "+userRepoUnitIsSelectable,
 		batchID, UserRepoUnitLoggedInUser, AccessModeRead,
 		false, structs.VisibleTypePublic, structs.VisibleTypeLimited)
 	if err != nil {
@@ -839,7 +839,7 @@ func buildAnonymousUnits(e Engine, batchID int64) error {
 		"INNER JOIN `user` ON `user`.id = repository.owner_id "+
 		"INNER JOIN repo_unit ON repo_unit.repo_id = repository.id "+
 		"WHERE repository.is_private = ? "+
-		"AND `user`.visibility = ? AND "+userRepoUnitSupported,
+		"AND `user`.visibility = ? AND "+userRepoUnitIsSelectable,
 		batchID, UserRepoUnitAnyUser, AccessModeRead,
 		false, structs.VisibleTypePublic)
 	if err != nil {
@@ -874,7 +874,7 @@ func buildUserRepoUnits(e Engine, batchID int64, user *User, repo *Repository) e
 		_, err := e.Exec("INSERT INTO user_repo_unit_work (batch_id, user_id, repo_id, `type`, `mode`) "+
 			"SELECT ?, ?, repo_unit.repo_id, repo_unit.`type`, ? "+
 			"FROM repo_unit "+
-			"WHERE repo_unit.repo_id = ? AND "+userRepoUnitSupported,
+			"WHERE repo_unit.repo_id = ? AND "+userRepoUnitIsSelectable,
 			batchID, user.ID, AccessModeOwner, repo.ID)
 		if err != nil {
 			return fmt.Errorf("INSERT user_repo_unit_work (user/repo: owner): %v", err)
@@ -892,7 +892,7 @@ func buildUserRepoUnits(e Engine, batchID int64, user *User, repo *Repository) e
 		_, err := e.Exec("INSERT INTO user_repo_unit_work (batch_id, user_id, repo_id, `type`, `mode`) "+
 			"SELECT ?, ?, repo_unit.repo_id, repo_unit.`type`, ? "+
 			"FROM repo_unit "+
-			"WHERE repo_unit.repo_id = ? AND "+userRepoUnitSupported,
+			"WHERE repo_unit.repo_id = ? AND "+userRepoUnitIsSelectable,
 			batchID, user.ID, AccessModeAdmin, repo.ID)
 		if err != nil {
 			return fmt.Errorf("INSERT user_repo_unit_work (user/repo: admin): %v", err)
@@ -910,7 +910,7 @@ func buildUserRepoUnits(e Engine, batchID int64, user *User, repo *Repository) e
 		"FROM collaboration "+
 		"INNER JOIN repo_unit ON repo_unit.repo_id = collaboration.repo_id "+
 		"WHERE collaboration.user_id = ? AND collaboration.repo_id = ? "+
-		"AND "+userRepoUnitSupported,
+		"AND "+userRepoUnitIsSelectable,
 		batchID, user.ID, repo.ID)
 	if err != nil {
 		return fmt.Errorf("INSERT user_repo_unit_work (user/repo collaborator): %v", err)
@@ -937,7 +937,7 @@ func buildUserRepoUnits(e Engine, batchID int64, user *User, repo *Repository) e
 			"INNER JOIN team_unit ON team_unit.team_id = team.id "+
 			"INNER JOIN repo_unit ON repo_unit.repo_id = team_repo.repo_id AND repo_unit.`type` = team_unit.`type` "+
 			"WHERE team.org_id = ? AND team.includes_all_repositories = ? "+
-			"AND team_user.uid = ? AND team_repo.repo_id = ? AND "+userRepoUnitSupported,
+			"AND team_user.uid = ? AND team_repo.repo_id = ? AND "+userRepoUnitIsSelectable,
 			batchID, repo.OwnerID, false, user.ID, repo.ID)
 		if err != nil {
 			return fmt.Errorf("INSERT user_repo_unit_work (user/repo teams, !include_all): %v", err)
@@ -953,7 +953,7 @@ func buildUserRepoUnits(e Engine, batchID int64, user *User, repo *Repository) e
 			"INNER JOIN team_unit ON team_unit.team_id = team.id "+
 			"INNER JOIN repo_unit ON repo_unit.`type` = team_unit.`type` "+
 			"WHERE repo_unit.repo_id = ? AND team.org_id = ? AND team.includes_all_repositories = ? "+
-			"AND team_user.uid = ? AND "+userRepoUnitSupported,
+			"AND team_user.uid = ? AND "+userRepoUnitIsSelectable,
 			batchID, repo.ID, repo.OwnerID, true, user.ID)
 		if err != nil {
 			return fmt.Errorf("INSERT user_repo_unit_work (user/repo teams, include_all): %v", err)
@@ -992,7 +992,7 @@ func buildTeamUnits(e Engine, batchID int64, team *Team) error {
 			"INNER JOIN `user` ON `user`.id = team_user.uid "+
 			"WHERE team.id = ? "+
 			"AND `user`.is_active = ? AND `user`.prohibit_login = ? AND `user`.type = ? "+
-			"AND "+userRepoUnitSupported,
+			"AND "+userRepoUnitIsSelectable,
 			batchID, team.ID, true, false, UserTypeIndividual)
 		if err != nil {
 			return fmt.Errorf("INSERT user_repo_unit_work (team, org repos): %v", err)
@@ -1017,7 +1017,7 @@ func buildTeamUnits(e Engine, batchID int64, team *Team) error {
 			"INNER JOIN repo_unit ON repo_unit.repo_id = team_repo.repo_id AND repo_unit.`type` = team_unit.`type` "+
 			"WHERE team.id = ? "+
 			"AND `user`.is_active = ? AND `user`.prohibit_login = ? AND `user`.type = ? "+
-			"AND "+userRepoUnitSupported,
+			"AND "+userRepoUnitIsSelectable,
 			batchID, team.ID, true, false, UserTypeIndividual)
 		if err != nil {
 			return fmt.Errorf("INSERT user_repo_unit_work (team, team repos): %v", err)

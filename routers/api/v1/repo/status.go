@@ -286,7 +286,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	retStatus := &combinedCommitStatus{
 		SHA:        sha,
 		TotalCount: len(statuses),
-		Repo:       repo.APIFormat(ctx.Repo.AccessMode),
+		Repo:       repo.APIFormat(ctx.Repo.UnitAccessMode(models.UnitTypeCode)),
 		URL:        "",
 	}
 

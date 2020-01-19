@@ -105,7 +105,7 @@ func ListReleases(ctx *context.APIContext) {
 
 	page, limit := getPagesInfo(ctx)
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
+		IncludeDrafts: ctx.Repo.UnitAccessMode(models.UnitTypeReleases) >= models.AccessModeWrite,
 		IncludeTags:   false,
 	}, page, limit)
 	if err != nil {

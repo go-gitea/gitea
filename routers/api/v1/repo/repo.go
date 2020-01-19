@@ -580,7 +580,7 @@ func Get(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Repository"
 
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.MinAccessMode))
 }
 
 // GetByID returns a single Repository
@@ -619,7 +619,7 @@ func GetByID(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, repo.APIFormat(perm.AccessMode))
+	ctx.JSON(http.StatusOK, repo.APIFormat(perm.MinAccessMode))
 }
 
 // Edit edit repository properties
@@ -668,7 +668,7 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.MinAccessMode))
 }
 
 // updateBasicProperties updates the basic properties of a repo: Name, Description, Website and Visibility

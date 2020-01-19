@@ -12,25 +12,27 @@ import (
 
 // Permission contains all the permissions related variables to a repository for a user
 type Permission struct {
-	AccessMode AccessMode
-	Units      []*RepoUnit
-	UnitsMode  map[UnitType]AccessMode
+	MinAccessMode  AccessMode 				// Name change to ensure that this name is only used in repo_permission.go
+	Units          []*RepoUnit
+	UnitsMode      map[UnitType]AccessMode
+	isOwner        bool
+	isAdmin        bool
 }
 
 // IsOwner returns true if current user is the owner of repository.
 func (p *Permission) IsOwner() bool {
-	return p.AccessMode >= AccessModeOwner
+	return p.MinAccessMode >= AccessModeOwner
 }
 
 // IsAdmin returns true if current user has admin or higher access of repository.
 func (p *Permission) IsAdmin() bool {
-	return p.AccessMode >= AccessModeAdmin
+	return p.MinAccessMode >= AccessModeAdmin
 }
 
 // HasAccess returns true if the current user has at least read access to any unit of this repository
 func (p *Permission) HasAccess() bool {
 	if p.UnitsMode == nil {
-		return p.AccessMode >= AccessModeRead
+		return p.MinAccessMode >= AccessModeRead
 	}
 	return len(p.UnitsMode) > 0
 }
@@ -40,7 +42,7 @@ func (p *Permission) UnitAccessMode(unitType UnitType) AccessMode {
 	if p.UnitsMode == nil {
 		for _, u := range p.Units {
 			if u.Type == unitType {
-				return p.AccessMode
+				return p.MinAccessMode
 			}
 		}
 		return AccessModeNone
@@ -102,7 +104,7 @@ func (p *Permission) ColorFormat(s fmt.State) {
 
 	format := "AccessMode: %-v, %d Units, %d UnitsMode(s): [ "
 	args := []interface{}{
-		p.AccessMode,
+		p.MinAccessMode,
 		log.NewColoredValueBytes(len(p.Units), &noColor),
 		log.NewColoredValueBytes(len(p.UnitsMode), &noColor),
 	}
@@ -142,6 +144,116 @@ func GetUserRepoPermission(repo *Repository, user *User) (Permission, error) {
 	return getUserRepoPermission(x, repo, user)
 }
 
+func getUserRepoPermissionNew(e Engine, repo *Repository, user *User) (perm Permission, err error) {
+	if log.IsTrace() {
+		defer func() {
+			if user == nil {
+				log.Trace("Permission Loaded for anonymous user in %-v:\nPermissions: %-+v",
+					repo,
+					perm)
+				return
+			}
+			log.Trace("Permission Loaded for %-v in %-v:\nPermissions: %-+v",
+				user,
+				repo,
+				perm)
+		}()
+	}
+
+	type unitModePair struct {
+		Type	UnitType
+		Mode	AccessMode
+	}
+	pairs := make([]*unitModePair,0,10)
+	sess := e.Table(&UserRepoUnit{}).Where("repo_id = ?", repo.ID)
+	if user == nil || user.ID == 0 {
+		sess = sess.And("user_id = ?", UserRepoUnitAnyUser)
+	} else if user.IsRestricted {
+		sess = sess.And("user_id = ?", user.ID)
+	} else {
+		sess = sess.And(sess.In("user_id", UserRepoUnitLoggedInUser, user.ID))
+	}
+	if err = sess.Select("user_repo_unit.`type` AS `unit`, MAX(user_repo_unit.`mode`) AS `mode").
+		GroupBy("user_repo_unit.`type`").
+		Find(pairs); err != nil {
+		return
+	}
+
+	if len(pairs) == 0 {
+		// No permissions
+		return
+	}
+
+	// Only process units a user can actually be permitted or denied (i.e. are "checkable")
+	// There are units that are only meant for repository level control, so they are not
+	// checked here.
+
+	// The Permission struct will contain:
+	// isAdmin			true if all **checkable** units are >= AccessModeAdmin
+	// isOwner			true if all **checkable** units are >= AccessModeOwner
+	// Units			a list of all **checkable** units in the repository
+	// UnitsMode		what access mode was granted to the user for each unit
+	// MinAccessMode	value of the minimum access granted to the user for this repository (all units considered)
+
+	// Note that MinAccessMode will be AccessModeNone if the user has been denied
+	// access to any one unit of the repository.
+
+	// FIXME: all IsAdmin() and IsOwner() calls should specify what unit is intended
+
+	perm.Units = make([]*RepoUnit, 0, len(repo.Units))
+	perm.UnitsMode = make(map[UnitType]AccessMode,len(repo.Units))
+	perm.isOwner = true		// As long as no unit contradicts this
+	perm.isAdmin = true		// As long as no unit contradicts this
+	firstUnit := true
+
+	// FIXME: GAP: What are the units that are effectively required here?
+	for _, st := range UserRepoUnitSelectableTypes {
+		for _, unit := range perm.Units {
+			if unit.Type == st {
+				perm.Units = append(perm.Units, unit)
+				mode := AccessModeNone
+				for _, ump := range pairs {
+					if ump.Type == st {
+						mode = ump.Mode
+						break
+					}
+				}
+				perm.UnitsMode[unit.Type] = mode
+				if firstUnit || mode < perm.MinAccessMode {
+					perm.MinAccessMode = mode
+				}
+				firstUnit = false
+				if mode < AccessModeOwner {
+					perm.isOwner = false
+				}
+				if mode < AccessModeAdmin {
+					perm.isAdmin = false
+				}
+				break
+			}
+		}
+	}
+
+	// If we couldn't compute any units, the user is not owner or admin,
+	// (i.e. through team permissions, etc.) unless they are actually
+	// the owner or a site admin.
+	// We check these values on top of user_repo_unit because the admin/owner
+	// statuses are used to check actions beyond those in UserRepoUnitSelectableTypes.
+	if user.IsAdmin {
+		perm.isAdmin = true
+	} else if len(perm.Units) == 0 {
+		perm.isAdmin = false
+	}
+
+	if user.ID == repo.OwnerID {
+		perm.isOwner = true
+	} else if len(perm.Units) == 0 {
+		perm.isOwner = false
+	}
+
+	return
+}
+
 func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permission, err error) {
 	if log.IsTrace() {
 		defer func() {
@@ -160,7 +272,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	// anonymous user visit private repo.
 	// TODO: anonymous user visit public unit of private repo???
 	if user == nil && repo.IsPrivate {
-		perm.AccessMode = AccessModeNone
+		perm.MinAccessMode = AccessModeNone
 		return
 	}
 
@@ -179,7 +291,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	// Prevent strangers from checking out public repo of private orginization
 	// Allow user if they are collaborator of a repo within a private orginization but not a member of the orginization itself
 	if repo.Owner.IsOrganization() && !HasOrgVisible(repo.Owner, user) && !isCollaborator {
-		perm.AccessMode = AccessModeNone
+		perm.MinAccessMode = AccessModeNone
 		return
 	}
 
@@ -191,18 +303,18 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 
 	// anonymous visit public repo
 	if user == nil {
-		perm.AccessMode = AccessModeRead
+		perm.MinAccessMode = AccessModeRead
 		return
 	}
 
 	// Admin or the owner has super access to the repository
 	if user.IsAdmin || user.ID == repo.OwnerID {
-		perm.AccessMode = AccessModeOwner
+		perm.MinAccessMode = AccessModeOwner
 		return
 	}
 
 	// plain user
-	perm.AccessMode, err = accessLevel(e, user, repo)
+	perm.MinAccessMode, err = accessLevel(e, user, repo)
 	if err != nil {
 		return
 	}
@@ -219,7 +331,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	// Collaborators on organization
 	if isCollaborator {
 		for _, u := range repo.Units {
-			perm.UnitsMode[u.Type] = perm.AccessMode
+			perm.UnitsMode[u.Type] = perm.MinAccessMode
 		}
 	}
 
@@ -232,7 +344,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	// if user in an owner team
 	for _, team := range teams {
 		if team.Authorize >= AccessModeOwner {
-			perm.AccessMode = AccessModeOwner
+			perm.MinAccessMode = AccessModeOwner
 			perm.UnitsMode = nil
 			return
 		}
