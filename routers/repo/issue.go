@@ -343,7 +343,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 }
 
 // RetrieveRepoMetas find all the meta information of a repository
-func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.Label {
+func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull bool) []*models.Label {
 	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		return nil
 	}
@@ -368,7 +368,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.
 	ctx.Data["Branches"] = brs
 
 	// Contains true if the user can create issue dependencies
-	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User, isPull)
 
 	return labels
 }
@@ -438,7 +438,7 @@ func NewIssue(ctx *context.Context) {
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
-	RetrieveRepoMetas(ctx, ctx.Repo.Repository)
+	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
 	if ctx.Written() {
 		return
 	}
@@ -453,7 +453,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 		err  error
 	)
 
-	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository)
+	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, isPull)
 	if ctx.Written() {
 		return nil, nil, 0
 	}
@@ -665,6 +665,14 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["PageIsIssueList"] = true
 	}
 
+	if issue.IsPull && !ctx.Repo.CanRead(models.UnitTypeIssues) {
+		ctx.Data["IssueType"] = "pulls"
+	} else if !issue.IsPull && !ctx.Repo.CanRead(models.UnitTypePullRequests) {
+		ctx.Data["IssueType"] = "issues"
+	} else {
+		ctx.Data["IssueType"] = "all"
+	}
+
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
 	ctx.Data["RequireTribute"] = true
@@ -802,7 +810,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Check if the user can use the dependencies
-	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
+	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User, issue.IsPull)
 
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
