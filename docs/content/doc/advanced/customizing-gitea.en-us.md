@@ -105,13 +105,14 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 If you would like to add [mermaid.js](https://mermaid-js.github.io/) support to Gitea's markdown you simply add:
 
 ```html
+{{if .RequireHighlightJS}}
 <script src="https://unpkg.com/mermaid@8.4.5/dist/mermaid.min.js"></script>
 <!-- or wherever you have placed it -->
 <script>mermaid.init(".language-mermaid")</script>
+{{end}}
 ```
 
-to `footer.tmpl` within the `{{if .RequireHighlightJS}}...{{end}}` block
-before the script block loading `highlight.js`. You then can add blocks
+to `custom/footer.tmpl`. You then can add blocks
 like below to your markdown:
 
     ```mermaid
@@ -133,8 +134,10 @@ like below to your markdown:
         }
     ```
 
-If you want Mermaid.js outside of markdown you would move the above script tags to just after the scripts loading jquery. Mermaid will detect and use
-tags with `class="language-mermaid"`.
+If you want to use Mermaid.js outside of markdown, e.g. in other templates or HTML files,
+you would need to remove `{{if .RequireHighlightJS}}` and `{{end}}`.
+
+Mermaid will detect and use tags with `class="language-mermaid"`.
 
 ## Customizing Gitea mails
 
@@ -147,8 +150,6 @@ full path structure matching source.
 
 Any statement contained inside `{{` and `}}` are Gitea's template
 syntax and shouldn't be touched without fully understanding these components.
-
-
 
 ## Adding Analytics to Gitea
 
