@@ -34,7 +34,7 @@
 						<h4 class="ui dividing header">
 							{{.i18n.Tr "twofa"}}
 						</h4>
-						<div class="ui warning message">{{.i18n.Tr "settings.twofa_is_enrolled" | Str2html }}</div>
+						<div class="ui warning visible message">{{.i18n.Tr "settings.twofa_is_enrolled" | Str2html }}</div>
 						{{if .scratch_code}}
 						<div class="required inline field {{if .Err_Token}}error{{end}}">
 							<label for="token">{{.i18n.Tr "auth.scratch_code"}}</label>

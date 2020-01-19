@@ -1354,19 +1354,16 @@ func ResetPasswdPost(ctx *context.Context) {
 	}
 
 	if twofa != nil {
-		useScratch := ctx.QueryBool("scratch_code")
-		if useScratch {
-			token := ctx.Query("token")
+		if ctx.QueryBool("scratch_code") {
 			ok := twofa.VerifyScratchToken(token)
-			if !ok {
+			if !twofa.VerifyScratchToken(ctx.Query("token")) {
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Token"] = true
 				ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
 				return
 			}
 		} else {
-			code := ctx.Query("passcode")
-			ok, err := twofa.ValidateTOTP(code)
+			ok, err := twofa.ValidateTOTP(ctx.Query("passcode"))
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err.Error())
 				return
