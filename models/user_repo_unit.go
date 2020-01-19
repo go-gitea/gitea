@@ -10,6 +10,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+
+	"xorm.io/xorm"
 )
 
 const (
@@ -1081,4 +1083,55 @@ func userRepoUnitRemoveWorking(e Engine, batchID int64) error {
 		return fmt.Errorf("DELETE user_repo_unit (existing work entries): %v", err)
 	}
 	return nil
+}
+
+// RebuildAllUserRepoUnits will rebuild the whole user_repo_unit table from scratch
+func RebuildAllUserRepoUnits(xe *xorm.Engine) error {
+	// Don't get too greedy on the batches
+	const repoBatchCount = 20
+
+	if _, err := xe.Exec("DELETE FROM user_repo_unit"); err != nil {
+		return fmt.Errorf("addUserRepoUnit: DELETE old data: %v", err)
+	}
+
+	var maxid int64
+	if _, err := xe.Table("repository").Select("MAX(id)").Get(&maxid); err != nil {
+		return fmt.Errorf("addUserRepoUnit: get MAX(repo_id): %v", err)
+	}
+
+	// Create access data for the first time
+	for i := int64(1); i <= maxid; i += repoBatchCount {
+		if err := batchBuildRepoUnits(xe, i, repoBatchCount); err != nil {
+			return fmt.Errorf("batchBuildRepoUnits(%d,%d): %v", i, repoBatchCount, err)
+		}
+	}
+
+	return nil
+}
+
+func batchBuildRepoUnits(xe *xorm.Engine, fromID int64, count int) error {
+	// Use a single transaction for the batch
+	sess := xe.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	repos := make([]*Repository, 0, count)
+	if err := sess.Where("id BETWEEN ? AND ?", fromID, fromID+int64(count-1)).Find(&repos); err != nil {
+		return fmt.Errorf("Find repositories: %v", err)
+	}
+
+	// Some ID ranges might be empty
+	if len(repos) == 0 {
+		return nil
+	}
+
+	for _, repo := range repos {
+		if err := RebuildRepoUnits(sess, repo); err != nil {
+			return fmt.Errorf("RebuildRepoUnits(%d): %v", repo.ID, err)
+		}
+	}
+
+	return sess.Commit()
 }

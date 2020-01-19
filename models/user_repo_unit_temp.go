@@ -38,18 +38,18 @@ func UserRepoUnitTestDo(x *xorm.Engine) error {
 
 	var err error
 
-	if err = batchBuildByRepos(x); err != nil {
-		return fmt.Errorf("batchBuildByUsers: %v", err)
+	if err = RebuildAllUserRepoUnits(x); err != nil {
+		return fmt.Errorf("RebuildAllUserRepoUnits: %v", err)
 	}
 
-	sharepo, usercntrepo, repocntrepo, err := getUserRepoUnitsSha(x, "batchBuildByRepos")
+	sharepo, usercntrepo, repocntrepo, err := getUserRepoUnitsSha(x, "RebuildAllUserRepoUnits")
 	if err != nil {
 		return fmt.Errorf("getUserRepoUnitsSha: %v", err)
 	}
 
 	duser, drepo := int64(0), int64(0)
 
-	dumpUserOrRepo(x, "batchBuildByRepos", duser, drepo)
+	dumpUserOrRepo(x, "RebuildAllUserRepoUnits", duser, drepo)
 
 	if err = batchBuildByUsers(x); err != nil {
 		return fmt.Errorf("batchBuildByUsers: %v", err)
@@ -196,29 +196,6 @@ func batchBuildByUsers(x *xorm.Engine) error {
 	return sess.Commit()
 }
 
-func batchBuildByRepos(x *xorm.Engine) error {
-
-	// Don't get too greedy on the batches
-	const repoBatchCount = 20
-
-	if _, err := x.Exec("DELETE FROM user_repo_unit"); err != nil {
-		return fmt.Errorf("addUserRepoUnit: DELETE old data: %v", err)
-	}
-
-	var maxid int64
-	if _, err := x.Table("repository").Select("MAX(id)").Get(&maxid); err != nil {
-		return fmt.Errorf("addUserRepoUnit: get MAX(repo_id): %v", err)
-	}
-
-	// Create access data for the first time
-	for i := int64(1); i <= maxid; i += repoBatchCount {
-		if err := batchBuildRepoUnits(x, i, repoBatchCount); err != nil {
-			return fmt.Errorf("batchBuildRepoUnits(%d,%d): %v", i, repoBatchCount, err)
-		}
-	}
-	return nil
-}
-
 func batchBuildByReposUsers(x *xorm.Engine) error {
 
 	if _, err := x.Exec("DELETE FROM user_repo_unit"); err != nil {
@@ -313,33 +290,6 @@ func batchBuildUserUnits(x *xorm.Engine, fromID int64, count int) error {
 	for _, user := range users {
 		if err := RebuildUserUnits(sess, user); err != nil {
 			return fmt.Errorf("RebuildUserUnits(%d): %v", user.ID, err)
-		}
-	}
-
-	return sess.Commit()
-}
-
-func batchBuildRepoUnits(x *xorm.Engine, fromID int64, count int) error {
-	// Use a single transaction for the batch
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	repos := make([]*Repository, 0, count)
-	if err := sess.Where("id BETWEEN ? AND ?", fromID, fromID+int64(count-1)).Find(&repos); err != nil {
-		return fmt.Errorf("Find repositories: %v", err)
-	}
-
-	// Some ID ranges might be empty
-	if len(repos) == 0 {
-		return nil
-	}
-
-	for _, repo := range repos {
-		if err := RebuildRepoUnits(sess, repo); err != nil {
-			return fmt.Errorf("RebuildRepoUnits(%d): %v", repo.ID, err)
 		}
 	}
 

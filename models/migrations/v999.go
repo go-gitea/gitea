@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/models"
+
 	"xorm.io/xorm"
 )
 
@@ -36,5 +38,13 @@ func addUserRepoUnit(x *xorm.Engine) error {
 		ID int64 `xorm:"pk autoincr"`
 	}
 
-	return x.Sync2(new(UserRepoUnit), new(UserRepoUnitWork), new(UserRepoUnitBatchNumber))
+	if err := x.Sync2(new(UserRepoUnit), new(UserRepoUnitWork), new(UserRepoUnitBatchNumber)); err != nil {
+		return err
+	}
+
+	// FIXME: GAP: Rebuilding permissions cache must be added as a final step for
+	// all migrations because it uses the latest form of all tables, which may
+	// be changing in migrations after this one.
+
+	return models.RebuildAllUserRepoUnits(x)
 }
