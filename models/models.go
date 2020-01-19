@@ -115,6 +115,8 @@ func init() {
 		new(OAuth2Grant),
 		new(Task),
 		new(UserRepoUnit),
+		new(UserRepoUnitWork),
+		new(UserRepoUnitBatchNumber),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
