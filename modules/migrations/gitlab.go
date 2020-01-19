@@ -124,6 +124,11 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 	}
 }
 
+// SetContext set context
+func (g *GitlabDownloader) SetContext(ctx context.Context) {
+	g.ctx = ctx
+}
+
 // GetRepoInfo returns a repository information
 func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 	if g == nil {
