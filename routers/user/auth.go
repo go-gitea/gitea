@@ -1353,30 +1353,6 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if twofa != nil {
-		if ctx.QueryBool("scratch_code") {
-			ok := twofa.VerifyScratchToken(token)
-			if !twofa.VerifyScratchToken(ctx.Query("token")) {
-				ctx.Data["IsResetForm"] = true
-				ctx.Data["Err_Token"] = true
-				ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
-				return
-			}
-		} else {
-			ok, err := twofa.ValidateTOTP(ctx.Query("passcode"))
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err.Error())
-				return
-			}
-			if !ok {
-				ctx.Data["IsResetForm"] = true
-				ctx.Data["Err_Passcode"] = true
-				ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
-				return
-			}
-		}
-	}
-
 	// Validate password length.
 	passwd := ctx.Query("password")
 	if len(passwd) < setting.MinPasswordLength {
@@ -1391,6 +1367,39 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
+	// Handle two-factor
+	regenerateScratchToken := false
+	if twofa != nil {
+		if ctx.QueryBool("scratch_code") {
+			if !twofa.VerifyScratchToken(ctx.Query("token")) {
+				ctx.Data["IsResetForm"] = true
+				ctx.Data["Err_Token"] = true
+				ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
+				return
+			}
+			regenerateScratchToken = true
+		} else {
+			passcode := ctx.Query("passcode")
+			ok, err := twofa.ValidateTOTP(passcode)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err.Error())
+				return
+			}
+			if !ok || twofa.LastUsedPasscode == passcode {
+				ctx.Data["IsResetForm"] = true
+				ctx.Data["Err_Passcode"] = true
+				ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
+				return
+			}
+
+			twofa.LastUsedPasscode = passcode
+			if err = models.UpdateTwoFactor(twofa); err != nil {
+				ctx.ServerError("ResetPasswdPost: UpdateTwoFactor", err)
+				return
+			}
+		}
+	}
+
 	var err error
 	if u.Rands, err = models.GetUserSalt(); err != nil {
 		ctx.ServerError("UpdateUser", err)
@@ -1400,7 +1409,6 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
-
 	u.HashPassword(passwd)
 	u.MustChangePassword = false
 	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
@@ -1409,9 +1417,27 @@ func ResetPasswdPost(ctx *context.Context) {
 	}
 
 	log.Trace("User password reset: %s", u.Name)
-
 	ctx.Data["IsResetFailed"] = true
 	remember := len(ctx.Query("remember")) != 0
+
+	if regenerateScratchToken {
+		// Invalidate the scratch token.
+		_, err = twofa.GenerateScratchToken()
+		if err != nil {
+			ctx.ServerError("UserSignIn", err)
+			return
+		}
+		if err = models.UpdateTwoFactor(twofa); err != nil {
+			ctx.ServerError("UserSignIn", err)
+			return
+		}
+
+		handleSignInFull(ctx, u, remember, false)
+		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		return
+	}
+
 	handleSignInFull(ctx, u, remember, true)
 }
 
