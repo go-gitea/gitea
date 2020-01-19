@@ -390,6 +390,13 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 		log.Error("LoadIssue: %v", err)
 		return ""
 	}
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return ""
+	}
+	if pr.BaseRepo.UnitEnabled(UnitTypeExternalTracker) {
+		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
+	}
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
 }
 
