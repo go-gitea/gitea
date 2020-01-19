@@ -49,14 +49,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace username and password above as appropriate.
 
-3.  Before creating database in step 4, you may need to set following InnoDB global variables or MySQL may return `index size is too large` error:
-
-    ```sql
-    SET GLOBAL innodb_file_format=Barracuda;
-    SET GLOBAL innodb_file_per_table=ON;
-    SET GLOBAL innodb_large_prefix=1;
-    ```
-4.  Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond *Basic Multilingual Plane*. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
+3.  Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond *Basic Multilingual Plane*. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
 
     ```sql
     CREATE DATABASE 'giteadb' CHARACTER SET 'utf8mb4' COLLATE 'utf8mb4_unicode_ci';
@@ -64,7 +57,7 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace database name as appropriate.
 
-5.  Grant all privileges on the database to database user created above.
+4.  Grant all privileges on the database to database user created above.
 
     For local database:
 
@@ -80,9 +73,9 @@ Note: All steps below requires that the database engine of your choice is instal
     FLUSH PRIVILEGES;
     ```
 
-6.  Quit from database console by `exit`.
+5.  Quit from database console by `exit`.
 
-7.  On your Gitea server, test connection to the database:
+6.  On your Gitea server, test connection to the database:
 
     ```
     mysql -u gitea -h 23.45.67.89 -p giteadb
