@@ -49,6 +49,13 @@ Note: All steps below requires that the database engine of your choice is instal
 
     Replace username and password above as appropriate.
 
+3.  Before creating database in step 4, you may need to set following InnoDB global variables or MySQL may return `index size is too large` error:
+
+    ```sql
+    SET GLOBAL innodb_file_format=Barracuda;
+    SET GLOBAL innodb_file_per_table=ON;
+    SET GLOBAL innodb_large_prefix=1;
+    ```
 3.  Create database with UTF-8 charset and collation. Make sure to use `utf8mb4` charset instead of `utf8` as the former supports all Unicode characters (including emojis) beyond *Basic Multilingual Plane*. Also, collation chosen depending on your expected content. When in doubt, use either `unicode_ci` or `general_ci`.
 
     ```sql
