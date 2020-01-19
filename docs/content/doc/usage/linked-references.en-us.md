@@ -136,7 +136,8 @@ the `!` marker to identify pull requests. For example:
 > This is pull request [!1234](#), and links to a pull request in Gitea.
 
 The `!` and `#` can be used interchangeably for issues and pull request _except_
-for this case, where a distinction is required.
+for this case, where a distinction is required. If the repository uses external
+tracker, commit message for squash merge will use `!` as reference by default.
 
 ## Issues and Pull Requests References Summary
 
