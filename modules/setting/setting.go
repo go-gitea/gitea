@@ -557,7 +557,7 @@ func NewContext() {
 		if !filepath.IsAbs(CertFile) && len(CertFile) > 0 {
 			CertFile = filepath.Join(CustomPath, CertFile)
 		}
-		if !filepath.IsAbs(KeyFile) && len(KeyFile) > 0{
+		if !filepath.IsAbs(KeyFile) && len(KeyFile) > 0 {
 			KeyFile = filepath.Join(CustomPath, KeyFile)
 		}
 	case "fcgi":
