@@ -36,6 +36,12 @@ func addUserRepoUnit(x *xorm.Engine) error {
 		ID int64 `xorm:"pk autoincr"`
 	}
 
+	type LockedResource struct {
+		Type	string      `xorm:"pk"`
+		Key		int64		`xorm:"pk"`
+		Counter	int64		`xorm:"NOT NULL DEFAULT 0"`
+	}
+	
 	// FIXME: GAP: This needs its own migration
 	type Repository struct {
 		IsArchived          bool         `xorm:"INDEX"`
@@ -56,5 +62,9 @@ func addUserRepoUnit(x *xorm.Engine) error {
 	// to call models.RebuildAllUserRepoUnits() just yet.
 	RebuildPermissionsRequired = true
 
-	return x.Sync2(new(UserRepoUnit), new(UserRepoUnitWork), new(UserRepoUnitBatchNumber))
+	return x.Sync2(
+		new(UserRepoUnit),
+		new(UserRepoUnitWork),
+		new(UserRepoUnitBatchNumber),
+		new(LockedResource))
 }

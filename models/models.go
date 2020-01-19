@@ -117,6 +117,7 @@ func init() {
 		new(UserRepoUnit),
 		new(UserRepoUnitWork),
 		new(UserRepoUnitBatchNumber),
+		new(LockedResource),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
