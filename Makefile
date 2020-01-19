@@ -119,6 +119,13 @@ go-check:
 		exit 1; \
 	fi
 
+.PHONY: git-check
+git-check:
+	@if git lfs >/dev/null 2>&1 ; then : ; else \
+		echo "Gitea requires git with lfs support to run tests." ; \
+		exit 1; \
+	fi
+
 .PHONY: node-check
 node-check:
 	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?' | tr '.' ' ');))
