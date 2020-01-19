@@ -66,8 +66,6 @@ coverage.all
 /integrations/pgsql.ini
 /integrations/mssql.ini
 /node_modules
-/modules/indexer/issues/indexers
-routers/repo/authorized_keys
 /yarn.lock
 /public/js
 /public/css

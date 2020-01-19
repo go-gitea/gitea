@@ -5,6 +5,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -16,7 +17,7 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 }
 
 func TestMain(m *testing.M) {
-	if err := Init(); err != nil {
+	if err := Init(context.Background()); err != nil {
 		fatalTestError("Init failed: %v", err)
 	}
 

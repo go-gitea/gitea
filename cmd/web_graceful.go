@@ -28,18 +28,18 @@ func runHTTPSWithTLSConfig(network, listenAddr string, tlsConfig *tls.Config, m 
 
 // NoHTTPRedirector tells our cleanup routine that we will not be using a fallback http redirector
 func NoHTTPRedirector() {
-	graceful.Manager.InformCleanup()
+	graceful.GetManager().InformCleanup()
 }
 
 // NoMainListener tells our cleanup routine that we will not be using a possibly provided listener
 // for our main HTTP/HTTPS service
 func NoMainListener() {
-	graceful.Manager.InformCleanup()
+	graceful.GetManager().InformCleanup()
 }
 
-func runFCGI(listenAddr string, m http.Handler) error {
+func runFCGI(network, listenAddr string, m http.Handler) error {
 	// This needs to handle stdin as fcgi point
-	fcgiServer := graceful.NewServer("tcp", listenAddr)
+	fcgiServer := graceful.NewServer(network, listenAddr)
 
 	err := fcgiServer.ListenAndServe(func(listener net.Listener) error {
 		return fcgi.Serve(listener, m)

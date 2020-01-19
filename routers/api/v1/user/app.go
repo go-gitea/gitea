@@ -6,6 +6,8 @@
 package user
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -27,9 +29,10 @@ func ListAccessTokens(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
+
 	tokens, err := models.ListAccessTokens(ctx.User.ID)
 	if err != nil {
-		ctx.Error(500, "ListAccessTokens", err)
+		ctx.Error(http.StatusInternalServerError, "ListAccessTokens", err)
 		return
 	}
 
@@ -41,7 +44,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 			TokenLastEight: tokens[i].TokenLastEight,
 		}
 	}
-	ctx.JSON(200, &apiTokens)
+	ctx.JSON(http.StatusOK, &apiTokens)
 }
 
 // CreateAccessToken create access tokens
@@ -71,15 +74,16 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessToken"
+
 	t := &models.AccessToken{
 		UID:  ctx.User.ID,
 		Name: form.Name,
 	}
 	if err := models.NewAccessToken(t); err != nil {
-		ctx.Error(500, "NewAccessToken", err)
+		ctx.Error(http.StatusInternalServerError, "NewAccessToken", err)
 		return
 	}
-	ctx.JSON(201, &api.AccessToken{
+	ctx.JSON(http.StatusCreated, &api.AccessToken{
 		Name:           t.Name,
 		Token:          t.Token,
 		ID:             t.ID,
@@ -109,15 +113,16 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	tokenID := ctx.ParamsInt64(":id")
 	if err := models.DeleteAccessTokenByID(tokenID, ctx.User.ID); err != nil {
 		if models.IsErrAccessTokenNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "DeleteAccessTokenByID", err)
+			ctx.Error(http.StatusInternalServerError, "DeleteAccessTokenByID", err)
 		}
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }

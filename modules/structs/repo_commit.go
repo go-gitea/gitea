@@ -5,6 +5,10 @@
 
 package structs
 
+import (
+	"time"
+)
+
 // Identity for a person's identity like an author or committer
 type Identity struct {
 	Name string `json:"name" binding:"MaxSize(100)"`
@@ -41,4 +45,12 @@ type Commit struct {
 	Author     *User         `json:"author"`
 	Committer  *User         `json:"committer"`
 	Parents    []*CommitMeta `json:"parents"`
+}
+
+// CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
+type CommitDateOptions struct {
+	// swagger:strfmt date-time
+	Author time.Time `json:"author"`
+	// swagger:strfmt date-time
+	Committer time.Time `json:"committer"`
 }

@@ -244,6 +244,9 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 				approvalsWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistTeams, ","))
 			}
 		}
+		protectBranch.BlockOnRejectedReviews = f.BlockOnRejectedReviews
+		protectBranch.DismissStaleApprovals = f.DismissStaleApprovals
+		protectBranch.RequireSignedCommits = f.RequireSignedCommits
 
 		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 			UserIDs:          whitelistUsers,

@@ -557,6 +557,7 @@ type GenOpts struct {
 	defaultsEnsured            bool
 	PropertiesSpecOrder        bool
 	StrictAdditionalProperties bool
+	AllowTemplateOverride      bool
 
 	Spec                   string
 	APIPackage             string

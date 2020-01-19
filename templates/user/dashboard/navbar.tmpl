@@ -12,12 +12,12 @@
 						{{.i18n.Tr "home.switch_dashboard_context"}}
 					</div>
 					<div class="scrolling menu items">
-						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{end}}">
+						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}">
 							<img class="ui avatar image" src="{{.SignedUser.RelAvatarLink}}">
 							{{.SignedUser.Name}}
 						</a>
 						{{range .Orgs}}
-							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else}}dashboard{{end}}">
+							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
 								<img class="ui avatar image" src="{{.RelAvatarLink}}">
 								{{.ShortName 20}}
 							</a>
@@ -43,6 +43,11 @@
 				<a class="{{if .PageIsPulls}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/pulls">
 					<i class="octicon octicon-git-pull-request"></i>&nbsp;{{.i18n.Tr "pull_requests"}}
 				</a>
+				{{if .ShowMilestonesDashboardPage}}
+					<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/milestones">
+						<i class="octicon octicon-milestone"></i>&nbsp;{{.i18n.Tr "milestones"}}
+					</a>
+				{{end}}
 				<div class="item">
 					<a class="ui blue basic button" href="{{.ContextUser.HomeLink}}" title='{{.i18n.Tr "home.view_home" .ContextUser.Name}}'>
 						{{.i18n.Tr "home.view_home" (.ContextUser.ShortName 10)}}

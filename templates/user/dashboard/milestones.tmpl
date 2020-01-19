@@ -1,0 +1,119 @@
+{{template "base/head" .}}
+<div class="dashboard issues repository milestones">
+	{{template "user/dashboard/navbar" .}}
+	<div class="ui container">
+		<div class="ui stackable grid">
+			<div class="four wide column">
+				<div class="ui secondary vertical filter menu">
+					<a class="item" href="{{.Link}}?type=your_repositories&sort={{$.SortType}}&state={{.State}}">
+						{{.i18n.Tr "home.issues.in_your_repos"}}
+						<strong class="ui right">{{.Total}}</strong>
+					</a>
+					<div class="ui divider"></div>
+					{{range .Repos}}
+						{{with $Repo := .}}
+							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic blue button{{end}}{{end}} repo name item" href="{{$.Link}}?repos=[
+								{{with $include := true}}
+									{{range $.RepoIDs}}
+										{{if eq . $Repo.ID}}
+											{{$include = false}}
+										{{else}}
+											{{.}}%2C
+										{{end}}
+									{{end}}
+									{{if eq $include true}}
+										{{$Repo.ID}}%2C
+									{{end}}
+								{{end}}
+								]&sort={{$.SortType}}&state={{$.State}}" title="{{.FullName}}">
+								<span class="text truncate">{{$Repo.FullName}}</span>
+								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
+							</a>
+						{{end}}
+					{{end}}
+				</div>
+			</div>
+			<div class="twelve wide column content">
+				<div class="ui tiny basic status buttons">
+					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.milestones.open_tab" .MilestoneStats.OpenCount}}
+					</a>
+					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed">
+						<i class="octicon octicon-issue-closed"></i>
+						{{.i18n.Tr "repo.milestones.close_tab" .MilestoneStats.ClosedCount}}
+					</a>
+				</div>
+				<div class="ui right floated secondary filter menu">
+					<!-- Sort -->
+					<div class="ui dropdown type jump item">
+						<span class="text">
+							{{.i18n.Tr "repo.issues.filter_sort"}}
+							<i class="dropdown icon"></i>
+						</span>
+						<div class="menu">
+							<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=closestduedate&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
+              <a class="{{if eq .SortType "furthestduedate"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=furthestduedate&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
+              <a class="{{if eq .SortType "leastcomplete"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomplete&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.least_complete"}}</a>
+              <a class="{{if eq .SortType "mostcomplete"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomplete&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.most_complete"}}</a>
+              <a class="{{if eq .SortType "mostissues"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostissues&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.most_issues"}}</a>
+              <a class="{{if eq .SortType "leastissues"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastissues&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+						</div>
+					</div>
+				</div>
+
+                <div class="milestone list">
+                    {{range .Milestones}}
+                        <li class="item">
+                            <div class="ui label">{{.Repo.FullName}}</div>
+                            <i class="octicon octicon-milestone"></i> <a href="{{.Repo.Link }}/milestone/{{.ID}}">{{.Name}}</a>
+                            <div class="ui right green progress" data-percent="{{.Completeness}}">
+                                <div class="bar" {{if not .Completeness}}style="background-color: transparent"{{end}}>
+                                    <div class="progress"></div>
+                                </div>
+                            </div>
+                            <div class="meta">
+                                {{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.Lang }}
+                                {{if .IsClosed}}
+                                    <span class="octicon octicon-clock"></span> {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+                                {{else}}
+                                    <span class="octicon octicon-calendar"></span>
+                                    {{if .DeadlineString}}
+                                        <span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
+                                    {{else}}
+                                        {{$.i18n.Tr "repo.milestones.no_due_date"}}
+                                    {{end}}
+                                {{end}}
+                                <span class="issue-stats">
+                                    <i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.milestones.open_tab" .NumOpenIssues}}
+                                    <i class="octicon octicon-issue-closed"></i> {{$.i18n.Tr "repo.milestones.close_tab" .NumClosedIssues}}
+                                    {{if .TotalTrackedTime}}<i class="octicon octicon-clock"></i> {{.TotalTrackedTime|Sec2Time}}{{end}}
+                                </span>
+                            </div>
+                            {{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
+                                <div class="ui right operate">
+                                    <a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}><i class="octicon octicon-pencil"></i> {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+                                    {{if .IsClosed}}
+                                        <a href="{{$.Link}}/{{.ID}}/open" data-id={{.ID}} data-title={{.Name}}><i class="octicon octicon-check"></i> {{$.i18n.Tr "repo.milestones.open"}}</a>
+                                    {{else}}
+                                        <a href="{{$.Link}}/{{.ID}}/close" data-id={{.ID}} data-title={{.Name}}><i class="octicon octicon-x"></i> {{$.i18n.Tr "repo.milestones.close"}}</a>
+                                    {{end}}
+                                    <a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}"><i class="octicon octicon-trashcan"></i> {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+                                </div>
+                            {{end}}
+                            {{if .Content}}
+                                <div class="content">
+                                    {{.RenderedContent|Str2html}}
+                                </div>
+                            {{end}}
+                        </li>
+                    {{end}}
+
+                    {{template "base/paginate" .}}
+                </div>
+
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

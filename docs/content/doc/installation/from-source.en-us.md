@@ -106,8 +106,6 @@ To include assets, add the `bindata` tag:
 TAGS="bindata" make build
 ```
 
-WARNING: `generate` method is deprecated and using it may cause build to miss some static files.
-
 In the default release build of our continuous integration system, the build
 tags are: `TAGS="bindata sqlite sqlite_unlock_notify"`. The simplest
 recommended way to build from source is therefore:

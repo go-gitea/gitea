@@ -79,9 +79,8 @@
 						{{end}}
 					</div>
 					{{if $allowedToChangeTeams}}
-						{{ $globalRepoAccess := (eq .LowerName "owners") }}
-						<div class="ui two wide column {{if $globalRepoAccess}}poping up{{end}}" {{if $globalRepoAccess}}data-content="This team has access to all repositories and can't be removed."{{end}}>
-							<button class="ui red tiny button inline text-thin delete-button {{if $globalRepoAccess}}disabled{{end}}" data-url="{{$.Link}}/team/delete" data-id="{{.ID}}">
+						<div class="ui two wide column {{if .IncludesAllRepositories}}poping up{{end}}" {{if .IncludesAllRepositories}}data-content="This team has access to all repositories and can't be removed."{{end}}>
+							<button class="ui red tiny button inline text-thin delete-button {{if .IncludesAllRepositories}}disabled{{end}}" data-url="{{$.Link}}/team/delete" data-id="{{.ID}}">
 									{{$.i18n.Tr "repo.settings.delete_collaborator"}}
 							</button>
 						</div>
