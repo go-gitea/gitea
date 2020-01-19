@@ -129,7 +129,7 @@
 						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 					<div class="item text yellow">
-						<i class="icon unlock grey"></i>
+						<i class="icon unlock"></i>
 						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 					</div>
 				{{end}}
@@ -152,8 +152,8 @@
 							{{$.i18n.Tr "repo.signing.will_sign" .SigningKey}}
 						</div>
 					{{else if .IsSigned}}
-						<div class="item text yellow">
-							<i class="icon unlock grey"></i>
+						<div class="item text">
+							<i class="icon unlock"></i>
 							{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 						</div>
 					{{end}}
