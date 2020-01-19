@@ -1,5 +1,5 @@
 ---
-date: "2019-01-16"
+date: "2020-01-16"
 title: "Database Preparation"
 slug: "database-prep"
 weight: 10
