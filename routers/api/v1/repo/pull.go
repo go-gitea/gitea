@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -102,7 +103,7 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 			ctx.Error(http.StatusInternalServerError, "GetHeadRepo", err)
 			return
 		}
-		apiPrs[i] = prs[i].APIFormat()
+		apiPrs[i] = convert.ToAPIPullRequest(prs[i])
 	}
 
 	ctx.SetLinkHeader(int(maxResults), models.ItemsPerPage)
@@ -136,6 +137,8 @@ func GetPullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequest"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -155,7 +158,7 @@ func GetPullRequest(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetHeadRepo", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, pr.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr))
 }
 
 // CreatePullRequest does what it says
@@ -319,7 +322,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	notification.NotifyNewPullRequest(pr)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
-	ctx.JSON(http.StatusCreated, pr.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr))
 }
 
 // EditPullRequest does what it says
@@ -477,7 +480,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 
 	// TODO this should be 200, not 201
-	ctx.JSON(http.StatusCreated, pr.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr))
 }
 
 // IsPullRequestMerged checks if a PR exists given an index
@@ -597,19 +600,45 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
+	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
+		return
+	}
+	if !allowedMerge {
+		ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
+		return
+	}
+
 	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
 		ctx.Status(http.StatusMethodNotAllowed)
 		return
 	}
 
-	isPass, err := pull_service.IsPullCommitStatusPass(pr)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "IsPullCommitStatusPass", err)
-		return
+	if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
+		if !models.IsErrNotAllowedToMerge(err) {
+			ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
+			return
+		}
+		if form.ForceMerge != nil && *form.ForceMerge {
+			if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.User); err != nil {
+				ctx.Error(http.StatusInternalServerError, "IsUserRepoAdmin", err)
+				return
+			} else if !isRepoAdmin {
+				ctx.Error(http.StatusMethodNotAllowed, "Merge", "Only repository admin can merge if not all checks are ok (force merge)")
+			}
+		} else {
+			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
+			return
+		}
 	}
 
-	if !isPass && !ctx.IsUserRepoAdmin() {
-		ctx.Status(http.StatusMethodNotAllowed)
+	if _, err := pull_service.IsSignedIfRequired(pr, ctx.User); err != nil {
+		if !models.IsErrWontSign(err) {
+			ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
+			return
+		}
+		ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
 		return
 	}
 

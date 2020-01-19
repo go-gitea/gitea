@@ -55,8 +55,8 @@ func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error 
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
 	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, "tracking", w, patch); err != nil {
-		log.Error("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
+		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	return nil
 }
@@ -108,8 +108,8 @@ func TestPatch(pr *models.PullRequest) error {
 
 	if err := gitRepo.GetDiff(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
-		log.Error("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
+		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	stat, err := tmpPatchFile.Stat()
 	if err != nil {
@@ -162,7 +162,7 @@ func TestPatch(pr *models.PullRequest) error {
 		RunInDirTimeoutEnvFullPipelineFunc(
 			nil, -1, tmpBasePath,
 			nil, stderrWriter, nil,
-			func(ctx context.Context, cancel context.CancelFunc) {
+			func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stderrWriter.Close()
 				const prefix = "error: patch failed:"
 				const errorPrefix = "error: "
@@ -199,6 +199,7 @@ func TestPatch(pr *models.PullRequest) error {
 					}
 				}
 				_ = stderrReader.Close()
+				return nil
 			})
 
 	if err != nil {

@@ -589,6 +589,31 @@ const (
 	HookEventRelease                   HookEventType = "release"
 )
 
+// Event returns the HookEventType as an event string
+func (h HookEventType) Event() string {
+	switch h {
+	case HookEventCreate:
+		return "create"
+	case HookEventDelete:
+		return "delete"
+	case HookEventFork:
+		return "fork"
+	case HookEventPush:
+		return "push"
+	case HookEventIssues, HookEventIssueAssign, HookEventIssueLabel, HookEventIssueMilestone, HookEventIssueComment:
+		return "issues"
+	case HookEventPullRequest, HookEventPullRequestAssign, HookEventPullRequestLabel, HookEventPullRequestMilestone,
+		HookEventPullRequestComment, HookEventPullRequestReviewApproved, HookEventPullRequestReviewRejected,
+		HookEventPullRequestReviewComment, HookEventPullRequestSync:
+		return "pull_request"
+	case HookEventRepository:
+		return "repository"
+	case HookEventRelease:
+		return "release"
+	}
+	return ""
+}
+
 // HookRequest represents hook task request information.
 type HookRequest struct {
 	Headers map[string]string `json:"headers"`

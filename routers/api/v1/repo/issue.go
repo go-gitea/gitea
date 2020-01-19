@@ -67,20 +67,23 @@ func SearchIssues(ctx *context.APIContext) {
 
 	// find repos user can access (for issue search)
 	repoIDs := make([]int64, 0)
+	opts := &models.SearchRepoOptions{
+		PageSize:    15,
+		Private:     false,
+		AllPublic:   true,
+		TopicOnly:   false,
+		Collaborate: util.OptionalBoolNone,
+		OrderBy:     models.SearchOrderByRecentUpdated,
+		Actor:       ctx.User,
+	}
+	if ctx.IsSigned {
+		opts.Private = true
+		opts.AllLimited = true
+	}
 	issueCount := 0
 	for page := 1; ; page++ {
-		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Page:        page,
-			PageSize:    15,
-			Private:     true,
-			Keyword:     "",
-			OwnerID:     ctx.User.ID,
-			TopicOnly:   false,
-			Collaborate: util.OptionalBoolNone,
-			UserIsAdmin: ctx.IsUserSiteAdmin(),
-			UserID:      ctx.User.ID,
-			OrderBy:     models.SearchOrderByRecentUpdated,
-		})
+		opts.Page = page
+		repos, count, err := models.SearchRepositoryByName(opts)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
 			return

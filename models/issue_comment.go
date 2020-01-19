@@ -235,6 +235,22 @@ func (c *Comment) HTMLURL() string {
 	return fmt.Sprintf("%s#%s", c.Issue.HTMLURL(), c.HashTag())
 }
 
+// APIURL formats a API-string to the issue-comment
+func (c *Comment) APIURL() string {
+	err := c.LoadIssue()
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
+
+	return fmt.Sprintf("%s/issues/comments/%d", c.Issue.Repo.APIURL(), c.ID)
+}
+
 // IssueURL formats a URL-string to the issue
 func (c *Comment) IssueURL() string {
 	err := c.LoadIssue()
@@ -409,7 +425,7 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	return err
 }
 
-func (c *Comment) loadReactions(e Engine) (err error) {
+func (c *Comment) loadReactions(e Engine, repo *Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
@@ -421,15 +437,15 @@ func (c *Comment) loadReactions(e Engine) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := c.Reactions.LoadUsers(); err != nil {
+	if _, err := c.Reactions.loadUsers(e, repo); err != nil {
 		return err
 	}
 	return nil
 }
 
 // LoadReactions loads comment reactions
-func (c *Comment) LoadReactions() error {
-	return c.loadReactions(x)
+func (c *Comment) LoadReactions(repo *Repository) error {
+	return c.loadReactions(x, repo)
 }
 
 func (c *Comment) loadReview(e Engine) (err error) {
@@ -765,6 +781,7 @@ type FindCommentsOptions struct {
 	IssueID  int64
 	ReviewID int64
 	Since    int64
+	Before   int64
 	Type     CommentType
 }
 
@@ -781,6 +798,9 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	}
 	if opts.Since > 0 {
 		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
+	}
+	if opts.Before > 0 {
+		cond = cond.And(builder.Lte{"comment.updated_unix": opts.Before})
 	}
 	if opts.Type != CommentTypeUnknown {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})

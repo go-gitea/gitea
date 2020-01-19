@@ -432,7 +432,7 @@ func hasOrgVisible(e Engine, org *User, user *User) bool {
 		return true
 	}
 
-	if org.Visibility == structs.VisibleTypePrivate && !org.isUserPartOfOrg(e, user.ID) {
+	if (org.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !org.isUserPartOfOrg(e, user.ID) {
 		return false
 	}
 	return true
@@ -735,7 +735,7 @@ type AccessibleReposEnvironment interface {
 
 type accessibleReposEnv struct {
 	org     *User
-	userID  int64
+	user    *User
 	teamIDs []int64
 	e       Engine
 	keyword string
@@ -749,13 +749,23 @@ func (org *User) AccessibleReposEnv(userID int64) (AccessibleReposEnvironment, e
 }
 
 func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvironment, error) {
+	var user *User
+
+	if userID > 0 {
+		u, err := getUserByID(e, userID)
+		if err != nil {
+			return nil, err
+		}
+		user = u
+	}
+
 	teamIDs, err := org.getUserTeamIDs(e, userID)
 	if err != nil {
 		return nil, err
 	}
 	return &accessibleReposEnv{
 		org:     org,
-		userID:  userID,
+		user:    user,
 		teamIDs: teamIDs,
 		e:       e,
 		orderBy: SearchOrderByRecentUpdated,
@@ -763,9 +773,12 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 }
 
 func (env *accessibleReposEnv) cond() builder.Cond {
-	var cond builder.Cond = builder.Eq{
-		"`repository`.owner_id":   env.org.ID,
-		"`repository`.is_private": false,
+	var cond = builder.NewCond()
+	if env.user == nil || !env.user.IsRestricted {
+		cond = cond.Or(builder.Eq{
+			"`repository`.owner_id":   env.org.ID,
+			"`repository`.is_private": false,
+		})
 	}
 	if len(env.teamIDs) > 0 {
 		cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
