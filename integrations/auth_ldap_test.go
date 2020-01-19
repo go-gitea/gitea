@@ -200,7 +200,7 @@ func TestLDAPUserSignin(t *testing.T) {
 		t.Skip()
 		return
 	}
-	defer prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
 
 	testSingleLDAPSignin(t, &gitLDAPUsers[0])
@@ -211,7 +211,7 @@ func TestLDAPUserSigninWithGroupsUsingDN(t *testing.T) {
 		t.Skip()
 		return
 	}
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	addAuthSourceLDAPWithGroupsUsingDN(t)
 
 	for _, u := range gitLDAPUsers {
@@ -224,7 +224,7 @@ func TestLDAPUserSigninWithGroupsUsingCN(t *testing.T) {
 		t.Skip()
 		return
 	}
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	addAuthSourceLDAPWithGroupsUsingCN(t)
 
 	for _, u := range gitLDAPUsers {
@@ -296,7 +296,7 @@ func TestLDAPUserSigninFailedWithGroupsUsignDN(t *testing.T) {
 		t.Skip()
 		return
 	}
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	addAuthSourceLDAPWithGroupsUsingDN(t)
 
 	for _, u := range otherLDAPUsers {
@@ -309,7 +309,7 @@ func TestLDAPUserSigninFailedWithGroupsUsignCN(t *testing.T) {
 		t.Skip()
 		return
 	}
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	addAuthSourceLDAPWithGroupsUsingCN(t)
 
 	for _, u := range otherLDAPUsers {
