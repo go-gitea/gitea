@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -304,6 +305,8 @@ var migrations = []Migration{
 	NewMigration("Add original informations for reactions", addReactionOriginals),
 }
 
+var RebuildPermissionsRequired bool
+
 // Migrate database to current version
 func Migrate(x *xorm.Engine) error {
 	if err := x.Sync(new(Version)); err != nil {
@@ -353,9 +356,17 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	// IT'S NOT INTENDED TO GO LIKE THIS IN THE FINAL VERSION OF THE PR.
 	// FIXME: GAP: assign a proper migration number and remove from here
 	// NewMigration("Add and populate the user_repo_unit table", addUserRepoUnit),
-	log.Info("FIXME: GAP: Migration[999/%d]: Add and populate the user_repo_unit table", currentVersion.Version)
-	if err = addUserRepoUnit(x); err != nil {
-		return fmt.Errorf("do migrate: %v", err)
+	if currentVersion.Version >= 124 {
+		log.Info("FIXME: GAP: Migration[999/%d]: Add and populate the user_repo_unit table", currentVersion.Version)
+		if err = addUserRepoUnit(x); err != nil {
+			return fmt.Errorf("do migrate: %v", err)
+		}
+	}
+
+	if RebuildPermissionsRequired {
+		if err = models.RebuildAllUserRepoUnits(x); err != nil {
+			return fmt.Errorf("RebuildAllUserRepoUnits: %v", err)
+		}
 	}
 
 	return nil
