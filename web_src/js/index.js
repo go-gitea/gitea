@@ -3455,10 +3455,10 @@ function initIssueList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  const tp = $('#tp').val();
-  let issueSearchUrl = `${suburl}/api/v1/repos/${repolink}/issues?q={query}&tp=${tp}`;
+  const tp = $('#type').val();
+  let issueSearchUrl = `${suburl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${suburl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&tp=${tp}`;
+    issueSearchUrl = `${suburl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
