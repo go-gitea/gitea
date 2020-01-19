@@ -603,9 +603,14 @@ func (h HookEventType) Event() string {
 	case HookEventIssues, HookEventIssueAssign, HookEventIssueLabel, HookEventIssueMilestone, HookEventIssueComment:
 		return "issues"
 	case HookEventPullRequest, HookEventPullRequestAssign, HookEventPullRequestLabel, HookEventPullRequestMilestone,
-		HookEventPullRequestComment, HookEventPullRequestReviewApproved, HookEventPullRequestReviewRejected,
-		HookEventPullRequestReviewComment, HookEventPullRequestSync:
+		HookEventPullRequestComment, HookEventPullRequestSync:
 		return "pull_request"
+	case HookEventPullRequestReviewApproved:
+		return "pull_request_approved"
+	case HookEventPullRequestReviewRejected:
+		return "pull_request_rejected"
+	case HookEventPullRequestReviewComment:
+		return "pull_request_comment"
 	case HookEventRepository:
 		return "repository"
 	case HookEventRelease:
