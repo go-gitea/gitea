@@ -61,6 +61,10 @@ var (
 			Name:  "admin-filter",
 			Usage: "An LDAP filter specifying if a user should be given administrator privileges.",
 		},
+		cli.BoolFlag{
+			Name:  "allow-deactivate-all",
+			Usage: "Allow empty search results to deactivate all users.",
+		},
 		cli.StringFlag{
 			Name:  "username-attribute",
 			Usage: "The attribute of the user’s LDAP record containing the user name.",
@@ -230,6 +234,9 @@ func parseLdapConfig(c *cli.Context, config *models.LDAPConfig) error {
 	}
 	if c.IsSet("admin-filter") {
 		config.Source.AdminFilter = c.String("admin-filter")
+	}
+	if c.IsSet("allow-deactivate-all") {
+		config.Source.AllowDeactivateAll = c.Bool("allow-deactivate-all")
 	}
 	return nil
 }
