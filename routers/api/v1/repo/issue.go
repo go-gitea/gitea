@@ -51,6 +51,10 @@ func SearchIssues(ctx *context.APIContext) {
 	//   description: repository to prioritize in the results
 	//   type: integer
 	//   format: int64
+	// - name: type
+	//   in: query
+	//   description: filter by type (issues / pulls) if set
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -128,6 +132,16 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 	}
 
+	var isPull util.OptionalBool
+	switch ctx.Query("type") {
+	case "pulls":
+		isPull = util.OptionalBoolTrue
+	case "issues":
+		isPull = util.OptionalBoolFalse
+	default:
+		isPull = util.OptionalBoolNone
+	}
+
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
@@ -140,6 +154,7 @@ func SearchIssues(ctx *context.APIContext) {
 			LabelIDs:       labelIDs,
 			SortType:       "priorityrepo",
 			PriorityRepoID: ctx.QueryInt64("priority_repo_id"),
+			IsPull:         isPull,
 		})
 	}
 

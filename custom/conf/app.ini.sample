@@ -282,8 +282,9 @@ DISABLE_ROUTER_LOG = false
 ; not forget to export the private key):
 ; $ openssl pkcs12 -in cert.pfx -out cert.pem -nokeys
 ; $ openssl pkcs12 -in cert.pfx -out key.pem -nocerts -nodes
-CERT_FILE = custom/https/cert.pem
-KEY_FILE = custom/https/key.pem
+; Paths are relative to CUSTOM_PATH
+CERT_FILE = https/cert.pem
+KEY_FILE = https/key.pem
 ; Root directory containing templates and static files.
 ; default is the path where Gitea is executed
 STATIC_ROOT_PATH =
