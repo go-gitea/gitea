@@ -102,7 +102,7 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 
 #### Example: Mermaid.js
 
-If you would like to add [mermaid.js](https://mermaid-js.github.io/) support to Gitea's markdown you simply add:
+If you would like to add [mermaid.js](https://mermaid-js.github.io/mermaid) support to Gitea's markdown you simply add:
 
 ```html
 {{if .RequireHighlightJS}}
