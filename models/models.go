@@ -128,7 +128,12 @@ func getEngine() (*xorm.Engine, error) {
 		return nil, err
 	}
 
-	return xorm.NewEngine(setting.Database.Type, connStr)
+	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
+	if err != nil {
+		return nil, err
+	}
+	engine.SetSchema(setting.Database.Schema)
+	return engine, nil
 }
 
 // NewTestEngine sets a new test xorm.Engine
