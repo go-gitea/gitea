@@ -461,7 +461,7 @@ var (
 
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
+func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*User, error) {
 	sr := source.Cfg.(*LDAPConfig).SearchEntry(login, password, source.Type == LoginDLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
@@ -491,7 +491,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 		}
 	}
 
-	if !autoRegister {
+	if user != nil {
 		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
 			return user, RewriteAllPublicKeys()
 		}
@@ -699,7 +699,7 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 	var err error
 	switch source.Type {
 	case LoginLDAP, LoginDLDAP:
-		user, err = LoginViaLDAP(user, login, password, source, autoRegister)
+		user, err = LoginViaLDAP(user, login, password, source)
 	case LoginSMTP:
 		user, err = LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
 	case LoginPAM:
