@@ -5,10 +5,12 @@
     "node": ">=10"
   },
   "dependencies": {
-    "swagger-ui": "3.24.3"
+    "swagger-ui": "3.24.3",
+    "vue-bar-graph": "1.2.0"
   },
   "devDependencies": {
     "@babel/core": "7.7.7",
+    "@babel/plugin-proposal-object-rest-spread": "7.7.7",
     "@babel/plugin-transform-runtime": "7.7.6",
     "@babel/preset-env": "7.7.7",
     "@babel/runtime": "7.7.7",
@@ -27,6 +29,8 @@
     "stylelint-config-standard": "19.0.0",
     "terser-webpack-plugin": "2.3.2",
     "updates": "9.3.3",
+    "vue-loader": "15.8.3",
+    "vue-template-compiler": "2.6.11",
     "webpack": "4.41.5",
     "webpack-cli": "3.3.10"
   },
