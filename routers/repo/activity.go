@@ -59,6 +59,11 @@ func Activity(ctx *context.Context) {
 		return
 	}
 
+	if ctx.Data["ActivityTopAuthors"], err = models.GetActivityStatsTopAuthors(ctx.Repo.Repository, timeFrom, 10); err != nil {
+		ctx.ServerError("GetActivityStatsTopAuthors", err)
+		return
+	}
+
 	ctx.HTML(200, tplActivity)
 }
 
