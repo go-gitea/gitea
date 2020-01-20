@@ -170,7 +170,7 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*models.I
 		return nil, err
 	}
 
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return nil, err
 	}

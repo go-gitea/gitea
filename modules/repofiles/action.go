@@ -103,8 +103,8 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*m
 			refMarked[key] = true
 
 			// FIXME: this kind of condition is all over the code, it should be consolidated in a single place
-			canclose := perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(models.UnitTypeIssues) || refIssue.PosterID == doer.ID
-			cancomment := canclose || perm.CanRead(models.UnitTypeIssues)
+			canclose := perm.IsAdmin() || perm.IsOwner() || perm.CanWriteIssuesOrPulls(refIssue.IsPull) || refIssue.PosterID == doer.ID
+			cancomment := canclose || perm.CanReadIssuesOrPulls(refIssue.IsPull)
 
 			// Don't proceed if the user can't comment
 			if !cancomment {
