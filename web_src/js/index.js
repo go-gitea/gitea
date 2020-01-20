@@ -5,6 +5,9 @@
 import './publicPath.js';
 import './gitGraphLoader.js';
 import './semanticDropdown.js';
+import initContextPopups from './features/contextPopup';
+
+import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
@@ -2556,6 +2559,7 @@ $(document).ready(() => {
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
+  initContextPopups(suburl);
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2892,9 +2896,13 @@ function initVueApp() {
     delimiters: ['${', '}'],
     el,
     data: {
-      searchLimit: document.querySelector('meta[name=_search_limit]').content,
+      searchLimit: (document.querySelector('meta[name=_search_limit]') || {}).content,
       suburl: document.querySelector('meta[name=_suburl]').content,
-      uid: Number(document.querySelector('meta[name=_context_uid]').content),
+      uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
+      activityTopAuthors: window.ActivityTopAuthors || [],
+    },
+    components: {
+      ActivityTopAuthors,
     },
   });
 }
