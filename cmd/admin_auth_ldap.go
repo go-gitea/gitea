@@ -237,7 +237,7 @@ func parseLdapConfig(c *cli.Context, config *models.LDAPConfig) error {
 	}
 	if c.IsSet("allow-deactivate-all") {
 		config.Source.AllowDeactivateAll = c.Bool("allow-deactivate-all")
-	}	
+	}
 	return nil
 }
 
