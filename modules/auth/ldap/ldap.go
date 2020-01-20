@@ -47,6 +47,7 @@ type Source struct {
 	Filter                string // Query filter to validate entry
 	AdminFilter           string // Query filter to check if user is admin
 	Enabled               bool   // if this source is disabled
+	AllowDeactivateAll    bool   // Allow an empty search response to deactivate all users from this source
 }
 
 // SearchResult : user data

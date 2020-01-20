@@ -1715,6 +1715,15 @@ func SyncExternalUsers() {
 				continue
 			}
 
+			if len(sr) == 0 {
+				if !s.LDAP().AllowDeactivateAll {
+					log.Error("LDAP search found no entries but did not report an error. Refusing to deactivate all users")
+					continue
+				} else {
+					log.Warn("LDAP search found no entries but did not report an error. All users will be deactivated as per settings")
+				}
+			}
+
 			for _, su := range sr {
 				if len(su.Username) == 0 {
 					continue
