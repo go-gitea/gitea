@@ -11,6 +11,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Never allow an empty password to validate (#9682) (#9683)
   * Prevent redirect to Host (#9678) (#9679)
 * BUGFIXES
+  * Check user != nil before checking values (#9881) (#9883)
+  * Allow hyphen in language name (#9873) (#9880)
   * Ensure that 2fa is checked on reset-password (#9857) (#9876)
   * Fix issues/pulls dependencies problems (#9842) (#9864)
   * Explicitly refer to PR in squash-merge commit message in case of external tracker (#9844) (#9855)
