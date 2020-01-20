@@ -18,7 +18,8 @@ menu:
 Customizing Gitea is typically done using the `CustomPath` folder - by default this is
 the `custom` folder from the running directory, but may be different if your build has
 set this differently. This is the central place to override configuration settings,
-templates, etc. You can check the `CustomPath` using `gitea help`. You can override
+templates, etc. You can check the `CustomPath` using `gitea help`. You can also find
+the path on the _Configuration_ tab in the _Site Administrator_ page. You can override
 the `CustomPath` by setting either the `GITEA_CUSTOM` environment variable or by
 using the `--custom-path` option on the `gitea` binary. (The option will override the
 environment variable.)
@@ -144,8 +145,8 @@ Mermaid will detect and use tags with `class="language-mermaid"`.
 You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by using a PlantUML server.
 The data is encoded and sent to the PlantUML server which generates the picture. There is an online 
 demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you 
-can set up your own [PlantUML server](https://plantuml.com/server) instead. To set up PlantUML rendering
-copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put in your
+can set up your own [PlantUML server](https://plantuml.com/server) instead. To set up PlantUML rendering,
+copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
 `custom/public` folder. Then add the following to `custom/footer.tmpl`:
 
 ```html
@@ -162,13 +163,13 @@ parsePlantumlCodeBlocks("http://www.plantuml..com/plantuml")
 
 You can then add blocks like below to your markdown:
 
-```plantuml
-Alice -> Bob: Authentication Request
-Bob --> Alice: Authentication Response
-
-Alice -> Bob: Another authentication Request
-Alice <-- Bob: Another authentication Response
-```
+    ```plantuml
+        Alice -> Bob: Authentication Request
+        Bob --> Alice: Authentication Response
+        
+        Alice -> Bob: Another authentication Request
+        Alice <-- Bob: Another authentication Response
+    ```
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 

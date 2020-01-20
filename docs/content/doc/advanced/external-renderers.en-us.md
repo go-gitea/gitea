@@ -22,7 +22,7 @@ it is just a matter of:
 * add some configuration to your `app.ini` file
 * restart your Gitea instance
 
-This support rendering of complete files. If you wan't to render code blocks in markdown you would need to do something with javascript, see some examples on the [Customizing Gitea](../customizing-gitea) page.
+This supports rendering of whole files. If you want to render code blocks in markdown you would need to do something with javascript, see some examples on the [Customizing Gitea](../customizing-gitea) page.
 
 ## Installing external binaries
 
