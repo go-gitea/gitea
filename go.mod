@@ -70,7 +70,7 @@ require (
 	github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
-	github.com/niklasfasching/go-org v0.1.8
+	github.com/niklasfasching/go-org v0.1.9
 	github.com/oliamb/cutter v0.2.2
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e
@@ -112,6 +112,6 @@ require (
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.6
-	xorm.io/core v0.7.2
-	xorm.io/xorm v0.8.1
+	xorm.io/core v0.7.3
+	xorm.io/xorm v0.8.2-0.20200120024500-c37aff9b3a4a
 )

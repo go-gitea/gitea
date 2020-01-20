@@ -100,6 +100,45 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
 
+#### Example: Mermaid.js
+
+If you would like to add [mermaid.js](https://mermaid-js.github.io/) support to Gitea's markdown you simply add:
+
+```html
+{{if .RequireHighlightJS}}
+<script src="https://unpkg.com/mermaid@8.4.5/dist/mermaid.min.js"></script>
+<!-- or wherever you have placed it -->
+<script>mermaid.init(".language-mermaid")</script>
+{{end}}
+```
+
+to `custom/footer.tmpl`. You then can add blocks
+like below to your markdown:
+
+    ```mermaid
+        stateDiagram
+        [*] --> Active
+
+        state Active {
+            [*] --> NumLockOff
+            NumLockOff --> NumLockOn : EvNumLockPressed
+            NumLockOn --> NumLockOff : EvNumLockPressed
+            --
+            [*] --> CapsLockOff
+            CapsLockOff --> CapsLockOn : EvCapsLockPressed
+            CapsLockOn --> CapsLockOff : EvCapsLockPressed
+            --
+            [*] --> ScrollLockOff
+            ScrollLockOff --> ScrollLockOn : EvCapsLockPressed
+            ScrollLockOn --> ScrollLockOff : EvCapsLockPressed
+        }
+    ```
+
+If you want to use Mermaid.js outside of markdown, e.g. in other templates or HTML files,
+you would need to remove `{{if .RequireHighlightJS}}` and `{{end}}`.
+
+Mermaid will detect and use tags with `class="language-mermaid"`.
+
 ## Customizing Gitea mails
 
 The `custom/templates/mail` folder allows changing the body of every mail of Gitea.
@@ -111,8 +150,6 @@ full path structure matching source.
 
 Any statement contained inside `{{` and `}}` are Gitea's template
 syntax and shouldn't be touched without fully understanding these components.
-
-
 
 ## Adding Analytics to Gitea
 
