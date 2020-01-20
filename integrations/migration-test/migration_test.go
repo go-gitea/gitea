@@ -168,6 +168,32 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		db.Close()
 
+		// Check if we need to setup a specific schema
+		if len(setting.Database.Schema) != 0 {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+			if !assert.NoError(t, err) {
+				return false
+			}
+			schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
+			if !assert.NoError(t, err) || !assert.NotEmpty(t, schrows) {
+				return false
+			}
+
+			if !schrows.Next() {
+				// Create and setup a DB schema
+				_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema))
+				assert.NoError(t, err)
+			}
+			schrows.Close()
+
+			// Make the user's default search path the created schema; this will affect new connections
+			_, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema))
+			assert.NoError(t, err)
+
+			db.Close()
+		}
+
 		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
 		assert.NoError(t, err)
