@@ -53,6 +53,9 @@ func ReplaceSanitizer() {
 	// Allow <kbd> tags for keyboard shortcut styling
 	sanitizer.policy.AllowElements("kbd")
 
+	// Allow classes for anchors
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`ref-issue`)).OnElements("a")
+
 	// Custom keyword markup
 	for _, rule := range setting.ExternalSanitizerRules {
 		if rule.Regexp != nil {
