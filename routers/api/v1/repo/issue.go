@@ -345,7 +345,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && (form.Assignees != nil || form.Assignee != nil) {
+	if canWrite && (form.Assignees != nil || form.Assignee != nil) {
 		oneAssignee := ""
 		if form.Assignee != nil {
 			oneAssignee = *form.Assignee
