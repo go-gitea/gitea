@@ -182,6 +182,13 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
+		"Json": func(in interface{}) string {
+			out, err := json.Marshal(in)
+			if err != nil {
+				return ""
+			}
+			return string(out)
+		},
 		"JsonPrettyPrint": func(in string) string {
 			var out bytes.Buffer
 			err := json.Indent(&out, []byte(in), "", "  ")
