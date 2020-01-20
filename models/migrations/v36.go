@@ -5,13 +5,12 @@
 package migrations
 
 import (
-	"context"
-
+	"code.gitea.io/gitea/modules/graceful"
 	repo_module "code.gitea.io/gitea/modules/repository"
 
 	"xorm.io/xorm"
 )
 
 func regenerateGitHooks36(x *xorm.Engine) (err error) {
-	return repo_module.SyncRepositoryHooks(context.Background())
+	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }

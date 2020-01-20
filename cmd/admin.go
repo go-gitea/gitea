@@ -6,7 +6,6 @@
 package cmd
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	pwd "code.gitea.io/gitea/modules/password"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -411,7 +411,7 @@ func runRegenerateHooks(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-	return repo_module.SyncRepositoryHooks(context.Background())
+	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
 func runRegenerateKeys(c *cli.Context) error {
