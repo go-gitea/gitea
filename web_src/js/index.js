@@ -5,6 +5,7 @@
 import './publicPath.js';
 import './gitGraphLoader.js';
 import './semanticDropdown.js';
+import initContextPopups from './features/contextPopup';
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
@@ -2556,6 +2557,7 @@ $(document).ready(() => {
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
+  initContextPopups(suburl);
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
