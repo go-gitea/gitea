@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// MergeRequiredContextesCommitStatus returns a commit status state for given required contexts
+// MergeRequiredContextsCommitStatus returns a commit status state for given required contexts
 func MergeRequiredContextsCommitStatus(commitStatuses []*models.CommitStatus, requiredContexts []string) structs.CommitStatusState {
 	if len(requiredContexts) == 0 {
 		status := models.CalcCommitStatus(commitStatuses)
@@ -82,14 +82,15 @@ func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
 		return true, nil
 	}
 
-	state, err := PullRequestCommitStatusState(pr)
+	state, err := GetPullRequestCommitStatusState(pr)
 	if err != nil {
 		return false, err
 	}
 	return state.IsSuccess(), nil
 }
 
-func PullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStatusState, error) {
+// GetPullRequestCommitStatusState returns pull request merged commit status state
+func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStatusState, error) {
 	// check if all required status checks are successful
 	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 	if err != nil {
