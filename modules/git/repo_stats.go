@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -120,6 +121,10 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	for _, v := range authors {
 		a = append(a, v)
 	}
+	// Sort authors descending depending on commit count
+	sort.Slice(a, func(i, j int) bool {
+		return a[i].Commits > a[j].Commits
+	})
 
 	stats.AuthorCount = int64(len(authors))
 	stats.ChangedFiles = int64(len(files))
