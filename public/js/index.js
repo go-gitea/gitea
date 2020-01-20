@@ -3134,10 +3134,11 @@ function deleteDependencyModal(id, type) {
 
 function initIssueList() {
     const repolink = $('#repolink').val();
+    const tp = $('#type').val();
     $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
+                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}&type='+tp,
                 onResponse: function(response) {
                     const filteredResponse = {'success': true, 'results': []};
                     const currIssueId = $('#new-dependency-drop-list').data('issue-id');
