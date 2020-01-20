@@ -30,10 +30,10 @@ func (css CommitStatusState) IsWorseThan(css2 CommitStatusState) bool {
 		return css2 != CommitStatusError
 	case CommitStatusWarning:
 		return css2 != CommitStatusError && css2 != CommitStatusFailure
-	case CommitStatusSuccess:
+	case CommitStatusPending:
 		return css2 != CommitStatusError && css2 != CommitStatusFailure && css2 != CommitStatusWarning
 	default:
-		return css2 != CommitStatusError && css2 != CommitStatusFailure && css2 != CommitStatusWarning && css2 != CommitStatusSuccess
+		return css2 != CommitStatusError && css2 != CommitStatusFailure && css2 != CommitStatusWarning && css2 != CommitStatusPending
 	}
 }
 
