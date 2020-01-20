@@ -56,10 +56,10 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/User"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
 	//   "400":
 	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 

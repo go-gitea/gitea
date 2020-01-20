@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"html/template"
 	"mime"
-	"path"
 	"regexp"
 	"strings"
 	texttmpl "text/template"
@@ -52,7 +51,7 @@ func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
-	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").Message)
+	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
 }
 
 // SendUserMail sends a mail to the user
@@ -142,7 +141,7 @@ func SendRegisterNotifyMail(locale Locale, u *models.User) {
 
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
-	repoName := path.Join(repo.Owner.Name, repo.Name)
+	repoName := repo.FullName()
 	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
 
 	data := map[string]interface{}{

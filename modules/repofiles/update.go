@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -133,7 +134,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// oldBranch must exist for this operation
-	if _, err := repo.GetBranch(opts.OldBranch); err != nil {
+	if _, err := repo_module.GetBranch(repo, opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -141,7 +142,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := repo.GetBranch(opts.NewBranch)
+		existingBranch, err := repo_module.GetBranch(repo, opts.NewBranch)
 		if existingBranch != nil {
 			return nil, models.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
@@ -150,8 +151,27 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-		return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
+	} else {
+		protectedBranch, err := repo.GetBranchProtection(opts.OldBranch)
+		if err != nil {
+			return nil, err
+		}
+		if protectedBranch != nil && !protectedBranch.CanUserPush(doer.ID) {
+			return nil, models.ErrUserCannotCommit{
+				UserName: doer.LowerName,
+			}
+		}
+		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
+			_, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
+			if err != nil {
+				if !models.IsErrWontSign(err) {
+					return nil, err
+				}
+				return nil, models.ErrUserCannotCommit{
+					UserName: doer.LowerName,
+				}
+			}
+		}
 	}
 
 	// If FromTreePath is not set, set it to the opts.TreePath
@@ -457,7 +477,7 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 	}
 	defer gitRepo.Close()
 
-	if err = repo.UpdateSize(); err != nil {
+	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -477,7 +497,7 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 
 	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
-	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
+	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
 
 	if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
 		log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
@@ -497,7 +517,7 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
-	if err = repo.UpdateSize(); err != nil {
+	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -528,7 +548,7 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 
 		log.Trace("TriggerTask '%s/%s' by %s", repo.Name, opts.Branch, pusher.Name)
 
-		go pull_service.AddTestPullRequestTask(pusher, repo.ID, opts.Branch, true)
+		go pull_service.AddTestPullRequestTask(pusher, repo.ID, opts.Branch, true, opts.OldCommitID, opts.NewCommitID)
 
 		if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
 			log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
@@ -549,7 +569,7 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 		if isNewRef && isDelRef {
 			return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 		}
-		var commits = &models.PushCommits{}
+		var commits = &repo_module.PushCommits{}
 		if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 			// If is tag reference
 			tagName := opts.RefFullName[len(git.TagPrefix):]
@@ -584,7 +604,7 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 				}
 			}
 
-			commits = models.ListToPushCommits(l)
+			commits = repo_module.ListToPushCommits(l)
 		}
 		actions = append(actions, &CommitRepoActionOptions{
 			PusherName:  opts.PusherName,
@@ -609,7 +629,7 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 		return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
 
-	var commits = &models.PushCommits{}
+	var commits = &repo_module.PushCommits{}
 	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		// If is tag reference
 		tagName := opts.RefFullName[len(git.TagPrefix):]
@@ -620,7 +640,7 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 		} else {
 			// Clear cache for tag commit count
 			cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
-			if err := models.PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
+			if err := repo_module.PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
 				return nil, fmt.Errorf("PushUpdateAddTag: %v", err)
 			}
 		}
@@ -649,7 +669,7 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 			}
 		}
 
-		commits = models.ListToPushCommits(l)
+		commits = repo_module.ListToPushCommits(l)
 	}
 
 	return &CommitRepoActionOptions{

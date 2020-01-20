@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -72,15 +73,19 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
-	repo1.CreateNewBranch(user2, repo1.DefaultBranch, newBranch)
+	err := repo_module.CreateNewBranch(user2, repo1, repo1.DefaultBranch, newBranch)
+	assert.NoError(t, err)
 	// Get the commit ID of the default branch
-	gitRepo, _ := git.OpenRepository(repo1.RepoPath())
+	gitRepo, err := git.OpenRepository(repo1.RepoPath())
+	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	commitID, _ := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
+	commitID, err := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
+	assert.NoError(t, err)
 	// Make a new tag in repo1
 	newTag := "test_tag"
-	gitRepo.CreateTag(newTag, commitID)
+	err = gitRepo.CreateTag(newTag, commitID)
+	assert.NoError(t, err)
 	/*** END SETUP ***/
 
 	// ref is default ref

@@ -299,7 +299,7 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 				Targets: []MSTeamsActionTarget{
 					{
 						Os:  "default",
-						URI: p.Issue.URL,
+						URI: p.Issue.HTMLURL,
 					},
 				},
 			},

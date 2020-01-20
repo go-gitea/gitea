@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	repo_service "code.gitea.io/gitea/services/repository"
+	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"gitea.com/macaron/macaron"
 )
@@ -320,7 +321,7 @@ func ServCommand(ctx *macaron.Context) {
 
 	// Finally if we're trying to touch the wiki we should init it
 	if results.IsWiki {
-		if err = repo.InitWiki(); err != nil {
+		if err = wiki_service.InitWiki(repo); err != nil {
 			log.Error("Failed to initialize the wiki in %-v Error: %v", repo, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"results": results,

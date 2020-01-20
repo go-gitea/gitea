@@ -44,6 +44,18 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, user.Name, apiTimes[i].UserName)
 	}
+
+	// test filter
+	since := "2000-01-01T00%3A00%3A02%2B00%3A00"  //946684802
+	before := "2000-01-01T00%3A00%3A12%2B00%3A00" //946684812
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/times?since=%s&before=%s&token=%s", user2.Name, issue2.Repo.Name, issue2.Index, since, before, token)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	var filterAPITimes api.TrackedTimeList
+	DecodeJSON(t, resp, &filterAPITimes)
+	assert.Len(t, filterAPITimes, 2)
+	assert.Equal(t, int64(3), filterAPITimes[0].ID)
+	assert.Equal(t, int64(6), filterAPITimes[1].ID)
 }
 
 func TestAPIDeleteTrackedTime(t *testing.T) {
