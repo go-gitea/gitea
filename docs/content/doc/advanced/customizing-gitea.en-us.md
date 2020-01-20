@@ -19,7 +19,7 @@ Customizing Gitea is typically done using the `CustomPath` folder - by default t
 the `custom` folder from the running directory, but may be different if your build has
 set this differently. This is the central place to override configuration settings,
 templates, etc. You can check the `CustomPath` using `gitea help`. You can also find
-the path on the _Configuration_ tab in the _Site Administrator_ page. You can override
+the path on the _Configuration_ tab in the _Site Administration_ page. You can override
 the `CustomPath` by setting either the `GITEA_CUSTOM` environment variable or by
 using the `--custom-path` option on the `gitea` binary. (The option will override the
 environment variable.)
@@ -161,7 +161,7 @@ parsePlantumlCodeBlocks("http://www.plantuml..com/plantuml")
 {{end}}
 ```
 
-You can then add blocks like below to your markdown:
+You can then add blocks like the following to your markdown:
 
     ```plantuml
         Alice -> Bob: Authentication Request
