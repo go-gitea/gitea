@@ -1780,6 +1780,15 @@ func SyncExternalUsers(ctx context.Context) {
 				continue
 			}
 
+			if len(sr) == 0 {
+				if !s.LDAP().AllowDeactivateAll {
+					log.Error("LDAP search found no entries but did not report an error. Refusing to deactivate all users")
+					continue
+				} else {
+					log.Warn("LDAP search found no entries but did not report an error. All users will be deactivated as per settings")
+				}
+			}
+
 			for _, su := range sr {
 				select {
 				case <-ctx.Done():
