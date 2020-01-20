@@ -30,6 +30,7 @@ type AuthenticationForm struct {
 	SearchPageSize                int
 	Filter                        string
 	AdminFilter                   string
+	AllowDeactivateAll            bool
 	IsActive                      bool
 	IsSyncEnabled                 bool
 	SMTPAuth                      string
