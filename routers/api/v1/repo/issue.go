@@ -57,6 +57,10 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: search string
 	//   type: string
+	// - name: type
+	//   in: query
+	//   description: filter by type (issues / pulls) if set
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -91,6 +95,16 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
+	var isPull util.OptionalBool
+	switch ctx.Query("type") {
+	case "pulls":
+		isPull = util.OptionalBoolTrue
+	case "issues":
+		isPull = util.OptionalBoolFalse
+	default:
+		isPull = util.OptionalBoolNone
+	}
+
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
@@ -101,6 +115,7 @@ func ListIssues(ctx *context.APIContext) {
 			IsClosed: isClosed,
 			IssueIDs: issueIDs,
 			LabelIDs: labelIDs,
+			IsPull:   isPull,
 		})
 	}
 
@@ -292,6 +307,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 	issue.Repo = ctx.Repo.Repository
+	canWrite := ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 
 	err = issue.LoadAttributes()
 	if err != nil {
@@ -299,7 +315,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if !issue.IsPoster(ctx.User.ID) && !canWrite {
 		ctx.Status(403)
 		return
 	}
@@ -312,7 +328,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 
 	// Update the deadline
-	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if form.Deadline != nil && canWrite {
 		deadlineUnix := timeutil.TimeStamp(form.Deadline.Unix())
 		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
 			ctx.Error(500, "UpdateIssueDeadline", err)
@@ -329,7 +345,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.CanWrite(models.UnitTypeIssues) && (form.Assignees != nil || form.Assignee != nil) {
+	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && (form.Assignees != nil || form.Assignee != nil) {
 		oneAssignee := ""
 		if form.Assignee != nil {
 			oneAssignee = *form.Assignee
@@ -342,7 +358,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 	}
 
-	if ctx.Repo.CanWrite(models.UnitTypeIssues) && form.Milestone != nil &&
+	if canWrite && form.Milestone != nil &&
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
@@ -430,7 +446,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(403)
 		return
 	}
@@ -497,7 +513,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(403)
 		return
 	}
@@ -566,7 +582,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(403)
 		return
 	}
