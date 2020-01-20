@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/mailer"
@@ -150,6 +151,7 @@ func Dashboard(ctx *context.Context) {
 	if op > 0 {
 		var err error
 		var success string
+		shutdownCtx := graceful.GetManager().ShutdownContext()
 
 		switch Operation(op) {
 		case cleanInactivateUser:
@@ -160,25 +162,25 @@ func Dashboard(ctx *context.Context) {
 			err = models.DeleteRepositoryArchives()
 		case cleanMissingRepos:
 			success = ctx.Tr("admin.dashboard.delete_missing_repos_success")
-			err = models.DeleteMissingRepositories(ctx.User)
+			err = repo_module.DeleteMissingRepositories(ctx.User)
 		case gitGCRepos:
 			success = ctx.Tr("admin.dashboard.git_gc_repos_success")
-			err = models.GitGcRepos()
+			err = repo_module.GitGcRepos(shutdownCtx)
 		case syncSSHAuthorizedKey:
 			success = ctx.Tr("admin.dashboard.resync_all_sshkeys_success")
 			err = models.RewriteAllPublicKeys()
 		case syncRepositoryUpdateHook:
 			success = ctx.Tr("admin.dashboard.resync_all_hooks_success")
-			err = models.SyncRepositoryHooks()
+			err = repo_module.SyncRepositoryHooks(shutdownCtx)
 		case reinitMissingRepository:
 			success = ctx.Tr("admin.dashboard.reinit_missing_repos_success")
-			err = models.ReinitMissingRepositories()
+			err = repo_module.ReinitMissingRepositories()
 		case syncExternalUsers:
 			success = ctx.Tr("admin.dashboard.sync_external_users_started")
 			go graceful.GetManager().RunWithShutdownContext(models.SyncExternalUsers)
 		case gitFsck:
 			success = ctx.Tr("admin.dashboard.git_fsck_started")
-			go graceful.GetManager().RunWithShutdownContext(models.GitFsck)
+			err = repo_module.GitFsck(shutdownCtx)
 		case deleteGeneratedRepositoryAvatars:
 			success = ctx.Tr("admin.dashboard.delete_generated_repository_avatars_success")
 			err = models.RemoveRandomAvatars()
