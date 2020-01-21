@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Never allow an empty password to validate (#9682) (#9683)
   * Prevent redirect to Host (#9678) (#9679)
 * BUGFIXES
+  * Fix RocketChat (#9908) (#9921)
   * Create terminated channel in queue_redis (#9910) #(9911)
   * Fix wrong permissions check when issues/prs shared operations (#9885) (#9889)
   * Check user != nil before checking values (#9881) (#9883)
