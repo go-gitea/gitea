@@ -84,11 +84,12 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 			boostWorkers:       config.BoostWorkers,
 			maxNumberOfWorkers: config.MaxWorkers,
 		},
-		queueName: config.QueueName,
-		exemplar:  exemplar,
-		closed:    make(chan struct{}),
-		workers:   config.Workers,
-		name:      config.Name,
+		queueName:  config.QueueName,
+		exemplar:   exemplar,
+		closed:     make(chan struct{}),
+		terminated: make(chan struct{}),
+		workers:    config.Workers,
+		name:       config.Name,
 	}
 	if len(dbs) == 0 {
 		return nil, errors.New("no redis host specified")
