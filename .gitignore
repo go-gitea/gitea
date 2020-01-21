@@ -69,6 +69,7 @@ coverage.all
 /yarn.lock
 /public/js
 /public/css
+/public/fomantic
 
 # Snapcraft
 snap/.snapcraft/

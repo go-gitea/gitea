@@ -5,6 +5,7 @@
     "node": ">=10"
   },
   "dependencies": {
+    "fomantic-ui": "2.8.3",
     "swagger-ui": "3.24.3",
     "vue-bar-graph": "1.2.0"
   },
