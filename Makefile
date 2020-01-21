@@ -55,6 +55,7 @@ BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/tem
 
 JS_DEST_DIR := public/js
 CSS_DEST_DIR := public/css
+FOMANTIC_DEST_DIR := public/fomantic
 
 TAGS ?=
 
@@ -138,7 +139,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR)
+	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR) $(FOMANTIC_DEST_DIR)
 
 .PHONY: clean
 clean:
@@ -474,14 +475,21 @@ npm-update: node-check node_modules
 	npm install --package-lock
 
 .PHONY: js
-js: node-check $(JS_DEST)
+js: node-check fomantic $(JS_DEST)
 
 $(JS_DEST): node_modules $(JS_SOURCES)
 	npx eslint web_src/js webpack.config.js
 	npx webpack
 
+.PHONY: fomantic
+fomantic: node-check $(FOMANTIC_DEST_DIR)
+
+$(FOMANTIC_DEST_DIR): node_modules semantic.json web_src/fomantic/theme.config.less
+	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
+	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+
 .PHONY: css
-css: node-check $(CSS_DEST)
+css: node-check fomantic $(CSS_DEST)
 
 $(CSS_DEST): node_modules $(CSS_SOURCES)
 	npx stylelint web_src/less

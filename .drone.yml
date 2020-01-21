@@ -317,10 +317,7 @@ steps:
     pull: default
     image: alpine:3.11
     commands:
-      - mv ./options/locale/locale_en-US.ini ./options/
-      - "sed -i -e 's/=\"/=/g' -e 's/\"$$//g' ./options/locale/*.ini"
-      - "sed -i -e 's/\\\\\\\\\"/\"/g' ./options/locale/*.ini"
-      - mv ./options/locale_en-US.ini ./options/locale/
+      - ./scripts/update-locales.sh
 
   - name: push
     pull: always
