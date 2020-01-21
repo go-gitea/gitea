@@ -26,12 +26,10 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/avatar"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -147,13 +145,13 @@ type Repository struct {
 	ID                  int64 `xorm:"pk autoincr"`
 	OwnerID             int64 `xorm:"UNIQUE(s) index"`
 	OwnerName           string
-	Owner               *User                  `xorm:"-"`
-	LowerName           string                 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name                string                 `xorm:"INDEX NOT NULL"`
-	Description         string                 `xorm:"TEXT"`
-	Website             string                 `xorm:"VARCHAR(2048)"`
-	OriginalServiceType structs.GitServiceType `xorm:"index"`
-	OriginalURL         string                 `xorm:"VARCHAR(2048)"`
+	Owner               *User              `xorm:"-"`
+	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name                string             `xorm:"INDEX NOT NULL"`
+	Description         string             `xorm:"TEXT"`
+	Website             string             `xorm:"VARCHAR(2048)"`
+	OriginalServiceType api.GitServiceType `xorm:"index"`
+	OriginalURL         string             `xorm:"VARCHAR(2048)"`
 	DefaultBranch       string
 
 	NumWatches          int
@@ -911,63 +909,12 @@ func CheckCreateRepository(doer, u *User, name string) error {
 	return nil
 }
 
-// CreateDelegateHooks creates all the hooks scripts for the repo
-func CreateDelegateHooks(repoPath string) error {
-	return createDelegateHooks(repoPath)
-}
-
-// createDelegateHooks creates all the hooks scripts for the repo
-func createDelegateHooks(repoPath string) (err error) {
-
-	var (
-		hookNames = []string{"pre-receive", "update", "post-receive"}
-		hookTpls  = []string{
-			fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
-			fmt.Sprintf("#!/usr/bin/env %s\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\n\"${hook}\" $1 $2 $3\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
-			fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
-		}
-		giteaHookTpls = []string{
-			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' pre-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
-			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' update $1 $2 $3\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
-			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' post-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
-		}
-	)
-
-	hookDir := filepath.Join(repoPath, "hooks")
-
-	for i, hookName := range hookNames {
-		oldHookPath := filepath.Join(hookDir, hookName)
-		newHookPath := filepath.Join(hookDir, hookName+".d", "gitea")
-
-		if err := os.MkdirAll(filepath.Join(hookDir, hookName+".d"), os.ModePerm); err != nil {
-			return fmt.Errorf("create hooks dir '%s': %v", filepath.Join(hookDir, hookName+".d"), err)
-		}
-
-		// WARNING: This will override all old server-side hooks
-		if err = os.Remove(oldHookPath); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("unable to pre-remove old hook file '%s' prior to rewriting: %v ", oldHookPath, err)
-		}
-		if err = ioutil.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
-			return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
-		}
-
-		if err = os.Remove(newHookPath); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("unable to pre-remove new hook file '%s' prior to rewriting: %v", newHookPath, err)
-		}
-		if err = ioutil.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0777); err != nil {
-			return fmt.Errorf("write new hook file '%s': %v", newHookPath, err)
-		}
-	}
-
-	return nil
-}
-
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
 	Name           string
 	Description    string
 	OriginalURL    string
-	GitServiceType structs.GitServiceType
+	GitServiceType api.GitServiceType
 	Gitignores     string
 	IssueLabels    string
 	License        string
@@ -1881,138 +1828,6 @@ func deleteOldRepositoryArchives(ctx context.Context, idx int, bean interface{})
 	}
 
 	return nil
-}
-
-func gatherMissingRepoRecords() ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	if err := x.
-		Where("id > 0").
-		Iterate(new(Repository),
-			func(idx int, bean interface{}) error {
-				repo := bean.(*Repository)
-				if !com.IsDir(repo.RepoPath()) {
-					repos = append(repos, repo)
-				}
-				return nil
-			}); err != nil {
-		if err2 := CreateRepositoryNotice(fmt.Sprintf("gatherMissingRepoRecords: %v", err)); err2 != nil {
-			return nil, fmt.Errorf("CreateRepositoryNotice: %v", err)
-		}
-	}
-	return repos, nil
-}
-
-// DeleteMissingRepositories deletes all repository records that lost Git files.
-func DeleteMissingRepositories(doer *User) error {
-	repos, err := gatherMissingRepoRecords()
-	if err != nil {
-		return fmt.Errorf("gatherMissingRepoRecords: %v", err)
-	}
-
-	if len(repos) == 0 {
-		return nil
-	}
-
-	for _, repo := range repos {
-		log.Trace("Deleting %d/%d...", repo.OwnerID, repo.ID)
-		if err := DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
-			if err2 := CreateRepositoryNotice(fmt.Sprintf("DeleteRepository [%d]: %v", repo.ID, err)); err2 != nil {
-				return fmt.Errorf("CreateRepositoryNotice: %v", err)
-			}
-		}
-	}
-	return nil
-}
-
-// ReinitMissingRepositories reinitializes all repository records that lost Git files.
-func ReinitMissingRepositories() error {
-	repos, err := gatherMissingRepoRecords()
-	if err != nil {
-		return fmt.Errorf("gatherMissingRepoRecords: %v", err)
-	}
-
-	if len(repos) == 0 {
-		return nil
-	}
-
-	for _, repo := range repos {
-		log.Trace("Initializing %d/%d...", repo.OwnerID, repo.ID)
-		if err := git.InitRepository(repo.RepoPath(), true); err != nil {
-			if err2 := CreateRepositoryNotice(fmt.Sprintf("InitRepository [%d]: %v", repo.ID, err)); err2 != nil {
-				return fmt.Errorf("CreateRepositoryNotice: %v", err)
-			}
-		}
-	}
-	return nil
-}
-
-// SyncRepositoryHooks rewrites all repositories' pre-receive, update and post-receive hooks
-// to make sure the binary and custom conf path are up-to-date.
-func SyncRepositoryHooks() error {
-	return x.Cols("owner_id", "name").Where("id > 0").Iterate(new(Repository),
-		func(idx int, bean interface{}) error {
-			if err := createDelegateHooks(bean.(*Repository).RepoPath()); err != nil {
-				return fmt.Errorf("SyncRepositoryHook: %v", err)
-			}
-			if bean.(*Repository).HasWiki() {
-				if err := createDelegateHooks(bean.(*Repository).WikiPath()); err != nil {
-					return fmt.Errorf("SyncRepositoryHook: %v", err)
-				}
-			}
-			return nil
-		})
-}
-
-// GitFsck calls 'git fsck' to check repository health.
-func GitFsck(ctx context.Context) {
-	log.Trace("Doing: GitFsck")
-	if err := x.
-		Where("id>0 AND is_fsck_enabled=?", true).BufferSize(setting.Database.IterateBufferSize).
-		Iterate(new(Repository),
-			func(idx int, bean interface{}) error {
-				select {
-				case <-ctx.Done():
-					return fmt.Errorf("Aborted due to shutdown")
-				default:
-				}
-				repo := bean.(*Repository)
-				repoPath := repo.RepoPath()
-				log.Trace("Running health check on repository %s", repoPath)
-				if err := git.Fsck(repoPath, setting.Cron.RepoHealthCheck.Timeout, setting.Cron.RepoHealthCheck.Args...); err != nil {
-					desc := fmt.Sprintf("Failed to health check repository (%s): %v", repoPath, err)
-					log.Warn(desc)
-					if err = CreateRepositoryNotice(desc); err != nil {
-						log.Error("CreateRepositoryNotice: %v", err)
-					}
-				}
-				return nil
-			}); err != nil {
-		log.Error("GitFsck: %v", err)
-	}
-	log.Trace("Finished: GitFsck")
-}
-
-// GitGcRepos calls 'git gc' to remove unnecessary files and optimize the local repository
-func GitGcRepos() error {
-	args := append([]string{"gc"}, setting.Git.GCArgs...)
-	return x.
-		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
-		Iterate(new(Repository),
-			func(idx int, bean interface{}) error {
-				repo := bean.(*Repository)
-				if err := repo.GetOwner(); err != nil {
-					return err
-				}
-				if stdout, err := git.NewCommand(args...).
-					SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName())).
-					RunInDirTimeout(
-						time.Duration(setting.Git.Timeout.GC)*time.Second,
-						repo.RepoPath()); err != nil {
-					log.Error("Repository garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
-					return fmt.Errorf("Repository garbage collection failed: Error: %v", err)
-				}
-				return nil
-			})
 }
 
 type repoChecker struct {

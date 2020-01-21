@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -21,7 +22,14 @@ type CodeActivityStats struct {
 	Additions                int64
 	Deletions                int64
 	CommitCountInAllBranches int64
-	Authors                  map[string]int64
+	Authors                  []*CodeActivityAuthor
+}
+
+// CodeActivityAuthor represents git statistics data for commit authors
+type CodeActivityAuthor struct {
+	Name    string
+	Email   string
+	Commits int64
 }
 
 // GetCodeActivityStats returns code statistics for acitivity page
@@ -58,8 +66,9 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	stats.CommitCount = 0
 	stats.Additions = 0
 	stats.Deletions = 0
-	authors := make(map[string]int64)
+	authors := make(map[string]*CodeActivityAuthor)
 	files := make(map[string]bool)
+	var author string
 	p := 0
 	for scanner.Scan() {
 		l := strings.TrimSpace(scanner.Text())
@@ -78,10 +87,17 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		case 2: // Commit sha-1
 			stats.CommitCount++
 		case 3: // Author
+			author = l
 		case 4: // E-mail
 			email := strings.ToLower(l)
-			i := authors[email]
-			authors[email] = i + 1
+			if _, ok := authors[email]; !ok {
+				authors[email] = &CodeActivityAuthor{
+					Name:    author,
+					Email:   email,
+					Commits: 0,
+				}
+			}
+			authors[email].Commits++
 		default: // Changed file
 			if parts := strings.Fields(l); len(parts) >= 3 {
 				if parts[0] != "-" {
@@ -100,9 +116,19 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			}
 		}
 	}
+
+	a := make([]*CodeActivityAuthor, 0, len(authors))
+	for _, v := range authors {
+		a = append(a, v)
+	}
+	// Sort authors descending depending on commit count
+	sort.Slice(a, func(i, j int) bool {
+		return a[i].Commits > a[j].Commits
+	})
+
 	stats.AuthorCount = int64(len(authors))
 	stats.ChangedFiles = int64(len(files))
-	stats.Authors = authors
+	stats.Authors = a
 
 	return stats, nil
 }
