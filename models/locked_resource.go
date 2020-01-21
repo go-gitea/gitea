@@ -11,9 +11,9 @@ import (
 )
 
 type LockedResource struct {
-	LockType	string      `xorm:"pk VARCHAR(30)"`
-	LockKey		int64		`xorm:"pk"`
-	Counter		int64		`xorm:"NOT NULL DEFAULT 0"`
+	LockType string `xorm:"pk VARCHAR(30)"`
+	LockKey  int64  `xorm:"pk"`
+	Counter  int64  `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func GetLockedResource(e Engine, lockType string, lockKey int64) (*LockedResource, error) {
@@ -29,7 +29,7 @@ func GetLockedResource(e Engine, lockType string, lockKey int64) (*LockedResourc
 	} else if !has {
 		return nil, fmt.Errorf("unexpected upsert fail  %s:%d", lockType, lockKey)
 	}
-	
+
 	return locked, nil
 }
 
@@ -72,16 +72,16 @@ func TempLockResourceCtx(ctx DBContext, lockType string, lockKey int64) error {
 
 func upsertLockedResource(e Engine, resource *LockedResource) (err error) {
 	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
-	// that ensures that the key is actually locked. 
+	// that ensures that the key is actually locked.
 	switch {
 	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
 		_, err = e.Exec("INSERT INTO locked_resource (lock_type, lock_key) "+
 			"VALUES (?,?) ON CONFLICT(lock_type, lock_key) DO UPDATE SET lock_key = ?",
-			resource.LockType, resource.LockKey, resource.LockKey);
+			resource.LockType, resource.LockKey, resource.LockKey)
 	case setting.Database.UseMySQL:
 		_, err = e.Exec("INSERT INTO locked_resource (lock_type, lock_key) "+
 			"VALUES (?,?) ON DUPLICATE KEY UPDATE lock_key = lock_key",
-			resource.LockType, resource.LockKey);
+			resource.LockType, resource.LockKey)
 	case setting.Database.UseMSSQL:
 		// https://weblogs.sqlteam.com/dang/2009/01/31/upsert-race-condition-with-merge/
 		_, err = e.Exec("MERGE locked_resource WITH (HOLDLOCK) as target "+
@@ -90,7 +90,7 @@ func upsertLockedResource(e Engine, resource *LockedResource) (err error) {
 			"WHEN MATCHED THEN UPDATE SET target.lock_key = target.lock_key "+
 			"WHEN NOT MATCHED THEN INSERT (lock_type, lock_key) "+
 			"VALUES (src.lock_type, src.lock_key);",
-			resource.LockType, resource.LockKey);
+			resource.LockType, resource.LockKey)
 	default:
 		return fmt.Errorf("database type not supported")
 	}

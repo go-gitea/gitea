@@ -75,7 +75,10 @@ var (
 
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
-const issueMaxDupIndexAttempts = 3
+
+// IssueLockedEnumerator is the name of the locked_resource used to
+// numerate issues in a repository.
+const IssueLockedEnumerator = "repository-index"
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -898,19 +901,23 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Milestone validation should happen before insert actual object.
-	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
-		Where("repo_id=?", opts.Issue.RepoID).
-		Insert(opts.Issue); err != nil {
-		return ErrNewIssueInsert{err}
-	}
 
-	inserted, err := getIssueByID(e, opts.Issue.ID)
+	// Obtain the next issue number for this repository, which will be locked
+	// and reserved for the remaining of the transaction. Should the transaction
+	// be rolled back, the previous value will be restored.
+	locked, err := GetLockedResource(e, IssueLockedEnumerator, opts.Issue.RepoID)
 	if err != nil {
+		return fmt.Errorf("GetLockedResource(%s)", IssueLockedEnumerator)
+	}
+	locked.Counter++
+	if err := UpdateLockedResource(e, locked); err != nil {
+		return fmt.Errorf("UpdateLockedResource(%s)", IssueLockedEnumerator)
+	}
+	opts.Issue.Index = locked.Counter
+
+	if _, err = e.Insert(opts.Issue); err != nil {
 		return err
 	}
-
-	// Patch Index with the value calculated by the database
-	opts.Issue.Index = inserted.Index
 
 	if opts.Issue.MilestoneID > 0 {
 		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
@@ -988,24 +995,6 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
-	i := 0
-	for {
-		if err = newIssueAttempt(repo, issue, labelIDs, uuids); err == nil {
-			return nil
-		}
-		if !IsErrNewIssueInsert(err) {
-			return err
-		}
-		if i++; i == issueMaxDupIndexAttempts {
-			break
-		}
-		log.Error("NewIssue: error attempting to insert the new issue; will retry. Original error: %v", err)
-	}
-	return fmt.Errorf("NewIssue: too many errors attempting to insert the new issue. Last error was: %v", err)
-}
-
-func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {

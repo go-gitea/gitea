@@ -20,14 +20,14 @@ const (
 	// blockerDelay minus tolerance to complete.
 	// Note: these values might require tuning in order to avoid
 	// false negatives.
-	waiterDelay = 100 * time.Millisecond
+	waiterDelay  = 100 * time.Millisecond
 	blockerDelay = 200 * time.Millisecond
-	tolerance = 50 * time.Millisecond	// Should be <= (blockerDelay-waiterDelay)/2
+	tolerance    = 50 * time.Millisecond // Should be <= (blockerDelay-waiterDelay)/2
 )
 
 type waitResult struct {
-	Waited	time.Duration
-	Err		error
+	Waited time.Duration
+	Err    error
 }
 
 func TestLockedResource(t *testing.T) {
@@ -75,8 +75,8 @@ func blockTest(name string, f func(ctx models.DBContext) error) error {
 		cw <- blockTestFunc(name, false, ref, f)
 	}()
 
-	resb := <- cb
-	resw := <- cw
+	resb := <-cb
+	resw := <-cw
 	if resb.Err != nil {
 		return resb.Err
 	}
@@ -84,7 +84,7 @@ func blockTest(name string, f func(ctx models.DBContext) error) error {
 		return resw.Err
 	}
 
-	if resw.Waited < blockerDelay - tolerance {
+	if resw.Waited < blockerDelay-tolerance {
 		return fmt.Errorf("Waiter not blocked on %s; wait: %d ms, expected > %d ms",
 			name, resw.Waited.Milliseconds(), (blockerDelay - tolerance).Milliseconds())
 	}
