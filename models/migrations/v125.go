@@ -37,7 +37,7 @@ func addLockedResourceTable(x *xorm.Engine) error {
 	// Create current data for all repositories with issues and PRs
 	if _, err := sess.Exec("INSERT INTO locked_resource (lock_type, lock_key, counter) "+
 		"SELECT ?, max_data.repo_id, max_data.max_index "+
-		"FROM ( SELECT issue.repo_id AS repo_id, max(issue.index) AS max_index "+
+		"FROM ( SELECT issue.repo_id AS repo_id, max(issue.`index`) AS max_index "+
 		"FROM issue GROUP BY issue.repo_id) AS max_data",
 		models.IssueLockedEnumerator); err != nil {
 		return err

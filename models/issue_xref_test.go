@@ -130,9 +130,12 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	sess := x.NewSession()
 	defer sess.Close()
 	assert.NoError(t, sess.Begin())
-	_, err := sess.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").Where("repo_id=?", repo).Insert(i)
+	lock, err := GetLockedResource(sess, IssueLockedEnumerator, repo)
 	assert.NoError(t, err)
-	i, err = getIssueByID(sess, i.ID)
+	lock.Counter++
+	assert.NoError(t, UpdateLockedResource(sess, lock))
+	i.Index = lock.Counter
+	_, err = sess.Insert(i)
 	assert.NoError(t, err)
 	assert.NoError(t, i.addCrossReferences(sess, d, false))
 	assert.NoError(t, sess.Commit())
