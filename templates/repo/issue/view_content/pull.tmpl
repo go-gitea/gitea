@@ -48,7 +48,7 @@
 	{{else if .IsBlockedByApprovals}}red
 	{{else if .IsBlockedByRejection}}red
 	{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
-	{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning}}yellow
+	{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
 	{{else if and .RequireSigned (not .WillSign)}}}red
 	{{else if .Issue.PullRequest.IsChecking}}yellow
 	{{else if .Issue.PullRequest.CanAutoMerge}}green
