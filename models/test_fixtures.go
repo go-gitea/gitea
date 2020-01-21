@@ -67,7 +67,10 @@ func LoadFixtures() error {
 			}
 		}
 	}
-	// Finally, we must build the last issue index used for each repositories
+	// Finally, we must rebuild the last issue index used for each repositories
+	if _, err := x.Delete(&LockedResource{LockType: IssueLockedEnumerator}); err != nil {
+		return err
+	}
 	_, err = x.Exec("INSERT INTO locked_resource (lock_type, lock_key, counter) "+
 		"SELECT ?, max_data.repo_id, max_data.max_index "+
 		"FROM ( SELECT issue.repo_id AS repo_id, max(issue.`index`) AS max_index "+
