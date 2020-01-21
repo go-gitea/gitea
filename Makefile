@@ -139,7 +139,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR) $(FOMANTIC_DEST_DIR) node_modules
+	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR) $(FOMANTIC_DEST_DIR)
 
 .PHONY: clean
 clean:
