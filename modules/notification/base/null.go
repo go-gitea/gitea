@@ -15,41 +15,33 @@ var (
 	_ Notifier = &NullNotifier{}
 )
 
-// Run is a placeholder function
-func (*NullNotifier) Run() {}
+// NotifyCreateIssueComment is a placeholder function
+func (*NullNotifier) NotifyCreateIssueComment(unknown0 *models.User, unknown1 *models.Repository, unknown2 *models.Issue, unknown3 *models.Comment) {
+}
+
+// NotifyCreateRef is a placeholder function
+func (*NullNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType string, refFullName string) {
+}
 
 // NotifyCreateRepository is a placeholder function
 func (*NullNotifier) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 }
 
-// NotifyMigrateRepository is a placeholder function
-func (*NullNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+// NotifyDeleteComment is a placeholder function
+func (*NullNotifier) NotifyDeleteComment(unknown0 *models.User, unknown1 *models.Comment) {}
+
+// NotifyDeleteRef is a placeholder function
+func (*NullNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType string, refFullName string) {
 }
+
+// NotifyDeleteRelease is a placeholder function
+func (*NullNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {}
 
 // NotifyDeleteRepository is a placeholder function
 func (*NullNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {}
 
 // NotifyForkRepository is a placeholder function
 func (*NullNotifier) NotifyForkRepository(doer *models.User, oldRepo *models.Repository, repo *models.Repository) {
-}
-
-// NotifyRenameRepository is a placeholder function
-func (*NullNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string) {
-}
-
-// NotifyTransferRepository is a placeholder function
-func (*NullNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
-}
-
-// NotifyNewIssue is a placeholder function
-func (*NullNotifier) NotifyNewIssue(unknown0 *models.Issue) {}
-
-// NotifyIssueChangeStatus is a placeholder function
-func (*NullNotifier) NotifyIssueChangeStatus(unknown0 *models.User, unknown1 *models.Issue, unknown2 *models.Comment, unknown3 bool) {
-}
-
-// NotifyIssueChangeMilestone is a placeholder function
-func (*NullNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
 }
 
 // NotifyIssueChangeAssignee is a placeholder function
@@ -60,67 +52,57 @@ func (*NullNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.
 func (*NullNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
 }
 
-// NotifyIssueClearLabels is a placeholder function
-func (*NullNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {}
-
-// NotifyIssueChangeTitle is a placeholder function
-func (*NullNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {}
-
 // NotifyIssueChangeLabels is a placeholder function
 func (*NullNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue, addedLabels []*models.Label, removedLabels []*models.Label) {
 }
 
-// NotifyNewPullRequest is a placeholder function
-func (*NullNotifier) NotifyNewPullRequest(unknown0 *models.PullRequest) {}
+// NotifyIssueChangeMilestone is a placeholder function
+func (*NullNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
+}
+
+// NotifyIssueChangeStatus is a placeholder function
+func (*NullNotifier) NotifyIssueChangeStatus(unknown0 *models.User, unknown1 *models.Issue, unknown2 *models.Comment, unknown3 bool) {
+}
+
+// NotifyIssueChangeTitle is a placeholder function
+func (*NullNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {}
+
+// NotifyIssueClearLabels is a placeholder function
+func (*NullNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {}
 
 // NotifyMergePullRequest is a placeholder function
 func (*NullNotifier) NotifyMergePullRequest(unknown0 *models.PullRequest, unknown1 *models.User) {}
 
-// NotifyPullRequestSynchronized is a placeholder function
-func (*NullNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {}
-
-// NotifyPullRequestReview is a placeholder function
-func (*NullNotifier) NotifyPullRequestReview(unknown0 *models.PullRequest, unknown1 *models.Review, unknown2 *models.Comment) {
+// NotifyMigrateRepository is a placeholder function
+func (*NullNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 }
+
+// NotifyNewIssue is a placeholder function
+func (*NullNotifier) NotifyNewIssue(unknown0 *models.Issue) {}
+
+// NotifyNewPullRequest is a placeholder function
+func (*NullNotifier) NotifyNewPullRequest(unknown0 *models.PullRequest) {}
+
+// NotifyNewRelease is a placeholder function
+func (*NullNotifier) NotifyNewRelease(rel *models.Release) {}
 
 // NotifyPullRequestChangeTargetBranch is a placeholder function
 func (*NullNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
 }
 
-// NotifyCreateIssueComment is a placeholder function
-func (*NullNotifier) NotifyCreateIssueComment(unknown0 *models.User, unknown1 *models.Repository, unknown2 *models.Issue, unknown3 *models.Comment) {
+// NotifyPullRequestReview is a placeholder function
+func (*NullNotifier) NotifyPullRequestReview(unknown0 *models.PullRequest, unknown1 *models.Review, unknown2 *models.Comment) {
 }
 
-// NotifyUpdateComment is a placeholder function
-func (*NullNotifier) NotifyUpdateComment(unknown0 *models.User, unknown1 *models.Comment, unknown2 string) {
-}
-
-// NotifyDeleteComment is a placeholder function
-func (*NullNotifier) NotifyDeleteComment(unknown0 *models.User, unknown1 *models.Comment) {}
-
-// NotifyNewRelease is a placeholder function
-func (*NullNotifier) NotifyNewRelease(rel *models.Release) {}
-
-// NotifyUpdateRelease is a placeholder function
-func (*NullNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {}
-
-// NotifyDeleteRelease is a placeholder function
-func (*NullNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {}
+// NotifyPullRequestSynchronized is a placeholder function
+func (*NullNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {}
 
 // NotifyPushCommits is a placeholder function
 func (*NullNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName string, oldCommitID string, newCommitID string, commits *repository.PushCommits) {
 }
 
-// NotifyCreateRef is a placeholder function
-func (*NullNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType string, refFullName string) {
-}
-
-// NotifyDeleteRef is a placeholder function
-func (*NullNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType string, refFullName string) {
-}
-
-// NotifySyncPushCommits is a placeholder function
-func (*NullNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName string, oldCommitID string, newCommitID string, commits *repository.PushCommits) {
+// NotifyRenameRepository is a placeholder function
+func (*NullNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string) {
 }
 
 // NotifySyncCreateRef is a placeholder function
@@ -130,3 +112,21 @@ func (*NullNotifier) NotifySyncCreateRef(doer *models.User, repo *models.Reposit
 // NotifySyncDeleteRef is a placeholder function
 func (*NullNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Repository, refType string, refFullName string) {
 }
+
+// NotifySyncPushCommits is a placeholder function
+func (*NullNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName string, oldCommitID string, newCommitID string, commits *repository.PushCommits) {
+}
+
+// NotifyTransferRepository is a placeholder function
+func (*NullNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
+}
+
+// NotifyUpdateComment is a placeholder function
+func (*NullNotifier) NotifyUpdateComment(unknown0 *models.User, unknown1 *models.Comment, unknown2 string) {
+}
+
+// NotifyUpdateRelease is a placeholder function
+func (*NullNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {}
+
+// Run is a placeholder function
+func (*NullNotifier) Run() {}

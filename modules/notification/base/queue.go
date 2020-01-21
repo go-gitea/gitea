@@ -53,10 +53,63 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 		call := datum.(*FunctionCall)
 		var err error
 		switch call.Name {
-		case "Run":
+		case "NotifyCreateIssueComment":
 
+			var unknown0 *models.User
+			err = json.Unmarshal(call.Args[0], &unknown0)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyCreateIssueComment", err)
+				continue
+			}
+			var unknown1 *models.Repository
+			err = json.Unmarshal(call.Args[1], &unknown1)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifyCreateIssueComment", err)
+				continue
+			}
+			var unknown2 *models.Issue
+			err = json.Unmarshal(call.Args[2], &unknown2)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.Issue", "NotifyCreateIssueComment", err)
+				continue
+			}
+			var unknown3 *models.Comment
+			err = json.Unmarshal(call.Args[3], &unknown3)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "*models.Comment", "NotifyCreateIssueComment", err)
+				continue
+			}
 			for _, notifier := range q.notifiers {
-				notifier.Run()
+				notifier.NotifyCreateIssueComment(unknown0, unknown1, unknown2, unknown3)
+			}
+		case "NotifyCreateRef":
+
+			var doer *models.User
+			err = json.Unmarshal(call.Args[0], &doer)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyCreateRef", err)
+				continue
+			}
+			var repo *models.Repository
+			err = json.Unmarshal(call.Args[1], &repo)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifyCreateRef", err)
+				continue
+			}
+			var refType string
+			err = json.Unmarshal(call.Args[2], &refType)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyCreateRef", err)
+				continue
+			}
+			var refFullName string
+			err = json.Unmarshal(call.Args[3], &refFullName)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "string", "NotifyCreateRef", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyCreateRef(doer, repo, refType, refFullName)
 			}
 		case "NotifyCreateRepository":
 
@@ -81,28 +134,68 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 			for _, notifier := range q.notifiers {
 				notifier.NotifyCreateRepository(doer, u, repo)
 			}
-		case "NotifyMigrateRepository":
+		case "NotifyDeleteComment":
+
+			var unknown0 *models.User
+			err = json.Unmarshal(call.Args[0], &unknown0)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyDeleteComment", err)
+				continue
+			}
+			var unknown1 *models.Comment
+			err = json.Unmarshal(call.Args[1], &unknown1)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Comment", "NotifyDeleteComment", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyDeleteComment(unknown0, unknown1)
+			}
+		case "NotifyDeleteRef":
 
 			var doer *models.User
 			err = json.Unmarshal(call.Args[0], &doer)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyMigrateRepository", err)
-				continue
-			}
-			var u *models.User
-			err = json.Unmarshal(call.Args[1], &u)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.User", "NotifyMigrateRepository", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyDeleteRef", err)
 				continue
 			}
 			var repo *models.Repository
-			err = json.Unmarshal(call.Args[2], &repo)
+			err = json.Unmarshal(call.Args[1], &repo)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.Repository", "NotifyMigrateRepository", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifyDeleteRef", err)
+				continue
+			}
+			var refType string
+			err = json.Unmarshal(call.Args[2], &refType)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyDeleteRef", err)
+				continue
+			}
+			var refFullName string
+			err = json.Unmarshal(call.Args[3], &refFullName)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "string", "NotifyDeleteRef", err)
 				continue
 			}
 			for _, notifier := range q.notifiers {
-				notifier.NotifyMigrateRepository(doer, u, repo)
+				notifier.NotifyDeleteRef(doer, repo, refType, refFullName)
+			}
+		case "NotifyDeleteRelease":
+
+			var doer *models.User
+			err = json.Unmarshal(call.Args[0], &doer)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyDeleteRelease", err)
+				continue
+			}
+			var rel *models.Release
+			err = json.Unmarshal(call.Args[1], &rel)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Release", "NotifyDeleteRelease", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyDeleteRelease(doer, rel)
 			}
 		case "NotifyDeleteRepository":
 
@@ -143,115 +236,6 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 			}
 			for _, notifier := range q.notifiers {
 				notifier.NotifyForkRepository(doer, oldRepo, repo)
-			}
-		case "NotifyRenameRepository":
-
-			var doer *models.User
-			err = json.Unmarshal(call.Args[0], &doer)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyRenameRepository", err)
-				continue
-			}
-			var repo *models.Repository
-			err = json.Unmarshal(call.Args[1], &repo)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifyRenameRepository", err)
-				continue
-			}
-			var oldRepoName string
-			err = json.Unmarshal(call.Args[2], &oldRepoName)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyRenameRepository", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyRenameRepository(doer, repo, oldRepoName)
-			}
-		case "NotifyTransferRepository":
-
-			var doer *models.User
-			err = json.Unmarshal(call.Args[0], &doer)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyTransferRepository", err)
-				continue
-			}
-			var repo *models.Repository
-			err = json.Unmarshal(call.Args[1], &repo)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifyTransferRepository", err)
-				continue
-			}
-			var oldOwnerName string
-			err = json.Unmarshal(call.Args[2], &oldOwnerName)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyTransferRepository", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyTransferRepository(doer, repo, oldOwnerName)
-			}
-		case "NotifyNewIssue":
-
-			var unknown0 *models.Issue
-			err = json.Unmarshal(call.Args[0], &unknown0)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.Issue", "NotifyNewIssue", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyNewIssue(unknown0)
-			}
-		case "NotifyIssueChangeStatus":
-
-			var unknown0 *models.User
-			err = json.Unmarshal(call.Args[0], &unknown0)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyIssueChangeStatus", err)
-				continue
-			}
-			var unknown1 *models.Issue
-			err = json.Unmarshal(call.Args[1], &unknown1)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyIssueChangeStatus", err)
-				continue
-			}
-			var unknown2 *models.Comment
-			err = json.Unmarshal(call.Args[2], &unknown2)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.Comment", "NotifyIssueChangeStatus", err)
-				continue
-			}
-			var unknown3 bool
-			err = json.Unmarshal(call.Args[3], &unknown3)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "bool", "NotifyIssueChangeStatus", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyIssueChangeStatus(unknown0, unknown1, unknown2, unknown3)
-			}
-		case "NotifyIssueChangeMilestone":
-
-			var doer *models.User
-			err = json.Unmarshal(call.Args[0], &doer)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyIssueChangeMilestone", err)
-				continue
-			}
-			var issue *models.Issue
-			err = json.Unmarshal(call.Args[1], &issue)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyIssueChangeMilestone", err)
-				continue
-			}
-			var oldMilestoneID int64
-			err = json.Unmarshal(call.Args[2], &oldMilestoneID)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "int64", "NotifyIssueChangeMilestone", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyIssueChangeMilestone(doer, issue, oldMilestoneID)
 			}
 		case "NotifyIssueChangeAssignee":
 
@@ -311,46 +295,6 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 			for _, notifier := range q.notifiers {
 				notifier.NotifyIssueChangeContent(doer, issue, oldContent)
 			}
-		case "NotifyIssueClearLabels":
-
-			var doer *models.User
-			err = json.Unmarshal(call.Args[0], &doer)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyIssueClearLabels", err)
-				continue
-			}
-			var issue *models.Issue
-			err = json.Unmarshal(call.Args[1], &issue)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyIssueClearLabels", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyIssueClearLabels(doer, issue)
-			}
-		case "NotifyIssueChangeTitle":
-
-			var doer *models.User
-			err = json.Unmarshal(call.Args[0], &doer)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyIssueChangeTitle", err)
-				continue
-			}
-			var issue *models.Issue
-			err = json.Unmarshal(call.Args[1], &issue)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyIssueChangeTitle", err)
-				continue
-			}
-			var oldTitle string
-			err = json.Unmarshal(call.Args[2], &oldTitle)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyIssueChangeTitle", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyIssueChangeTitle(doer, issue, oldTitle)
-			}
 		case "NotifyIssueChangeLabels":
 
 			var doer *models.User
@@ -380,16 +324,97 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 			for _, notifier := range q.notifiers {
 				notifier.NotifyIssueChangeLabels(doer, issue, addedLabels, removedLabels)
 			}
-		case "NotifyNewPullRequest":
+		case "NotifyIssueChangeMilestone":
 
-			var unknown0 *models.PullRequest
-			err = json.Unmarshal(call.Args[0], &unknown0)
+			var doer *models.User
+			err = json.Unmarshal(call.Args[0], &doer)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.PullRequest", "NotifyNewPullRequest", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyIssueChangeMilestone", err)
+				continue
+			}
+			var issue *models.Issue
+			err = json.Unmarshal(call.Args[1], &issue)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyIssueChangeMilestone", err)
+				continue
+			}
+			var oldMilestoneID int64
+			err = json.Unmarshal(call.Args[2], &oldMilestoneID)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "int64", "NotifyIssueChangeMilestone", err)
 				continue
 			}
 			for _, notifier := range q.notifiers {
-				notifier.NotifyNewPullRequest(unknown0)
+				notifier.NotifyIssueChangeMilestone(doer, issue, oldMilestoneID)
+			}
+		case "NotifyIssueChangeStatus":
+
+			var unknown0 *models.User
+			err = json.Unmarshal(call.Args[0], &unknown0)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyIssueChangeStatus", err)
+				continue
+			}
+			var unknown1 *models.Issue
+			err = json.Unmarshal(call.Args[1], &unknown1)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyIssueChangeStatus", err)
+				continue
+			}
+			var unknown2 *models.Comment
+			err = json.Unmarshal(call.Args[2], &unknown2)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.Comment", "NotifyIssueChangeStatus", err)
+				continue
+			}
+			var unknown3 bool
+			err = json.Unmarshal(call.Args[3], &unknown3)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "bool", "NotifyIssueChangeStatus", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyIssueChangeStatus(unknown0, unknown1, unknown2, unknown3)
+			}
+		case "NotifyIssueChangeTitle":
+
+			var doer *models.User
+			err = json.Unmarshal(call.Args[0], &doer)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyIssueChangeTitle", err)
+				continue
+			}
+			var issue *models.Issue
+			err = json.Unmarshal(call.Args[1], &issue)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyIssueChangeTitle", err)
+				continue
+			}
+			var oldTitle string
+			err = json.Unmarshal(call.Args[2], &oldTitle)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyIssueChangeTitle", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyIssueChangeTitle(doer, issue, oldTitle)
+			}
+		case "NotifyIssueClearLabels":
+
+			var doer *models.User
+			err = json.Unmarshal(call.Args[0], &doer)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyIssueClearLabels", err)
+				continue
+			}
+			var issue *models.Issue
+			err = json.Unmarshal(call.Args[1], &issue)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyIssueClearLabels", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyIssueClearLabels(doer, issue)
 			}
 		case "NotifyMergePullRequest":
 
@@ -408,45 +433,61 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 			for _, notifier := range q.notifiers {
 				notifier.NotifyMergePullRequest(unknown0, unknown1)
 			}
-		case "NotifyPullRequestSynchronized":
+		case "NotifyMigrateRepository":
 
 			var doer *models.User
 			err = json.Unmarshal(call.Args[0], &doer)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyPullRequestSynchronized", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyMigrateRepository", err)
 				continue
 			}
-			var pr *models.PullRequest
-			err = json.Unmarshal(call.Args[1], &pr)
+			var u *models.User
+			err = json.Unmarshal(call.Args[1], &u)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.PullRequest", "NotifyPullRequestSynchronized", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.User", "NotifyMigrateRepository", err)
+				continue
+			}
+			var repo *models.Repository
+			err = json.Unmarshal(call.Args[2], &repo)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.Repository", "NotifyMigrateRepository", err)
 				continue
 			}
 			for _, notifier := range q.notifiers {
-				notifier.NotifyPullRequestSynchronized(doer, pr)
+				notifier.NotifyMigrateRepository(doer, u, repo)
 			}
-		case "NotifyPullRequestReview":
+		case "NotifyNewIssue":
+
+			var unknown0 *models.Issue
+			err = json.Unmarshal(call.Args[0], &unknown0)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.Issue", "NotifyNewIssue", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyNewIssue(unknown0)
+			}
+		case "NotifyNewPullRequest":
 
 			var unknown0 *models.PullRequest
 			err = json.Unmarshal(call.Args[0], &unknown0)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.PullRequest", "NotifyPullRequestReview", err)
-				continue
-			}
-			var unknown1 *models.Review
-			err = json.Unmarshal(call.Args[1], &unknown1)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Review", "NotifyPullRequestReview", err)
-				continue
-			}
-			var unknown2 *models.Comment
-			err = json.Unmarshal(call.Args[2], &unknown2)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.Comment", "NotifyPullRequestReview", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.PullRequest", "NotifyNewPullRequest", err)
 				continue
 			}
 			for _, notifier := range q.notifiers {
-				notifier.NotifyPullRequestReview(unknown0, unknown1, unknown2)
+				notifier.NotifyNewPullRequest(unknown0)
+			}
+		case "NotifyNewRelease":
+
+			var rel *models.Release
+			err = json.Unmarshal(call.Args[0], &rel)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.Release", "NotifyNewRelease", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyNewRelease(rel)
 			}
 		case "NotifyPullRequestChangeTargetBranch":
 
@@ -471,119 +512,45 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 			for _, notifier := range q.notifiers {
 				notifier.NotifyPullRequestChangeTargetBranch(doer, pr, oldBranch)
 			}
-		case "NotifyCreateIssueComment":
+		case "NotifyPullRequestReview":
 
-			var unknown0 *models.User
+			var unknown0 *models.PullRequest
 			err = json.Unmarshal(call.Args[0], &unknown0)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyCreateIssueComment", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.PullRequest", "NotifyPullRequestReview", err)
 				continue
 			}
-			var unknown1 *models.Repository
+			var unknown1 *models.Review
 			err = json.Unmarshal(call.Args[1], &unknown1)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifyCreateIssueComment", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Review", "NotifyPullRequestReview", err)
 				continue
 			}
-			var unknown2 *models.Issue
+			var unknown2 *models.Comment
 			err = json.Unmarshal(call.Args[2], &unknown2)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.Issue", "NotifyCreateIssueComment", err)
-				continue
-			}
-			var unknown3 *models.Comment
-			err = json.Unmarshal(call.Args[3], &unknown3)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "*models.Comment", "NotifyCreateIssueComment", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.Comment", "NotifyPullRequestReview", err)
 				continue
 			}
 			for _, notifier := range q.notifiers {
-				notifier.NotifyCreateIssueComment(unknown0, unknown1, unknown2, unknown3)
+				notifier.NotifyPullRequestReview(unknown0, unknown1, unknown2)
 			}
-		case "NotifyUpdateComment":
-
-			var unknown0 *models.User
-			err = json.Unmarshal(call.Args[0], &unknown0)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyUpdateComment", err)
-				continue
-			}
-			var unknown1 *models.Comment
-			err = json.Unmarshal(call.Args[1], &unknown1)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Comment", "NotifyUpdateComment", err)
-				continue
-			}
-			var unknown2 string
-			err = json.Unmarshal(call.Args[2], &unknown2)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyUpdateComment", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyUpdateComment(unknown0, unknown1, unknown2)
-			}
-		case "NotifyDeleteComment":
-
-			var unknown0 *models.User
-			err = json.Unmarshal(call.Args[0], &unknown0)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyDeleteComment", err)
-				continue
-			}
-			var unknown1 *models.Comment
-			err = json.Unmarshal(call.Args[1], &unknown1)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Comment", "NotifyDeleteComment", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyDeleteComment(unknown0, unknown1)
-			}
-		case "NotifyNewRelease":
-
-			var rel *models.Release
-			err = json.Unmarshal(call.Args[0], &rel)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.Release", "NotifyNewRelease", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyNewRelease(rel)
-			}
-		case "NotifyUpdateRelease":
+		case "NotifyPullRequestSynchronized":
 
 			var doer *models.User
 			err = json.Unmarshal(call.Args[0], &doer)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyUpdateRelease", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyPullRequestSynchronized", err)
 				continue
 			}
-			var rel *models.Release
-			err = json.Unmarshal(call.Args[1], &rel)
+			var pr *models.PullRequest
+			err = json.Unmarshal(call.Args[1], &pr)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Release", "NotifyUpdateRelease", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.PullRequest", "NotifyPullRequestSynchronized", err)
 				continue
 			}
 			for _, notifier := range q.notifiers {
-				notifier.NotifyUpdateRelease(doer, rel)
-			}
-		case "NotifyDeleteRelease":
-
-			var doer *models.User
-			err = json.Unmarshal(call.Args[0], &doer)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyDeleteRelease", err)
-				continue
-			}
-			var rel *models.Release
-			err = json.Unmarshal(call.Args[1], &rel)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Release", "NotifyDeleteRelease", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyDeleteRelease(doer, rel)
+				notifier.NotifyPullRequestSynchronized(doer, pr)
 			}
 		case "NotifyPushCommits":
 
@@ -626,104 +593,28 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 			for _, notifier := range q.notifiers {
 				notifier.NotifyPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
 			}
-		case "NotifyCreateRef":
+		case "NotifyRenameRepository":
 
 			var doer *models.User
 			err = json.Unmarshal(call.Args[0], &doer)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyCreateRef", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyRenameRepository", err)
 				continue
 			}
 			var repo *models.Repository
 			err = json.Unmarshal(call.Args[1], &repo)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifyCreateRef", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifyRenameRepository", err)
 				continue
 			}
-			var refType string
-			err = json.Unmarshal(call.Args[2], &refType)
+			var oldRepoName string
+			err = json.Unmarshal(call.Args[2], &oldRepoName)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyCreateRef", err)
-				continue
-			}
-			var refFullName string
-			err = json.Unmarshal(call.Args[3], &refFullName)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "string", "NotifyCreateRef", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyRenameRepository", err)
 				continue
 			}
 			for _, notifier := range q.notifiers {
-				notifier.NotifyCreateRef(doer, repo, refType, refFullName)
-			}
-		case "NotifyDeleteRef":
-
-			var doer *models.User
-			err = json.Unmarshal(call.Args[0], &doer)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyDeleteRef", err)
-				continue
-			}
-			var repo *models.Repository
-			err = json.Unmarshal(call.Args[1], &repo)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifyDeleteRef", err)
-				continue
-			}
-			var refType string
-			err = json.Unmarshal(call.Args[2], &refType)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyDeleteRef", err)
-				continue
-			}
-			var refFullName string
-			err = json.Unmarshal(call.Args[3], &refFullName)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "string", "NotifyDeleteRef", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifyDeleteRef(doer, repo, refType, refFullName)
-			}
-		case "NotifySyncPushCommits":
-
-			var pusher *models.User
-			err = json.Unmarshal(call.Args[0], &pusher)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifySyncPushCommits", err)
-				continue
-			}
-			var repo *models.Repository
-			err = json.Unmarshal(call.Args[1], &repo)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifySyncPushCommits", err)
-				continue
-			}
-			var refName string
-			err = json.Unmarshal(call.Args[2], &refName)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifySyncPushCommits", err)
-				continue
-			}
-			var oldCommitID string
-			err = json.Unmarshal(call.Args[3], &oldCommitID)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "string", "NotifySyncPushCommits", err)
-				continue
-			}
-			var newCommitID string
-			err = json.Unmarshal(call.Args[4], &newCommitID)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[4]), "string", "NotifySyncPushCommits", err)
-				continue
-			}
-			var commits *repository.PushCommits
-			err = json.Unmarshal(call.Args[5], &commits)
-			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[5]), "*repository.PushCommits", "NotifySyncPushCommits", err)
-				continue
-			}
-			for _, notifier := range q.notifiers {
-				notifier.NotifySyncPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+				notifier.NotifyRenameRepository(doer, repo, oldRepoName)
 			}
 		case "NotifySyncCreateRef":
 
@@ -783,6 +674,115 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 			for _, notifier := range q.notifiers {
 				notifier.NotifySyncDeleteRef(doer, repo, refType, refFullName)
 			}
+		case "NotifySyncPushCommits":
+
+			var pusher *models.User
+			err = json.Unmarshal(call.Args[0], &pusher)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifySyncPushCommits", err)
+				continue
+			}
+			var repo *models.Repository
+			err = json.Unmarshal(call.Args[1], &repo)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifySyncPushCommits", err)
+				continue
+			}
+			var refName string
+			err = json.Unmarshal(call.Args[2], &refName)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifySyncPushCommits", err)
+				continue
+			}
+			var oldCommitID string
+			err = json.Unmarshal(call.Args[3], &oldCommitID)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "string", "NotifySyncPushCommits", err)
+				continue
+			}
+			var newCommitID string
+			err = json.Unmarshal(call.Args[4], &newCommitID)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[4]), "string", "NotifySyncPushCommits", err)
+				continue
+			}
+			var commits *repository.PushCommits
+			err = json.Unmarshal(call.Args[5], &commits)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[5]), "*repository.PushCommits", "NotifySyncPushCommits", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifySyncPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+			}
+		case "NotifyTransferRepository":
+
+			var doer *models.User
+			err = json.Unmarshal(call.Args[0], &doer)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyTransferRepository", err)
+				continue
+			}
+			var repo *models.Repository
+			err = json.Unmarshal(call.Args[1], &repo)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Repository", "NotifyTransferRepository", err)
+				continue
+			}
+			var oldOwnerName string
+			err = json.Unmarshal(call.Args[2], &oldOwnerName)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyTransferRepository", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyTransferRepository(doer, repo, oldOwnerName)
+			}
+		case "NotifyUpdateComment":
+
+			var unknown0 *models.User
+			err = json.Unmarshal(call.Args[0], &unknown0)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyUpdateComment", err)
+				continue
+			}
+			var unknown1 *models.Comment
+			err = json.Unmarshal(call.Args[1], &unknown1)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Comment", "NotifyUpdateComment", err)
+				continue
+			}
+			var unknown2 string
+			err = json.Unmarshal(call.Args[2], &unknown2)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "string", "NotifyUpdateComment", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyUpdateComment(unknown0, unknown1, unknown2)
+			}
+		case "NotifyUpdateRelease":
+
+			var doer *models.User
+			err = json.Unmarshal(call.Args[0], &doer)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyUpdateRelease", err)
+				continue
+			}
+			var rel *models.Release
+			err = json.Unmarshal(call.Args[1], &rel)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Release", "NotifyUpdateRelease", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyUpdateRelease(doer, rel)
+			}
+		case "Run":
+
+			for _, notifier := range q.notifiers {
+				notifier.Run()
+			}
 		default:
 			log.Error("Unknown notifier function %s with %d arguments", call.Name, len(call.Args))
 		}
@@ -794,6 +794,78 @@ func (q *QueueNotifier) Run() {
 		go notifier.Run()
 	}
 	graceful.GetManager().RunWithShutdownFns(q.internal.Run)
+}
+
+// NotifyCreateIssueComment is a placeholder function
+func (q *QueueNotifier) NotifyCreateIssueComment(unknown0 *models.User, unknown1 *models.Repository, unknown2 *models.Issue, unknown3 *models.Comment) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&unknown0)
+	if err != nil {
+		log.Error("Unable to marshall unknown0: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&unknown1)
+	if err != nil {
+		log.Error("Unable to marshall unknown1: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&unknown2)
+	if err != nil {
+		log.Error("Unable to marshall unknown2: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&unknown3)
+	if err != nil {
+		log.Error("Unable to marshall unknown3: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyCreateIssueComment",
+		Args: args,
+	})
+}
+
+// NotifyCreateRef is a placeholder function
+func (q *QueueNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType string, refFullName string) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&doer)
+	if err != nil {
+		log.Error("Unable to marshall doer: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&repo)
+	if err != nil {
+		log.Error("Unable to marshall repo: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&refType)
+	if err != nil {
+		log.Error("Unable to marshall refType: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&refFullName)
+	if err != nil {
+		log.Error("Unable to marshall refFullName: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyCreateRef",
+		Args: args,
+	})
 }
 
 // NotifyCreateRepository is a placeholder function
@@ -826,8 +898,32 @@ func (q *QueueNotifier) NotifyCreateRepository(doer *models.User, u *models.User
 	})
 }
 
-// NotifyMigrateRepository is a placeholder function
-func (q *QueueNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+// NotifyDeleteComment is a placeholder function
+func (q *QueueNotifier) NotifyDeleteComment(unknown0 *models.User, unknown1 *models.Comment) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&unknown0)
+	if err != nil {
+		log.Error("Unable to marshall unknown0: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&unknown1)
+	if err != nil {
+		log.Error("Unable to marshall unknown1: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyDeleteComment",
+		Args: args,
+	})
+}
+
+// NotifyDeleteRef is a placeholder function
+func (q *QueueNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType string, refFullName string) {
 	args := make([][]byte, 0)
 	var err error
 	var bs []byte
@@ -837,21 +933,51 @@ func (q *QueueNotifier) NotifyMigrateRepository(doer *models.User, u *models.Use
 		return
 	}
 	args = append(args, bs)
-	bs, err = json.Marshal(&u)
-	if err != nil {
-		log.Error("Unable to marshall u: %v", err)
-		return
-	}
-	args = append(args, bs)
 	bs, err = json.Marshal(&repo)
 	if err != nil {
 		log.Error("Unable to marshall repo: %v", err)
 		return
 	}
 	args = append(args, bs)
+	bs, err = json.Marshal(&refType)
+	if err != nil {
+		log.Error("Unable to marshall refType: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&refFullName)
+	if err != nil {
+		log.Error("Unable to marshall refFullName: %v", err)
+		return
+	}
+	args = append(args, bs)
 
 	q.internal.Push(&FunctionCall{
-		Name: "NotifyMigrateRepository",
+		Name: "NotifyDeleteRef",
+		Args: args,
+	})
+}
+
+// NotifyDeleteRelease is a placeholder function
+func (q *QueueNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&doer)
+	if err != nil {
+		log.Error("Unable to marshall doer: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&rel)
+	if err != nil {
+		log.Error("Unable to marshall rel: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyDeleteRelease",
 		Args: args,
 	})
 }
@@ -906,150 +1032,6 @@ func (q *QueueNotifier) NotifyForkRepository(doer *models.User, oldRepo *models.
 
 	q.internal.Push(&FunctionCall{
 		Name: "NotifyForkRepository",
-		Args: args,
-	})
-}
-
-// NotifyRenameRepository is a placeholder function
-func (q *QueueNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&doer)
-	if err != nil {
-		log.Error("Unable to marshall doer: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&repo)
-	if err != nil {
-		log.Error("Unable to marshall repo: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&oldRepoName)
-	if err != nil {
-		log.Error("Unable to marshall oldRepoName: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyRenameRepository",
-		Args: args,
-	})
-}
-
-// NotifyTransferRepository is a placeholder function
-func (q *QueueNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&doer)
-	if err != nil {
-		log.Error("Unable to marshall doer: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&repo)
-	if err != nil {
-		log.Error("Unable to marshall repo: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&oldOwnerName)
-	if err != nil {
-		log.Error("Unable to marshall oldOwnerName: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyTransferRepository",
-		Args: args,
-	})
-}
-
-// NotifyNewIssue is a placeholder function
-func (q *QueueNotifier) NotifyNewIssue(unknown0 *models.Issue) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&unknown0)
-	if err != nil {
-		log.Error("Unable to marshall unknown0: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyNewIssue",
-		Args: args,
-	})
-}
-
-// NotifyIssueChangeStatus is a placeholder function
-func (q *QueueNotifier) NotifyIssueChangeStatus(unknown0 *models.User, unknown1 *models.Issue, unknown2 *models.Comment, unknown3 bool) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&unknown0)
-	if err != nil {
-		log.Error("Unable to marshall unknown0: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&unknown1)
-	if err != nil {
-		log.Error("Unable to marshall unknown1: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&unknown2)
-	if err != nil {
-		log.Error("Unable to marshall unknown2: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&unknown3)
-	if err != nil {
-		log.Error("Unable to marshall unknown3: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyIssueChangeStatus",
-		Args: args,
-	})
-}
-
-// NotifyIssueChangeMilestone is a placeholder function
-func (q *QueueNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&doer)
-	if err != nil {
-		log.Error("Unable to marshall doer: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&issue)
-	if err != nil {
-		log.Error("Unable to marshall issue: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&oldMilestoneID)
-	if err != nil {
-		log.Error("Unable to marshall oldMilestoneID: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyIssueChangeMilestone",
 		Args: args,
 	})
 }
@@ -1126,60 +1108,6 @@ func (q *QueueNotifier) NotifyIssueChangeContent(doer *models.User, issue *model
 	})
 }
 
-// NotifyIssueClearLabels is a placeholder function
-func (q *QueueNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&doer)
-	if err != nil {
-		log.Error("Unable to marshall doer: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&issue)
-	if err != nil {
-		log.Error("Unable to marshall issue: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyIssueClearLabels",
-		Args: args,
-	})
-}
-
-// NotifyIssueChangeTitle is a placeholder function
-func (q *QueueNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&doer)
-	if err != nil {
-		log.Error("Unable to marshall doer: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&issue)
-	if err != nil {
-		log.Error("Unable to marshall issue: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&oldTitle)
-	if err != nil {
-		log.Error("Unable to marshall oldTitle: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyIssueChangeTitle",
-		Args: args,
-	})
-}
-
 // NotifyIssueChangeLabels is a placeholder function
 func (q *QueueNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue, addedLabels []*models.Label, removedLabels []*models.Label) {
 	args := make([][]byte, 0)
@@ -1216,8 +1144,38 @@ func (q *QueueNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models
 	})
 }
 
-// NotifyNewPullRequest is a placeholder function
-func (q *QueueNotifier) NotifyNewPullRequest(unknown0 *models.PullRequest) {
+// NotifyIssueChangeMilestone is a placeholder function
+func (q *QueueNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&doer)
+	if err != nil {
+		log.Error("Unable to marshall doer: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&issue)
+	if err != nil {
+		log.Error("Unable to marshall issue: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&oldMilestoneID)
+	if err != nil {
+		log.Error("Unable to marshall oldMilestoneID: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyIssueChangeMilestone",
+		Args: args,
+	})
+}
+
+// NotifyIssueChangeStatus is a placeholder function
+func (q *QueueNotifier) NotifyIssueChangeStatus(unknown0 *models.User, unknown1 *models.Issue, unknown2 *models.Comment, unknown3 bool) {
 	args := make([][]byte, 0)
 	var err error
 	var bs []byte
@@ -1227,9 +1185,81 @@ func (q *QueueNotifier) NotifyNewPullRequest(unknown0 *models.PullRequest) {
 		return
 	}
 	args = append(args, bs)
+	bs, err = json.Marshal(&unknown1)
+	if err != nil {
+		log.Error("Unable to marshall unknown1: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&unknown2)
+	if err != nil {
+		log.Error("Unable to marshall unknown2: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&unknown3)
+	if err != nil {
+		log.Error("Unable to marshall unknown3: %v", err)
+		return
+	}
+	args = append(args, bs)
 
 	q.internal.Push(&FunctionCall{
-		Name: "NotifyNewPullRequest",
+		Name: "NotifyIssueChangeStatus",
+		Args: args,
+	})
+}
+
+// NotifyIssueChangeTitle is a placeholder function
+func (q *QueueNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&doer)
+	if err != nil {
+		log.Error("Unable to marshall doer: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&issue)
+	if err != nil {
+		log.Error("Unable to marshall issue: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&oldTitle)
+	if err != nil {
+		log.Error("Unable to marshall oldTitle: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyIssueChangeTitle",
+		Args: args,
+	})
+}
+
+// NotifyIssueClearLabels is a placeholder function
+func (q *QueueNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&doer)
+	if err != nil {
+		log.Error("Unable to marshall doer: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&issue)
+	if err != nil {
+		log.Error("Unable to marshall issue: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyIssueClearLabels",
 		Args: args,
 	})
 }
@@ -1258,8 +1288,8 @@ func (q *QueueNotifier) NotifyMergePullRequest(unknown0 *models.PullRequest, unk
 	})
 }
 
-// NotifyPullRequestSynchronized is a placeholder function
-func (q *QueueNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+// NotifyMigrateRepository is a placeholder function
+func (q *QueueNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 	args := make([][]byte, 0)
 	var err error
 	var bs []byte
@@ -1269,21 +1299,27 @@ func (q *QueueNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *mod
 		return
 	}
 	args = append(args, bs)
-	bs, err = json.Marshal(&pr)
+	bs, err = json.Marshal(&u)
 	if err != nil {
-		log.Error("Unable to marshall pr: %v", err)
+		log.Error("Unable to marshall u: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&repo)
+	if err != nil {
+		log.Error("Unable to marshall repo: %v", err)
 		return
 	}
 	args = append(args, bs)
 
 	q.internal.Push(&FunctionCall{
-		Name: "NotifyPullRequestSynchronized",
+		Name: "NotifyMigrateRepository",
 		Args: args,
 	})
 }
 
-// NotifyPullRequestReview is a placeholder function
-func (q *QueueNotifier) NotifyPullRequestReview(unknown0 *models.PullRequest, unknown1 *models.Review, unknown2 *models.Comment) {
+// NotifyNewIssue is a placeholder function
+func (q *QueueNotifier) NotifyNewIssue(unknown0 *models.Issue) {
 	args := make([][]byte, 0)
 	var err error
 	var bs []byte
@@ -1293,21 +1329,45 @@ func (q *QueueNotifier) NotifyPullRequestReview(unknown0 *models.PullRequest, un
 		return
 	}
 	args = append(args, bs)
-	bs, err = json.Marshal(&unknown1)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyNewIssue",
+		Args: args,
+	})
+}
+
+// NotifyNewPullRequest is a placeholder function
+func (q *QueueNotifier) NotifyNewPullRequest(unknown0 *models.PullRequest) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&unknown0)
 	if err != nil {
-		log.Error("Unable to marshall unknown1: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&unknown2)
-	if err != nil {
-		log.Error("Unable to marshall unknown2: %v", err)
+		log.Error("Unable to marshall unknown0: %v", err)
 		return
 	}
 	args = append(args, bs)
 
 	q.internal.Push(&FunctionCall{
-		Name: "NotifyPullRequestReview",
+		Name: "NotifyNewPullRequest",
+		Args: args,
+	})
+}
+
+// NotifyNewRelease is a placeholder function
+func (q *QueueNotifier) NotifyNewRelease(rel *models.Release) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&rel)
+	if err != nil {
+		log.Error("Unable to marshall rel: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyNewRelease",
 		Args: args,
 	})
 }
@@ -1342,44 +1402,8 @@ func (q *QueueNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User, p
 	})
 }
 
-// NotifyCreateIssueComment is a placeholder function
-func (q *QueueNotifier) NotifyCreateIssueComment(unknown0 *models.User, unknown1 *models.Repository, unknown2 *models.Issue, unknown3 *models.Comment) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&unknown0)
-	if err != nil {
-		log.Error("Unable to marshall unknown0: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&unknown1)
-	if err != nil {
-		log.Error("Unable to marshall unknown1: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&unknown2)
-	if err != nil {
-		log.Error("Unable to marshall unknown2: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&unknown3)
-	if err != nil {
-		log.Error("Unable to marshall unknown3: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyCreateIssueComment",
-		Args: args,
-	})
-}
-
-// NotifyUpdateComment is a placeholder function
-func (q *QueueNotifier) NotifyUpdateComment(unknown0 *models.User, unknown1 *models.Comment, unknown2 string) {
+// NotifyPullRequestReview is a placeholder function
+func (q *QueueNotifier) NotifyPullRequestReview(unknown0 *models.PullRequest, unknown1 *models.Review, unknown2 *models.Comment) {
 	args := make([][]byte, 0)
 	var err error
 	var bs []byte
@@ -1403,55 +1427,13 @@ func (q *QueueNotifier) NotifyUpdateComment(unknown0 *models.User, unknown1 *mod
 	args = append(args, bs)
 
 	q.internal.Push(&FunctionCall{
-		Name: "NotifyUpdateComment",
+		Name: "NotifyPullRequestReview",
 		Args: args,
 	})
 }
 
-// NotifyDeleteComment is a placeholder function
-func (q *QueueNotifier) NotifyDeleteComment(unknown0 *models.User, unknown1 *models.Comment) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&unknown0)
-	if err != nil {
-		log.Error("Unable to marshall unknown0: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&unknown1)
-	if err != nil {
-		log.Error("Unable to marshall unknown1: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyDeleteComment",
-		Args: args,
-	})
-}
-
-// NotifyNewRelease is a placeholder function
-func (q *QueueNotifier) NotifyNewRelease(rel *models.Release) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&rel)
-	if err != nil {
-		log.Error("Unable to marshall rel: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyNewRelease",
-		Args: args,
-	})
-}
-
-// NotifyUpdateRelease is a placeholder function
-func (q *QueueNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+// NotifyPullRequestSynchronized is a placeholder function
+func (q *QueueNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
 	args := make([][]byte, 0)
 	var err error
 	var bs []byte
@@ -1461,39 +1443,15 @@ func (q *QueueNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Relea
 		return
 	}
 	args = append(args, bs)
-	bs, err = json.Marshal(&rel)
+	bs, err = json.Marshal(&pr)
 	if err != nil {
-		log.Error("Unable to marshall rel: %v", err)
+		log.Error("Unable to marshall pr: %v", err)
 		return
 	}
 	args = append(args, bs)
 
 	q.internal.Push(&FunctionCall{
-		Name: "NotifyUpdateRelease",
-		Args: args,
-	})
-}
-
-// NotifyDeleteRelease is a placeholder function
-func (q *QueueNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&doer)
-	if err != nil {
-		log.Error("Unable to marshall doer: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&rel)
-	if err != nil {
-		log.Error("Unable to marshall rel: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyDeleteRelease",
+		Name: "NotifyPullRequestSynchronized",
 		Args: args,
 	})
 }
@@ -1546,8 +1504,8 @@ func (q *QueueNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repo
 	})
 }
 
-// NotifyCreateRef is a placeholder function
-func (q *QueueNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType string, refFullName string) {
+// NotifyRenameRepository is a placeholder function
+func (q *QueueNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string) {
 	args := make([][]byte, 0)
 	var err error
 	var bs []byte
@@ -1563,105 +1521,15 @@ func (q *QueueNotifier) NotifyCreateRef(doer *models.User, repo *models.Reposito
 		return
 	}
 	args = append(args, bs)
-	bs, err = json.Marshal(&refType)
+	bs, err = json.Marshal(&oldRepoName)
 	if err != nil {
-		log.Error("Unable to marshall refType: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&refFullName)
-	if err != nil {
-		log.Error("Unable to marshall refFullName: %v", err)
+		log.Error("Unable to marshall oldRepoName: %v", err)
 		return
 	}
 	args = append(args, bs)
 
 	q.internal.Push(&FunctionCall{
-		Name: "NotifyCreateRef",
-		Args: args,
-	})
-}
-
-// NotifyDeleteRef is a placeholder function
-func (q *QueueNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType string, refFullName string) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&doer)
-	if err != nil {
-		log.Error("Unable to marshall doer: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&repo)
-	if err != nil {
-		log.Error("Unable to marshall repo: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&refType)
-	if err != nil {
-		log.Error("Unable to marshall refType: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&refFullName)
-	if err != nil {
-		log.Error("Unable to marshall refFullName: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifyDeleteRef",
-		Args: args,
-	})
-}
-
-// NotifySyncPushCommits is a placeholder function
-func (q *QueueNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName string, oldCommitID string, newCommitID string, commits *repository.PushCommits) {
-	args := make([][]byte, 0)
-	var err error
-	var bs []byte
-	bs, err = json.Marshal(&pusher)
-	if err != nil {
-		log.Error("Unable to marshall pusher: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&repo)
-	if err != nil {
-		log.Error("Unable to marshall repo: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&refName)
-	if err != nil {
-		log.Error("Unable to marshall refName: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&oldCommitID)
-	if err != nil {
-		log.Error("Unable to marshall oldCommitID: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&newCommitID)
-	if err != nil {
-		log.Error("Unable to marshall newCommitID: %v", err)
-		return
-	}
-	args = append(args, bs)
-	bs, err = json.Marshal(&commits)
-	if err != nil {
-		log.Error("Unable to marshall commits: %v", err)
-		return
-	}
-	args = append(args, bs)
-
-	q.internal.Push(&FunctionCall{
-		Name: "NotifySyncPushCommits",
+		Name: "NotifyRenameRepository",
 		Args: args,
 	})
 }
@@ -1734,6 +1602,138 @@ func (q *QueueNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Repo
 
 	q.internal.Push(&FunctionCall{
 		Name: "NotifySyncDeleteRef",
+		Args: args,
+	})
+}
+
+// NotifySyncPushCommits is a placeholder function
+func (q *QueueNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName string, oldCommitID string, newCommitID string, commits *repository.PushCommits) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&pusher)
+	if err != nil {
+		log.Error("Unable to marshall pusher: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&repo)
+	if err != nil {
+		log.Error("Unable to marshall repo: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&refName)
+	if err != nil {
+		log.Error("Unable to marshall refName: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&oldCommitID)
+	if err != nil {
+		log.Error("Unable to marshall oldCommitID: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&newCommitID)
+	if err != nil {
+		log.Error("Unable to marshall newCommitID: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&commits)
+	if err != nil {
+		log.Error("Unable to marshall commits: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifySyncPushCommits",
+		Args: args,
+	})
+}
+
+// NotifyTransferRepository is a placeholder function
+func (q *QueueNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&doer)
+	if err != nil {
+		log.Error("Unable to marshall doer: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&repo)
+	if err != nil {
+		log.Error("Unable to marshall repo: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&oldOwnerName)
+	if err != nil {
+		log.Error("Unable to marshall oldOwnerName: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyTransferRepository",
+		Args: args,
+	})
+}
+
+// NotifyUpdateComment is a placeholder function
+func (q *QueueNotifier) NotifyUpdateComment(unknown0 *models.User, unknown1 *models.Comment, unknown2 string) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&unknown0)
+	if err != nil {
+		log.Error("Unable to marshall unknown0: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&unknown1)
+	if err != nil {
+		log.Error("Unable to marshall unknown1: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&unknown2)
+	if err != nil {
+		log.Error("Unable to marshall unknown2: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyUpdateComment",
+		Args: args,
+	})
+}
+
+// NotifyUpdateRelease is a placeholder function
+func (q *QueueNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&doer)
+	if err != nil {
+		log.Error("Unable to marshall doer: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&rel)
+	if err != nil {
+		log.Error("Unable to marshall rel: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyUpdateRelease",
 		Args: args,
 	})
 }

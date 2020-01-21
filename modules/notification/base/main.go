@@ -14,6 +14,7 @@ import (
 	"go/parser"
 	"go/token"
 	"io/ioutil"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -124,6 +125,10 @@ func main() {
 
 		// We're done so stop walking
 		return false
+	})
+
+	sort.Slice(funcs, func(i, j int) bool {
+		return funcs[i].Name < funcs[j].Name
 	})
 
 	// First lets create the NullNotifier
