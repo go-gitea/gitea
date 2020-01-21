@@ -11,7 +11,7 @@ import (
 func addLockedResourceTable(x *xorm.Engine) error {
 
 	type LockedResource struct {
-		LockType	string      `xorm:"pk"`
+		LockType	string      `xorm:"pk VARCHAR(30)"`
 		LockKey		int64		`xorm:"pk"`
 		Counter		int64		`xorm:"NOT NULL DEFAULT 0"`
 	}

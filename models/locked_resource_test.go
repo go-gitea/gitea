@@ -47,7 +47,8 @@ func TestLockedResource(t *testing.T) {
 
 	// Attempt temp lock on an existing key, expect error
 	withSession(t, func(t *testing.T, sess *xorm.Session) bool {
-		_, err := TempLockResource(sess, "test-1",1)
+		err := TempLockResource(sess, "test-1",1)
+		// Must give error
 		return assert.Error(t, err)
 	})
 
@@ -62,15 +63,10 @@ func TestLockedResource(t *testing.T) {
 
 	// Attempt temp lock on an valid key, expect success
 	withSession(t, func(t *testing.T, sess *xorm.Session) bool {
-		// Must give error
-		releaseLock, err := TempLockResource(sess, "test-1",1)
-		if !assert.NoError(t, err) {
-			return false
-		}
-		return assert.NoError(t, releaseLock())
+		return assert.NoError(t, TempLockResource(sess, "test-1",1))
 	})
 
 	// Note: testing the validity of the locking mechanism (i.e. whether it actually locks)
-	// must be done in the integration tests, so all the supported databases are checked.
+	// is be done at the integration tests to ensure that all the supported databases are checked.
 }
 

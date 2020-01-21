@@ -10,15 +10,19 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	// Note: these values might require tuning
-	before = 500 * time.Millisecond
-	after = 1000 * time.Millisecond
-	tolerance = 200 * time.Millisecond
+	// The tests will fail if the waiter function takes less than
+	// blockerDelay minus tolerance to complete.
+	// Note: these values might require tuning in order to avoid
+	// false negatives.
+	waiterDelay = 100 * time.Millisecond
+	blockerDelay = 200 * time.Millisecond
+	tolerance = 50 * time.Millisecond	// Should be <= (blockerDelay-waiterDelay)/2
 )
 
 type waitResult struct {
@@ -35,37 +39,31 @@ func TestLockedResource(t *testing.T) {
 	// the more certain we are the second goroutine is waiting.
 
 	// This check **must** fail as we're not blocking anything
-	assert.Error(t, blockTest("no block", func(ctx models.DBContext) (func() error, error){
-		return func() error{
-			return nil
-		}, nil
+	assert.Error(t, blockTest("no block", func(ctx models.DBContext) error {
+		return nil
 	}))
 
 	models.AssertNotExistsBean(t, &models.LockedResource{LockType: "test-1", LockKey: 1})
 
 	// Test with creation (i.e. new lock type)
-	assert.NoError(t, blockTest("block-new", func(ctx models.DBContext) (func() error, error){
+	assert.NoError(t, blockTest("block-new", func(ctx models.DBContext) error {
 		_, err := models.GetLockedResourceCtx(ctx, "block-test-1", 1)
-		return func() error{
-			return nil
-		}, err
+		return err
 	}))
 
 	// Test without creation (i.e. lock type already exists)
-	assert.NoError(t, blockTest("block-existing", func(ctx models.DBContext) (func() error, error){
+	assert.NoError(t, blockTest("block-existing", func(ctx models.DBContext) error {
 		_, err := models.GetLockedResourceCtx(ctx, "block-test-1", 1)
-		return func() error{
-			return nil
-		}, err
+		return err
 	}))
 
 	// Test with temporary record
-	assert.NoError(t, blockTest("block-temp", func(ctx models.DBContext) (func() error, error){
+	assert.NoError(t, blockTest("block-temp", func(ctx models.DBContext) error {
 		return models.TempLockResourceCtx(ctx, "temp-1", 1)
 	}))
 }
 
-func blockTest(name string, f func(ctx models.DBContext) (func() error, error)) error {
+func blockTest(name string, f func(ctx models.DBContext) error) error {
 	cb := make(chan waitResult)
 	cw := make(chan waitResult)
 	ref := time.Now()
@@ -86,40 +84,39 @@ func blockTest(name string, f func(ctx models.DBContext) (func() error, error)) 
 		return resw.Err
 	}
 
-	if resw.Waited < after - tolerance {
+	if resw.Waited < blockerDelay - tolerance {
 		return fmt.Errorf("Waiter not blocked on %s; wait: %d ms, expected > %d ms",
-			name, resw.Waited.Milliseconds(), (after - tolerance).Milliseconds())
+			name, resw.Waited.Milliseconds(), (blockerDelay - tolerance).Milliseconds())
 	}
 
 	return nil
 }
 
-func blockTestFunc(name string, blocker bool, ref time.Time, f func(ctx models.DBContext) (func() error, error)) (wr waitResult) {
+func blockTestFunc(name string, blocker bool, ref time.Time, f func(ctx models.DBContext) error) (wr waitResult) {
 	if blocker {
 		name = fmt.Sprintf("blocker [%s]", name)
 	} else {
 		name = fmt.Sprintf("waiter [%s]", name)
 	}
 	err := models.WithTx(func(ctx models.DBContext) error {
-		fmt.Printf("Entering %s @%d\n", name, time.Now().Sub(ref).Milliseconds())
+		log.Trace("Entering %s @%d", name, time.Now().Sub(ref).Milliseconds())
 		if !blocker {
-			fmt.Printf("Waiting on %s @%d\n", name, time.Now().Sub(ref).Milliseconds())
-			time.Sleep(before)
-			fmt.Printf("Wait finished on %s @%d\n", name, time.Now().Sub(ref).Milliseconds())
+			log.Trace("Waiting on %s @%d", name, time.Now().Sub(ref).Milliseconds())
+			time.Sleep(waiterDelay)
+			log.Trace("Wait finished on %s @%d", name, time.Now().Sub(ref).Milliseconds())
 		}
-		releaseLock, err := f(ctx)
-		if err != nil {
+		if err := f(ctx); err != nil {
 			return err
 		}
 		if blocker {
-			fmt.Printf("Waiting on %s @%d\n", name, time.Now().Sub(ref).Milliseconds())
-			time.Sleep(after)
-			fmt.Printf("Wait finished on %s @%d\n", name, time.Now().Sub(ref).Milliseconds())
+			log.Trace("Waiting on %s @%d", name, time.Now().Sub(ref).Milliseconds())
+			time.Sleep(blockerDelay)
+			log.Trace("Wait finished on %s @%d", name, time.Now().Sub(ref).Milliseconds())
 		} else {
 			wr.Waited = time.Now().Sub(ref)
 		}
-		fmt.Printf("Finishing %s @%d\n", name, time.Now().Sub(ref).Milliseconds())
-		return releaseLock()
+		log.Trace("Finishing %s @%d", name, time.Now().Sub(ref).Milliseconds())
+		return nil
 	})
 	if err != nil {
 		wr.Err = fmt.Errorf("error in %s: %v", name, err)
