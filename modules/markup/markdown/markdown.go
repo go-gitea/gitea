@@ -50,6 +50,7 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 					extension.WithTypographicSubstitutions(extension.TypographicSubstitutions{
 						extension.EnDash: nil,
 						extension.EmDash: nil,
+						extension.Ellipsis: nil,
 					}),
 				),
 			),
