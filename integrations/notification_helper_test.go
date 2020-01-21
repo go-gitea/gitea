@@ -47,17 +47,13 @@ func (n *NotifierListener) Register(functionName string, callback *func(string, 
 // Deregister will remove the provided callback from the provided notifier function
 func (n *NotifierListener) Deregister(functionName string, callback *func(string, [][]byte)) {
 	n.lock.Lock()
-	found := -1
+	defer n.lock.Unlock()
 	for i, callbackPtr := range n.callbacks[functionName] {
 		if callbackPtr == callback {
-			found = i
-			break
+			n.callbacks[functionName] = append(n.callbacks[functionName][0:i], n.callbacks[functionName][i+1:]...)
+			return
 		}
 	}
-	if found > -1 {
-		n.callbacks[functionName] = append(n.callbacks[functionName][0:found], n.callbacks[functionName][found+1:]...)
-	}
-	n.lock.Unlock()
 }
 
 // RegisterChannel will return a registered channel with function name and return a function to deregister it and close the channel at the end

@@ -59,70 +59,60 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	return resp
 }
 
+func checkChannelWithTimeout(c <-chan interface{}, timeout time.Duration, callback func(interface{}) bool) bool {
+	timer := time.NewTimer(500 * time.Millisecond)
+	for {
+		select {
+		case received := <-c:
+			if callback(received) {
+				if !timer.Stop() {
+					select {
+					case <-timer.C:
+					default:
+					}
+				}
+				return true
+			}
+		case <-timer.C:
+			return false
+		}
+	}
+}
+
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		createPullNotified, deferableCreate := notifierListener.RegisterChannel("NotifyNewPullRequest", 0, &models.PullRequest{})
-		defer deferableCreate()
+		createPullNotified, unregisterNewPull := notifierListener.RegisterChannel("NotifyNewPullRequest", 0, &models.PullRequest{})
+		defer unregisterNewPull()
 
-		mergePullNotified, deferableMerge := notifierListener.RegisterChannel("NotifyMergePullRequest", 0, &models.PullRequest{})
-		defer deferableMerge()
+		mergePullNotified, unregisterMergePull := notifierListener.RegisterChannel("NotifyMergePullRequest", 0, &models.PullRequest{})
+		defer unregisterMergePull()
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
-		var prInterface interface{}
-
 		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
-		select {
-		case prInterface = <-createPullNotified:
-		case <-time.After(500 * time.Millisecond):
-			assert.Fail(t, "Took too long to notify!")
-		}
-		pr := prInterface.(*models.PullRequest)
-		pr.LoadBaseRepo()
-		pr.LoadHeadRepo()
-		pr.BaseRepo.MustOwner()
-		pr.HeadRepo.MustOwner()
 
-		assert.EqualValues(t, "user1", pr.HeadRepo.Owner.Name)
-		assert.EqualValues(t, "repo1", pr.HeadRepo.Name)
-		assert.EqualValues(t, "user2", pr.BaseRepo.Owner.Name)
-		assert.EqualValues(t, "repo1", pr.BaseRepo.Name)
+		isOurPR := func(received interface{}) bool {
+			pr := received.(*models.PullRequest)
+			pr.LoadBaseRepo()
+			pr.LoadHeadRepo()
+			return pr.BaseRepo.FullName() == "user2/repo1" &&
+				pr.BaseBranch == "master" &&
+				pr.HeadRepo.FullName() == "user1/repo1" &&
+				pr.HeadBranch == "master"
+		}
+
+		assert.True(t, checkChannelWithTimeout(createPullNotified, 500*time.Millisecond, isOurPR), "Failed to be notified pull created")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
 
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
+		assert.True(t, checkChannelWithTimeout(mergePullNotified, 500*time.Millisecond, isOurPR), "Failed to be notified pull merged")
 
-		select {
-		case prInterface = <-mergePullNotified:
-		case <-time.After(500 * time.Millisecond):
-			assert.Fail(t, "Took too long to notify!")
-		}
-
-		pr = prInterface.(*models.PullRequest)
-		pr.LoadBaseRepo()
-		pr.LoadHeadRepo()
-		pr.BaseRepo.MustOwner()
-		pr.HeadRepo.MustOwner()
-
-		assert.EqualValues(t, "user1", pr.HeadRepo.Owner.Name)
-		assert.EqualValues(t, "repo1", pr.HeadRepo.Name)
-		assert.EqualValues(t, "user2", pr.BaseRepo.Owner.Name)
-		assert.EqualValues(t, "repo1", pr.BaseRepo.Name)
-
-		time.Sleep(100 * time.Millisecond)
-		select {
-		case prInterface = <-createPullNotified:
-			assert.Fail(t, "Should only have one pull create notification: %v", prInterface)
-		default:
-		}
-		select {
-		case prInterface = <-mergePullNotified:
-			assert.Fail(t, "Should only have one pull merge notification: %v", prInterface)
-		default:
-		}
+		assert.False(t, checkChannelWithTimeout(createPullNotified, 100*time.Millisecond, isOurPR), "Duplicate notified pull created")
+		assert.False(t, checkChannelWithTimeout(mergePullNotified, 100*time.Millisecond, isOurPR), "Duplicate notified pull merged")
 	})
 }
 
