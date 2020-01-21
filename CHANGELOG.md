@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Never allow an empty password to validate (#9682) (#9683)
   * Prevent redirect to Host (#9678) (#9679)
 * BUGFIXES
+  * Fix wrong permissions check when issues/prs shared operations (#9885) (#9889)
   * Check user != nil before checking values (#9881) (#9883)
   * Allow hyphen in language name (#9873) (#9880)
   * Ensure that 2fa is checked on reset-password (#9857) (#9876)
