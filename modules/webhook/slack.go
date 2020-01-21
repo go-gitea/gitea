@@ -232,10 +232,10 @@ func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, e
 		Username: slack.Username,
 		IconURL:  slack.IconURL,
 		Attachments: []SlackAttachment{{
-			Color: slack.Color,
-			Title: p.Repo.HTMLURL,
+			Color:     slack.Color,
+			Title:     p.Repo.HTMLURL,
 			TitleLink: p.Repo.HTMLURL,
-			Text:  attachmentText,
+			Text:      attachmentText,
 		}},
 	}, nil
 }
