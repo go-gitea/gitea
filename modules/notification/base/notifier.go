@@ -11,6 +11,8 @@ import (
 
 //go:generate go run -mod=vendor main.go
 
+// If you change the below definition you must run go generate - see main.go
+
 // Notifier defines an interface to notify receiver
 type Notifier interface {
 	Run()

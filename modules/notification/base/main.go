@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -19,64 +19,114 @@ import (
 	"time"
 )
 
+// funcDef are a semi-generic function definitions
 type funcDef struct {
 	Name string
 	Args []funcDefArg
 }
 
+// funcDefArg describe an argument to a function
 type funcDefArg struct {
 	Name string
 	Type string
 }
 
+// main will generate two files that implement the Notifier interface
+// defined in notifier.go
+//
+// * the NullNotifier which is a basic Notifier that does nothing
+// when each of its methods is called
+//
+// * the QueueNotifier which is a notifier that sends its commands down
+// a queue.
+//
+// The main benefit of this generation is that we never need to keep these
+// up to date again. Add a new function to Notifier and the NullNotifier and
+// the NotifierQueue will gain these functions automatically.
+//
+// There are two caveat:
+// * All notifier functions must not return anything.
+// * If you add a new import you will need to add it to the templates below
 func main() {
+
+	// OK build the AST from the notifier.go file
 	fset := token.NewFileSet() // positions are relative to fset
 	f, err := parser.ParseFile(fset, "notifier.go", nil, 0)
 	if err != nil {
 		panic(err)
 	}
+
+	// func will collect all the function definitions from the Notifier interface
 	funcs := make([]funcDef, 0)
-	//currentFunc := funcDef{}
+
 	ast.Inspect(f, func(n ast.Node) bool {
 		spec, ok := n.(*ast.TypeSpec)
-		if !ok || spec.Name.Name != "Notifier" {
-			return true
+		if !ok || spec.Name.Name != "Notifier" { // We only care about the Notifier interface declaration
+			return true // If we are not a type decl or aren't looking at the Notifier decl keep looking
 		}
+
+		// We're at: `type Notifier ...` so now we need check that it's an interface
 		child, ok := spec.Type.(*ast.InterfaceType)
 		if !ok {
-			return false
+			return false // There's no point looking in non interface types.
 		}
+
+		// OK we're in the declaration of the Notifier, e.g.
+		// type Notifier interface { ... }
+
+		// Let's look at each Method in turn, but first we redefine
+		// funcs now we know how big it's supposed to be
 		funcs = make([]funcDef, len(child.Methods.List))
 		for i, method := range child.Methods.List {
-			methodFuncDef := method.Type.(*ast.FuncType)
+			// example: NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits)
+
+			// method here is looking at the NotifyPushCommits...
+
+			// We know that interfaces have FuncType for the method
+			methodFuncDef := method.Type.(*ast.FuncType) // eg. (...)
+
+			// Extract the function definition from the method
 			def := funcDef{}
-			def.Name = method.Names[0].Name
+			def.Name = method.Names[0].Name // methods only have one name in interfaces <- NotifyPushCommits
+
+			// Now construct the args
 			def.Args = make([]funcDefArg, 0, len(methodFuncDef.Params.List))
 			for j, param := range methodFuncDef.Params.List {
+
+				// interfaces don't have to name their arguments e.g. NotifyNewIssue(*models.Issue)
+				// but we need a name to make a function call
 				defaultName := fmt.Sprintf("unknown%d", j)
+
+				// Now get the type - here we will just use what is used in source file. (See caveat 2.)
 				sb := strings.Builder{}
 				format.Node(&sb, fset, param.Type)
 
+				// If our parameter is unnamed
 				if len(param.Names) == 0 {
 					def.Args = append(def.Args, funcDefArg{
 						Name: defaultName,
 						Type: sb.String(),
 					})
 				} else {
+					// Now in the example NotifyPushCommits we see that refname, oldCommitID etc don't have type following them
+					// The AST creates these as a single param with mulitple names
+					// Therefore iterate through the param.Names
 					for _, ident := range param.Names {
-						def.Args = append(def.Args, funcDefArg{
-							Name: ident.Name,
-							Type: sb.String(),
-						})
+							def.Args = append(def.Args, funcDefArg{
+								Name: ident.Name,
+								Type: sb.String(),
+							})
+						}
 					}
-				}
 			}
 			funcs[i] = def
 		}
 
-		return true
+		// We're done so stop walking
+		return false
 	})
 
+	// First lets create the NullNotifier
 	buf := bytes.Buffer{}
 	nullTemplate.Execute(&buf, struct {
 		Timestamp time.Time
@@ -96,6 +146,7 @@ func main() {
 		panic(err)
 	}
 
+	// Then create the NotifierQueue
 	buf = bytes.Buffer{}
 	queueTemplate.Execute(&buf, struct {
 		Timestamp time.Time
@@ -132,22 +183,25 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 )
 
-// FunctionCall represents is function call with json.Marshaled arguments
+// FunctionCall represents a function call with json.Marshaled arguments
 type FunctionCall struct {
 	Name string
 	Args [][]byte
 }
 
+// QueueNotifier is a notifier queue
 type QueueNotifier struct {
 	name string
 	notifiers []Notifier
 	internal queue.Queue
 }
 
+// Ensure that QueueNotifier fulfils the Notifier interface
 var (
 	_ Notifier = &QueueNotifier{}
 )
 
+// NewQueueNotifier creates a notifier that queues notifications and on dequeueing sends them to the provided notifiers
 func NewQueueNotifier(name string, notifiers []Notifier) Notifier {
 	q := &QueueNotifier{
 		name: name,
@@ -157,6 +211,7 @@ func NewQueueNotifier(name string, notifiers []Notifier) Notifier {
 	return q
 }
 
+// NewQueueNotifierWithHandle creates a notifier queue with a specific handler function
 func NewQueueNotifierWithHandle(name string, handle queue.HandlerFunc) Notifier {
 	q := &QueueNotifier{
 		name: name,
@@ -235,6 +290,7 @@ import (
 type NullNotifier struct {
 }
 
+// Ensure that NullNotifier fulfils the Notifier interface
 var (
 	_ Notifier = &NullNotifier{}
 )

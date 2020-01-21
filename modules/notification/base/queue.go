@@ -11,22 +11,25 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 )
 
-// FunctionCall represents is function call with json.Marshaled arguments
+// FunctionCall represents a function call with json.Marshaled arguments
 type FunctionCall struct {
 	Name string
 	Args [][]byte
 }
 
+// QueueNotifier is a notifier queue
 type QueueNotifier struct {
 	name      string
 	notifiers []Notifier
 	internal  queue.Queue
 }
 
+// Ensure that QueueNotifier fulfils the Notifier interface
 var (
 	_ Notifier = &QueueNotifier{}
 )
 
+// NewQueueNotifier creates a notifier that queues notifications and on dequeueing sends them to the provided notifiers
 func NewQueueNotifier(name string, notifiers []Notifier) Notifier {
 	q := &QueueNotifier{
 		name:      name,
@@ -36,6 +39,7 @@ func NewQueueNotifier(name string, notifiers []Notifier) Notifier {
 	return q
 }
 
+// NewQueueNotifierWithHandle creates a notifier queue with a specific handler function
 func NewQueueNotifierWithHandle(name string, handle queue.HandlerFunc) Notifier {
 	q := &QueueNotifier{
 		name: name,

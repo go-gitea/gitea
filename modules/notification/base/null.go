@@ -10,6 +10,7 @@ import (
 type NullNotifier struct {
 }
 
+// Ensure that NullNotifier fulfils the Notifier interface
 var (
 	_ Notifier = &NullNotifier{}
 )
