@@ -108,6 +108,12 @@
 						{{.i18n.Tr "repo.activity.git_stats_and_deletions" }}
 						<strong class="text red">{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.Deletions "repo.activity.git_stats_deletion_1" "repo.activity.git_stats_deletion_n") .Activity.Code.Deletions }}</strong>.
 					</div>
+					<div class="ui attached segment" id="app">
+						<script type="text/javascript">
+						var ActivityTopAuthors = {{Json .ActivityTopAuthors | SafeJS}};
+						</script>
+						<activity-top-authors :data="activityTopAuthors" />
+					</div>
 				</div>
 			{{end}}
 		{{end}}
