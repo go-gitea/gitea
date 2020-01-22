@@ -10,12 +10,15 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// LockedResource represents the locking key for a pessimistic
+// lock that can hold a counter
 type LockedResource struct {
 	LockType string `xorm:"pk VARCHAR(30)"`
 	LockKey  int64  `xorm:"pk"`
 	Counter  int64  `xorm:"NOT NULL DEFAULT 0"`
 }
 
+// GetLockedResource gets or creates a pessimistic lock on the given type and key
 func GetLockedResource(e Engine, lockType string, lockKey int64) (*LockedResource, error) {
 	locked := &LockedResource{LockType: lockType, LockKey: lockKey}
 
@@ -33,16 +36,19 @@ func GetLockedResource(e Engine, lockType string, lockKey int64) (*LockedResourc
 	return locked, nil
 }
 
+// UpdateLockedResource updates the value of the counter of a locked resource
 func UpdateLockedResource(e Engine, resource *LockedResource) error {
 	_, err := e.Table(resource).Cols("counter").Update(resource)
 	return err
 }
 
+// DeleteLockedResource deletes a locked resource
 func DeleteLockedResource(e Engine, resource *LockedResource) error {
 	_, err := e.Delete(resource)
 	return err
 }
 
+// TempLockResource locks the given key but does not leave a permanent record
 func TempLockResource(e Engine, lockType string, lockKey int64) error {
 	locked := &LockedResource{LockType: lockType, LockKey: lockKey}
 	// Temporary locked resources must not exist in the table.
@@ -54,22 +60,28 @@ func TempLockResource(e Engine, lockType string, lockKey int64) error {
 	return err
 }
 
+// GetLockedResourceCtx gets or creates a pessimistic lock on the given type and key
 func GetLockedResourceCtx(ctx DBContext, lockType string, lockKey int64) (*LockedResource, error) {
 	return GetLockedResource(ctx.e, lockType, lockKey)
 }
 
+// UpdateLockedResourceCtx updates the value of the counter of a locked resource
 func UpdateLockedResourceCtx(ctx DBContext, resource *LockedResource) error {
 	return UpdateLockedResource(ctx.e, resource)
 }
 
+// DeleteLockedResourceCtx deletes a locked resource
 func DeleteLockedResourceCtx(ctx DBContext, resource *LockedResource) error {
 	return DeleteLockedResource(ctx.e, resource)
 }
 
+// TempLockResourceCtx locks the given key but does not leave a permanent record
 func TempLockResourceCtx(ctx DBContext, lockType string, lockKey int64) error {
 	return TempLockResource(ctx.e, lockType, lockKey)
 }
 
+// upsertLockedResource will create or lock the given key in the database.
+// the function will not return until it acquires the lock or receives an error.
 func upsertLockedResource(e Engine, resource *LockedResource) (err error) {
 	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
 	// that ensures that the key is actually locked.
