@@ -105,14 +105,16 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 }
 
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
-func (opts *FindTrackedTimesOptions) ToSession(e Engine) *xorm.Session {
-	sess := e.Where(opts.ToCond())
+func (opts *FindTrackedTimesOptions) ToSession(e Engine) Engine {
+	sess := e
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
 		sess = e.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
 	}
 
+	sess = sess.Where(opts.ToCond())
+
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = opts.setEnginePagination(sess)
 	}
 
 	return sess

@@ -77,6 +77,11 @@ func ListReleases(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: per_page
+	//   in: query
+	//   description: items count every page wants to load
+	//   type: integer
+	//   deprecated: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -88,9 +93,13 @@ func ListReleases(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
+	listOptions := utils.GetListOptions(ctx)
+	if ctx.QueryInt("limit") != 0 {
+		listOptions.PageSize = ctx.QueryInt("limit")
+	}
 
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-		ListOptions:   utils.GetListOptions(ctx),
+		ListOptions:   listOptions,
 		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
 		IncludeTags:   false,
 	})
