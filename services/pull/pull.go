@@ -398,3 +398,31 @@ func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
 
 	return errs
 }
+
+// CloseRepoBranchesPulls close all pull requests which head branches are in the given repository
+func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
+	branches, err := git.GetBranchesByPath(repo.RepoPath())
+	if err != nil {
+		return err
+	}
+
+	var errs errlist
+	for _, branch := range branches {
+		prs, err := models.GetUnmergedPullRequestsByHeadInfo(repo.ID, branch.Name)
+		if err != nil {
+			return err
+		}
+
+		if err = models.PullRequestList(prs).LoadAttributes(); err != nil {
+			return err
+		}
+
+		for _, pr := range prs {
+			if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	return errs
+}
