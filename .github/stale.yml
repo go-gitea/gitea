@@ -28,7 +28,7 @@ staleLabel: stale
 # Comment to post when marking as stale. Set to `false` to disable
 markComment: >
   This issue has been automatically marked as stale because it has not had recent activity. 
-  I am here to help clear issues left open even if solved or waiting more insight.
+  I am here to help clear issues left open even if solved or waiting for more insight.
   This issue will be closed if no further activity occurs during the next 2 weeks.
   If the issue is still valid just add a comment to keep it alive.
   Thank you for your contributions.
@@ -52,4 +52,3 @@ pulls:
   closeComment: >
     This pull request has been automatically closed because of inactivity.
     You can re-open it if needed.
-
