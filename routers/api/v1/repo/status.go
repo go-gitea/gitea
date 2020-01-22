@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/repofiles"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -221,13 +220,13 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 }
 
 type combinedCommitStatus struct {
-	State      structs.CommitStatusState `json:"state"`
-	SHA        string                    `json:"sha"`
-	TotalCount int                       `json:"total_count"`
-	Statuses   []*api.Status             `json:"statuses"`
-	Repo       *api.Repository           `json:"repository"`
-	CommitURL  string                    `json:"commit_url"`
-	URL        string                    `json:"url"`
+	State      api.CommitStatusState `json:"state"`
+	SHA        string                `json:"sha"`
+	TotalCount int                   `json:"total_count"`
+	Statuses   []*api.Status         `json:"statuses"`
+	Repo       *api.Repository       `json:"repository"`
+	CommitURL  string                `json:"commit_url"`
+	URL        string                `json:"url"`
 }
 
 // GetCombinedCommitStatusByRef returns the combined status for any given commit hash
