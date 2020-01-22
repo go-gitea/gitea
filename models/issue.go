@@ -905,15 +905,15 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	// Obtain the next issue number for this repository, which will be locked
 	// and reserved for the remaining of the transaction. Should the transaction
 	// be rolled back, the previous value will be restored.
-	locked, err := GetLockedResource(e, IssueLockedEnumerator, opts.Issue.RepoID)
+	idxresource, err := GetLockedResource(e, IssueLockedEnumerator, opts.Issue.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetLockedResource(%s)", IssueLockedEnumerator)
 	}
-	locked.Counter++
-	if err := UpdateLockedResource(e, locked); err != nil {
-		return fmt.Errorf("UpdateLockedResource(%s)", IssueLockedEnumerator)
+	idxresource.Counter++
+	if err := idxresource.UpdateValue(); err != nil {
+		return fmt.Errorf("locked.UpdateValue(%s)", IssueLockedEnumerator)
 	}
-	opts.Issue.Index = locked.Counter
+	opts.Issue.Index = idxresource.Counter
 
 	if _, err = e.Insert(opts.Issue); err != nil {
 		return err

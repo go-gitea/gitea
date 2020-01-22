@@ -16,46 +16,58 @@ type LockedResource struct {
 	LockType string `xorm:"pk VARCHAR(30)"`
 	LockKey  int64  `xorm:"pk"`
 	Counter  int64  `xorm:"NOT NULL DEFAULT 0"`
+
+	engine Engine `xorm:"-"`
 }
 
 // GetLockedResource gets or creates a pessimistic lock on the given type and key
 func GetLockedResource(e Engine, lockType string, lockKey int64) (*LockedResource, error) {
-	locked := &LockedResource{LockType: lockType, LockKey: lockKey}
+	resource := &LockedResource{LockType: lockType, LockKey: lockKey}
 
-	if err := upsertLockedResource(e, locked); err != nil {
+	if err := upsertLockedResource(e, resource); err != nil {
 		return nil, fmt.Errorf("upsertLockedResource: %v", err)
 	}
 
 	// Read back the record we've created or locked to get the current Counter value
-	if has, err := e.Table(locked).Get(locked); err != nil {
+	if has, err := e.Table(resource).Get(resource); err != nil {
 		return nil, fmt.Errorf("get locked resource %s:%d: %v", lockType, lockKey, err)
 	} else if !has {
 		return nil, fmt.Errorf("unexpected upsert fail  %s:%d", lockType, lockKey)
 	}
 
-	return locked, nil
+	// Once active, the locked resource is tied to a specific session
+	resource.engine = e
+
+	return resource, nil
 }
 
-// UpdateLockedResource updates the value of the counter of a locked resource
-func UpdateLockedResource(e Engine, resource *LockedResource) error {
-	_, err := e.Table(resource).Cols("counter").Update(resource)
+// UpdateValue updates the value of the counter of a locked resource
+func (r *LockedResource) UpdateValue() error {
+	_, err := r.engine.Table(r).Cols("counter").Update(r)
 	return err
 }
 
-// DeleteLockedResource deletes a locked resource
-func DeleteLockedResource(e Engine, resource *LockedResource) error {
-	_, err := e.Delete(resource)
+// Delete deletes the locked resource from the database,
+// but the key remains locked until the end of the transaction
+func (r *LockedResource) Delete() error {
+	_, err := r.engine.Delete(r)
 	return err
 }
 
-// TempLockResource locks the given key but does not leave a permanent record
-func TempLockResource(e Engine, lockType string, lockKey int64) error {
-	locked := &LockedResource{LockType: lockType, LockKey: lockKey}
-	// Temporary locked resources must not exist in the table.
+// DeleteLockedResourceKey deletes a locked resource by key
+func DeleteLockedResourceKey(e Engine, lockType string, lockKey int64) error {
+	_, err := e.Delete(&LockedResource{LockType: lockType, LockKey: lockKey})
+	return err
+}
+
+// TemporarilyLockResourceKey locks the given key but does not leave a permanent record
+func TemporarilyLockResourceKey(e Engine, lockType string, lockKey int64) error {
+	resource := &LockedResource{LockType: lockType, LockKey: lockKey}
+	// Temporary locked resources should not exist in the table.
 	// This allows us to use a simple INSERT to lock the key.
-	_, err := e.Insert(locked)
+	_, err := e.Insert(resource)
 	if err == nil {
-		_, err = e.Delete(locked)
+		_, err = e.Delete(resource)
 	}
 	return err
 }
@@ -65,19 +77,14 @@ func GetLockedResourceCtx(ctx DBContext, lockType string, lockKey int64) (*Locke
 	return GetLockedResource(ctx.e, lockType, lockKey)
 }
 
-// UpdateLockedResourceCtx updates the value of the counter of a locked resource
-func UpdateLockedResourceCtx(ctx DBContext, resource *LockedResource) error {
-	return UpdateLockedResource(ctx.e, resource)
+// DeleteLockedResourceKeyCtx deletes a locked resource by key
+func DeleteLockedResourceKeyCtx(ctx DBContext, lockType string, lockKey int64) error {
+	return DeleteLockedResourceKey(ctx.e, lockType, lockKey)
 }
 
-// DeleteLockedResourceCtx deletes a locked resource
-func DeleteLockedResourceCtx(ctx DBContext, resource *LockedResource) error {
-	return DeleteLockedResource(ctx.e, resource)
-}
-
-// TempLockResourceCtx locks the given key but does not leave a permanent record
-func TempLockResourceCtx(ctx DBContext, lockType string, lockKey int64) error {
-	return TempLockResource(ctx.e, lockType, lockKey)
+// TemporarilyLockResourceKeyCtx locks the given key but does not leave a permanent record
+func TemporarilyLockResourceKeyCtx(ctx DBContext, lockType string, lockKey int64) error {
+	return TemporarilyLockResourceKey(ctx.e, lockType, lockKey)
 }
 
 // upsertLockedResource will create or lock the given key in the database.

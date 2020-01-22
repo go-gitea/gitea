@@ -59,7 +59,7 @@ func TestLockedResource(t *testing.T) {
 
 	// Test with temporary record
 	assert.NoError(t, blockTest("block-temp", func(ctx models.DBContext) error {
-		return models.TempLockResourceCtx(ctx, "temp-1", 1)
+		return models.TemporarilyLockResourceKeyCtx(ctx, "temp-1", 1)
 	}))
 }
 

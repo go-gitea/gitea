@@ -130,11 +130,11 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	sess := x.NewSession()
 	defer sess.Close()
 	assert.NoError(t, sess.Begin())
-	lock, err := GetLockedResource(sess, IssueLockedEnumerator, repo)
+	idxresource, err := GetLockedResource(sess, IssueLockedEnumerator, repo)
 	assert.NoError(t, err)
-	lock.Counter++
-	assert.NoError(t, UpdateLockedResource(sess, lock))
-	i.Index = lock.Counter
+	idxresource.Counter++
+	assert.NoError(t, idxresource.UpdateValue())
+	i.Index = idxresource.Counter
 	_, err = sess.Insert(i)
 	assert.NoError(t, err)
 	assert.NoError(t, i.addCrossReferences(sess, d, false))
