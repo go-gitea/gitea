@@ -47,7 +47,8 @@
 	{{else if .IsPullRequestBroken}}red
 	{{else if .IsBlockedByApprovals}}red
 	{{else if .IsBlockedByRejection}}red
-	{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}red
+	{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
+	{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
 	{{else if and .RequireSigned (not .WillSign)}}}red
 	{{else if .Issue.PullRequest.IsChecking}}yellow
 	{{else if .Issue.PullRequest.CanAutoMerge}}green
@@ -118,7 +119,7 @@
 						<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
 					</div>
-				{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
+				{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsError .RequiredStatusCheckState.IsFailure)}}
 					<div class="item text red">
 						<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
 						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
