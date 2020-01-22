@@ -479,7 +479,7 @@ js: node-check fomantic $(JS_DEST)
 
 $(JS_DEST): node_modules $(JS_SOURCES)
 	npx eslint web_src/js webpack.config.js
-	npx webpack
+	npx webpack --hide-modules --display-entrypoints=false
 
 .PHONY: fomantic
 fomantic: node-check $(FOMANTIC_DEST_DIR)

@@ -8,6 +8,7 @@ module.exports = {
   entry: {
     index: ['./web_src/js/index'],
     swagger: ['./web_src/js/swagger'],
+    jquery: ['./web_src/js/jquery'],
   },
   devtool: false,
   output: {
@@ -37,29 +38,31 @@ module.exports = {
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        use: {
-          loader: 'babel-loader',
-          options: {
-            presets: [
-              [
-                '@babel/preset-env',
-                {
-                  useBuiltIns: 'usage',
-                  corejs: 3,
-                }
-              ]
-            ],
-            plugins: [
-              [
-                '@babel/plugin-transform-runtime',
-                {
-                  regenerator: true,
-                }
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                [
+                  '@babel/preset-env',
+                  {
+                    useBuiltIns: 'usage',
+                    corejs: 3,
+                  }
+                ]
               ],
-              '@babel/plugin-proposal-object-rest-spread',
-            ],
-          }
-        }
+              plugins: [
+                [
+                  '@babel/plugin-transform-runtime',
+                  {
+                    regenerator: true,
+                  }
+                ],
+                '@babel/plugin-proposal-object-rest-spread',
+              ],
+            }
+          },
+        ],
       },
       {
         test: /\.css$/i,
@@ -72,13 +75,20 @@ module.exports = {
     new SourceMapDevToolPlugin({
       filename: '[name].js.map',
       exclude: [
+        'gitgraph.js',
+        'jquery.js',
         'swagger.js',
       ],
     }),
   ],
   performance: {
+    maxEntrypointSize: 512000,
+    maxAssetSize: 512000,
     assetFilter: (filename) => {
       return !filename.endsWith('.map') && filename !== 'swagger.js';
     }
   },
+  resolve: {
+    symlinks: false,
+  }
 };
