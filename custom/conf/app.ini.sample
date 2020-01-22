@@ -49,6 +49,8 @@ DISABLED_REPO_UNITS =
 ; External wiki and issue tracker can't be enabled by default as it requires additional settings.
 ; Disabled repo units will not be added to new repositories regardless if it is in the default list.
 DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
+; Prefix archive files by placing them in a directory named after the repository
+PREFIX_ARCHIVE_FILES = true
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor
