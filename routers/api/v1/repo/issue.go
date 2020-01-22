@@ -51,6 +51,7 @@ func SearchIssues(ctx *context.APIContext) {
 	// - name: type
 	//   in: query
 	//   description: filter by type (issues / pulls) if set
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of requested issues
