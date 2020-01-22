@@ -87,7 +87,7 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 	var lastStatus *CommitStatus
 	var state api.CommitStatusState
 	for _, status := range statuses {
-		if status.State.IsWorseThan(state) {
+		if status.State.NoBetterThan(state) {
 			state = status.State
 			lastStatus = status
 		}

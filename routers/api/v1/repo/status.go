@@ -293,7 +293,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	retStatus.Statuses = make([]*api.Status, 0, len(statuses))
 	for _, status := range statuses {
 		retStatus.Statuses = append(retStatus.Statuses, status.APIFormat())
-		if status.State.IsWorseThan(retStatus.State) {
+		if status.State.NoBetterThan(retStatus.State) {
 			retStatus.State = status.State
 		}
 	}

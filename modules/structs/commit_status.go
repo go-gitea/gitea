@@ -21,8 +21,8 @@ const (
 	CommitStatusWarning CommitStatusState = "warning"
 )
 
-// IsWorseThan returns true if this State is worse than the given State
-func (css CommitStatusState) IsWorseThan(css2 CommitStatusState) bool {
+// NoBetterThan returns true if this State is no better than the given State
+func (css CommitStatusState) NoBetterThan(css2 CommitStatusState) bool {
 	switch css {
 	case CommitStatusError:
 		return true

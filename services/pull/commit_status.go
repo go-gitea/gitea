@@ -36,7 +36,7 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*models.CommitStatus, re
 		if targetStatus == "" {
 			targetStatus = structs.CommitStatusPending
 		}
-		if targetStatus.IsWorseThan(returnedStatus) {
+		if targetStatus.NoBetterThan(returnedStatus) {
 			returnedStatus = targetStatus
 		}
 	}
