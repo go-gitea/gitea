@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Never allow an empty password to validate (#9682) (#9683)
   * Prevent redirect to Host (#9678) (#9679)
 * BUGFIXES
+  * Don't convert ellipsis in markdown (#9905) (#9937)
   * Fixed repo link in generated comment for cross repository dependency (#9863) (#9935)
   * Fix wrong hint when status checking is running on pull request view (#9886) (#9928)
   * Fix RocketChat (#9908) (#9921)
