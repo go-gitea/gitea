@@ -88,10 +88,10 @@ func TestPullMerge(t *testing.T) {
 		defer unregisterMergePull()
 
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1-TestPullMerge")
+		testEditFile(t, session, "user1", "repo1-TestPullMerge", "master", "README.md", "Hello, World (Edited)\n")
 
-		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		resp := testPullCreate(t, session, "user1", "repo1-TestPullMerge", "master", "This is a pull title")
 
 		isOurPR := func(received interface{}) bool {
 			pr := received.(*models.PullRequest)
@@ -99,7 +99,7 @@ func TestPullMerge(t *testing.T) {
 			pr.LoadHeadRepo()
 			return pr.BaseRepo.FullName() == "user2/repo1" &&
 				pr.BaseBranch == "master" &&
-				pr.HeadRepo.FullName() == "user1/repo1" &&
+				pr.HeadRepo.FullName() == "user1/repo1-TestPullMerge" &&
 				pr.HeadBranch == "master"
 		}
 
