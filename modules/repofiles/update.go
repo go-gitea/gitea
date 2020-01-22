@@ -495,7 +495,7 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 		return err
 	}
 
-	if opts.NewCommitID != git.EmptySHA {
+	if !isDelRef {
 		if err = models.RemoveDeletedBranch(repo.ID, opts.Branch); err != nil {
 			log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, opts.Branch, err)
 		}

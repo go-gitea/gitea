@@ -70,7 +70,7 @@ func (pr *PullRequest) MustHeadUserName() string {
 		if !IsErrRepoNotExist(err) {
 			log.Error("LoadHeadRepo: %v", err)
 		} else {
-			log.Warn("LoadHeadRepo %d but repository is not exist: %v", pr.HeadRepoID, err)
+			log.Warn("LoadHeadRepo %d but repository does not exist: %v", pr.HeadRepoID, err)
 		}
 		return ""
 	}
