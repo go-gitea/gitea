@@ -343,13 +343,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	setMergeTarget(ctx, pull)
 
-	allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
-	if err != nil {
-		ctx.ServerError("IsUserAllowedToUpdate", err)
-		return nil
-	}
-	ctx.Data["UpdateAllowed"] = allowUpdate
-
 	if err := pull.LoadProtectedBranch(); err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
 		return nil
@@ -387,6 +380,13 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 
 	if headBranchExist {
+		allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+		if err != nil {
+			ctx.ServerError("IsUserAllowedToUpdate", err)
+			return nil
+		}
+		ctx.Data["UpdateAllowed"] = allowUpdate
+
 		divergence, err := pull_service.GetDiverging(pull)
 		if err != nil {
 			ctx.ServerError("GetDiverging", err)

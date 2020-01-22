@@ -503,11 +503,9 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 		log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
 		go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
-	} else {
 		// close all related pulls
-		if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
-			log.Error("close related pull request failed: %v", err)
-		}
+	} else if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
+		log.Error("close related pull request failed: %v", err)
 	}
 
 	if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
@@ -559,11 +557,9 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 			log.Trace("TriggerTask '%s/%s' by %s", repo.Name, opts.Branch, pusher.Name)
 
 			go pull_service.AddTestPullRequestTask(pusher, repo.ID, opts.Branch, true, opts.OldCommitID, opts.NewCommitID)
-		} else {
 			// close all related pulls
-			if err = pull_service.CloseBranchPulls(pusher, repo.ID, opts.Branch); err != nil {
-				log.Error("close related pull request failed: %v", err)
-			}
+		} else if err = pull_service.CloseBranchPulls(pusher, repo.ID, opts.Branch); err != nil {
+			log.Error("close related pull request failed: %v", err)
 		}
 
 		if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
