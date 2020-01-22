@@ -343,12 +343,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	setMergeTarget(ctx, pull)
 
-	divergence, err := pull_service.GetDiverging(pull)
-	if err != nil {
-		ctx.ServerError("GetDiverging", err)
-		return nil
-	}
-	ctx.Data["Divergence"] = divergence
 	allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToUpdate", err)
@@ -390,6 +384,15 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 				return nil
 			}
 		}
+	}
+
+	if headBranchExist {
+		divergence, err := pull_service.GetDiverging(pull)
+		if err != nil {
+			ctx.ServerError("GetDiverging", err)
+			return nil
+		}
+		ctx.Data["Divergence"] = divergence
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())

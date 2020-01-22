@@ -355,3 +355,46 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 
 	return nil
 }
+
+type errlist []error
+
+func (errs errlist) Error() string {
+	if len(errs) > 0 {
+		var buf strings.Builder
+		for i, err := range errs {
+			if i > 0 {
+				buf.WriteString(",")
+			}
+			buf.WriteString(err.Error())
+		}
+		return buf.String()
+	}
+	return ""
+}
+
+// CloseBranchPulls close all the pull requests who's head branch is the branch
+func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
+	prs, err := models.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
+	if err != nil {
+		return err
+	}
+
+	prs2, err := models.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
+	if err != nil {
+		return err
+	}
+
+	prs = append(prs, prs2...)
+	if err := models.PullRequestList(prs).LoadAttributes(); err != nil {
+		return err
+	}
+
+	var errs errlist
+	for _, pr := range prs {
+		if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
+}
