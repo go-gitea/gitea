@@ -344,7 +344,7 @@ func (diffFile *DiffFile) GetHighlightClass() string {
 
 // GetTailSection creates a fake DiffLineSection if the last section is not the end of the file
 func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, rightCommitID string) *DiffSection {
-	if diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
+	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
 		return nil
 	}
 	leftCommit, err := gitRepo.GetCommit(leftCommitID)
