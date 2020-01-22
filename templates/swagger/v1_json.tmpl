@@ -1479,7 +1479,7 @@
             "in": "query"
           },
           {
-            "description": "filter by type (issues / pul",
+            "description": "filter by type (issues / pulls) if set",
             "name": "type",
             "in": "query"
           },
@@ -6209,6 +6209,12 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "items count every page wants to load",
+            "name": "per_page",
+            "in": "query"
           },
           {
             "type": "integer",

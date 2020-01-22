@@ -50,7 +50,7 @@ func SearchIssues(ctx *context.APIContext) {
 	//   format: int64
 	// - name: type
 	//   in: query
-	//   description: filter by type (issues / pul
+	//   description: filter by type (issues / pulls) if set
 	// - name: page
 	//   in: query
 	//   description: page number of requested issues
