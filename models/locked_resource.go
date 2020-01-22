@@ -29,7 +29,8 @@ func GetLockedResource(e Engine, lockType string, lockKey int64) (*LockedResourc
 	}
 
 	// Read back the record we've created or locked to get the current Counter value
-	if has, err := e.Table(resource).Get(resource); err != nil {
+	if has, err := e.Table(resource).NoCache().NoAutoCondition().AllCols().
+		Where("lock_type = ? AND lock_key = ?", lockType, lockKey).Get(resource); err != nil {
 		return nil, fmt.Errorf("get locked resource %s:%d: %v", lockType, lockKey, err)
 	} else if !has {
 		return nil, fmt.Errorf("unexpected upsert fail  %s:%d", lockType, lockKey)
@@ -43,31 +44,34 @@ func GetLockedResource(e Engine, lockType string, lockKey int64) (*LockedResourc
 
 // UpdateValue updates the value of the counter of a locked resource
 func (r *LockedResource) UpdateValue() error {
-	_, err := r.engine.Table(r).Cols("counter").Update(r)
+	// Bypass ORM to support lock_type == "" and lock_key == 0
+	_, err := r.engine.Exec("UPDATE locked_resource SET counter = ? WHERE lock_type = ? AND lock_key = ?",
+		r.Counter, r.LockType, r.LockKey)
 	return err
 }
 
 // Delete deletes the locked resource from the database,
 // but the key remains locked until the end of the transaction
 func (r *LockedResource) Delete() error {
-	_, err := r.engine.Delete(r)
+	// Bypass ORM to support lock_type == "" and lock_key == 0
+	_, err := r.engine.Exec("DELETE FROM locked_resource WHERE lock_type = ? AND lock_key = ?", r.LockType, r.LockKey)
 	return err
 }
 
 // DeleteLockedResourceKey deletes a locked resource by key
 func DeleteLockedResourceKey(e Engine, lockType string, lockKey int64) error {
-	_, err := e.Delete(&LockedResource{LockType: lockType, LockKey: lockKey})
+	// Bypass ORM to support lock_type == "" and lock_key == 0
+	_, err := e.Exec("DELETE FROM locked_resource WHERE lock_type = ? AND lock_key = ?", lockType, lockKey)
 	return err
 }
 
 // TemporarilyLockResourceKey locks the given key but does not leave a permanent record
 func TemporarilyLockResourceKey(e Engine, lockType string, lockKey int64) error {
-	resource := &LockedResource{LockType: lockType, LockKey: lockKey}
 	// Temporary locked resources should not exist in the table.
 	// This allows us to use a simple INSERT to lock the key.
-	_, err := e.Insert(resource)
+	_, err := e.Exec("INSERT INTO locked_resource (lock_type, lock_key) VALUES (?, ?)", lockType, lockKey)
 	if err == nil {
-		_, err = e.Delete(resource)
+		_, err = e.Exec("DELETE FROM locked_resource WHERE lock_type = ? AND lock_key = ?", lockType, lockKey)
 	}
 	return err
 }
