@@ -395,8 +395,10 @@ func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
 			errs = append(errs, err)
 		}
 	}
-
-	return errs
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
 }
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository
@@ -424,5 +426,8 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 		}
 	}
 
-	return errs
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
 }
