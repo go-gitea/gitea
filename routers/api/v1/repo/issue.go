@@ -51,6 +51,10 @@ func SearchIssues(ctx *context.APIContext) {
 	//   description: repository to prioritize in the results
 	//   type: integer
 	//   format: int64
+	// - name: type
+	//   in: query
+	//   description: filter by type (issues / pulls) if set
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -129,6 +133,16 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 	}
 
+	var isPull util.OptionalBool
+	switch ctx.Query("type") {
+	case "pulls":
+		isPull = util.OptionalBoolTrue
+	case "issues":
+		isPull = util.OptionalBoolFalse
+	default:
+		isPull = util.OptionalBoolNone
+	}
+
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
@@ -141,6 +155,7 @@ func SearchIssues(ctx *context.APIContext) {
 			LabelIDs:       labelIDs,
 			SortType:       "priorityrepo",
 			PriorityRepoID: ctx.QueryInt64("priority_repo_id"),
+			IsPull:         isPull,
 		})
 	}
 
@@ -192,6 +207,10 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: search string
 	//   type: string
+	// - name: type
+	//   in: query
+	//   description: filter by type (issues / pulls) if set
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -227,6 +246,16 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
+	var isPull util.OptionalBool
+	switch ctx.Query("type") {
+	case "pulls":
+		isPull = util.OptionalBoolTrue
+	case "issues":
+		isPull = util.OptionalBoolFalse
+	default:
+		isPull = util.OptionalBoolNone
+	}
+
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
@@ -237,6 +266,7 @@ func ListIssues(ctx *context.APIContext) {
 			IsClosed: isClosed,
 			IssueIDs: issueIDs,
 			LabelIDs: labelIDs,
+			IsPull:   isPull,
 		})
 	}
 
@@ -461,6 +491,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 	issue.Repo = ctx.Repo.Repository
+	canWrite := ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 
 	err = issue.LoadAttributes()
 	if err != nil {
@@ -468,7 +499,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if !issue.IsPoster(ctx.User.ID) && !canWrite {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -481,7 +512,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 
 	// Update or remove the deadline, only if set and allowed
-	if (form.Deadline != nil || form.RemoveDeadline != nil) && ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if (form.Deadline != nil || form.RemoveDeadline != nil) && canWrite {
 		var deadlineUnix timeutil.TimeStamp
 
 		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
@@ -505,7 +536,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.CanWrite(models.UnitTypeIssues) && (form.Assignees != nil || form.Assignee != nil) {
+	if canWrite && (form.Assignees != nil || form.Assignee != nil) {
 		oneAssignee := ""
 		if form.Assignee != nil {
 			oneAssignee = *form.Assignee
@@ -518,7 +549,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 	}
 
-	if ctx.Repo.CanWrite(models.UnitTypeIssues) && form.Milestone != nil &&
+	if canWrite && form.Milestone != nil &&
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
@@ -604,7 +635,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "", "Not repo writer")
 		return
 	}
