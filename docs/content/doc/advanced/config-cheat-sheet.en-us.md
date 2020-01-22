@@ -181,8 +181,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
-- `CERT_FILE`: **custom/https/cert.pem**: Cert file path used for HTTPS.
-- `KEY_FILE`: **custom/https/key.pem**: Key file path used for HTTPS.
+- `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. From 1.11 paths are relative to `CUSTOM_PATH`.
+- `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. From 1.11 paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars.
 - `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
@@ -209,6 +209,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
+- `SCHEMA`: **\<empty\>**: For PostgreSQL only, schema to use if different from "public". The schema must exist beforehand,
+  the user must have creation privileges on it, and the user search path must be set to the look into the schema first 
+  (e.g. `ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;`).
 - `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
 - `CHARSET`: **utf8**: For MySQL only, either "utf8" or "utf8mb4", default is "utf8". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
@@ -309,7 +312,7 @@ relation to port exhaustion.
 - `REQUIRE_EXTERNAL_REGISTRATION_PASSWORD`: **false**: Enable this to force externally created
    accounts (via GitHub, OpenID Connect, etc) to create a password. Warning: enabling this will
    decrease security, so you should only enable it if you know what you're doing.
-- `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
+- `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page or to use API.
 - `ENABLE_NOTIFY_MAIL`: **false**: Enable this to send e-mail to watchers of a repository when
    something happens, like creating issues. Requires `Mailer` to be enabled.
 - `ENABLE_BASIC_AUTHENTICATION`: **true**: Disable this to disallow authenticaton using HTTP

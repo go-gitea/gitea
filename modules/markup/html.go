@@ -636,11 +636,11 @@ func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if matchOrg == ctx.metas["user"] && matchRepo == ctx.metas["repo"] {
 		// TODO if m[4]:m[5] is not nil, then link is to a comment,
 		// and we should indicate that in the text somehow
-		replaceContent(node, m[0], m[1], createLink(link, id, "issue"))
+		replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
 
 	} else {
 		orgRepoID := matchOrg + "/" + matchRepo + id
-		replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "issue"))
+		replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "ref-issue"))
 	}
 }
 
@@ -676,7 +676,7 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
 	if exttrack && !ref.IsPull {
 		ctx.metas["index"] = ref.Issue
-		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "issue")
+		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "ref-issue")
 	} else {
 		// Path determines the type of link that will be rendered. It's unknown at this point whether
 		// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
@@ -686,9 +686,9 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 			path = "pulls"
 		}
 		if ref.Owner == "" {
-			link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], path, ref.Issue), reftext, "issue")
+			link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], path, ref.Issue), reftext, "ref-issue")
 		} else {
-			link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "issue")
+			link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "ref-issue")
 		}
 	}
 

@@ -54,7 +54,7 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 		return
 	}
 	status := &models.CommitStatus{
-		State:       models.CommitStatusState(form.State),
+		State:       api.CommitStatusState(form.State),
 		TargetURL:   form.TargetURL,
 		Description: form.Description,
 		Context:     form.Context,
@@ -227,13 +227,13 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 }
 
 type combinedCommitStatus struct {
-	State      models.CommitStatusState `json:"state"`
-	SHA        string                   `json:"sha"`
-	TotalCount int                      `json:"total_count"`
-	Statuses   []*api.Status            `json:"statuses"`
-	Repo       *api.Repository          `json:"repository"`
-	CommitURL  string                   `json:"commit_url"`
-	URL        string                   `json:"url"`
+	State      api.CommitStatusState `json:"state"`
+	SHA        string                `json:"sha"`
+	TotalCount int                   `json:"total_count"`
+	Statuses   []*api.Status         `json:"statuses"`
+	Repo       *api.Repository       `json:"repository"`
+	CommitURL  string                `json:"commit_url"`
+	URL        string                `json:"url"`
 }
 
 // GetCombinedCommitStatusByRef returns the combined status for any given commit hash
@@ -300,7 +300,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	retStatus.Statuses = make([]*api.Status, 0, len(statuses))
 	for _, status := range statuses {
 		retStatus.Statuses = append(retStatus.Statuses, status.APIFormat())
-		if status.State.IsWorseThan(retStatus.State) {
+		if status.State.NoBetterThan(retStatus.State) {
 			retStatus.State = status.State
 		}
 	}

@@ -180,7 +180,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue() failed", err)
 	}
 
-	if comment.Issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if comment.Issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}
@@ -389,7 +389,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}

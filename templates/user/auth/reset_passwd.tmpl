@@ -18,7 +18,7 @@
 					{{end}}
 					{{if .IsResetForm}}
 						<div class="required inline field {{if .Err_Password}}error{{end}}">
-							<label for="password">{{.i18n.Tr "password"}}</label>
+							<label for="password">{{.i18n.Tr "settings.new_password"}}</label>
 							<input id="password" name="password" type="password"  value="{{.password}}" autocomplete="off" autofocus required>
 						</div>
 						{{if not .user_signed_in}}
@@ -30,10 +30,31 @@
 							</div>
 						</div>
 						{{end}}
+						{{if .has_two_factor}}
+						<h4 class="ui dividing header">
+							{{.i18n.Tr "twofa"}}
+						</h4>
+						<div class="ui warning visible message">{{.i18n.Tr "settings.twofa_is_enrolled" | Str2html }}</div>
+						{{if .scratch_code}}
+						<div class="required inline field {{if .Err_Token}}error{{end}}">
+							<label for="token">{{.i18n.Tr "auth.scratch_code"}}</label>
+							<input id="token" name="token" type="text" autocomplete="off" autofocus required>
+						</div>
+						<input type="hidden" name="scratch_code" value="true">
+						{{else}}
+						<div class="required inline field {{if .Err_Passcode}}error{{end}}">
+							<label for="passcode">{{.i18n.Tr "passcode"}}</label>
+							<input id="passcode" name="passcode" type="number" autocomplete="off" autofocus required>
+						</div>
+						{{end}}
+						{{end}}
 						<div class="ui divider"></div>
 						<div class="inline field">
 							<label></label>
 							<button class="ui blue button">{{.i18n.Tr "auth.reset_password_helper"}}</button>
+							{{if and .has_two_factor (not .scratch_code)}}
+								<a href="{{.Link}}?code={{.Code}}&amp;scratch_code=true">{{.i18n.Tr "auth.use_scratch_code" | Str2html}}</a>
+							{{end}}
 						</div>
 					{{else}}
 						<p class="center">{{.i18n.Tr "auth.invalid_code"}}</p>

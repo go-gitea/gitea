@@ -83,7 +83,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 
 	// can not approve/reject your own PR
 	case models.ReviewTypeApprove, models.ReviewTypeReject:
-		if issue.Poster.ID == ctx.User.ID {
+		if issue.IsPoster(ctx.User.ID) {
 			var translated string
 			if reviewType == models.ReviewTypeApprove {
 				translated = ctx.Tr("repo.issues.review.self.approval")

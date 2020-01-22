@@ -1284,7 +1284,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.HTML(200, tplForgotPassword)
 }
 
-func commonResetPassword(ctx *context.Context) *models.User {
+func commonResetPassword(ctx *context.Context) (*models.User, *models.TwoFactor) {
 	code := ctx.Query("code")
 
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
@@ -1296,14 +1296,25 @@ func commonResetPassword(ctx *context.Context) *models.User {
 
 	if len(code) == 0 {
 		ctx.Flash.Error(ctx.Tr("auth.invalid_code"))
-		return nil
+		return nil, nil
 	}
 
 	// Fail early, don't frustrate the user
 	u := models.VerifyUserActiveCode(code)
 	if u == nil {
 		ctx.Flash.Error(ctx.Tr("auth.invalid_code"))
-		return nil
+		return nil, nil
+	}
+
+	twofa, err := models.GetTwoFactorByUID(u.ID)
+	if err != nil {
+		if !models.IsErrTwoFactorNotEnrolled(err) {
+			ctx.Error(http.StatusInternalServerError, "CommonResetPassword", err.Error())
+			return nil, nil
+		}
+	} else {
+		ctx.Data["has_two_factor"] = true
+		ctx.Data["scratch_code"] = ctx.QueryBool("scratch_code")
 	}
 
 	// Show the user that they are affecting the account that they intended to
@@ -1311,10 +1322,10 @@ func commonResetPassword(ctx *context.Context) *models.User {
 
 	if nil != ctx.User && u.ID != ctx.User.ID {
 		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.User.Email, u.Email))
-		return nil
+		return nil, nil
 	}
 
-	return u
+	return u, twofa
 }
 
 // ResetPasswd render the account recovery page
@@ -1322,13 +1333,19 @@ func ResetPasswd(ctx *context.Context) {
 	ctx.Data["IsResetForm"] = true
 
 	commonResetPassword(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	ctx.HTML(200, tplResetPassword)
 }
 
 // ResetPasswdPost response from account recovery request
 func ResetPasswdPost(ctx *context.Context) {
-	u := commonResetPassword(ctx)
+	u, twofa := commonResetPassword(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	if u == nil {
 		// Flash error has been set
@@ -1350,6 +1367,39 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
+	// Handle two-factor
+	regenerateScratchToken := false
+	if twofa != nil {
+		if ctx.QueryBool("scratch_code") {
+			if !twofa.VerifyScratchToken(ctx.Query("token")) {
+				ctx.Data["IsResetForm"] = true
+				ctx.Data["Err_Token"] = true
+				ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
+				return
+			}
+			regenerateScratchToken = true
+		} else {
+			passcode := ctx.Query("passcode")
+			ok, err := twofa.ValidateTOTP(passcode)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err.Error())
+				return
+			}
+			if !ok || twofa.LastUsedPasscode == passcode {
+				ctx.Data["IsResetForm"] = true
+				ctx.Data["Err_Passcode"] = true
+				ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
+				return
+			}
+
+			twofa.LastUsedPasscode = passcode
+			if err = models.UpdateTwoFactor(twofa); err != nil {
+				ctx.ServerError("ResetPasswdPost: UpdateTwoFactor", err)
+				return
+			}
+		}
+	}
+
 	var err error
 	if u.Rands, err = models.GetUserSalt(); err != nil {
 		ctx.ServerError("UpdateUser", err)
@@ -1359,7 +1409,6 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
-
 	u.HashPassword(passwd)
 	u.MustChangePassword = false
 	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
@@ -1368,9 +1417,27 @@ func ResetPasswdPost(ctx *context.Context) {
 	}
 
 	log.Trace("User password reset: %s", u.Name)
-
 	ctx.Data["IsResetFailed"] = true
 	remember := len(ctx.Query("remember")) != 0
+
+	if regenerateScratchToken {
+		// Invalidate the scratch token.
+		_, err = twofa.GenerateScratchToken()
+		if err != nil {
+			ctx.ServerError("UserSignIn", err)
+			return
+		}
+		if err = models.UpdateTwoFactor(twofa); err != nil {
+			ctx.ServerError("UserSignIn", err)
+			return
+		}
+
+		handleSignInFull(ctx, u, remember, false)
+		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		return
+	}
+
 	handleSignInFull(ctx, u, remember, true)
 }
 
