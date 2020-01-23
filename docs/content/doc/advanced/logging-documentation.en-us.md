@@ -393,7 +393,7 @@ You should then add `newOneLogService` to `NewServices()` in
 
 Gitea includes built-in log rotation, which should be enough for most deployments. However, if you instead want to use the `logrotate` program:
 
--  Disable built-in log rotation by setting `LOG_ROTATE` to false in your `app.ini`.
+-  Disable built-in log rotation by setting `LOG_ROTATE` to `false` in your `app.ini`.
 -  Install `logrotate`.
 -  Configure `logrotate` to match your deployment requirements, see `man 8 logrotate` for configuration syntax details. In particular, use the `copytruncate` option instead of restarting Gitea within the `postrotate/endscript` block. Ensure that your configurations apply to all files emitted by Gitea loggers as described in the above sections.
 -  Always do `logrotate /etc/logrotate.conf --dry-run` to test your configurations.
