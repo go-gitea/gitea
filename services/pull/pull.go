@@ -363,7 +363,7 @@ func (errs errlist) Error() string {
 		var buf strings.Builder
 		for i, err := range errs {
 			if i > 0 {
-				buf.WriteString(",")
+				buf.WriteString(", ")
 			}
 			buf.WriteString(err.Error())
 		}
@@ -391,7 +391,7 @@ func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
 
 	var errs errlist
 	for _, pr := range prs {
-		if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil {
+		if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrIssueWasClosed(err) {
 			errs = append(errs, err)
 		}
 	}
@@ -420,7 +420,7 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 		}
 
 		for _, pr := range prs {
-			if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil {
+			if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrIssueWasClosed(err) {
 				errs = append(errs, err)
 			}
 		}
