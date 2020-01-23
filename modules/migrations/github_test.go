@@ -361,4 +361,95 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			},
 		},
 	}, prs)
+
+	reviews, err := downloader.GetReviews(3)
+	assert.NoError(t, err)
+	assert.EqualValues(t, []*base.Review{
+		{
+			ID:           315859956,
+			IssueIndex:   3,
+			ReviewerID:   42128690,
+			ReviewerName: "jolheiser",
+			CommitID:     "076160cf0b039f13e5eff19619932d181269414b",
+			CreatedAt:    time.Date(2019, 11, 12, 21, 35, 24, 0, time.UTC),
+			State:        base.ReviewStateApproved,
+		},
+		{
+			ID:           315860062,
+			IssueIndex:   3,
+			ReviewerID:   1824502,
+			ReviewerName: "zeripath",
+			CommitID:     "076160cf0b039f13e5eff19619932d181269414b",
+			CreatedAt:    time.Date(2019, 11, 12, 21, 35, 36, 0, time.UTC),
+			State:        base.ReviewStateApproved,
+		},
+		{
+			ID:           315861440,
+			IssueIndex:   3,
+			ReviewerID:   165205,
+			ReviewerName: "lafriks",
+			CommitID:     "076160cf0b039f13e5eff19619932d181269414b",
+			CreatedAt:    time.Date(2019, 11, 12, 21, 38, 00, 0, time.UTC),
+			State:        base.ReviewStateApproved,
+		},
+	}, reviews)
+
+	reviews, err = downloader.GetReviews(4)
+	assert.NoError(t, err)
+	assert.EqualValues(t, []*base.Review{
+		{
+			ID:           338338740,
+			IssueIndex:   4,
+			ReviewerID:   81045,
+			ReviewerName: "lunny",
+			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
+			CreatedAt:    time.Date(2020, 01, 04, 05, 33, 18, 0, time.UTC),
+			State:        base.ReviewStateApproved,
+			Comments: []*base.ReviewComment{
+				{
+					ID:        363017488,
+					Content:   "This is a good pull request.",
+					TreePath:  "README.md",
+					DiffHunk:  "@@ -1,2 +1,4 @@\n # test_repo\n Test repository for testing migration from github to gitea\n+",
+					Position:  3,
+					CommitID:  "2be9101c543658591222acbee3eb799edfc3853d",
+					PosterID:  81045,
+					CreatedAt: time.Date(2020, 01, 04, 05, 33, 06, 0, time.UTC),
+					UpdatedAt: time.Date(2020, 01, 04, 05, 33, 18, 0, time.UTC),
+				},
+			},
+		},
+		{
+			ID:           338339651,
+			IssueIndex:   4,
+			ReviewerID:   81045,
+			ReviewerName: "lunny",
+			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
+			CreatedAt:    time.Date(2020, 01, 04, 06, 07, 06, 0, time.UTC),
+			State:        base.ReviewStateChangesRequested,
+			Content:      "Don't add more reviews",
+		},
+		{
+			ID:           338349019,
+			IssueIndex:   4,
+			ReviewerID:   81045,
+			ReviewerName: "lunny",
+			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
+			CreatedAt:    time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+			State:        base.ReviewStateCommented,
+			Comments: []*base.ReviewComment{
+				{
+					ID:        363029944,
+					Content:   "test a single comment.",
+					TreePath:  "LICENSE",
+					DiffHunk:  "@@ -19,3 +19,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n SOFTWARE.\n+",
+					Position:  4,
+					CommitID:  "2be9101c543658591222acbee3eb799edfc3853d",
+					PosterID:  81045,
+					CreatedAt: time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+					UpdatedAt: time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+				},
+			},
+		},
+	}, reviews)
 }
