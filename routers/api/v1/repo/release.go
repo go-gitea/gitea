@@ -94,8 +94,8 @@ func ListReleases(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
 	listOptions := utils.GetListOptions(ctx)
-	if ctx.QueryInt("limit") != 0 {
-		listOptions.PageSize = ctx.QueryInt("limit")
+	if ctx.QueryInt("per_page") != 0 {
+		listOptions.PageSize = ctx.QueryInt("per_page")
 	}
 
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
