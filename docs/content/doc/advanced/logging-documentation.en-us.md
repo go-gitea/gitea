@@ -398,4 +398,4 @@ Gitea includes built-in log rotation, which should be enough for most deployment
 -  Configure `logrotate` to match your deployment requirements, see `man 8 logrotate` for configuration syntax details. In particular, use the `copytruncate` option instead of restarting Gitea within the `postrotate/endscript` block. Ensure that your configurations apply to all files emitted by Gitea loggers as described in the above sections.
 -  Always do `logrotate /etc/logrotate.conf --debug` to test your configurations.
 
-The next `logrotate` jobs will include your configurations, so no restart is needed. 
+The next `logrotate` jobs will include your configurations, so no restart is needed. You can also immediately reload `logrotate` with `logrotate /etc/logrotate.conf --force`.
