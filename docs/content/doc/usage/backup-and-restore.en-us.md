@@ -85,3 +85,7 @@ Repository git-hooks should be regenerated if installation method is changed (eg
 With Gitea running, and from the directory Gitea's binary is located, execute: `./gitea admin regenerate hooks`
 
 This ensures that application and configuration file paths in repository git-hooks are consistent and applicable to the current installation. If these paths are not updated, repository `push` actions will fail.
+
+## Using Third-Party Cloud Backup Provider
+
+You can upload dump file created using [`dump`](#backup-command-dump) to third-party cloud backup providers of your choice, for example [Arq](https://www.arqbackup.com/), [Carbonite](http://www.carbonite.com/), or [CrashPlan](https://www.crashplan.com/en-us/). Consult documentation of your chosen provider for backup process details.
