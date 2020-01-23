@@ -821,8 +821,6 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 
 		cms = append(cms, &cm)
-
-		// TODO: Reactions
 	}
 
 	return models.InsertReviews(cms)

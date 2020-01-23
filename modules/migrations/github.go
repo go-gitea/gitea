@@ -638,7 +638,7 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 		var reactions []*base.Reaction
 		for i := 1; ; i++ {
 			g.sleep()
-			res, resp, err := g.client.Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, c.GetID(), &github.ListOptions{
+			res, resp, err := g.client.Reactions.ListPullRequestCommentReactions(g.ctx, g.repoOwner, g.repoName, c.GetID(), &github.ListOptions{
 				Page:    i,
 				PerPage: 100,
 			})
