@@ -391,7 +391,7 @@ You should then add `newOneLogService` to `NewServices()` in
 
 ## Using `logrotate` instead of built-in log rotation
 
-Gitea includes built-in log rotation, which should be enough for most deployments. However, if you instead want to use the `logrotate` program:
+Gitea includes built-in log rotation, which should be enough for most deployments. However, if you instead want to use the `logrotate` utility:
 
 -  Disable built-in log rotation by setting `LOG_ROTATE` to `false` in your `app.ini`.
 -  Install `logrotate`.
