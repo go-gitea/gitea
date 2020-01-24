@@ -655,6 +655,19 @@ func GetPullRequestByID(id int64) (*PullRequest, error) {
 	return getPullRequestByID(x, id)
 }
 
+// GetPullRequestByIssueIDWithNoAttributes returns pull request with no attributes loaded by given issue ID.
+func GetPullRequestByIssueIDWithNoAttributes(issueID int64) (*PullRequest, error) {
+	var pr PullRequest
+	has, err := x.Where("issue_id = ?", issueID).Get(&pr)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
+	}
+	return &pr, nil
+}
+
 func getPullRequestByIssueID(e Engine, issueID int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		IssueID: issueID,

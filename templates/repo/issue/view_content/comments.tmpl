@@ -319,10 +319,19 @@
 	{{else if eq .Type 22}}
 		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-{{.Review.Type.Icon}} issue-symbol"></span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
-			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+			{{if .OriginalAuthor }}
+			{{else}}
+				<a class="avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+					<img src="{{.Poster.RelAvatarLink}}">
+				</a>
+			{{end}}
+			<span class="text grey">
+				{{if .OriginalAuthor }}
+					<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+				{{else}}
+					<a{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+				{{end}}
+			
 				{{if eq .Review.Type 1}}
 					{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
 				{{else if eq .Review.Type 2}}
