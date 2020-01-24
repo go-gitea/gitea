@@ -321,7 +321,7 @@
 			<span class="octicon octicon-{{.Review.Type.Icon}} issue-symbol"></span>
 			{{if .OriginalAuthor }}
 			{{else}}
-				<a class="avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+				<a class="ui avatar image"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 					<img src="{{.Poster.RelAvatarLink}}">
 				</a>
 			{{end}}
@@ -331,7 +331,7 @@
 				{{else}}
 					<a{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 				{{end}}
-			
+
 				{{if eq .Review.Type 1}}
 					{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
 				{{else if eq .Review.Type 2}}
