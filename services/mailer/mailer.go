@@ -29,7 +29,7 @@ import (
 )
 
 func clearSignedMessage(body string) string {
-	if setting.MailService.SignEmails == false || setting.MailService.SigningKey == "none" {
+	if !setting.MailService.SignEmails || setting.MailService.SigningKey == "none" {
 		return body
 	}
 
@@ -48,7 +48,7 @@ func clearSignedMessage(body string) string {
 }
 
 func detachedSignature(body string) string {
-	if setting.MailService.SignEmails == false || setting.MailService.SigningKey == "none" {
+	if !setting.MailService.SignEmails || setting.MailService.SigningKey == "none" {
 		return body
 	}
 
