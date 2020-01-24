@@ -652,6 +652,16 @@
                     margin-left: 10px;
                     margin-top: 10px;
                 }
+                .icon-octicon {
+                    padding-left: 2px;
+                }
+                .branch-update.grid {
+                    margin-bottom: -1.5rem;
+                    margin-top: -0.5rem;
+                    .row {
+                        padding-bottom: 0;
+                    }
+                }
             }
 
             .review-item {
@@ -848,6 +858,14 @@
 
                 &:target > .content {
                     box-shadow: 0 0 10px #8c8c8c;
+                }
+
+                &:target > .content > .code-comment-content {
+                    padding: 4px;
+                }
+
+                &:target > .content > .code-comment-content > .text {
+                    margin-bottom: 0;
                 }
 
                 .ui.form {

@@ -276,8 +276,8 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 
 	total, ids, err = SearchIssueIDsByKeyword("for", []int64{1}, 10, 0)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 4, total)
-	assert.EqualValues(t, []int64{1, 2, 3, 5}, ids)
+	assert.EqualValues(t, 5, total)
+	assert.EqualValues(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	// issue1's comment id 2
 	total, ids, err = SearchIssueIDsByKeyword("good", []int64{1}, 10, 0)
@@ -305,8 +305,8 @@ func testInsertIssue(t *testing.T, title, content string) {
 	assert.True(t, has)
 	assert.EqualValues(t, issue.Title, newIssue.Title)
 	assert.EqualValues(t, issue.Content, newIssue.Content)
-	// there are 4 issues and max index is 4 on repository 1, so this one should 5
-	assert.EqualValues(t, 5, newIssue.Index)
+	// there are 5 issues and max index is 5 on repository 1, so this one should 6
+	assert.EqualValues(t, 6, newIssue.Index)
 
 	_, err = x.ID(issue.ID).Delete(new(Issue))
 	assert.NoError(t, err)

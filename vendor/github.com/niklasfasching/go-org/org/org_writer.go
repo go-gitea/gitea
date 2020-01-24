@@ -196,11 +196,12 @@ func (w *OrgWriter) WriteListItem(li ListItem) {
 }
 
 func (w *OrgWriter) WriteDescriptiveListItem(di DescriptiveListItem) {
+	indent := w.indent + strings.Repeat(" ", len(di.Bullet)+1)
 	w.WriteString(w.indent + di.Bullet)
 	if di.Status != "" {
 		w.WriteString(fmt.Sprintf(" [%s]", di.Status))
+		indent = indent + strings.Repeat(" ", len(di.Status)+3)
 	}
-	indent := w.indent + strings.Repeat(" ", len(di.Bullet)+1)
 	if len(di.Term) != 0 {
 		term := w.WriteNodesAsString(di.Term...)
 		w.WriteString(" " + term + " ::")

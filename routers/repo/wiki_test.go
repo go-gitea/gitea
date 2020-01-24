@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
+	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +30,7 @@ func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.Tree
 	entries, err := commit.ListEntries()
 	assert.NoError(t, err)
 	for _, entry := range entries {
-		if entry.Name() == models.WikiNameToFilename(wikiName) {
+		if entry.Name() == wiki_service.NameToFilename(wikiName) {
 			return entry
 		}
 	}

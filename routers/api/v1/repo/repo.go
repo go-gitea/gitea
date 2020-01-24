@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -126,6 +126,7 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	opts := &models.SearchRepoOptions{
+		Actor:              ctx.User,
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
 		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
@@ -135,8 +136,6 @@ func Search(ctx *context.APIContext) {
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
 		Template:           util.OptionalBoolNone,
-		UserIsAdmin:        ctx.IsUserSiteAdmin(),
-		UserID:             ctx.Data["SignedUserID"].(int64),
 		StarredByID:        ctx.QueryInt64("starredBy"),
 		IncludeDescription: ctx.QueryBool("includeDesc"),
 	}
@@ -283,11 +282,12 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	CreateUserRepo(ctx, ctx.User, opt)
 }
 
-// CreateOrgRepo create one repository of the organization
-func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
-	// swagger:operation POST /org/{org}/repos organization createOrgRepo
+// CreateOrgRepoDeprecated create one repository of the organization
+func CreateOrgRepoDeprecated(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:operation POST /org/{org}/repos organization createOrgRepoDeprecated
 	// ---
 	// summary: Create a repository in an organization
+	// deprecated: true
 	// consumes:
 	// - application/json
 	// produces:
@@ -307,6 +307,36 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     "$ref": "#/responses/Repository"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
+	CreateOrgRepo(ctx, opt)
+}
+
+// CreateOrgRepo create one repository of the organization
+func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:operation POST /orgs/{org}/repos organization createOrgRepo
+	// ---
+	// summary: Create a repository in an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of organization
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateRepoOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Repository"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
@@ -420,10 +450,10 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	var gitServiceType = structs.PlainGitService
+	var gitServiceType = api.PlainGitService
 	u, err := url.Parse(remoteAddr)
 	if err == nil && strings.EqualFold(u.Host, "github.com") {
-		gitServiceType = structs.GithubService
+		gitServiceType = api.GithubService
 	}
 
 	var opts = migrations.MigrateOptions{
@@ -452,13 +482,14 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
-		Name:        opts.RepoName,
-		Description: opts.Description,
-		OriginalURL: form.CloneAddr,
-		IsPrivate:   opts.Private,
-		IsMirror:    opts.Mirror,
-		Status:      models.RepositoryBeingMigrated,
+	repo, err := repo_module.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+		Name:           opts.RepoName,
+		Description:    opts.Description,
+		OriginalURL:    form.CloneAddr,
+		GitServiceType: gitServiceType,
+		IsPrivate:      opts.Private,
+		IsMirror:       opts.Mirror,
+		Status:         models.RepositoryBeingMigrated,
 	})
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, remoteAddr, err)
@@ -726,25 +757,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	repo := ctx.Repo.Repository
 
 	var units []models.RepoUnit
+	var deleteUnitTypes []models.UnitType
 
-	for _, tp := range models.MustRepoUnits {
-		units = append(units, models.RepoUnit{
-			RepoID: repo.ID,
-			Type:   tp,
-			Config: new(models.UnitConfig),
-		})
-	}
-
-	if opts.HasIssues == nil {
-		// If HasIssues setting not touched, rewrite existing repo unit
-		if unit, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
-			units = append(units, *unit)
-		} else if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err == nil {
-			units = append(units, *unit)
-		}
-	} else if *opts.HasIssues {
-		if opts.ExternalTracker != nil {
-
+	if opts.HasIssues != nil {
+		if *opts.HasIssues && opts.ExternalTracker != nil && !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := fmt.Errorf("External tracker URL not valid")
@@ -766,7 +782,8 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					ExternalTrackerStyle:  opts.ExternalTracker.ExternalTrackerStyle,
 				},
 			})
-		} else {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
+		} else if *opts.HasIssues && opts.ExternalTracker == nil && !models.UnitTypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
 			var config *models.IssuesConfig
 
@@ -792,19 +809,19 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   models.UnitTypeIssues,
 				Config: config,
 			})
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+		} else if !*opts.HasIssues {
+			if !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+			}
+			if !models.UnitTypeIssues.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
+			}
 		}
 	}
 
-	if opts.HasWiki == nil {
-		// If HasWiki setting not touched, rewrite existing repo unit
-		if unit, err := repo.GetUnit(models.UnitTypeWiki); err == nil {
-			units = append(units, *unit)
-		} else if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err == nil {
-			units = append(units, *unit)
-		}
-	} else if *opts.HasWiki {
-		if opts.ExternalWiki != nil {
-
+	if opts.HasWiki != nil {
+		if *opts.HasWiki && opts.ExternalWiki != nil && !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := fmt.Errorf("External wiki URL not valid")
@@ -819,64 +836,72 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					ExternalWikiURL: opts.ExternalWiki.ExternalWikiURL,
 				},
 			})
-		} else {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
+		} else if *opts.HasWiki && opts.ExternalWiki == nil && !models.UnitTypeWiki.UnitGlobalDisabled() {
 			config := &models.UnitConfig{}
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypeWiki,
 				Config: config,
 			})
-		}
-	}
-
-	if opts.HasPullRequests == nil {
-		// If HasPullRequest setting not touched, rewrite existing repo unit
-		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
-			units = append(units, *unit)
-		}
-	} else if *opts.HasPullRequests {
-		// We do allow setting individual PR settings through the API, so
-		// we get the config settings and then set them
-		// if those settings were provided in the opts.
-		unit, err := repo.GetUnit(models.UnitTypePullRequests)
-		var config *models.PullRequestsConfig
-		if err != nil {
-			// Unit type doesn't exist so we make a new config file with default values
-			config = &models.PullRequestsConfig{
-				IgnoreWhitespaceConflicts: false,
-				AllowMerge:                true,
-				AllowRebase:               true,
-				AllowRebaseMerge:          true,
-				AllowSquash:               true,
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+		} else if !*opts.HasWiki {
+			if !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
 			}
-		} else {
-			config = unit.PullRequestsConfig()
+			if !models.UnitTypeWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
+			}
 		}
-
-		if opts.IgnoreWhitespaceConflicts != nil {
-			config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
-		}
-		if opts.AllowMerge != nil {
-			config.AllowMerge = *opts.AllowMerge
-		}
-		if opts.AllowRebase != nil {
-			config.AllowRebase = *opts.AllowRebase
-		}
-		if opts.AllowRebaseMerge != nil {
-			config.AllowRebaseMerge = *opts.AllowRebaseMerge
-		}
-		if opts.AllowSquash != nil {
-			config.AllowSquash = *opts.AllowSquash
-		}
-
-		units = append(units, models.RepoUnit{
-			RepoID: repo.ID,
-			Type:   models.UnitTypePullRequests,
-			Config: config,
-		})
 	}
 
-	if err := models.UpdateRepositoryUnits(repo, units); err != nil {
+	if opts.HasPullRequests != nil {
+		if *opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
+			// We do allow setting individual PR settings through the API, so
+			// we get the config settings and then set them
+			// if those settings were provided in the opts.
+			unit, err := repo.GetUnit(models.UnitTypePullRequests)
+			var config *models.PullRequestsConfig
+			if err != nil {
+				// Unit type doesn't exist so we make a new config file with default values
+				config = &models.PullRequestsConfig{
+					IgnoreWhitespaceConflicts: false,
+					AllowMerge:                true,
+					AllowRebase:               true,
+					AllowRebaseMerge:          true,
+					AllowSquash:               true,
+				}
+			} else {
+				config = unit.PullRequestsConfig()
+			}
+
+			if opts.IgnoreWhitespaceConflicts != nil {
+				config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
+			}
+			if opts.AllowMerge != nil {
+				config.AllowMerge = *opts.AllowMerge
+			}
+			if opts.AllowRebase != nil {
+				config.AllowRebase = *opts.AllowRebase
+			}
+			if opts.AllowRebaseMerge != nil {
+				config.AllowRebaseMerge = *opts.AllowRebaseMerge
+			}
+			if opts.AllowSquash != nil {
+				config.AllowSquash = *opts.AllowSquash
+			}
+
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypePullRequests,
+				Config: config,
+			})
+		} else if !*opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypePullRequests)
+		}
+	}
+
+	if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
 		return err
 	}

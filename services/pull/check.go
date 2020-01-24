@@ -147,13 +147,7 @@ func manuallyMerged(pr *models.PullRequest) bool {
 			return false
 		}
 
-		baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-		if err != nil {
-			log.Error("OpenRepository[%s] : %v", pr.BaseRepo.RepoPath(), err)
-			return false
-		}
-
-		notification.NotifyMergePullRequest(pr, merger, baseGitRepo)
+		notification.NotifyMergePullRequest(pr, merger)
 
 		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 		return true
@@ -194,10 +188,16 @@ func TestPullRequests(ctx context.Context) {
 			if err != nil {
 				log.Error("GetPullRequestByID[%s]: %v", prID, err)
 				continue
+			} else if pr.Status != models.PullRequestStatusChecking {
+				continue
 			} else if manuallyMerged(pr) {
 				continue
 			} else if err = TestPatch(pr); err != nil {
 				log.Error("testPatch[%d]: %v", pr.ID, err)
+				pr.Status = models.PullRequestStatusError
+				if err := pr.UpdateCols("status"); err != nil {
+					log.Error("update pr [%d] status to PullRequestStatusError failed: %v", pr.ID, err)
+				}
 				continue
 			}
 			checkAndUpdateStatus(pr)

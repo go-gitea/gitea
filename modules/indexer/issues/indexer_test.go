@@ -15,6 +15,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 
+	"gopkg.in/ini.v1"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,6 +26,7 @@ func TestMain(m *testing.M) {
 
 func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
+	setting.Cfg = ini.Empty()
 
 	tmpIndexerDir, err := ioutil.TempDir("", "issues-indexer")
 	if err != nil {
@@ -41,6 +44,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	}()
 
 	setting.Indexer.IssueType = "bleve"
+	setting.NewQueueService()
 	InitIssueIndexer(true)
 	defer func() {
 		indexer := holder.get()
@@ -61,7 +65,7 @@ func TestBleveSearchIssues(t *testing.T) {
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "for")
 	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{1, 2, 3, 5}, ids)
+	assert.EqualValues(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
 	assert.NoError(t, err)
@@ -85,7 +89,7 @@ func TestDBSearchIssues(t *testing.T) {
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "for")
 	assert.NoError(t, err)
-	assert.EqualValues(t, []int64{1, 2, 3, 5}, ids)
+	assert.EqualValues(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
 	assert.NoError(t, err)

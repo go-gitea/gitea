@@ -132,7 +132,7 @@ func getDingtalkPushPayload(p *api.PushPayload) (*DingtalkPayload, error) {
 }
 
 func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
-	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter)
+	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
@@ -142,13 +142,13 @@ func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
 			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view issue",
-			SingleURL:   p.Issue.URL,
+			SingleURL:   p.Issue.HTMLURL,
 		},
 	}, nil
 }
 
 func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayload, error) {
-	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter)
+	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
@@ -163,7 +163,7 @@ func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayloa
 }
 
 func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload, error) {
-	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter)
+	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
@@ -236,7 +236,7 @@ func getDingtalkRepositoryPayload(p *api.RepositoryPayload) (*DingtalkPayload, e
 }
 
 func getDingtalkReleasePayload(p *api.ReleasePayload) (*DingtalkPayload, error) {
-	text, _ := getReleasePayloadInfo(p, noneLinkFormatter)
+	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",

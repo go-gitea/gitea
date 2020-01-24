@@ -66,6 +66,53 @@ func ListUserOrgs(ctx *context.APIContext) {
 	listUserOrgs(ctx, u, ctx.User.IsAdmin)
 }
 
+// GetAll return list of all public organizations
+func GetAll(ctx *context.APIContext) {
+	// swagger:operation Get /orgs organization orgGetAll
+	// ---
+	// summary: Get list of organizations
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/OrganizationList"
+
+	vMode := []api.VisibleType{api.VisibleTypePublic}
+	if ctx.IsSigned {
+		vMode = append(vMode, api.VisibleTypeLimited)
+		if ctx.User.IsAdmin {
+			vMode = append(vMode, api.VisibleTypePrivate)
+		}
+	}
+
+	publicOrgs, _, err := models.SearchUsers(&models.SearchUserOptions{
+		Type:     models.UserTypeOrganization,
+		OrderBy:  models.SearchOrderByAlphabetically,
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		Visible:  vMode,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)
+		return
+	}
+	orgs := make([]*api.Organization, len(publicOrgs))
+	for i := range publicOrgs {
+		orgs[i] = convert.ToOrganization(publicOrgs[i])
+	}
+
+	ctx.JSON(http.StatusOK, &orgs)
+}
+
 // Create api for create organization
 func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	// swagger:operation POST /orgs organization orgCreate

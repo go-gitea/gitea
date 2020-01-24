@@ -70,7 +70,7 @@ func TestSlackReleasePayload(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Release <http://localhost:3000/test/repo/src/v1.0|v1.0> created by <https://try.gitea.io/user1|user1>", pl.Text)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Release created: <http://localhost:3000/test/repo/src/v1.0|v1.0> by <https://try.gitea.io/user1|user1>", pl.Text)
 }
 
 func TestSlackPullRequestPayload(t *testing.T) {
@@ -84,5 +84,5 @@ func TestSlackPullRequestPayload(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request <http://localhost:3000/test/repo/pulls/12|#2 Fix bug> opened by <https://try.gitea.io/user1|user1>", pl.Text)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#2 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)
 }

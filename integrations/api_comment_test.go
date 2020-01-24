@@ -7,6 +7,7 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -25,18 +26,40 @@ func TestAPIListRepoComments(t *testing.T) {
 	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments",
-		repoOwner.Name, repo.Name)
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments", repoOwner.Name, repo.Name))
+	req := NewRequest(t, "GET", link.String())
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiComments []*api.Comment
 	DecodeJSON(t, resp, &apiComments)
+	assert.Len(t, apiComments, 2)
 	for _, apiComment := range apiComments {
 		c := &models.Comment{ID: apiComment.ID}
 		models.AssertExistsAndLoadBean(t, c,
 			models.Cond("type = ?", models.CommentTypeComment))
 		models.AssertExistsAndLoadBean(t, &models.Issue{ID: c.IssueID, RepoID: repo.ID})
 	}
+
+	//test before and since filters
+	query := url.Values{}
+	before := "2000-01-01T00:00:11+00:00" //unix: 946684811
+	since := "2000-01-01T00:00:12+00:00"  //unix: 946684812
+	query.Add("before", before)
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiComments)
+	assert.Len(t, apiComments, 1)
+	assert.EqualValues(t, 2, apiComments[0].ID)
+
+	query.Del("before")
+	query.Add("since", since)
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiComments)
+	assert.Len(t, apiComments, 1)
+	assert.EqualValues(t, 3, apiComments[0].ID)
 }
 
 func TestAPIListIssueComments(t *testing.T) {
@@ -81,6 +104,33 @@ func TestAPICreateComment(t *testing.T) {
 	DecodeJSON(t, resp, &updatedComment)
 	assert.EqualValues(t, commentBody, updatedComment.Body)
 	models.AssertExistsAndLoadBean(t, &models.Comment{ID: updatedComment.ID, IssueID: issue.ID, Content: commentBody})
+}
+
+func TestAPIGetComment(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	comment := models.AssertExistsAndLoadBean(t, &models.Comment{ID: 2}).(*models.Comment)
+	assert.NoError(t, comment.LoadIssue())
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: comment.Issue.RepoID}).(*models.Repository)
+	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+
+	session := loginUser(t, repoOwner.Name)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, token)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	var apiComment api.Comment
+	DecodeJSON(t, resp, &apiComment)
+
+	assert.NoError(t, comment.LoadPoster())
+	expect := comment.APIFormat()
+
+	assert.Equal(t, expect.ID, apiComment.ID)
+	assert.Equal(t, expect.Poster.FullName, apiComment.Poster.FullName)
+	assert.Equal(t, expect.Body, apiComment.Body)
+	assert.Equal(t, expect.Created.Unix(), apiComment.Created.Unix())
 }
 
 func TestAPIEditComment(t *testing.T) {

@@ -5,6 +5,9 @@
 import './publicPath.js';
 import './gitGraphLoader.js';
 import './semanticDropdown.js';
+import initContextPopups from './features/contextPopup';
+
+import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
@@ -21,6 +24,9 @@ let codeMirrorEditor;
 if (typeof (Dropzone) !== 'undefined') {
   Dropzone.autoDiscover = false;
 }
+
+// Silence fomantic's error logging when tabs are used without a target content element
+$.fn.tab.settings.silent = true;
 
 function initCommentPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
@@ -320,12 +326,14 @@ function initSimpleMDEImagePaste(simplemde, files) {
   });
 }
 
+let autoSimpleMDE;
+
 function initCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
 
-  setCommentSimpleMDE($('.comment.form textarea'));
+  autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));
@@ -823,25 +831,27 @@ function initRepository() {
     $('.quote-reply').click(function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const target = $(this).data('target');
+      const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
+      const content = `> ${quote}\n\n`;
 
       let $content;
       if ($(this).hasClass('quote-reply-diff')) {
         const $parent = $(this).closest('.comment-code-cloud');
         $parent.find('button.comment-form-reply').click();
         $content = $parent.find('[name="content"]');
-      } else {
-        $content = $('#content');
+        if ($content.val() !== '') {
+          $content.val(`${$content.val()}\n\n${content}`);
+        } else {
+          $content.val(`${content}`);
+        }
+        $content.focus();
+      } else if (autoSimpleMDE !== null) {
+        if (autoSimpleMDE.value() !== '') {
+          autoSimpleMDE.value(`${autoSimpleMDE.value()}\n\n${content}`);
+        } else {
+          autoSimpleMDE.value(`${content}`);
+        }
       }
-
-      const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
-      const content = `> ${quote}\n\n`;
-
-      if ($content.val() !== '') {
-        $content.val(`${$content.val()}\n\n${content}`);
-      } else {
-        $content.val(`${content}`);
-      }
-      $content.focus();
       event.preventDefault();
     });
 
@@ -1490,7 +1500,9 @@ function setCommentSimpleMDE($editArea) {
       }
     },
     Backspace: (cm) => {
-      cm.getInputField().trigger('input');
+      if (cm.getInputField().trigger) {
+        cm.getInputField().trigger('input');
+      }
       cm.execCommand('delCharBefore');
     }
   });
@@ -2269,7 +2281,7 @@ function initTemplateSearch() {
   const checkTemplate = function () {
     const $templateUnits = $('#template_units');
     const $nonTemplate = $('#non_template');
-    if ($repoTemplate.val() !== '') {
+    if ($repoTemplate.val() !== '' && $repoTemplate.val() !== '0') {
       $templateUnits.show();
       $nonTemplate.hide();
     } else {
@@ -2547,6 +2559,7 @@ $(document).ready(() => {
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
+  initContextPopups(suburl);
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2883,9 +2896,13 @@ function initVueApp() {
     delimiters: ['${', '}'],
     el,
     data: {
-      searchLimit: document.querySelector('meta[name=_search_limit]').content,
+      searchLimit: (document.querySelector('meta[name=_search_limit]') || {}).content,
       suburl: document.querySelector('meta[name=_suburl]').content,
-      uid: Number(document.querySelector('meta[name=_context_uid]').content),
+      uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
+      activityTopAuthors: window.ActivityTopAuthors || [],
+    },
+    components: {
+      ActivityTopAuthors,
     },
   });
 }
@@ -3446,9 +3463,10 @@ function initIssueList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  let issueSearchUrl = `${suburl}/api/v1/repos/${repolink}/issues?q={query}`;
+  const tp = $('#type').val();
+  let issueSearchUrl = `${suburl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${suburl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}`;
+    issueSearchUrl = `${suburl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({

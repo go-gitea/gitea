@@ -125,7 +125,7 @@ func getTelegramPushPayload(p *api.PushPayload) (*TelegramPayload, error) {
 }
 
 func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
-	text, _, attachmentText, _ := getIssuesPayloadInfo(p, htmlLinkFormatter)
+	text, _, attachmentText, _ := getIssuesPayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
 		Message: text + "\n\n" + attachmentText,
@@ -133,7 +133,7 @@ func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
 }
 
 func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayload, error) {
-	text, _, _ := getIssueCommentPayloadInfo(p, htmlLinkFormatter)
+	text, _, _ := getIssueCommentPayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
 		Message: text + "\n" + p.Comment.Body,
@@ -141,7 +141,26 @@ func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayloa
 }
 
 func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload, error) {
-	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter)
+	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter, true)
+
+	return &TelegramPayload{
+		Message: text + "\n" + attachmentText,
+	}, nil
+}
+
+func getTelegramPullRequestApprovalPayload(p *api.PullRequestPayload, event models.HookEventType) (*TelegramPayload, error) {
+	var text, attachmentText string
+	switch p.Action {
+	case api.HookIssueSynchronized:
+		action, err := parseHookPullRequestEventType(event)
+		if err != nil {
+			return nil, err
+		}
+
+		text = fmt.Sprintf("[%s] Pull request review %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
+		attachmentText = p.Review.Content
+
+	}
 
 	return &TelegramPayload{
 		Message: text + "\n" + attachmentText,
@@ -166,7 +185,7 @@ func getTelegramRepositoryPayload(p *api.RepositoryPayload) (*TelegramPayload, e
 }
 
 func getTelegramReleasePayload(p *api.ReleasePayload) (*TelegramPayload, error) {
-	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter)
+	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
 		Message: text + "\n",
@@ -192,6 +211,8 @@ func GetTelegramPayload(p api.Payloader, event models.HookEventType, meta string
 		return getTelegramPushPayload(p.(*api.PushPayload))
 	case models.HookEventPullRequest:
 		return getTelegramPullRequestPayload(p.(*api.PullRequestPayload))
+	case models.HookEventPullRequestRejected, models.HookEventPullRequestApproved, models.HookEventPullRequestComment:
+		return getTelegramPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case models.HookEventRepository:
 		return getTelegramRepositoryPayload(p.(*api.RepositoryPayload))
 	case models.HookEventRelease:

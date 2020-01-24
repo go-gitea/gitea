@@ -6,6 +6,7 @@ package user
 
 import (
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -23,14 +24,19 @@ func Avatar(ctx *context.Context) {
 
 	log.Debug("Asked avatar for user %v and size %v", userName, size)
 
-	user, err := models.GetUserByName(userName)
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.ServerError("Requested avatar for invalid user", err)
-		} else {
-			ctx.ServerError("Retrieving user by name", err)
+	var user *models.User
+	if strings.ToLower(userName) != "ghost" {
+		user, err = models.GetUserByName(userName)
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.ServerError("Requested avatar for invalid user", err)
+			} else {
+				ctx.ServerError("Retrieving user by name", err)
+			}
+			return
 		}
-		return
+	} else {
+		user = models.NewGhostUser()
 	}
 
 	ctx.Redirect(user.RealSizedAvatarLink(size))

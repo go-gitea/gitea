@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -180,6 +181,13 @@ func NewFuncMap() []template.FuncMap {
 				path = append(path, str)
 			}
 			return path
+		},
+		"Json": func(in interface{}) string {
+			out, err := json.Marshal(in)
+			if err != nil {
+				return ""
+			}
+			return string(out)
 		},
 		"JsonPrettyPrint": func(in string) string {
 			var out bytes.Buffer
@@ -579,8 +587,8 @@ func ActionIcon(opType models.ActionType) string {
 }
 
 // ActionContent2Commits converts action content to push commits
-func ActionContent2Commits(act Actioner) *models.PushCommits {
-	push := models.NewPushCommits()
+func ActionContent2Commits(act Actioner) *repository.PushCommits {
+	push := repository.NewPushCommits()
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}

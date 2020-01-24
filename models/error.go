@@ -916,6 +916,22 @@ func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 	return fmt.Sprintf("user doesn't have acces to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
 }
 
+// ErrWontSign explains the first reason why a commit would not be signed
+// There may be other reasons - this is just the first reason found
+type ErrWontSign struct {
+	Reason signingMode
+}
+
+func (e *ErrWontSign) Error() string {
+	return fmt.Sprintf("wont sign: %s", e.Reason)
+}
+
+// IsErrWontSign checks if an error is a ErrWontSign
+func IsErrWontSign(err error) bool {
+	_, ok := err.(*ErrWontSign)
+	return ok
+}
+
 // __________                             .__
 // \______   \____________    ____   ____ |  |__
 //  |    |  _/\_  __ \__  \  /    \_/ ___\|  |  \
@@ -1199,6 +1215,21 @@ func IsErrForbiddenIssueReaction(err error) bool {
 
 func (err ErrForbiddenIssueReaction) Error() string {
 	return fmt.Sprintf("'%s' is not an allowed reaction", err.Reaction)
+}
+
+// ErrReactionAlreadyExist is used when a existing reaction was try to created
+type ErrReactionAlreadyExist struct {
+	Reaction string
+}
+
+// IsErrReactionAlreadyExist checks if an error is a ErrReactionAlreadyExist.
+func IsErrReactionAlreadyExist(err error) bool {
+	_, ok := err.(ErrReactionAlreadyExist)
+	return ok
+}
+
+func (err ErrReactionAlreadyExist) Error() string {
+	return fmt.Sprintf("reaction '%s' already exists", err.Reaction)
 }
 
 // __________      .__  .__ __________                                     __
