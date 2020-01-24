@@ -27,12 +27,20 @@ func ListHooks(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
 	org := ctx.Org.Organization
-	orgHooks, err := models.GetWebhooksByOrgID(org.ID)
+	orgHooks, err := models.GetWebhooksByOrgID(org.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetWebhooksByOrgID", err)
 		return

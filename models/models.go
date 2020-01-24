@@ -44,6 +44,8 @@ type Engine interface {
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
 	Asc(colNames ...string) *xorm.Session
+	Limit(limit int, start ...int) *xorm.Session
+	SumInt(bean interface{}, columnName string) (res int64, err error)
 }
 
 var (

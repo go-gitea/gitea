@@ -567,11 +567,17 @@ func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 }
 
 // ListPublicKeys returns a list of public keys belongs to given user.
-func ListPublicKeys(uid int64) ([]*PublicKey, error) {
+func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
+	sess := x.Where("owner_id = ?", uid)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*PublicKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
+	}
+
 	keys := make([]*PublicKey, 0, 5)
-	return keys, x.
-		Where("owner_id = ?", uid).
-		Find(&keys)
+	return keys, sess.Find(&keys)
 }
 
 // ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
@@ -970,15 +976,21 @@ func deleteDeployKey(sess Engine, doer *User, id int64) error {
 }
 
 // ListDeployKeys returns all deploy keys by given repository ID.
-func ListDeployKeys(repoID int64) ([]*DeployKey, error) {
-	return listDeployKeys(x, repoID)
+func ListDeployKeys(repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
+	return listDeployKeys(x, repoID, listOptions)
 }
 
-func listDeployKeys(e Engine, repoID int64) ([]*DeployKey, error) {
+func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
+	sess := e.Where("repo_id = ?", repoID)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*DeployKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
+	}
+
 	keys := make([]*DeployKey, 0, 5)
-	return keys, e.
-		Where("repo_id = ?", repoID).
-		Find(&keys)
+	return keys, sess.Find(&keys)
 }
 
 // SearchDeployKeys returns a list of deploy keys matching the provided arguments.

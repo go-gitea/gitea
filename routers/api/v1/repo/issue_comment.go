@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -117,6 +118,14 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   description: if provided, only comments updated before the provided time are returned.
 	//   type: string
 	//   format: date-time
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
@@ -128,10 +137,11 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	}
 
 	comments, err := models.FindComments(models.FindCommentsOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		Since:  since,
-		Before: before,
-		Type:   models.CommentTypeComment,
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+		Type:        models.CommentTypeComment,
+		Since:       since,
+		Before:      before,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
