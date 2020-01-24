@@ -1,8 +1,8 @@
 #!/bin/sh
 
 mv ./options/locale/locale_en-US.ini ./options/
-sed -i -e 's/=\"/=/g' -e 's/\"$$//g' ./options/locale/*.ini
-sed -i -e 's/\\\\\\\\\"/\"/g' ./options/locale/*.ini
+
+sed -i -r -e 's/="/=/;s/"$//;s/\\(.)/\1/g' ./options/locale/*.ini
 
 # Remove translation under 25% of en_us
 baselines=`wc -l "./options/locale_en-US.ini" | cut -d" " -f1`
