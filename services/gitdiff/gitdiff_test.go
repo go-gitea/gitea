@@ -209,3 +209,11 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 		}
 	}
 }
+
+func TestParseDiffHunkString(t *testing.T) {
+	leftLine, leftHunk, rightLine, rightHunk := ParseDiffHunkString("@@ -19,3 +19,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER")
+	assert.EqualValues(t, 19, leftLine)
+	assert.EqualValues(t, 3, leftHunk)
+	assert.EqualValues(t, 19, rightLine)
+	assert.EqualValues(t, 5, rightHunk)
+}

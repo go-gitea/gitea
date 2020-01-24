@@ -114,6 +114,12 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
 
+  - name: tag-pre-condition
+    pull: always
+    image: alpine/git
+    commands:
+      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
+
   - name: unit-test
     pull: always
     image: golang:1.13

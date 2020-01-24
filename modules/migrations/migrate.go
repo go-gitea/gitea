@@ -181,7 +181,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		}
 	}
 
-	var commentBatchSize = uploader.MaxBatchInsertSize("comment")
+	var (
+		commentBatchSize = uploader.MaxBatchInsertSize("comment")
+		reviewBatchSize  = uploader.MaxBatchInsertSize("review")
+	)
 
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
@@ -248,6 +251,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				continue
 			}
 
+			// plain comments
 			var allComments = make([]*base.Comment, 0, commentBatchSize)
 			for _, pr := range prs {
 				comments, err := downloader.GetComments(pr.Number)
@@ -266,6 +270,29 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			}
 			if len(allComments) > 0 {
 				if err := uploader.CreateComments(allComments...); err != nil {
+					return err
+				}
+			}
+
+			// migrate reviews
+			var allReviews = make([]*base.Review, 0, reviewBatchSize)
+			for _, pr := range prs {
+				reviews, err := downloader.GetReviews(pr.Number)
+				if err != nil {
+					return err
+				}
+
+				allReviews = append(allReviews, reviews...)
+
+				if len(allReviews) >= reviewBatchSize {
+					if err := uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
+						return err
+					}
+					allReviews = allReviews[reviewBatchSize:]
+				}
+			}
+			if len(allReviews) > 0 {
+				if err := uploader.CreateReviews(allReviews...); err != nil {
 					return err
 				}
 			}
