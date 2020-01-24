@@ -3,6 +3,7 @@
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import './publicPath.js';
+import './polyfills.js';
 import './gitGraphLoader.js';
 import './semanticDropdown.js';
 import initContextPopups from './features/contextPopup';
