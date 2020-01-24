@@ -116,7 +116,12 @@ func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, 
 		if len(line) == 0 {
 			continue
 		}
-		filename := strings.TrimSpace(line[1:])
+		fields := strings.Split(line, "\t")
+		if len(fields) < 2 {
+			log.Warn("Unparseable output for diff --name-status: `%s`)", line)
+			continue
+		}
+		filename := fields[1]
 		if len(filename) == 0 {
 			continue
 		} else if filename[0] == '"' {
@@ -126,11 +131,31 @@ func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, 
 			}
 		}
 
-		switch status := line[0]; status {
+		switch status := fields[0][0]; status {
 		case 'M', 'A':
 			updatedFilenames = append(updatedFilenames, filename)
 		case 'D':
 			changes.RemovedFilenames = append(changes.RemovedFilenames, filename)
+		case 'R', 'C':
+			if len(fields) < 3 {
+				log.Warn("Unparseable output for diff --name-status: `%s`)", line)
+				continue
+			}
+			dest := fields[2]
+			if len(dest) == 0 {
+				log.Warn("Unparseable output for diff --name-status: `%s`)", line)
+				continue
+			}
+			if dest[0] == '"' {
+				dest, err = strconv.Unquote(dest)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if status == 'R' {
+				changes.RemovedFilenames = append(changes.RemovedFilenames, filename)
+			}
+			updatedFilenames = append(updatedFilenames, dest)
 		default:
 			log.Warn("Unrecognized status: %c (line=%s)", status, line)
 		}
