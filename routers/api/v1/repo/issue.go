@@ -19,6 +19,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -38,10 +39,6 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
 	//   type: string
-	// - name: page
-	//   in: query
-	//   description: page number of requested issues
-	//   type: integer
 	// - name: q
 	//   in: query
 	//   description: search string
@@ -55,6 +52,10 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter by type (issues / pulls) if set
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of requested issues
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -72,7 +73,9 @@ func SearchIssues(ctx *context.APIContext) {
 	// find repos user can access (for issue search)
 	repoIDs := make([]int64, 0)
 	opts := &models.SearchRepoOptions{
-		PageSize:    15,
+		ListOptions: models.ListOptions{
+			PageSize: 15,
+		},
 		Private:     false,
 		AllPublic:   true,
 		TopicOnly:   false,
@@ -146,9 +149,11 @@ func SearchIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
+			ListOptions: models.ListOptions{
+				Page:     ctx.QueryInt("page"),
+				PageSize: setting.UI.IssuePagingNum,
+			},
 			RepoIDs:        repoIDs,
-			Page:           ctx.QueryInt("page"),
-			PageSize:       setting.UI.IssuePagingNum,
 			IsClosed:       isClosed,
 			IssueIDs:       issueIDs,
 			LabelIDs:       labelIDs,
@@ -198,10 +203,6 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
 	//   type: string
-	// - name: page
-	//   in: query
-	//   description: page number of requested issues
-	//   type: integer
 	// - name: q
 	//   in: query
 	//   description: search string
@@ -210,6 +211,14 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter by type (issues / pulls) if set
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -245,6 +254,11 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
+	listOptions := utils.GetListOptions(ctx)
+	if ctx.QueryInt("limit") == 0 {
+		listOptions.PageSize = setting.UI.IssuePagingNum
+	}
+
 	var isPull util.OptionalBool
 	switch ctx.Query("type") {
 	case "pulls":
@@ -259,13 +273,12 @@ func ListIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
-			RepoIDs:  []int64{ctx.Repo.Repository.ID},
-			Page:     ctx.QueryInt("page"),
-			PageSize: setting.UI.IssuePagingNum,
-			IsClosed: isClosed,
-			IssueIDs: issueIDs,
-			LabelIDs: labelIDs,
-			IsPull:   isPull,
+			ListOptions: listOptions,
+			RepoIDs:     []int64{ctx.Repo.Repository.ID},
+			IsClosed:    isClosed,
+			IssueIDs:    issueIDs,
+			LabelIDs:    labelIDs,
+			IsPull:      isPull,
 		})
 	}
 
@@ -279,7 +292,7 @@ func ListIssues(ctx *context.APIContext) {
 		apiIssues[i] = issues[i].APIFormat()
 	}
 
-	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, setting.UI.IssuePagingNum)
+	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, listOptions.PageSize)
 	ctx.JSON(http.StatusOK, &apiIssues)
 }
 

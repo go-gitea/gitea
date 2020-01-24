@@ -62,14 +62,18 @@ func (org *User) getTeams(e Engine) error {
 		Find(&org.Teams)
 }
 
-// GetTeams returns all teams that belong to organization.
-func (org *User) GetTeams() error {
+// GetTeams returns paginated teams that belong to organization.
+func (org *User) GetTeams(opts *SearchTeamOptions) error {
+	if opts.Page != 0 {
+		return org.getTeams(opts.getPaginatedSession())
+	}
+
 	return org.getTeams(x)
 }
 
 // GetMembers returns all members of organization.
 func (org *User) GetMembers() (err error) {
-	org.Members, org.MembersIsPublic, err = FindOrgMembers(FindOrgMembersOpts{
+	org.Members, org.MembersIsPublic, err = FindOrgMembers(&FindOrgMembersOpts{
 		OrgID: org.ID,
 	})
 	return
@@ -77,10 +81,9 @@ func (org *User) GetMembers() (err error) {
 
 // FindOrgMembersOpts represensts find org members condtions
 type FindOrgMembersOpts struct {
+	ListOptions
 	OrgID      int64
 	PublicOnly bool
-	Start      int
-	Limit      int
 }
 
 // CountOrgMembers counts the organization's members
@@ -93,8 +96,8 @@ func CountOrgMembers(opts FindOrgMembersOpts) (int64, error) {
 }
 
 // FindOrgMembers loads organization members according conditions
-func FindOrgMembers(opts FindOrgMembersOpts) (UserList, map[int64]bool, error) {
-	ous, err := GetOrgUsersByOrgID(opts.OrgID, opts.PublicOnly, opts.Start, opts.Limit)
+func FindOrgMembers(opts *FindOrgMembersOpts) (UserList, map[int64]bool, error) {
+	ous, err := GetOrgUsersByOrgID(opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -479,15 +482,20 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.
-func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
+func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
 	sess := x.
 		Join("LEFT", "`user`", "`org_user`.org_id=`user`.id").
 		Where("`org_user`.uid=?", uid)
-	if !all {
+	if !opts.All {
 		// Only show public organizations
 		sess.And("is_public=?", true)
 	}
+
+	if opts.PageSize != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
+
 	err := sess.
 		Asc("`user`.name").
 		Find(&ous)
@@ -495,21 +503,24 @@ func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 }
 
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
-func GetOrgUsersByOrgID(orgID int64, publicOnly bool, start, limit int) ([]*OrgUser, error) {
-	return getOrgUsersByOrgID(x, orgID, publicOnly, start, limit)
+func GetOrgUsersByOrgID(opts *FindOrgMembersOpts) ([]*OrgUser, error) {
+	return getOrgUsersByOrgID(x, opts)
 }
 
-func getOrgUsersByOrgID(e Engine, orgID int64, publicOnly bool, start, limit int) ([]*OrgUser, error) {
-	ous := make([]*OrgUser, 0, 10)
-	sess := e.Where("org_id=?", orgID)
-	if publicOnly {
+func getOrgUsersByOrgID(e Engine, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
+	sess := e.Where("org_id=?", opts.OrgID)
+	if opts.PublicOnly {
 		sess.And("is_public = ?", true)
 	}
-	if limit > 0 {
-		sess.Limit(limit, start)
+	if opts.ListOptions.PageSize > 0 {
+		sess = opts.setSessionPagination(sess)
+
+		ous := make([]*OrgUser, 0, opts.PageSize)
+		return ous, sess.Find(&ous)
 	}
-	err := sess.Find(&ous)
-	return ous, err
+
+	var ous []*OrgUser
+	return ous, sess.Find(&ous)
 }
 
 // ChangeOrgUserStatus changes public or private membership status.
