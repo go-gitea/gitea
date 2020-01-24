@@ -380,6 +380,8 @@ relation to port exhaustion.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
 - ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
+- `SIGNING_KEY`: **default**: \[none, KEYID, default \]: Key to sign with.
+- `SIGN_EMAILS`: **false**: Sign emails with signing key.
 
 ## Cache (`cache`)
 

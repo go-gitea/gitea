@@ -37,6 +37,10 @@ type Mailer struct {
 	// Sendmail sender
 	SendmailPath string
 	SendmailArgs []string
+
+	// Signing & Encryption
+	SigningKey string
+	SignEmails bool
 }
 
 var (
@@ -70,6 +74,9 @@ func newMailService() {
 		SubjectPrefix:  sec.Key("SUBJECT_PREFIX").MustString(""),
 
 		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
+
+		SigningKey: sec.Key("SIGNING_KEY").MustString("default"),
+		SignEmails: sec.Key("SIGN_EMAILS").MustBool(false),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 

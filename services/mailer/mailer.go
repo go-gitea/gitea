@@ -20,12 +20,52 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/jaytaylor/html2text"
 	"gopkg.in/gomail.v2"
 )
+
+func clearSignedMessage(body string) string {
+	if setting.MailService.SignEmails == false || setting.MailService.SigningKey == "none" {
+		return body
+	}
+
+	args := []string{}
+	if setting.MailService.SigningKey != "default" {
+		args = append(args, "-u", setting.MailService.SigningKey)
+	}
+	args = append(args, "--clear-sign")
+	stdout, stderr, err := process.GetManager().ExecDirEnvStdIn(-1, "", "gpg sign", os.Environ(), strings.NewReader(body), "gpg", args...)
+
+	if err != nil {
+		log.Error("Unable to sign with key %s:\nStderr: %s\nError: %v", setting.MailService.SigningKey, stderr, err)
+		return body
+	}
+	return stdout
+}
+
+func detachedSignature(body string) string {
+	if setting.MailService.SignEmails == false || setting.MailService.SigningKey == "none" {
+		return body
+	}
+
+	args := []string{}
+	if setting.MailService.SigningKey != "default" {
+		args = append(args, "-u", setting.MailService.SigningKey)
+	}
+	args = append(args, "-b", "-a")
+	stdout, stderr, err := process.GetManager().ExecDirEnvStdIn(-1, "", "gpg sign", os.Environ(), strings.NewReader(body), "gpg", args...)
+
+	if err != nil {
+		log.Error("Unable to sign with key %s:\nStderr: %s\nError: %v", setting.MailService.SigningKey, stderr, err)
+		return body
+	}
+	return stdout
+
+}
 
 // Message mail body and log info
 type Message struct {
@@ -61,10 +101,13 @@ func (m *Message) ToMessage() *gomail.Message {
 		if strings.Contains(base.TruncateString(m.Body, 100), "<html>") {
 			log.Warn("Mail contains HTML but configured to send as plain text.")
 		}
-		msg.SetBody("text/plain", plainBody)
+		msg.SetBody("text/plain", clearSignedMessage(plainBody))
 	} else {
-		msg.SetBody("text/plain", plainBody)
+		msg.SetBody("text/plain", clearSignedMessage(plainBody))
 		msg.AddAlternative("text/html", m.Body)
+		if setting.MailService.SignEmails {
+			msg.AddAlternative("application/pgp-signature", detachedSignature(m.Body))
+		}
 	}
 	return msg
 }

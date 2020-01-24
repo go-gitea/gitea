@@ -630,6 +630,10 @@ MAILER_TYPE = smtp
 SENDMAIL_PATH = sendmail
 ; Specify any extra sendmail arguments
 SENDMAIL_ARGS =
+; Signing key
+SIGNING_KEY=default
+; Sign emails
+SIGN_EMAILS=false
 
 [cache]
 ; Either "memory", "redis", or "memcache", default is "memory"
