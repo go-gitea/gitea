@@ -237,7 +237,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName+"-body"), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
 	}
 
