@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -27,6 +26,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -91,14 +91,6 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: include template repositories this user has access to (defaults to true)
 	//   type: boolean
-	// - name: page
-	//   in: query
-	//   description: page number of results to return (1-based)
-	//   type: integer
-	// - name: limit
-	//   in: query
-	//   description: page size of results, maximum page size is 50
-	//   type: integer
 	// - name: mode
 	//   in: query
 	//   description: type of repository to search for. Supported values are
@@ -119,6 +111,14 @@ func Search(ctx *context.APIContext) {
 	//   description: sort order, either "asc" (ascending) or "desc" (descending).
 	//                Default is "asc", ignored if "sort" is not specified.
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SearchResults"
@@ -126,12 +126,11 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	opts := &models.SearchRepoOptions{
+		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.User,
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
 		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
-		Page:               ctx.QueryInt("page"),
-		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
@@ -214,7 +213,7 @@ func Search(ctx *context.APIContext) {
 		results[i] = repo.APIFormat(accessMode)
 	}
 
-	ctx.SetLinkHeader(int(count), setting.API.MaxResponseItems)
+	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,

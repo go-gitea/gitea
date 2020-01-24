@@ -221,8 +221,7 @@ func populateIssueIndexer(ctx context.Context) {
 		default:
 		}
 		repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Page:        page,
-			PageSize:    models.RepositoryListDefaultPageSize,
+			ListOptions: models.ListOptions{Page: page, PageSize: models.RepositoryListDefaultPageSize},
 			OrderBy:     models.SearchOrderByID,
 			Private:     true,
 			Collaborate: util.OptionalBoolFalse,

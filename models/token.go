@@ -78,12 +78,20 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 }
 
 // ListAccessTokens returns a list of access tokens belongs to given user.
-func ListAccessTokens(uid int64) ([]*AccessToken, error) {
-	tokens := make([]*AccessToken, 0, 5)
-	return tokens, x.
+func ListAccessTokens(uid int64, listOptions ListOptions) ([]*AccessToken, error) {
+	sess := x.
 		Where("uid=?", uid).
-		Desc("id").
-		Find(&tokens)
+		Desc("id")
+
+	if listOptions.Page == 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		tokens := make([]*AccessToken, 0, listOptions.PageSize)
+		return tokens, sess.Find(&tokens)
+	}
+
+	tokens := make([]*AccessToken, 0, 5)
+	return tokens, sess.Find(&tokens)
 }
 
 // UpdateAccessToken updates information of access token.

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // StartIssueStopwatch creates a stopwatch for the given issue.
@@ -197,6 +198,15 @@ func GetStopwatches(ctx *context.APIContext) {
 	// swagger:operation GET /user/stopwatches user userGetStopWatches
 	// ---
 	// summary: Get list of all existing stopwatches
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// consumes:
 	// - application/json
 	// produces:
@@ -205,7 +215,7 @@ func GetStopwatches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/StopWatchList"
 
-	sws, err := models.GetUserStopwatches(ctx.User.ID)
+	sws, err := models.GetUserStopwatches(ctx.User.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserStopwatches", err)
 		return
