@@ -39,6 +39,7 @@ var (
 		EnablePushCreateOrg                     bool
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
+		PrefixArchiveFiles                      bool
 
 		// Repository editor settings
 		Editor struct {
@@ -102,6 +103,7 @@ var (
 		EnablePushCreateOrg:                     false,
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
+		PrefixArchiveFiles:                      true,
 
 		// Repository editor settings
 		Editor: struct {

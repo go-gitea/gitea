@@ -69,7 +69,7 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 			return fmt.Errorf("git update-server-info: %v", err)
 		}
 
-		if err = models.CreateDelegateHooks(repoPath); err != nil {
+		if err = createDelegateHooks(repoPath); err != nil {
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
 		return nil

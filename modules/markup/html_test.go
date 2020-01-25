@@ -58,10 +58,10 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test(
 		"gogits/gogs#12345",
-		`<p><a href="`+util.URLJoin(AppURL, "gogits", "gogs", "issues", "12345")+`" rel="nofollow">gogits/gogs#12345</a></p>`)
+		`<p><a href="`+util.URLJoin(AppURL, "gogits", "gogs", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogits/gogs#12345</a></p>`)
 	test(
 		"go-gitea/gitea#12345",
-		`<p><a href="`+util.URLJoin(AppURL, "go-gitea", "gitea", "issues", "12345")+`" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		`<p><a href="`+util.URLJoin(AppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)

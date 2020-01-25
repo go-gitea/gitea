@@ -508,18 +508,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 	reqRepoReleaseWriter := context.RequireRepoWriter(models.UnitTypeReleases)
 	reqRepoReleaseReader := context.RequireRepoReader(models.UnitTypeReleases)
 	reqRepoWikiWriter := context.RequireRepoWriter(models.UnitTypeWiki)
+	reqRepoIssueWriter := context.RequireRepoWriter(models.UnitTypeIssues)
 	reqRepoIssueReader := context.RequireRepoReader(models.UnitTypeIssues)
 	reqRepoPullsWriter := context.RequireRepoWriter(models.UnitTypePullRequests)
 	reqRepoPullsReader := context.RequireRepoReader(models.UnitTypePullRequests)
 	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
-
-	reqRepoIssueWriter := func(ctx *context.Context) {
-		if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
-			ctx.Error(403)
-			return
-		}
-	}
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {

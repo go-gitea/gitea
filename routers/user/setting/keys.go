@@ -133,14 +133,14 @@ func DeleteKey(ctx *context.Context) {
 }
 
 func loadKeysData(ctx *context.Context) {
-	keys, err := models.ListPublicKeys(ctx.User.ID)
+	keys, err := models.ListPublicKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
 	}
 	ctx.Data["Keys"] = keys
 
-	gpgkeys, err := models.ListGPGKeys(ctx.User.ID)
+	gpgkeys, err := models.ListGPGKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return

@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListAccessTokens list all the access tokens
@@ -26,11 +27,19 @@ func ListAccessTokens(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
 
-	tokens, err := models.ListAccessTokens(ctx.User.ID)
+	tokens, err := models.ListAccessTokens(ctx.User.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListAccessTokens", err)
 		return

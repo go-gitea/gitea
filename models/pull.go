@@ -67,7 +67,11 @@ type PullRequest struct {
 // MustHeadUserName returns the HeadRepo's username if failed return blank
 func (pr *PullRequest) MustHeadUserName() string {
 	if err := pr.LoadHeadRepo(); err != nil {
-		log.Error("LoadHeadRepo: %v", err)
+		if !IsErrRepoNotExist(err) {
+			log.Error("LoadHeadRepo: %v", err)
+		} else {
+			log.Warn("LoadHeadRepo %d but repository does not exist: %v", pr.HeadRepoID, err)
+		}
 		return ""
 	}
 	return pr.HeadRepo.OwnerName
@@ -390,6 +394,13 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 		log.Error("LoadIssue: %v", err)
 		return ""
 	}
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return ""
+	}
+	if pr.BaseRepo.UnitEnabled(UnitTypeExternalTracker) {
+		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
+	}
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
 }
 
@@ -646,6 +657,19 @@ func getPullRequestByID(e Engine, id int64) (*PullRequest, error) {
 // GetPullRequestByID returns a pull request by given ID.
 func GetPullRequestByID(id int64) (*PullRequest, error) {
 	return getPullRequestByID(x, id)
+}
+
+// GetPullRequestByIssueIDWithNoAttributes returns pull request with no attributes loaded by given issue ID.
+func GetPullRequestByIssueIDWithNoAttributes(issueID int64) (*PullRequest, error) {
+	var pr PullRequest
+	has, err := x.Where("issue_id = ?", issueID).Get(&pr)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
+	}
+	return &pr, nil
 }
 
 func getPullRequestByIssueID(e Engine, issueID int64) (*PullRequest, error) {

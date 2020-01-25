@@ -10,11 +10,16 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
-	repos, err := models.GetUserRepositories(u.ID, private, 1, u.NumRepos, "")
+	repos, err := models.GetUserRepositories(&models.SearchRepoOptions{
+		Actor:       u,
+		Private:     private,
+		ListOptions: utils.GetListOptions(ctx),
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
 		return
@@ -47,6 +52,14 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
@@ -66,11 +79,24 @@ func ListMyRepos(ctx *context.APIContext) {
 	// summary: List the repos that the authenticated user owns or has access to
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, ctx.User.NumRepos, "")
+	ownRepos, err := models.GetUserRepositories(&models.SearchRepoOptions{
+		Actor:       ctx.User,
+		Private:     true,
+		ListOptions: utils.GetListOptions(ctx),
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
 		return
@@ -106,6 +132,14 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"

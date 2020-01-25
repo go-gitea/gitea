@@ -49,6 +49,8 @@ DISABLED_REPO_UNITS =
 ; External wiki and issue tracker can't be enabled by default as it requires additional settings.
 ; Disabled repo units will not be added to new repositories regardless if it is in the default list.
 DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
+; Prefix archive files by placing them in a directory named after the repository
+PREFIX_ARCHIVE_FILES = true
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor
@@ -282,8 +284,9 @@ DISABLE_ROUTER_LOG = false
 ; not forget to export the private key):
 ; $ openssl pkcs12 -in cert.pfx -out cert.pem -nokeys
 ; $ openssl pkcs12 -in cert.pfx -out key.pem -nocerts -nodes
-CERT_FILE = custom/https/cert.pem
-KEY_FILE = custom/https/key.pem
+; Paths are relative to CUSTOM_PATH
+CERT_FILE = https/cert.pem
+KEY_FILE = https/key.pem
 ; Root directory containing templates and static files.
 ; default is the path where Gitea is executed
 STATIC_ROOT_PATH =
@@ -335,6 +338,10 @@ NAME = gitea
 USER = root
 ; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
+; For Postgres, schema to use if different from "public". The schema must exist beforehand,
+; the user must have creation privileges on it, and the user search path must be set
+; to the look into the schema first. e.g.:ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;
+SCHEMA =
 ; For Postgres, either "disable" (default), "require", or "verify-full"
 ; For MySQL, either "false" (default), "true", or "skip-verify"
 SSL_MODE = disable

@@ -34,7 +34,7 @@ func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit st
 		case always:
 			break
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID)
+			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {
 				return false, "", err
 			}

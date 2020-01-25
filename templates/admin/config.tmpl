@@ -128,6 +128,8 @@
 					<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
 				{{end}}
 				{{if eq .DbCfg.Type "postgres"}}
+					<dt>{{.i18n.Tr "admin.config.db_schema"}}</dt>
+					<dd>{{if .DbCfg.Schema}}{{.DbCfg.Schema}}{{else}}-{{end}}</dd>
 					<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
 					<dd>{{if .DbCfg.SSLMode}}{{.DbCfg.SSLMode}}{{else}}-{{end}}</dd>
 				{{end}}

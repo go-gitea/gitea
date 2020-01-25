@@ -522,7 +522,7 @@ func renderCode(ctx *context.Context) {
 }
 
 // RenderUserCards render a page show users according the input templaet
-func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*models.User, error), tpl base.TplName) {
+func RenderUserCards(ctx *context.Context, total int, getter func(opts models.ListOptions) ([]*models.User, error), tpl base.TplName) {
 	page := ctx.QueryInt("page")
 	if page <= 0 {
 		page = 1
@@ -530,7 +530,7 @@ func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*
 	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(pager.Paginater.Current())
+	items, err := getter(models.ListOptions{Page: pager.Paginater.Current()})
 	if err != nil {
 		ctx.ServerError("getter", err)
 		return
@@ -561,7 +561,7 @@ func Stars(ctx *context.Context) {
 func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
-	forks, err := ctx.Repo.Repository.GetForks()
+	forks, err := ctx.Repo.Repository.GetForks(models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
 		return
