@@ -175,6 +175,7 @@ func GetReleaseByID(id int64) (*Release, error) {
 
 // FindReleasesOptions describes the conditions to Find releases
 type FindReleasesOptions struct {
+	ListOptions
 	IncludeDrafts bool
 	IncludeTags   bool
 	TagNames      []string
@@ -197,17 +198,17 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 }
 
 // GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions, page, pageSize int) (rels []*Release, err error) {
-	if page <= 0 {
-		page = 1
+func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, error) {
+	sess := x.
+		Desc("created_unix", "id").
+		Where(opts.toConds(repoID))
+
+	if opts.PageSize != 0 {
+		sess = opts.setSessionPagination(sess)
 	}
 
-	err = x.
-		Desc("created_unix", "id").
-		Limit(pageSize, (page-1)*pageSize).
-		Where(opts.toConds(repoID)).
-		Find(&rels)
-	return rels, err
+	rels := make([]*Release, 0, opts.PageSize)
+	return rels, sess.Find(&rels)
 }
 
 // GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.

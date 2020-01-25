@@ -4,6 +4,62 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.11.0-rc2) - 2020-01-18
+* BREAKING
+  * Make CertFile and KeyFile relative to CustomPath (#9868) (#9874)
+* SECURITY
+  * Never allow an empty password to validate (#9682) (#9683)
+  * Prevent redirect to Host (#9678) (#9679)
+* BUGFIXES
+  * Don't convert ellipsis in markdown (#9905) (#9937)
+  * Fixed repo link in generated comment for cross repository dependency (#9863) (#9935)
+  * Check if diff actually contains sections when rendering (#9926) (#9933)
+  * Fix wrong hint when status checking is running on pull request view (#9886) (#9928)
+  * Fix RocketChat (#9908) (#9921)
+  * Do not try to recreate ldap user if they are already created (#9900) (#9919)
+  * Create terminated channel in queue_redis (#9910) (#9911)
+  * Prevent empty LDAP search result from deactivating all users (#9879) (#9896)
+  * Fix wrong permissions check when issues/prs shared operations (#9885) (#9889)
+  * Check user != nil before checking values (#9881) (#9883)
+  * Allow hyphen in language name (#9873) (#9880)
+  * Ensure that 2fa is checked on reset-password (#9857) (#9876)
+  * Fix issues/pulls dependencies problems (#9842) (#9864)
+  * Explicitly refer to PR in squash-merge commit message in case of external tracker (#9844) (#9855)
+  * Fix markdown anchor links (#9673) (#9840)
+  * Allow assignee on Pull Creation when Issue Unit is deactivated (#9836) (#9837)
+  * Fix download file wrong content-type (#9825) (#9834)
+  * Fix wrong poster identity on a migrated pull request when submit review (#9827) (#9830)
+  * Fix database dump when log directory is missing (#9818) (#9819)
+  * Fix compare (#9808) (#9814)
+  * Fix push-to-create (#9772) (#9797)
+  * Fix missing msteam webhook on organization (#9781) (#9794)
+  * Fix missing unlock in uniquequeue (#9790) (#9791)
+  * Fix add team on collaborator page when same name as organization (#9778)
+  * DeleteRepoFile incorrectly handles Delete to new branch (#9769) (#9775)
+  * Fix milestones page (#9771)
+  * Fix SimpleMDE quote reply (#9757) (#9768)
+  * Fix missing updated time on migrated issues and comments (#9744) (#9764)
+  * Move Errored PRs out of StatusChecking (#9675) (#9726)
+  * Make hook status printing configurable with delay (#9641) (#9725)
+  * ​Fix /repos​/issues​/search (#9698) (#9724)
+  * Silence fomantic error regarding tabs (#9713) (#9718)
+  * Remove unused lock (#9709) (#9710)
+  * Remove q.lock.Unlock() in setInternal to prevent panic (#9705) (#9706)
+  * Load milestone in API PR list (#9671) (#9700)
+  * Don't attempt to close issue if already closed (#9696) (#9699)
+  * Remove google font call (#9668) (#9681)
+  * Eliminate horizontal scroll caused by footer (#9674)
+  * Fix nil reference in repo generation (#9660) (#9666)
+  * Add HTML URL to API Issues (#9654) (#9661)
+  * Add PR review webhook to Telegram (#9653) (#9655)
+  * Use filepath.IsAbs instead of path.IsAbs (#9651) (#9652)
+* TRANSLATION
+  * Fix Korean locales (#9761) (#9780)
+* BUILD
+  * Fix webpack polyfills (#9735) (#9738)
+* MISC
+  * Backport Locales [2020-01-14] (#9773)
+
 ## [1.11.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.11.0-rc1) - 2020-01-07
 * BREAKING
   * Remove unused endpoints (#9538)
@@ -1501,13 +1557,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * Allow resend of confirmation email when logged in (#6482) (#6487)
 
-## [1.7.5](https://github.com/go-gitea/gitea/releases/tag/v1.7.5) - 2019-03-27  
+## [1.7.5](https://github.com/go-gitea/gitea/releases/tag/v1.7.5) - 2019-03-27
 * BUGFIXES
   * Fix unitTypeCode not being used in accessLevelUnit (#6419) (#6423)
   * Fix bug where manifest.json was being requested without cookies and continuously creating new sessions (#6372) (#6383)
   * Fix ParsePatch function to work with quoted diff --git strings (#6323) (#6332)
 
-## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12  
+## [1.7.4](https://github.com/go-gitea/gitea/releases/tag/v1.7.4) - 2019-03-12
 * SECURITY
   * Fix potential XSS vulnerability in repository description. (#6306) (#6308)
 * BUGFIXES

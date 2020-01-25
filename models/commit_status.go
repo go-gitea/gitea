@@ -104,7 +104,7 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 
 // CommitStatusOptions holds the options for query commit statuses
 type CommitStatusOptions struct {
-	Page     int
+	ListOptions
 	State    string
 	SortType string
 }
@@ -114,18 +114,22 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
+	if opts.PageSize <= 0 {
+		opts.Page = ItemsPerPage
+	}
 
 	countSession := listCommitStatusesStatement(repo, sha, opts)
+	countSession = opts.setSessionPagination(countSession)
 	maxResults, err := countSession.Count(new(CommitStatus))
 	if err != nil {
 		log.Error("Count PRs: %v", err)
 		return nil, maxResults, err
 	}
 
-	statuses := make([]*CommitStatus, 0, ItemsPerPage)
+	statuses := make([]*CommitStatus, 0, opts.PageSize)
 	findSession := listCommitStatusesStatement(repo, sha, opts)
+	findSession = opts.setSessionPagination(findSession)
 	sortCommitStatusesSession(findSession, opts.SortType)
-	findSession.Limit(ItemsPerPage, (opts.Page-1)*ItemsPerPage)
 	return statuses, maxResults, findSession.Find(&statuses)
 }
 

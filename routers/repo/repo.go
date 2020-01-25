@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -507,7 +508,10 @@ func Download(ctx *context.Context) {
 
 	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
 	if !com.IsFile(archivePath) {
-		if err := commit.CreateArchive(archivePath, archiveType); err != nil {
+		if err := commit.CreateArchive(archivePath, git.CreateArchiveOpts{
+			Format: archiveType,
+			Prefix: setting.Repository.PrefixArchiveFiles,
+		}); err != nil {
 			ctx.ServerError("Download -> CreateArchive "+archivePath, err)
 			return
 		}
