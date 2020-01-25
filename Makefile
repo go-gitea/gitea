@@ -470,7 +470,7 @@ node_modules: package-lock.json
 	npm install --no-save
 
 .PHONY: npm-update
-npm-update: node-check node_modules
+npm-update: node-check | node_modules
 	npx updates -cu
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
@@ -478,21 +478,21 @@ npm-update: node-check node_modules
 .PHONY: js
 js: node-check $(JS_DEST)
 
-$(JS_DEST): node_modules $(JS_SOURCES)
+$(JS_DEST): $(JS_SOURCES) | node_modules
 	npx eslint web_src/js webpack.config.js
 	npx webpack --hide-modules --display-entrypoints=false
 
 .PHONY: fomantic
 fomantic: node-check $(FOMANTIC_DEST_DIR)
 
-$(FOMANTIC_DEST_DIR): node_modules semantic.json web_src/fomantic/theme.config.less
+$(FOMANTIC_DEST_DIR): semantic.json web_src/fomantic/theme.config.less | node_modules
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 
 .PHONY: css
 css: node-check $(CSS_DEST)
 
-$(CSS_DEST): node_modules $(CSS_SOURCES)
+$(CSS_DEST): $(CSS_SOURCES) | node_modules
 	npx stylelint web_src/less
 	npx lessc web_src/less/index.less public/css/index.css
 	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
