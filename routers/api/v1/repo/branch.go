@@ -142,8 +142,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 	// - name: name
 	//   in: path
 	//   description: name of protected branch
-	//   type: integer
-	//   format: int64
+	//   type: string
 	//   required: true
 	// responses:
 	//   "200":
@@ -233,6 +232,8 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	repo := ctx.Repo.Repository
 
@@ -244,7 +245,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 
 	protectBranch, err := models.GetProtectedBranchBy(repo.ID, form.BranchName)
 	if err != nil {
-		ctx.ServerError("GetProtectBranchOfRepoByName", err)
+		ctx.Error(http.StatusInternalServerError, "GetProtectBranchOfRepoByName", err)
 		return
 	} else if protectBranch != nil {
 		ctx.Error(http.StatusForbidden, "Branch protection already exist", err)
@@ -258,34 +259,63 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 
 	whitelistUsers, err := models.GetUserIDsByNames(form.PushWhitelistUsernames, false)
 	if err != nil {
-		ctx.ServerError("GetUserIDsByNames", err)
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
+		return
 	}
 	mergeWhitelistUsers, err := models.GetUserIDsByNames(form.MergeWhitelistUsernames, false)
 	if err != nil {
-		ctx.ServerError("GetUserIDsByNames", err)
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
+		return
 	}
 	approvalsWhitelistUsers, err := models.GetUserIDsByNames(form.ApprovalsWhitelistUsernames, false)
 	if err != nil {
-		ctx.ServerError("GetUserIDsByNames", err)
+		if models.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
+		return
 	}
 	var whitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
 	if repo.Owner.IsOrganization() {
 		whitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.PushWhitelistTeams, false)
 		if err != nil {
-			ctx.ServerError("GetTeamIDsByNames", err)
+			if models.IsErrTeamNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
+			return
 		}
 		mergeWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.MergeWhitelistTeams, false)
 		if err != nil {
-			ctx.ServerError("GetTeamIDsByNames", err)
+			if models.IsErrTeamNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
+			return
 		}
 		approvalsWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.ApprovalsWhitelistTeams, false)
 		if err != nil {
-			ctx.ServerError("GetTeamIDsByNames", err)
+			if models.IsErrTeamNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
+			return
 		}
 	}
 
 	protectBranch = &models.ProtectedBranch{
-		ID:                       0,
 		RepoID:                   ctx.Repo.Repository.ID,
 		BranchName:               form.BranchName,
 		CanPush:                  form.EnablePush,
@@ -307,7 +337,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
 	})
 	if err != nil {
-		ctx.ServerError("UpdateProtectBranch", err)
+		ctx.Error(http.StatusInternalServerError, "UpdateProtectBranch", err)
 		return
 	}
 
@@ -349,8 +379,7 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	// - name: name
 	//   in: path
 	//   description: name of protected branch
-	//   type: integer
-	//   format: int64
+	//   type: string
 	//   required: true
 	// - name: body
 	//   in: body
@@ -361,6 +390,8 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	//     "$ref": "#/responses/BranchProtection"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
@@ -400,6 +431,9 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	}
 
 	if form.EnableStatusCheck != nil {
+		protectBranch.EnableStatusCheck = *form.EnableStatusCheck
+	}
+	if protectBranch.EnableStatusCheck {
 		protectBranch.StatusCheckContexts = form.StatusCheckContexts
 	}
 
@@ -415,7 +449,12 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	if form.PushWhitelistUsernames != nil {
 		whitelistUsers, err = models.GetUserIDsByNames(form.PushWhitelistUsernames, false)
 		if err != nil {
-			ctx.ServerError("GetUserIDsByNames", err)
+			if models.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
+			return
 		}
 	} else {
 		whitelistUsers = protectBranch.WhitelistUserIDs
@@ -424,7 +463,12 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	if form.MergeWhitelistUsernames != nil {
 		mergeWhitelistUsers, err = models.GetUserIDsByNames(form.MergeWhitelistUsernames, false)
 		if err != nil {
-			ctx.ServerError("GetUserIDsByNames", err)
+			if models.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
+			return
 		}
 	} else {
 		mergeWhitelistUsers = protectBranch.MergeWhitelistUserIDs
@@ -433,7 +477,12 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	if form.ApprovalsWhitelistUsernames != nil {
 		approvalsWhitelistUsers, err = models.GetUserIDsByNames(form.ApprovalsWhitelistUsernames, false)
 		if err != nil {
-			ctx.ServerError("GetUserIDsByNames", err)
+			if models.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
+			return
 		}
 	} else {
 		approvalsWhitelistUsers = protectBranch.ApprovalsWhitelistUserIDs
@@ -444,7 +493,12 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 		if form.PushWhitelistTeams != nil {
 			whitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.PushWhitelistTeams, false)
 			if err != nil {
-				ctx.ServerError("GetTeamIDsByNames", err)
+				if models.IsErrTeamNotExist(err) {
+					ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
+				return
 			}
 		} else {
 			whitelistTeams = protectBranch.WhitelistTeamIDs
@@ -452,7 +506,12 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 		if form.MergeWhitelistTeams != nil {
 			mergeWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.MergeWhitelistTeams, false)
 			if err != nil {
-				ctx.ServerError("GetTeamIDsByNames", err)
+				if models.IsErrTeamNotExist(err) {
+					ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
+				return
 			}
 		} else {
 			mergeWhitelistTeams = protectBranch.MergeWhitelistTeamIDs
@@ -460,7 +519,12 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 		if form.ApprovalsWhitelistTeams != nil {
 			approvalsWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.ApprovalsWhitelistTeams, false)
 			if err != nil {
-				ctx.ServerError("GetTeamIDsByNames", err)
+				if models.IsErrTeamNotExist(err) {
+					ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
+				return
 			}
 		} else {
 			approvalsWhitelistTeams = protectBranch.ApprovalsWhitelistTeamIDs
@@ -476,14 +540,14 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 		ApprovalsTeamIDs: approvalsWhitelistTeams,
 	})
 	if err != nil {
-		ctx.ServerError("UpdateProtectBranch", err)
+		ctx.Error(http.StatusInternalServerError, "UpdateProtectBranch", err)
 		return
 	}
 
 	// Reload from db to ensure get all whitelists
-	bp, err := models.GetProtectedBranchByID(ctx.ParamsInt64(":id"))
+	bp, err := models.GetProtectedBranchBy(repo.ID, bpName)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
+		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchBy", err)
 		return
 	}
 	if bp == nil || bp.RepoID != ctx.Repo.Repository.ID {
@@ -515,8 +579,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 	// - name: name
 	//   in: path
 	//   description: name of protected branch
-	//   type: integer
-	//   format: int64
+	//   type: string
 	//   required: true
 	// responses:
 	//   "204":
@@ -537,7 +600,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 	}
 
 	if err := ctx.Repo.Repository.DeleteProtectedBranch(bp.ID); err != nil {
-		ctx.ServerError("DeleteProtectedBranch", err)
+		ctx.Error(http.StatusInternalServerError, "DeleteProtectedBranch", err)
 		return
 	}
 

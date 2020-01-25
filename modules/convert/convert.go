@@ -90,7 +90,6 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 	}
 
 	return &api.BranchProtection{
-		ID:                          bp.ID,
 		BranchName:                  bp.BranchName,
 		EnablePush:                  bp.CanPush,
 		EnablePushWhitelist:         bp.EnableWhitelist,

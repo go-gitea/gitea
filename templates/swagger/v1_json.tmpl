@@ -1873,6 +1873,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -1903,8 +1906,7 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
+            "type": "string",
             "description": "name of protected branch",
             "name": "name",
             "in": "path",
@@ -1945,8 +1947,7 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
+            "type": "string",
             "description": "name of protected branch",
             "name": "name",
             "in": "path",
@@ -1990,8 +1991,7 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
+            "type": "string",
             "description": "name of protected branch",
             "name": "name",
             "in": "path",
@@ -2011,6 +2011,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -9640,11 +9643,6 @@
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
-        },
-        "id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ID"
         },
         "merge_whitelist_teams": {
           "type": "array",

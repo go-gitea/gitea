@@ -23,7 +23,6 @@ type Branch struct {
 
 // BranchProtection represents a branch protection for a repository
 type BranchProtection struct {
-	ID                          int64    `json:"id"`
 	BranchName                  string   `json:"branch_name"`
 	EnablePush                  bool     `json:"enable_push"`
 	EnablePushWhitelist         bool     `json:"enable_push_whitelist"`
