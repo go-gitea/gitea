@@ -88,6 +88,7 @@
 											{{$.CsrfTokenHtml}}
 											<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 											<input type="hidden" name="status" value="read" />
+											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
 											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_read"}}'>
 												<i class="octicon octicon-check"></i>
 											</button>
@@ -97,6 +98,7 @@
 											{{$.CsrfTokenHtml}}
 											<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 											<input type="hidden" name="status" value="unread" />
+											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
 											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_unread"}}'>
 												<i class="octicon octicon-bell"></i>
 											</button>

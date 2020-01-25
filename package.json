@@ -31,9 +31,6 @@
     "webpack-cli": "3.3.10"
   },
   "browserslist": [
-    "> 1%",
-    "last 2 firefox versions",
-    "last 2 safari versions",
-    "ie 11"
+    "defaults"
   ]
 }

@@ -53,8 +53,6 @@ is the relevant line - but this may change.)
 The recommended method of obtaining the source code is by using `git clone`.
 
 ```bash
-# from within your src directory
-cd "$HOME"/src
 git clone https://github.com/go-gitea/gitea
 ```
 
@@ -69,7 +67,6 @@ and either switch the git remote origin for your fork or add your fork as anothe
 
 ```bash
 # Rename original Gitea origin to upstream
-cd "$HOME/src/gitea"
 git remote rename origin upstream
 git remote add origin "git@github.com:$GITHUB_USERNAME/gitea.git"
 git fetch --all --prune
@@ -79,7 +76,6 @@ or:
 
 ```bash
 # Add new remote for our fork
-cd "$HOME/src/gitea"
 git remote add "$FORK_NAME" "git@github.com:$GITHUB_USERNAME/gitea.git"
 git fetch --all --prune
 ```
@@ -256,7 +252,7 @@ Documentation for the website is found in `docs/`. If you change this you
 can test your changes to ensure that they pass continuous integration using:
 
 ```bash
-cd "$HOME/src/gitea/docs"
+# from the docs directory within Gitea
 make trans-copy clean build
 ```
 
