@@ -3,8 +3,8 @@
 mv ./options/locale/locale_en-US.ini ./options/
 
 # Make sure to only change lines that have the translation enclosed between quotes
-sed -i -r -e '/^[a-zA-Z0-9_-.]+[ ]*=[ ]*".*"$/ {
-	s/^([a-zA-Z0-9_-.]+)[ ]*="/\1=/
+sed -i -r -e '/^[a-zA-Z0-9_.-]+[ ]*=[ ]*".*"$/ {
+	s/^([a-zA-Z0-9_.-]+)[ ]*="/\1=/
 	s/\\"/"/g
 	s/"$//
 	}' ./options/locale/*.ini
