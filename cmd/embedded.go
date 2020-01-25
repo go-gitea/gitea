@@ -7,9 +7,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
-//	"os"
-//	"path/filepath"
+	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -33,13 +35,6 @@ var (
 			subcmdExtract,
 		},
 		Flags: []cli.Flag{
-			/*
-			cli.StringFlag{
-				Name:  "name, n",
-				Value: "**",
-				Usage: "glob pattern used to match files",
-			},
-			*/
 			cli.BoolFlag{
 				Name:  "include-vendored,vendor",
 				Usage: "Include files under public/vendor as well",
@@ -63,35 +58,42 @@ var (
 				Usage: "Overwrite files if they already exist",
 			},
 			cli.BoolFlag{
+				Name:  "rename",
+				Usage: "Rename files as {name}.bak if they already exist (overwrites previous .bak)",
+			},
+			cli.BoolFlag{
 				Name:  "custom",
-				Usage: "Extract to the 'custom' directory",
+				Usage: "Extract to the 'custom' directory as per app.ini",
 			},
 			cli.StringFlag{
-				Name:  "destination",
-				Usage: "Destination for the extracted files",
+				Name:  "destination,dest-dir",
+				Usage: "Extract to the specified directory",
 			},
 		},
 	}
 
-	sections	map[string]*section
-	assets		[]asset
+	sections map[string]*section
+	assets   []asset
 )
 
 type section struct {
-	Path		string
-	Names		func() []string
-	IsDir		func(string) (bool, error)
+	Path  string
+	Names func() []string
+	IsDir func(string) (bool, error)
+	Asset func(string) ([]byte, error)
 }
 
 type asset struct {
-	Section		*section
-	Name		string
+	Section *section
+	Name    string
+	Path    string
 }
 
 func initEmbeddedExtractor(c *cli.Context) error {
 
 	// Silence the console logger
 	log.DelNamedLogger("console")
+	log.DelNamedLogger(log.DEFAULT)
 
 	// Read configuration file
 	setting.NewContext()
@@ -100,34 +102,33 @@ func initEmbeddedExtractor(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	sections := make(map[string]*section,3)
+	sections := make(map[string]*section, 3)
 
-	sections["public"] = &section{ Path: "public", Names: public.AssetNames, IsDir: public.AssetIsDir }
-	sections["options"] = &section{ Path: "options", Names: options.AssetNames, IsDir: options.AssetIsDir }
-	sections["templates"] = &section{ Path: "templates", Names: templates.AssetNames, IsDir: templates.AssetIsDir }
+	sections["public"] = &section{Path: "public", Names: public.AssetNames, IsDir: public.AssetIsDir, Asset: public.Asset}
+	sections["options"] = &section{Path: "options", Names: options.AssetNames, IsDir: options.AssetIsDir, Asset: options.Asset}
+	sections["templates"] = &section{Path: "templates", Names: templates.AssetNames, IsDir: templates.AssetIsDir, Asset: templates.Asset}
 
 	for _, sec := range sections {
 		assets = append(assets, buildAssetList(sec, pats, c)...)
 	}
 
+	// Sort assets
+	sort.SliceStable(assets, func(i, j int) bool {
+		return assets[i].Path < assets[j].Path
+	})
+
 	return nil
 }
 
-func runList(ctx *cli.Context) error {
-	if err := initEmbeddedExtractor(ctx); err != nil {
+func runList(c *cli.Context) error {
+	if err := initEmbeddedExtractor(c); err != nil {
 		return err
 	}
-	// fmt.Println("Using app.ini at", setting.CustomConf)
 
-	for _, asset := range assets {
-		fmt.Printf("- [%s] [%s]\n", asset.Section.Path, asset.Name)
+	for _, a := range assets {
+		fmt.Println(a.Path)
 	}
-	fmt.Println("End of list.")
-	return nil
-}
 
-func runExtract(ctx *cli.Context) error {
-	fmt.Println("Not implemented")
 	return nil
 }
 
@@ -140,10 +141,12 @@ func buildAssetList(sec *section, globs []glob.Glob, c *cli.Context) []asset {
 				!c.Bool("include-vendored") {
 				continue
 			}
-			matchName := "/"+sec.Path+"/"+name
+			matchName := "/" + sec.Path + "/" + name
 			for _, g := range globs {
 				if g.Match(matchName) {
-					results = append(results, asset{Section: sec, Name: name})
+					results = append(results, asset{Section: sec,
+						Name: name,
+						Path: sec.Path + "/" + name})
 					break
 				}
 			}
@@ -156,7 +159,7 @@ func getPatterns(args []string) ([]glob.Glob, error) {
 	if len(args) == 0 {
 		args = []string{"**"}
 	}
-	pat := make([]glob.Glob,len(args))
+	pat := make([]glob.Glob, len(args))
 	for i := range args {
 		if g, err := glob.Compile(args[i], '.', '/'); err != nil {
 			return nil, fmt.Errorf("'%s': Invalid glob pattern: %v", args[i], err)
@@ -165,4 +168,90 @@ func getPatterns(args []string) ([]glob.Glob, error) {
 		}
 	}
 	return pat, nil
+}
+
+func runExtract(c *cli.Context) error {
+	if err := initEmbeddedExtractor(c); err != nil {
+		return err
+	}
+
+	destdir := "."
+
+	if c.IsSet("destination") {
+		destdir = c.String("destination")
+	} else if c.Bool("custom") {
+		destdir = setting.CustomPath
+		fmt.Println("Using app.ini at", setting.CustomConf)
+	}
+
+	if fi, err := os.Stat(destdir); err != nil {
+		return fmt.Errorf("%s: err", destdir)
+	} else if !fi.IsDir() {
+		return fmt.Errorf("%s does not exist or is not a directory.", destdir)
+	}
+
+	fmt.Println("Extracting to", destdir)
+
+	overwrite := c.Bool("overwrite")
+	rename := c.Bool("rename")
+
+	for _, a := range assets {
+		if err := extractAsset(destdir, a, overwrite, rename); err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %v", a.Path, err)
+		}
+	}
+
+	return nil
+}
+
+func extractAsset(d string, a asset, overwrite, rename bool) error {
+	dest := d + "/" + a.Path
+	dir := filepath.Dir(dest)
+
+	data, err := a.Section.Asset(a.Name)
+	if err != nil {
+		return fmt.Errorf("%s: %v", a.Path, err)
+	}
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("%s: %v", dir, err)
+	}
+
+	perms := os.ModePerm & 0666
+
+	fi, err := os.Lstat(dest)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("%s: %v", dest, err)
+		}
+	} else if !overwrite && !rename {
+		fmt.Fprintf(os.Stderr, "%s already exists; skipped.\n", dest)
+		return nil
+	} else if !fi.Mode().IsRegular() {
+		return fmt.Errorf("%s already exists and is not a regular file", dest)
+	} else if rename {
+		if err := os.Rename(dest, dest+".bak"); err != nil {
+			return fmt.Errorf("Error creating backup for %s: %v", dest, err)
+		}
+		// Attempt to respect file permissions mask (even if user:group will be set anew)
+		perms = fi.Mode()
+	}
+
+	file, err := os.OpenFile(dest, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, perms)
+	if err != nil {
+		return fmt.Errorf("%s: %v", dest, err)
+	}
+	defer file.Close()
+
+	for len(data) != 0 {
+		written, err := file.Write(data)
+		if err != nil {
+			return fmt.Errorf("%s: %v", dest, err)
+		}
+		data = data[written:]
+	}
+
+	fmt.Println(dest)
+
+	return nil
 }
