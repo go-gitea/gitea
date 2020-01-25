@@ -29,7 +29,7 @@ var (
 	Cmdembedded = cli.Command{
 		Name:        "embedded",
 		Usage:       "Extract embedded resources",
-		Description: "A command for extracting embedded resources, like templates and images.",
+		Description: "A command for extracting embedded resources, like templates and images",
 		Subcommands: []cli.Command{
 			subcmdList,
 			subcmdExtract,
@@ -166,10 +166,20 @@ func runExtractDo(c *cli.Context) error {
 		fmt.Println("Using app.ini at", setting.CustomConf)
 	}
 
-	if fi, err := os.Stat(destdir); err != nil {
+	fi, err := os.Stat(destdir)
+	if errors.Is(err, os.ErrNotExist) {
+		// In case Windows users attempt to provide a forward-slash path
+		wdestdir := filepath.FromSlash(destdir)
+		if wfi, werr := os.Stat(wdestdir); werr == nil {
+			destdir = wdestdir
+			fi = wfi
+			err = nil
+		}
+	}
+	if err != nil {
 		return fmt.Errorf("%s: %s", destdir, err)
 	} else if !fi.IsDir() {
-		return fmt.Errorf("%s does not exist or is not a directory.", destdir)
+		return fmt.Errorf("%s is not a directory.", destdir)
 	}
 
 	fmt.Printf("Extracting to %s:\n", destdir)
@@ -188,7 +198,7 @@ func runExtractDo(c *cli.Context) error {
 }
 
 func extractAsset(d string, a asset, overwrite, rename bool) error {
-	dest := d + "/" + a.Path
+	dest := filepath.Join(d, filepath.FromSlash(a.Path))
 	dir := filepath.Dir(dest)
 
 	data, err := a.Section.Asset(a.Name)
@@ -211,7 +221,7 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 		fmt.Printf("%s already exists; skipped.\n", dest)
 		return nil
 	} else if !fi.Mode().IsRegular() {
-		return fmt.Errorf("%s already exists and is not a regular file", dest)
+		return fmt.Errorf("%s already exists, but it's not a regular file", dest)
 	} else if rename {
 		if err := os.Rename(dest, dest+".bak"); err != nil {
 			return fmt.Errorf("Error creating backup for %s: %v", dest, err)
@@ -226,12 +236,8 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 	}
 	defer file.Close()
 
-	for len(data) != 0 {
-		written, err := file.Write(data)
-		if err != nil {
-			return fmt.Errorf("%s: %v", dest, err)
-		}
-		data = data[written:]
+	if _, err = file.Write(data); err != nil {
+		return fmt.Errorf("%s: %v", dest, err)
 	}
 
 	fmt.Println(dest)
@@ -268,7 +274,7 @@ func getPatterns(args []string) ([]glob.Glob, error) {
 	}
 	pat := make([]glob.Glob, len(args))
 	for i := range args {
-		if g, err := glob.Compile(args[i], '.', '/'); err != nil {
+		if g, err := glob.Compile(args[i], '/'); err != nil {
 			return nil, fmt.Errorf("'%s': Invalid glob pattern: %v", args[i], err)
 		} else {
 			pat[i] = g
@@ -276,4 +282,3 @@ func getPatterns(args []string) ([]glob.Glob, error) {
 	}
 	return pat, nil
 }
-
