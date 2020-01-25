@@ -121,6 +121,22 @@ func initEmbeddedExtractor(c *cli.Context) error {
 }
 
 func runList(c *cli.Context) error {
+	if err := runListDo(c); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return err
+	}
+	return nil
+}
+
+func runExtract(c *cli.Context) error {
+	if err := runExtractDo(c); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return err
+	}
+	return nil
+}
+
+func runListDo(c *cli.Context) error {
 	if err := initEmbeddedExtractor(c); err != nil {
 		return err
 	}
@@ -128,6 +144,97 @@ func runList(c *cli.Context) error {
 	for _, a := range assets {
 		fmt.Println(a.Path)
 	}
+
+	return nil
+}
+
+func runExtractDo(c *cli.Context) error {
+	if err := initEmbeddedExtractor(c); err != nil {
+		return err
+	}
+
+	if len(c.Args()) == 0 {
+		return fmt.Errorf("A list of pattern of files to extract is mandatory (e.g. '**' for all)")
+	}
+
+	destdir := "."
+
+	if c.IsSet("destination") {
+		destdir = c.String("destination")
+	} else if c.Bool("custom") {
+		destdir = setting.CustomPath
+		fmt.Println("Using app.ini at", setting.CustomConf)
+	}
+
+	if fi, err := os.Stat(destdir); err != nil {
+		return fmt.Errorf("%s: %s", destdir, err)
+	} else if !fi.IsDir() {
+		return fmt.Errorf("%s does not exist or is not a directory.", destdir)
+	}
+
+	fmt.Printf("Extracting to %s:\n", destdir)
+
+	overwrite := c.Bool("overwrite")
+	rename := c.Bool("rename")
+
+	for _, a := range assets {
+		if err := extractAsset(destdir, a, overwrite, rename); err != nil {
+			// Non-fatal error
+			fmt.Fprintf(os.Stderr, "%s: %v", a.Path, err)
+		}
+	}
+
+	return nil
+}
+
+func extractAsset(d string, a asset, overwrite, rename bool) error {
+	dest := d + "/" + a.Path
+	dir := filepath.Dir(dest)
+
+	data, err := a.Section.Asset(a.Name)
+	if err != nil {
+		return fmt.Errorf("%s: %v", a.Path, err)
+	}
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("%s: %v", dir, err)
+	}
+
+	perms := os.ModePerm & 0666
+
+	fi, err := os.Lstat(dest)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("%s: %v", dest, err)
+		}
+	} else if !overwrite && !rename {
+		fmt.Printf("%s already exists; skipped.\n", dest)
+		return nil
+	} else if !fi.Mode().IsRegular() {
+		return fmt.Errorf("%s already exists and is not a regular file", dest)
+	} else if rename {
+		if err := os.Rename(dest, dest+".bak"); err != nil {
+			return fmt.Errorf("Error creating backup for %s: %v", dest, err)
+		}
+		// Attempt to respect file permissions mask (even if user:group will be set anew)
+		perms = fi.Mode()
+	}
+
+	file, err := os.OpenFile(dest, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, perms)
+	if err != nil {
+		return fmt.Errorf("%s: %v", dest, err)
+	}
+	defer file.Close()
+
+	for len(data) != 0 {
+		written, err := file.Write(data)
+		if err != nil {
+			return fmt.Errorf("%s: %v", dest, err)
+		}
+		data = data[written:]
+	}
+
+	fmt.Println(dest)
 
 	return nil
 }
@@ -170,88 +277,3 @@ func getPatterns(args []string) ([]glob.Glob, error) {
 	return pat, nil
 }
 
-func runExtract(c *cli.Context) error {
-	if err := initEmbeddedExtractor(c); err != nil {
-		return err
-	}
-
-	destdir := "."
-
-	if c.IsSet("destination") {
-		destdir = c.String("destination")
-	} else if c.Bool("custom") {
-		destdir = setting.CustomPath
-		fmt.Println("Using app.ini at", setting.CustomConf)
-	}
-
-	if fi, err := os.Stat(destdir); err != nil {
-		return fmt.Errorf("%s: err", destdir)
-	} else if !fi.IsDir() {
-		return fmt.Errorf("%s does not exist or is not a directory.", destdir)
-	}
-
-	fmt.Println("Extracting to", destdir)
-
-	overwrite := c.Bool("overwrite")
-	rename := c.Bool("rename")
-
-	for _, a := range assets {
-		if err := extractAsset(destdir, a, overwrite, rename); err != nil {
-			fmt.Fprintf(os.Stderr, "%s: %v", a.Path, err)
-		}
-	}
-
-	return nil
-}
-
-func extractAsset(d string, a asset, overwrite, rename bool) error {
-	dest := d + "/" + a.Path
-	dir := filepath.Dir(dest)
-
-	data, err := a.Section.Asset(a.Name)
-	if err != nil {
-		return fmt.Errorf("%s: %v", a.Path, err)
-	}
-
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("%s: %v", dir, err)
-	}
-
-	perms := os.ModePerm & 0666
-
-	fi, err := os.Lstat(dest)
-	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("%s: %v", dest, err)
-		}
-	} else if !overwrite && !rename {
-		fmt.Fprintf(os.Stderr, "%s already exists; skipped.\n", dest)
-		return nil
-	} else if !fi.Mode().IsRegular() {
-		return fmt.Errorf("%s already exists and is not a regular file", dest)
-	} else if rename {
-		if err := os.Rename(dest, dest+".bak"); err != nil {
-			return fmt.Errorf("Error creating backup for %s: %v", dest, err)
-		}
-		// Attempt to respect file permissions mask (even if user:group will be set anew)
-		perms = fi.Mode()
-	}
-
-	file, err := os.OpenFile(dest, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, perms)
-	if err != nil {
-		return fmt.Errorf("%s: %v", dest, err)
-	}
-	defer file.Close()
-
-	for len(data) != 0 {
-		written, err := file.Write(data)
-		if err != nil {
-			return fmt.Errorf("%s: %v", dest, err)
-		}
-		data = data[written:]
-	}
-
-	fmt.Println(dest)
-
-	return nil
-}
