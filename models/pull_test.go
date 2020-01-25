@@ -55,7 +55,9 @@ func TestPullRequest_GetHeadRepo(t *testing.T) {
 func TestPullRequestsNewest(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	prs, count, err := PullRequests(1, &PullRequestsOptions{
-		Page:     1,
+		ListOptions: ListOptions{
+			Page: 1,
+		},
 		State:    "open",
 		SortType: "newest",
 		Labels:   []string{},
@@ -72,7 +74,9 @@ func TestPullRequestsNewest(t *testing.T) {
 func TestPullRequestsOldest(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	prs, count, err := PullRequests(1, &PullRequestsOptions{
-		Page:     1,
+		ListOptions: ListOptions{
+			Page: 1,
+		},
 		State:    "open",
 		SortType: "oldest",
 		Labels:   []string{},

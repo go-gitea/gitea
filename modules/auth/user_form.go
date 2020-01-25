@@ -25,6 +25,7 @@ type InstallForm struct {
 	SSLMode  string
 	Charset  string `binding:"Required;In(utf8,utf8mb4)"`
 	DbPath   string
+	DbSchema string
 
 	AppName      string `binding:"Required" locale:"install.app_name"`
 	RepoRootPath string `binding:"Required"`

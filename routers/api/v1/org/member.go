@@ -14,14 +14,16 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
 	var members []*models.User
-	members, _, err := models.FindOrgMembers(models.FindOrgMembersOpts{
-		OrgID:      ctx.Org.Organization.ID,
-		PublicOnly: publicOnly,
+	members, _, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
+		OrgID:       ctx.Org.Organization.ID,
+		PublicOnly:  publicOnly,
+		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
@@ -48,6 +50,14 @@ func ListMembers(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
@@ -75,6 +85,14 @@ func ListPublicMembers(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:

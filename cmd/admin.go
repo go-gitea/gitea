@@ -14,9 +14,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	pwd "code.gitea.io/gitea/modules/password"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
@@ -350,9 +351,11 @@ func runRepoSyncReleases(c *cli.Context) error {
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Page:     page,
-			PageSize: models.RepositoryListDefaultPageSize,
-			Private:  true,
+			ListOptions: models.ListOptions{
+				PageSize: models.RepositoryListDefaultPageSize,
+				Page:     page,
+			},
+			Private: true,
 		})
 		if err != nil {
 			return fmt.Errorf("SearchRepositoryByName: %v", err)
@@ -375,7 +378,7 @@ func runRepoSyncReleases(c *cli.Context) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = repository.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
 				gitRepo.Close()
 				continue
@@ -410,7 +413,7 @@ func runRegenerateHooks(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-	return models.SyncRepositoryHooks()
+	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
 func runRegenerateKeys(c *cli.Context) error {

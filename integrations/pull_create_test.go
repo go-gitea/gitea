@@ -106,3 +106,57 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		assert.Equal(t, "&lt;u&gt;XSS PR&lt;/u&gt;", titleHTML)
 	})
 }
+
+func testUIDeleteBranch(t *testing.T, session *TestSession, ownerName, repoName, branchName string) {
+	relURL := "/" + path.Join(ownerName, repoName, "branches")
+	req := NewRequest(t, "GET", relURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	req = NewRequestWithValues(t, "POST", relURL+"/delete", map[string]string{
+		"_csrf": getCsrf(t, htmlDoc.doc),
+		"name":  branchName,
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
+func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoName string) {
+	relURL := "/" + path.Join(ownerName, repoName, "settings")
+	req := NewRequest(t, "GET", relURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	req = NewRequestWithValues(t, "POST", relURL+"?action=delete", map[string]string{
+		"_csrf":     getCsrf(t, htmlDoc.doc),
+		"repo_name": repoName,
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+}
+
+func TestPullBranchDelete(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		defer prepareTestEnv(t)()
+
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusFound)
+		testEditFile(t, session, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user1", "repo1", "master1", "This is a pull title")
+
+		// check the redirected URL
+		url := resp.HeaderMap.Get("Location")
+		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
+		req := NewRequest(t, "GET", url)
+		session.MakeRequest(t, req, http.StatusOK)
+
+		// delete head branch and confirm pull page is ok
+		testUIDeleteBranch(t, session, "user1", "repo1", "master1")
+		req = NewRequest(t, "GET", url)
+		session.MakeRequest(t, req, http.StatusOK)
+
+		// delete head repository and confirm pull page is ok
+		testDeleteRepository(t, session, "user1", "repo1")
+		req = NewRequest(t, "GET", url)
+		session.MakeRequest(t, req, http.StatusOK)
+	})
+}

@@ -58,8 +58,13 @@ func Commits(ctx *context.Context) {
 		page = 1
 	}
 
+	pageSize := ctx.QueryInt("limit")
+	if pageSize <= 0 {
+		pageSize = git.CommitsRangeSize
+	}
+
 	// Both `git log branchName` and `git log commitId` work.
-	commits, err := ctx.Repo.Commit.CommitsByRange(page)
+	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize)
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return

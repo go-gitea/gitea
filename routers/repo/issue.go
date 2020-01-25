@@ -63,13 +63,12 @@ var (
 // If locked and user has permissions to write to the repository,
 // then the comment is allowed, else it is blocked
 func MustAllowUserComment(ctx *context.Context) {
-
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.User.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
 		ctx.Redirect(issue.HTMLURL())
 		return
@@ -196,13 +195,15 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		issues = []*models.Issue{}
 	} else {
 		issues, err = models.Issues(&models.IssuesOptions{
+			ListOptions: models.ListOptions{
+				Page:     pager.Paginater.Current(),
+				PageSize: setting.UI.IssuePagingNum,
+			},
 			RepoIDs:     []int64{repo.ID},
 			AssigneeID:  assigneeID,
 			PosterID:    posterID,
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
-			Page:        pager.Paginater.Current(),
-			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      isPullOption,
 			LabelIDs:    labelIDs,
@@ -247,7 +248,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		return
 	}
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "")
+	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
@@ -310,7 +311,7 @@ func Issues(ctx *context.Context) {
 
 	var err error
 	// Get milestones.
-	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")))
+	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")), models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
 		return
@@ -344,11 +345,11 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 
 // RetrieveRepoMetas find all the meta information of a repository
 func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull bool) []*models.Label {
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if !ctx.Repo.CanWriteIssuesOrPulls(isPull) {
 		return nil
 	}
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "")
+	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return nil
@@ -734,7 +735,7 @@ func ViewIssue(ctx *context.Context) {
 	for i := range issue.Labels {
 		labelIDMark[issue.Labels[i].ID] = true
 	}
-	labels, err := models.GetLabelsByRepoID(repo.ID, "")
+	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
@@ -1022,7 +1023,6 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
-	ctx.Data["IsRepoIssuesWriter"] = ctx.IsSigned && (ctx.Repo.CanWrite(models.UnitTypeIssues) || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.HTML(200, tplIssueView)
 }
@@ -1283,9 +1283,10 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		}
 
 		ctx.Error(403)
+		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.User.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
 		ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 		return

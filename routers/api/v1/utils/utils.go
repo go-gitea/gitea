@@ -8,7 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 )
 
 // UserID user ID of authenticated user, or 0 if not authenticated
@@ -43,4 +45,12 @@ func GetQueryBeforeSince(ctx *context.APIContext) (before, since int64, err erro
 		}
 	}
 	return before, since, nil
+}
+
+// GetListOptions returns list options using the page and limit parameters
+func GetListOptions(ctx *context.APIContext) models.ListOptions {
+	return models.ListOptions{
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+	}
 }

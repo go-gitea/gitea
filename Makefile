@@ -56,6 +56,7 @@ BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/tem
 
 JS_DEST_DIR := public/js
 CSS_DEST_DIR := public/css
+FOMANTIC_DEST_DIR := public/fomantic
 
 TAGS ?=
 
@@ -80,6 +81,7 @@ TEST_PGSQL_HOST ?= pgsql:5432
 TEST_PGSQL_DBNAME ?= testgitea
 TEST_PGSQL_USERNAME ?= postgres
 TEST_PGSQL_PASSWORD ?= postgres
+TEST_PGSQL_SCHEMA ?= gtestschema
 TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
@@ -102,10 +104,11 @@ help:
 	@echo " - clean-all         delete all generated files (integration test, build, css and js files)"
 	@echo " - css               rebuild only css files"
 	@echo " - js                rebuild only js files"
-	@echo " - generate          run \"make css js\" and \"go generate\""
+	@echo " - fomantic          rebuild fomantic-ui files"
+	@echo " - generate          run \"make fomantic css js\" and \"go generate\""
 	@echo " - fmt               format the code"
 	@echo " - generate-swagger  generate the swagger spec from code comments"
-	@echo " - swagger-validate  check if the swagger spec is valide"
+	@echo " - swagger-validate  check if the swagger spec is valid"
 	@echo " - revive            run code linter revive"
 	@echo " - misspell          check if a word is written wrong"
 	@echo " - vet               examines Go source code and reports suspicious constructs"
@@ -138,7 +141,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR)
+	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR) $(FOMANTIC_DEST_DIR)
 
 .PHONY: clean
 clean:
@@ -158,7 +161,7 @@ vet:
 	$(GO) vet $(PACKAGES)
 
 .PHONY: generate
-generate: js css
+generate: fomantic js css
 	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
@@ -307,6 +310,7 @@ generate-ini-pgsql:
 		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
+		-e 's|{{TEST_PGSQL_SCHEMA}}|${TEST_PGSQL_SCHEMA}|g' \
 			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
 
 .PHONY: test-pgsql
@@ -467,7 +471,7 @@ node_modules: package-lock.json
 	npm install --no-save
 
 .PHONY: npm-update
-npm-update: node-check node_modules
+npm-update: node-check | node_modules
 	npx updates -cu
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
@@ -475,14 +479,21 @@ npm-update: node-check node_modules
 .PHONY: js
 js: node-check $(JS_DEST)
 
-$(JS_DEST): node_modules $(JS_SOURCES)
+$(JS_DEST): $(JS_SOURCES) | node_modules
 	npx eslint web_src/js webpack.config.js
-	npx webpack
+	npx webpack --hide-modules --display-entrypoints=false
+
+.PHONY: fomantic
+fomantic: node-check $(FOMANTIC_DEST_DIR)
+
+$(FOMANTIC_DEST_DIR): semantic.json web_src/fomantic/theme.config.less | node_modules
+	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
+	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 
 .PHONY: css
 css: node-check $(CSS_DEST)
 
-$(CSS_DEST): node_modules $(CSS_SOURCES)
+$(CSS_DEST): $(CSS_SOURCES) | node_modules
 	npx stylelint web_src/less
 	npx lessc web_src/less/index.less public/css/index.css
 	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)

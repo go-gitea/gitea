@@ -1,204 +1,14 @@
 ---
 kind: pipeline
-name: go1.10-test
-workspace:
-  base: /go
-  path: src/gitea.com/xorm/xorm
-
+name: testing
 steps:
-- name: build
+- name: test-vet
   pull: default
-  image: golang:1.10
-  commands:
-  - go get -t -d -v
-  - go build -v
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-sqlite
-  pull: default
-  image: golang:1.10
-  depends_on:
-    - build
-  commands:
-  - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -coverprofile=coverage1-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -cache=true -coverprofile=coverage1-2.txt -covermode=atomic"
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-mysql
-  pull: default
-  image: golang:1.10
-  depends_on:
-    - build
-  commands:
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -coverprofile=coverage2-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -cache=true -coverprofile=coverage2-2.txt -covermode=atomic"
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-mysql-utf8mb4
-  pull: default
-  image: golang:1.10
-  depends_on:
-    - test-mysql
-  commands:
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -coverprofile=coverage2.1-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -cache=true -coverprofile=coverage2.1-2.txt -covermode=atomic"
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-mymysql
-  pull: default
-  image: golang:1.10
-  depends_on:
-    - test-mysql-utf8mb4
-  commands:
-  - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -coverprofile=coverage3-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic"
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-postgres
-  pull: default
-  image: golang:1.10
-  depends_on:
-    - build
-  commands:
-  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -coverprofile=coverage4-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -cache=true -coverprofile=coverage4-2.txt -covermode=atomic"
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-postgres-schema
-  pull: default
-  image: golang:1.10
-  depends_on:
-    - build
-  commands:
-  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic"
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-mssql
-  pull: default
-  image: golang:1.10
-  depends_on:
-    - build
-  commands:
-  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -coverprofile=coverage6-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic"
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-tidb
-  pull: default
-  image: golang:1.10
-  depends_on:
-    - build
-  commands:
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(tidb:4000)/xorm_test\" -ignore_select_update=true -coverprofile=coverage7-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(tidb:4000)/xorm_test\" -ignore_select_update=true -cache=true -coverprofile=coverage7-2.txt -covermode=atomic"
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-end
-  pull: default
-  image: golang:1.10
-  depends_on:
-  - test-sqlite
-  - test-mysql
-  - test-mysql-utf8mb4
-  - test-mymysql
-  - test-postgres
-  - test-postgres-schema
-  - test-mssql
-  - test-tidb
-  commands:
-  - echo "go1.10 build end"
-  when:
-    event:
-    - push
-    - pull_request
-
-services:
-- name: mysql
-  pull: default
-  image: mysql:5.7
-  environment:
-    MYSQL_ALLOW_EMPTY_PASSWORD: yes
-    MYSQL_DATABASE: xorm_test
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-
-- name: pgsql
-  pull: default
-  image: postgres:9.5
-  environment:
-    POSTGRES_DB: xorm_test
-    POSTGRES_USER: postgres
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-
-- name: mssql
-  pull: default
-  image: microsoft/mssql-server-linux:latest
-  environment:
-    ACCEPT_EULA: Y
-    SA_PASSWORD: yourStrong(!)Password
-    MSSQL_PID: Developer
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-
-- name: tidb
-  pull: default
-  image: pingcap/tidb:v3.0.3
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-
----
-kind: pipeline
-name: go1.13-test
-steps:
-- name: build
-  pull: default
-  image: golang:1.13
+  image: golang:1.12
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
   commands:
-    - go build -v
     - go vet
   when:
     event:
@@ -207,7 +17,7 @@ steps:
 
 - name: test-sqlite
   pull: default
-  image: golang:1.13
+  image: golang:1.12
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
@@ -221,7 +31,7 @@ steps:
 
 - name: test-mysql
   pull: default
-  image: golang:1.13
+  image: golang:1.12
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
@@ -235,7 +45,7 @@ steps:
 
 - name: test-mysql-utf8mb4
   pull: default
-  image: golang:1.13
+  image: golang:1.12
   depends_on:
     - test-mysql
   environment:
@@ -251,7 +61,7 @@ steps:
 
 - name: test-mymysql
   pull: default
-  image: golang:1.13
+  image: golang:1.12
   depends_on:
     - test-mysql-utf8mb4
   environment:
@@ -267,7 +77,7 @@ steps:
 
 - name: test-postgres
   pull: default
-  image: golang:1.13
+  image: golang:1.12
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
@@ -281,7 +91,7 @@ steps:
 
 - name: test-postgres-schema
   pull: default
-  image: golang:1.13
+  image: golang:1.12
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
@@ -295,7 +105,7 @@ steps:
 
 - name: test-mssql
   pull: default
-  image: golang:1.13
+  image: golang:1.12
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
@@ -309,7 +119,7 @@ steps:
 
 - name: test-tidb
   pull: default
-  image: golang:1.13
+  image: golang:1.12
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
@@ -323,12 +133,12 @@ steps:
 
 - name: merge_coverage
   pull: default
-  image: golang:1.13
+  image: golang:1.12
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
   depends_on:
-  - build
+  - test-vet
   - test-sqlite
   - test-mysql
   - test-mysql-utf8mb4
