@@ -65,14 +65,6 @@ CodeMirror.defineMode("sql", function(config, parserConfig) {
       // charset casting: _utf8'str', N'str', n'str'
       // ref: http://dev.mysql.com/doc/refman/5.5/en/string-literals.html
       return "keyword";
-    } else if (support.escapeConstant && (ch == "e" || ch == "E")
-        && (stream.peek() == "'" || (stream.peek() == '"' && support.doubleQuote))) {
-      // escape constant: E'str', e'str'
-      // ref: https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-STRINGS-ESCAPE
-      state.tokenize = function(stream, state) {
-        return (state.tokenize = tokenLiteral(stream.next(), true))(stream, state);
-      }
-      return "keyword";
     } else if (support.commentSlashSlash && ch == "/" && stream.eat("/")) {
       // 1-line comment
       stream.skipToEnd();
@@ -130,7 +122,7 @@ CodeMirror.defineMode("sql", function(config, parserConfig) {
   }
 
   // 'string', with char specified in quote escaped by '\'
-  function tokenLiteral(quote, backslashEscapes) {
+  function tokenLiteral(quote) {
     return function(stream, state) {
       var escaped = false, ch;
       while ((ch = stream.next()) != null) {
@@ -138,7 +130,7 @@ CodeMirror.defineMode("sql", function(config, parserConfig) {
           state.tokenize = tokenBase;
           break;
         }
-        escaped = (backslashStringEscapes || backslashEscapes) && !escaped && ch == "\\";
+        escaped = backslashStringEscapes && !escaped && ch == "\\";
       }
       return "string";
     };
@@ -421,9 +413,8 @@ CodeMirror.defineMode("sql", function(config, parserConfig) {
     builtin: set("bigint int8 bigserial serial8 bit varying varbit boolean bool box bytea character char varchar cidr circle date double precision float8 inet integer int int4 interval json jsonb line lseg macaddr macaddr8 money numeric decimal path pg_lsn point polygon real float4 smallint int2 smallserial serial2 serial serial4 text time without zone with timetz timestamp timestamptz tsquery tsvector txid_snapshot uuid xml"),
     atoms: set("false true null unknown"),
     operatorChars: /^[*\/+\-%<>!=&|^\/#@?~]/,
-    backslashStringEscapes: false,
     dateSQL: set("date time timestamp"),
-    support: set("ODBCdotTable decimallessFloat zerolessFloat binaryNumber hexNumber nCharCast charsetCast escapeConstant")
+    support: set("ODBCdotTable decimallessFloat zerolessFloat binaryNumber hexNumber nCharCast charsetCast")
   });
 
   // Google's SQL-like query language, GQL
