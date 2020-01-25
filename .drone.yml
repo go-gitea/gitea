@@ -15,8 +15,7 @@ steps:
     pull: always
     image: node:10 # this step is kept at the lowest version of node that we support
     commands:
-      - make css
-      - make js
+      - make css js
 
   - name: build-without-gcc
     pull: always
@@ -42,12 +41,7 @@ steps:
     pull: always
     image: golang:1.13
     commands:
-      - make clean
-      - make golangci-lint
-      - make revive
-      - make swagger-check
-      - make swagger-validate
-      - make test-vendor
+      - make clean golangci-lint revive swagger-check swagger-validate test-vendor
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
@@ -137,8 +131,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - make test-mysql-migration
-      - make integration-test-coverage
+      - make test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -152,8 +145,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - timeout -s ABRT 20m make test-mysql8-migration
-      - timeout -s ABRT 20m make test-mysql8
+      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -167,8 +159,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - make test-mssql-migration
-      - make test-mssql
+      - make test-mssql-migration test-mssql
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -265,8 +256,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - timeout -s ABRT 20m make test-sqlite-migration
-      - timeout -s ABRT 20m make test-sqlite
+      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -279,8 +269,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - timeout -s ABRT 20m make test-pgsql-migration
-      - timeout -s ABRT 20m make test-pgsql
+      - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -548,9 +537,7 @@ steps:
     commands:
       - apk add --no-cache make bash curl
       - cd docs
-      - make trans-copy
-      - make clean
-      - make build
+      - make trans-copy clean build
 
   - name: publish-docs
     pull: always
