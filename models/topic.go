@@ -147,10 +147,9 @@ func removeTopicFromRepo(repoID int64, topic *Topic, e Engine) error {
 
 // FindTopicOptions represents the options when fdin topics
 type FindTopicOptions struct {
+	ListOptions
 	RepoID  int64
 	Keyword string
-	Limit   int
-	Page    int
 }
 
 func (opts *FindTopicOptions) toConds() builder.Cond {
@@ -172,8 +171,8 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	}
-	if opts.Limit > 0 {
-		sess.Limit(opts.Limit, opts.Page*opts.Limit)
+	if opts.PageSize != 0 && opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
 	}
 	return topics, sess.Desc("topic.repo_count").Find(&topics)
 }

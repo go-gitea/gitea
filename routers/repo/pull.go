@@ -343,19 +343,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	setMergeTarget(ctx, pull)
 
-	divergence, err := pull_service.GetDiverging(pull)
-	if err != nil {
-		ctx.ServerError("GetDiverging", err)
-		return nil
-	}
-	ctx.Data["Divergence"] = divergence
-	allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
-	if err != nil {
-		ctx.ServerError("IsUserAllowedToUpdate", err)
-		return nil
-	}
-	ctx.Data["UpdateAllowed"] = allowUpdate
-
 	if err := pull.LoadProtectedBranch(); err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
 		return nil
@@ -392,6 +379,22 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 	}
 
+	if headBranchExist {
+		allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+		if err != nil {
+			ctx.ServerError("IsUserAllowedToUpdate", err)
+			return nil
+		}
+		ctx.Data["UpdateAllowed"] = allowUpdate
+
+		divergence, err := pull_service.GetDiverging(pull)
+		if err != nil {
+			ctx.ServerError("GetDiverging", err)
+			return nil
+		}
+		ctx.Data["Divergence"] = divergence
+	}
+
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
 	if err != nil {
 		ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitRefName()), err)
@@ -417,7 +420,9 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			}
 			return false
 		}
-		ctx.Data["IsRequiredStatusCheckSuccess"] = pull_service.IsCommitStatusContextSuccess(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
+		state := pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
+		ctx.Data["RequiredStatusCheckState"] = state
+		ctx.Data["IsRequiredStatusCheckSuccess"] = state.IsSuccess()
 	}
 
 	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha

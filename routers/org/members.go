@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -51,9 +52,9 @@ func Members(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
-	opts.Start = (page - 1) * setting.UI.MembersPagingNum
-	opts.Limit = setting.UI.MembersPagingNum
-	members, membersIsPublic, err := models.FindOrgMembers(opts)
+	opts.ListOptions.Page = (page - 1) * setting.UI.MembersPagingNum
+	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
+	members, membersIsPublic, err := models.FindOrgMembers(&opts)
 	if err != nil {
 		ctx.ServerError("GetMembers", err)
 		return

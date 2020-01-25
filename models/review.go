@@ -45,13 +45,15 @@ func (rt ReviewType) Icon() string {
 
 // Review represents collection of code comments giving feedback for a PR
 type Review struct {
-	ID         int64 `xorm:"pk autoincr"`
-	Type       ReviewType
-	Reviewer   *User  `xorm:"-"`
-	ReviewerID int64  `xorm:"index"`
-	Issue      *Issue `xorm:"-"`
-	IssueID    int64  `xorm:"index"`
-	Content    string `xorm:"TEXT"`
+	ID               int64 `xorm:"pk autoincr"`
+	Type             ReviewType
+	Reviewer         *User `xorm:"-"`
+	ReviewerID       int64 `xorm:"index"`
+	OriginalAuthor   string
+	OriginalAuthorID int64
+	Issue            *Issue `xorm:"-"`
+	IssueID          int64  `xorm:"index"`
+	Content          string `xorm:"TEXT"`
 	// Official is a review made by an assigned approver (counts towards approval)
 	Official bool   `xorm:"NOT NULL DEFAULT false"`
 	CommitID string `xorm:"VARCHAR(40)"`
@@ -62,6 +64,8 @@ type Review struct {
 
 	// CodeComments are the initial code comments of the review
 	CodeComments CodeComments `xorm:"-"`
+
+	Comments []*Comment `xorm:"-"`
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
@@ -397,4 +401,44 @@ func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
 	_, err = x.Exec("UPDATE `review` SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
 
 	return
+}
+
+// InsertReviews inserts review and review comments
+func InsertReviews(reviews []*Review) error {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	for _, review := range reviews {
+		if _, err := sess.NoAutoTime().Insert(review); err != nil {
+			return err
+		}
+
+		if _, err := sess.NoAutoTime().Insert(&Comment{
+			Type:             CommentTypeReview,
+			Content:          review.Content,
+			PosterID:         review.ReviewerID,
+			OriginalAuthor:   review.OriginalAuthor,
+			OriginalAuthorID: review.OriginalAuthorID,
+			IssueID:          review.IssueID,
+			ReviewID:         review.ID,
+			CreatedUnix:      review.CreatedUnix,
+			UpdatedUnix:      review.UpdatedUnix,
+		}); err != nil {
+			return err
+		}
+
+		for _, c := range review.Comments {
+			c.ReviewID = review.ID
+		}
+
+		if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
+			return err
+		}
+	}
+
+	return sess.Commit()
 }

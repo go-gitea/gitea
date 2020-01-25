@@ -114,6 +114,12 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
 
+  - name: tag-pre-condition
+    pull: always
+    image: alpine/git
+    commands:
+      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
+
   - name: unit-test
     pull: always
     image: golang:1.13
@@ -317,10 +323,7 @@ steps:
     pull: default
     image: alpine:3.11
     commands:
-      - mv ./options/locale/locale_en-US.ini ./options/
-      - "sed -i -e 's/=\"/=/g' -e 's/\"$$//g' ./options/locale/*.ini"
-      - "sed -i -e 's/\\\\\\\\\"/\"/g' ./options/locale/*.ini"
-      - mv ./options/locale_en-US.ini ./options/locale/
+      - ./scripts/update-locales.sh
 
   - name: push
     pull: always

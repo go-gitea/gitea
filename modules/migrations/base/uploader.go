@@ -17,6 +17,7 @@ type Uploader interface {
 	CreateIssues(issues ...*Issue) error
 	CreateComments(comments ...*Comment) error
 	CreatePullRequests(prs ...*PullRequest) error
+	CreateReviews(reviews ...*Review) error
 	Rollback() error
 	Close()
 }

@@ -149,14 +149,9 @@ func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
 	return DiffLineExpandSingle
 }
 
-func getDiffLineSectionInfo(curFile *DiffFile, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
-	var (
-		leftLine  int
-		leftHunk  int
-		rightLine int
-		righHunk  int
-	)
-	ss := strings.Split(line, "@@")
+// ParseDiffHunkString parse the diffhunk content and return
+func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHunk int) {
+	ss := strings.Split(diffhunk, "@@")
 	ranges := strings.Split(ss[1][1:], " ")
 	leftRange := strings.Split(ranges[0], ",")
 	leftLine, _ = com.StrTo(leftRange[0][1:]).Int()
@@ -170,12 +165,18 @@ func getDiffLineSectionInfo(curFile *DiffFile, line string, lastLeftIdx, lastRig
 			righHunk, _ = com.StrTo(rightRange[1]).Int()
 		}
 	} else {
-		log.Warn("Parse line number failed: %v", line)
+		log.Warn("Parse line number failed: %v", diffhunk)
 		rightLine = leftLine
 		righHunk = leftHunk
 	}
+	return
+}
+
+func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
+	leftLine, leftHunk, rightLine, righHunk := ParseDiffHunkString(line)
+
 	return &DiffLineSectionInfo{
-		Path:          curFile.Name,
+		Path:          treePath,
 		LastLeftIdx:   lastLeftIdx,
 		LastRightIdx:  lastRightIdx,
 		LeftIdx:       leftLine,
@@ -344,7 +345,7 @@ func (diffFile *DiffFile) GetHighlightClass() string {
 
 // GetTailSection creates a fake DiffLineSection if the last section is not the end of the file
 func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, rightCommitID string) *DiffSection {
-	if diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
+	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
 		return nil
 	}
 	leftCommit, err := gitRepo.GetCommit(leftCommitID)
@@ -651,7 +652,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 		case line[0] == '@':
 			curSection = &DiffSection{}
 			curFile.Sections = append(curFile.Sections, curSection)
-			lineSectionInfo := getDiffLineSectionInfo(curFile, line, leftLine-1, rightLine-1)
+			lineSectionInfo := getDiffLineSectionInfo(curFile.Name, line, leftLine-1, rightLine-1)
 			diffLine := &DiffLine{
 				Type:        DiffLineSection,
 				Content:     line,
