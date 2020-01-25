@@ -1103,13 +1103,12 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
+	ListOptions
 	RepoIDs     []int64 // include all repos if empty
 	AssigneeID  int64
 	PosterID    int64
 	MentionedID int64
 	MilestoneID int64
-	Page        int
-	PageSize    int
 	IsClosed    util.OptionalBool
 	IsPull      util.OptionalBool
 	LabelIDs    []int64
