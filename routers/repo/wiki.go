@@ -552,7 +552,7 @@ func WikiRaw(ctx *context.Context) {
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireEasyMDE"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["title"] = "Home"
@@ -565,7 +565,7 @@ func NewWiki(ctx *context.Context) {
 func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireEasyMDE"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplWikiNew)
@@ -598,7 +598,7 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 func EditWiki(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["PageIsWikiEdit"] = true
-	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireEasyMDE"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
@@ -617,7 +617,7 @@ func EditWiki(ctx *context.Context) {
 func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireEasyMDE"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplWikiNew)

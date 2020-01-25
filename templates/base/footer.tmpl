@@ -14,8 +14,9 @@
 
 	<script src="{{StaticUrlPrefix}}/js/jquery.js?v={{MD5 AppVer}}"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/jquery.areyousure/jquery.are-you-sure.js"></script>
-{{if .RequireSimpleMDE}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.js"></script>
+{{if .RequireEasyMDE}}
+	<script src="{{StaticUrlPrefix}}/vendor/plugins/easymde/easymde.min.js"></script>
+	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/codemirror.js"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/mode/meta.js"></script>
 	<script>

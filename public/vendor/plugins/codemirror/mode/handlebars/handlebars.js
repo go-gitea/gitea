@@ -62,7 +62,7 @@
     if (!parserConfig || !parserConfig.base) return handlebars;
     return CodeMirror.multiplexingMode(
       CodeMirror.getMode(config, parserConfig.base),
-      {open: "{{", close: "}}", mode: handlebars, parseDelimiters: true}
+      {open: "{{", close: /\}\}\}?/, mode: handlebars, parseDelimiters: true}
     );
   });
 

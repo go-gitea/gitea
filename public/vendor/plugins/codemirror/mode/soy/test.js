@@ -151,6 +151,19 @@
      '[keyword {/template}]',
      '');
 
+  MT('param-type-and-default-value',
+     '[keyword {template] [def .foo][keyword }]',
+     '  [keyword {@param] [def bar]: [type bool] = [atom true][keyword }]',
+     '[keyword {/template}]',
+     '');
+
+   MT('state-variable-reference',
+     '[keyword {template] [def .foo][keyword }]',
+     '  [keyword {@param] [def bar]:= [atom true][keyword }]',
+     '  [keyword {@state] [def foobar]:= [variable-2 $bar][keyword }]',
+     '[keyword {/template}]',
+     '');
+
   MT('single-quote-strings',
      '[keyword {][string "foo"] [string \'bar\'][keyword }]',
      '');
@@ -187,6 +200,14 @@
      '[keyword {fallbackmsg] [attribute desc]=[string "A message"][keyword }]',
      '  Old message',
      '[keyword {/msg}]');
+
+  MT('literal-indent',
+     '[keyword {template] [def .name][keyword }]',
+     '  [keyword {literal}]',
+     '    Lerum',
+     '  [keyword {/literal}]',
+     '  Ipsum',
+     '[keyword {/template}]');
 
   MT('special-chars',
      '[keyword {sp}]',

@@ -15,7 +15,7 @@
     "implements mixin get native set typedef with enum throw rethrow " +
     "assert break case continue default in return new deferred async await covariant " +
     "try catch finally do else for if switch while import library export " +
-    "part of show hide is as").split(" ");
+    "part of show hide is as extension on").split(" ");
   var blockKeywords = "try catch finally do else for if switch while".split(" ");
   var atoms = "true false null".split(" ");
   var builtins = "void bool num int double dynamic var String".split(" ");

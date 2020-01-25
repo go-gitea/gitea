@@ -16,7 +16,7 @@ function htmlEncode(text) {
 let csrf;
 let suburl;
 let previewFileModes;
-let simpleMDEditor;
+let easyMDEditor;
 const commentMDEditors = {};
 let codeMirrorEditor;
 
@@ -311,14 +311,14 @@ function initImagePaste(target) {
   });
 }
 
-function initSimpleMDEImagePaste(simplemde, files) {
-  simplemde.codemirror.on('paste', (_, event) => {
+function initEasyMDEImagePaste(easymde, files) {
+  easymde.codemirror.on('paste', (_, event) => {
     retrieveImageFromClipboardAsBlob(event, (img) => {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
       uploadFile(img, (res) => {
         const data = JSON.parse(res);
-        const pos = simplemde.codemirror.getCursor();
-        simplemde.codemirror.replaceRange(`![${name}](${suburl}/attachments/${data.uuid})`, pos);
+        const pos = easymde.codemirror.getCursor();
+        easymde.codemirror.replaceRange(`![${name}](${suburl}/attachments/${data.uuid})`, pos);
         const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
         files.append(input);
       });
@@ -326,14 +326,14 @@ function initSimpleMDEImagePaste(simplemde, files) {
   });
 }
 
-let autoSimpleMDE;
+let autoEasyMDE;
 
 function initCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
 
-  autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
+  autoEasyMDE = setCommentEasyMDE($('.comment.form textarea:not(.review-textarea)'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));
@@ -845,11 +845,11 @@ function initRepository() {
           $content.val(`${content}`);
         }
         $content.focus();
-      } else if (autoSimpleMDE !== null) {
-        if (autoSimpleMDE.value() !== '') {
-          autoSimpleMDE.value(`${autoSimpleMDE.value()}\n\n${content}`);
+      } else if (autoEasyMDE !== null) {
+        if (autoEasyMDE.value() !== '') {
+          autoEasyMDE.value(`${autoEasyMDE.value()}\n\n${content}`);
         } else {
-          autoSimpleMDE.value(`${content}`);
+          autoEasyMDE.value(`${content}`);
         }
       }
       event.preventDefault();
@@ -863,7 +863,7 @@ function initRepository() {
       const $renderContent = $segment.find('.render-content');
       const $rawContent = $segment.find('.raw-content');
       let $textarea;
-      let $simplemde;
+      let $easymde;
 
       // Setup new form
       if ($editContentZone.html().length === 0) {
@@ -948,10 +948,10 @@ function initRepository() {
         $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
         $editContentForm.find('.write.segment').attr('data-tab', $editContentZone.data('write'));
         $editContentForm.find('.preview.segment').attr('data-tab', $editContentZone.data('preview'));
-        $simplemde = setCommentSimpleMDE($textarea);
-        commentMDEditors[$editContentZone.data('write')] = $simplemde;
+        $easymde = setCommentEasyMDE($textarea);
+        commentMDEditors[$editContentZone.data('write')] = $easymde;
         initCommentPreviewTab($editContentForm);
-        initSimpleMDEImagePaste($simplemde, $files);
+        initEasyMDEImagePaste($easymde, $files);
 
         $editContentZone.find('.cancel.button').click(() => {
           $renderContent.show();
@@ -998,7 +998,7 @@ function initRepository() {
         });
       } else {
         $textarea = $segment.find('textarea');
-        $simplemde = commentMDEditors[$editContentZone.data('write')];
+        $easymde = commentMDEditors[$editContentZone.data('write')];
       }
 
       // Show write/preview tab and copy raw content as needed
@@ -1006,10 +1006,10 @@ function initRepository() {
       $renderContent.hide();
       if ($textarea.val().length === 0) {
         $textarea.val($rawContent.text());
-        $simplemde.value($rawContent.text());
+        $easymde.value($rawContent.text());
       }
       $textarea.focus();
-      $simplemde.codemirror.focus();
+      $easymde.codemirror.focus();
       event.preventDefault();
     });
 
@@ -1273,7 +1273,7 @@ function initWikiForm() {
   let sideBySideChanges = 0;
   let sideBySideTimeout = null;
   if ($editArea.length > 0) {
-    const simplemde = new SimpleMDE({
+    const easymde = new EasyMDE({
       autoDownloadFontAwesome: false,
       element: $editArea[0],
       forceSync: true,
@@ -1300,7 +1300,7 @@ function initWikiForm() {
               });
             });
           };
-          if (!simplemde.isSideBySideActive()) {
+          if (!easymde.isSideBySideActive()) {
             render();
           } else {
             // delay preview by keystroke counting
@@ -1316,7 +1316,7 @@ function initWikiForm() {
             sideBySideTimeout = setTimeout(render, 600);
           }
         }, 0);
-        if (!simplemde.isSideBySideActive()) {
+        if (!easymde.isSideBySideActive()) {
           return 'Loading...';
         }
         return preview.innerHTML;
@@ -1367,7 +1367,7 @@ function initWikiForm() {
         'link', 'image', 'table', 'horizontal-rule', '|',
         'clean-block', 'preview', 'fullscreen', 'side-by-side']
     });
-    $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
+    $(easymde.codemirror.getInputField()).addClass('js-quick-submit');
 
     setTimeout(() => {
       const $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');
@@ -1427,17 +1427,17 @@ $.fn.getCursorPosition = function () {
   return pos;
 };
 
-function setSimpleMDE($editArea) {
+function setEasyMDE($editArea) {
   if (codeMirrorEditor) {
     codeMirrorEditor.toTextArea();
     codeMirrorEditor = null;
   }
 
-  if (simpleMDEditor) {
+  if (easyMDEditor) {
     return true;
   }
 
-  simpleMDEditor = new SimpleMDE({
+  easyMDEditor = new EasyMDE({
     autoDownloadFontAwesome: false,
     element: $editArea[0],
     forceSync: true,
@@ -1475,8 +1475,8 @@ function setSimpleMDE($editArea) {
   return true;
 }
 
-function setCommentSimpleMDE($editArea) {
-  const simplemde = new SimpleMDE({
+function setCommentEasyMDE($editArea) {
+  const easymde = new EasyMDE({
     autoDownloadFontAwesome: false,
     element: $editArea[0],
     forceSync: true,
@@ -1493,7 +1493,7 @@ function setCommentSimpleMDE($editArea) {
       'link', 'image', 'table', 'horizontal-rule', '|',
       'clean-block']
   });
-  simplemde.codemirror.setOption('extraKeys', {
+  easymde.codemirror.setOption('extraKeys', {
     Enter: () => {
       if (!(issuesTribute.isActive || emojiTribute.isActive)) {
         return CodeMirror.Pass;
@@ -1506,15 +1506,15 @@ function setCommentSimpleMDE($editArea) {
       cm.execCommand('delCharBefore');
     }
   });
-  issuesTribute.attach(simplemde.codemirror.getInputField());
-  emojiTribute.attach(simplemde.codemirror.getInputField());
-  return simplemde;
+  issuesTribute.attach(easymde.codemirror.getInputField());
+  emojiTribute.attach(easymde.codemirror.getInputField());
+  return easymde;
 }
 
 function setCodeMirror($editArea) {
-  if (simpleMDEditor) {
-    simpleMDEditor.toTextArea();
-    simpleMDEditor = null;
+  if (easyMDEditor) {
+    easyMDEditor.toTextArea();
+    easyMDEditor = null;
   }
 
   if (codeMirrorEditor) {
@@ -1626,7 +1626,7 @@ function initEditor() {
 
     // If this file is a Markdown extensions, we will load that editor and return
     if (markdownFileExts.indexOf(extWithDot) >= 0) {
-      if (setSimpleMDE($editArea)) {
+      if (setEasyMDE($editArea)) {
         return;
       }
     }

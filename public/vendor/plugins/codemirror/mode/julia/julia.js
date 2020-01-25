@@ -127,16 +127,14 @@ CodeMirror.defineMode("julia", function(config, parserConf) {
     }
 
     if (inArray(state) && ch === ']') {
-      if (currentScope(state) === "if") { state.scopes.pop(); }
-      while (currentScope(state) === "for") { state.scopes.pop(); }
+      while (currentScope(state) !== "[") { state.scopes.pop(); }
       state.scopes.pop();
       state.nestedArrays--;
       state.leavingExpr = true;
     }
 
     if (inGenerator(state) && ch === ')') {
-      if (currentScope(state) === "if") { state.scopes.pop(); }
-      while (currentScope(state) === "for") { state.scopes.pop(); }
+      while (currentScope(state) !== "(") { state.scopes.pop(); }
       state.scopes.pop();
       state.nestedGenerators--;
       state.leavingExpr = true;
@@ -186,16 +184,14 @@ CodeMirror.defineMode("julia", function(config, parserConf) {
     if (stream.match(/^\.?\d/, false)) {
       var imMatcher = RegExp(/^im\b/);
       var numberLiteral = false;
-      // Floats
-      if (stream.match(/^(?:(?:\d[_\d]*)?\.(?!\.)(?:\d[_\d]*)?|\d[_\d]*\.(?!\.)(?:\d[_\d]*))?([Eef][\+\-]?[_\d]+)?/i)) { numberLiteral = true; }
       if (stream.match(/^0x\.[0-9a-f_]+p[\+\-]?[_\d]+/i)) { numberLiteral = true; }
       // Integers
       if (stream.match(/^0x[0-9a-f_]+/i)) { numberLiteral = true; } // Hex
       if (stream.match(/^0b[01_]+/i)) { numberLiteral = true; } // Binary
       if (stream.match(/^0o[0-7_]+/i)) { numberLiteral = true; } // Octal
-      if (stream.match(/^[1-9][_\d]*(e[\+\-]?\d+)?/)) { numberLiteral = true; } // Decimal
-      // Zero by itself with no other piece of number.
-      if (stream.match(/^0(?![\dx])/i)) { numberLiteral = true; }
+      // Floats
+      if (stream.match(/^(?:(?:\d[_\d]*)?\.(?!\.)(?:\d[_\d]*)?|\d[_\d]*\.(?!\.)(?:\d[_\d]*))?([Eef][\+\-]?[_\d]+)?/i)) { numberLiteral = true; }
+      if (stream.match(/^\d[_\d]*(e[\+\-]?\d+)?/i)) { numberLiteral = true; } // Decimal
       if (numberLiteral) {
           // Integer literals may be "long"
           stream.match(imMatcher);

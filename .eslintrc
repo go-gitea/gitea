@@ -20,7 +20,7 @@ globals:
   Dropzone: false
   emojify: false
   hljs: false
-  SimpleMDE: false
+  EasyMDE: false
   u2fApi: false
   Vue: false
 
