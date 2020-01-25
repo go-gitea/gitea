@@ -6,6 +6,7 @@ package indexer
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
@@ -118,7 +119,7 @@ func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.U
 }
 
 func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
-	if setting.Indexer.RepoIndexerEnabled && refName == repo.DefaultBranch {
+	if setting.Indexer.RepoIndexerEnabled && refName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 }
