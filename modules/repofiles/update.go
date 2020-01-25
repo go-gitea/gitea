@@ -475,9 +475,18 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 		return err
 	}
 
-	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
+	if !isDelRef {
+		if err = models.RemoveDeletedBranch(repo.ID, opts.Branch); err != nil {
+			log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, opts.Branch, err)
+		}
 
-	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
+		log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
+
+		go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
+		// close all related pulls
+	} else if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
+		log.Error("close related pull request failed: %v", err)
+	}
 
 	if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
 		log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
@@ -524,11 +533,14 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 			if err = models.RemoveDeletedBranch(repo.ID, opts.Branch); err != nil {
 				log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, opts.Branch, err)
 			}
+
+			log.Trace("TriggerTask '%s/%s' by %s", repo.Name, opts.Branch, pusher.Name)
+
+			go pull_service.AddTestPullRequestTask(pusher, repo.ID, opts.Branch, true)
+			// close all related pulls
+		} else if err = pull_service.CloseBranchPulls(pusher, repo.ID, opts.Branch); err != nil {
+			log.Error("close related pull request failed: %v", err)
 		}
-
-		log.Trace("TriggerTask '%s/%s' by %s", repo.Name, opts.Branch, pusher.Name)
-
-		go pull_service.AddTestPullRequestTask(pusher, repo.ID, opts.Branch, true)
 
 		if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
 			log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
