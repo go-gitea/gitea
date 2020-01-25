@@ -351,9 +351,11 @@ func runRepoSyncReleases(c *cli.Context) error {
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Page:     page,
-			PageSize: models.RepositoryListDefaultPageSize,
-			Private:  true,
+			ListOptions: models.ListOptions{
+				PageSize: models.RepositoryListDefaultPageSize,
+				Page:     page,
+			},
+			Private: true,
 		})
 		if err != nil {
 			return fmt.Errorf("SearchRepositoryByName: %v", err)

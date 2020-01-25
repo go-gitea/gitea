@@ -163,6 +163,12 @@ type User struct {
 	Theme         string `xorm:"NOT NULL DEFAULT ''"`
 }
 
+// SearchOrganizationsOptions options to filter organizations
+type SearchOrganizationsOptions struct {
+	ListOptions
+	All bool
+}
+
 // ColorFormat writes a colored string to identify this struct
 func (u *User) ColorFormat(s fmt.State) {
 	log.ColorFprintf(s, "%d:%s",
@@ -430,12 +436,19 @@ func (u *User) AvatarLink() string {
 }
 
 // GetFollowers returns range of user's followers.
-func (u *User) GetFollowers(page int) ([]*User, error) {
-	users := make([]*User, 0, ItemsPerPage)
+func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
 	sess := x.
-		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
 		Where("follow.follow_id=?", u.ID).
 		Join("LEFT", "follow", "`user`.id=follow.user_id")
+
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		users := make([]*User, 0, listOptions.PageSize)
+		return users, sess.Find(&users)
+	}
+
+	users := make([]*User, 0, 8)
 	return users, sess.Find(&users)
 }
 
@@ -445,12 +458,19 @@ func (u *User) IsFollowing(followID int64) bool {
 }
 
 // GetFollowing returns range of user's following.
-func (u *User) GetFollowing(page int) ([]*User, error) {
-	users := make([]*User, 0, ItemsPerPage)
+func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
 	sess := x.
-		Limit(ItemsPerPage, (page-1)*ItemsPerPage).
 		Where("follow.user_id=?", u.ID).
 		Join("LEFT", "follow", "`user`.id=follow.follow_id")
+
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		users := make([]*User, 0, listOptions.PageSize)
+		return users, sess.Find(&users)
+	}
+
+	users := make([]*User, 0, 8)
 	return users, sess.Find(&users)
 }
 
@@ -616,8 +636,8 @@ func (u *User) GetOrganizationCount() (int64, error) {
 }
 
 // GetRepositories returns repositories that user owns, including private repositories.
-func (u *User) GetRepositories(page, pageSize int) (err error) {
-	u.Repos, err = GetUserRepositories(u.ID, true, page, pageSize, "")
+func (u *User) GetRepositories(listOpts ListOptions) (err error) {
+	u.Repos, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts})
 	return err
 }
 
@@ -682,9 +702,9 @@ func (u *User) GetOwnedOrganizations() (err error) {
 	return err
 }
 
-// GetOrganizations returns all organizations that user belongs to.
-func (u *User) GetOrganizations(all bool) error {
-	ous, err := GetOrgUsersByUserID(u.ID, all)
+// GetOrganizations returns paginated organizations that user belongs to.
+func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
+	ous, err := GetOrgUsersByUserID(u.ID, opts)
 	if err != nil {
 		return err
 	}
@@ -1477,14 +1497,13 @@ func GetUser(user *User) (bool, error) {
 
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
+	ListOptions
 	Keyword       string
 	Type          UserType
 	UID           int64
 	OrderBy       SearchOrderBy
-	Page          int
 	Visible       []structs.VisibleType
 	Actor         *User // The user doing the search
-	PageSize      int   // Can be smaller than or equal to setting.UI.ExplorePagingNum
 	IsActive      util.OptionalBool
 	SearchByEmail bool // Search by email as well as username/full name
 }
@@ -1552,57 +1571,56 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	if opts.PageSize == 0 || opts.PageSize > setting.UI.ExplorePagingNum {
-		opts.PageSize = setting.UI.ExplorePagingNum
-	}
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	sess := x.Where(cond)
-	if opts.PageSize > 0 {
-		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-	if opts.PageSize == -1 {
-		opts.PageSize = int(count)
+	sess := x.Where(cond).OrderBy(opts.OrderBy.String())
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
 	}
 
 	users = make([]*User, 0, opts.PageSize)
-	return users, count, sess.OrderBy(opts.OrderBy.String()).Find(&users)
+	return users, count, sess.Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user
-func GetStarredRepos(userID int64, private bool) ([]*Repository, error) {
+func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
 	sess := x.Where("star.uid=?", userID).
 		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
 	}
-	repos := make([]*Repository, 0, 10)
-	err := sess.Find(&repos)
-	if err != nil {
-		return nil, err
+
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		repos := make([]*Repository, 0, listOptions.PageSize)
+		return repos, sess.Find(&repos)
 	}
-	return repos, nil
+
+	repos := make([]*Repository, 0, 10)
+	return repos, sess.Find(&repos)
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
-func GetWatchedRepos(userID int64, private bool) ([]*Repository, error) {
+func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
 	sess := x.Where("watch.user_id=?", userID).
 		And("`watch`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
 	}
-	repos := make([]*Repository, 0, 10)
-	err := sess.Find(&repos)
-	if err != nil {
-		return nil, err
+
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		repos := make([]*Repository, 0, listOptions.PageSize)
+		return repos, sess.Find(&repos)
 	}
-	return repos, nil
+
+	repos := make([]*Repository, 0, 10)
+	return repos, sess.Find(&repos)
 }
 
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
