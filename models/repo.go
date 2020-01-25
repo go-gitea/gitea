@@ -197,6 +197,14 @@ type Repository struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+// SanitizedOriginalURL returns a sanitized OriginalURL
+func (repo *Repository) SanitizedOriginalURL() string {
+	if repo.OriginalURL == "" {
+		return ""
+	}
+	return util.SanitizeURLCredentials(repo.OriginalURL, false)
+}
+
 // ColorFormat returns a colored string to represent this repo
 func (repo *Repository) ColorFormat(s fmt.State) {
 	var ownerName interface{}
