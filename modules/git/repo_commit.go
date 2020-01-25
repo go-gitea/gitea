@@ -198,9 +198,10 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 // CommitsRangeSize the default commits range size
 var CommitsRangeSize = 50
 
-func (repo *Repository) commitsByRange(id SHA1, page int) (*list.List, error) {
-	stdout, err := NewCommand("log", id.String(), "--skip="+strconv.Itoa((page-1)*CommitsRangeSize),
-		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat).RunInDirBytes(repo.Path)
+func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) (*list.List, error) {
+	stdout, err := NewCommand("log", id.String(), "--skip="+strconv.Itoa((page-1)*pageSize),
+		"--max-count="+strconv.Itoa(pageSize), prettyLogFormat).RunInDirBytes(repo.Path)
+
 	if err != nil {
 		return nil, err
 	}

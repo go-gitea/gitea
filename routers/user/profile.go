@@ -172,12 +172,14 @@ func Profile(ctx *context.Context) {
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			ListOptions: models.ListOptions{
+				PageSize: setting.UI.User.RepoPagingNum,
+				Page:     page,
+			},
 			Actor:              ctx.User,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			Page:               page,
-			PageSize:           setting.UI.User.RepoPagingNum,
 			StarredByID:        ctxUser.ID,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
@@ -191,14 +193,16 @@ func Profile(ctx *context.Context) {
 		total = int(count)
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			ListOptions: models.ListOptions{
+				PageSize: setting.UI.User.RepoPagingNum,
+				Page:     page,
+			},
 			Actor:              ctx.User,
 			Keyword:            keyword,
 			OwnerID:            ctxUser.ID,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			Page:               page,
 			IsProfile:          true,
-			PageSize:           setting.UI.User.RepoPagingNum,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
 			IncludeDescription: setting.UI.SearchRepoDescription,

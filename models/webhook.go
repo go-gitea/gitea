@@ -274,9 +274,16 @@ func getActiveWebhooksByRepoID(e Engine, repoID int64) ([]*Webhook, error) {
 }
 
 // GetWebhooksByRepoID returns all webhooks of a repository.
-func GetWebhooksByRepoID(repoID int64) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	return webhooks, x.Find(&webhooks, &Webhook{RepoID: repoID})
+func GetWebhooksByRepoID(repoID int64, listOptions ListOptions) ([]*Webhook, error) {
+	if listOptions.Page == 0 {
+		webhooks := make([]*Webhook, 0, 5)
+		return webhooks, x.Find(&webhooks, &Webhook{RepoID: repoID})
+	}
+
+	sess := listOptions.getPaginatedSession()
+	webhooks := make([]*Webhook, 0, listOptions.PageSize)
+
+	return webhooks, sess.Find(&webhooks, &Webhook{RepoID: repoID})
 }
 
 // GetActiveWebhooksByOrgID returns all active webhooks for an organization.
@@ -292,10 +299,16 @@ func getActiveWebhooksByOrgID(e Engine, orgID int64) (ws []*Webhook, err error) 
 	return ws, err
 }
 
-// GetWebhooksByOrgID returns all webhooks for an organization.
-func GetWebhooksByOrgID(orgID int64) (ws []*Webhook, err error) {
-	err = x.Find(&ws, &Webhook{OrgID: orgID})
-	return ws, err
+// GetWebhooksByOrgID returns paginated webhooks for an organization.
+func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error) {
+	if listOptions.Page == 0 {
+		ws := make([]*Webhook, 0, 5)
+		return ws, x.Find(&ws, &Webhook{OrgID: orgID})
+	}
+
+	sess := listOptions.getPaginatedSession()
+	ws := make([]*Webhook, 0, listOptions.PageSize)
+	return ws, sess.Find(&ws, &Webhook{OrgID: orgID})
 }
 
 // GetDefaultWebhook returns admin-default webhook by given ID.
