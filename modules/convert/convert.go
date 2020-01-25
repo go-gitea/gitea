@@ -105,6 +105,9 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 		EnableApprovalsWhitelist:    bp.EnableApprovalsWhitelist,
 		ApprovalsWhitelistUsernames: approvalsWhitelistUsernames,
 		ApprovalsWhitelistTeams:     approvalsWhitelistTeams,
+		BlockOnRejectedReviews:      bp.BlockOnRejectedReviews,
+		DismissStaleApprovals:       bp.DismissStaleApprovals,
+		RequireSignedCommits:        bp.RequireSignedCommits,
 		Created:                     bp.CreatedUnix.AsTime(),
 		Updated:                     bp.UpdatedUnix.AsTime(),
 	}

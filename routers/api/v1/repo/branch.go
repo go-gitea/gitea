@@ -326,6 +326,9 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 		StatusCheckContexts:      form.StatusCheckContexts,
 		EnableApprovalsWhitelist: form.EnableApprovalsWhitelist,
 		RequiredApprovals:        requiredApprovals,
+		BlockOnRejectedReviews:   form.BlockOnRejectedReviews,
+		DismissStaleApprovals:    form.DismissStaleApprovals,
+		RequireSignedCommits:     form.RequireSignedCommits,
 	}
 
 	err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
@@ -443,6 +446,18 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 
 	if form.EnableApprovalsWhitelist != nil {
 		protectBranch.EnableApprovalsWhitelist = *form.EnableApprovalsWhitelist
+	}
+
+	if form.BlockOnRejectedReviews != nil {
+		protectBranch.BlockOnRejectedReviews = *form.BlockOnRejectedReviews
+	}
+
+	if form.DismissStaleApprovals != nil {
+		protectBranch.DismissStaleApprovals = *form.DismissStaleApprovals
+	}
+
+	if form.RequireSignedCommits != nil {
+		protectBranch.RequireSignedCommits = *form.RequireSignedCommits
 	}
 
 	var whitelistUsers []int64

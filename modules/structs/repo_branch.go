@@ -38,6 +38,9 @@ type BranchProtection struct {
 	EnableApprovalsWhitelist    bool     `json:"enable_approvals_whitelist"`
 	ApprovalsWhitelistUsernames []string `json:"approvals_whitelist_username"`
 	ApprovalsWhitelistTeams     []string `json:"approvals_whitelist_teams"`
+	BlockOnRejectedReviews      bool     `json:"block_on_rejected_reviews"`
+	DismissStaleApprovals       bool     `json:"dismiss_stale_approvals"`
+	RequireSignedCommits        bool     `json:"require_signed_commits"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -61,6 +64,9 @@ type CreateBranchProtectionOption struct {
 	EnableApprovalsWhitelist    bool     `json:"enable_approvals_whitelist"`
 	ApprovalsWhitelistUsernames []string `json:"approvals_whitelist_username"`
 	ApprovalsWhitelistTeams     []string `json:"approvals_whitelist_teams"`
+	BlockOnRejectedReviews      bool     `json:"block_on_rejected_reviews"`
+	DismissStaleApprovals       bool     `json:"dismiss_stale_approvals"`
+	RequireSignedCommits        bool     `json:"require_signed_commits"`
 }
 
 // EditBranchProtectionOption options for editing a branch protection
@@ -79,4 +85,7 @@ type EditBranchProtectionOption struct {
 	EnableApprovalsWhitelist    *bool    `json:"enable_approvals_whitelist"`
 	ApprovalsWhitelistUsernames []string `json:"approvals_whitelist_username"`
 	ApprovalsWhitelistTeams     []string `json:"approvals_whitelist_teams"`
+	BlockOnRejectedReviews      *bool    `json:"block_on_rejected_reviews"`
+	DismissStaleApprovals       *bool    `json:"dismiss_stale_approvals"`
+	RequireSignedCommits        *bool    `json:"require_signed_commits"`
 }
