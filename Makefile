@@ -5,8 +5,9 @@ export GO111MODULE=off
 GO ?= go
 SED_INPLACE := sed -i
 SHASUM ?= shasum -a 256
+GOPATH ?= $(shell $(GO) env GOPATH)
 
-export PATH := $($(GO) env GOPATH)/bin:$(PATH)
+export PATH := $(GOPATH)/bin:$(PATH)
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE ?= gitea.exe
@@ -533,6 +534,6 @@ pr:
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $($(GO) env GOPATH)/bin v1.20.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.20.0; \
 	fi
 	golangci-lint run --timeout 5m
