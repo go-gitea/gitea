@@ -145,8 +145,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - timeout -s ABRT 20m make test-mysql8-migration
-      - timeout -s ABRT 20m make test-mysql8
+      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -257,8 +256,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - timeout -s ABRT 20m make test-sqlite-migration
-      - timeout -s ABRT 20m make test-sqlite
+      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -271,8 +269,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - timeout -s ABRT 20m make test-pgsql-migration
-      - timeout -s ABRT 20m make test-pgsql
+      - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off
       TAGS: bindata
