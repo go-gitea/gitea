@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/password"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -328,6 +329,15 @@ func GetAllUsers(ctx *context.APIContext) {
 	// summary: List all users
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
@@ -335,9 +345,9 @@ func GetAllUsers(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	users, _, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:     models.UserTypeIndividual,
-		OrderBy:  models.SearchOrderByAlphabetically,
-		PageSize: -1,
+		Type:        models.UserTypeIndividual,
+		OrderBy:     models.SearchOrderByAlphabetically,
+		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAllUsers", err)
