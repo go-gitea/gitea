@@ -8,8 +8,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"fmt"
-	"hash/adler32"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -32,22 +32,22 @@ func needsUpdate(dir string, filename string) (bool, []byte) {
 		oldHash = []byte{}
 	}
 
-	adlerHash := adler32.New()
+	hasher := sha1.New()
 
 	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		_, _ = adlerHash.Write([]byte(info.Name()))
-		_, _ = adlerHash.Write([]byte(info.ModTime().String()))
-		_, _ = adlerHash.Write([]byte(strconv.FormatInt(info.Size(), 16)))
+		_, _ = hasher.Write([]byte(info.Name()))
+		_, _ = hasher.Write([]byte(info.ModTime().String()))
+		_, _ = hasher.Write([]byte(strconv.FormatInt(info.Size(), 16)))
 		return nil
 	})
 	if err != nil {
 		return true, oldHash
 	}
 
-	newHash := adlerHash.Sum([]byte{})
+	newHash := hasher.Sum([]byte{})
 
 	if bytes.Compare(oldHash, newHash) != 0 {
 
