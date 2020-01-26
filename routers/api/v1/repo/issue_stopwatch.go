@@ -5,8 +5,11 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // StartIssueStopwatch creates a stopwatch for the given issue.
@@ -41,20 +44,21 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	//   "403":
 	//     description: Not repo writer, user does not have rights to toggle stopwatch
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description: Cannot start a stopwatch again if it already exists
+
 	issue, err := prepareIssueStopwatch(ctx, false)
 	if err != nil {
 		return
 	}
 
 	if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
-		ctx.Error(500, "CreateOrStopIssueStopwatch", err)
+		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}
 
-	ctx.Status(201)
+	ctx.Status(http.StatusCreated)
 }
 
 // StopIssueStopwatch stops a stopwatch for the given issue.
@@ -89,20 +93,21 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	//   "403":
 	//     description: Not repo writer, user does not have rights to toggle stopwatch
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description:  Cannot stop a non existent stopwatch
+
 	issue, err := prepareIssueStopwatch(ctx, true)
 	if err != nil {
 		return
 	}
 
 	if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
-		ctx.Error(500, "CreateOrStopIssueStopwatch", err)
+		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}
 
-	ctx.Status(201)
+	ctx.Status(http.StatusCreated)
 }
 
 // DeleteIssueStopwatch delete a specific stopwatch
@@ -137,20 +142,21 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	//   "403":
 	//     description: Not repo writer, user does not have rights to toggle stopwatch
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description:  Cannot cancel a non existent stopwatch
+
 	issue, err := prepareIssueStopwatch(ctx, true)
 	if err != nil {
 		return
 	}
 
 	if err := models.CancelStopwatch(ctx.User, issue); err != nil {
-		ctx.Error(500, "CancelStopwatch", err)
+		ctx.Error(http.StatusInternalServerError, "CancelStopwatch", err)
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*models.Issue, error) {
@@ -159,27 +165,27 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*models.I
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 
 		return nil, err
 	}
 
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
-		ctx.Status(403)
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Status(http.StatusForbidden)
 		return nil, err
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
-		ctx.Status(403)
+		ctx.Status(http.StatusForbidden)
 		return nil, err
 	}
 
 	if models.StopwatchExists(ctx.User.ID, issue.ID) != shouldExist {
 		if shouldExist {
-			ctx.Error(409, "StopwatchExists", "cannot stop/cancel a non existent stopwatch")
+			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot stop/cancel a non existent stopwatch")
 		} else {
-			ctx.Error(409, "StopwatchExists", "cannot start a stopwatch again if it already exists")
+			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot start a stopwatch again if it already exists")
 		}
 		return nil, err
 	}
@@ -192,6 +198,15 @@ func GetStopwatches(ctx *context.APIContext) {
 	// swagger:operation GET /user/stopwatches user userGetStopWatches
 	// ---
 	// summary: Get list of all existing stopwatches
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// consumes:
 	// - application/json
 	// produces:
@@ -200,17 +215,17 @@ func GetStopwatches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/StopWatchList"
 
-	sws, err := models.GetUserStopwatches(ctx.User.ID)
+	sws, err := models.GetUserStopwatches(ctx.User.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(500, "GetUserStopwatches", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserStopwatches", err)
 		return
 	}
 
 	apiSWs, err := sws.APIFormat()
 	if err != nil {
-		ctx.Error(500, "APIFormat", err)
+		ctx.Error(http.StatusInternalServerError, "APIFormat", err)
 		return
 	}
 
-	ctx.JSON(200, apiSWs)
+	ctx.JSON(http.StatusOK, apiSWs)
 }

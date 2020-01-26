@@ -6,6 +6,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -43,6 +44,8 @@ type Engine interface {
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
 	Asc(colNames ...string) *xorm.Session
+	Limit(limit int, start ...int) *xorm.Session
+	SumInt(bean interface{}, columnName string) (res int64, err error)
 }
 
 var (
@@ -127,7 +130,12 @@ func getEngine() (*xorm.Engine, error) {
 		return nil, err
 	}
 
-	return xorm.NewEngine(setting.Database.Type, connStr)
+	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
+	if err != nil {
+		return nil, err
+	}
+	engine.SetSchema(setting.Database.Schema)
+	return engine, nil
 }
 
 // NewTestEngine sets a new test xorm.Engine
@@ -164,10 +172,12 @@ func SetEngine() (err error) {
 }
 
 // NewEngine initializes a new xorm.Engine
-func NewEngine(migrateFunc func(*xorm.Engine) error) (err error) {
+func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
 	if err = SetEngine(); err != nil {
 		return err
 	}
+
+	x.SetDefaultContext(ctx)
 
 	if err = x.Ping(); err != nil {
 		return err

@@ -64,9 +64,14 @@ func (key *GPGKey) AfterLoad(session *xorm.Session) {
 }
 
 // ListGPGKeys returns a list of public keys belongs to given user.
-func ListGPGKeys(uid int64) ([]*GPGKey, error) {
-	keys := make([]*GPGKey, 0, 5)
-	return keys, x.Where("owner_id=? AND primary_key_id=''", uid).Find(&keys)
+func ListGPGKeys(uid int64, listOptions ListOptions) ([]*GPGKey, error) {
+	sess := x.Where("owner_id=? AND primary_key_id=''", uid)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+	}
+
+	keys := make([]*GPGKey, 0, 2)
+	return keys, sess.Find(&keys)
 }
 
 // GetGPGKeyByID returns public key by given ID.
@@ -628,7 +633,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 
 	// Now try to associate the signature with the committer, if present
 	if committer.ID != 0 {
-		keys, err := ListGPGKeys(committer.ID)
+		keys, err := ListGPGKeys(committer.ID, ListOptions{})
 		if err != nil { //Skipping failed to get gpg keys of user
 			log.Error("ListGPGKeys: %v", err)
 			return &CommitVerification{

@@ -75,6 +75,8 @@ func testGit(t *testing.T, u *url.URL) {
 			rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 		})
+
+		t.Run("PushCreate", doPushCreate(httpContext, u))
 	})
 	t.Run("SSH", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
@@ -113,6 +115,8 @@ func testGit(t *testing.T, u *url.URL) {
 				rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 				mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			})
+
+			t.Run("PushCreate", doPushCreate(sshContext, sshURL))
 		})
 	})
 }
@@ -406,5 +410,59 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 		})
 		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
+	}
+}
+
+func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
+	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+		ctx.Reponame = fmt.Sprintf("repo-tmp-push-create-%s", u.Scheme)
+		u.Path = ctx.GitPath()
+
+		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
+		assert.NoError(t, err)
+
+		err = git.InitRepository(tmpDir, false)
+		assert.NoError(t, err)
+
+		_, err = os.Create(filepath.Join(tmpDir, "test.txt"))
+		assert.NoError(t, err)
+
+		err = git.AddChanges(tmpDir, true)
+		assert.NoError(t, err)
+
+		err = git.CommitChanges(tmpDir, git.CommitChangesOptions{
+			Committer: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "User Two",
+				When:  time.Now(),
+			},
+			Author: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "User Two",
+				When:  time.Now(),
+			},
+			Message: fmt.Sprintf("Testing push create @ %v", time.Now()),
+		})
+		assert.NoError(t, err)
+
+		_, err = git.NewCommand("remote", "add", "origin", u.String()).RunInDir(tmpDir)
+		assert.NoError(t, err)
+
+		// Push to create disabled
+		setting.Repository.EnablePushCreateUser = false
+		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
+		assert.Error(t, err)
+
+		// Push to create enabled
+		setting.Repository.EnablePushCreateUser = true
+		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
+		assert.NoError(t, err)
+
+		// Fetch repo from database
+		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		assert.NoError(t, err)
+		assert.False(t, repo.IsEmpty)
+		assert.True(t, repo.IsPrivate)
 	}
 }

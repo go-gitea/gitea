@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
@@ -176,6 +175,7 @@ func GetReleaseByID(id int64) (*Release, error) {
 
 // FindReleasesOptions describes the conditions to Find releases
 type FindReleasesOptions struct {
+	ListOptions
 	IncludeDrafts bool
 	IncludeTags   bool
 	TagNames      []string
@@ -198,17 +198,17 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 }
 
 // GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions, page, pageSize int) (rels []*Release, err error) {
-	if page <= 0 {
-		page = 1
+func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, error) {
+	sess := x.
+		Desc("created_unix", "id").
+		Where(opts.toConds(repoID))
+
+	if opts.PageSize != 0 {
+		sess = opts.setSessionPagination(sess)
 	}
 
-	err = x.
-		Desc("created_unix", "id").
-		Limit(pageSize, (page-1)*pageSize).
-		Where(opts.toConds(repoID)).
-		Find(&rels)
-	return rels, err
+	rels := make([]*Release, 0, opts.PageSize)
+	return rels, sess.Find(&rels)
 }
 
 // GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
@@ -316,49 +316,6 @@ func SortReleases(rels []*Release) {
 func DeleteReleaseByID(id int64) error {
 	_, err := x.ID(id).Delete(new(Release))
 	return err
-}
-
-// SyncReleasesWithTags synchronizes release table with repository tags
-func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
-	existingRelTags := make(map[string]struct{})
-	opts := FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
-	for page := 1; ; page++ {
-		rels, err := GetReleasesByRepoID(repo.ID, opts, page, 100)
-		if err != nil {
-			return fmt.Errorf("GetReleasesByRepoID: %v", err)
-		}
-		if len(rels) == 0 {
-			break
-		}
-		for _, rel := range rels {
-			if rel.IsDraft {
-				continue
-			}
-			commitID, err := gitRepo.GetTagCommitID(rel.TagName)
-			if err != nil && !git.IsErrNotExist(err) {
-				return fmt.Errorf("GetTagCommitID: %v", err)
-			}
-			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := PushUpdateDeleteTag(repo, rel.TagName); err != nil {
-					return fmt.Errorf("PushUpdateDeleteTag: %v", err)
-				}
-			} else {
-				existingRelTags[strings.ToLower(rel.TagName)] = struct{}{}
-			}
-		}
-	}
-	tags, err := gitRepo.GetTags()
-	if err != nil {
-		return fmt.Errorf("GetTags: %v", err)
-	}
-	for _, tagName := range tags {
-		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
-			if err := PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
-				return fmt.Errorf("pushUpdateAddTag: %v", err)
-			}
-		}
-	}
-	return nil
 }
 
 // UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID

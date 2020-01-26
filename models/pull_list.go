@@ -16,7 +16,7 @@ import (
 
 // PullRequestsOptions holds the options for PRs
 type PullRequestsOptions struct {
-	Page        int
+	ListOptions
 	State       string
 	SortType    string
 	Labels      []string
@@ -68,11 +68,12 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 		Find(&prs)
 }
 
-// GetPullRequestsByCheckStatus returns all pull requests according the special checking status.
-func GetPullRequestsByCheckStatus(status PullRequestStatus) ([]*PullRequest, error) {
-	prs := make([]*PullRequest, 0, 10)
-	return prs, x.
+// GetPullRequestIDsByCheckStatus returns all pull requests according the special checking status.
+func GetPullRequestIDsByCheckStatus(status PullRequestStatus) ([]int64, error) {
+	prs := make([]int64, 0, 10)
+	return prs, x.Table("pull_request").
 		Where("status=?", status).
+		Cols("pull_request.id").
 		Find(&prs)
 }
 
@@ -93,14 +94,14 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 		return nil, maxResults, err
 	}
 
-	prs := make([]*PullRequest, 0, ItemsPerPage)
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
 	sortIssuesSession(findSession, opts.SortType, 0)
 	if err != nil {
 		log.Error("listPullRequestStatement: %v", err)
 		return nil, maxResults, err
 	}
-	findSession.Limit(ItemsPerPage, (opts.Page-1)*ItemsPerPage)
+	findSession = opts.setSessionPagination(findSession)
+	prs := make([]*PullRequest, 0, opts.PageSize)
 	return prs, maxResults, findSession.Find(&prs)
 }
 

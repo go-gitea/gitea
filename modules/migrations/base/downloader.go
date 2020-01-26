@@ -6,6 +6,7 @@
 package base
 
 import (
+	"context"
 	"time"
 
 	"code.gitea.io/gitea/modules/structs"
@@ -13,6 +14,7 @@ import (
 
 // Downloader downloads the site repo informations
 type Downloader interface {
+	SetContext(context.Context)
 	GetRepoInfo() (*Repository, error)
 	GetTopics() ([]string, error)
 	GetMilestones() ([]*Milestone, error)
@@ -21,6 +23,7 @@ type Downloader interface {
 	GetIssues(page, perPage int) ([]*Issue, bool, error)
 	GetComments(issueNumber int64) ([]*Comment, error)
 	GetPullRequests(page, perPage int) ([]*PullRequest, error)
+	GetReviews(pullRequestNumber int64) ([]*Review, error)
 }
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader
@@ -29,6 +32,10 @@ type DownloaderFactory interface {
 	New(opts MigrateOptions) (Downloader, error)
 	GitServiceType() structs.GitServiceType
 }
+
+var (
+	_ Downloader = &RetryDownloader{}
+)
 
 // RetryDownloader retry the downloads
 type RetryDownloader struct {
@@ -44,6 +51,11 @@ func NewRetryDownloader(downloader Downloader, retryTimes, retryDelay int) *Retr
 		RetryTimes: retryTimes,
 		RetryDelay: retryDelay,
 	}
+}
+
+// SetContext set context
+func (d *RetryDownloader) SetContext(ctx context.Context) {
+	d.Downloader.SetContext(ctx)
 }
 
 // GetRepoInfo returns a repository information with retry

@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
@@ -96,6 +97,10 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func runWeb(ctx *cli.Context) error {
+	managerCtx, cancel := context.WithCancel(context.Background())
+	graceful.InitManager(managerCtx)
+	defer cancel()
+
 	if os.Getppid() > 1 && len(os.Getenv("LISTEN_FDS")) > 0 {
 		log.Info("Restarting Gitea on PID: %d from parent PID: %d", os.Getpid(), os.Getppid())
 	} else {
@@ -108,7 +113,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Perform global initialization
-	routers.GlobalInit()
+	routers.GlobalInit(graceful.GetManager().HammerContext())
 
 	// Set up Macaron
 	m := routes.NewMacaron()
@@ -199,8 +204,7 @@ func runWeb(ctx *cli.Context) error {
 		log.Critical("Failed to start server: %v", err)
 	}
 	log.Info("HTTP Listener: %s Closed", listenAddr)
-	graceful.Manager.WaitForServers()
-	graceful.Manager.WaitForTerminate()
+	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.Close()
 	return nil

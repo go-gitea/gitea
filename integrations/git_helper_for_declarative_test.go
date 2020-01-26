@@ -87,6 +87,12 @@ func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bo
 	u, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	listener, err := net.Listen("tcp", u.Host)
+	i := 0
+	for err != nil && i <= 10 {
+		time.Sleep(100 * time.Millisecond)
+		listener, err = net.Listen("tcp", u.Host)
+		i++
+	}
 	assert.NoError(t, err)
 	u.Host = listener.Addr().String()
 

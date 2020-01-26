@@ -188,7 +188,11 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 
 // CommitTree creates a commit from a given tree for the user with provided message
 func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, treeHash string, message string) (string, error) {
-	commitTimeStr := time.Now().Format(time.RFC3339)
+	return t.CommitTreeWithDate(author, committer, treeHash, message, time.Now(), time.Now())
+}
+
+// CommitTreeWithDate creates a commit from a given tree for the user with provided message
+func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models.User, treeHash string, message string, authorDate, committerDate time.Time) (string, error) {
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
@@ -201,10 +205,10 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 	env := append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,
-		"GIT_AUTHOR_DATE="+commitTimeStr,
+		"GIT_AUTHOR_DATE="+authorDate.Format(time.RFC3339),
 		"GIT_COMMITTER_NAME="+committerSig.Name,
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
-		"GIT_COMMITTER_DATE="+commitTimeStr,
+		"GIT_COMMITTER_DATE="+committerDate.Format(time.RFC3339),
 	)
 
 	messageBytes := new(bytes.Buffer)
@@ -215,7 +219,7 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 
 	// Determine if we should sign
 	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+		sign, keyID, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
 		} else if version.Compare(binVersion, "2.0.0", ">=") {
@@ -239,9 +243,9 @@ func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, b
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
 
-	if _, err := git.NewCommand("push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)).RunInDirWithEnv(t.basePath, env); err != nil {
-		log.Error("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
-			t.repo.FullName(), t.basePath, err)
+	if stdout, err := git.NewCommand("push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)).RunInDirWithEnv(t.basePath, env); err != nil {
+		log.Error("Unable to push back to repo from temporary repo: %s (%s)\nStdout: %s\nError: %v",
+			t.repo.FullName(), t.basePath, stdout, err)
 		return fmt.Errorf("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
 			t.repo.FullName(), t.basePath, err)
 	}
@@ -264,7 +268,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 	var finalErr error
 
 	if err := git.NewCommand("diff-index", "--cached", "-p", "HEAD").
-		RunInDirTimeoutEnvFullPipelineFunc(nil, 30*time.Second, t.basePath, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) {
+		RunInDirTimeoutEnvFullPipelineFunc(nil, 30*time.Second, t.basePath, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader)
 			if finalErr != nil {
@@ -272,6 +276,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 				cancel()
 			}
 			_ = stdoutReader.Close()
+			return finalErr
 		}); err != nil {
 		if finalErr != nil {
 			log.Error("Unable to ParsePatch in temporary repo %s (%s). Error: %v", t.repo.FullName(), t.basePath, finalErr)

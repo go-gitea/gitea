@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -57,7 +58,8 @@ var (
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
 	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|\\.(\\s|$))")
 
-	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
+	// blackfriday extensions create IDs like fn:user-content-footnote
+	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
@@ -115,7 +117,7 @@ func CustomLinkURLSchemes(schemes []string) {
 		}
 		withAuth = append(withAuth, s)
 	}
-	linkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
+	common.LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
 }
 
 // IsSameDomain checks if given url string has the same hostname as current Gitea instance
@@ -312,6 +314,12 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 }
 
 func (ctx *postProcessCtx) visitNode(node *html.Node) {
+	// Add user-content- to IDs if they don't already have them
+	for idx, attr := range node.Attr {
+		if attr.Key == "id" && !(strings.HasPrefix(attr.Val, "user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
+			node.Attr[idx].Val = "user-content-" + attr.Val
+		}
+	}
 	// We ignore code, pre and already generated links.
 	switch node.Type {
 	case html.TextNode:
@@ -500,6 +508,12 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 				(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
 				const lenQuote = len("‘")
 				val = val[lenQuote : len(val)-lenQuote]
+			} else if (strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"")) ||
+				(strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'")) {
+				val = val[1 : len(val)-1]
+			} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "’") {
+				const lenQuote = len("‘")
+				val = val[1 : len(val)-lenQuote]
 			}
 			props[key] = val
 		}
@@ -622,11 +636,11 @@ func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if matchOrg == ctx.metas["user"] && matchRepo == ctx.metas["repo"] {
 		// TODO if m[4]:m[5] is not nil, then link is to a comment,
 		// and we should indicate that in the text somehow
-		replaceContent(node, m[0], m[1], createLink(link, id, "issue"))
+		replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
 
 	} else {
 		orgRepoID := matchOrg + "/" + matchRepo + id
-		replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "issue"))
+		replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "ref-issue"))
 	}
 }
 
@@ -662,7 +676,7 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
 	if exttrack && !ref.IsPull {
 		ctx.metas["index"] = ref.Issue
-		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "issue")
+		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "ref-issue")
 	} else {
 		// Path determines the type of link that will be rendered. It's unknown at this point whether
 		// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
@@ -672,9 +686,9 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 			path = "pulls"
 		}
 		if ref.Owner == "" {
-			link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], path, ref.Issue), reftext, "issue")
+			link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], path, ref.Issue), reftext, "ref-issue")
 		} else {
-			link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "issue")
+			link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "ref-issue")
 		}
 	}
 
@@ -794,7 +808,7 @@ func emailAddressProcessor(ctx *postProcessCtx, node *html.Node) {
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
 // markdown.
 func linkProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := linkRegex.FindStringIndex(node.Data)
+	m := common.LinkRegex.FindStringIndex(node.Data)
 	if m == nil {
 		return
 	}
@@ -823,7 +837,7 @@ func genDefaultLinkProcessor(defaultLink string) processor {
 
 // descriptionLinkProcessor creates links for DescriptionHTML
 func descriptionLinkProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := linkRegex.FindStringIndex(node.Data)
+	m := common.LinkRegex.FindStringIndex(node.Data)
 	if m == nil {
 		return
 	}

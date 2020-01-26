@@ -6,6 +6,8 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -41,18 +43,19 @@ func ListIssueLabels(ctx *context.APIContext) {
 	//     "$ref": "#/responses/LabelList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
 	}
 
 	if err := issue.LoadAttributes(); err != nil {
-		ctx.Error(500, "LoadAttributes", err)
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
 
@@ -60,7 +63,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 	for i := range issue.Labels {
 		apiLabels[i] = issue.Labels[i].APIFormat()
 	}
-	ctx.JSON(200, &apiLabels)
+	ctx.JSON(http.StatusOK, &apiLabels)
 }
 
 // AddIssueLabels add labels for an issue
@@ -96,35 +99,38 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.Status(403)
+		ctx.Status(http.StatusForbidden)
 		return
 	}
 
 	labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
 	if err != nil {
-		ctx.Error(500, "GetLabelsInRepoByIDs", err)
+		ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDs", err)
 		return
 	}
 
 	if err = issue_service.AddLabels(issue, ctx.User, labels); err != nil {
-		ctx.Error(500, "AddLabels", err)
+		ctx.Error(http.StatusInternalServerError, "AddLabels", err)
 		return
 	}
 
 	labels, err = models.GetLabelsByIssueID(issue.ID)
 	if err != nil {
-		ctx.Error(500, "GetLabelsByIssueID", err)
+		ctx.Error(http.StatusInternalServerError, "GetLabelsByIssueID", err)
 		return
 	}
 
@@ -132,7 +138,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	for i := range labels {
 		apiLabels[i] = labels[i].APIFormat()
 	}
-	ctx.JSON(200, &apiLabels)
+	ctx.JSON(http.StatusOK, &apiLabels)
 }
 
 // DeleteIssueLabel delete a label for an issue
@@ -168,37 +174,42 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.Status(403)
+		ctx.Status(http.StatusForbidden)
 		return
 	}
 
 	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrLabelNotExist(err) {
-			ctx.Error(422, "", err)
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(500, "GetLabelInRepoByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetLabelInRepoByID", err)
 		}
 		return
 	}
 
 	if err := models.DeleteIssueLabel(issue, label, ctx.User); err != nil {
-		ctx.Error(500, "DeleteIssueLabel", err)
+		ctx.Error(http.StatusInternalServerError, "DeleteIssueLabel", err)
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // ReplaceIssueLabels replace labels for an issue
@@ -234,35 +245,38 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.Status(403)
+		ctx.Status(http.StatusForbidden)
 		return
 	}
 
 	labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
 	if err != nil {
-		ctx.Error(500, "GetLabelsInRepoByIDs", err)
+		ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDs", err)
 		return
 	}
 
 	if err := issue.ReplaceLabels(labels, ctx.User); err != nil {
-		ctx.Error(500, "ReplaceLabels", err)
+		ctx.Error(http.StatusInternalServerError, "ReplaceLabels", err)
 		return
 	}
 
 	labels, err = models.GetLabelsByIssueID(issue.ID)
 	if err != nil {
-		ctx.Error(500, "GetLabelsByIssueID", err)
+		ctx.Error(http.StatusInternalServerError, "GetLabelsByIssueID", err)
 		return
 	}
 
@@ -270,7 +284,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	for i := range labels {
 		apiLabels[i] = labels[i].APIFormat()
 	}
-	ctx.JSON(200, &apiLabels)
+	ctx.JSON(http.StatusOK, &apiLabels)
 }
 
 // ClearIssueLabels delete all the labels for an issue
@@ -300,25 +314,28 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.Status(403)
+		ctx.Status(http.StatusForbidden)
 		return
 	}
 
 	if err := issue_service.ClearLabels(issue, ctx.User); err != nil {
-		ctx.Error(500, "ClearLabels", err)
+		ctx.Error(http.StatusInternalServerError, "ClearLabels", err)
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }

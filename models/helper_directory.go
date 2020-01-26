@@ -6,15 +6,13 @@ package models
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/unknwon/com"
 )
 
 // LocalCopyPath returns the local repository temporary copy path.
@@ -27,11 +25,15 @@ func LocalCopyPath() string {
 
 // CreateTemporaryPath creates a temporary path
 func CreateTemporaryPath(prefix string) (string, error) {
-	timeStr := com.ToStr(time.Now().Nanosecond()) // SHOULD USE SOMETHING UNIQUE
-	basePath := path.Join(LocalCopyPath(), prefix+"-"+timeStr+".git")
-	if err := os.MkdirAll(filepath.Dir(basePath), os.ModePerm); err != nil {
-		log.Error("Unable to create temporary directory: %s (%v)", basePath, err)
-		return "", fmt.Errorf("Failed to create dir %s: %v", basePath, err)
+	if err := os.MkdirAll(LocalCopyPath(), os.ModePerm); err != nil {
+		log.Error("Unable to create localcopypath directory: %s (%v)", LocalCopyPath(), err)
+		return "", fmt.Errorf("Failed to create localcopypath directory %s: %v", LocalCopyPath(), err)
+	}
+	basePath, err := ioutil.TempDir(LocalCopyPath(), prefix+".git")
+	if err != nil {
+		log.Error("Unable to create temporary directory: %s-*.git (%v)", prefix, err)
+		return "", fmt.Errorf("Failed to create dir %s-*.git: %v", prefix, err)
+
 	}
 	return basePath, nil
 }

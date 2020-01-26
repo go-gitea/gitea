@@ -1,33 +1,57 @@
+/* roboto-regular - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
 @font-face {
-    font-family: 'Lato';
-    src: url('../vendor/assets/lato-fonts/lato-regular.eot');
-    src: url('../vendor/assets/lato-fonts/lato-regular.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-regular.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-regular.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-regular.ttf') format('truetype');
-    font-weight: 400;
+    font-family: 'Roboto';
     font-style: normal;
-}
-
-@font-face {
-    font-family: 'Lato';
-    src: url('../vendor/assets/lato-fonts/lato-italic.eot');
-    src: url('../vendor/assets/lato-fonts/lato-italic.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-italic.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-italic.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-italic.ttf') format('truetype');
     font-weight: 400;
-    font-style: italic;
+    src:
+        local('Roboto'),
+        local('Roboto-Regular'),
+        /* Chrome 26+, Opera 23+, Firefox 39+ */
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-regular.woff2') format('woff2'),
+        /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-regular.woff') format('woff');
 }
 
+/* roboto-italic - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
 @font-face {
-    font-family: 'Lato';
-    src: url('../vendor/assets/lato-fonts/lato-bold.eot');
-    src: url('../vendor/assets/lato-fonts/lato-bold.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-bold.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-bold.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-bold.ttf') format('truetype');
-    font-weight: 700;
+    font-family: 'Roboto';
+    font-style: italic;
+    font-weight: 400;
+    src:
+        local('Roboto Italic'),
+        local('Roboto-Italic'),
+        /* Chrome 26+, Opera 23+, Firefox 39+ */
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-italic.woff2') format('woff2'),
+        /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-italic.woff') format('woff');
+}
+
+/* roboto-700 - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
+@font-face {
+    font-family: 'Roboto';
     font-style: normal;
+    font-weight: 700;
+    src:
+        local('Roboto Bold'),
+        local('Roboto-Bold'),
+        /* Chrome 26+, Opera 23+, Firefox 39+ */
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700.woff2') format('woff2'),
+        /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700.woff') format('woff');
 }
 
+/* roboto-700italic - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
 @font-face {
-    font-family: 'Lato';
-    src: url('../vendor/assets/lato-fonts/lato-bolditalic.eot');
-    src: url('../vendor/assets/lato-fonts/lato-bolditalic.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-bolditalic.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-bolditalic.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-bolditalic.ttf') format('truetype');
-    font-weight: 700;
+    font-family: 'Roboto';
     font-style: italic;
+    font-weight: 700;
+    src:
+        local('Roboto Bold Italic'),
+        local('Roboto-BoldItalic'),
+        /* Chrome 26+, Opera 23+, Firefox 39+ */
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700italic.woff2') format('woff2'),
+        /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700italic.woff') format('woff');
 }
 
 @font-face {
@@ -60,12 +84,12 @@
     h3,
     h4,
     h5 {
-        font-family: Lato, @fonts, sans-serif;
+        font-family: Roboto, @fonts, sans-serif;
     }
 
     .home .hero h1,
     .home .hero h2 {
-        font-family: 'PT Sans Narrow', Lato, @fonts, sans-serif;
+        font-family: 'PT Sans Narrow', Roboto, @fonts, sans-serif;
     }
 
     .ui.accordion .title:not(.ui),
@@ -104,7 +128,7 @@
     .ui.steps .step .title,
     .ui.text.container,
     .ui.language > .menu > .item& {
-        font-family: Lato, @fonts, sans-serif;
+        font-family: Roboto, @fonts, sans-serif;
     }
 }
 
@@ -352,6 +376,10 @@ code,
 
     &.dropdown .menu .menu > .item > .floating.label {
         z-index: 21;
+    }
+
+    &.dropdown .menu > .header {
+        font-size: 0.8em;
     }
 
     .text {
@@ -718,6 +746,7 @@ footer {
     .container {
         width: 100vw !important;
         padding: 0 0.5rem;
+        max-width: calc(100vw - 1rem) !important;
 
         .fa {
             width: 16px;
@@ -942,6 +971,15 @@ footer {
     background-color: #025900;
 }
 
+.activity-bar-graph {
+    background-color: #6cc644;
+    color: #000000;
+}
+
+.activity-bar-graph-alt {
+    color: #000000;
+}
+
 .archived-icon {
     color: lighten(#000000, 70%) !important;
 }
@@ -1115,4 +1153,32 @@ i.icon.centerlock {
 
 .octicon-tiny {
     font-size: 0.85714286rem;
+}
+
+.ui.basic.blue.button,
+.ui.basic.blue.buttons .button {
+    box-shadow: inset 0 0 0 1px #1678c2 !important;
+    color: #1678c2 !important;
+}
+
+.ui.label > img {
+    width: auto !important;
+    vertical-align: middle;
+    height: 2.1666em !important;
+}
+
+.octicon {
+    &.green {
+        color: #21ba45;
+    }
+    &.red {
+        color: #db2828;
+    }
+    &.purple {
+        color: #a333c8;
+    }
+}
+
+.ui.popup .ui.label {
+    margin-bottom: 0.4em;
 }

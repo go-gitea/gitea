@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -43,7 +44,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 			}
 			notification.NotifyPushCommits(
 				rel.Publisher, rel.Repo, git.TagPrefix+rel.TagName,
-				git.EmptySHA, commit.ID.String(), models.NewPushCommits())
+				git.EmptySHA, commit.ID.String(), repository.NewPushCommits())
 			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)

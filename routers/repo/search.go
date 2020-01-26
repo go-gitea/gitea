@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/search"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -27,7 +27,7 @@ func Search(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	total, searchResults, err := search.PerformSearch([]int64{ctx.Repo.Repository.ID},
+	total, searchResults, err := code_indexer.PerformSearch([]int64{ctx.Repo.Repository.ID},
 		keyword, page, setting.UI.RepoSearchPagingNum)
 	if err != nil {
 		ctx.ServerError("SearchResults", err)

@@ -12,9 +12,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/search"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
 )
@@ -45,7 +46,7 @@ func Home(ctx *context.Context) {
 		} else if ctx.User.MustChangePassword {
 			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
-			ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.RequestURI, 0, setting.AppSubURL)
+			ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 		} else {
 			user.Dashboard(ctx)
@@ -71,10 +72,11 @@ func Home(ctx *context.Context) {
 
 // RepoSearchOptions when calling search repositories
 type RepoSearchOptions struct {
-	OwnerID  int64
-	Private  bool
-	PageSize int
-	TplName  base.TplName
+	OwnerID    int64
+	Private    bool
+	Restricted bool
+	PageSize   int
+	TplName    base.TplName
 }
 
 var (
@@ -135,13 +137,17 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["TopicOnly"] = topicOnly
 
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-		Page:               page,
-		PageSize:           opts.PageSize,
+		ListOptions: models.ListOptions{
+			Page:     page,
+			PageSize: opts.PageSize,
+		},
+		Actor:              ctx.User,
 		OrderBy:            orderBy,
 		Private:            opts.Private,
 		Keyword:            keyword,
 		OwnerID:            opts.OwnerID,
 		AllPublic:          true,
+		AllLimited:         true,
 		TopicOnly:          topicOnly,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
@@ -188,6 +194,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	if opts.Page <= 1 {
 		opts.Page = 1
 	}
+	opts.Actor = ctx.User
 
 	var (
 		users   []*models.User
@@ -245,10 +252,10 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:     models.UserTypeIndividual,
-		PageSize: setting.UI.ExplorePagingNum,
-		IsActive: util.OptionalBoolTrue,
-		Private:  true,
+		Type:        models.UserTypeIndividual,
+		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		IsActive:    util.OptionalBoolTrue,
+		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplExploreUsers)
 }
 
@@ -259,16 +266,15 @@ func ExploreOrganizations(ctx *context.Context) {
 	ctx.Data["PageIsExploreOrganizations"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
-	var ownerID int64
-	if ctx.User != nil && !ctx.User.IsAdmin {
-		ownerID = ctx.User.ID
+	visibleTypes := []structs.VisibleType{structs.VisibleTypePublic}
+	if ctx.User != nil {
+		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
 	}
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
-		PageSize: setting.UI.ExplorePagingNum,
-		Private:  ctx.User != nil,
-		OwnerID:  ownerID,
+		Type:        models.UserTypeOrganization,
+		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		Visible:     visibleTypes,
 	}, tplExploreOrganizations)
 }
 
@@ -303,7 +309,7 @@ func ExploreCode(ctx *context.Context) {
 
 	// guest user or non-admin user
 	if ctx.User == nil || !isAdmin {
-		repoIDs, err = models.FindUserAccessibleRepoIDs(userID)
+		repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.User)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
@@ -312,7 +318,7 @@ func ExploreCode(ctx *context.Context) {
 
 	var (
 		total         int
-		searchResults []*search.Result
+		searchResults []*code_indexer.Result
 	)
 
 	// if non-admin login user, we need check UnitTypeCode at first
@@ -334,14 +340,14 @@ func ExploreCode(ctx *context.Context) {
 
 		ctx.Data["RepoMaps"] = rightRepoMap
 
-		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, err = code_indexer.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
 		}
 		// if non-login user or isAdmin, no need to check UnitTypeCode
 	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
-		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, err = code_indexer.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return

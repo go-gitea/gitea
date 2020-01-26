@@ -58,8 +58,13 @@ func Commits(ctx *context.Context) {
 		page = 1
 	}
 
+	pageSize := ctx.QueryInt("limit")
+	if pageSize <= 0 {
+		pageSize = git.CommitsRangeSize
+	}
+
 	// Both `git log branchName` and `git log commitId` work.
-	commits, err := ctx.Repo.Commit.CommitsByRange(page)
+	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize)
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return
@@ -201,6 +206,8 @@ func FileHistory(ctx *context.Context) {
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireTribute"] = true
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name

@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -62,7 +63,11 @@ func assertLabelEqual(t *testing.T, name, color, description string, label *base
 }
 
 func TestGitHubDownloadRepo(t *testing.T) {
-	downloader := NewGithubDownloaderV3("", "", "go-gitea", "test_repo")
+	GithubLimitRateRemaining = 3 //Wait at 3 remaining since we could have 3 CI in //
+	downloader := NewGithubDownloaderV3(os.Getenv("GITHUB_READ_TOKEN"), "", "go-gitea", "test_repo")
+	err := downloader.RefreshRate()
+	assert.NoError(t, err)
+
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 	assert.EqualValues(t, &base.Repository{
@@ -157,6 +162,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "guillep2k",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 9, 17, 0, 29, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 20, 29, 53, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "bug",
@@ -169,14 +175,12 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Description: "Good for newcomers",
 				},
 			},
-			Reactions: &base.Reactions{
-				TotalCount: 1,
-				PlusOne:    1,
-				MinusOne:   0,
-				Laugh:      0,
-				Confused:   0,
-				Heart:      0,
-				Hooray:     0,
+			Reactions: []*base.Reaction{
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "+1",
+				},
 			},
 			Closed: &closed1,
 		},
@@ -189,6 +193,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 12, 21, 0, 6, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 22, 7, 14, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "duplicate",
@@ -196,14 +201,37 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Description: "This issue or pull request already exists",
 				},
 			},
-			Reactions: &base.Reactions{
-				TotalCount: 6,
-				PlusOne:    1,
-				MinusOne:   1,
-				Laugh:      1,
-				Confused:   1,
-				Heart:      1,
-				Hooray:     1,
+			Reactions: []*base.Reaction{
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "heart",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "laugh",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "-1",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "confused",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "hooray",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "+1",
+				},
 			},
 			Closed: &closed2,
 		},
@@ -219,15 +247,14 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterID:   1669571,
 			PosterName: "mrsdizzie",
 			Created:    time.Date(2019, 11, 12, 21, 0, 13, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 21, 0, 13, 0, time.UTC),
 			Content:    "This is a comment",
-			Reactions: &base.Reactions{
-				TotalCount: 1,
-				PlusOne:    1,
-				MinusOne:   0,
-				Laugh:      0,
-				Confused:   0,
-				Heart:      0,
-				Hooray:     0,
+			Reactions: []*base.Reaction{
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
+					Content:  "+1",
+				},
 			},
 		},
 		{
@@ -235,16 +262,9 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterID:   1669571,
 			PosterName: "mrsdizzie",
 			Created:    time.Date(2019, 11, 12, 22, 7, 14, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 22, 7, 14, 0, time.UTC),
 			Content:    "A second comment",
-			Reactions: &base.Reactions{
-				TotalCount: 0,
-				PlusOne:    0,
-				MinusOne:   0,
-				Laugh:      0,
-				Confused:   0,
-				Heart:      0,
-				Hooray:     0,
-			},
+			Reactions:  nil,
 		},
 	}, comments[:2])
 
@@ -266,6 +286,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 12, 21, 21, 43, 0, time.UTC),
+			Updated:    time.Date(2019, 11, 12, 21, 39, 28, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "documentation",
@@ -302,6 +323,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PosterName: "mrsdizzie",
 			State:      "open",
 			Created:    time.Date(2019, 11, 12, 21, 54, 18, 0, time.UTC),
+			Updated:    time.Date(2020, 1, 4, 11, 30, 1, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:        "bug",
@@ -325,6 +347,109 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			},
 			Merged:         false,
 			MergeCommitSHA: "565d1208f5fffdc1c5ae1a2436491eb9a5e4ebae",
+			Reactions: []*base.Reaction{
+				{
+					UserID:   81045,
+					UserName: "lunny",
+					Content:  "heart",
+				},
+				{
+					UserID:   81045,
+					UserName: "lunny",
+					Content:  "+1",
+				},
+			},
 		},
 	}, prs)
+
+	reviews, err := downloader.GetReviews(3)
+	assert.NoError(t, err)
+	assert.EqualValues(t, []*base.Review{
+		{
+			ID:           315859956,
+			IssueIndex:   3,
+			ReviewerID:   42128690,
+			ReviewerName: "jolheiser",
+			CommitID:     "076160cf0b039f13e5eff19619932d181269414b",
+			CreatedAt:    time.Date(2019, 11, 12, 21, 35, 24, 0, time.UTC),
+			State:        base.ReviewStateApproved,
+		},
+		{
+			ID:           315860062,
+			IssueIndex:   3,
+			ReviewerID:   1824502,
+			ReviewerName: "zeripath",
+			CommitID:     "076160cf0b039f13e5eff19619932d181269414b",
+			CreatedAt:    time.Date(2019, 11, 12, 21, 35, 36, 0, time.UTC),
+			State:        base.ReviewStateApproved,
+		},
+		{
+			ID:           315861440,
+			IssueIndex:   3,
+			ReviewerID:   165205,
+			ReviewerName: "lafriks",
+			CommitID:     "076160cf0b039f13e5eff19619932d181269414b",
+			CreatedAt:    time.Date(2019, 11, 12, 21, 38, 00, 0, time.UTC),
+			State:        base.ReviewStateApproved,
+		},
+	}, reviews)
+
+	reviews, err = downloader.GetReviews(4)
+	assert.NoError(t, err)
+	assert.EqualValues(t, []*base.Review{
+		{
+			ID:           338338740,
+			IssueIndex:   4,
+			ReviewerID:   81045,
+			ReviewerName: "lunny",
+			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
+			CreatedAt:    time.Date(2020, 01, 04, 05, 33, 18, 0, time.UTC),
+			State:        base.ReviewStateApproved,
+			Comments: []*base.ReviewComment{
+				{
+					ID:        363017488,
+					Content:   "This is a good pull request.",
+					TreePath:  "README.md",
+					DiffHunk:  "@@ -1,2 +1,4 @@\n # test_repo\n Test repository for testing migration from github to gitea\n+",
+					Position:  3,
+					CommitID:  "2be9101c543658591222acbee3eb799edfc3853d",
+					PosterID:  81045,
+					CreatedAt: time.Date(2020, 01, 04, 05, 33, 06, 0, time.UTC),
+					UpdatedAt: time.Date(2020, 01, 04, 05, 33, 18, 0, time.UTC),
+				},
+			},
+		},
+		{
+			ID:           338339651,
+			IssueIndex:   4,
+			ReviewerID:   81045,
+			ReviewerName: "lunny",
+			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
+			CreatedAt:    time.Date(2020, 01, 04, 06, 07, 06, 0, time.UTC),
+			State:        base.ReviewStateChangesRequested,
+			Content:      "Don't add more reviews",
+		},
+		{
+			ID:           338349019,
+			IssueIndex:   4,
+			ReviewerID:   81045,
+			ReviewerName: "lunny",
+			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
+			CreatedAt:    time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+			State:        base.ReviewStateCommented,
+			Comments: []*base.ReviewComment{
+				{
+					ID:        363029944,
+					Content:   "test a single comment.",
+					TreePath:  "LICENSE",
+					DiffHunk:  "@@ -19,3 +19,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n SOFTWARE.\n+",
+					Position:  4,
+					CommitID:  "2be9101c543658591222acbee3eb799edfc3853d",
+					PosterID:  81045,
+					CreatedAt: time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+					UpdatedAt: time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+				},
+			},
+		},
+	}, reviews)
 }

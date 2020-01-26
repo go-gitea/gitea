@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -15,14 +14,6 @@ import (
 
 // AddDependency adds new dependencies
 func AddDependency(ctx *context.Context) {
-	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.User) {
-		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
-		return
-	}
-
-	depID := ctx.QueryInt64("newDependency")
-
 	issueIndex := ctx.ParamsInt64("index")
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
@@ -30,8 +21,21 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
+	// Check if the Repo is allowed to have dependencies
+	if !ctx.Repo.CanCreateIssueDependencies(ctx.User, issue.IsPull) {
+		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
+		return
+	}
+
+	depID := ctx.QueryInt64("newDependency")
+
+	if err = issue.LoadRepo(); err != nil {
+		ctx.ServerError("LoadRepo", err)
+		return
+	}
+
 	// Redirect
-	defer ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex), http.StatusSeeOther)
+	defer ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
@@ -69,14 +73,6 @@ func AddDependency(ctx *context.Context) {
 
 // RemoveDependency removes the dependency
 func RemoveDependency(ctx *context.Context) {
-	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.User) {
-		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
-		return
-	}
-
-	depID := ctx.QueryInt64("removeDependencyID")
-
 	issueIndex := ctx.ParamsInt64("index")
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
@@ -84,8 +80,18 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
-	// Redirect
-	ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex), http.StatusSeeOther)
+	// Check if the Repo is allowed to have dependencies
+	if !ctx.Repo.CanCreateIssueDependencies(ctx.User, issue.IsPull) {
+		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
+		return
+	}
+
+	depID := ctx.QueryInt64("removeDependencyID")
+
+	if err = issue.LoadRepo(); err != nil {
+		ctx.ServerError("LoadRepo", err)
+		return
+	}
 
 	// Dependency Type
 	depTypeStr := ctx.Req.PostForm.Get("dependencyType")
@@ -117,4 +123,7 @@ func RemoveDependency(ctx *context.Context) {
 		ctx.ServerError("RemoveIssueDependency", err)
 		return
 	}
+
+	// Redirect
+	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 }

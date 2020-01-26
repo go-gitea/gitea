@@ -71,19 +71,33 @@ func TestAPITeam(t *testing.T) {
 	teamID := apiTeam.ID
 
 	// Edit team.
+	editDescription := "team 1"
+	editFalse := false
 	teamToEdit := &api.EditTeamOption{
 		Name:                    "teamone",
-		Description:             "team 1",
-		IncludesAllRepositories: false,
+		Description:             &editDescription,
 		Permission:              "admin",
+		IncludesAllRepositories: &editFalse,
 		Units:                   []string{"repo.code", "repo.pulls", "repo.releases"},
 	}
+
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEdit)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamToEdit.Name, teamToEdit.Description, teamToEdit.IncludesAllRepositories,
+	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, teamToEdit.Units)
-	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, teamToEdit.Description, teamToEdit.IncludesAllRepositories,
+	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
+		teamToEdit.Permission, teamToEdit.Units)
+
+	// Edit team Description only
+	editDescription = "first team"
+	teamToEditDesc := api.EditTeamOption{Description: &editDescription}
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEditDesc)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiTeam)
+	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
+		teamToEdit.Permission, teamToEdit.Units)
+	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, teamToEdit.Units)
 
 	// Read team.
@@ -91,7 +105,7 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamID)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamRead.Name, teamRead.Description, teamRead.IncludesAllRepositories,
+	checkTeamResponse(t, &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.Authorize.String(), teamRead.GetUnitNames())
 
 	// Delete team.

@@ -14,8 +14,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	pwd "code.gitea.io/gitea/modules/password"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
@@ -154,6 +156,7 @@ var (
 	microcmdAuthDelete = cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
+		Flags:  []cli.Flag{idFlag},
 		Action: runDeleteAuth,
 	}
 
@@ -348,9 +351,11 @@ func runRepoSyncReleases(c *cli.Context) error {
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Page:     page,
-			PageSize: models.RepositoryListDefaultPageSize,
-			Private:  true,
+			ListOptions: models.ListOptions{
+				PageSize: models.RepositoryListDefaultPageSize,
+				Page:     page,
+			},
+			Private: true,
 		})
 		if err != nil {
 			return fmt.Errorf("SearchRepositoryByName: %v", err)
@@ -373,7 +378,7 @@ func runRepoSyncReleases(c *cli.Context) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
 				gitRepo.Close()
 				continue
@@ -408,7 +413,7 @@ func runRegenerateHooks(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-	return models.SyncRepositoryHooks()
+	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
 func runRegenerateKeys(c *cli.Context) error {
@@ -532,9 +537,9 @@ func runListAuth(c *cli.Context) error {
 
 	// loop through each source and print
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
-	fmt.Fprintf(w, "ID\tName\tType\tEnabled")
+	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
 	}
 	w.Flush()
 

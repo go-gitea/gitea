@@ -6,11 +6,14 @@
 package cron
 
 import (
+	"context"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -37,17 +40,19 @@ var taskStatusTable = sync.NewStatusTable()
 type Func func()
 
 // WithUnique wrap a cron func with an unique running check
-func WithUnique(name string, body Func) Func {
+func WithUnique(name string, body func(context.Context)) Func {
 	return func() {
 		if !taskStatusTable.StartIfNotRunning(name) {
 			return
 		}
 		defer taskStatusTable.Stop(name)
-		body()
+		graceful.GetManager().RunWithShutdownContext(body)
 	}
 }
 
 // NewContext begins cron tasks
+// Each cron task is run within the shutdown context as a running server
+// AtShutdown the cron server is stopped
 func NewContext() {
 	var (
 		entry *cron.Entry
@@ -65,14 +70,22 @@ func NewContext() {
 		}
 	}
 	if setting.Cron.RepoHealthCheck.Enabled {
-		entry, err = c.AddFunc("Repository health check", setting.Cron.RepoHealthCheck.Schedule, WithUnique(gitFsck, models.GitFsck))
+		entry, err = c.AddFunc("Repository health check", setting.Cron.RepoHealthCheck.Schedule, WithUnique(gitFsck, func(ctx context.Context) {
+			if err := repo_module.GitFsck(ctx); err != nil {
+				log.Error("GitFsck: %s", err)
+			}
+		}))
 		if err != nil {
 			log.Fatal("Cron[Repository health check]: %v", err)
 		}
 		if setting.Cron.RepoHealthCheck.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go WithUnique(gitFsck, models.GitFsck)()
+			go WithUnique(gitFsck, func(ctx context.Context) {
+				if err := repo_module.GitFsck(ctx); err != nil {
+					log.Error("GitFsck: %s", err)
+				}
+			})()
 		}
 	}
 	if setting.Cron.CheckRepoStats.Enabled {
@@ -129,6 +142,7 @@ func NewContext() {
 	go WithUnique(updateMigrationPosterID, migrations.UpdateMigrationPosterID)()
 
 	c.Start()
+	graceful.GetManager().RunAtShutdown(context.Background(), c.Stop)
 }
 
 // ListTasks returns all running cron tasks.

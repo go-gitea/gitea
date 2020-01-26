@@ -33,7 +33,7 @@ type Commit struct {
 	CommitMessage string
 	Signature     *CommitGPGSignature
 
-	parents        []SHA1 // SHA1 strings
+	Parents        []SHA1 // SHA1 strings
 	submoduleCache *ObjectCache
 }
 
@@ -94,7 +94,7 @@ func convertCommit(c *object.Commit) *Commit {
 		Committer:     &c.Committer,
 		Author:        &c.Author,
 		Signature:     convertPGPSignature(c),
-		parents:       c.ParentHashes,
+		Parents:       c.ParentHashes,
 	}
 }
 
@@ -111,10 +111,10 @@ func (c *Commit) Summary() string {
 // ParentID returns oid of n-th parent (0-based index).
 // It returns nil if no such parent exists.
 func (c *Commit) ParentID(n int) (SHA1, error) {
-	if n >= len(c.parents) {
+	if n >= len(c.Parents) {
 		return SHA1{}, ErrNotExist{"", ""}
 	}
-	return c.parents[n], nil
+	return c.Parents[n], nil
 }
 
 // Parent returns n-th parent (0-based index) of the commit.
@@ -133,7 +133,7 @@ func (c *Commit) Parent(n int) (*Commit, error) {
 // ParentCount returns number of parents of the commit.
 // 0 if this is the root commit,  otherwise 1,2, etc.
 func (c *Commit) ParentCount() int {
-	return len(c.parents)
+	return len(c.Parents)
 }
 
 func isImageFile(data []byte) (string, bool) {
@@ -297,13 +297,34 @@ func (c *Commit) CommitsCount() (int64, error) {
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(page int) (*list.List, error) {
-	return c.repo.commitsByRange(c.ID, page)
+func (c *Commit) CommitsByRange(page, pageSize int) (*list.List, error) {
+	return c.repo.commitsByRange(c.ID, page, pageSize)
 }
 
 // CommitsBefore returns all the commits before current revision
 func (c *Commit) CommitsBefore() (*list.List, error) {
 	return c.repo.getCommitsBefore(c.ID)
+}
+
+// HasPreviousCommit returns true if a given commitHash is contained in commit's parents
+func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
+	for i := 0; i < c.ParentCount(); i++ {
+		commit, err := c.Parent(i)
+		if err != nil {
+			return false, err
+		}
+		if commit.ID == commitHash {
+			return true, nil
+		}
+		commitInParentCommit, err := commit.HasPreviousCommit(commitHash)
+		if err != nil {
+			return false, err
+		}
+		if commitInParentCommit {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // CommitsBeforeLimit returns num commits before current revision
