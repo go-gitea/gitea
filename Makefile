@@ -481,6 +481,7 @@ js: node-check $(JS_DEST)
 $(JS_DEST): $(JS_SOURCES) | node_modules
 	npx eslint web_src/js webpack.config.js
 	npx webpack --hide-modules --display-entrypoints=false
+	@touch $(JS_DEST)
 
 .PHONY: fomantic
 fomantic: node-check $(FOMANTIC_DEST_DIR)
@@ -489,6 +490,7 @@ $(FOMANTIC_DEST_DIR): semantic.json web_src/fomantic/theme.config.less | node_mo
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+	@touch $(FOMANTIC_DEST_DIR)
 
 .PHONY: css
 css: node-check $(CSS_DEST)
@@ -498,6 +500,7 @@ $(CSS_DEST): $(CSS_SOURCES) | node_modules
 	npx lessc web_src/less/index.less public/css/index.css
 	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 	npx postcss --use autoprefixer --use cssnano --no-map --replace public/css/*
+	@touch $(CSS_DEST)
 
 .PHONY: update-translations
 update-translations:
