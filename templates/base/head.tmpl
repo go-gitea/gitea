@@ -83,6 +83,17 @@
         for the JavaScript code in this page.
 	*/`}}
 	</script>
+	<script>
+		window.config = {
+			Datetimepicker: {{if .RequireDatetimepicker}}true{{else}}false{{end}},
+			Dropzone: {{if .RequireDropzone}}true{{else}}false{{end}},
+			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
+			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},
+			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
+			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
+			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
+		};
+	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">
 	<link rel="apple-touch-icon" href="{{StaticUrlPrefix}}/img/favicon.png">
 	<link rel="mask-icon" href="{{StaticUrlPrefix}}/img/gitea-safari.svg" color="#609926">
@@ -106,10 +117,6 @@
 			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
 		</style>
 	</noscript>
-
-{{if .RequireHighlightJS}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/highlight/github.css">
-{{end}}
 {{if .RequireMinicolors}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
 {{end}}

@@ -65,6 +65,10 @@ module.exports = {
         },
       }),
     ],
+    splitChunks: {
+      chunks: 'async',
+      name: (_, chunks) => chunks.map((item) => item.name).join('-'),
+    }
   },
   module: {
     rules: [
@@ -142,10 +146,8 @@ module.exports = {
     }),
     new SourceMapDevToolPlugin({
       filename: 'js/[name].js.map',
-      exclude: [
-        'js/gitgraph.js',
-        'js/jquery.js',
-        'js/swagger.js',
+      include: [
+        'js/index.js',
       ],
     }),
   ],
@@ -153,7 +155,9 @@ module.exports = {
     maxEntrypointSize: 512000,
     maxAssetSize: 512000,
     assetFilter: (filename) => {
-      return !filename.endsWith('.map') && filename !== 'js/swagger.js';
+      if (filename.endsWith('.map')) return false;
+      if (['js/swagger.js', 'js/highlight.js'].includes(filename)) return false;
+      return true;
     },
   },
   resolve: {
