@@ -22,7 +22,7 @@ inside the `custom` directory (see [Customizing Gitea]({{< relref "doc/advanced/
 To obtain a copy of the embedded resources ready for editing, the `embedded` command from the CLI
 can be used from the OS shell interface.
 
-## List resources
+## Listing resources
 
 To list resources embedded in Gitea's executable, use the following syntax:
 
@@ -42,7 +42,7 @@ for its glob syntax. Here are some examples:
 - List all files inside `public/img`: `public/img/**`
 
 Don't forget to use quotes for the patterns, as spaces, `*` and other characters might have
-a special significance for your command shell.
+a special meaning for your command shell.
 
 If no pattern is provided, all files are listed.
 
@@ -62,7 +62,7 @@ templates/user/auth/signup_openid_register.tmpl
 templates/user/settings/security_openid.tmpl
 ```
 
-## Extract resources
+## Extracting resources
 
 To extract resources embedded in Gitea's executable, use the following syntax:
 
@@ -76,7 +76,7 @@ it's not in its default location. This option is only used with the `--custom` f
 The `--destination` option tells gitea the directory where the files must be extracted to.
 The default is the current directory.
 
-The `--custom` flag tells gitea to extract the files directly into the `custom` directory
+The `--custom` flag tells gitea to extract the files directly into the `custom` directory.
 For this to work, the command needs to know the location of the `app.ini` configuration
 file (`--config`) and, depending of the configuration, be ran from the directory where
 gitea normally starts. See [Customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) for details.
