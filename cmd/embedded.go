@@ -34,6 +34,12 @@ var (
 			subcmdList,
 			subcmdExtract,
 		},
+	}
+
+	subcmdList = cli.Command{
+		Name:   "list",
+		Usage:  "List files matching the given pattern",
+		Action: runList,
 		Flags: []cli.Flag{
 			cli.BoolFlag{
 				Name:  "include-vendored,vendor",
@@ -42,17 +48,15 @@ var (
 		},
 	}
 
-	subcmdList = cli.Command{
-		Name:   "list",
-		Usage:  "List files matching the given pattern",
-		Action: runList,
-	}
-
 	subcmdExtract = cli.Command{
 		Name:   "extract",
 		Usage:  "Extract resources",
 		Action: runExtract,
 		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "include-vendored,vendor",
+				Usage: "Include files under public/vendor as well",
+			},
 			cli.BoolFlag{
 				Name:  "overwrite",
 				Usage: "Overwrite files if they already exist",
