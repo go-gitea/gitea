@@ -8,13 +8,14 @@ package repo
 import (
 	"encoding/base64"
 	"net/http"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repofiles"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/repo"
-	api "code.gitea.io/sdk/gitea"
 )
 
 // GetRawFile get a file by path on a repository
@@ -43,6 +44,9 @@ func GetRawFile(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.NotFound()
 		return
@@ -88,6 +92,9 @@ func GetArchive(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -95,6 +102,7 @@ func GetArchive(ctx *context.APIContext) {
 		return
 	}
 	ctx.Repo.GitRepo = gitRepo
+	defer gitRepo.Close()
 
 	repo.Download(ctx.Context)
 }
@@ -125,6 +133,9 @@ func GetEditorconfig(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -136,7 +147,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	}
 
 	fileName := ctx.Params("filename")
-	def := ec.GetDefinitionForFilename(fileName)
+	def, err := ec.GetDefinitionForFilename(fileName)
 	if def == nil {
 		ctx.NotFound(err)
 		return
@@ -181,7 +192,7 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	//   required: true
 	// - name: body
 	//   in: body
-	//   description: "'content' must be base64 encoded\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'sha' is the SHA for the file that already exists\n\n 'new_branch' (optional) will make a new branch from 'branch' before creating the file"
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/CreateFileOptions"
 	// responses:
@@ -203,7 +214,22 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+		Dates: &repofiles.CommitDateOptions{
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
+		},
 	}
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
+	}
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
+	}
+
+	if opts.Message == "" {
+		opts.Message = ctx.Tr("repo.editor.add", opts.TreePath)
+	}
+
 	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateFile", err)
 	} else {
@@ -238,7 +264,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	//   required: true
 	// - name: body
 	//   in: body
-	//   description: "'content' must be base64 encoded\n\n 'sha' is the SHA for the file that already exists\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'new_branch' (optional) will make a new branch from 'branch' before updating the file"
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/UpdateFileOptions"
 	// responses:
@@ -262,6 +288,20 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+		Dates: &repofiles.CommitDateOptions{
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
+		},
+	}
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
+	}
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
+	}
+
+	if opts.Message == "" {
+		opts.Message = ctx.Tr("repo.editor.update", opts.TreePath)
 	}
 
 	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
@@ -316,12 +356,13 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	//   required: true
 	// - name: body
 	//   in: body
-	//   description: "'sha' is the SHA for the file to be deleted\n\n 'author' and 'committer' are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)\n\n If 'branch' is not given, default branch will be used\n\n 'new_branch' (optional) will make a new branch from 'branch' before deleting the file"
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/DeleteFileOptions"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileDeleteResponse"
+
 	if !CanWriteFiles(ctx.Repo) {
 		ctx.Error(http.StatusInternalServerError, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
@@ -344,6 +385,20 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+		Dates: &repofiles.CommitDateOptions{
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
+		},
+	}
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
+	}
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
+	}
+
+	if opts.Message == "" {
+		opts.Message = ctx.Tr("repo.editor.delete", opts.TreePath)
 	}
 
 	if fileResponse, err := repofiles.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
@@ -353,11 +408,11 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	}
 }
 
-// GetFileContents Get the contents of a fle in a repository
-func GetFileContents(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetFileContents
+// GetContents Get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
+func GetContents(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/contents/{filepath} repository repoGetContents
 	// ---
-	// summary: Gets the contents of a file or directory in a repository
+	// summary: Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
 	// produces:
 	// - application/json
 	// parameters:
@@ -373,20 +428,20 @@ func GetFileContents(ctx *context.APIContext) {
 	//   required: true
 	// - name: filepath
 	//   in: path
-	//   description: path of the file to delete
+	//   description: path of the dir, file, symlink or submodule in the repo
 	//   type: string
 	//   required: true
 	// - name: ref
 	//   in: query
 	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
-	//   required: false
 	//   type: string
+	//   required: false
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/FileContentResponse"
+	//     "$ref": "#/responses/ContentsResponse"
 
 	if !CanReadFiles(ctx.Repo) {
-		ctx.Error(http.StatusInternalServerError, "GetFileContents", models.ErrUserDoesNotHaveAccessToRepo{
+		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -396,9 +451,40 @@ func GetFileContents(ctx *context.APIContext) {
 	treePath := ctx.Params("*")
 	ref := ctx.QueryTrim("ref")
 
-	if fileContents, err := repofiles.GetFileContents(ctx.Repo.Repository, treePath, ref); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetFileContents", err)
+	if fileList, err := repofiles.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", err)
 	} else {
-		ctx.JSON(http.StatusOK, fileContents)
+		ctx.JSON(http.StatusOK, fileList)
 	}
+}
+
+// GetContentsList Get the metadata of all the entries of the root dir
+func GetContentsList(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/contents repository repoGetContentsList
+	// ---
+	// summary: Gets the metadata of all the entries of the root dir
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ContentsListResponse"
+
+	// same as GetContents(), this function is here because swagger fails if path is empty in GetContents() interface
+	GetContents(ctx)
 }

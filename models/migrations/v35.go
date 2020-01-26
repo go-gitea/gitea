@@ -7,7 +7,7 @@ package migrations
 import (
 	"fmt"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addCommentIDToAction(x *xorm.Engine) error {

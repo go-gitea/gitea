@@ -101,7 +101,7 @@ func (l *Level) UnmarshalJSON(b []byte) error {
 
 	switch v := tmp.(type) {
 	case string:
-		*l = FromString(string(v))
+		*l = FromString(v)
 	case int:
 		*l = FromString(Level(v).String())
 	default:

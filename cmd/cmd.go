@@ -38,7 +38,7 @@ func initDB() error {
 
 func initDBDisableConsole(disableConsole bool) error {
 	setting.NewContext()
-	models.LoadConfigs()
+	setting.InitDBConfig()
 
 	setting.NewXORMLogService(disableConsole)
 	if err := models.SetEngine(); err != nil {

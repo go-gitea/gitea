@@ -1,5 +1,3 @@
-// +build !windows
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -8,38 +6,47 @@ package cmd
 
 import (
 	"crypto/tls"
+	"net"
 	"net/http"
+	"net/http/fcgi"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-
-	"github.com/facebookgo/grace/gracehttp"
 )
 
-func runHTTP(listenAddr string, m http.Handler) error {
-	return gracehttp.Serve(&http.Server{
-		Addr:    listenAddr,
-		Handler: m,
-	})
+func runHTTP(network, listenAddr string, m http.Handler) error {
+	return graceful.HTTPListenAndServe(network, listenAddr, m)
 }
 
-func runHTTPS(listenAddr, certFile, keyFile string, m http.Handler) error {
-	config := &tls.Config{
-		MinVersion: tls.VersionTLS10,
-	}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"http/1.1"}
-	}
+func runHTTPS(network, listenAddr, certFile, keyFile string, m http.Handler) error {
+	return graceful.HTTPListenAndServeTLS(network, listenAddr, certFile, keyFile, m)
+}
 
-	config.Certificates = make([]tls.Certificate, 1)
-	var err error
-	config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		log.Fatal("Failed to load https cert file %s: %v", listenAddr, err)
-	}
+func runHTTPSWithTLSConfig(network, listenAddr string, tlsConfig *tls.Config, m http.Handler) error {
+	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, tlsConfig, m)
+}
 
-	return gracehttp.Serve(&http.Server{
-		Addr:      listenAddr,
-		Handler:   m,
-		TLSConfig: config,
+// NoHTTPRedirector tells our cleanup routine that we will not be using a fallback http redirector
+func NoHTTPRedirector() {
+	graceful.GetManager().InformCleanup()
+}
+
+// NoMainListener tells our cleanup routine that we will not be using a possibly provided listener
+// for our main HTTP/HTTPS service
+func NoMainListener() {
+	graceful.GetManager().InformCleanup()
+}
+
+func runFCGI(network, listenAddr string, m http.Handler) error {
+	// This needs to handle stdin as fcgi point
+	fcgiServer := graceful.NewServer(network, listenAddr)
+
+	err := fcgiServer.ListenAndServe(func(listener net.Listener) error {
+		return fcgi.Serve(listener, m)
 	})
+	if err != nil {
+		log.Fatal("Failed to start FCGI main server: %v", err)
+	}
+	log.Info("FCGI Listener: %s Closed", listenAddr)
+	return err
 }

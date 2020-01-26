@@ -10,16 +10,16 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/go-macaron/binding"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"gitea.com/macaron/binding"
+	"github.com/dgrijalva/jwt-go"
 )
 
 const (
@@ -118,7 +118,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 		}
 	}
 	// generate access token to access the API
-	expirationDate := util.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
+	expirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
 	accessToken := &models.OAuth2Token{
 		GrantID: grant.ID,
 		Type:    models.TypeAccessToken,
@@ -135,7 +135,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 	}
 
 	// generate refresh token to request an access token after it expired later
-	refreshExpirationDate := util.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
+	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
 	refreshToken := &models.OAuth2Token{
 		GrantID: grant.ID,
 		Counter: grant.Counter,
@@ -164,6 +164,14 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Context, errs)
+	if len(errs) > 0 {
+		errstring := ""
+		for _, e := range errs {
+			errstring += e.Error() + "\n"
+		}
+		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring))
+		return
+	}
 
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
@@ -221,7 +229,6 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 			}, form.RedirectURI)
 			return
 		}
-		break
 	case "":
 		break
 	default:
@@ -259,12 +266,27 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	ctx.Data["Application"] = app
 	ctx.Data["RedirectURI"] = form.RedirectURI
 	ctx.Data["State"] = form.State
-	ctx.Data["ApplicationUserLink"] = "<a href=\"" + setting.LocalURL + app.User.LowerName + "\">@" + app.User.Name + "</a>"
+	ctx.Data["ApplicationUserLink"] = "<a href=\"" + setting.AppURL + app.User.LowerName + "\">@" + app.User.Name + "</a>"
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + form.RedirectURI + "</strong>"
 	// TODO document SESSION <=> FORM
-	ctx.Session.Set("client_id", app.ClientID)
-	ctx.Session.Set("redirect_uri", form.RedirectURI)
-	ctx.Session.Set("state", form.State)
+	err = ctx.Session.Set("client_id", app.ClientID)
+	if err != nil {
+		handleServerError(ctx, form.State, form.RedirectURI)
+		log.Error(err.Error())
+		return
+	}
+	err = ctx.Session.Set("redirect_uri", form.RedirectURI)
+	if err != nil {
+		handleServerError(ctx, form.State, form.RedirectURI)
+		log.Error(err.Error())
+		return
+	}
+	err = ctx.Session.Set("state", form.State)
+	if err != nil {
+		handleServerError(ctx, form.State, form.RedirectURI)
+		log.Error(err.Error())
+		return
+	}
 	ctx.HTML(200, tplGrantAccess)
 }
 

@@ -5,9 +5,7 @@
 package models
 
 import (
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,8 +28,6 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.NotNil(t, pr.Issue)
 	assert.Equal(t, int64(2), pr.Issue.ID)
 }
-
-// TODO TestPullRequest_APIFormat
 
 func TestPullRequest_GetBaseRepo(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
@@ -59,32 +55,38 @@ func TestPullRequest_GetHeadRepo(t *testing.T) {
 func TestPullRequestsNewest(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	prs, count, err := PullRequests(1, &PullRequestsOptions{
-		Page:     1,
+		ListOptions: ListOptions{
+			Page: 1,
+		},
 		State:    "open",
 		SortType: "newest",
 		Labels:   []string{},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
-	if assert.Len(t, prs, 2) {
-		assert.Equal(t, int64(2), prs[0].ID)
-		assert.Equal(t, int64(1), prs[1].ID)
+	assert.EqualValues(t, 3, count)
+	if assert.Len(t, prs, 3) {
+		assert.EqualValues(t, 5, prs[0].ID)
+		assert.EqualValues(t, 2, prs[1].ID)
+		assert.EqualValues(t, 1, prs[2].ID)
 	}
 }
 
 func TestPullRequestsOldest(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	prs, count, err := PullRequests(1, &PullRequestsOptions{
-		Page:     1,
+		ListOptions: ListOptions{
+			Page: 1,
+		},
 		State:    "open",
 		SortType: "oldest",
 		Labels:   []string{},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(2), count)
-	if assert.Len(t, prs, 2) {
-		assert.Equal(t, int64(1), prs[0].ID)
-		assert.Equal(t, int64(2), prs[1].ID)
+	assert.EqualValues(t, 3, count)
+	if assert.Len(t, prs, 3) {
+		assert.EqualValues(t, 1, prs[0].ID)
+		assert.EqualValues(t, 2, prs[1].ID)
+		assert.EqualValues(t, 5, prs[2].ID)
 	}
 }
 
@@ -94,7 +96,7 @@ func TestGetUnmergedPullRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.ID)
 
-	pr, err = GetUnmergedPullRequest(1, 9223372036854775807, "branch1", "master")
+	_, err = GetUnmergedPullRequest(1, 9223372036854775807, "branch1", "master")
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
@@ -128,7 +130,7 @@ func TestGetPullRequestByIndex(t *testing.T) {
 	assert.Equal(t, int64(1), pr.BaseRepoID)
 	assert.Equal(t, int64(2), pr.Index)
 
-	pr, err = GetPullRequestByIndex(9223372036854775807, 9223372036854775807)
+	_, err = GetPullRequestByIndex(9223372036854775807, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
@@ -151,7 +153,7 @@ func TestGetPullRequestByIssueID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.IssueID)
 
-	pr, err = GetPullRequestByIssueID(9223372036854775807)
+	_, err = GetPullRequestByIssueID(9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
@@ -176,34 +178,12 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 		BaseBranch: "baseBranch",
 		HeadBranch: "headBranch",
 	}
-	pr.UpdateCols("head_branch")
+	assert.NoError(t, pr.UpdateCols("head_branch"))
 
 	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.Equal(t, "master", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
 	CheckConsistencyFor(t, pr)
-}
-
-// TODO TestPullRequest_UpdatePatch
-
-// TODO TestPullRequest_PushToBaseRepo
-
-func TestPullRequest_AddToTaskQueue(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	pr.AddToTaskQueue()
-
-	select {
-	case id := <-pullRequestQueue.Queue():
-		assert.EqualValues(t, strconv.FormatInt(pr.ID, 10), id)
-	case <-time.After(time.Second):
-		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
-	}
-
-	assert.True(t, pullRequestQueue.Exist(pr.ID))
-	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	assert.Equal(t, PullRequestStatusChecking, pr.Status)
 }
 
 func TestPullRequestList_LoadAttributes(t *testing.T) {
@@ -223,20 +203,6 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 }
 
 // TODO TestAddTestPullRequestTask
-
-func TestChangeUsernameInPullRequests(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	const newUsername = "newusername"
-	assert.NoError(t, ChangeUsernameInPullRequests("user1", newUsername))
-
-	prs := make([]*PullRequest, 0, 10)
-	assert.NoError(t, x.Where("head_user_name = ?", newUsername).Find(&prs))
-	assert.Len(t, prs, 2)
-	for _, pr := range prs {
-		assert.Equal(t, newUsername, pr.HeadUserName)
-	}
-	CheckConsistencyFor(t, &PullRequest{})
-}
 
 func TestPullRequest_IsWorkInProgress(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())

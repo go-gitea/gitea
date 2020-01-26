@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"testing"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)

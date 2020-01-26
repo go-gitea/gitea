@@ -34,6 +34,8 @@ type Key struct {
 
 	isShadow bool
 	shadows  []*Key
+
+	nestedValues []string
 }
 
 // newKey simply return a key object with given values.
@@ -52,6 +54,16 @@ func (k *Key) addShadow(val string) error {
 		return errors.New("cannot add shadow to auto-increment or boolean key")
 	}
 
+	// Deduplicate shadows based on their values.
+	if k.value == val {
+		return nil
+	}
+	for i := range k.shadows {
+		if k.shadows[i].value == val {
+			return nil
+		}
+	}
+
 	shadow := newKey(k.s, k.name, val)
 	shadow.isShadow = true
 	k.shadows = append(k.shadows, shadow)
@@ -64,6 +76,23 @@ func (k *Key) AddShadow(val string) error {
 		return errors.New("shadow key is not allowed")
 	}
 	return k.addShadow(val)
+}
+
+func (k *Key) addNestedValue(val string) error {
+	if k.isAutoIncrement || k.isBooleanType {
+		return errors.New("cannot add nested value to auto-increment or boolean key")
+	}
+
+	k.nestedValues = append(k.nestedValues, val)
+	return nil
+}
+
+// AddNestedValue adds a nested value to the key.
+func (k *Key) AddNestedValue(val string) error {
+	if !k.s.f.options.AllowNestedValues {
+		return errors.New("nested value is not allowed")
+	}
+	return k.addNestedValue(val)
 }
 
 // ValueMapper represents a mapping function for values, e.g. os.ExpandEnv
@@ -92,6 +121,12 @@ func (k *Key) ValueWithShadows() []string {
 	return vals
 }
 
+// NestedValues returns nested values stored in the key.
+// It is possible returned value is nil if no nested values stored in the key.
+func (k *Key) NestedValues() []string {
+	return k.nestedValues
+}
+
 // transformValue takes a raw value and transforms to its final string.
 func (k *Key) transformValue(val string) string {
 	if k.s.f.ValueMapper != nil {
@@ -102,21 +137,25 @@ func (k *Key) transformValue(val string) string {
 	if !strings.Contains(val, "%") {
 		return val
 	}
-	for i := 0; i < _DEPTH_VALUES; i++ {
+	for i := 0; i < depthValues; i++ {
 		vr := varPattern.FindString(val)
 		if len(vr) == 0 {
 			break
 		}
 
 		// Take off leading '%(' and trailing ')s'.
-		noption := strings.TrimLeft(vr, "%(")
-		noption = strings.TrimRight(noption, ")s")
+		noption := vr[2 : len(vr)-2]
 
 		// Search in the same section.
+		// If not found or found the key itself, then search again in default section.
 		nk, err := k.s.GetKey(noption)
 		if err != nil || k == nk {
-			// Search again in default section.
 			nk, _ = k.s.f.Section("").GetKey(noption)
+			if nk == nil {
+				// Stop when no results found in the default section,
+				// and returns the value as-is.
+				break
+			}
 		}
 
 		// Substitute by new value and take off leading '%(' and trailing ')s'.
@@ -163,23 +202,24 @@ func (k *Key) Float64() (float64, error) {
 
 // Int returns int type value.
 func (k *Key) Int() (int, error) {
-	return strconv.Atoi(k.String())
+	v, err := strconv.ParseInt(k.String(), 0, 64)
+	return int(v), err
 }
 
 // Int64 returns int64 type value.
 func (k *Key) Int64() (int64, error) {
-	return strconv.ParseInt(k.String(), 10, 64)
+	return strconv.ParseInt(k.String(), 0, 64)
 }
 
 // Uint returns uint type valued.
 func (k *Key) Uint() (uint, error) {
-	u, e := strconv.ParseUint(k.String(), 10, 64)
+	u, e := strconv.ParseUint(k.String(), 0, 64)
 	return uint(u), e
 }
 
 // Uint64 returns uint64 type value.
 func (k *Key) Uint64() (uint64, error) {
-	return strconv.ParseUint(k.String(), 10, 64)
+	return strconv.ParseUint(k.String(), 0, 64)
 }
 
 // Duration returns time.Duration type value.
@@ -467,7 +507,7 @@ func (k *Key) Strings(delim string) []string {
 				buf.WriteRune(runes[idx])
 			}
 		}
-		idx += 1
+		idx++
 		if idx == len(runes) {
 			break
 		}
@@ -529,6 +569,12 @@ func (k *Key) Uint64s(delim string) []uint64 {
 	return vals
 }
 
+// Bools returns list of bool divided by given delimiter. Any invalid input will be treated as zero value.
+func (k *Key) Bools(delim string) []bool {
+	vals, _ := k.parseBools(k.Strings(delim), true, false)
+	return vals
+}
+
 // TimesFormat parses with given format and returns list of time.Time divided by given delimiter.
 // Any invalid input will be treated as zero value (0001-01-01 00:00:00 +0000 UTC).
 func (k *Key) TimesFormat(format, delim string) []time.Time {
@@ -577,6 +623,13 @@ func (k *Key) ValidUint64s(delim string) []uint64 {
 	return vals
 }
 
+// ValidBools returns list of bool divided by given delimiter. If some value is not 64-bit unsigned
+// integer, then it will not be included to result list.
+func (k *Key) ValidBools(delim string) []bool {
+	vals, _ := k.parseBools(k.Strings(delim), false, false)
+	return vals
+}
+
 // ValidTimesFormat parses with given format and returns list of time.Time divided by given delimiter.
 func (k *Key) ValidTimesFormat(format, delim string) []time.Time {
 	vals, _ := k.parseTimesFormat(format, k.Strings(delim), false, false)
@@ -613,6 +666,11 @@ func (k *Key) StrictUint64s(delim string) ([]uint64, error) {
 	return k.parseUint64s(k.Strings(delim), false, true)
 }
 
+// StrictBools returns list of bool divided by given delimiter or error on first invalid input.
+func (k *Key) StrictBools(delim string) ([]bool, error) {
+	return k.parseBools(k.Strings(delim), false, true)
+}
+
 // StrictTimesFormat parses with given format and returns list of time.Time divided by given delimiter
 // or error on first invalid input.
 func (k *Key) StrictTimesFormat(format, delim string) ([]time.Time, error) {
@@ -623,6 +681,21 @@ func (k *Key) StrictTimesFormat(format, delim string) ([]time.Time, error) {
 // or error on first invalid input.
 func (k *Key) StrictTimes(delim string) ([]time.Time, error) {
 	return k.StrictTimesFormat(time.RFC3339, delim)
+}
+
+// parseBools transforms strings to bools.
+func (k *Key) parseBools(strs []string, addInvalid, returnOnInvalid bool) ([]bool, error) {
+	vals := make([]bool, 0, len(strs))
+	for _, str := range strs {
+		val, err := parseBool(str)
+		if err != nil && returnOnInvalid {
+			return nil, err
+		}
+		if err == nil || addInvalid {
+			vals = append(vals, val)
+		}
+	}
+	return vals, nil
 }
 
 // parseFloat64s transforms strings to float64s.
@@ -644,7 +717,8 @@ func (k *Key) parseFloat64s(strs []string, addInvalid, returnOnInvalid bool) ([]
 func (k *Key) parseInts(strs []string, addInvalid, returnOnInvalid bool) ([]int, error) {
 	vals := make([]int, 0, len(strs))
 	for _, str := range strs {
-		val, err := strconv.Atoi(str)
+		valInt64, err := strconv.ParseInt(str, 0, 64)
+		val := int(valInt64)
 		if err != nil && returnOnInvalid {
 			return nil, err
 		}
@@ -659,7 +733,7 @@ func (k *Key) parseInts(strs []string, addInvalid, returnOnInvalid bool) ([]int,
 func (k *Key) parseInt64s(strs []string, addInvalid, returnOnInvalid bool) ([]int64, error) {
 	vals := make([]int64, 0, len(strs))
 	for _, str := range strs {
-		val, err := strconv.ParseInt(str, 10, 64)
+		val, err := strconv.ParseInt(str, 0, 64)
 		if err != nil && returnOnInvalid {
 			return nil, err
 		}
@@ -674,7 +748,7 @@ func (k *Key) parseInt64s(strs []string, addInvalid, returnOnInvalid bool) ([]in
 func (k *Key) parseUints(strs []string, addInvalid, returnOnInvalid bool) ([]uint, error) {
 	vals := make([]uint, 0, len(strs))
 	for _, str := range strs {
-		val, err := strconv.ParseUint(str, 10, 0)
+		val, err := strconv.ParseUint(str, 0, 0)
 		if err != nil && returnOnInvalid {
 			return nil, err
 		}
@@ -689,7 +763,7 @@ func (k *Key) parseUints(strs []string, addInvalid, returnOnInvalid bool) ([]uin
 func (k *Key) parseUint64s(strs []string, addInvalid, returnOnInvalid bool) ([]uint64, error) {
 	vals := make([]uint64, 0, len(strs))
 	for _, str := range strs {
-		val, err := strconv.ParseUint(str, 10, 64)
+		val, err := strconv.ParseUint(str, 0, 64)
 		if err != nil && returnOnInvalid {
 			return nil, err
 		}

@@ -63,7 +63,7 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 }
 
 func (t *Tree) loadTreeObject() error {
-	gogitTree, err := t.repo.gogitRepo.TreeObject(plumbing.Hash(t.ID))
+	gogitTree, err := t.repo.gogitRepo.TreeObject(t.ID)
 	if err != nil {
 		return err
 	}

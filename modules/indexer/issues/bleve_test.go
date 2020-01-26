@@ -5,6 +5,7 @@
 package issues
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -12,12 +13,20 @@ import (
 )
 
 func TestBleveIndexAndSearch(t *testing.T) {
-	dir := "./bleve.index"
-	indexer := NewBleveIndexer(dir)
-	defer os.RemoveAll(dir)
-
-	_, err := indexer.Init()
+	dir, err := ioutil.TempDir("", "bleve.index")
 	assert.NoError(t, err)
+	if err != nil {
+		assert.Fail(t, "Unable to create temporary directory")
+		return
+	}
+	defer os.RemoveAll(dir)
+	indexer := NewBleveIndexer(dir)
+	defer indexer.Close()
+
+	if _, err := indexer.Init(); err != nil {
+		assert.Fail(t, "Unable to initialise bleve indexer: %v", err)
+		return
+	}
 
 	err = indexer.Index([]*IndexerData{
 		{
@@ -76,7 +85,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	)
 
 	for _, kw := range keywords {
-		res, err := indexer.Search(kw.Keyword, 2, 10, 0)
+		res, err := indexer.Search(kw.Keyword, []int64{2}, 10, 0)
 		assert.NoError(t, err)
 
 		var ids = make([]int64, 0, len(res.Hits))

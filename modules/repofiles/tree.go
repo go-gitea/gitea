@@ -10,12 +10,16 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
 func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer gitRepo.Close()
 	gitTree, err := gitRepo.GetTree(sha)
 	if err != nil || gitTree == nil {
 		return nil, models.ErrSHANotFound{
@@ -39,12 +43,12 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 
 	// 51 is len(sha1) + len("/git/blobs/"). 40 + 11.
 	blobURL := make([]byte, apiURLLen+51)
-	copy(blobURL[:], apiURL)
+	copy(blobURL, apiURL)
 	copy(blobURL[apiURLLen:], "/git/blobs/")
 
 	// 51 is len(sha1) + len("/git/trees/"). 40 + 11.
 	treeURL := make([]byte, apiURLLen+51)
-	copy(treeURL[:], apiURL)
+	copy(treeURL, apiURL)
 	copy(treeURL[apiURLLen:], "/git/trees/")
 
 	// 40 is the size of the sha1 hash in hexadecimal format.
@@ -75,18 +79,18 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 	for e := rangeStart; e < rangeEnd; e++ {
 		i := e - rangeStart
 
-		tree.Entries[e].Path = entries[e].Name()
-		tree.Entries[e].Mode = fmt.Sprintf("%06o", entries[e].Mode())
-		tree.Entries[e].Type = entries[e].Type()
-		tree.Entries[e].Size = entries[e].Size()
-		tree.Entries[e].SHA = entries[e].ID.String()
+		tree.Entries[i].Path = entries[e].Name()
+		tree.Entries[i].Mode = fmt.Sprintf("%06o", entries[e].Mode())
+		tree.Entries[i].Type = entries[e].Type()
+		tree.Entries[i].Size = entries[e].Size()
+		tree.Entries[i].SHA = entries[e].ID.String()
 
 		if entries[e].IsDir() {
 			copy(treeURL[copyPos:], entries[e].ID.String())
-			tree.Entries[i].URL = string(treeURL[:])
+			tree.Entries[i].URL = string(treeURL)
 		} else {
 			copy(blobURL[copyPos:], entries[e].ID.String())
-			tree.Entries[i].URL = string(blobURL[:])
+			tree.Entries[i].URL = string(blobURL)
 		}
 	}
 	return tree, nil

@@ -12,9 +12,11 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	releaseservice "code.gitea.io/gitea/services/release"
 )
 
 const (
@@ -55,24 +57,26 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["PageIsReleaseList"] = true
 
-	page := ctx.QueryInt("page")
-	if page <= 1 {
-		page = 1
-	}
-	limit := ctx.QueryInt("limit")
-	if limit <= 0 {
-		limit = 10
-	}
-
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	opts := models.FindReleasesOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
 		IncludeDrafts: writeAccess,
 		IncludeTags:   true,
 	}
 
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts, page, limit)
+	if opts.ListOptions.Page <= 1 {
+		opts.ListOptions.Page = 1
+	}
+	if opts.ListOptions.PageSize <= 0 {
+		opts.ListOptions.Page = 10
+	}
+
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
@@ -120,7 +124,7 @@ func Releases(ctx *context.Context) {
 
 	ctx.Data["Releases"] = releases
 
-	pager := context.NewPagination(int(count), limit, page, 5)
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
@@ -175,7 +179,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 			IsTag:        false,
 		}
 
-		if err = models.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+		if err = releaseservice.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 			ctx.Data["Err_TagName"] = true
 			switch {
 			case models.IsErrReleaseAlreadyExist(err):
@@ -202,7 +206,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		rel.PublisherID = ctx.User.ID
 		rel.IsTag = false
 
-		if err = models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 			ctx.Data["Err_TagName"] = true
 			ctx.ServerError("UpdateRelease", err)
 			return
@@ -281,7 +285,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+	if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}
@@ -290,7 +294,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 
 // DeleteRelease delete a release
 func DeleteRelease(ctx *context.Context) {
-	if err := models.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, true); err != nil {
+	if err := releaseservice.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, true); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.release.deletion_success"))

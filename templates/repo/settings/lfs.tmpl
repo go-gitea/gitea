@@ -1,0 +1,63 @@
+{{template "base/head" .}}
+<div class="repository settings lfs">
+	{{template "repo/header" .}}
+	{{template "repo/settings/navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.settings.lfs_filelist"}} ({{.i18n.Tr "admin.total" .Total}})
+			<div class="ui right">
+				<a class="ui black tiny show-panel button" href="{{.Link}}/locks"><i class="octicon octicon-lock octicon-tiny"></i>{{.i18n.Tr "repo.settings.lfs_locks"}}</a>
+				<a class="ui blue tiny show-panel button" href="{{.Link}}/pointers"><i class="octicon octicon-search octicon-tiny"></i>&nbsp;{{.i18n.Tr "repo.settings.lfs_findpointerfiles"}}</a>
+			</div>
+		</h4>
+		<table id="lfs-files-table" class="ui attached segment single line table">
+			<tbody>
+				{{range .LFSFiles}}
+					<tr>
+						<td>
+							<span class="text sha label">
+								<a href="{{$.Link}}/show/{{.Oid}}" title="{{.Oid}}" class="ui detail icon button brown truncate">
+									{{ShortSha .Oid}}
+								</a>
+							</span>
+						</td>
+						<td>{{FileSize .Size}}</td>
+						<td>{{TimeSince .CreatedUnix.AsTime $.Lang}}</td>
+						<td class="right aligned">
+							<a class="ui blue show-panel button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
+							<button class="ui basic show-modal icon button" data-modal="#delete-{{.Oid}}">
+								<i class="octicon octicon-trashcan btn-octicon btn-octicon-danger poping up"  data-content="{{$.i18n.Tr "repo.editor.delete_this_file"}}" data-position="bottom center" data-variation="tiny inverted"></i>
+							</button>
+						</td>
+					</tr>
+				{{else}}
+					<tr>
+						<td colspan="4">{{.i18n.Tr "repo.settings.lfs_no_lfs_files"}}</td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+		{{template "base/paginate" .}}
+		{{range .LFSFiles}}
+			<div class="ui basic modal" id="delete-{{.Oid}}">
+				<div class="ui icon header">
+					{{$.i18n.Tr "repo.settings.lfs_delete" .Oid}}
+				</div>
+				<div class="content center">
+					<p>
+						{{$.i18n.Tr "repo.settings.lfs_delete_warning"}}
+					</p>
+					<form class="ui form" action="{{$.Link}}/delete/{{.Oid}}" method="post">
+						{{$.CsrfTokenHtml}}
+						<div class="center actions">
+							<div class="ui basic cancel inverted button">{{$.i18n.Tr "settings.cancel"}}</div>
+							<button class="ui basic inverted yellow button">{{$.i18n.Tr "modal.yes"}}</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		{{end}}
+	</div>
+</div>
+{{template "base/footer" .}}

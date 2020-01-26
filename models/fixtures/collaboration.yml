@@ -9,3 +9,15 @@
   repo_id: 4
   user_id: 4
   mode: 2 # write
+
+-
+  id: 3
+  repo_id: 40
+  user_id: 4
+  mode: 2 # write
+
+-
+  id: 4
+  repo_id: 4
+  user_id: 29
+  mode: 2 # write

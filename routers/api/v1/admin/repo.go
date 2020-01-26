@@ -5,9 +5,8 @@
 package admin
 
 import (
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
@@ -36,8 +35,13 @@ func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
 	//     "$ref": "#/responses/Repository"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	owner := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -11,9 +12,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-xorm/xorm"
+	api "code.gitea.io/gitea/modules/structs"
 
-	api "code.gitea.io/sdk/gitea"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
@@ -21,9 +23,9 @@ var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
 // GetLabelTemplateFile loads the label template file by given name,
 // then parses and returns a list of name-color pairs and optionally description.
 func GetLabelTemplateFile(name string) ([][3]string, error) {
-	data, err := getRepoInitFile("label", name)
+	data, err := GetRepoInitFile("label", name)
 	if err != nil {
-		return nil, fmt.Errorf("getRepoInitFile: %v", err)
+		return nil, fmt.Errorf("GetRepoInitFile: %v", err)
 	}
 
 	lines := strings.Split(string(data), "\n")
@@ -67,18 +69,20 @@ type Label struct {
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
 	NumClosedIssues int
-	NumOpenIssues   int  `xorm:"-"`
-	IsChecked       bool `xorm:"-"`
-	QueryString     string
-	IsSelected      bool
+	NumOpenIssues   int    `xorm:"-"`
+	IsChecked       bool   `xorm:"-"`
+	QueryString     string `xorm:"-"`
+	IsSelected      bool   `xorm:"-"`
+	IsExcluded      bool   `xorm:"-"`
 }
 
 // APIFormat converts a Label to the api.Label format
 func (label *Label) APIFormat() *api.Label {
 	return &api.Label{
-		ID:    label.ID,
-		Name:  label.Name,
-		Color: strings.TrimLeft(label.Color, "#"),
+		ID:          label.ID,
+		Name:        label.Name,
+		Color:       strings.TrimLeft(label.Color, "#"),
+		Description: label.Description,
 	}
 }
 
@@ -95,7 +99,10 @@ func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) 
 	for _, s := range currentSelectedLabels {
 		if s == label.ID {
 			labelSelected = true
-		} else if s > 0 {
+		} else if -s == label.ID {
+			labelSelected = true
+			label.IsExcluded = true
+		} else if s != 0 {
 			labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
 		}
 	}
@@ -124,6 +131,53 @@ func (label *Label) ForegroundColor() template.CSS {
 
 	// default to black
 	return template.CSS("#000")
+}
+
+func loadLabels(labelTemplate string) ([]string, error) {
+	list, err := GetLabelTemplateFile(labelTemplate)
+	if err != nil {
+		return nil, ErrIssueLabelTemplateLoad{labelTemplate, err}
+	}
+
+	labels := make([]string, len(list))
+	for i := 0; i < len(list); i++ {
+		labels[i] = list[i][0]
+	}
+	return labels, nil
+}
+
+// LoadLabelsFormatted loads the labels' list of a template file as a string separated by comma
+func LoadLabelsFormatted(labelTemplate string) (string, error) {
+	labels, err := loadLabels(labelTemplate)
+	return strings.Join(labels, ", "), err
+}
+
+func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
+	list, err := GetLabelTemplateFile(labelTemplate)
+	if err != nil {
+		return ErrIssueLabelTemplateLoad{labelTemplate, err}
+	}
+
+	labels := make([]*Label, len(list))
+	for i := 0; i < len(list); i++ {
+		labels[i] = &Label{
+			RepoID:      repoID,
+			Name:        list[i][0],
+			Description: list[i][2],
+			Color:       list[i][1],
+		}
+	}
+	for _, label := range labels {
+		if err = newLabel(e, label); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// InitalizeLabels adds a label set to a repository using a template
+func InitalizeLabels(ctx DBContext, repoID int64, labelTemplate string) error {
+	return initalizeLabels(ctx.e, repoID, labelTemplate)
 }
 
 func newLabel(e Engine, label *Label) error {
@@ -216,6 +270,19 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 		Find(&labelIDs)
 }
 
+// GetLabelIDsInReposByNames returns a list of labelIDs by names in one of the given
+// repositories.
+// it silently ignores label names that do not belong to the repository.
+func GetLabelIDsInReposByNames(repoIDs []int64, labelNames []string) ([]int64, error) {
+	labelIDs := make([]int64, 0, len(labelNames))
+	return labelIDs, x.Table("label").
+		In("repo_id", repoIDs).
+		In("name", labelNames).
+		Asc("name").
+		Cols("id").
+		Find(&labelIDs)
+}
+
 // GetLabelInRepoByID returns a label by ID in given repository.
 func GetLabelInRepoByID(repoID, labelID int64) (*Label, error) {
 	return getLabelInRepoByID(x, repoID, labelID)
@@ -232,10 +299,9 @@ func GetLabelsInRepoByIDs(repoID int64, labelIDs []int64) ([]*Label, error) {
 		Find(&labels)
 }
 
-// GetLabelsByRepoID returns all labels that belong to given repository by ID.
-func GetLabelsByRepoID(repoID int64, sortType string) ([]*Label, error) {
+func getLabelsByRepoID(e Engine, repoID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
 	labels := make([]*Label, 0, 10)
-	sess := x.Where("repo_id = ?", repoID)
+	sess := e.Where("repo_id = ?", repoID)
 
 	switch sortType {
 	case "reversealphabetically":
@@ -248,7 +314,16 @@ func GetLabelsByRepoID(repoID int64, sortType string) ([]*Label, error) {
 		sess.Asc("name")
 	}
 
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+	}
+
 	return labels, sess.Find(&labels)
+}
+
+// GetLabelsByRepoID returns all labels that belong to given repository by ID.
+func GetLabelsByRepoID(repoID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
+	return getLabelsByRepoID(x, repoID, sortType, listOptions)
 }
 
 func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
@@ -265,7 +340,20 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 }
 
 func updateLabel(e Engine, l *Label) error {
-	_, err := e.ID(l.ID).AllCols().Update(l)
+	_, err := e.ID(l.ID).
+		SetExpr("num_issues",
+			builder.Select("count(*)").From("issue_label").
+				Where(builder.Eq{"label_id": l.ID}),
+		).
+		SetExpr("num_closed_issues",
+			builder.Select("count(*)").From("issue_label").
+				InnerJoin("issue", "issue_label.issue_id = issue.id").
+				Where(builder.Eq{
+					"issue_label.label_id": l.ID,
+					"issue.is_closed":      true,
+				}),
+		).
+		AllCols().Update(l)
 	return err
 }
 
@@ -342,14 +430,18 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return
 	}
 
-	if _, err = createLabelComment(e, doer, issue.Repo, issue, label, true); err != nil {
+	var opts = &CreateCommentOptions{
+		Type:    CommentTypeLabel,
+		Doer:    doer,
+		Repo:    issue.Repo,
+		Issue:   issue,
+		Label:   label,
+		Content: "1",
+	}
+	if _, err = createComment(e, opts); err != nil {
 		return err
 	}
 
-	label.NumIssues++
-	if issue.IsClosed {
-		label.NumClosedIssues++
-	}
 	return updateLabel(e, label)
 }
 
@@ -401,14 +493,6 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	return sess.Commit()
 }
 
-func getIssueLabels(e Engine, issueID int64) ([]*IssueLabel, error) {
-	issueLabels := make([]*IssueLabel, 0, 10)
-	return issueLabels, e.
-		Where("issue_id=?", issueID).
-		Asc("label_id").
-		Find(&issueLabels)
-}
-
 func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {
 	if count, err := e.Delete(&IssueLabel{
 		IssueID: issue.ID,
@@ -423,14 +507,17 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return
 	}
 
-	if _, err = createLabelComment(e, doer, issue.Repo, issue, label, false); err != nil {
+	var opts = &CreateCommentOptions{
+		Type:  CommentTypeLabel,
+		Doer:  doer,
+		Repo:  issue.Repo,
+		Issue: issue,
+		Label: label,
+	}
+	if _, err = createComment(e, opts); err != nil {
 		return err
 	}
 
-	label.NumIssues--
-	if issue.IsClosed {
-		label.NumClosedIssues--
-	}
 	return updateLabel(e, label)
 }
 

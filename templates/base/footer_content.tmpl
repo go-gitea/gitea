@@ -1,7 +1,7 @@
 <footer>
 	<div class="ui container">
 		<div class="ui left">
-			© Gitea {{if (or .ShowFooterVersion .PageIsAdmin)}}{{.i18n.Tr "version"}}: {{AppVer}}{{end}} {{if ShowFooterTemplateLoadTime}}{{.i18n.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong> {{.i18n.Tr "template"}}: <strong>{{call .TmplLoadTimes}}</strong>{{end}}
+			{{.i18n.Tr "powered_by" "Gitea"}} {{if (or .ShowFooterVersion .PageIsAdmin)}}{{.i18n.Tr "version"}}: {{AppVer}}{{end}} {{if ShowFooterTemplateLoadTime}}{{.i18n.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong> {{.i18n.Tr "template"}}: <strong>{{call .TmplLoadTimes}}</strong>{{end}}
 		</div>
 		<div class="ui right links">
 			{{if .ShowFooterBranding}}
@@ -16,9 +16,10 @@
 					{{end}}
 				</div>
 			</div>
-			<a href="{{AppSubUrl}}/vendor/librejs.html" data-jslicense="1">JavaScript licenses</a>
+			<a href="{{StaticUrlPrefix}}/vendor/librejs.html" data-jslicense="1">JavaScript licenses</a>
 			{{if .EnableSwagger}}<a href="{{AppSubUrl}}/api/swagger">API</a>{{end}}
 			<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.i18n.Tr "website"}}</a>
+			{{template "custom/extra_links_footer" .}}
 			{{if (or .ShowFooterVersion .PageIsAdmin)}}<span class="version">{{GoVer}}</span>{{end}}
 		</div>
 	</div>

@@ -4,6 +4,12 @@
 
 package setting
 
+import (
+	"net/url"
+
+	"code.gitea.io/gitea/modules/log"
+)
+
 var (
 	// Webhook settings
 	Webhook = struct {
@@ -12,11 +18,16 @@ var (
 		SkipTLSVerify  bool
 		Types          []string
 		PagingNum      int
+		ProxyURL       string
+		ProxyURLFixed  *url.URL
+		ProxyHosts     []string
 	}{
 		QueueLength:    1000,
 		DeliverTimeout: 5,
 		SkipTLSVerify:  false,
 		PagingNum:      10,
+		ProxyURL:       "",
+		ProxyHosts:     []string{},
 	}
 )
 
@@ -27,4 +38,14 @@ func newWebhookService() {
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()
 	Webhook.Types = []string{"gitea", "gogs", "slack", "discord", "dingtalk", "telegram", "msteams"}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
+	Webhook.ProxyURL = sec.Key("PROXY_URL").MustString("")
+	if Webhook.ProxyURL != "" {
+		var err error
+		Webhook.ProxyURLFixed, err = url.Parse(Webhook.ProxyURL)
+		if err != nil {
+			log.Error("Webhook PROXY_URL is not valid")
+			Webhook.ProxyURL = ""
+		}
+	}
+	Webhook.ProxyHosts = sec.Key("PROXY_HOSTS").Strings(",")
 }

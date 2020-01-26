@@ -79,7 +79,7 @@ func (l *ChannelledLog) Start() {
 				return
 			}
 			l.loggerProvider.Flush()
-		case _, _ = <-l.close:
+		case <-l.close:
 			l.closeLogger()
 			return
 		}
@@ -104,7 +104,6 @@ func (l *ChannelledLog) closeLogger() {
 	l.loggerProvider.Flush()
 	l.loggerProvider.Close()
 	l.closed <- true
-	return
 }
 
 // Close this ChannelledLog
@@ -228,7 +227,6 @@ func (m *MultiChannelledLog) closeLoggers() {
 	}
 	m.mutex.Unlock()
 	m.closed <- true
-	return
 }
 
 // Start processing the MultiChannelledLog

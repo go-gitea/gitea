@@ -12,10 +12,10 @@ import (
 	"os"
 	"path"
 
-	"github.com/Unknwon/com"
-	gouuid "github.com/satori/go.uuid"
-
 	"code.gitea.io/gitea/modules/setting"
+
+	gouuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
 )
 
 //  ____ ___        .__                    .___ ___________.___.__

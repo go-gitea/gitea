@@ -24,7 +24,6 @@ func listenReadAndClose(t *testing.T, l net.Listener, expected string) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(written))
-	return
 }
 
 func TestConnLogger(t *testing.T) {

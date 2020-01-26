@@ -1,0 +1,134 @@
+.ui.button.add-code-comment {
+    font-size: 14px;
+    height: 16px;
+    line-height: 16px !important;
+    padding: 0;
+    position: relative;
+    width: 16px;
+    z-index: 5;
+    float: left;
+    margin: 2px -10px 2px -20px;
+    opacity: 0;
+    transition: transform 0.1s ease-in-out;
+    transform: scale(1, 1);
+
+    &:hover {
+        transform: scale(1.2, 1.2);
+    }
+}
+
+.focus-lines-new .ui.button.add-code-comment.add-code-comment-right,
+.focus-lines-old .ui.button.add-code-comment.add-code-comment-left {
+    opacity: 1;
+}
+
+.comment-code-cloud {
+    padding: 4px;
+    position: relative;
+    border: 1px solid #f1f1f1;
+    margin: 13px 10px 5px auto;
+
+    &:before {
+        content: " ";
+        width: 0;
+        height: 0;
+        border-left: 13px solid transparent;
+        border-right: 13px solid transparent;
+        border-bottom: 13px solid #f1f1f1;
+        left: 20px;
+        position: absolute;
+        top: -13px;
+    }
+
+    .attached {
+        &.tab {
+            border: 0;
+            padding: 0;
+            margin: 0;
+
+            &.markdown {
+                padding: 1em;
+                min-height: 168px;
+            }
+        }
+
+        &.header {
+            padding: 0.1rem 1rem;
+        }
+    }
+
+    .right.menu.options .item {
+        padding: 0.85714286em 0.442857em;
+        cursor: pointer;
+    }
+
+    .ui.form textarea {
+        border: 0;
+    }
+
+    .ui.attached.tabular.menu {
+        background: #f7f7f7;
+        border: 1px solid #d4d4d5;
+        padding-top: 5px;
+        padding-left: 5px;
+        margin-top: 0;
+    }
+
+    .footer {
+        border-top: 1px solid #f1f1f1;
+        margin-top: 10px;
+
+        .markdown-info {
+            display: inline-block;
+            margin: 5px 0;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        .ui.right.floated {
+            padding-top: 6px;
+        }
+
+        &:after {
+            clear: both;
+            content: "";
+            display: block;
+        }
+    }
+
+    button.comment-form-reply {
+        margin: 0.5em 0.5em 0.5em 4.5em;
+    }
+
+    form.comment-form-reply {
+        margin: 0 0 0 4em;
+    }
+}
+
+.file-comment {
+    font: 12px @monospaced-fonts, monospace;
+    color: rgba(0, 0, 0, 0.87);
+}
+
+.ui.fold-code {
+    margin-right: 1em;
+    padding-left: 5px;
+    cursor: pointer;
+    width: 22px;
+    font-size: 12px;
+}
+
+.ui.fold-code:hover {
+    color: #428bca;
+}
+
+.ui.blob-excerpt {
+    display: block;
+    line-height: 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.ui.blob-excerpt:hover {
+    color: #428bca;
+}

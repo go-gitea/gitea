@@ -14,9 +14,15 @@
 					{{if .PageIsIssueList}}
 						<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
 					{{else}}
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
 					{{end}}
 				</div>
+			{{else}}
+				{{if not .PageIsIssueList}}
+					<div class="column right aligned">
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{$.i18n.Tr "action.compare_commits_general"}}</a>
+					</div>
+				{{end}}
 			{{end}}
 		</div>
 		<div class="ui divider"></div>
@@ -36,15 +42,16 @@
 			<div class="ten wide right aligned column">
 				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item" style="margin-left: auto">
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter" style="margin-left: auto">
 						<span class="text">
 							{{.i18n.Tr "repo.issues.filter_label"}}
 							<i class="dropdown icon"></i>
 						</span>
 						<div class="menu">
+							<span class="info">{{.i18n.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if .IsSelected}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item has-emoji label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}"><span class="octicon {{if .IsExcluded}}octicon-circle-slash{{else if .IsSelected}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -72,7 +79,7 @@
 						<div class="menu">
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}">{{.i18n.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							{{range .Assignees}}
-								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{.ID}}"><img src="{{.RelAvatarLink}}"> {{.Name}}</a>
+								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{.ID}}"><img src="{{.RelAvatarLink}}"> {{.GetDisplayName}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -132,6 +139,7 @@
 			this one correctly, but not the other one. */}}
 			<div class="nine wide right aligned right floated column">
 				<div class="ui secondary filter stackable menu">
+					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
 						<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_open"}}</div>
@@ -147,7 +155,7 @@
 						<div class="menu">
 							{{range .Labels}}
 								<div class="item issue-action has-emoji" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									<span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+									<span class="octicon {{if contain $.SelLabelIDs .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 								</div>
 							{{end}}
 						</div>
@@ -183,11 +191,12 @@
 							</div>
 							{{range .Assignees}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">
-									<img src="{{.RelAvatarLink}}"> {{.Name}}
+									<img src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
 								</div>
 							{{end}}
 						</div>
 					</div>
+					{{end}}
 				</div>
 			</div>
 		</div>
@@ -200,18 +209,15 @@
 						<input type="checkbox" data-issue-id={{.ID}}></input>
 					</div>
 					{{end}}
-					<div class="ui {{if .IsRead}}black{{else}}green{{end}} label">#{{.Index}}</div>
+					<div class="ui {{if .IsClosed}}{{if .IsPull}}{{if .PullRequest.HasMerged}}purple{{else}}red{{end}}{{else}}red{{end}}{{else}}{{if .IsRead}}white{{else}}green{{end}}{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
                     {{if .IsPull }}
-                        {{if (index $.CommitStatus .ID)}}
-                            {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+                        {{if (index $.CommitStatus .PullRequest.ID)}}
+                            {{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
 						{{end}}
 					{{end}}
 
-					{{if .Ref}}
-						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{.Ref}}">{{.Ref}}</a>
-					{{end}}
 					{{range .Labels}}
 						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 					{{end}}
@@ -226,13 +232,24 @@
 
 					<p class="desc">
 						{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
-
-						{{if gt .Poster.ID 0}}
-							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink .Poster.Name | Safe}}
+						{{if .OriginalAuthor }}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+						{{else if gt .Poster.ID 0}}
+							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
 						{{else}}
-							{{$.i18n.Tr .GetLastEventLabelFake $timeStr .Poster.Name | Safe}}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 						{{end}}
 
+						{{if .Milestone}}
+							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
+								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
+							</a>
+						{{end}}
+						{{if .Ref}}
+							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref | PathEscapeSegments}}">
+								<span class="octicon octicon-git-branch"></span> {{.Ref}}
+							</a>
+						{{end}}
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
 							{{$tasksDone := .GetTasksDone}}
@@ -240,14 +257,10 @@
 								<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 							</span>
 						{{end}}
-						{{if .Milestone}}
-							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
-								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
-							</a>
-						{{end}}
 						{{if ne .DeadlineUnix 0}}
-							<span class="octicon octicon-calendar"></span>
-							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+							<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
+								<span class="octicon octicon-calendar"></span><span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+							</span>
 						{{end}}
 						{{range .Assignees}}
 							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-variation="inverted" data-position="left center">

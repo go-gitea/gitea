@@ -15,17 +15,19 @@ func TestRepository_GetRefs(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	refs, err := bareRepo1.GetRefs()
 
 	assert.NoError(t, err)
-	assert.Len(t, refs, 4)
+	assert.Len(t, refs, 5)
 
 	expectedRefs := []string{
 		BranchPrefix + "branch1",
 		BranchPrefix + "branch2",
 		BranchPrefix + "master",
 		TagPrefix + "test",
+		NotesRef,
 	}
 
 	for _, ref := range refs {
@@ -37,6 +39,7 @@ func TestRepository_GetRefsFiltered(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	refs, err := bareRepo1.GetRefsFiltered(TagPrefix)
 

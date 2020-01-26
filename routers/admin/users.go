@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -7,15 +8,17 @@ package admin
 import (
 	"strings"
 
-	"github.com/Unknwon/com"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/services/mailer"
+
+	"github.com/unknwon/com"
 )
 
 const (
@@ -31,8 +34,10 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:          models.UserTypeIndividual,
-		PageSize:      setting.UI.Admin.UserPagingNum,
+		Type: models.UserTypeIndividual,
+		ListOptions: models.ListOptions{
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
 		SearchByEmail: true,
 	}, tplUsers)
 }
@@ -77,12 +82,11 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	}
 
 	u := &models.User{
-		Name:               form.UserName,
-		Email:              form.Email,
-		Passwd:             form.Password,
-		IsActive:           true,
-		LoginType:          models.LoginPlain,
-		MustChangePassword: form.MustChangePassword,
+		Name:      form.UserName,
+		Email:     form.Email,
+		Passwd:    form.Password,
+		IsActive:  true,
+		LoginType: models.LoginPlain,
 	}
 
 	if len(form.LoginType) > 0 {
@@ -93,7 +97,19 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			u.LoginName = form.LoginName
 		}
 	}
-
+	if u.LoginType == models.LoginNoType || u.LoginType == models.LoginPlain {
+		if len(form.Password) < setting.MinPasswordLength {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
+			return
+		}
+		if !password.IsComplexEnough(form.Password) {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserNew, &form)
+			return
+		}
+		u.MustChangePassword = form.MustChangePassword
+	}
 	if err := models.CreateUser(u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
@@ -116,8 +132,8 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	log.Trace("Account created by admin (%s): %s", ctx.User.Name, u.Name)
 
 	// Send email notification.
-	if form.SendNotify && setting.MailService != nil {
-		models.SendRegisterNotifyMail(ctx.Context, u)
+	if form.SendNotify {
+		mailer.SendRegisterNotifyMail(ctx.Locale, u)
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
@@ -196,6 +212,15 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 
 	if len(form.Password) > 0 {
 		var err error
+		if len(form.Password) < setting.MinPasswordLength {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)
+			return
+		}
+		if !password.IsComplexEnough(form.Password) {
+			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserEdit, &form)
+			return
+		}
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
@@ -211,6 +236,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	u.MaxRepoCreation = form.MaxRepoCreation
 	u.IsActive = form.Active
 	u.IsAdmin = form.Admin
+	u.IsRestricted = form.Restricted
 	u.AllowGitHook = form.AllowGitHook
 	u.AllowImportLocal = form.AllowImportLocal
 	u.AllowCreateOrganization = form.AllowCreateOrganization

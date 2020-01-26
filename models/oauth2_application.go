@@ -11,16 +11,15 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/go-xorm/xorm"
-	uuid "github.com/satori/go.uuid"
-
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
+	uuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
 	"golang.org/x/crypto/bcrypt"
+	"xorm.io/xorm"
 )
 
 // OAuth2Application represents an OAuth2 client (RFC 6749)
@@ -36,8 +35,8 @@ type OAuth2Application struct {
 
 	RedirectURIs []string `xorm:"redirect_uris JSON TEXT"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // TableName sets the table name to `oauth2_application`
@@ -142,6 +141,9 @@ func GetOAuth2ApplicationByID(id int64) (app *OAuth2Application, err error) {
 func getOAuth2ApplicationByID(e Engine, id int64) (app *OAuth2Application, err error) {
 	app = new(OAuth2Application)
 	has, err := e.ID(id).Get(app)
+	if err != nil {
+		return nil, err
+	}
 	if !has {
 		return nil, ErrOAuthApplicationNotFound{ID: id}
 	}
@@ -261,7 +263,7 @@ type OAuth2AuthorizationCode struct {
 	CodeChallenge       string
 	CodeChallengeMethod string
 	RedirectURI         string
-	ValidUntil          util.TimeStamp `xorm:"index"`
+	ValidUntil          timeutil.TimeStamp `xorm:"index"`
 }
 
 // TableName sets the table name to `oauth2_authorization_code`
@@ -295,10 +297,10 @@ func (code *OAuth2AuthorizationCode) invalidate(e Engine) error {
 
 // ValidateCodeChallenge validates the given verifier against the saved code challenge. This is part of the PKCE implementation.
 func (code *OAuth2AuthorizationCode) ValidateCodeChallenge(verifier string) bool {
-	return code.validateCodeChallenge(x, verifier)
+	return code.validateCodeChallenge(verifier)
 }
 
-func (code *OAuth2AuthorizationCode) validateCodeChallenge(e Engine, verifier string) bool {
+func (code *OAuth2AuthorizationCode) validateCodeChallenge(verifier string) bool {
 	switch code.CodeChallengeMethod {
 	case "S256":
 		// base64url(SHA256(verifier)) see https://tools.ietf.org/html/rfc7636#section-4.6
@@ -345,8 +347,8 @@ type OAuth2Grant struct {
 	Application   *OAuth2Application `xorm:"-"`
 	ApplicationID int64              `xorm:"INDEX unique(user_application)"`
 	Counter       int64              `xorm:"NOT NULL DEFAULT 1"`
-	CreatedUnix   util.TimeStamp     `xorm:"created"`
-	UpdatedUnix   util.TimeStamp     `xorm:"updated"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 }
 
 // TableName sets the table name to `oauth2_grant`

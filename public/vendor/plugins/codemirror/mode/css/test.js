@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function() {
   var mode = CodeMirror.getMode({indentUnit: 2}, "css");
@@ -23,6 +23,9 @@
 
   MT("atMediaUnknownFeatureValueKeyword",
      "[def @media] ([property orientation]: [error upsidedown]) { }");
+
+  MT("atMediaUppercase",
+     "[def @MEDIA] ([property orienTAtion]: [keyword landScape]) { }");
 
   MT("tagSelector",
      "[tag foo] { }");
@@ -86,11 +89,11 @@
      "[tag foo] { [property margin]: [number 0]; [property padding]: [number 0]; }");
 
   MT("tagTwoPropertiesURL",
-     "[tag foo] { [property background]: [atom url]([string //example.com/foo.png]); [property padding]: [number 0]; }");
+     "[tag foo] { [property background]: [variable&callee url]([string //example.com/foo.png]); [property padding]: [number 0]; }");
 
   MT("indent_tagSelector",
      "[tag strong], [tag em] {",
-     "  [property background]: [atom rgba](",
+     "  [property background]: [variable&callee rgba](",
      "    [number 255], [number 255], [number 0], [number .2]",
      "  );",
      "}");
@@ -111,7 +114,7 @@
 
   MT("indent_parentheses",
      "[tag foo]:[variable-3 before] {",
-     "  [property background]: [atom url](",
+     "  [property background]: [variable&callee url](",
      "[string     blahblah]",
      "[string     etc]",
      "[string   ]) [keyword !important];",
@@ -121,20 +124,20 @@
      "[def @font-face] {",
      "  [property font-family]: [string 'myfont'];",
      "  [error nonsense]: [string 'abc'];",
-     "  [property src]: [atom url]([string http://blah]),",
-     "    [atom url]([string http://foo]);",
+     "  [property src]: [variable&callee url]([string http://blah]),",
+     "    [variable&callee url]([string http://foo]);",
      "}");
 
   MT("empty_url",
-     "[def @import] [atom url]() [attribute screen];");
+     "[def @import] [variable&callee url]() [attribute screen];");
 
   MT("parens",
      "[qualifier .foo] {",
-     "  [property background-image]: [variable fade]([atom #000], [number 20%]);",
-     "  [property border-image]: [atom linear-gradient](",
+     "  [property background-image]: [variable&callee fade]([atom #000], [number 20%]);",
+     "  [property border-image]: [variable&callee linear-gradient](",
      "    [atom to] [atom bottom],",
-     "    [variable fade]([atom #000], [number 20%]) [number 0%],",
-     "    [variable fade]([atom #000], [number 20%]) [number 100%]",
+     "    [variable&callee fade]([atom #000], [number 20%]) [number 0%],",
+     "    [variable&callee fade]([atom #000], [number 20%]) [number 100%]",
      "  );",
      "}");
 
@@ -143,7 +146,15 @@
      "  [variable-2 --main-color]: [atom #06c];",
      "}",
      "[tag h1][builtin #foo] {",
-     "  [property color]: [atom var]([variable-2 --main-color]);",
+     "  [property color]: [variable&callee var]([variable-2 --main-color]);",
+     "}");
+
+  MT("blank_css_variable",
+     ":[variable-3 root] {",
+     "  [variable-2 --]: [atom #06c];",
+     "}",
+     "[tag h1][builtin #foo] {",
+     "  [property color]: [variable&callee var]([variable-2 --]);",
      "}");
 
   MT("supports",
@@ -152,10 +163,10 @@
      "}");
 
    MT("document",
-      "[def @document] [tag url]([string http://blah]),",
-      "  [tag url-prefix]([string https://]),",
-      "  [tag domain]([string blah.com]),",
-      "  [tag regexp]([string \".*blah.+\"]) {",
+      "[def @document] [variable&callee url]([string http://blah]),",
+      "  [variable&callee url-prefix]([string https://]),",
+      "  [variable&callee domain]([string blah.com]),",
+      "  [variable&callee regexp]([string \".*blah.+\"]) {",
       "    [builtin #id] {",
       "      [property background-color]: [keyword white];",
       "    }",
@@ -165,16 +176,16 @@
       "}");
 
    MT("document_url",
-      "[def @document] [tag url]([string http://blah]) { [qualifier .class] { } }");
+      "[def @document] [variable&callee url]([string http://blah]) { [qualifier .class] { } }");
 
    MT("document_urlPrefix",
-      "[def @document] [tag url-prefix]([string https://]) { [builtin #id] { } }");
+      "[def @document] [variable&callee url-prefix]([string https://]) { [builtin #id] { } }");
 
    MT("document_domain",
-      "[def @document] [tag domain]([string blah.com]) { [tag foo] { } }");
+      "[def @document] [variable&callee domain]([string blah.com]) { [tag foo] { } }");
 
    MT("document_regexp",
-      "[def @document] [tag regexp]([string \".*blah.+\"]) { [builtin #id] { } }");
+      "[def @document] [variable&callee regexp]([string \".*blah.+\"]) { [builtin #id] { } }");
 
    MT("counter-style",
       "[def @counter-style] [variable binary] {",
@@ -196,5 +207,11 @@
       "[tag ol][qualifier .roman] { [property list-style]: [variable simple-roman]; }");
 
    MT("counter-style-symbols",
-      "[tag ol] { [property list-style]: [atom symbols]([atom cyclic] [string \"*\"] [string \"\\2020\"] [string \"\\2021\"] [string \"\\A7\"]); }");
+      "[tag ol] { [property list-style]: [variable&callee symbols]([atom cyclic] [string \"*\"] [string \"\\2020\"] [string \"\\2021\"] [string \"\\A7\"]); }");
+
+  MT("comment-does-not-disrupt",
+     "[def @font-face] [comment /* foo */] {",
+     "  [property src]: [variable&callee url]([string x]);",
+     "  [property font-family]: [variable One];",
+     "}")
 })();

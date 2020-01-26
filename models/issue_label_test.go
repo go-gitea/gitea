@@ -8,7 +8,7 @@ import (
 	"html/template"
 	"testing"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -131,7 +131,7 @@ func TestGetLabelsInRepoByIDs(t *testing.T) {
 func TestGetLabelsByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	testSuccess := func(repoID int64, sortType string, expectedIssueIDs []int64) {
-		labels, err := GetLabelsByRepoID(repoID, sortType)
+		labels, err := GetLabelsByRepoID(repoID, sortType, ListOptions{})
 		assert.NoError(t, err)
 		assert.Len(t, labels, len(expectedIssueIDs))
 		for i, label := range labels {
@@ -205,6 +205,7 @@ func TestNewIssueLabel(t *testing.T) {
 		LabelID:  label.ID,
 		Content:  "1",
 	})
+	label = AssertExistsAndLoadBean(t, &Label{ID: 2}).(*Label)
 	assert.EqualValues(t, prevNumIssues+1, label.NumIssues)
 
 	// re-add existing IssueLabel

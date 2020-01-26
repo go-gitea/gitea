@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function (mod) {
   "use strict";
@@ -12,7 +12,7 @@
         require("../css/css"),
         require("../sass/sass"),
         require("../stylus/stylus"),
-        require("../jade/jade"),
+        require("../pug/pug"),
         require("../handlebars/handlebars"));
   } else if (typeof define === "function" && define.amd) { // AMD
     define(["../../lib/codemirror",
@@ -23,7 +23,7 @@
             "../css/css",
             "../sass/sass",
             "../stylus/stylus",
-            "../jade/jade",
+            "../pug/pug",
             "../handlebars/handlebars"], mod);
   } else { // Plain browser env
     mod(CodeMirror);
@@ -32,19 +32,26 @@
   var tagLanguages = {
     script: [
       ["lang", /coffee(script)?/, "coffeescript"],
-      ["type", /^(?:text|application)\/(?:x-)?coffee(?:script)?$/, "coffeescript"]
+      ["type", /^(?:text|application)\/(?:x-)?coffee(?:script)?$/, "coffeescript"],
+      ["lang", /^babel$/, "javascript"],
+      ["type", /^text\/babel$/, "javascript"],
+      ["type", /^text\/ecmascript-\d+$/, "javascript"]
     ],
     style: [
       ["lang", /^stylus$/i, "stylus"],
       ["lang", /^sass$/i, "sass"],
+      ["lang", /^less$/i, "text/x-less"],
+      ["lang", /^scss$/i, "text/x-scss"],
       ["type", /^(text\/)?(x-)?styl(us)?$/i, "stylus"],
-      ["type", /^text\/sass/i, "sass"]
+      ["type", /^text\/sass/i, "sass"],
+      ["type", /^(text\/)?(x-)?scss$/i, "text/x-scss"],
+      ["type", /^(text\/)?(x-)?less$/i, "text/x-less"]
     ],
     template: [
       ["lang", /^vue-template$/i, "vue"],
-      ["lang", /^jade$/i, "jade"],
+      ["lang", /^pug$/i, "pug"],
       ["lang", /^handlebars$/i, "handlebars"],
-      ["type", /^(text\/)?(x-)?jade$/i, "jade"],
+      ["type", /^(text\/)?(x-)?pug$/i, "pug"],
       ["type", /^text\/x-handlebars-template$/i, "handlebars"],
       [null, null, "vue-template"]
     ]
@@ -63,7 +70,8 @@
 
   CodeMirror.defineMode("vue", function (config) {
     return CodeMirror.getMode(config, {name: "htmlmixed", tags: tagLanguages});
-  }, "htmlmixed", "xml", "javascript", "coffeescript", "css", "sass", "stylus", "jade", "handlebars");
+  }, "htmlmixed", "xml", "javascript", "coffeescript", "css", "sass", "stylus", "pug", "handlebars");
 
   CodeMirror.defineMIME("script/x-vue", "vue");
+  CodeMirror.defineMIME("text/x-vue", "vue");
 });

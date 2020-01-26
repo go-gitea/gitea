@@ -61,6 +61,19 @@ func Notifications(c *context.Context) {
 		status = models.NotificationStatusUnread
 	}
 
+	total, err := models.GetNotificationCount(c.User, status)
+	if err != nil {
+		c.ServerError("ErrGetNotificationCount", err)
+		return
+	}
+
+	// redirect to last page if request page is more than total pages
+	pager := context.NewPagination(int(total), perPage, page, 5)
+	if pager.Paginater.Current() < page {
+		c.Redirect(fmt.Sprintf("/notifications?q=%s&page=%d", c.Query("q"), pager.Paginater.Current()))
+		return
+	}
+
 	statuses := []models.NotificationStatus{status, models.NotificationStatusPinned}
 	notifications, err := models.NotificationsForUser(c.User, statuses, page, perPage)
 	if err != nil {
@@ -68,9 +81,22 @@ func Notifications(c *context.Context) {
 		return
 	}
 
-	total, err := models.GetNotificationCount(c.User, status)
+	repos, err := notifications.LoadRepos()
 	if err != nil {
-		c.ServerError("ErrGetNotificationCount", err)
+		c.ServerError("LoadRepos", err)
+		return
+	}
+	if err := repos.LoadAttributes(); err != nil {
+		c.ServerError("LoadAttributes", err)
+		return
+	}
+
+	if err := notifications.LoadIssues(); err != nil {
+		c.ServerError("LoadIssues", err)
+		return
+	}
+	if err := notifications.LoadComments(); err != nil {
+		c.ServerError("LoadComments", err)
 		return
 	}
 
@@ -83,7 +109,6 @@ func Notifications(c *context.Context) {
 	c.Data["Status"] = status
 	c.Data["Notifications"] = notifications
 
-	pager := context.NewPagination(int(total), perPage, page, 5)
 	pager.SetDefaultParams(c)
 	c.Data["Page"] = pager
 
@@ -115,7 +140,7 @@ func NotificationStatusPost(c *context.Context) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/notifications", setting.AppSubURL)
+	url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, c.Query("page"))
 	c.Redirect(url, 303)
 }
 

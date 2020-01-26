@@ -17,6 +17,9 @@
 						<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{.i18n.Tr "repo.activity.period.halfweekly"}}</a>
 						<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/weekly">{{.i18n.Tr "repo.activity.period.weekly"}}</a>
 						<a class="{{if eq .Period "monthly"}}active {{end}}item" href="{{$.RepoLink}}/activity/monthly">{{.i18n.Tr "repo.activity.period.monthly"}}</a>
+						<a class="{{if eq .Period "quarterly"}}active {{end}}item" href="{{$.RepoLink}}/activity/quarterly">{{.i18n.Tr "repo.activity.period.quarterly"}}</a>
+						<a class="{{if eq .Period "semiyearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/semiyearly">{{.i18n.Tr "repo.activity.period.semiyearly"}}</a>
+						<a class="{{if eq .Period "yearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/yearly">{{.i18n.Tr "repo.activity.period.yearly"}}</a>
 					</div>
 				</div>
 			</div>
@@ -92,17 +95,24 @@
 					<div class="ui attached segment text">
 					    {{.i18n.Tr "repo.activity.git_stats_exclude_merges" }}
 						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.AuthorCount "repo.activity.git_stats_author_1" "repo.activity.git_stats_author_n") .Activity.Code.AuthorCount }}</strong>
-						{{.i18n.Tr "repo.activity.git_stats_pushed" }}
+						{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.AuthorCount "repo.activity.git_stats_pushed_1" "repo.activity.git_stats_pushed_n") }}
 						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.CommitCount "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n") .Activity.Code.CommitCount }}</strong>
 						{{.i18n.Tr "repo.activity.git_stats_push_to_branch" .Repository.DefaultBranch }}
 						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.CommitCountInAllBranches "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n") .Activity.Code.CommitCountInAllBranches }}</strong>
 						{{.i18n.Tr "repo.activity.git_stats_push_to_all_branches" }}
 						{{.i18n.Tr "repo.activity.git_stats_on_default_branch" .Repository.DefaultBranch }}
 						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.ChangedFiles "repo.activity.git_stats_file_1" "repo.activity.git_stats_file_n") .Activity.Code.ChangedFiles }}</strong>
-						{{.i18n.Tr "repo.activity.git_stats_files_changed" }}
+						{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.ChangedFiles "repo.activity.git_stats_files_changed_1" "repo.activity.git_stats_files_changed_n") }}
+						{{.i18n.Tr "repo.activity.git_stats_additions" }}
 						<strong class="text green">{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.Additions "repo.activity.git_stats_addition_1" "repo.activity.git_stats_addition_n") .Activity.Code.Additions }}</strong>
 						{{.i18n.Tr "repo.activity.git_stats_and_deletions" }}
 						<strong class="text red">{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.Deletions "repo.activity.git_stats_deletion_1" "repo.activity.git_stats_deletion_n") .Activity.Code.Deletions }}</strong>.
+					</div>
+					<div class="ui attached segment" id="app">
+						<script type="text/javascript">
+						var ActivityTopAuthors = {{Json .ActivityTopAuthors | SafeJS}};
+						</script>
+						<activity-top-authors :data="activityTopAuthors" />
 					</div>
 				</div>
 			{{end}}
@@ -119,7 +129,7 @@
 						<div class="ui green label">{{$.i18n.Tr "repo.activity.published_release_label"}}</div>
 						{{.TagName}}
 						{{if not .IsTag}}
-							<a class="title has-emoji" href="{{$.Repository.HTMLURL}}/src/{{.TagName | EscapePound}}">{{.Title}}</a>
+							<a class="title has-emoji" href="{{$.RepoLink}}/src/{{.TagName | EscapePound}}">{{.Title}}</a>
 						{{end}}
 						{{TimeSinceUnix .CreatedUnix $.Lang}}
 					</p>
@@ -136,7 +146,7 @@
 				{{range .Activity.MergedPRs}}
 					<p class="desc">
 						<div class="ui purple label">{{$.i18n.Tr "repo.activity.merged_prs_label"}}</div>
-						#{{.Index}} <a class="title has-emoji" href="{{$.Repository.HTMLURL}}/pulls/{{.Index}}">{{.Issue.Title}}</a>
+						#{{.Index}} <a class="title has-emoji" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title}}</a>
 						{{TimeSinceUnix .MergedUnix $.Lang}}
 					</p>
 				{{end}}
@@ -152,7 +162,7 @@
 				{{range .Activity.OpenedPRs}}
 					<p class="desc">
 						<div class="ui green label">{{$.i18n.Tr "repo.activity.opened_prs_label"}}</div>
-						#{{.Index}} <a class="title has-emoji" href="{{$.Repository.HTMLURL}}/pulls/{{.Index}}">{{.Issue.Title}}</a>
+						#{{.Index}} <a class="title has-emoji" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title}}</a>
 						{{TimeSinceUnix .Issue.CreatedUnix $.Lang}}
 					</p>
 				{{end}}
@@ -168,7 +178,7 @@
 				{{range .Activity.ClosedIssues}}
 					<p class="desc">
 						<div class="ui red label">{{$.i18n.Tr "repo.activity.closed_issue_label"}}</div>
-						#{{.Index}} <a class="title has-emoji" href="{{$.Repository.HTMLURL}}/issues/{{.Index}}">{{.Title}}</a>
+						#{{.Index}} <a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
 						{{TimeSinceUnix .ClosedUnix $.Lang}}
 					</p>
 				{{end}}
@@ -184,7 +194,7 @@
 				{{range .Activity.OpenedIssues}}
 					<p class="desc">
 						<div class="ui green label">{{$.i18n.Tr "repo.activity.new_issue_label"}}</div>
-						#{{.Index}} <a class="title has-emoji" href="{{$.Repository.HTMLURL}}/issues/{{.Index}}">{{.Title}}</a>
+						#{{.Index}} <a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
 						{{TimeSinceUnix .CreatedUnix $.Lang}}
 					</p>
 				{{end}}
@@ -205,9 +215,9 @@
 						<div class="ui green label">{{$.i18n.Tr "repo.activity.unresolved_conv_label"}}</div>
 						#{{.Index}}
 						{{if .IsPull}}
-						<a class="title has-emoji" href="{{$.Repository.HTMLURL}}/pulls/{{.Index}}">{{.Title}}</a>
+						<a class="title has-emoji" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Title}}</a>
 						{{else}}
-						<a class="title has-emoji" href="{{$.Repository.HTMLURL}}/issues/{{.Index}}">{{.Title}}</a>
+						<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
 						{{end}}
 						{{TimeSinceUnix .UpdatedUnix $.Lang}}
 					</p>

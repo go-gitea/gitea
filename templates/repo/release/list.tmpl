@@ -54,8 +54,15 @@
 							</h3>
 							<p class="text grey">
 								<span class="author">
+								{{if .OriginalAuthor}}
+									<i class="fa fa-github" aria-hidden="true"></i>
+									{{.OriginalAuthor}}
+								{{else if .Publisher}}
 									<img class="img-10" src="{{.Publisher.RelAvatarLink}}">
 									<a href="{{AppSubUrl}}/{{.Publisher.Name}}">{{.Publisher.Name}}</a>
+								{{else}}
+									Ghost
+								{{end}}
 								</span>
 								{{if .CreatedUnix}}<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span>{{end}}
 								<span class="ahead">{{$.i18n.Tr "repo.release.ahead" .NumCommitsBehind .Target | Str2html}}</span>
@@ -75,11 +82,11 @@
 									</li>
 									{{end}}
 									{{if .Attachments}}
-										{{range $attachment := .Attachments}}
+										{{range .Attachments}}
 										<li>
-											<a target="_blank" rel="noopener noreferrer" href="{{$.RepoLink}}/releases/download/{{$release.TagName | PathEscape}}/{{$attachment.Name | PathEscape}}">
-												<strong><span class="ui image octicon octicon-package" title='{{$attachment.Name}}'></span> {{$attachment.Name}}</strong>
-												<span class="ui text grey right">{{$attachment.Size | FileSize}}</span>
+											<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+												<strong><span class="ui image octicon octicon-package" title='{{.Name}}'></span> {{.Name}}</strong>
+												<span class="ui text grey right">{{.Size | FileSize}}</span>
 											</a>
 										</li>
 										{{end}}

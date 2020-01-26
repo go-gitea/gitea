@@ -8,18 +8,15 @@ package context
 import (
 	"fmt"
 	"net/url"
-	"path"
 	"strings"
 
-	"github.com/go-macaron/csrf"
-
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/csrf"
+	"gitea.com/macaron/macaron"
 )
 
 // APIContext is a specific macaron context for API service
@@ -40,6 +37,13 @@ type APIError struct {
 type APIValidationError struct {
 	Message string `json:"message"`
 	URL     string `json:"url"`
+}
+
+// APIInvalidTopicsError is error format response to invalid topics
+// swagger:response invalidTopicsError
+type APIInvalidTopicsError struct {
+	Topics  []string `json:"invalidTopics"`
+	Message string   `json:"message"`
 }
 
 //APIEmpty is an empty response
@@ -76,27 +80,53 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 
 	ctx.JSON(status, APIError{
 		Message: message,
-		URL:     base.DocURL,
+		URL:     setting.API.SwaggerURL,
 	})
+}
+
+func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
+	page := NewPagination(total, pageSize, curPage, 0)
+	paginater := page.Paginater
+	links := make([]string, 0, 4)
+
+	if paginater.HasNext() {
+		u := *curURL
+		queries := u.Query()
+		queries.Set("page", fmt.Sprintf("%d", paginater.Next()))
+		u.RawQuery = queries.Encode()
+
+		links = append(links, fmt.Sprintf("<%s%s>; rel=\"next\"", setting.AppURL, u.RequestURI()[1:]))
+	}
+	if !paginater.IsLast() {
+		u := *curURL
+		queries := u.Query()
+		queries.Set("page", fmt.Sprintf("%d", paginater.TotalPages()))
+		u.RawQuery = queries.Encode()
+
+		links = append(links, fmt.Sprintf("<%s%s>; rel=\"last\"", setting.AppURL, u.RequestURI()[1:]))
+	}
+	if !paginater.IsFirst() {
+		u := *curURL
+		queries := u.Query()
+		queries.Set("page", "1")
+		u.RawQuery = queries.Encode()
+
+		links = append(links, fmt.Sprintf("<%s%s>; rel=\"first\"", setting.AppURL, u.RequestURI()[1:]))
+	}
+	if paginater.HasPrevious() {
+		u := *curURL
+		queries := u.Query()
+		queries.Set("page", fmt.Sprintf("%d", paginater.Previous()))
+		u.RawQuery = queries.Encode()
+
+		links = append(links, fmt.Sprintf("<%s%s>; rel=\"prev\"", setting.AppURL, u.RequestURI()[1:]))
+	}
+	return links
 }
 
 // SetLinkHeader sets pagination link header by given total number and page size.
 func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
-	page := NewPagination(total, pageSize, ctx.QueryInt("page"), 0)
-	paginater := page.Paginater
-	links := make([]string, 0, 4)
-	if paginater.HasNext() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"next\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.Next()))
-	}
-	if !paginater.IsLast() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"last\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.TotalPages()))
-	}
-	if !paginater.IsFirst() {
-		links = append(links, fmt.Sprintf("<%s%s?page=1>; rel=\"first\"", setting.AppURL, ctx.Req.URL.Path[1:]))
-	}
-	if paginater.HasPrevious() {
-		links = append(links, fmt.Sprintf("<%s%s?page=%d>; rel=\"prev\"", setting.AppURL, ctx.Req.URL.Path[1:], paginater.Previous()))
-	}
+	links := genAPILinks(ctx.Req.URL, total, pageSize, ctx.QueryInt("page"))
 
 	if len(links) > 0 {
 		ctx.Header().Set("Link", strings.Join(links, ","))
@@ -163,7 +193,16 @@ func ReferencesGitRepo(allowEmpty bool) macaron.Handler {
 				return
 			}
 			ctx.Repo.GitRepo = gitRepo
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
 		}
+
+		ctx.Next()
 	}
 }
 
@@ -180,15 +219,9 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		}
 	}
 
-	u, err := url.Parse(setting.AppURL)
-	if err != nil {
-		ctx.Error(500, "Invalid AppURL", err)
-		return
-	}
-	u.Path = path.Join(u.Path, "api", "swagger")
 	ctx.JSON(404, map[string]interface{}{
 		"message":           message,
-		"documentation_url": u.String(),
+		"documentation_url": setting.API.SwaggerURL,
 		"errors":            errors,
 	})
 }

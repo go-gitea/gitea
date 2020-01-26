@@ -203,7 +203,7 @@ func (logger *WriterLogger) createMsg(buf *[]byte, event *Event) {
 	(&protectedANSIWriter{
 		w:    &baw,
 		mode: pawMode,
-	}).Write([]byte(msg))
+	}).Write(msg)
 	*buf = baw
 
 	if event.stacktrace != "" && logger.StacktraceLevel <= event.level {
@@ -252,10 +252,7 @@ func (logger *WriterLogger) Match(event *Event) bool {
 		mode: removeColor,
 	}).Write([]byte(event.msg))
 	msg = baw
-	if logger.regexp.Match(msg) {
-		return true
-	}
-	return false
+	return logger.regexp.Match(msg)
 }
 
 // Close the base logger

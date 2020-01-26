@@ -116,6 +116,13 @@
 	</div>
 </div>
 
+<!-- Branch filter -->
+<div class="field">
+	<label for="branch_filter">{{.i18n.Tr "repo.settings.branch_filter"}}</label>
+	<input name="branch_filter" type="text" tabindex="0" value="{{or .Webhook.BranchFilter "*"}}">
+	<span class="help">{{.i18n.Tr "repo.settings.branch_filter_desc" | Str2html}}</span>
+</div>
+
 <div class="ui divider"></div>
 
 <div class="inline field">

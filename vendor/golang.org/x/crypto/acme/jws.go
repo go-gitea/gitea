@@ -11,31 +11,60 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	_ "crypto/sha512" // need for EC keys
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/big"
 )
 
+// keyID is the account identity provided by a CA during registration.
+type keyID string
+
+// noKeyID indicates that jwsEncodeJSON should compute and use JWK instead of a KID.
+// See jwsEncodeJSON for details.
+const noKeyID = keyID("")
+
+// noPayload indicates jwsEncodeJSON will encode zero-length octet string
+// in a JWS request. This is called POST-as-GET in RFC 8555 and is used to make
+// authenticated GET requests via POSTing with an empty payload.
+// See https://tools.ietf.org/html/rfc8555#section-6.3 for more details.
+const noPayload = ""
+
 // jwsEncodeJSON signs claimset using provided key and a nonce.
-// The result is serialized in JSON format.
+// The result is serialized in JSON format containing either kid or jwk
+// fields based on the provided keyID value.
+//
+// If kid is non-empty, its quoted value is inserted in the protected head
+// as "kid" field value. Otherwise, JWK is computed using jwkEncode and inserted
+// as "jwk" field value. The "jwk" and "kid" fields are mutually exclusive.
+//
 // See https://tools.ietf.org/html/rfc7515#section-7.
-func jwsEncodeJSON(claimset interface{}, key crypto.Signer, nonce string) ([]byte, error) {
-	jwk, err := jwkEncode(key.Public())
-	if err != nil {
-		return nil, err
-	}
-	alg, sha := jwsHasher(key)
+func jwsEncodeJSON(claimset interface{}, key crypto.Signer, kid keyID, nonce, url string) ([]byte, error) {
+	alg, sha := jwsHasher(key.Public())
 	if alg == "" || !sha.Available() {
 		return nil, ErrUnsupportedKey
 	}
-	phead := fmt.Sprintf(`{"alg":%q,"jwk":%s,"nonce":%q}`, alg, jwk, nonce)
-	phead = base64.RawURLEncoding.EncodeToString([]byte(phead))
-	cs, err := json.Marshal(claimset)
-	if err != nil {
-		return nil, err
+	var phead string
+	switch kid {
+	case noKeyID:
+		jwk, err := jwkEncode(key.Public())
+		if err != nil {
+			return nil, err
+		}
+		phead = fmt.Sprintf(`{"alg":%q,"jwk":%s,"nonce":%q,"url":%q}`, alg, jwk, nonce, url)
+	default:
+		phead = fmt.Sprintf(`{"alg":%q,"kid":%q,"nonce":%q,"url":%q}`, alg, kid, nonce, url)
 	}
-	payload := base64.RawURLEncoding.EncodeToString(cs)
+	phead = base64.RawURLEncoding.EncodeToString([]byte(phead))
+	var payload string
+	if claimset != noPayload {
+		cs, err := json.Marshal(claimset)
+		if err != nil {
+			return nil, err
+		}
+		payload = base64.RawURLEncoding.EncodeToString(cs)
+	}
 	hash := sha.New()
 	hash.Write([]byte(phead + "." + payload))
 	sig, err := jwsSign(key, sha, hash.Sum(nil))
@@ -97,19 +126,24 @@ func jwkEncode(pub crypto.PublicKey) (string, error) {
 }
 
 // jwsSign signs the digest using the given key.
-// It returns ErrUnsupportedKey if the key type is unknown.
-// The hash is used only for RSA keys.
+// The hash is unused for ECDSA keys.
 func jwsSign(key crypto.Signer, hash crypto.Hash, digest []byte) ([]byte, error) {
-	switch key := key.(type) {
-	case *rsa.PrivateKey:
+	switch pub := key.Public().(type) {
+	case *rsa.PublicKey:
 		return key.Sign(rand.Reader, digest, hash)
-	case *ecdsa.PrivateKey:
-		r, s, err := ecdsa.Sign(rand.Reader, key, digest)
+	case *ecdsa.PublicKey:
+		sigASN1, err := key.Sign(rand.Reader, digest, hash)
 		if err != nil {
 			return nil, err
 		}
-		rb, sb := r.Bytes(), s.Bytes()
-		size := key.Params().BitSize / 8
+
+		var rs struct{ R, S *big.Int }
+		if _, err := asn1.Unmarshal(sigASN1, &rs); err != nil {
+			return nil, err
+		}
+
+		rb, sb := rs.R.Bytes(), rs.S.Bytes()
+		size := pub.Params().BitSize / 8
 		if size%8 > 0 {
 			size++
 		}
@@ -124,12 +158,12 @@ func jwsSign(key crypto.Signer, hash crypto.Hash, digest []byte) ([]byte, error)
 // jwsHasher indicates suitable JWS algorithm name and a hash function
 // to use for signing a digest with the provided key.
 // It returns ("", 0) if the key is not supported.
-func jwsHasher(key crypto.Signer) (string, crypto.Hash) {
-	switch key := key.(type) {
-	case *rsa.PrivateKey:
+func jwsHasher(pub crypto.PublicKey) (string, crypto.Hash) {
+	switch pub := pub.(type) {
+	case *rsa.PublicKey:
 		return "RS256", crypto.SHA256
-	case *ecdsa.PrivateKey:
-		switch key.Params().Name {
+	case *ecdsa.PublicKey:
+		switch pub.Params().Name {
 		case "P-256":
 			return "ES256", crypto.SHA256
 		case "P-384":

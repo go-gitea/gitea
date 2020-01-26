@@ -1,0 +1,89 @@
+{{template "base/head" .}}
+<div class="repository diff {{if .PageIsComparePull}}compare pull{{end}}">
+	{{template "repo/header" .}}
+	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
+
+	{{if .PageIsComparePull}}
+		<h2 class="ui header">
+			{{if not .Repository.IsArchived}}
+				{{.i18n.Tr "repo.pulls.compare_changes"}}
+				<div class="sub header">{{.i18n.Tr "repo.pulls.compare_changes_desc"}}</div>
+			{{ else }}
+				{{.i18n.Tr "action.compare_commits_general"}}
+			{{ end }}
+		</h2>
+		<div class="ui segment choose branch">
+			<span class="octicon octicon-git-compare"></span>
+			<div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
+				<div class="ui basic small button">
+					<span class="text">{{.i18n.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
+					<i class="dropdown icon"></i>
+				</div>
+				<div class="menu">
+					<div class="ui icon search input">
+						<i class="filter icon"></i>
+						<input name="search" placeholder="{{.i18n.Tr "repo.pulls.filter_branch"}}...">
+					</div>
+					<div class="scrolling menu">
+						{{range .Branches}}
+							<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{$.BaseName}}:{{.}}</div>
+						{{end}}
+						{{if .Repository.IsFork}}
+							{{range .BaseRepoBranches}}
+							<div class="item" data-url="{{$.PullRequestCtx.BaseRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}:{{EscapePound $.HeadBranch}}">{{$.PullRequestCtx.BaseRepo.OwnerName}}:{{.}}</div>
+							{{end}}
+						{{end}}
+					</div>
+				</div>
+			</div>
+			...
+			<div class="ui floating filter dropdown">
+				<div class="ui basic small button">
+					<span class="text">{{.i18n.Tr "repo.pulls.compare_compare"}}: {{$.HeadUser.Name}}:{{$.HeadBranch}}</span>
+					<i class="dropdown icon"></i>
+				</div>
+				<div class="menu">
+					<div class="ui icon search input">
+						<i class="filter icon"></i>
+						<input name="search" placeholder="{{.i18n.Tr "repo.pulls.filter_branch"}}...">
+					</div>
+					<div class="scrolling menu">
+						{{range .HeadBranches}}
+							<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound .}}">{{$.HeadUser.Name}}:{{.}}</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+		</div>
+	{{end}}
+
+	{{if .IsNothingToCompare}}
+    	<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare"}}</div>
+	{{else if .PageIsComparePull}}
+		{{if .HasPullRequest}}
+        	<div class="ui segment">
+        		{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
+        	</div>
+        {{else}}
+        	{{if not .Repository.IsArchived}}
+        	<div class="ui info message show-form-container">
+        		<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
+        	</div>
+        	{{ else }}
+        		<div class="ui warning message">
+        			{{.i18n.Tr "repo.archive.title"}}
+        		</div>
+        	{{ end }}
+        	<div class="pullrequest-form" style="display: none">
+        		{{template "repo/issue/new_form" .}}
+        	</div>
+        	{{template "repo/commits_table" .}}
+        	{{template "repo/diff/box" .}}
+        {{end}}
+	{{else}}
+		{{template "repo/commits_table" .}}
+		{{template "repo/diff/box" .}}
+	{{end}}
+	</div>
+</div>
+{{template "base/footer" .}}

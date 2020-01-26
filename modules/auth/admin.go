@@ -5,9 +5,8 @@
 package auth
 
 import (
-	"gopkg.in/macaron.v1"
-
-	"github.com/go-macaron/binding"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // AdminCreateUserForm form for admin to create user
@@ -38,6 +37,7 @@ type AdminEditUserForm struct {
 	MaxRepoCreation         int
 	Active                  bool
 	Admin                   bool
+	Restricted              bool
 	AllowGitHook            bool
 	AllowImportLocal        bool
 	AllowCreateOrganization bool

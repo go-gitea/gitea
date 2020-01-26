@@ -6,8 +6,6 @@ package models
 
 import (
 	"fmt"
-
-	"github.com/go-xorm/xorm"
 )
 
 // IssueUser represents an issue-user relation.
@@ -51,42 +49,6 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 	return nil
 }
 
-func updateIssueAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (removed bool, err error) {
-
-	// Check if the user exists
-	assignee, err := getUserByID(e, assigneeID)
-	if err != nil {
-		return false, err
-	}
-
-	// Check if the submitted user is already assigne, if yes delete him otherwise add him
-	var i int
-	for i = 0; i < len(issue.Assignees); i++ {
-		if issue.Assignees[i].ID == assigneeID {
-			break
-		}
-	}
-
-	assigneeIn := IssueAssignees{AssigneeID: assigneeID, IssueID: issue.ID}
-
-	toBeDeleted := i < len(issue.Assignees)
-	if toBeDeleted {
-		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i:]...)
-		_, err = e.Delete(assigneeIn)
-		if err != nil {
-			return toBeDeleted, err
-		}
-	} else {
-		issue.Assignees = append(issue.Assignees, assignee)
-		_, err = e.Insert(assigneeIn)
-		if err != nil {
-			return toBeDeleted, err
-		}
-	}
-
-	return toBeDeleted, nil
-}
-
 // UpdateIssueUserByRead updates issue-user relation for reading.
 func UpdateIssueUserByRead(uid, issueID int64) error {
 	_, err := x.Exec("UPDATE `issue_user` SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
@@ -94,22 +56,22 @@ func UpdateIssueUserByRead(uid, issueID int64) error {
 }
 
 // UpdateIssueUsersByMentions updates issue-user pairs by mentioning.
-func UpdateIssueUsersByMentions(e Engine, issueID int64, uids []int64) error {
+func UpdateIssueUsersByMentions(ctx DBContext, issueID int64, uids []int64) error {
 	for _, uid := range uids {
 		iu := &IssueUser{
 			UID:     uid,
 			IssueID: issueID,
 		}
-		has, err := e.Get(iu)
+		has, err := ctx.e.Get(iu)
 		if err != nil {
 			return err
 		}
 
 		iu.IsMentioned = true
 		if has {
-			_, err = e.ID(iu.ID).Cols("is_mentioned").Update(iu)
+			_, err = ctx.e.ID(iu.ID).Cols("is_mentioned").Update(iu)
 		} else {
-			_, err = e.Insert(iu)
+			_, err = ctx.e.Insert(iu)
 		}
 		if err != nil {
 			return err

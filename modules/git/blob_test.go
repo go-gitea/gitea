@@ -37,6 +37,8 @@ THE SOFTWARE.
 `
 	repo, err := OpenRepository("../../.git")
 	assert.NoError(t, err)
+	defer repo.Close()
+
 	testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
 	assert.NoError(t, err)
 
@@ -55,6 +57,8 @@ func Benchmark_Blob_Data(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	defer repo.Close()
+
 	testBlob, err := repo.GetBlob("a8d4b49dd073a4a38a7e58385eeff7cc52568697")
 	if err != nil {
 		b.Fatal(err)

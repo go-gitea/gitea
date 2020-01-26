@@ -2,19 +2,19 @@
 
 	<h4 class="ui top attached header" id="repo-read-file">
 		<div class="ui stackable grid">
-			<div class="ten wide column">
+			<div class="eight wide column">
                 <i class="file text outline icon ui left"></i>
                 <strong>{{.FileName}}</strong> <span class="text grey normal">{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 			</div>
-			<div class="six wide right aligned column">
+			<div class="eight wide right aligned column">
                 <div class="ui right file-actions">
                     <div class="ui buttons">
+                        <a class="ui button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
                         {{if not .IsViewCommit}}
                             <a class="ui button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
                         {{end}}
                         <a class="ui button" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.normal_view"}}</a>
                         <a class="ui button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
-                        <a class="ui button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
                     </div>
                     {{if .Repository.CanEnableEditor}}
                         {{if .CanEditFile}}

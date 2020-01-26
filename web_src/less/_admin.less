@@ -1,0 +1,74 @@
+.admin {
+    padding-top: 15px;
+
+    .table.segment {
+        padding: 0;
+        font-size: 13px;
+
+        &:not(.striped) {
+            padding-top: 5px;
+
+            thead {
+                th:last-child {
+                    padding-right: 5px !important;
+                }
+            }
+        }
+
+        th {
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+
+        &:not(.select) {
+            th,
+            td {
+                &:first-of-type {
+                    padding-left: 15px !important;
+                }
+            }
+        }
+    }
+
+    .ui.header,
+    .ui.segment {
+        box-shadow: 0 1px 2px 0 rgba(34, 36, 38, 0.15);
+    }
+
+    &.user {
+        .email {
+            max-width: 200px;
+        }
+    }
+
+    dl.admin-dl-horizontal {
+        padding: 20px;
+        margin: 0;
+
+        dd {
+            margin-left: 275px;
+        }
+
+        dt {
+            font-weight: bolder;
+            float: left;
+            width: 285px;
+            clear: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    &.config {
+        #test-mail-btn {
+            margin-left: 5px;
+        }
+    }
+
+    code,
+    pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+}

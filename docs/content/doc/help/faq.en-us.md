@@ -28,8 +28,10 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [What is Swagger?](#what-is-swagger)
 * [Adjusting your server for public/private use](#adjusting-your-server-for-public-private-use)
   * [Preventing spammers](#preventing-spammers)
-  * [Only allow/block certain email domains](#only-allow-block-certain-email-domains)
+  * [Only allow certain email domains](#only-allow-certain-email-domains)
+  * [Only allow/block certain OpenID providers](#only-allow-block-certain-openid-providers)
   * [Issue only users](#issue-only-users)
+  * [Restricted users](#restricted-users)
   * [Enable Fail2ban](#enable-fail2ban)
 * [Adding custom themes](#how-to-add-use-custom-themes)
 * [SSHD vs built-in SSH](#sshd-vs-built-in-ssh)
@@ -41,6 +43,9 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
   * [SSH Common Errors](#ssh-common-errors)
 * [Missing releases after migration repository with tags](#missing-releases-after-migrating-repository-with-tags)
 * [LFS Issues](#lfs-issues)
+* [How can I create users before starting Gitea](#how-can-i-create-users-before-starting-gitea)
+* [How can I enable password reset](#how-can-i-enable-password-reset)
+* [How can a user's password be changed](#how-can-a-user-s-password-be-changed)
 
 
 ## Difference between 1.x and 1.x.x downloads
@@ -60,7 +65,9 @@ To migrate from Gogs to Gitea:
 * [Gogs version 0.9.146 or less]({{< relref "doc/upgrade/from-gogs.en-us.md" >}})
 * [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
-To migrate from GitHub to Gitea, you can use Gitea's [Migrator tool](https://gitea.com/gitea/migrator)
+To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.  
+In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.  
+[Example (requires login)](https://try.gitea.io/repo/migrate)
 
 To migrate from Gitlab to Gitea, you can use this non-affiliated tool:  
 https://github.com/loganinak/MigrateGitlabToGogs
@@ -133,12 +140,23 @@ There are multiple things you can combine to prevent spammers.
 2. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
 3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/advanced/api-usage.en-us.md" >}}), or Gitea's Admin UI  
 
-### Only allow/block certain email domains
-If using OpenID, you can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` in your `app.ini`  
+### Only allow certain email domains
+You can configure `EMAIL_DOMAIN_WHITELIST` in your app.ini under `[service]`
+
+### Only allow/block certain OpenID providers
+You can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` under `[openid]` in your `app.ini`  
 **NOTE:** whitelisted takes precedence, so if it is non-blank then blacklisted is ignored
 
 ### Issue only users
 The current way to achieve this is to create/modify a user with a max repo creation limit of 0.
+
+### Restricted users
+Restricted users are limited to a subset of the content based on their organization/team memberships and collaborations, ignoring the public flag on organizations/repos etc.__
+
+Example use case: A company runs a Gitea instance that requires login. Most repos are public (accessible/browseable by all co-workers).
+
+At some point, a customer or third party needs access to a specific repo and only that repo. Making such a customer account restricted and granting any needed access using team membership(s) and/or collaboration(s) is a simple way to achieve that without the need to make everything private.
+
 
 ### Enable Fail2ban
 
@@ -268,3 +286,19 @@ Check the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file.
 By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit. 
 
 You may want to set this value to `60m` or `120m`.
+
+## How can I create users before starting Gitea
+Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}) to add users like normal.
+
+## How can I enable password reset
+There is no setting for password resets. It is enabled when a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}) is configured, and disabled otherwise.
+
+## How can a user's password be changed
+- As an **admin**, you can change any user's password (and optionally force them to change it on next login)...
+  - By navigating to your `Site Administration -> User Accounts` page and editing a user.  
+  - By using the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}).  
+  Keep in mind most commands will also need a [global flag]({{< relref "doc/usage/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
+- As a **user** you can change it... 
+  - In your account `Settings -> Account` page (this method **requires** you to know your current password).
+  - By using the `Forgot Password` link.  
+   If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).

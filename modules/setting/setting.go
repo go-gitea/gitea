@@ -24,20 +24,12 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
-	"github.com/Unknwon/com"
-	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
-	_ "github.com/go-macaron/cache/redis"
-	_ "github.com/go-macaron/session/couchbase" // couchbase plugin for session store
-	_ "github.com/go-macaron/session/memcache"  // memcache plugin for session store
-	_ "github.com/go-macaron/session/mysql"     // mysql plugin for session store
-	_ "github.com/go-macaron/session/nodb"      // nodb plugin for session store
-	_ "github.com/go-macaron/session/postgres"  // postgres plugin for session store
-	_ "github.com/go-macaron/session/redis"     // redis plugin for store session
 	shellquote "github.com/kballard/go-shellquote"
 	version "github.com/mcuadros/go-version"
+	"github.com/unknwon/cae/zip"
+	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -50,6 +42,7 @@ const (
 	HTTP       Scheme = "http"
 	HTTPS      Scheme = "https"
 	FCGI       Scheme = "fcgi"
+	FCGIUnix   Scheme = "fcgi+unix"
 	UnixSocket Scheme = "unix"
 )
 
@@ -61,6 +54,7 @@ const (
 	LandingPageHome          LandingPage = "/"
 	LandingPageExplore       LandingPage = "/explore"
 	LandingPageOrganizations LandingPage = "/explore/organizations"
+	LandingPageLogin         LandingPage = "/user/login"
 )
 
 // enumerates all the types of captchas
@@ -94,6 +88,7 @@ var (
 	CertFile             string
 	KeyFile              string
 	StaticRootPath       string
+	StaticCacheTime      time.Duration
 	EnableGzip           bool
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
@@ -103,6 +98,10 @@ var (
 	LetsEncryptTOS       bool
 	LetsEncryptDirectory string
 	LetsEncryptEmail     string
+	GracefulRestartable  bool
+	GracefulHammerTime   time.Duration
+	StartupTimeout       time.Duration
+	StaticURLPrefix      string
 
 	SSH = struct {
 		Disabled                 bool           `ini:"DISABLE_SSH"`
@@ -132,6 +131,7 @@ var (
 		ServerKeyExchanges: []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
 		ServerMACs:         []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
 		KeygenPath:         "ssh-keygen",
+		MinimumKeySizes:    map[string]int{"ed25519": 256, "ecdsa": 256, "rsa": 2048, "dsa": 1024},
 	}
 
 	LFS struct {
@@ -143,41 +143,40 @@ var (
 	}
 
 	// Security settings
-	InstallLock           bool
-	SecretKey             string
-	LogInRememberDays     int
-	CookieUserName        string
-	CookieRememberName    string
-	ReverseProxyAuthUser  string
-	ReverseProxyAuthEmail string
-	MinPasswordLength     int
-	ImportLocalPaths      bool
-	DisableGitHooks       bool
-
-	// Database settings
-	UseSQLite3       bool
-	UseMySQL         bool
-	UseMSSQL         bool
-	UsePostgreSQL    bool
-	UseTiDB          bool
-	LogSQL           bool
-	DBConnectRetries int
-	DBConnectBackoff time.Duration
+	InstallLock                        bool
+	SecretKey                          string
+	LogInRememberDays                  int
+	CookieUserName                     string
+	CookieRememberName                 string
+	ReverseProxyAuthUser               string
+	ReverseProxyAuthEmail              string
+	MinPasswordLength                  int
+	ImportLocalPaths                   bool
+	DisableGitHooks                    bool
+	OnlyAllowPushIfGiteaEnvironmentSet bool
+	PasswordComplexity                 []string
+	PasswordHashAlgo                   string
 
 	// UI settings
 	UI = struct {
-		ExplorePagingNum    int
-		IssuePagingNum      int
-		RepoSearchPagingNum int
-		FeedMaxCommitNum    int
-		GraphMaxCommitNum   int
-		CodeCommentLines    int
-		ReactionMaxUserNum  int
-		ThemeColorMetaTag   string
-		MaxDisplayFileSize  int64
-		ShowUserEmail       bool
-		DefaultTheme        string
-		Themes              []string
+		ExplorePagingNum      int
+		IssuePagingNum        int
+		RepoSearchPagingNum   int
+		MembersPagingNum      int
+		FeedMaxCommitNum      int
+		GraphMaxCommitNum     int
+		CodeCommentLines      int
+		ReactionMaxUserNum    int
+		ThemeColorMetaTag     string
+		MaxDisplayFileSize    int64
+		ShowUserEmail         bool
+		DefaultShowFullName   bool
+		DefaultTheme          string
+		Themes                []string
+		Reactions             []string
+		ReactionsMap          map[string]bool
+		SearchRepoDescription bool
+		UseServiceWorker      bool
 
 		Admin struct {
 			UserPagingNum   int
@@ -197,6 +196,7 @@ var (
 		ExplorePagingNum:    20,
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
+		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
@@ -205,6 +205,7 @@ var (
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
+		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -245,17 +246,22 @@ var (
 	// Admin settings
 	Admin struct {
 		DisableRegularOrgCreation bool
+		DefaultEmailNotification  string
 	}
 
 	// Picture settings
-	AvatarUploadPath      string
-	AvatarMaxWidth        int
-	AvatarMaxHeight       int
-	GravatarSource        string
-	GravatarSourceURL     *url.URL
-	DisableGravatar       bool
-	EnableFederatedAvatar bool
-	LibravatarService     *libravatar.Libravatar
+	AvatarUploadPath              string
+	AvatarMaxWidth                int
+	AvatarMaxHeight               int
+	GravatarSource                string
+	GravatarSourceURL             *url.URL
+	DisableGravatar               bool
+	EnableFederatedAvatar         bool
+	LibravatarService             *libravatar.Libravatar
+	AvatarMaxFileSize             int64
+	RepositoryAvatarUploadPath    string
+	RepositoryAvatarFallback      string
+	RepositoryAvatarFallbackImage string
 
 	// Log settings
 	LogLevel           string
@@ -279,8 +285,11 @@ var (
 
 	// Time settings
 	TimeFormat string
+	// UILocation is the location on the UI, so that we can display the time on UI.
+	DefaultUILocation = time.Local
 
-	CSRFCookieName = "_csrf"
+	CSRFCookieName     = "_csrf"
+	CSRFCookieHTTPOnly = true
 
 	// Mirror settings
 	Mirror struct {
@@ -291,12 +300,14 @@ var (
 	// API settings
 	API = struct {
 		EnableSwagger          bool
+		SwaggerURL             string
 		MaxResponseItems       int
 		DefaultPagingNum       int
 		DefaultGitTreesPerPage int
 		DefaultMaxBlobSize     int64
 	}{
 		EnableSwagger:          true,
+		SwaggerURL:             "",
 		MaxResponseItems:       50,
 		DefaultPagingNum:       30,
 		DefaultGitTreesPerPage: 1000,
@@ -344,16 +355,15 @@ var (
 	ShowFooterTemplateLoadTime bool
 
 	// Global setting objects
-	Cfg               *ini.File
-	CustomPath        string // Custom directory path
-	CustomConf        string
-	CustomPID         string
-	ProdMode          bool
-	RunUser           string
-	IsWindows         bool
-	HasRobotsTxt      bool
-	InternalToken     string // internal access token
-	IterateBufferSize int
+	Cfg           *ini.File
+	CustomPath    string // Custom directory path
+	CustomConf    string
+	CustomPID     string
+	ProdMode      bool
+	RunUser       string
+	IsWindows     bool
+	HasRobotsTxt  bool
+	InternalToken string // internal access token
 
 	// UILocation is the location on the UI, so that we can display the time on UI.
 	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
@@ -430,7 +440,7 @@ func forcePathSeparator(path string) {
 // This check is ignored under Windows since SSH remote login is not the main
 // method to login on Windows.
 func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
-	if IsWindows {
+	if IsWindows || SSH.StartBuiltinServer {
 		return "", true
 	}
 
@@ -478,7 +488,10 @@ func CheckLFSVersion() {
 // SetCustomPathAndConf will set CustomPath and CustomConf with reference to the
 // GITEA_CUSTOM environment variable and with provided overrides before stepping
 // back to the default
-func SetCustomPathAndConf(providedCustom, providedConf string) {
+func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string) {
+	if len(providedWorkPath) != 0 {
+		AppWorkPath = filepath.ToSlash(providedWorkPath)
+	}
 	if giteaCustom, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
 		CustomPath = giteaCustom
 	}
@@ -517,7 +530,7 @@ func NewContext() {
 	} else {
 		log.Warn("Custom config '%s' not found, ignore this if you're running first time", CustomConf)
 	}
-	Cfg.NameMapper = ini.AllCapsUnderscore
+	Cfg.NameMapper = ini.SnackCase
 
 	homeDir, err := com.HomeDir()
 	if err != nil {
@@ -536,13 +549,28 @@ func NewContext() {
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 
 	Protocol = HTTP
-	if sec.Key("PROTOCOL").String() == "https" {
+	switch sec.Key("PROTOCOL").String() {
+	case "https":
 		Protocol = HTTPS
 		CertFile = sec.Key("CERT_FILE").String()
 		KeyFile = sec.Key("KEY_FILE").String()
-	} else if sec.Key("PROTOCOL").String() == "fcgi" {
+		if !filepath.IsAbs(CertFile) && len(CertFile) > 0 {
+			CertFile = filepath.Join(CustomPath, CertFile)
+		}
+		if !filepath.IsAbs(KeyFile) && len(KeyFile) > 0 {
+			KeyFile = filepath.Join(CustomPath, KeyFile)
+		}
+	case "fcgi":
 		Protocol = FCGI
-	} else if sec.Key("PROTOCOL").String() == "unix" {
+	case "fcgi+unix":
+		Protocol = FCGIUnix
+		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
+		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
+		if err != nil || UnixSocketPermissionParsed > 0777 {
+			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
+		}
+		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
+	case "unix":
 		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
@@ -562,26 +590,30 @@ func NewContext() {
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
+	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
+	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
+	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
 
 	defaultAppURL := string(Protocol) + "://" + Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
 		defaultAppURL += ":" + HTTPPort
 	}
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	AppURL = strings.TrimRight(AppURL, "/") + "/"
+	AppURL = strings.TrimSuffix(AppURL, "/") + "/"
 
 	// Check if has app suburl.
-	url, err := url.Parse(AppURL)
+	appURL, err := url.Parse(AppURL)
 	if err != nil {
 		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
-	AppSubURL = strings.TrimSuffix(url.Path, "/")
+	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
+	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
 	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
-	urlHostname := strings.SplitN(url.Host, ":", 2)[0]
+	urlHostname := strings.SplitN(appURL.Host, ":", 2)[0]
 	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
 		Domain = urlHostname
 	}
@@ -591,6 +623,8 @@ func NewContext() {
 	case UnixSocket:
 		defaultLocalURL = "http://unix/"
 	case FCGI:
+		defaultLocalURL = AppURL
+	case FCGIUnix:
 		defaultLocalURL = AppURL
 	default:
 		defaultLocalURL = string(Protocol) + "://"
@@ -607,6 +641,7 @@ func NewContext() {
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
@@ -620,6 +655,8 @@ func NewContext() {
 		LandingPageURL = LandingPageExplore
 	case "organizations":
 		LandingPageURL = LandingPageOrganizations
+	case "login":
+		LandingPageURL = LandingPageLogin
 	default:
 		LandingPageURL = LandingPageHome
 	}
@@ -663,7 +700,6 @@ func NewContext() {
 	}
 
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool()
-	SSH.MinimumKeySizes = map[string]int{}
 	minimumKeySizes := Cfg.Section("ssh.minimum_key_sizes").Keys()
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
@@ -756,6 +792,9 @@ func NewContext() {
 		}
 	}
 
+	sec = Cfg.Section("admin")
+	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
+
 	sec = Cfg.Section("security")
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
 	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
@@ -767,11 +806,20 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
+	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
+
 	InternalToken = loadInternalToken(sec)
-	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
-	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
-	DBConnectRetries = Cfg.Section("database").Key("DB_RETRIES").MustInt(10)
-	DBConnectBackoff = Cfg.Section("database").Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
+
+	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	PasswordComplexity = make([]string, 0, len(cfgdata))
+	for _, name := range cfgdata {
+		name := strings.ToLower(strings.Trim(name, `"`))
+		if name != "" {
+			PasswordComplexity = append(PasswordComplexity, name)
+		}
+	}
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -783,32 +831,48 @@ func NewContext() {
 	AttachmentMaxFiles = sec.Key("MAX_FILES").MustInt(5)
 	AttachmentEnabled = sec.Key("ENABLED").MustBool(true)
 
-	TimeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("RFC1123")
-	TimeFormat = map[string]string{
-		"ANSIC":       time.ANSIC,
-		"UnixDate":    time.UnixDate,
-		"RubyDate":    time.RubyDate,
-		"RFC822":      time.RFC822,
-		"RFC822Z":     time.RFC822Z,
-		"RFC850":      time.RFC850,
-		"RFC1123":     time.RFC1123,
-		"RFC1123Z":    time.RFC1123Z,
-		"RFC3339":     time.RFC3339,
-		"RFC3339Nano": time.RFC3339Nano,
-		"Kitchen":     time.Kitchen,
-		"Stamp":       time.Stamp,
-		"StampMilli":  time.StampMilli,
-		"StampMicro":  time.StampMicro,
-		"StampNano":   time.StampNano,
-	}[TimeFormatKey]
-	// When the TimeFormatKey does not exist in the previous map e.g.'2006-01-02 15:04:05'
-	if len(TimeFormat) == 0 {
-		TimeFormat = TimeFormatKey
-		TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
-		if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
-			log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
+	if timeFormatKey != "" {
+		TimeFormat = map[string]string{
+			"ANSIC":       time.ANSIC,
+			"UnixDate":    time.UnixDate,
+			"RubyDate":    time.RubyDate,
+			"RFC822":      time.RFC822,
+			"RFC822Z":     time.RFC822Z,
+			"RFC850":      time.RFC850,
+			"RFC1123":     time.RFC1123,
+			"RFC1123Z":    time.RFC1123Z,
+			"RFC3339":     time.RFC3339,
+			"RFC3339Nano": time.RFC3339Nano,
+			"Kitchen":     time.Kitchen,
+			"Stamp":       time.Stamp,
+			"StampMilli":  time.StampMilli,
+			"StampMicro":  time.StampMicro,
+			"StampNano":   time.StampNano,
+		}[timeFormatKey]
+		// When the TimeFormatKey does not exist in the previous map e.g.'2006-01-02 15:04:05'
+		if len(TimeFormat) == 0 {
+			TimeFormat = timeFormatKey
+			TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
+			if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
+				log.Warn("Provided TimeFormat: %s does not create a fully specified date and time.", TimeFormat)
+				log.Warn("In order to display dates and times correctly please check your time format has 2006, 01, 02, 15, 04 and 05")
+			}
+			log.Trace("Custom TimeFormat: %s", TimeFormat)
 		}
-		log.Trace("Custom TimeFormat: %s", TimeFormat)
+	}
+
+	zone := Cfg.Section("time").Key("DEFAULT_UI_LOCATION").String()
+	if zone != "" {
+		DefaultUILocation, err = time.LoadLocation(zone)
+		if err != nil {
+			log.Fatal("Load time zone failed: %v", err)
+		} else {
+			log.Info("Default UI Location is %v", zone)
+		}
+	}
+	if DefaultUILocation == nil {
+		DefaultUILocation = time.Local
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
@@ -830,8 +894,16 @@ func NewContext() {
 	if !filepath.IsAbs(AvatarUploadPath) {
 		AvatarUploadPath = path.Join(AppWorkPath, AvatarUploadPath)
 	}
+	RepositoryAvatarUploadPath = sec.Key("REPOSITORY_AVATAR_UPLOAD_PATH").MustString(path.Join(AppDataPath, "repo-avatars"))
+	forcePathSeparator(RepositoryAvatarUploadPath)
+	if !filepath.IsAbs(RepositoryAvatarUploadPath) {
+		RepositoryAvatarUploadPath = path.Join(AppWorkPath, RepositoryAvatarUploadPath)
+	}
+	RepositoryAvatarFallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
+	RepositoryAvatarFallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/img/repo_default.png")
 	AvatarMaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	AvatarMaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
+	AvatarMaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":
 		GravatarSource = "http://gravatar.duoshuo.com/avatar/"
@@ -882,6 +954,10 @@ func NewContext() {
 		log.Fatal("Failed to map Metrics settings: %v", err)
 	}
 
+	u := *appURL
+	u.Path = path.Join(u.Path, "api", "swagger")
+	API.SwaggerURL = u.String()
+
 	newCron()
 	newGit()
 
@@ -918,6 +994,9 @@ func NewContext() {
 	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
+	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
+	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
+	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
@@ -926,6 +1005,13 @@ func NewContext() {
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
+
+	zip.Verbose = false
+
+	UI.ReactionsMap = make(map[string]bool)
+	for _, reaction := range UI.Reactions {
+		UI.ReactionsMap[reaction] = true
+	}
 }
 
 func loadInternalToken(sec *ini.Section) string {
@@ -1000,13 +1086,18 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 
 // NewServices initializes the services
 func NewServices() {
+	InitDBConfig()
 	newService()
 	NewLogServices(false)
 	newCacheService()
 	newSessionService()
+	newCORSService()
 	newMailService()
 	newRegisterMailService()
 	newNotifyMailService()
 	newWebhookService()
+	newMigrationsService()
 	newIndexerService()
+	newTaskService()
+	NewQueueService()
 }

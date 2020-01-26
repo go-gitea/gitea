@@ -12,6 +12,7 @@ _test
 
 # MS VSCode
 .vscode
+__debug_bin
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -65,8 +66,10 @@ coverage.all
 /integrations/pgsql.ini
 /integrations/mssql.ini
 /node_modules
-/modules/indexer/issues/indexers
-
+/yarn.lock
+/public/js
+/public/css
+/public/fomantic
 
 # Snapcraft
 snap/.snapcraft/
@@ -76,3 +79,4 @@ prime/
 *.snap
 *.snap-build
 *_source.tar.bz2
+.DS_Store

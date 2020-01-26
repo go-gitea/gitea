@@ -4,9 +4,6 @@
 
 package base
 
-// DocURL api doc url
-const DocURL = "https://godoc.org/github.com/go-gitea/go-sdk/gitea"
-
 type (
 	// TplName template relative path type
 	TplName string

@@ -92,6 +92,7 @@ type Dialer interface {
 	DialTimeout(network, address string, timeout time.Duration) (net.Conn, error)
 }
 
+// DialerContext is the context-aware dialer interface.
 type DialerContext interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
@@ -301,6 +302,9 @@ func (c *Connector) open(ctx context.Context) (cn *conn, err error) {
 
 	err = cn.ssl(o)
 	if err != nil {
+		if cn.c != nil {
+			cn.c.Close()
+		}
 		return nil, err
 	}
 
@@ -546,7 +550,7 @@ func (cn *conn) Commit() (err error) {
 	// would get the same behaviour if you issued a COMMIT in a failed
 	// transaction, so it's also the least surprising thing to do here.
 	if cn.txnStatus == txnStatusInFailedTransaction {
-		if err := cn.Rollback(); err != nil {
+		if err := cn.rollback(); err != nil {
 			return err
 		}
 		return ErrInFailedTransaction
@@ -573,7 +577,10 @@ func (cn *conn) Rollback() (err error) {
 		return driver.ErrBadConn
 	}
 	defer cn.errRecover(&err)
+	return cn.rollback()
+}
 
+func (cn *conn) rollback() (err error) {
 	cn.checkIsInTransaction(true)
 	_, commandTag, err := cn.simpleExec("ROLLBACK")
 	if err != nil {
@@ -1498,6 +1505,39 @@ func QuoteIdentifier(name string) string {
 		name = name[:end]
 	}
 	return `"` + strings.Replace(name, `"`, `""`, -1) + `"`
+}
+
+// QuoteLiteral quotes a 'literal' (e.g. a parameter, often used to pass literal
+// to DDL and other statements that do not accept parameters) to be used as part
+// of an SQL statement.  For example:
+//
+//    exp_date := pq.QuoteLiteral("2023-01-05 15:00:00Z")
+//    err := db.Exec(fmt.Sprintf("CREATE ROLE my_user VALID UNTIL %s", exp_date))
+//
+// Any single quotes in name will be escaped. Any backslashes (i.e. "\") will be
+// replaced by two backslashes (i.e. "\\") and the C-style escape identifier
+// that PostgreSQL provides ('E') will be prepended to the string.
+func QuoteLiteral(literal string) string {
+	// This follows the PostgreSQL internal algorithm for handling quoted literals
+	// from libpq, which can be found in the "PQEscapeStringInternal" function,
+	// which is found in the libpq/fe-exec.c source file:
+	// https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/interfaces/libpq/fe-exec.c
+	//
+	// substitute any single-quotes (') with two single-quotes ('')
+	literal = strings.Replace(literal, `'`, `''`, -1)
+	// determine if the string has any backslashes (\) in it.
+	// if it does, replace any backslashes (\) with two backslashes (\\)
+	// then, we need to wrap the entire string with a PostgreSQL
+	// C-style escape. Per how "PQEscapeStringInternal" handles this case, we
+	// also add a space before the "E"
+	if strings.Contains(literal, `\`) {
+		literal = strings.Replace(literal, `\`, `\\`, -1)
+		literal = ` E'` + literal + `'`
+	} else {
+		// otherwise, we can just wrap the literal with a pair of single quotes
+		literal = `'` + literal + `'`
+	}
+	return literal
 }
 
 func md5s(s string) string {

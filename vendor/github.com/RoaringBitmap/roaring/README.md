@@ -1,4 +1,5 @@
 roaring [![Build Status](https://travis-ci.org/RoaringBitmap/roaring.png)](https://travis-ci.org/RoaringBitmap/roaring) [![Coverage Status](https://coveralls.io/repos/github/RoaringBitmap/roaring/badge.svg?branch=master)](https://coveralls.io/github/RoaringBitmap/roaring?branch=master) [![GoDoc](https://godoc.org/github.com/RoaringBitmap/roaring?status.svg)](https://godoc.org/github.com/RoaringBitmap/roaring) [![Go Report Card](https://goreportcard.com/badge/RoaringBitmap/roaring)](https://goreportcard.com/report/github.com/RoaringBitmap/roaring)
+[![Build Status](https://cloud.drone.io/api/badges/RoaringBitmap/roaring/status.svg)](https://cloud.drone.io/RoaringBitmap/roaring)
 =============
 
 This is a go version of the Roaring bitmap data structure. 
@@ -6,12 +7,12 @@ This is a go version of the Roaring bitmap data structure.
 
 
 Roaring bitmaps are used by several major systems such as [Apache Lucene][lucene] and derivative systems such as [Solr][solr] and
-[Elasticsearch][elasticsearch], [Metamarkets' Druid][druid], [LinkedIn Pinot][pinot], [Netflix Atlas][atlas],  [Apache Spark][spark], [OpenSearchServer][opensearchserver], [Cloud Torrent][cloudtorrent], [Whoosh][whoosh],  [Pilosa][pilosa],  [Microsoft Visual Studio Team Services (VSTS)][vsts], and eBay's [Apache Kylin][kylin].
+[Elasticsearch][elasticsearch], [Apache Druid (Incubating)][druid], [LinkedIn Pinot][pinot], [Netflix Atlas][atlas],  [Apache Spark][spark], [OpenSearchServer][opensearchserver], [Cloud Torrent][cloudtorrent], [Whoosh][whoosh],  [Pilosa][pilosa],  [Microsoft Visual Studio Team Services (VSTS)][vsts], and eBay's [Apache Kylin][kylin].
 
 [lucene]: https://lucene.apache.org/
 [solr]: https://lucene.apache.org/solr/
 [elasticsearch]: https://www.elastic.co/products/elasticsearch
-[druid]: http://druid.io/
+[druid]: https://druid.apache.org/
 [spark]: https://spark.apache.org/
 [opensearchserver]: http://www.opensearchserver.com
 [cloudtorrent]: https://github.com/jpillora/cloud-torrent
@@ -61,7 +62,6 @@ http://arxiv.org/abs/1402.6407 This paper used data from http://lemire.me/data/r
 Dependencies are fetched automatically by giving the `-t` flag to `go get`.
 
 they include
-  - github.com/smartystreets/goconvey/convey
   - github.com/willf/bitset
   - github.com/mschoch/smat
   - github.com/glycerine/go-unsnap-stream
@@ -133,6 +133,7 @@ func main() {
     if rb1.Equals(newrb) {
     	fmt.Println("I wrote the content to a byte stream and read it back.")
     }
+    // you can iterate over bitmaps using ReverseIterator(), Iterator, ManyIterator()
 }
 ```
 
@@ -206,7 +207,7 @@ You can use roaring with gore:
 
 - go get -u github.com/motemen/gore
 - Make sure that ``$GOPATH/bin`` is in your ``$PATH``.
-- go get github/RoaringBitmap/roaring
+- go get github.com/RoaringBitmap/roaring
 
 ```go
 $ gore

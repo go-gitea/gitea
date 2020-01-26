@@ -103,7 +103,7 @@ func TestFileLogger(t *testing.T) {
 	assert.Equal(t, expected, string(logData))
 
 	event.level = WARN
-	expected = expected + fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
+	expected += fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	fileLogger.LogEvent(&event)
 	fileLogger.Flush()
 	logData, err = ioutil.ReadFile(filename)
@@ -130,7 +130,7 @@ func TestFileLogger(t *testing.T) {
 	err = realFileLogger.DoRotate()
 	assert.Error(t, err)
 
-	expected = expected + fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
+	expected += fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	fileLogger.LogEvent(&event)
 	fileLogger.Flush()
 	logData, err = ioutil.ReadFile(filename)
@@ -138,7 +138,7 @@ func TestFileLogger(t *testing.T) {
 	assert.Equal(t, expected, string(logData))
 
 	// Should fail to rotate
-	expected = expected + fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
+	expected += fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	fileLogger.LogEvent(&event)
 	fileLogger.Flush()
 	logData, err = ioutil.ReadFile(filename)
@@ -188,7 +188,7 @@ func TestCompressFileLogger(t *testing.T) {
 	assert.Equal(t, expected, string(logData))
 
 	event.level = WARN
-	expected = expected + fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
+	expected += fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	fileLogger.LogEvent(&event)
 	fileLogger.Flush()
 	logData, err = ioutil.ReadFile(filename)

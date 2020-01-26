@@ -11,10 +11,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	// This ensures that VirtualSessionProvider is available
-	_ "code.gitea.io/gitea/modules/session"
 
-	"github.com/go-macaron/session"
+	"gitea.com/macaron/session"
 )
 
 var (
@@ -34,6 +32,7 @@ func newSessionService() {
 	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool(false)
 	SessionConfig.Gclifetime = Cfg.Section("session").Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = Cfg.Section("session").Key("SESSION_LIFE_TIME").MustInt64(86400)
+	SessionConfig.Domain = Cfg.Section("session").Key("DOMAIN").String()
 
 	shadowConfig, err := json.Marshal(SessionConfig)
 	if err != nil {

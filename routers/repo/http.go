@@ -8,7 +8,9 @@ package repo
 import (
 	"bytes"
 	"compress/gzip"
+	gocontext "context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -16,15 +18,19 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // HTTP implmentation git smart HTTP protocol
@@ -61,11 +67,12 @@ func HTTP(ctx *context.Context) {
 		return
 	}
 
-	var isPull bool
+	var isPull, receivePack bool
 	service := ctx.Query("service")
 	if service == "git-receive-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
 		isPull = false
+		receivePack = true
 	} else if service == "git-upload-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-pack") {
 		isPull = true
@@ -97,29 +104,29 @@ func HTTP(ctx *context.Context) {
 		return
 	}
 
+	repoExist := true
 	repo, err := models.GetRepositoryByName(owner.ID, reponame)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame)
-			if err == nil {
+			if redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame); err == nil {
 				context.RedirectToRepo(ctx, redirectRepoID)
-			} else {
-				ctx.NotFoundOrServerError("GetRepositoryByName", models.IsErrRepoRedirectNotExist, err)
+				return
 			}
+			repoExist = false
 		} else {
 			ctx.ServerError("GetRepositoryByName", err)
+			return
 		}
-		return
 	}
 
 	// Don't allow pushing if the repo is archived
-	if repo.IsArchived && !isPull {
+	if repoExist && repo.IsArchived && !isPull {
 		ctx.HandleText(http.StatusForbidden, "This repo is archived. You can view files and clone it, but cannot push or open issues/pull-requests.")
 		return
 	}
 
 	// Only public pull don't need auth.
-	isPublicPull := !repo.IsPrivate && isPull
+	isPublicPull := repoExist && !repo.IsPrivate && isPull
 	var (
 		askAuth      = !isPublicPull || setting.Service.RequireSignInView
 		authUser     *models.User
@@ -168,7 +175,7 @@ func HTTP(ctx *context.Context) {
 				// Assume password is token
 				authToken = authPasswd
 			}
-			uid := auth.CheckOAuthAccessToken(authToken)
+			uid := sso.CheckOAuthAccessToken(authToken)
 			if uid != 0 {
 				ctx.Data["IsApiToken"] = true
 
@@ -191,39 +198,40 @@ func HTTP(ctx *context.Context) {
 					authUser, err = models.GetUserByName(authUsername)
 					if err != nil {
 						if models.IsErrUserNotExist(err) {
-							ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+							ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
 						} else {
 							ctx.ServerError("GetUserByName", err)
 						}
 						return
 					}
 					if authUser.ID != token.UID {
-						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+						ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
 						return
 					}
 				}
-				token.UpdatedUnix = util.TimeStampNow()
+				token.UpdatedUnix = timeutil.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.ServerError("UpdateAccessToken", err)
 				}
-			} else {
-				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error("GetAccessTokenBySha: %v", err)
-				}
+			} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+				log.Error("GetAccessTokenBySha: %v", err)
 			}
 
 			if authUser == nil {
 				// Check username and password
 				authUser, err = models.UserSignIn(authUsername, authPasswd)
 				if err != nil {
-					if !models.IsErrUserNotExist(err) {
+					if models.IsErrUserProhibitLogin(err) {
+						ctx.HandleText(http.StatusForbidden, "User is not permitted to login")
+						return
+					} else if !models.IsErrUserNotExist(err) {
 						ctx.ServerError("UserSignIn error: %v", err)
 						return
 					}
 				}
 
 				if authUser == nil {
-					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+					ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
 					return
 				}
 
@@ -239,20 +247,22 @@ func HTTP(ctx *context.Context) {
 			}
 		}
 
-		perm, err := models.GetUserRepoPermission(repo, authUser)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
-			return
-		}
+		if repoExist {
+			perm, err := models.GetUserRepoPermission(repo, authUser)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
 
-		if !perm.CanAccess(accessMode, unitType) {
-			ctx.HandleText(http.StatusForbidden, "User permission denied")
-			return
-		}
+			if !perm.CanAccess(accessMode, unitType) {
+				ctx.HandleText(http.StatusForbidden, "User permission denied")
+				return
+			}
 
-		if !isPull && repo.IsMirror {
-			ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
-			return
+			if !isPull && repo.IsMirror {
+				ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
+				return
+			}
 		}
 
 		environ = []string{
@@ -260,7 +270,7 @@ func HTTP(ctx *context.Context) {
 			models.EnvRepoName + "=" + reponame,
 			models.EnvPusherName + "=" + authUser.Name,
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
-			models.ProtectedBranchRepoID + fmt.Sprintf("=%d", repo.ID),
+			models.EnvIsDeployKey + "=false",
 		}
 
 		if !authUser.KeepEmailPrivate {
@@ -274,11 +284,129 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
-	HTTPBackend(ctx, &serviceConfig{
+	if !repoExist {
+		if !receivePack {
+			ctx.HandleText(http.StatusNotFound, "Repository not found")
+			return
+		}
+
+		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
+			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for organizations.")
+			return
+		}
+		if !owner.IsOrganization() && !setting.Repository.EnablePushCreateUser {
+			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for users.")
+			return
+		}
+
+		// Return dummy payload if GET receive-pack
+		if ctx.Req.Method == http.MethodGet {
+			dummyInfoRefs(ctx)
+			return
+		}
+
+		repo, err = repo_service.PushCreateRepo(authUser, owner, reponame)
+		if err != nil {
+			log.Error("pushCreateRepo: %v", err)
+			ctx.Status(http.StatusNotFound)
+			return
+		}
+	}
+
+	environ = append(environ, models.ProtectedBranchRepoID+fmt.Sprintf("=%d", repo.ID))
+
+	w := ctx.Resp
+	r := ctx.Req.Request
+	cfg := &serviceConfig{
 		UploadPack:  true,
 		ReceivePack: true,
 		Env:         environ,
-	})(ctx.Resp, ctx.Req.Request)
+	}
+
+	for _, route := range routes {
+		r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
+		if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
+			if setting.Repository.DisableHTTPGit {
+				w.WriteHeader(http.StatusForbidden)
+				_, err := w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+				if err != nil {
+					log.Error(err.Error())
+				}
+				return
+			}
+			if route.method != r.Method {
+				if r.Proto == "HTTP/1.1" {
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					_, err := w.Write([]byte("Method Not Allowed"))
+					if err != nil {
+						log.Error(err.Error())
+					}
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					_, err := w.Write([]byte("Bad Request"))
+					if err != nil {
+						log.Error(err.Error())
+					}
+				}
+				return
+			}
+
+			file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
+			dir, err := getGitRepoPath(m[1])
+			if err != nil {
+				log.Error(err.Error())
+				ctx.NotFound("Smart Git HTTP", err)
+				return
+			}
+
+			route.handler(serviceHandler{cfg, w, r, dir, file, cfg.Env})
+			return
+		}
+	}
+
+	ctx.NotFound("Smart Git HTTP", nil)
+}
+
+var (
+	infoRefsCache []byte
+	infoRefsOnce  sync.Once
+)
+
+func dummyInfoRefs(ctx *context.Context) {
+	infoRefsOnce.Do(func() {
+		tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-info-refs-cache")
+		if err != nil {
+			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
+			return
+		}
+
+		defer func() {
+			if err := os.RemoveAll(tmpDir); err != nil {
+				log.Error("RemoveAll: %v", err)
+			}
+		}()
+
+		if err := git.InitRepository(tmpDir, true); err != nil {
+			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
+			return
+		}
+
+		refs, err := git.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
+		if err != nil {
+			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
+		}
+
+		log.Debug("populating infoRefsCache: \n%s", string(refs))
+		infoRefsCache = refs
+	})
+
+	ctx.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
+	ctx.Header().Set("Pragma", "no-cache")
+	ctx.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+	ctx.Header().Set("Content-Type", "application/x-git-receive-pack-advertisement")
+	_, _ = ctx.Write(packetWrite("# service=git-receive-pack\n"))
+	_, _ = ctx.Write([]byte("0000"))
+	_, _ = ctx.Write(infoRefsCache)
 }
 
 type serviceConfig struct {
@@ -332,32 +460,24 @@ type route struct {
 }
 
 var routes = []route{
-	{regexp.MustCompile("(.*?)/git-upload-pack$"), "POST", serviceUploadPack},
-	{regexp.MustCompile("(.*?)/git-receive-pack$"), "POST", serviceReceivePack},
-	{regexp.MustCompile("(.*?)/info/refs$"), "GET", getInfoRefs},
-	{regexp.MustCompile("(.*?)/HEAD$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/info/alternates$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/info/http-alternates$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/info/packs$"), "GET", getInfoPacks},
-	{regexp.MustCompile("(.*?)/objects/info/[^/]*$"), "GET", getTextFile},
-	{regexp.MustCompile("(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$"), "GET", getLooseObject},
-	{regexp.MustCompile("(.*?)/objects/pack/pack-[0-9a-f]{40}\\.pack$"), "GET", getPackFile},
-	{regexp.MustCompile("(.*?)/objects/pack/pack-[0-9a-f]{40}\\.idx$"), "GET", getIdxFile},
-}
-
-// FIXME: use process module
-func gitCommand(dir string, args ...string) []byte {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	out, err := cmd.Output()
-	if err != nil {
-		log.GitLogger.Error(fmt.Sprintf("%v - %s", err, out))
-	}
-	return out
+	{regexp.MustCompile(`(.*?)/git-upload-pack$`), "POST", serviceUploadPack},
+	{regexp.MustCompile(`(.*?)/git-receive-pack$`), "POST", serviceReceivePack},
+	{regexp.MustCompile(`(.*?)/info/refs$`), "GET", getInfoRefs},
+	{regexp.MustCompile(`(.*?)/HEAD$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/alternates$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/http-alternates$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/info/packs$`), "GET", getInfoPacks},
+	{regexp.MustCompile(`(.*?)/objects/info/[^/]*$`), "GET", getTextFile},
+	{regexp.MustCompile(`(.*?)/objects/[0-9a-f]{2}/[0-9a-f]{38}$`), "GET", getLooseObject},
+	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.pack$`), "GET", getPackFile},
+	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
 }
 
 func getGitConfig(option, dir string) string {
-	out := string(gitCommand(dir, "config", option))
+	out, err := git.NewCommand("config", option).RunInDir(dir)
+	if err != nil {
+		log.Error("%v - %s", err, out)
+	}
 	return out[0 : len(out)-1]
 }
 
@@ -393,7 +513,12 @@ func hasAccess(service string, h serviceHandler, checkContentType bool) bool {
 }
 
 func serviceRPC(h serviceHandler, service string) {
-	defer h.r.Body.Close()
+	defer func() {
+		if err := h.r.Body.Close(); err != nil {
+			log.Error("serviceRPC: Close: %v", err)
+		}
+
+	}()
 
 	if !hasAccess(service, h, true) {
 		h.w.WriteHeader(http.StatusUnauthorized)
@@ -409,7 +534,7 @@ func serviceRPC(h serviceHandler, service string) {
 	if h.r.Header.Get("Content-Encoding") == "gzip" {
 		reqBody, err = gzip.NewReader(reqBody)
 		if err != nil {
-			log.GitLogger.Error("Fail to create gzip reader: %v", err)
+			log.Error("Fail to create gzip reader: %v", err)
 			h.w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -418,8 +543,10 @@ func serviceRPC(h serviceHandler, service string) {
 	// set this for allow pre-receive and post-receive execute
 	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
 
+	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
+	defer cancel()
 	var stderr bytes.Buffer
-	cmd := exec.Command("git", service, "--stateless-rpc", h.dir)
+	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
 	if service == "receive-pack" {
 		cmd.Env = append(os.Environ(), h.environ...)
@@ -427,8 +554,12 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
+
+	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
+	defer process.GetManager().Remove(pid)
+
 	if err := cmd.Run(); err != nil {
-		log.GitLogger.Error("Fail to serve RPC(%s): %v - %v", service, err, stderr)
+		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
 		return
 	}
 }
@@ -450,7 +581,11 @@ func getServiceType(r *http.Request) string {
 }
 
 func updateServerInfo(dir string) []byte {
-	return gitCommand(dir, "update-server-info")
+	out, err := git.NewCommand("update-server-info").RunInDirBytes(dir)
+	if err != nil {
+		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
+	}
+	return out
 }
 
 func packetWrite(str string) []byte {
@@ -465,13 +600,16 @@ func getInfoRefs(h serviceHandler) {
 	h.setHeaderNoCache()
 	if hasAccess(getServiceType(h.r), h, false) {
 		service := getServiceType(h.r)
-		refs := gitCommand(h.dir, service, "--stateless-rpc", "--advertise-refs", ".")
+		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(h.dir)
+		if err != nil {
+			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
+		}
 
 		h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))
 		h.w.WriteHeader(http.StatusOK)
-		h.w.Write(packetWrite("# service=git-" + service + "\n"))
-		h.w.Write([]byte("0000"))
-		h.w.Write(refs)
+		_, _ = h.w.Write(packetWrite("# service=git-" + service + "\n"))
+		_, _ = h.w.Write([]byte("0000"))
+		_, _ = h.w.Write(refs)
 	} else {
 		updateServerInfo(h.dir)
 		h.sendFile("text/plain; charset=utf-8")
@@ -514,44 +652,4 @@ func getGitRepoPath(subdir string) (string, error) {
 	}
 
 	return fpath, nil
-}
-
-// HTTPBackend middleware for git smart HTTP protocol
-func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		for _, route := range routes {
-			r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
-			if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
-				if setting.Repository.DisableHTTPGit {
-					w.WriteHeader(http.StatusForbidden)
-					w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
-					return
-				}
-				if route.method != r.Method {
-					if r.Proto == "HTTP/1.1" {
-						w.WriteHeader(http.StatusMethodNotAllowed)
-						w.Write([]byte("Method Not Allowed"))
-					} else {
-						w.WriteHeader(http.StatusBadRequest)
-						w.Write([]byte("Bad Request"))
-					}
-					return
-				}
-
-				file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
-				dir, err := getGitRepoPath(m[1])
-				if err != nil {
-					log.GitLogger.Error(err.Error())
-					ctx.NotFound("HTTPBackend", err)
-					return
-				}
-
-				route.handler(serviceHandler{cfg, w, r, dir, file, cfg.Env})
-				return
-			}
-		}
-
-		ctx.NotFound("HTTPBackend", nil)
-		return
-	}
 }

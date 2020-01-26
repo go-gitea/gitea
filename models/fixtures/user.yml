@@ -6,6 +6,7 @@
   name: user1
   full_name: User One
   email: user1@example.com
+  email_notifications_preference: enabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
@@ -22,13 +23,14 @@
   full_name: "   < U<se>r Tw<o > ><  "
   email: user2@example.com
   keep_email_private: true
+  email_notifications_preference: enabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
   avatar: avatar2
   avatar_email: user2@example.com
-  num_repos: 8
+  num_repos: 9
   num_stars: 2
   num_followers: 2
   num_following: 1
@@ -40,6 +42,7 @@
   name: user3
   full_name: " <<<< >> >> > >> > >>> >> "
   email: user3@example.com
+  email_notifications_preference: onmention
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 1 # organization
   salt: ZogKvWdyEx
@@ -47,8 +50,8 @@
   avatar: avatar3
   avatar_email: user3@example.com
   num_repos: 3
-  num_members: 2
-  num_teams: 3
+  num_members: 3
+  num_teams: 4
 
 -
   id: 4
@@ -56,6 +59,7 @@
   name: user4
   full_name: "          "
   email: user4@example.com
+  email_notifications_preference: onmention
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
@@ -72,6 +76,7 @@
   name: user5
   full_name: User Five
   email: user5@example.com
+  email_notifications_preference: enabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
@@ -89,6 +94,7 @@
   name: user6
   full_name: User Six
   email: user6@example.com
+  email_notifications_preference: enabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 1 # organization
   salt: ZogKvWdyEx
@@ -96,8 +102,8 @@
   avatar: avatar6
   avatar_email: user6@example.com
   num_repos: 0
-  num_members: 1
-  num_teams: 1
+  num_members: 2
+  num_teams: 2
 
 -
   id: 7
@@ -105,6 +111,7 @@
   name: user7
   full_name: User Seven
   email: user7@example.com
+  email_notifications_preference: disabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 1 # organization
   salt: ZogKvWdyEx
@@ -121,6 +128,7 @@
   name: user8
   full_name: User Eight
   email: user8@example.com
+  email_notifications_preference: enabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
@@ -138,6 +146,7 @@
   name: user9
   full_name: User Nine
   email: user9@example.com
+  email_notifications_preference: onmention
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
@@ -266,7 +275,7 @@
   avatar_email: user17@example.com
   num_repos: 2
   is_active: true
-  num_members: 2
+  num_members: 3
   num_teams: 3
 
 -
@@ -366,3 +375,106 @@
   num_members: 0
   num_teams: 0
   visibility: 2
+
+-
+  id: 24
+  lower_name: user24
+  name: user24
+  full_name: "user24"
+  email: user24@example.com
+  keep_email_private: true
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 0 # individual
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar24
+  avatar_email: user24@example.com
+  num_repos: 0
+  num_stars: 0
+  num_followers: 0
+  num_following: 0
+  is_active: true
+
+-
+  id: 25
+  lower_name: org25
+  name: org25
+  full_name: "org25"
+  email: org25@example.com
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 1 # organization
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar25
+  avatar_email: org25@example.com
+  num_repos: 0
+  num_members: 1
+  num_teams: 1
+
+-
+  id: 26
+  lower_name: org26
+  name: org26
+  full_name: "Org26"
+  email: org26@example.com
+  email_notifications_preference: onmention
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 1 # organization
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar26
+  avatar_email: org26@example.com
+  num_repos: 4
+  num_members: 0
+  num_teams: 1
+  repo_admin_change_team_access: true
+
+-
+  id: 27
+  lower_name: user27
+  name: user27
+  full_name: User Twenty-Seven
+  email: user27@example.com
+  email_notifications_preference: enabled
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 0 # individual
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar27
+  avatar_email: user27@example.com
+  num_repos: 2
+
+-
+  id: 28
+  lower_name: user28
+  name: user28
+  full_name: "user27"
+  email: user28@example.com
+  keep_email_private: true
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 0 # individual
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar28
+  avatar_email: user28@example.com
+  num_repos: 0
+  num_stars: 0
+  num_followers: 0
+  num_following: 0
+  is_active: true
+
+-
+  id: 29
+  lower_name: user29
+  name: user29
+  full_name: User 29
+  email: user29@example.com
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 0 # individual
+  salt: ZogKvWdyEx
+  is_admin: false
+  is_restricted: true
+  avatar: avatar29
+  avatar_email: user29@example.com
+  num_repos: 0
+  is_active: true

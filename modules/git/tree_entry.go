@@ -108,6 +108,11 @@ func (te *TreeEntry) IsRegular() bool {
 	return te.gogitTreeEntry.Mode == filemode.Regular
 }
 
+// IsExecutable if the entry is an executable file (not necessarily binary)
+func (te *TreeEntry) IsExecutable() bool {
+	return te.gogitTreeEntry.Mode == filemode.Executable
+}
+
 // Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
 	encodedObj, err := te.ptree.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, te.gogitTreeEntry.Hash)

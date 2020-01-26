@@ -13,17 +13,18 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
-
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	gouuid "github.com/satori/go.uuid"
-	ini "gopkg.in/ini.v1"
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	gouuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
+	ini "gopkg.in/ini.v1"
+	"xorm.io/xorm"
 )
 
 const minDBVersion = 4
@@ -224,6 +225,88 @@ var migrations = []Migration{
 	// v84 -> v85
 	NewMigration("add table to store original imported gpg keys", addGPGKeyImport),
 	// v85 -> v86
+	NewMigration("hash application token", hashAppToken),
+	// v86 -> v87
+	NewMigration("add http method to webhook", addHTTPMethodToWebhook),
+	// v87 -> v88
+	NewMigration("add avatar field to repository", addAvatarFieldToRepository),
+	// v88 -> v89
+	NewMigration("add commit status context field to commit_status", addCommitStatusContext),
+	// v89 -> v90
+	NewMigration("add original author/url migration info to issues, comments, and repo ", addOriginalMigrationInfo),
+	// v90 -> v91
+	NewMigration("change length of some repository columns", changeSomeColumnsLengthOfRepo),
+	// v91 -> v92
+	NewMigration("add index on owner_id of repository and type, review_id of comment", addIndexOnRepositoryAndComment),
+	// v92 -> v93
+	NewMigration("remove orphaned repository index statuses", removeLingeringIndexStatus),
+	// v93 -> v94
+	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
+	// v94 -> v95
+	NewMigration("add enable_status_check, status_check_contexts to protected_branch", addStatusCheckColumnsForProtectedBranches),
+	// v95 -> v96
+	NewMigration("add table columns for cross referencing issues", addCrossReferenceColumns),
+	// v96 -> v97
+	NewMigration("delete orphaned attachments", deleteOrphanedAttachments),
+	// v97 -> v98
+	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
+	// v98 -> v99
+	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
+	// v99 -> v100
+	NewMigration("add task table and status column for repository table", addTaskTable),
+	// v100 -> v101
+	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
+	// v101 -> v102
+	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
+	// v102 -> v103
+	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
+	// v103 -> v104
+	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
+	// v104 -> v105
+	NewMigration("remove unnecessary columns from label", removeLabelUneededCols),
+	// v105 -> v106
+	NewMigration("add includes_all_repositories to teams", addTeamIncludesAllRepositories),
+	// v106 -> v107
+	NewMigration("add column `mode` to table watch", addModeColumnToWatch),
+	// v107 -> v108
+	NewMigration("Add template options to repository", addTemplateToRepo),
+	// v108 -> v109
+	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
+	// v109 -> v110
+	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
+	// v110 -> v111
+	NewMigration("change review content type to text", changeReviewContentToText),
+	// v111 -> v112
+	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
+	// v112 -> v113
+	NewMigration("remove release attachments which repository deleted", removeAttachmentMissedRepo),
+	// v113 -> v114
+	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
+	// v114 -> v115
+	NewMigration("Remove authentication credentials from stored URL", sanitizeOriginalURL),
+	// v115 -> v116
+	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
+	// v116 -> v117
+	NewMigration("Extend TrackedTimes", extendTrackedTimes),
+	// v117 -> v118
+	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
+	// v118 -> v119
+	NewMigration("Add commit id and stale to reviews", addReviewCommitAndStale),
+	// v119 -> v120
+	NewMigration("Fix migrated repositories' git service type", fixMigratedRepositoryServiceType),
+	// v120 -> v121
+	NewMigration("Add owner_name on table repository", addOwnerNameOnRepository),
+	// v121 -> v122
+	NewMigration("add is_restricted column for users table", addIsRestricted),
+	// v122 -> v123
+	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
+	// v123 -> v124
+	NewMigration("Add original informations for reactions", addReactionOriginals),
+	// v124 -> v125
+	NewMigration("Add columns to user and repository", addUserRepoMissingColumns),
+	// v125 -> v126
+	NewMigration("Add some columns on review for migration", addReviewMigrateInfo),
+	// v126 -> v127
 	NewMigration("create repo transfer table", addRepoTransfer),
 }
 
@@ -262,7 +345,7 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 		return err
 	}
 	for i, m := range migrations[v-minDBVersion:] {
-		log.Info("Migration: %s", m.Description())
+		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
 		if err = m.Migrate(x); err != nil {
 			return fmt.Errorf("do migrate: %v", err)
 		}
@@ -278,11 +361,114 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 	if tableName == "" || len(columnNames) == 0 {
 		return nil
 	}
+	// TODO: This will not work if there are foreign keys
 
 	switch {
-	case setting.UseSQLite3:
-		log.Warn("Unable to drop columns in SQLite")
-	case setting.UseMySQL, setting.UseTiDB, setting.UsePostgreSQL:
+	case setting.Database.UseSQLite3:
+		// First drop the indexes on the columns
+		res, errIndex := sess.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
+		if errIndex != nil {
+			return errIndex
+		}
+		for _, row := range res {
+			indexName := row["name"]
+			indexRes, err := sess.Query(fmt.Sprintf("PRAGMA index_info(`%s`)", indexName))
+			if err != nil {
+				return err
+			}
+			if len(indexRes) != 1 {
+				continue
+			}
+			indexColumn := string(indexRes[0]["name"])
+			for _, name := range columnNames {
+				if name == indexColumn {
+					_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		// Here we need to get the columns from the original table
+		sql := fmt.Sprintf("SELECT sql FROM sqlite_master WHERE tbl_name='%s' and type='table'", tableName)
+		res, err := sess.Query(sql)
+		if err != nil {
+			return err
+		}
+		tableSQL := string(res[0]["sql"])
+
+		// Separate out the column definitions
+		tableSQL = tableSQL[strings.Index(tableSQL, "("):]
+
+		// Remove the required columnNames
+		for _, name := range columnNames {
+			tableSQL = regexp.MustCompile(regexp.QuoteMeta("`"+name+"`")+"[^`,)]*?[,)]").ReplaceAllString(tableSQL, "")
+		}
+
+		// Ensure the query is ended properly
+		tableSQL = strings.TrimSpace(tableSQL)
+		if tableSQL[len(tableSQL)-1] != ')' {
+			if tableSQL[len(tableSQL)-1] == ',' {
+				tableSQL = tableSQL[:len(tableSQL)-1]
+			}
+			tableSQL += ")"
+		}
+
+		// Find all the columns in the table
+		columns := regexp.MustCompile("`([^`]*)`").FindAllString(tableSQL, -1)
+
+		tableSQL = fmt.Sprintf("CREATE TABLE `new_%s_new` ", tableName) + tableSQL
+		if _, err := sess.Exec(tableSQL); err != nil {
+			return err
+		}
+
+		// Now restore the data
+		columnsSeparated := strings.Join(columns, ",")
+		insertSQL := fmt.Sprintf("INSERT INTO `new_%s_new` (%s) SELECT %s FROM %s", tableName, columnsSeparated, columnsSeparated, tableName)
+		if _, err := sess.Exec(insertSQL); err != nil {
+			return err
+		}
+
+		// Now drop the old table
+		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
+			return err
+		}
+
+		// Rename the table
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `new_%s_new` RENAME TO `%s`", tableName, tableName)); err != nil {
+			return err
+		}
+
+	case setting.Database.UsePostgreSQL:
+		cols := ""
+		for _, col := range columnNames {
+			if cols != "" {
+				cols += ", "
+			}
+			cols += "DROP COLUMN `" + col + "` CASCADE"
+		}
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
+			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
+		}
+	case setting.Database.UseMySQL:
+		// Drop indexes on columns first
+		sql := fmt.Sprintf("SHOW INDEX FROM %s WHERE column_name IN ('%s')", tableName, strings.Join(columnNames, "','"))
+		res, err := sess.Query(sql)
+		if err != nil {
+			return err
+		}
+		for _, index := range res {
+			indexName := index["column_name"]
+			if len(indexName) > 0 {
+				_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		// Now drop the columns
 		cols := ""
 		for _, col := range columnNames {
 			if cols != "" {
@@ -293,7 +479,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-	case setting.UseMSSQL:
+	case setting.Database.UseMSSQL:
 		cols := ""
 		for _, col := range columnNames {
 			if cols != "" {
@@ -395,7 +581,7 @@ func trimCommitActionAppURLPrefix(x *xorm.Engine) error {
 			return fmt.Errorf("marshal action content[%d]: %v", actID, err)
 		}
 
-		if _, err = sess.Id(actID).Update(&Action{
+		if _, err = sess.ID(actID).Update(&Action{
 			Content: string(p),
 		}); err != nil {
 			return fmt.Errorf("update action[%d]: %v", actID, err)
@@ -499,7 +685,7 @@ func attachmentRefactor(x *xorm.Engine) error {
 
 	// Update database first because this is where error happens the most often.
 	for _, attach := range attachments {
-		if _, err = sess.Id(attach.ID).Update(attach); err != nil {
+		if _, err = sess.ID(attach.ID).Update(attach); err != nil {
 			return err
 		}
 
@@ -577,7 +763,7 @@ func renamePullRequestFields(x *xorm.Engine) (err error) {
 		if pull.Index == 0 {
 			continue
 		}
-		if _, err = sess.Id(pull.ID).Update(pull); err != nil {
+		if _, err = sess.ID(pull.ID).Update(pull); err != nil {
 			return err
 		}
 	}
@@ -657,7 +843,7 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 		if org.Salt, err = generate.GetRandomString(10); err != nil {
 			return err
 		}
-		if _, err = sess.Id(org.ID).Update(org); err != nil {
+		if _, err = sess.ID(org.ID).Update(org); err != nil {
 			return err
 		}
 	}

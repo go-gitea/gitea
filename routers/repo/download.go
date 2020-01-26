@@ -12,9 +12,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // ServeData download file from io.Reader
@@ -32,15 +34,23 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	name = strings.Replace(name, ",", " ", -1)
 
 	if base.IsTextFile(buf) || ctx.QueryBool("render") {
-		ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		cs, err := charset.DetectEncoding(buf)
+		if err != nil {
+			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)
+			cs = "utf-8"
+		}
+		ctx.Resp.Header().Set("Content-Type", "text/plain; charset="+strings.ToLower(cs))
 	} else if base.IsImageFile(buf) || base.IsPDFFile(buf) {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
 	} else {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 	}
 
-	ctx.Resp.Write(buf)
-	_, err := io.Copy(ctx.Resp, reader)
+	_, err := ctx.Resp.Write(buf)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(ctx.Resp, reader)
 	return err
 }
 
@@ -50,7 +60,11 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 	if err != nil {
 		return err
 	}
-	defer dataRc.Close()
+	defer func() {
+		if err = dataRc.Close(); err != nil {
+			log.Error("ServeBlob: Close: %v", err)
+		}
+	}()
 
 	return ServeData(ctx, ctx.Repo.TreePath, dataRc)
 }
@@ -61,7 +75,11 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 	if err != nil {
 		return err
 	}
-	defer dataRc.Close()
+	defer func() {
+		if err = dataRc.Close(); err != nil {
+			log.Error("ServeBlobOrLFS: Close: %v", err)
+		}
+	}()
 
 	if meta, _ := lfs.ReadPointerFile(dataRc); meta != nil {
 		meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
@@ -72,6 +90,11 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 		if err != nil {
 			return err
 		}
+		defer func() {
+			if err = lfsDataRc.Close(); err != nil {
+				log.Error("ServeBlobOrLFS: Close: %v", err)
+			}
+		}()
 		return ServeData(ctx, ctx.Repo.TreePath, lfsDataRc)
 	}
 

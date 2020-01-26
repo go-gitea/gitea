@@ -1,0 +1,9 @@
+{{range .Attachments}}
+  <a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+    {{if FilenameIsImage .Name}}
+      <img class="ui image" src="{{.DownloadURL}}" title='{{$.ctx.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
+    {{else}}
+      <span class="ui image octicon octicon-desktop-download" title='{{$.ctx.i18n.Tr "repo.issues.attachment.download" .Name}}'></span>
+    {{end}}
+  </a>
+{{end}}

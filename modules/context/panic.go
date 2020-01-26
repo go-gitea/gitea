@@ -20,7 +20,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-	macaron "gopkg.in/macaron.v1"
+
+	"gitea.com/macaron/macaron"
 )
 
 // Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
@@ -30,7 +31,7 @@ func Recovery() macaron.Handler {
 	return func(ctx *Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				combinedErr := fmt.Errorf("%s\n%s", err, string(log.Stack(2)))
+				combinedErr := fmt.Errorf("%s\n%s", err, log.Stack(2))
 				ctx.ServerError("PANIC:", combinedErr)
 			}
 		}()

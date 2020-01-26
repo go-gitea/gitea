@@ -13,7 +13,7 @@ import (
 )
 
 func TestOrgRepos(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	var (
 		users = []string{"user1", "user2"}
@@ -43,7 +43,7 @@ func TestOrgRepos(t *testing.T) {
 }
 
 func TestLimitedOrg(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	// not logged in user
 	req := NewRequest(t, "GET", "/limited_org")
@@ -73,7 +73,7 @@ func TestLimitedOrg(t *testing.T) {
 }
 
 func TestPrivateOrg(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	// not logged in user
 	req := NewRequest(t, "GET", "/privated_org")
@@ -89,6 +89,15 @@ func TestPrivateOrg(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
+	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// non-org member who is collaborator on repo in private org
+	session = loginUser(t, "user4")
+	req = NewRequest(t, "GET", "/privated_org")
+	session.MakeRequest(t, req, http.StatusNotFound)
+	req = NewRequest(t, "GET", "/privated_org/public_repo_on_private_org") // colab of this repo
+	session.MakeRequest(t, req, http.StatusOK)
 	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusNotFound)
 

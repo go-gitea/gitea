@@ -34,11 +34,11 @@
 				<table class="ui unstackable striped very compact small selectable table">
 					<tbody>
 						{{range $notification := .Notifications}}
-							{{$issue := $notification.GetIssue}}
-							{{$repo := $notification.GetRepo}}
+							{{$issue := $notification.Issue}}
+							{{$repo := $notification.Repository}}
 							{{$repoOwner := $repo.MustOwner}}
 
-							<tr data-href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
+							<tr data-href="{{$notification.HTMLURL}}">
 								<td class="collapsing">
 									{{if eq $notification.Status 3}}
 										<i class="blue octicon octicon-pin"></i>
@@ -68,6 +68,7 @@
 
 									{{ else }}
 									<a class="item" href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
+									<a class="item" href="{{$notification.HTMLURL}}">
 										#{{$issue.Index}} - {{$issue.Title}}
 									</a>
 									{{ end }}
@@ -95,6 +96,7 @@
 											{{$.CsrfTokenHtml}}
 											<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 											<input type="hidden" name="status" value="read" />
+											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
 											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_read"}}'>
 												<i class="octicon octicon-check"></i>
 											</button>
@@ -104,6 +106,7 @@
 											{{$.CsrfTokenHtml}}
 											<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 											<input type="hidden" name="status" value="unread" />
+											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
 											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_unread"}}'>
 												<i class="octicon octicon-bell"></i>
 											</button>

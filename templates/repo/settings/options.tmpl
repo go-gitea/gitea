@@ -15,6 +15,17 @@
 					<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
 				</div>
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.repo_size"}}</label>
+					<span>{{SizeFmt .Repository.Size}}</span>
+				</div>
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.template"}}</label>
+					<div class="ui checkbox">
+						<input name="template" type="checkbox" {{if .Repository.IsTemplate}}checked{{end}}>
+						<label>{{.i18n.Tr "repo.template_helper"}}</label>
+					</div>
+				</div>
 				{{if not .Repository.IsFork}}
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
@@ -41,6 +52,22 @@
 					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
+
+			<div class="ui divider"></div>
+
+			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+				{{.CsrfTokenHtml}}
+				<div class="inline field">
+					<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+					<input name="avatar" type="file" >
+				</div>
+
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "settings.update_avatar"}}</button>
+					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.i18n.Tr "settings.delete_current_avatar"}}</a>
+				</div>
+			</form>
+
 		</div>
 
 		{{if .Repository.IsMirror}}
@@ -64,8 +91,25 @@
 					</div>
 					<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 						<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
-						<input id="mirror_address" name="mirror_address" value="{{.Mirror.FullAddress}}" required>
+						<input id="mirror_address" name="mirror_address" value="{{MirrorFullAddress .Mirror}}" required>
 						<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
+					</div>
+					<div class="ui accordion optional field">
+						<label class="ui title {{if .Err_Auth}}text red active{{end}}">
+							<i class="icon dropdown"></i>
+							<label for="">{{.i18n.Tr "repo.need_auth"}}</label>
+						</label>
+						<div class="content {{if .Err_Auth}}active{{else if (MirrorUserName .Mirror)}}active{{end}}">
+							<div class="inline field {{if .Err_Auth}}error{{end}}">
+								<label for="mirror_username">{{.i18n.Tr "username"}}</label>
+								<input id="mirror_username" name="mirror_username" value="{{MirrorUserName .Mirror}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
+							</div>
+							<input class="fake" type="password">
+							<div class="inline field {{if .Err_Auth}}error{{end}}">
+								<label for="mirror_password">{{.i18n.Tr "password"}}</label>
+								<input id="mirror_password" name="mirror_password" type="password" value="{{MirrorPassword .Mirror}}" {{if not .mirror_password}}data-need-clear="true"{{end}}>
+							</div>
+						</div>
 					</div>
 
 					<div class="field">
@@ -100,20 +144,32 @@
 				{{$isWikiEnabled := or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.wiki"}}</label>
+					{{if and (.UnitTypeWiki.UnitGlobalDisabled) (.UnitTypeExternalWiki.UnitGlobalDisabled)}}
+					<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+					{{else}}
 					<div class="ui checkbox">
+					{{end}}
 						<input class="enable-system" name="enable_wiki" type="checkbox" data-target="#wiki_box" {{if $isWikiEnabled}}checked{{end}}>
 						<label>{{.i18n.Tr "repo.settings.wiki_desc"}}</label>
 					</div>
 				</div>
 				<div class="field {{if not $isWikiEnabled}}disabled{{end}}" id="wiki_box">
 					<div class="field">
+						{{if .UnitTypeWiki.UnitGlobalDisabled}}
+						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+						{{else}}
 						<div class="ui radio checkbox">
+						{{end}}
 							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
 					<div class="field">
+						{{if .UnitTypeExternalWiki.UnitGlobalDisabled}}
+						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+						{{else}}
 						<div class="ui radio checkbox">
+						{{end}}
 							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.UnitTypeExternalWiki}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
@@ -130,14 +186,22 @@
 				{{$isIssuesEnabled := or (.Repository.UnitEnabled $.UnitTypeIssues) (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.issues"}}</label>
+					{{if and (.UnitTypeIssues.UnitGlobalDisabled) (.UnitTypeExternalTracker.UnitGlobalDisabled)}}
+					<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+					{{else}}
 					<div class="ui checkbox">
+					{{end}}
 						<input class="enable-system" name="enable_issues" type="checkbox" data-target="#issue_box" {{if $isIssuesEnabled}}checked{{end}}>
 						<label>{{.i18n.Tr "repo.settings.issues_desc"}}</label>
 					</div>
 				</div>
 				<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
 					<div class="field">
+						{{if .UnitTypeIssues.UnitGlobalDisabled}}
+						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+						{{else}}
 						<div class="ui radio checkbox">
+						{{end}}
 							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
@@ -165,7 +229,11 @@
 							</div>
 					</div>
 					<div class="field">
+						{{if .UnitTypeExternalTracker.UnitGlobalDisabled}}
+						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+						{{else}}
 						<div class="ui radio checkbox">
+						{{end}}
 							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
@@ -207,7 +275,11 @@
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.pulls"}}</label>
+						{{if .UnitTypePullRequests.UnitGlobalDisabled}}
+						<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+						{{else}}
 						<div class="ui checkbox">
+						{{end}}
 							<input class="enable-system" name="enable_pulls" type="checkbox" data-target="#pull_box" {{if $pullRequestEnabled}}checked{{end}}>
 							<label>{{.i18n.Tr "repo.settings.pulls_desc"}}</label>
 						</div>

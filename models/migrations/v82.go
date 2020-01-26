@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
@@ -91,6 +91,7 @@ func fixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 				if err != nil {
 					return err
 				}
+				defer gitRepo.Close()
 				gitRepoCache[release.RepoID] = gitRepo
 			}
 

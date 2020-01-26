@@ -11,17 +11,19 @@
 			{{end}}
 			<div class="ui right">
 				{{if eq .HookType "gitea"}}
-					<img class="img-13" src="{{AppSubUrl}}/img/gitea-sm.png">
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/gitea-sm.png">
 				{{else if eq .HookType "gogs"}}
-					<img class="img-13" src="{{AppSubUrl}}/img/gogs.ico">
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/gogs.ico">
 				{{else if eq .HookType "slack"}}
-					<img class="img-13" src="{{AppSubUrl}}/img/slack.png">
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/slack.png">
 				{{else if eq .HookType "discord"}}
-					<img class="img-13" src="{{AppSubUrl}}/img/discord.png">
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/discord.png">
 				{{else if eq .HookType "dingtalk"}}
-					<img class="img-13" src="{{AppSubUrl}}/img/dingtalk.ico">
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/dingtalk.ico">
+				{{else if eq .HookType "telegram"}}
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/telegram.png">
 				{{else if eq .HookType "msteams"}}
-					<img class="img-13" src="{{AppSubUrl}}/img/msteams.png">
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/msteams.png">
 				{{end}}
 			</div>
 		</h4>
@@ -31,6 +33,7 @@
 			{{template "repo/settings/webhook/slack" .}}
 			{{template "repo/settings/webhook/discord" .}}
 			{{template "repo/settings/webhook/dingtalk" .}}
+			{{template "repo/settings/webhook/telegram" .}}
 			{{template "repo/settings/webhook/msteams" .}}
 		</div>
 

@@ -9,13 +9,16 @@ import (
 	"bytes"
 	"container/list"
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
+	gitealog "code.gitea.io/gitea/modules/log"
+	"github.com/unknwon/com"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/cache"
@@ -30,9 +33,24 @@ type Repository struct {
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
+	gpgSettings  *GPGSettings
+}
+
+// GPGSettings represents the default GPG settings for this repository
+type GPGSettings struct {
+	Sign             bool
+	KeyID            string
+	Email            string
+	Name             string
+	PublicKeyContent string
 }
 
 const prettyLogFormat = `--pretty=format:%H`
+
+// GetAllCommitsCount returns count of all commits in repository
+func (repo *Repository) GetAllCommitsCount() (int64, error) {
+	return AllCommitsCount(repo.Path)
+}
 
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {
 	l := list.New()
@@ -56,21 +74,21 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(url string) bool {
 	_, err := NewCommand("ls-remote", "-q", "-h", url, "HEAD").Run()
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // InitRepository initializes a new Git repository.
 func InitRepository(repoPath string, bare bool) error {
-	os.MkdirAll(repoPath, os.ModePerm)
+	err := os.MkdirAll(repoPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
 
 	cmd := NewCommand("init")
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, err := cmd.RunInDir(repoPath)
+	_, err = cmd.RunInDir(repoPath)
 	return err
 }
 
@@ -105,23 +123,62 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	}, nil
 }
 
+// Close this repository, in particular close the underlying gogitStorage if this is not nil
+func (repo *Repository) Close() {
+	if repo == nil || repo.gogitStorage == nil {
+		return
+	}
+	if err := repo.gogitStorage.Close(); err != nil {
+		gitealog.Error("Error closing storage: %v", err)
+	}
+}
+
+// GoGitRepo gets the go-git repo representation
+func (repo *Repository) GoGitRepo() *gogit.Repository {
+	return repo.gogitRepo
+}
+
+// IsEmpty Check if repository is empty.
+func (repo *Repository) IsEmpty() (bool, error) {
+	var errbuf strings.Builder
+	if err := NewCommand("log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
+		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
+			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
+			return true, nil
+		}
+		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
+	}
+
+	return false, nil
+}
+
 // CloneRepoOptions options when clone a repository
 type CloneRepoOptions struct {
-	Timeout time.Duration
-	Mirror  bool
-	Bare    bool
-	Quiet   bool
-	Branch  string
+	Timeout    time.Duration
+	Mirror     bool
+	Bare       bool
+	Quiet      bool
+	Branch     string
+	Shared     bool
+	NoCheckout bool
+	Depth      int
 }
 
 // Clone clones original repository to target path.
 func Clone(from, to string, opts CloneRepoOptions) (err error) {
+	cargs := make([]string, len(GlobalCommandArgs))
+	copy(cargs, GlobalCommandArgs)
+	return CloneWithArgs(from, to, cargs, opts)
+}
+
+// CloneWithArgs original repository to target path.
+func CloneWithArgs(from, to string, args []string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	cmd := NewCommand("clone")
+	cmd := NewCommandNoGlobals(args...).AddArguments("clone")
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
@@ -131,10 +188,20 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 	if opts.Quiet {
 		cmd.AddArguments("--quiet")
 	}
+	if opts.Shared {
+		cmd.AddArguments("-s")
+	}
+	if opts.NoCheckout {
+		cmd.AddArguments("--no-checkout")
+	}
+	if opts.Depth > 0 {
+		cmd.AddArguments("--depth", strconv.Itoa(opts.Depth))
+	}
+
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b", opts.Branch)
 	}
-	cmd.AddArguments(from, to)
+	cmd.AddArguments("--", from, to)
 
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
@@ -162,8 +229,7 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 	if opts.All {
 		cmd.AddArguments("--all")
 	} else {
-		cmd.AddArguments(opts.Remote)
-		cmd.AddArguments(opts.Branch)
+		cmd.AddArguments("--", opts.Remote, opts.Branch)
 	}
 
 	if opts.Timeout <= 0 {
@@ -179,6 +245,7 @@ type PushOptions struct {
 	Remote string
 	Branch string
 	Force  bool
+	Env    []string
 }
 
 // Push pushs local commits to given remote branch.
@@ -187,8 +254,8 @@ func Push(repoPath string, opts PushOptions) error {
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddArguments(opts.Remote, opts.Branch)
-	_, err := cmd.RunInDir(repoPath)
+	cmd.AddArguments("--", opts.Remote, opts.Branch)
+	_, err := cmd.RunInDirWithEnv(repoPath, opts.Env)
 	return err
 }
 
@@ -259,8 +326,8 @@ const (
 	statSizeGarbage  = "size-garbage: "
 )
 
-// GetRepoSize returns disk consumption for repo in path
-func GetRepoSize(repoPath string) (*CountObject, error) {
+// CountObjects returns the results of git count-objects on the repoPath
+func CountObjects(repoPath string) (*CountObject, error) {
 	cmd := NewCommand("count-objects", "-v")
 	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {
@@ -305,4 +372,41 @@ func GetLatestCommitTime(repoPath string) (time.Time, error) {
 	}
 	commitTime := strings.TrimSpace(stdout)
 	return time.Parse(GitTimeLayout, commitTime)
+}
+
+// DivergeObject represents commit count diverging commits
+type DivergeObject struct {
+	Ahead  int
+	Behind int
+}
+
+func checkDivergence(repoPath string, baseBranch string, targetBranch string) (int, error) {
+	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
+	cmd := NewCommand("rev-list", "--count", branches)
+	stdout, err := cmd.RunInDir(repoPath)
+	if err != nil {
+		return -1, err
+	}
+	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
+	if errInteger != nil {
+		return -1, errInteger
+	}
+	return outInteger, nil
+}
+
+// GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
+func GetDivergingCommits(repoPath string, baseBranch string, targetBranch string) (DivergeObject, error) {
+	// $(git rev-list --count master..feature) commits ahead of master
+	ahead, errorAhead := checkDivergence(repoPath, baseBranch, targetBranch)
+	if errorAhead != nil {
+		return DivergeObject{}, errorAhead
+	}
+
+	// $(git rev-list --count feature..master) commits behind master
+	behind, errorBehind := checkDivergence(repoPath, targetBranch, baseBranch)
+	if errorBehind != nil {
+		return DivergeObject{}, errorBehind
+	}
+
+	return DivergeObject{ahead, behind}, nil
 }

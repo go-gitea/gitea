@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 /**
  * Link to the project's GitHub page:
@@ -348,6 +348,10 @@ CodeMirror.defineMode("coffeescript", function(conf, parserConf) {
   };
   return external;
 });
+
+// IANA registered media type
+// https://www.iana.org/assignments/media-types/
+CodeMirror.defineMIME("application/vnd.coffeescript", "coffeescript");
 
 CodeMirror.defineMIME("text/x-coffeescript", "coffeescript");
 CodeMirror.defineMIME("text/coffeescript", "coffeescript");

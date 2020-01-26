@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func setProtectedBranchUpdatedWithCreated(x *xorm.Engine) (err error) {

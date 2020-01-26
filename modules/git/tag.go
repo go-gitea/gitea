@@ -7,6 +7,7 @@ package git
 import (
 	"bytes"
 	"sort"
+	"strings"
 )
 
 // Tag represents a Git tag.
@@ -59,7 +60,7 @@ l:
 			}
 			nextline += eol + 1
 		case eol == 0:
-			tag.Message = string(data[nextline+1:])
+			tag.Message = strings.TrimRight(string(data[nextline+1:]), "\n")
 			break l
 		default:
 			break l

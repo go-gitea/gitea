@@ -17,6 +17,7 @@ func TestRepository_GetBlob_Found(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "repo1_bare")
 	r, err := OpenRepository(repoPath)
 	assert.NoError(t, err)
+	defer r.Close()
 
 	testCases := []struct {
 		OID  string
@@ -44,6 +45,7 @@ func TestRepository_GetBlob_NotExist(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "repo1_bare")
 	r, err := OpenRepository(repoPath)
 	assert.NoError(t, err)
+	defer r.Close()
 
 	testCase := "0000000000000000000000000000000000000000"
 	testError := ErrNotExist{testCase, ""}
@@ -57,6 +59,7 @@ func TestRepository_GetBlob_NoId(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "repo1_bare")
 	r, err := OpenRepository(repoPath)
 	assert.NoError(t, err)
+	defer r.Close()
 
 	testCase := ""
 	testError := fmt.Errorf("Length must be 40: %s", testCase)

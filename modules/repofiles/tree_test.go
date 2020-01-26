@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,6 +21,8 @@ func TestGetTreeBySHA(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	sha := ctx.Repo.Repository.DefaultBranch
 	page := 1
 	perPage := 10

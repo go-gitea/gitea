@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Unknwon/paginater"
+	"github.com/unknwon/paginater"
 )
 
 // Pagination provides a pagination via Paginater and additional configurations for the link params used in rendering
@@ -39,7 +39,7 @@ func (p *Pagination) AddParam(ctx *Context, paramKey string, ctxKey string) {
 
 // GetParams returns the configured URL params
 func (p *Pagination) GetParams() template.URL {
-	return template.URL(strings.Join(p.urlParams[:], "&"))
+	return template.URL(strings.Join(p.urlParams, "&"))
 }
 
 // SetDefaultParams sets common pagination params that are often used

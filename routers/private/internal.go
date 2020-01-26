@@ -9,9 +9,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // CheckInternalToken check internal token is set
@@ -19,6 +22,7 @@ func CheckInternalToken(ctx *macaron.Context) {
 	tokens := ctx.Req.Header.Get("Authorization")
 	fields := strings.Fields(tokens)
 	if len(fields) != 2 || fields[0] != "Bearer" || fields[1] != setting.InternalToken {
+		log.Debug("Forbidden attempt to access internal url: Authorization header: %s", tokens)
 		ctx.Error(403)
 	}
 }
@@ -75,20 +79,15 @@ func CheckUnitUser(ctx *macaron.Context) {
 // RegisterRoutes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func RegisterRoutes(m *macaron.Macaron) {
+	bind := binding.Bind
+
 	m.Group("/", func() {
-		m.Get("/ssh/:id", GetPublicKeyByID)
-		m.Get("/ssh/:id/user", GetUserByKeyID)
-		m.Post("/ssh/:id/update", UpdatePublicKey)
-		m.Post("/repositories/:repoid/keys/:keyid/update", UpdateDeployKey)
-		m.Get("/repositories/:repoid/user/:userid/checkunituser", CheckUnitUser)
-		m.Get("/repositories/:repoid/has-keys/:keyid", HasDeployKey)
-		m.Get("/repositories/:repoid/keys/:keyid", GetDeployKey)
-		m.Get("/repositories/:repoid/wiki/init", InitWiki)
-		m.Post("/push/update", PushUpdate)
-		m.Get("/protectedbranch/:pbid/:userid", CanUserPush)
-		m.Get("/repo/:owner/:repo", GetRepositoryByOwnerAndName)
-		m.Get("/branch/:id/*", GetProtectedBranchBy)
-		m.Get("/repository/:rid", GetRepository)
-		m.Get("/active-pull-request", GetActivePullRequest)
+		m.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
+		m.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
+		m.Post("/hook/pre-receive/:owner/:repo", bind(private.HookOptions{}), HookPreReceive)
+		m.Post("/hook/post-receive/:owner/:repo", bind(private.HookOptions{}), HookPostReceive)
+		m.Post("/hook/set-default-branch/:owner/:repo/:branch", SetDefaultBranch)
+		m.Get("/serv/none/:keyid", ServNoCommand)
+		m.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
 	}, CheckInternalToken)
 }

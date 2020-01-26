@@ -6,17 +6,19 @@ package setting
 
 import (
 	"encoding/json"
+	"fmt"
 	golog "log"
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 
 	ini "gopkg.in/ini.v1"
 )
+
+var filenameSuffix = ""
 
 type defaultLogOptions struct {
 	levelName      string // LogLevel
@@ -113,8 +115,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 			panic(err.Error())
 		}
 
-		logConfig["colorize"] = sec.Key("COLORIZE").MustBool(runtime.GOOS != "windows")
-		logConfig["filename"] = logPath
+		logConfig["filename"] = logPath + filenameSuffix
 		logConfig["rotate"] = sec.Key("LOG_ROTATE").MustBool(true)
 		logConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
 		logConfig["daily"] = sec.Key("DAILY_ROTATE").MustBool(true)
@@ -130,7 +131,11 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 		logConfig["username"] = sec.Key("USER").MustString("example@example.com")
 		logConfig["password"] = sec.Key("PASSWD").MustString("******")
 		logConfig["host"] = sec.Key("HOST").MustString("127.0.0.1:25")
-		logConfig["sendTos"] = sec.Key("RECEIVERS").MustString("[]")
+		sendTos := strings.Split(sec.Key("RECEIVERS").MustString(""), ",")
+		for i, address := range sendTos {
+			sendTos[i] = strings.TrimSpace(address)
+		}
+		logConfig["sendTos"] = sendTos
 		logConfig["subject"] = sec.Key("SUBJECT").MustString("Diagnostic message from Gitea")
 	}
 
@@ -152,8 +157,6 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 
 	sections := strings.Split(Cfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
 
-	//description.Configs = make([]string, len(description.Sections))
-
 	for i := 0; i < len(sections); i++ {
 		sections[i] = strings.TrimSpace(sections[i])
 	}
@@ -169,7 +172,10 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 
 		provider, config, levelName := generateLogConfig(sec, name, options)
 
-		log.NewNamedLogger(key, options.bufferLength, name, provider, config)
+		if err := log.NewNamedLogger(key, options.bufferLength, name, provider, config); err != nil {
+			// Maybe panic here?
+			log.Error("Could not create new named logger: %v", err.Error())
+		}
 
 		description.SubLogDescriptions = append(description.SubLogDescriptions, SubLogDescription{
 			Name:     name,
@@ -198,7 +204,7 @@ func newMacaronLogService() {
 func newAccessLogService() {
 	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
 	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
-		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`)
+		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`)
 	Cfg.Section("log").Key("ACCESS").MustString("file")
 	if EnableAccessLog {
 		options := newDefaultLogOptions()
@@ -211,6 +217,8 @@ func newAccessLogService() {
 
 func newRouterLogService() {
 	Cfg.Section("log").Key("ROUTER").MustString("console")
+	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
+	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
 
 	if !DisableRouterLog && RedirectMacaronLog {
 		options := newDefaultLogOptions()
@@ -242,7 +250,10 @@ func newLogService() {
 	}
 
 	if !useConsole {
-		log.DelLogger("console")
+		err := log.DelLogger("console")
+		if err != nil {
+			log.Fatal("DelLogger: %v", err)
+		}
 	}
 
 	for _, name := range sections {
@@ -273,6 +284,12 @@ func newLogService() {
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 }
 
+// RestartLogsWithPIDSuffix restarts the logs with a PID suffix on files
+func RestartLogsWithPIDSuffix() {
+	filenameSuffix = fmt.Sprintf(".%d", os.Getpid())
+	NewLogServices(false)
+}
+
 // NewLogServices creates all the log services
 func NewLogServices(disableConsole bool) {
 	newLogService()
@@ -293,8 +310,5 @@ func NewXORMLogService(disableConsole bool) {
 
 		Cfg.Section("log").Key("XORM").MustString(",")
 		generateNamedLogger("xorm", options)
-		log.InitXORMLogger(LogSQL)
-	} else {
-		log.InitXORMLogger(false)
 	}
 }

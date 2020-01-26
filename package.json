@@ -1,9 +1,47 @@
 {
   "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=10"
+  },
+  "dependencies": {
+    "fomantic-ui": "2.8.3",
+    "jquery": "3.4.1",
+    "jquery-migrate": "3.1.0",
+    "swagger-ui": "3.24.3",
+    "vue-bar-graph": "1.2.0"
+  },
   "devDependencies": {
-    "autoprefixer": "9.4.7",
-    "less": "3.9.0",
-    "less-plugin-clean-css": "1.5.1",
-    "postcss-cli-simple": "3.0.0"
-  }
+    "@babel/core": "7.7.7",
+    "@babel/plugin-proposal-object-rest-spread": "7.7.7",
+    "@babel/plugin-transform-runtime": "7.7.6",
+    "@babel/preset-env": "7.7.7",
+    "@babel/runtime": "7.7.7",
+    "autoprefixer": "9.7.3",
+    "babel-loader": "8.0.6",
+    "core-js": "3.6.2",
+    "css-loader": "3.4.1",
+    "cssnano": "4.1.10",
+    "eslint": "6.8.0",
+    "eslint-config-airbnb-base": "14.0.0",
+    "eslint-plugin-import": "2.19.1",
+    "less": "3.10.3",
+    "mini-css-extract-plugin": "0.9.0",
+    "optimize-css-assets-webpack-plugin": "5.0.3",
+    "postcss-cli": "7.1.0",
+    "postcss-loader": "3.0.0",
+    "postcss-preset-env": "6.7.0",
+    "postcss-safe-parser": "4.0.1",
+    "stylelint": "12.0.1",
+    "stylelint-config-standard": "19.0.0",
+    "terser-webpack-plugin": "2.3.2",
+    "updates": "9.3.3",
+    "vue-loader": "15.8.3",
+    "vue-template-compiler": "2.6.11",
+    "webpack": "4.41.5",
+    "webpack-cli": "3.3.10"
+  },
+  "browserslist": [
+    "defaults"
+  ]
 }

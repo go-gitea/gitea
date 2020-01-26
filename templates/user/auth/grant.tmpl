@@ -13,10 +13,10 @@
 				</p>
 			</div>
 			<div class="ui attached segment">
-				<p>{{.i18n.Tr "auth.authroize_redirect_notice" .ApplicationRedirectDomainHTML | Str2html}}</p>
+				<p>{{.i18n.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML | Str2html}}</p>
 			</div>
 			<div class="ui attached segment">
-				<form method="post" action="{{.AppSubUrl}}/login/oauth/grant">
+				<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
 					<input type="hidden" name="state" value="{{.State}}">

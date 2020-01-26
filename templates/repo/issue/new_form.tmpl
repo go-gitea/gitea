@@ -13,9 +13,9 @@
 				</a>
 				<div class="ui segment content">
 					<div class="field">
-						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" tabindex="3" autofocus required>
+						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" tabindex="3" autofocus required maxlength="255">
 						{{if .PageIsComparePull}}
-							<span class="title_wip_desc">{{.i18n.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</span>
+							<div class="title_wip_desc">{{.i18n.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
 					</div>
 					{{template "repo/issue/comment_tab" .}}
@@ -46,7 +46,8 @@
 				<div class="filter menu" data-id="#label_ids">
 					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 					{{range .Labels}}
-						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon {{if .IsChecked}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon {{if .IsChecked}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 					{{end}}
 				</div>
 			</div>
@@ -112,7 +113,7 @@
 							<a class="item" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
 								<span class="octicon"></span>
 								<span class="text">
-									<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.Name}}
+									<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
 								</span>
 							</a>
 						{{end}}
@@ -124,7 +125,7 @@
 					</span>
 					{{range .Assignees}}
 						<a style="padding: 5px;color:rgba(0, 0, 0, 0.87);" class="hide item" id="assignee_{{.ID}}" href="{{$.RepoLink}}/issues?assignee={{.ID}}">
-							<img class="ui avatar image" src="{{.RelAvatarLink}}" style="vertical-align: middle;">&nbsp;{{.Name}}
+							<img class="ui avatar image" src="{{.RelAvatarLink}}" style="vertical-align: middle;">&nbsp;{{.GetDisplayName}}
 						</a>
 					{{end}}
 				</div>

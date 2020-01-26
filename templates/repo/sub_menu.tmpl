@@ -9,6 +9,9 @@
 			<div class="item{{if .PageIsBranches}} active{{end}}">
 				<a class="ui" href="{{.RepoLink}}/branches/"><i class="octicon octicon-git-branch"></i> <b>{{.BranchesCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .BranchesCount "repo.branch" "repo.branches") }}</a>
 			</div>
+			<div class="item">
+				<a class="ui" href="#"><i class="octicon octicon-database"></i> <b>{{SizeFmt .Repository.Size}}</b></a>
+			</div>
 		{{end}}
 	</div>
 </div>

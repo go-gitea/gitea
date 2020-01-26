@@ -14,7 +14,7 @@
 <script src="htmlmixed.js"></script>
 <style>.CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}</style>
 <div id=nav>
-  <a href="http://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
+  <a href="https://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
 
   <ul>
     <li><a href="../../index.html">Home</a>
@@ -34,7 +34,7 @@
   <!-- this is a comment -->
   <head>
     <title>Mixed HTML Example</title>
-    <style type="text/css">
+    <style>
       h1 {font-family: comic sans; color: #f0f;}
       div {background: yellow !important;}
       body {
@@ -72,15 +72,26 @@
     <p>The HTML mixed mode depends on the XML, JavaScript, and CSS modes.</p>
 
     <p>It takes an optional mode configuration
-    option, <code>scriptTypes</code>, which can be used to add custom
-    behavior for specific <code>&lt;script type="..."></code> tags. If
-    given, it should hold an array of <code>{matches, mode}</code>
-    objects, where <code>matches</code> is a string or regexp that
-    matches the script type, and <code>mode</code> is
-    either <code>null</code>, for script types that should stay in
-    HTML mode, or a <a href="../../doc/manual.html#option_mode">mode
-    spec</a> corresponding to the mode that should be used for the
-    script.</p>
+    option, <code>tags</code>, which can be used to add custom
+    behavior for specific tags. When given, it should be an object
+    mapping tag names (for example <code>script</code>) to arrays or
+    three-element arrays. Those inner arrays indicate [attributeName,
+    valueRegexp, <a href="../../doc/manual.html#option_mode">modeSpec</a>]
+    specifications. For example, you could use <code>["type", /^foo$/,
+    "foo"]</code> to map the attribute <code>type="foo"</code> to
+    the <code>foo</code> mode. When the first two fields are null
+    (<code>[null, null, "mode"]</code>), the given mode is used for
+    any such tag that doesn't match any of the previously given
+    attributes. For example:</p>
+
+    <pre>var myModeSpec = {
+  name: "htmlmixed",
+  tags: {
+    style: [["type", /^text\/(x-)?scss$/, "text/x-scss"],
+            [null, null, "css"]],
+    custom: [[null, null, "customMode"]]
+  }
+}</pre>
 
     <p><strong>MIME types defined:</strong> <code>text/html</code>
     (redefined, only takes effect if you load this parser after the

@@ -5,7 +5,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // Issue
@@ -83,4 +83,32 @@ type swaggerResponseTrackedTimeList struct {
 type swaggerIssueDeadline struct {
 	// in:body
 	Body api.IssueDeadline `json:"body"`
+}
+
+// StopWatch
+// swagger:response StopWatch
+type swaggerResponseStopWatch struct {
+	// in:body
+	Body api.StopWatch `json:"body"`
+}
+
+// StopWatchList
+// swagger:response StopWatchList
+type swaggerResponseStopWatchList struct {
+	// in:body
+	Body []api.StopWatch `json:"body"`
+}
+
+// Reaction
+// swagger:response Reaction
+type swaggerReaction struct {
+	// in:body
+	Body api.Reaction `json:"body"`
+}
+
+// ReactionList
+// swagger:response ReactionList
+type swaggerReactionList struct {
+	// in:body
+	Body []api.Reaction `json:"body"`
 }

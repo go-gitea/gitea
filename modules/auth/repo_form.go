@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/utils"
 
-	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
+	"github.com/unknwon/com"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -33,8 +33,17 @@ type CreateRepoForm struct {
 	Description string `binding:"MaxSize(255)"`
 	AutoInit    bool
 	Gitignores  string
+	IssueLabels string
 	License     string
 	Readme      string
+
+	RepoTemplate int64
+	GitContent   bool
+	Topics       bool
+	GitHooks     bool
+	Webhooks     bool
+	Avatar       bool
+	Labels       bool
 }
 
 // Validate validates the fields
@@ -51,10 +60,16 @@ type MigrateRepoForm struct {
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true
-	RepoName    string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Mirror      bool   `json:"mirror"`
-	Private     bool   `json:"private"`
-	Description string `json:"description" binding:"MaxSize(255)"`
+	RepoName     string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Mirror       bool   `json:"mirror"`
+	Private      bool   `json:"private"`
+	Description  string `json:"description" binding:"MaxSize(255)"`
+	Wiki         bool   `json:"wiki"`
+	Milestones   bool   `json:"milestones"`
+	Labels       bool   `json:"labels"`
+	Issues       bool   `json:"issues"`
+	PullRequests bool   `json:"pull_requests"`
+	Releases     bool   `json:"releases"`
 }
 
 // Validate validates the fields
@@ -92,13 +107,16 @@ func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
 
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
-	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description   string `binding:"MaxSize(255)"`
-	Website       string `binding:"ValidUrl;MaxSize(255)"`
-	Interval      string
-	MirrorAddress string
-	Private       bool
-	EnablePrune   bool
+	RepoName       string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Description    string `binding:"MaxSize(255)"`
+	Website        string `binding:"ValidUrl;MaxSize(255)"`
+	Interval       string
+	MirrorAddress  string
+	MirrorUsername string
+	MirrorPassword string
+	Private        bool
+	Template       bool
+	EnablePrune    bool
 
 	// Advanced settings
 	EnableWiki                       bool
@@ -139,16 +157,23 @@ func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected               bool
-	EnableWhitelist         bool
-	WhitelistUsers          string
-	WhitelistTeams          string
-	EnableMergeWhitelist    bool
-	MergeWhitelistUsers     string
-	MergeWhitelistTeams     string
-	RequiredApprovals       int64
-	ApprovalsWhitelistUsers string
-	ApprovalsWhitelistTeams string
+	Protected                bool
+	EnablePush               string
+	WhitelistUsers           string
+	WhitelistTeams           string
+	WhitelistDeployKeys      bool
+	EnableMergeWhitelist     bool
+	MergeWhitelistUsers      string
+	MergeWhitelistTeams      string
+	EnableStatusCheck        bool `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckContexts      []string
+	RequiredApprovals        int64
+	EnableApprovalsWhitelist bool
+	ApprovalsWhitelistUsers  string
+	ApprovalsWhitelistTeams  string
+	BlockOnRejectedReviews   bool
+	DismissStaleApprovals    bool
+	RequireSignedCommits     bool
 }
 
 // Validate validates the fields
@@ -176,6 +201,7 @@ type WebhookForm struct {
 	PullRequest  bool
 	Repository   bool
 	Active       bool
+	BranchFilter string `binding:"GlobPattern"`
 }
 
 // PushOnly if the hook will be triggered when push
@@ -196,6 +222,7 @@ func (f WebhookForm) ChooseEvents() bool {
 // NewWebhookForm form for creating web hook
 type NewWebhookForm struct {
 	PayloadURL  string `binding:"Required;ValidUrl"`
+	HTTPMethod  string `binding:"Required;In(POST,GET)"`
 	ContentType int    `binding:"Required"`
 	Secret      string
 	WebhookForm
@@ -324,7 +351,7 @@ func (f *CreateCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) 
 
 // ReactionForm form for adding and removing reaction
 type ReactionForm struct {
-	Content string `binding:"Required;In(+1,-1,laugh,confused,heart,hooray)"`
+	Content string `binding:"Required"`
 }
 
 // Validate validates the fields
@@ -422,6 +449,7 @@ type MergePullRequestForm struct {
 	Do                string `binding:"Required;In(merge,rebase,rebase-merge,squash)"`
 	MergeTitleField   string
 	MergeMessageField string
+	ForceMerge        *bool `json:"force_merge,omitempty"`
 }
 
 // Validate validates the fields
@@ -431,12 +459,13 @@ func (f *MergePullRequestForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // CodeCommentForm form for adding code comments for PRs
 type CodeCommentForm struct {
-	Content  string `binding:"Required"`
-	Side     string `binding:"Required;In(previous,proposed)"`
-	Line     int64
-	TreePath string `form:"path" binding:"Required"`
-	IsReview bool   `form:"is_review"`
-	Reply    int64  `form:"reply"`
+	Content        string `binding:"Required"`
+	Side           string `binding:"Required;In(previous,proposed)"`
+	Line           int64
+	TreePath       string `form:"path" binding:"Required"`
+	IsReview       bool   `form:"is_review"`
+	Reply          int64  `form:"reply"`
+	LatestCommitID string
 }
 
 // Validate validates the fields
@@ -446,8 +475,9 @@ func (f *CodeCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
-	Content string
-	Type    string `binding:"Required;In(approve,comment,reject)"`
+	Content  string
+	Type     string `binding:"Required;In(approve,comment,reject)"`
+	CommitID string
 }
 
 // Validate validates the fields
@@ -486,9 +516,9 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {
-	TagName    string `binding:"Required;GitRefName"`
-	Target     string `form:"tag_target" binding:"Required"`
-	Title      string `binding:"Required"`
+	TagName    string `binding:"Required;GitRefName;MaxSize(255)"`
+	Target     string `form:"tag_target" binding:"Required;MaxSize(255)"`
+	Title      string `binding:"Required;MaxSize(255)"`
 	Content    string
 	Draft      string
 	Prerelease bool
@@ -502,7 +532,7 @@ func (f *NewReleaseForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 
 // EditReleaseForm form for changing release
 type EditReleaseForm struct {
-	Title      string `form:"title" binding:"Required"`
+	Title      string `form:"title" binding:"Required;MaxSize(255)"`
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`
@@ -544,7 +574,7 @@ func (f *NewWikiForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 // EditRepoFileForm form for changing repository file
 type EditRepoFileForm struct {
 	TreePath      string `binding:"Required;MaxSize(500)"`
-	Content       string `binding:"Required"`
+	Content       string
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`

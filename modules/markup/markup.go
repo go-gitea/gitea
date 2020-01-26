@@ -9,12 +9,24 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Init initialize regexps for markdown parsing
 func Init() {
 	getIssueFullPattern()
 	NewSanitizer()
+	if len(setting.Markdown.CustomURLSchemes) > 0 {
+		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
+	}
+
+	// since setting maybe changed extensions, this will reload all parser extensions mapping
+	extParsers = make(map[string]Parser)
+	for _, parser := range parsers {
+		for _, ext := range parser.Extensions() {
+			extParsers[strings.ToLower(ext)] = parser
+		}
+	}
 }
 
 // Parser defines an interface for parsering markup file to HTML

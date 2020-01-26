@@ -1,3 +1,14 @@
+## Version 1.4.1 (2018-11-14)
+
+Bugfixes:
+
+ - Fix TIME format for binary columns (#818)
+ - Fix handling of empty auth plugin names (#835)
+ - Fix caching_sha2_password with empty password (#826)
+ - Fix canceled context broke mysqlConn (#862)
+ - Fix OldAuthSwitchRequest support (#870)
+ - Fix Auth Response packet for cleartext password (#887)
+
 ## Version 1.4 (2018-06-03)
 
 Changes:

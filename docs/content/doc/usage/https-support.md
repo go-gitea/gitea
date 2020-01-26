@@ -20,15 +20,17 @@ menu:
 Before you enable HTTPS, make sure that you have valid SSL/TLS certificates.
 You could use self-generated certificates for evaluation and testing. Please run `gitea cert --host [HOST]` to generate a self signed certificate.
 
+If you are using Apache or nginx on the server, it's recommended to check the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}}).
+
 To use Gitea's built-in HTTPS support, you must change your `app.ini` file:
 
 ```ini
 [server]
-PROTOCOL=https
-ROOT_URL = `https://git.example.com:3000/`
+PROTOCOL  = https
+ROOT_URL  = https://git.example.com:3000/
 HTTP_PORT = 3000
 CERT_FILE = cert.pem
-KEY_FILE = key.pem
+KEY_FILE  = key.pem
 ```
 
 To learn more about the config values, please checkout the [Config Cheat Sheet](../config-cheat-sheet#server).
@@ -74,5 +76,4 @@ After that, enable HTTPS by following one of these guides:
 * [apache2/httpd](https://httpd.apache.org/docs/2.4/ssl/ssl_howto.html)
 * [caddy](https://caddyserver.com/docs/tls)
 
-Note: Your connection between your reverse proxy and Gitea might be unencrypted. To encrypt it too, follow the [built-in server guide](#using-built-in-server) and change
-the proxy url to `https://[URL]`.
+Note: Enabling HTTPS only at the proxy level is referred as [TLS Termination Proxy](https://en.wikipedia.org/wiki/TLS_termination_proxy). The proxy server accepts incoming TLS connections, decrypts the contents, and passes the now unencrypted contents to Gitea. This is normally fine as long as both the proxy and Gitea instances are either on the same machine, or on different machines within private network (with the proxy is exposed to outside network). If your Gitea instance is separated from your proxy over a public network, or if you want full end-to-end encryption, you can also [enable HTTPS support directly in Gitea using built-in server](#using-the-built-in-server) and forward the connections over HTTPS instead.

@@ -15,6 +15,7 @@ func TestRepository_GetBranches(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	branches, err := bareRepo1.GetBranches()
 
@@ -29,6 +30,7 @@ func BenchmarkRepository_GetBranches(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	defer bareRepo1.Close()
 
 	for i := 0; i < b.N; i++ {
 		_, err := bareRepo1.GetBranches()

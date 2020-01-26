@@ -186,6 +186,9 @@ type PushOptions struct {
 	// Progress is where the human readable information sent by the server is
 	// stored, if nil nothing is stored.
 	Progress sideband.Progress
+	// Prune specify that remote refs that match given RefSpecs and that do
+	// not exist locally will be removed.
+	Prune bool
 }
 
 // Validate validates the fields and sets the default values.
@@ -229,7 +232,7 @@ var (
 	ErrCreateRequiresBranch = errors.New("Branch is mandatory when Create is used")
 )
 
-// CheckoutOptions describes how a checkout 31operation should be performed.
+// CheckoutOptions describes how a checkout operation should be performed.
 type CheckoutOptions struct {
 	// Hash is the hash of the commit to be checked out. If used, HEAD will be
 	// in detached mode. If Create is not used, Branch and Hash are mutually
@@ -242,6 +245,11 @@ type CheckoutOptions struct {
 	// Force, if true when switching branches, proceed even if the index or the
 	// working tree differs from HEAD. This is used to throw away local changes
 	Force bool
+	// Keep, if true when switching branches, local changes (the index or the
+	// working tree changes) will be kept so that they can be committed to the
+	// target branch. Force and Keep are mutually exclusive, should not be both
+	// set to true.
+	Keep bool
 }
 
 // Validate validates the fields and sets the default values.
@@ -288,7 +296,7 @@ const (
 
 // ResetOptions describes how a reset operation should be performed.
 type ResetOptions struct {
-	// Commit, if commit is pressent set the current branch head (HEAD) to it.
+	// Commit, if commit is present set the current branch head (HEAD) to it.
 	Commit plumbing.Hash
 	// Mode, form resets the current branch head to Commit and possibly updates
 	// the index (resetting it to the tree of Commit) and the working tree

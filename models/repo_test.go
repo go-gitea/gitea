@@ -5,19 +5,24 @@
 package models
 
 import (
-	"path"
+	"bytes"
+	"crypto/md5"
+	"fmt"
+	"image"
+	"image/png"
 	"testing"
 
 	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRepo(t *testing.T) {
+func TestMetas(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
 	repo := &Repository{Name: "testRepo"}
 	repo.Owner = &User{Name: "testOwner"}
+	repo.OwnerName = repo.Owner.Name
 
 	repo.Units = nil
 
@@ -34,7 +39,7 @@ func TestRepo(t *testing.T) {
 
 	testSuccess := func(expectedStyle string) {
 		repo.Units = []*RepoUnit{&externalTracker}
-		repo.ExternalMetas = nil
+		repo.RenderingMetas = nil
 		metas := repo.ComposeMetas()
 		assert.Equal(t, expectedStyle, metas["style"])
 		assert.Equal(t, "testRepo", metas["repo"])
@@ -49,6 +54,15 @@ func TestRepo(t *testing.T) {
 
 	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleNumeric
 	testSuccess(markup.IssueNameStyleNumeric)
+
+	repo, err := GetRepositoryByID(3)
+	assert.NoError(t, err)
+
+	metas = repo.ComposeMetas()
+	assert.Contains(t, metas, "org")
+	assert.Contains(t, metas, "teams")
+	assert.Equal(t, metas["org"], "user3")
+	assert.Equal(t, metas["teams"], ",owners,team1,")
 }
 
 func TestGetRepositoryCount(t *testing.T) {
@@ -85,6 +99,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 
 	// Get sample repo and change visibility
 	repo, err := GetRepositoryByID(9)
+	assert.NoError(t, err)
 	repo.IsPrivate = true
 
 	// Update it
@@ -118,19 +133,6 @@ func TestGetUserFork(t *testing.T) {
 	assert.Nil(t, repo)
 }
 
-func TestForkRepository(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	// user 13 has already forked repo10
-	user := AssertExistsAndLoadBean(t, &User{ID: 13}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
-
-	fork, err := ForkRepository(user, user, repo, "test", "test")
-	assert.Nil(t, fork)
-	assert.Error(t, err)
-	assert.True(t, IsErrRepoAlreadyExist(err))
-}
-
 func TestRepoAPIURL(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
@@ -138,23 +140,33 @@ func TestRepoAPIURL(t *testing.T) {
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
 }
 
-func TestRepoLocalCopyPath(t *testing.T) {
+func TestUploadAvatar(t *testing.T) {
+
+	// Generate image
+	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	var buff bytes.Buffer
+	png.Encode(&buff, myImage)
+
 	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
-	repo, err := GetRepositoryByID(10)
+	err := repo.UploadAvatar(buff.Bytes())
 	assert.NoError(t, err)
-	assert.NotNil(t, repo)
+	assert.Equal(t, fmt.Sprintf("%d-%x", 10, md5.Sum(buff.Bytes())), repo.Avatar)
+}
 
-	// test default
-	repoID := com.ToStr(repo.ID)
-	expected := path.Join(setting.AppDataPath, setting.Repository.Local.LocalCopyPath, repoID)
-	assert.Equal(t, expected, repo.LocalCopyPath())
+func TestUploadBigAvatar(t *testing.T) {
 
-	// test absolute setting
-	tempPath := "/tmp/gitea/local-copy-path"
-	expected = path.Join(tempPath, repoID)
-	setting.Repository.Local.LocalCopyPath = tempPath
-	assert.Equal(t, expected, repo.LocalCopyPath())
+	// Generate BIG image
+	myImage := image.NewRGBA(image.Rect(0, 0, 5000, 1))
+	var buff bytes.Buffer
+	png.Encode(&buff, myImage)
+
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+
+	err := repo.UploadAvatar(buff.Bytes())
+	assert.Error(t, err)
 }
 
 func TestRepositoryTransfer(t *testing.T) {
@@ -187,4 +199,23 @@ func TestRepositoryTransfer(t *testing.T) {
 
 	// Cancel transfer
 	assert.NoError(t, CancelRepositoryTransfer(transfer))
+}
+
+func TestDeleteAvatar(t *testing.T) {
+
+	// Generate image
+	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	var buff bytes.Buffer
+	png.Encode(&buff, myImage)
+
+	assert.NoError(t, PrepareTestDatabase())
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+
+	err := repo.UploadAvatar(buff.Bytes())
+	assert.NoError(t, err)
+
+	err = repo.DeleteAvatar()
+	assert.NoError(t, err)
+
+	assert.Equal(t, "", repo.Avatar)
 }

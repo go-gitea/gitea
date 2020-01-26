@@ -27,24 +27,11 @@ func TopicsPost(ctx *context.Context) {
 		topics = strings.Split(topicsStr, ",")
 	}
 
-	invalidTopics := make([]string, 0)
-	i := 0
-	for _, topic := range topics {
-		topic = strings.TrimSpace(strings.ToLower(topic))
-		// ignore empty string
-		if len(topic) > 0 {
-			topics[i] = topic
-			i++
-		}
-		if !models.ValidateTopic(topic) {
-			invalidTopics = append(invalidTopics, topic)
-		}
-	}
-	topics = topics[:i]
+	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topics)
 
-	if len(topics) > 25 {
+	if len(validTopics) > 25 {
 		ctx.JSON(422, map[string]interface{}{
-			"invalidTopics": topics[:0],
+			"invalidTopics": nil,
 			"message":       ctx.Tr("repo.topic.count_prompt"),
 		})
 		return
@@ -58,7 +45,7 @@ func TopicsPost(ctx *context.Context) {
 		return
 	}
 
-	err := models.SaveTopics(ctx.Repo.Repository.ID, topics...)
+	err := models.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
 		ctx.JSON(500, map[string]interface{}{

@@ -5,7 +5,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ServerVersion

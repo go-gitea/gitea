@@ -11,8 +11,8 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // InstallForm form for installation page
@@ -23,7 +23,9 @@ type InstallForm struct {
 	DbPasswd string
 	DbName   string
 	SSLMode  string
+	Charset  string `binding:"Required;In(utf8,utf8mb4)"`
 	DbPath   string
+	DbSchema string
 
 	AppName      string `binding:"Required" locale:"install.app_name"`
 	RepoRootPath string `binding:"Required"`
@@ -78,7 +80,7 @@ func (f *InstallForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 type RegisterForm struct {
 	UserName           string `binding:"Required;AlphaDashDot;MaxSize(40)"`
 	Email              string `binding:"Required;Email;MaxSize(254)"`
-	Password           string `binding:"Required;MaxSize(255)"`
+	Password           string `binding:"MaxSize(255)"`
 	Retype             string
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
 }
@@ -128,6 +130,7 @@ func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Err
 // SignInForm form for signing in with user/password
 type SignInForm struct {
 	UserName string `binding:"Required;MaxSize(254)"`
+	// TODO remove required from password for SecondFactorAuthentication
 	Password string `binding:"Required;MaxSize(255)"`
 	Remember bool
 }
@@ -252,7 +255,7 @@ func (f UpdateThemeForm) IsThemeExists() bool {
 	var exists bool
 
 	for _, v := range setting.UI.Themes {
-		if strings.ToLower(v) == strings.ToLower(f.Theme) {
+		if strings.EqualFold(v, f.Theme) {
 			exists = true
 			break
 		}

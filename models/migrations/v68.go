@@ -11,7 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)

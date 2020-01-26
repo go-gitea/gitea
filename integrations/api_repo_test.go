@@ -13,13 +13,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
@@ -37,7 +37,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 }
 
 func TestAPISearchRepo(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	const keyword = "test"
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
@@ -69,40 +69,41 @@ func TestAPISearchRepo(t *testing.T) {
 		name, requestURL string
 		expectedResults
 	}{
-		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50", expectedResults: expectedResults{
-			nil:   {count: 21},
-			user:  {count: 21},
-			user2: {count: 21}},
+		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
+			nil:   {count: 27},
+			user:  {count: 27},
+			user2: {count: 27}},
 		},
-		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10", expectedResults: expectedResults{
+		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10&private=false", expectedResults: expectedResults{
 			nil:   {count: 10},
 			user:  {count: 10},
 			user2: {count: 10}},
 		},
-		{name: "RepositoriesDefaultMax10", requestURL: "/api/v1/repos/search?default", expectedResults: expectedResults{
+		{name: "RepositoriesDefaultMax10", requestURL: "/api/v1/repos/search?default&private=false", expectedResults: expectedResults{
 			nil:   {count: 10},
 			user:  {count: 10},
 			user2: {count: 10}},
 		},
-		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s", "big_test_"), expectedResults: expectedResults{
+		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "big_test_"), expectedResults: expectedResults{
 			nil:   {count: 7, repoName: "big_test_"},
 			user:  {count: 7, repoName: "big_test_"},
 			user2: {count: 7, repoName: "big_test_"}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
-			nil:   {count: 4},
-			user:  {count: 8, includesPrivate: true},
-			user2: {count: 4}},
+			nil:   {count: 5},
+			user:  {count: 9, includesPrivate: true},
+			user2: {count: 6, includesPrivate: true}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
 			nil:   {count: 1},
-			user:  {count: 1},
-			user2: {count: 2, includesPrivate: true}},
+			user:  {count: 2, includesPrivate: true},
+			user2: {count: 2, includesPrivate: true},
+			user4: {count: 1}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
 			nil:   {count: 1},
-			user:  {count: 1},
-			user2: {count: 1},
+			user:  {count: 4, includesPrivate: true},
+			user2: {count: 3, includesPrivate: true},
 			user3: {count: 4, includesPrivate: true}},
 		},
 		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
@@ -112,12 +113,12 @@ func TestAPISearchRepo(t *testing.T) {
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser4", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user4.ID), expectedResults: expectedResults{
 			nil:   {count: 3},
-			user:  {count: 3},
-			user4: {count: 6, includesPrivate: true}}},
+			user:  {count: 4, includesPrivate: true},
+			user4: {count: 7, includesPrivate: true}}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeSource", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "source"), expectedResults: expectedResults{
 			nil:   {count: 0},
-			user:  {count: 0},
-			user4: {count: 0, includesPrivate: true}}},
+			user:  {count: 1, includesPrivate: true},
+			user4: {count: 1, includesPrivate: true}}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "fork"), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 1},
@@ -136,8 +137,8 @@ func TestAPISearchRepo(t *testing.T) {
 			user4: {count: 2, includesPrivate: true}}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeCollaborative", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "collaborative"), expectedResults: expectedResults{
 			nil:   {count: 0},
-			user:  {count: 0},
-			user4: {count: 0, includesPrivate: true}}},
+			user:  {count: 1, includesPrivate: true},
+			user4: {count: 1, includesPrivate: true}}},
 	}
 
 	for _, testCase := range testCases {
@@ -164,14 +165,19 @@ func TestAPISearchRepo(t *testing.T) {
 					var body api.SearchResults
 					DecodeJSON(t, response, &body)
 
-					assert.Len(t, body.Data, expected.count)
+					repoNames := make([]string, 0, len(body.Data))
+					for _, repo := range body.Data {
+						repoNames = append(repoNames, fmt.Sprintf("%d:%s:%t", repo.ID, repo.FullName, repo.Private))
+					}
+					assert.Len(t, repoNames, expected.count)
 					for _, repo := range body.Data {
 						r := getRepo(t, repo.ID)
 						hasAccess, err := models.HasAccess(userID, r)
-						assert.NoError(t, err)
-						assert.True(t, hasAccess)
+						assert.NoError(t, err, "Error when checking if User: %d has access to %s: %v", userID, repo.FullName, err)
+						assert.True(t, hasAccess, "User: %d does not have access to %s", userID, repo.FullName)
 
 						assert.NotEmpty(t, repo.Name)
+						assert.Equal(t, repo.Name, r.Name)
 
 						if len(expected.repoName) > 0 {
 							assert.Contains(t, repo.Name, expected.repoName)
@@ -182,7 +188,7 @@ func TestAPISearchRepo(t *testing.T) {
 						}
 
 						if !expected.includesPrivate {
-							assert.False(t, repo.Private)
+							assert.False(t, repo.Private, "User: %d not expecting private repository: %s", userID, repo.FullName)
 						}
 					}
 				})
@@ -201,7 +207,7 @@ func getRepo(t *testing.T, repoID int64) *models.Repository {
 }
 
 func TestAPIViewRepo(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -213,7 +219,7 @@ func TestAPIViewRepo(t *testing.T) {
 }
 
 func TestAPIOrgRepos(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
@@ -259,7 +265,7 @@ func TestAPIOrgRepos(t *testing.T) {
 }
 
 func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -280,7 +286,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 		{ctxUserID: 2, userID: 6, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
 	}
 
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	for _, testCase := range testCases {
 		user := models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
 		session := loginUser(t, user.Name)
@@ -328,7 +334,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
 		respJSON := map[string]string{}
 		DecodeJSON(t, resp, &respJSON)
-		assert.Equal(t, respJSON["message"], "The repository with the same name already exists.")
+		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
 }
 
@@ -341,9 +347,11 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 		{ctxUserID: 1, orgName: "user3", repoName: "repo-admin", expectedStatus: http.StatusCreated},
 		{ctxUserID: 2, orgName: "user3", repoName: "repo-own", expectedStatus: http.StatusCreated},
 		{ctxUserID: 2, orgName: "user6", repoName: "repo-bad-org", expectedStatus: http.StatusForbidden},
+		{ctxUserID: 28, orgName: "user3", repoName: "repo-creator", expectedStatus: http.StatusCreated},
+		{ctxUserID: 28, orgName: "user6", repoName: "repo-not-creator", expectedStatus: http.StatusForbidden},
 	}
 
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	for _, testCase := range testCases {
 		user := models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
 		session := loginUser(t, user.Name)

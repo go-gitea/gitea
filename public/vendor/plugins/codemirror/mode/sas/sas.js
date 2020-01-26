@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 
 // SAS mode copyright (c) 2016 Jared Dean, SAS Institute
@@ -11,7 +11,7 @@
 
 
 //Definitions
-//  comment -- text withing * ; or /* */
+//  comment -- text within * ; or /* */
 //  keyword -- SAS language variable
 //  variable -- macro variables starts with '&' or variable formats
 //  variable-2 -- DATA Step, proc, or macro names
@@ -116,33 +116,21 @@
         return "comment";
       }
 
+      if (ch == "*" && stream.column() == stream.indentation()) {
+        stream.skipToEnd()
+        return "comment"
+      }
+
       // DoubleOperator match
       var doubleOperator = ch + stream.peek();
 
-      // Match all line comments.
-      var myString = stream.string;
-      var myRegexp = /(?:^\s*|[;]\s*)(\*.*?);/ig;
-      var match = myRegexp.exec(myString);
-      if (match !== null) {
-        if (match.index === 0 && (stream.column() !== (match.index + match[0].length - 1))) {
-          stream.backUp(stream.column());
-          stream.skipTo(';');
-          stream.next();
-          return 'comment';
-        } else if (match.index + 1 < stream.column() && stream.column() < match.index + match[0].length - 1) {
-          // the ';' triggers the match so move one past it to start
-          // the comment block that is why match.index+1
-          stream.backUp(stream.column() - match.index - 1);
-          stream.skipTo(';');
-          stream.next();
-          return 'comment';
-        }
-      } else if (!state.continueString && (ch === '"' || ch === "'")) {
-        // Have we found a string?
-        state.continueString = ch; //save the matching quote in the state
-        return "string";
-      } else if (state.continueString !== null) {
-        if (stream.skipTo(state.continueString)) {
+      if ((ch === '"' || ch === "'") && !state.continueString) {
+        state.continueString = ch
+        return "string"
+      } else if (state.continueString) {
+        if (state.continueString == ch) {
+          state.continueString = null;
+        } else if (stream.skipTo(state.continueString)) {
           // quote found on this line
           stream.next();
           state.continueString = null;
@@ -187,12 +175,12 @@
         if (stream.peek() === '.') stream.skipTo(' ');
         state.nextword = false;
         return 'variable-2';
-
       }
 
+      word = word.toLowerCase()
       // Are we in a DATA Step?
       if (state.inDataStep) {
-        if (word.toLowerCase() === 'run;' || stream.match(/run\s;/)) {
+        if (word === 'run;' || stream.match(/run\s;/)) {
           state.inDataStep = false;
           return 'builtin';
         }
@@ -203,84 +191,84 @@
           else return 'variable';
         }
         // do we have a DATA Step keyword
-        if (word && words.hasOwnProperty(word.toLowerCase()) &&
-            (words[word.toLowerCase()].state.indexOf("inDataStep") !== -1 ||
-             words[word.toLowerCase()].state.indexOf("ALL") !== -1)) {
+        if (word && words.hasOwnProperty(word) &&
+            (words[word].state.indexOf("inDataStep") !== -1 ||
+             words[word].state.indexOf("ALL") !== -1)) {
           //backup to the start of the word
           if (stream.start < stream.pos)
             stream.backUp(stream.pos - stream.start);
           //advance the length of the word and return
           for (var i = 0; i < word.length; ++i) stream.next();
-          return words[word.toLowerCase()].style;
+          return words[word].style;
         }
       }
       // Are we in an Proc statement?
       if (state.inProc) {
-        if (word.toLowerCase() === 'run;' || word.toLowerCase() === 'quit;') {
+        if (word === 'run;' || word === 'quit;') {
           state.inProc = false;
           return 'builtin';
         }
         // do we have a proc keyword
-        if (word && words.hasOwnProperty(word.toLowerCase()) &&
-            (words[word.toLowerCase()].state.indexOf("inProc") !== -1 ||
-             words[word.toLowerCase()].state.indexOf("ALL") !== -1)) {
+        if (word && words.hasOwnProperty(word) &&
+            (words[word].state.indexOf("inProc") !== -1 ||
+             words[word].state.indexOf("ALL") !== -1)) {
           stream.match(/[\w]+/);
           return words[word].style;
         }
       }
       // Are we in a Macro statement?
       if (state.inMacro) {
-        if (word.toLowerCase() === '%mend') {
+        if (word === '%mend') {
           if (stream.peek() === ';') stream.next();
           state.inMacro = false;
           return 'builtin';
         }
-        if (word && words.hasOwnProperty(word.toLowerCase()) &&
-            (words[word.toLowerCase()].state.indexOf("inMacro") !== -1 ||
-             words[word.toLowerCase()].state.indexOf("ALL") !== -1)) {
+        if (word && words.hasOwnProperty(word) &&
+            (words[word].state.indexOf("inMacro") !== -1 ||
+             words[word].state.indexOf("ALL") !== -1)) {
           stream.match(/[\w]+/);
-          return words[word.toLowerCase()].style;
+          return words[word].style;
         }
 
         return 'atom';
       }
       // Do we have Keywords specific words?
-      if (word && words.hasOwnProperty(word.toLowerCase())) {
+      if (word && words.hasOwnProperty(word)) {
         // Negates the initial next()
         stream.backUp(1);
         // Actually move the stream
         stream.match(/[\w]+/);
-        if (word.toLowerCase() === 'data' && /=/.test(stream.peek()) === false) {
+        if (word === 'data' && /=/.test(stream.peek()) === false) {
           state.inDataStep = true;
           state.nextword = true;
           return 'builtin';
         }
-        if (word.toLowerCase() === 'proc') {
+        if (word === 'proc') {
           state.inProc = true;
           state.nextword = true;
           return 'builtin';
         }
-        if (word.toLowerCase() === '%macro') {
+        if (word === '%macro') {
           state.inMacro = true;
           state.nextword = true;
           return 'builtin';
         }
-        if (/title[1-9]/i.test(word)) return 'def';
+        if (/title[1-9]/.test(word)) return 'def';
 
-        if (word.toLowerCase() === 'footnote') {
+        if (word === 'footnote') {
           stream.eat(/[1-9]/);
           return 'def';
         }
 
         // Returns their value as state in the prior define methods
-        if (state.inDataStep === true && words[word.toLowerCase()].state.indexOf("inDataStep") !== -1)
-          return words[word.toLowerCase()].style;
-        if (state.inProc === true && words[word.toLowerCase()].state.indexOf("inProc") !== -1)
-          return words[word.toLowerCase()].style;
-        if (state.inMacro === true && words[word.toLowerCase()].state.indexOf("inMacro") !== -1)
-          return words[word.toLowerCase()].style;
-        if (words[word.toLowerCase()].state.indexOf("ALL") !== -1)
-          return words[word.toLowerCase()].style;
+        if (state.inDataStep === true && words[word].state.indexOf("inDataStep") !== -1)
+          return words[word].style;
+        if (state.inProc === true && words[word].state.indexOf("inProc") !== -1)
+          return words[word].style;
+        if (state.inMacro === true && words[word].state.indexOf("inMacro") !== -1)
+          return words[word].style;
+        if (words[word].state.indexOf("ALL") !== -1)
+          return words[word].style;
         return null;
       }
       // Unrecognized syntax

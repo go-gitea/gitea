@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/markup"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // Enumerate all the unit types

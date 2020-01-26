@@ -4,7 +4,7 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import "xorm.io/xorm"
 
 func addIsLockedToIssues(x *xorm.Engine) error {
 	// Issue see models/issue.go
@@ -14,5 +14,4 @@ func addIsLockedToIssues(x *xorm.Engine) error {
 	}
 
 	return x.Sync2(new(Issue))
-
 }
