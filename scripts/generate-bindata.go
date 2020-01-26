@@ -21,27 +21,16 @@ import (
 )
 
 func needsUpdate(dir string, filename string) bool {
-	info, err := os.Stat(filename)
-	if err != nil {
-		return true
-	}
-
 	oldHash, err := ioutil.ReadFile(filename + ".hash")
 	if err != nil {
 		oldHash = []byte{}
 	}
 
-	lastModifiedTime := info.ModTime()
-
-	newer := false
 	adlerHash := adler32.New()
 
 	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
-		}
-		if !newer && info.ModTime().After(lastModifiedTime) {
-			newer = true
 		}
 		_, _ = adlerHash.Write([]byte(info.Name()))
 		_, _ = adlerHash.Write([]byte(info.ModTime().String()))
@@ -59,7 +48,7 @@ func needsUpdate(dir string, filename string) bool {
 		return true
 	}
 
-	return newer
+	return false
 }
 
 func main() {
