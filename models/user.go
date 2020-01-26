@@ -1373,6 +1373,7 @@ func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
 func GetUserNamesByIDs(ids []int64) ([]string, error) {
 	unames := make([]string, 0, len(ids))
 	err := x.In("id", ids).
+		Table("user").
 		Asc("name").
 		Cols("name").
 		Find(&unames)
