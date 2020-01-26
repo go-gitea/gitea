@@ -52,7 +52,7 @@ func Members(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
-	opts.ListOptions.Page = (page - 1) * setting.UI.MembersPagingNum
+	opts.ListOptions.Page = page
 	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
 	members, membersIsPublic, err := models.FindOrgMembers(&opts)
 	if err != nil {
