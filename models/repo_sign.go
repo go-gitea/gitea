@@ -119,7 +119,7 @@ func SignInitialCommit(repoPath string, u *User) (bool, string, error) {
 			}
 		case twofa:
 			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil {
+			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
 				return false, "", err
 			}
 			if twofaModel == nil {
@@ -154,7 +154,7 @@ func (repo *Repository) SignWikiCommit(u *User) (bool, string, error) {
 			}
 		case twofa:
 			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil {
+			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
 				return false, "", err
 			}
 			if twofaModel == nil {
@@ -206,7 +206,7 @@ func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string
 			}
 		case twofa:
 			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil {
+			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
 				return false, "", err
 			}
 			if twofaModel == nil {
