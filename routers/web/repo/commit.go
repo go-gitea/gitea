@@ -385,6 +385,7 @@ func RawDiff(ctx *context.Context) {
 		repoPath = models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	}
 	if err := git.GetRawDiff(
+		ctx,
 		repoPath,
 		ctx.Params(":sha"),
 		git.RawDiffType(ctx.Params(":ext")),

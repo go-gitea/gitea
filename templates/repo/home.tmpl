@@ -85,6 +85,11 @@
 								{{.i18n.Tr "repo.editor.upload_file"}}
 							</a>
 						{{end}}
+						{{if .CanAddFile}}
+							<a href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" class="ui button">
+								{{.i18n.Tr "repo.editor.patch"}}
+							</a>
+						{{end}}
 					{{end}}
 					{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame) }}
 						<a href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}" class="ui button">

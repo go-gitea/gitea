@@ -251,6 +251,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	if err := git.GetRawDiff(
+		ctx,
 		repoPath,
 		ctx.Params(":sha"),
 		git.RawDiffType(ctx.Params(":diffType")),
