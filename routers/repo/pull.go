@@ -679,7 +679,8 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 	if issue.IsClosed {
-		ctx.NotFound("MergePullRequest", nil)
+		ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls" + com.ToStr(issue.Index))
 		return
 	}
 
