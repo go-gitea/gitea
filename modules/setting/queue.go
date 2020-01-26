@@ -149,6 +149,17 @@ func NewQueueService() {
 	if _, ok := sectionMap["LENGTH"]; !ok {
 		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Cfg.Section("mailer").Key("SEND_BUFFER_LEN").MustInt(100)))
 	}
+
+	// Handle the old test pull requests configuration
+	// Please note this will be a unique queue
+	section = Cfg.Section("queue.test_pull_requests")
+	sectionMap = map[string]bool{}
+	for _, key := range section.Keys() {
+		sectionMap[key.Name()] = true
+	}
+	if _, ok := sectionMap["LENGTH"]; !ok {
+		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Repository.PullRequestQueueLength))
+	}
 }
 
 // ParseQueueConnStr parses a queue connection string
