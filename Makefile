@@ -52,7 +52,7 @@ CSS_SOURCES ?= $(shell find web_src/less -type f)
 JS_DEST := public/js/index.js
 CSS_DEST := public/css/index.css
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
-BINDATA_HASH := modules/public/bindata.go.hash modules/options/bindata.go.hash modules/templates/bindata.go.hash
+BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
 JS_DEST_DIR := public/js
 CSS_DEST_DIR := public/css

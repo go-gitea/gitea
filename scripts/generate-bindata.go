@@ -58,7 +58,7 @@ func needsUpdate(dir string, filename string) (bool, []byte) {
 }
 
 func main() {
-	if len(os.Args) < 4 {
+	if len(os.Args) != 4 {
 		log.Fatal("Insufficient number of arguments. Need: directory packageName filename")
 	}
 
