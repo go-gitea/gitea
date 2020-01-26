@@ -248,7 +248,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 		ctx.Error(http.StatusInternalServerError, "GetProtectBranchOfRepoByName", err)
 		return
 	} else if protectBranch != nil {
-		ctx.Error(http.StatusForbidden, "Branch protection already exist", err)
+		ctx.Error(http.StatusForbidden, "Create branch protection", "Branch protection already exist")
 		return
 	}
 
