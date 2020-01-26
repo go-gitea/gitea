@@ -465,14 +465,6 @@ func Issues(ctx *context.Context) {
 		opts.MentionedID = ctxUser.ID
 	}
 
-	counts, err := models.CountIssuesByRepo(opts)
-	if err != nil {
-		ctx.ServerError("CountIssuesByRepo", err)
-		return
-	}
-
-	opts.Page = page
-	opts.PageSize = setting.UI.IssuePagingNum
 	var labelIDs []int64
 	selectLabels := ctx.Query("labels")
 	if len(selectLabels) > 0 && selectLabels != "0" {
@@ -487,6 +479,15 @@ func Issues(ctx *context.Context) {
 	if len(repoIDs) > 0 {
 		opts.RepoIDs = repoIDs
 	}
+
+	counts, err := models.CountIssuesByRepo(opts)
+	if err != nil {
+		ctx.ServerError("CountIssuesByRepo", err)
+		return
+	}
+
+	opts.Page = page
+	opts.PageSize = setting.UI.IssuePagingNum
 
 	issues, err := models.Issues(opts)
 	if err != nil {
@@ -538,13 +539,18 @@ func Issues(ctx *context.Context) {
 		}
 	}
 
-	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
+	issueStatsOpts := models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
 		IsClosed:    isShowClosed,
-	})
+	}
+	if len(repoIDs) > 0 {
+		issueStatsOpts.UserRepoIDs = repoIDs
+	}
+
+	issueStats, err := models.GetUserIssueStats(issueStatsOpts)
 	if err != nil {
 		ctx.ServerError("GetUserIssueStats", err)
 		return
