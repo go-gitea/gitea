@@ -7,11 +7,15 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"hash/adler32"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/shurcooL/vfsgen"
 )
@@ -22,21 +26,36 @@ func needsUpdate(dir string, filename string) bool {
 		return true
 	}
 
+	oldHash, err := ioutil.ReadFile(filename + ".hash")
+	if err != nil {
+		oldHash = []byte{}
+	}
+
 	lastModifiedTime := info.ModTime()
 
 	newer := false
+	adlerHash := adler32.New()
 
 	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if newer || info.ModTime().After(lastModifiedTime) {
+		if !newer && info.ModTime().After(lastModifiedTime) {
 			newer = true
-			return filepath.SkipDir
 		}
+		_, _ = adlerHash.Write([]byte(info.Name()))
+		_, _ = adlerHash.Write([]byte(info.ModTime().String()))
+		_, _ = adlerHash.Write([]byte(strconv.FormatInt(info.Size(), 16)))
 		return nil
 	})
 	if err != nil {
+		return true
+	}
+
+	newHash := adlerHash.Sum([]byte{})
+
+	if bytes.Compare(oldHash, newHash) != 0 {
+		_ = ioutil.WriteFile(filename+".hash", newHash, 0666)
 		return true
 	}
 
