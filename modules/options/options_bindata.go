@@ -1,7 +1,9 @@
-// Copyright 2016 The Gitea Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package templates
+//+build bindata
+
+package options
 
 //go:generate go run -mod=vendor main.go

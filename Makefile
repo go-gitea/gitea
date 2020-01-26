@@ -161,7 +161,7 @@ vet:
 
 .PHONY: generate
 generate: fomantic js css
-	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
+	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
