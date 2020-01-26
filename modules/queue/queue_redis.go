@@ -26,6 +26,9 @@ type redisClient interface {
 	RPush(key string, args ...interface{}) *redis.IntCmd
 	LPop(key string) *redis.StringCmd
 	LLen(key string) *redis.IntCmd
+	SAdd(key string, members ...interface{}) *redis.IntCmd
+	SRem(key string, members ...interface{}) *redis.IntCmd
+	SIsMember(key string, member interface{}) *redis.BoolCmd
 	Ping() *redis.StatusCmd
 	Close() error
 }
