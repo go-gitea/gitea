@@ -43,7 +43,7 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 	return GetRepoRawDiffForFile(repo, startCommit, endCommit, diffType, file, writer)
 }
 
-// GetRepoRawDiffForFile
+// GetRepoRawDiffForFile dumps diff results of file in given commit ID to io.Writer according given repository
 func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
 	commit, err := repo.GetCommit(endCommit)
 	if err != nil {
