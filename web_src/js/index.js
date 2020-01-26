@@ -3,6 +3,7 @@
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import './publicPath.js';
+import './polyfills.js';
 import './gitGraphLoader.js';
 import './semanticDropdown.js';
 import initContextPopups from './features/contextPopup';
@@ -2109,17 +2110,12 @@ function initCodeView() {
       }
     }).trigger('hashchange');
   }
-  $('.ui.fold-code').on('click', (e) => {
-    const $foldButton = $(e.target);
-    if ($foldButton.hasClass('fa-chevron-down')) {
-      $(e.target).parent().next().slideUp('fast', () => {
-        $foldButton.removeClass('fa-chevron-down').addClass('fa-chevron-right');
-      });
-    } else {
-      $(e.target).parent().next().slideDown('fast', () => {
-        $foldButton.removeClass('fa-chevron-right').addClass('fa-chevron-down');
-      });
-    }
+  $('.fold-code').on('click', ({ target }) => {
+    const box = target.closest('.file-content');
+    const folded = box.dataset.folded !== 'true';
+    target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
+    target.classList.remove(`fa-chevron-${folded ? 'down' : 'right'}`);
+    box.dataset.folded = String(folded);
   });
   function insertBlobExcerpt(e) {
     const $blob = $(e.target);
