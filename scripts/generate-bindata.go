@@ -21,6 +21,12 @@ import (
 )
 
 func needsUpdate(dir string, filename string) bool {
+	needRegen := false
+	_, err := os.Stat(filename)
+	if err != nil {
+		needRegen = true
+	}
+
 	oldHash, err := ioutil.ReadFile(filename + ".hash")
 	if err != nil {
 		oldHash = []byte{}
@@ -48,7 +54,7 @@ func needsUpdate(dir string, filename string) bool {
 		return true
 	}
 
-	return false
+	return needRegen
 }
 
 func main() {
