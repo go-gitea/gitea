@@ -258,7 +258,7 @@ func buildAssetList(sec *section, globs []glob.Glob, c *cli.Context) []asset {
 				!c.Bool("include-vendored") {
 				continue
 			}
-			matchName := "/" + sec.Path + "/" + name
+			matchName := sec.Path + "/" + name
 			for _, g := range globs {
 				if g.Match(matchName) {
 					results = append(results, asset{Section: sec,
