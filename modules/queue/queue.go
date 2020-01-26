@@ -81,6 +81,16 @@ func (b *DummyQueue) Push(Data) error {
 	return nil
 }
 
+// PushFunc fakes a push of data to the queue with a function. The function is never run.
+func (b *DummyQueue) PushFunc(Data, func() error) error {
+	return nil
+}
+
+// Has always returns false as this queue never does anything
+func (b *DummyQueue) Has(Data) (bool, error) {
+	return false, nil
+}
+
 // Flush always returns nil
 func (b *DummyQueue) Flush(time.Duration) error {
 	return nil

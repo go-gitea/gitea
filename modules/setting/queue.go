@@ -26,6 +26,7 @@ type QueueSettings struct {
 	Addresses        string
 	Password         string
 	QueueName        string
+	SetName          string
 	DBIndex          int
 	WrapIfNecessary  bool
 	MaxAttempts      int
@@ -54,7 +55,12 @@ func GetQueueSettings(name string) QueueSettings {
 			q.DataDir = key.MustString(q.DataDir)
 		case "QUEUE_NAME":
 			q.QueueName = key.MustString(q.QueueName)
+		case "SET_NAME":
+			q.SetName = key.MustString(q.SetName)
 		}
+	}
+	if len(q.SetName) == 0 && len(Queue.SetName) > 0 {
+		q.SetName = q.QueueName + Queue.SetName
 	}
 	if !filepath.IsAbs(q.DataDir) {
 		q.DataDir = filepath.Join(AppDataPath, q.DataDir)
@@ -100,6 +106,7 @@ func NewQueueService() {
 	Queue.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(5 * time.Minute)
 	Queue.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(5)
 	Queue.QueueName = sec.Key("QUEUE_NAME").MustString("_queue")
+	Queue.SetName = sec.Key("SET_NAME").MustString("")
 
 	// Now handle the old issue_indexer configuration
 	section := Cfg.Section("queue.issue_indexer")
