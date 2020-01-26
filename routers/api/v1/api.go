@@ -500,7 +500,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
 	if setting.API.EnableSwagger {
-		m.Get("/swagger", misc.Swagger) //Render V1 by default
+		m.Get("/swagger", misc.Swagger) // Render V1 by default
 	}
 
 	m.Group("/v1", func() {
@@ -773,6 +773,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Patch(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, reqRepoWriter(models.UnitTypePullRequests), bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
+						m.Group("/reviews", func() {
+							m.Combo("").Get(repo.ListPullReviews)
+							m.Group("/:id", func() {
+								m.Combo("").Get(repo.GetPullReview)
+								m.Combo("/comments").Get(repo.GetPullReviewComments)
+							})
+						})
+
 					})
 				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(false))
 				m.Group("/statuses", func() {
