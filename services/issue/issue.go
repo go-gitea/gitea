@@ -48,8 +48,8 @@ func ChangeIssueRef(issue *models.Issue, doer *models.User, ref string) (err err
 	if err = issue.ChangeRef(doer, oldRef); err != nil {
 		return
 	}
-	// TODO: implement notifications
-	//notification.NotifyIssueChangeTitle(doer, issue, oldRef)
+	
+	notification.NotifyIssueChangeRef(doer, issue, oldRef)
 
 	return nil
 }
