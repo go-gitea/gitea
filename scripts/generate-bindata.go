@@ -20,7 +20,7 @@ import (
 	"github.com/shurcooL/vfsgen"
 )
 
-func needsUpdate(dir string, filename string) bool {
+func needsUpdate(dir string, filename string) (bool, []byte) {
 	needRegen := false
 	_, err := os.Stat(filename)
 	if err != nil {
@@ -44,17 +44,17 @@ func needsUpdate(dir string, filename string) bool {
 		return nil
 	})
 	if err != nil {
-		return true
+		return true, oldHash
 	}
 
 	newHash := adlerHash.Sum([]byte{})
 
 	if bytes.Compare(oldHash, newHash) != 0 {
-		_ = ioutil.WriteFile(filename+".hash", newHash, 0666)
-		return true
+
+		return true, newHash
 	}
 
-	return needRegen
+	return needRegen, newHash
 }
 
 func main() {
@@ -64,8 +64,10 @@ func main() {
 
 	dir, packageName, filename := os.Args[1], os.Args[2], os.Args[3]
 
-	if !needsUpdate(dir, filename) {
-		fmt.Printf("bindata for %s up-to-date refusing to generate\n", packageName)
+	update, newHash := needsUpdate(dir, filename)
+
+	if !update {
+		fmt.Printf("bindata for %s already up-to-date\n", packageName)
 		return
 	}
 
@@ -80,4 +82,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v\n", err)
 	}
+	_ = ioutil.WriteFile(filename+".hash", newHash, 0666)
 }
