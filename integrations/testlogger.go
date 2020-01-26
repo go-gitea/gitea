@@ -12,8 +12,10 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 )
 
 var prefix string
@@ -98,6 +100,18 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	}
 	writerCloser.setT(&t)
 	return func() {
+		qs := queue.GetManager().ManagedQueues()
+		for _, q := range qs {
+			if err := q.Flush(10 * time.Second); err != nil {
+				t.Errorf("Flushing queue %s failed with error %v", q.Name, err)
+			}
+		}
+		qs = queue.GetManager().ManagedQueues()
+		for _, q := range qs {
+			if err := q.Flush(10 * time.Second); err != nil {
+				t.Errorf("Flushing queue %s failed with error %v", q.Name, err)
+			}
+		}
 		_ = writerCloser.Close()
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"sync"
 	"time"
 
@@ -22,15 +21,10 @@ const LevelQueueType Type = "level"
 
 // LevelQueueConfiguration is the configuration for a LevelQueue
 type LevelQueueConfiguration struct {
-	DataDir      string
-	QueueLength  int
-	BatchLength  int
-	Workers      int
-	MaxWorkers   int
-	BlockTimeout time.Duration
-	BoostTimeout time.Duration
-	BoostWorkers int
-	Name         string
+	WorkerPoolConfiguration
+	DataDir string
+	Workers int
+	Name    string
 }
 
 // LevelQueue implements a disk library queue
@@ -58,21 +52,8 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 		return nil, err
 	}
 
-	dataChan := make(chan Data, config.QueueLength)
-	ctx, cancel := context.WithCancel(context.Background())
-
 	queue := &LevelQueue{
-		pool: &WorkerPool{
-			baseCtx:            ctx,
-			cancel:             cancel,
-			batchLength:        config.BatchLength,
-			handle:             handle,
-			dataChan:           dataChan,
-			blockTimeout:       config.BlockTimeout,
-			boostTimeout:       config.BoostTimeout,
-			boostWorkers:       config.BoostWorkers,
-			maxNumberOfWorkers: config.MaxWorkers,
-		},
+		pool:       NewWorkerPool(handle, config.WorkerPoolConfiguration),
 		queue:      internal,
 		exemplar:   exemplar,
 		closed:     make(chan struct{}),
@@ -80,7 +61,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 		workers:    config.Workers,
 		name:       config.Name,
 	}
-	queue.pool.qid = GetManager().Add(queue, LevelQueueType, config, exemplar, queue.pool)
+	queue.pool.qid = GetManager().Add(config.Name, LevelQueueType, config, exemplar, queue.pool)
 	return queue, nil
 }
 
@@ -88,6 +69,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 func (l *LevelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
 	atShutdown(context.Background(), l.Shutdown)
 	atTerminate(context.Background(), l.Terminate)
+	log.Debug("LevelQueue: %s Starting", l.name)
 
 	go func() {
 		_ = l.pool.AddWorkers(l.workers, 0)
@@ -132,16 +114,7 @@ func (l *LevelQueue) readToChan() {
 				continue
 			}
 
-			var data Data
-			if l.exemplar != nil {
-				t := reflect.TypeOf(l.exemplar)
-				n := reflect.New(t)
-				ne := n.Elem()
-				err = json.Unmarshal(bs, ne.Addr().Interface())
-				data = ne.Interface().(Data)
-			} else {
-				err = json.Unmarshal(bs, &data)
-			}
+			data, err := unmarshalAs(bs, l.exemplar)
 			if err != nil {
 				log.Error("LevelQueue: %s Failed to unmarshal with error: %v", l.name, err)
 				time.Sleep(time.Millisecond * 100)
@@ -157,14 +130,8 @@ func (l *LevelQueue) readToChan() {
 
 // Push will push the indexer data to queue
 func (l *LevelQueue) Push(data Data) error {
-	if l.exemplar != nil {
-		// Assert data is of same type as r.exemplar
-		value := reflect.ValueOf(data)
-		t := value.Type()
-		exemplarType := reflect.ValueOf(l.exemplar).Type()
-		if !t.AssignableTo(exemplarType) || data == nil {
-			return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, l.exemplar, l.name)
-		}
+	if !assignableTo(data, l.exemplar) {
+		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, l.exemplar, l.name)
 	}
 	bs, err := json.Marshal(data)
 	if err != nil {
@@ -173,16 +140,22 @@ func (l *LevelQueue) Push(data Data) error {
 	return l.queue.LPush(bs)
 }
 
+// Flush flushes the queue and blocks till the queue is empty
+func (l *LevelQueue) Flush(timeout time.Duration) error {
+	return l.pool.Flush(timeout)
+}
+
 // Shutdown this queue and stop processing
 func (l *LevelQueue) Shutdown() {
 	l.lock.Lock()
 	defer l.lock.Unlock()
-	log.Trace("LevelQueue: %s Shutdown", l.name)
+	log.Trace("LevelQueue: %s Shutting down", l.name)
 	select {
 	case <-l.closed:
 	default:
 		close(l.closed)
 	}
+	log.Debug("LevelQueue: %s Shutdown", l.name)
 }
 
 // Terminate this queue and close the queue
@@ -201,6 +174,7 @@ func (l *LevelQueue) Terminate() {
 		}
 
 	}
+	log.Debug("LevelQueue: %s Terminated", l.name)
 }
 
 // Name returns the name of this queue

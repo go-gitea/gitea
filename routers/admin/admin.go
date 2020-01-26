@@ -404,6 +404,28 @@ func WorkerCancel(ctx *context.Context) {
 	})
 }
 
+// Flush flushes a queue
+func Flush(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	timeout, err := time.ParseDuration(ctx.Query("timeout"))
+	if err != nil {
+		timeout = -1
+	}
+	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.flush.added", mq.Name))
+	go func() {
+		err := mq.Flush(timeout)
+		if err != nil {
+			log.Error("Flushing failure for %s: Error %v", mq.Name, err)
+		}
+	}()
+	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+}
+
 // AddWorkers adds workers to a worker group
 func AddWorkers(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")

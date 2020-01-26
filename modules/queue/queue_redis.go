@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -44,19 +43,14 @@ type RedisQueue struct {
 
 // RedisQueueConfiguration is the configuration for the redis queue
 type RedisQueueConfiguration struct {
-	Network      string
-	Addresses    string
-	Password     string
-	DBIndex      int
-	BatchLength  int
-	QueueLength  int
-	QueueName    string
-	Workers      int
-	MaxWorkers   int
-	BlockTimeout time.Duration
-	BoostTimeout time.Duration
-	BoostWorkers int
-	Name         string
+	WorkerPoolConfiguration
+	Network   string
+	Addresses string
+	Password  string
+	DBIndex   int
+	QueueName string
+	Workers   int
+	Name      string
 }
 
 // NewRedisQueue creates single redis or cluster redis queue
@@ -69,21 +63,8 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 
 	dbs := strings.Split(config.Addresses, ",")
 
-	dataChan := make(chan Data, config.QueueLength)
-	ctx, cancel := context.WithCancel(context.Background())
-
 	var queue = &RedisQueue{
-		pool: &WorkerPool{
-			baseCtx:            ctx,
-			cancel:             cancel,
-			batchLength:        config.BatchLength,
-			handle:             handle,
-			dataChan:           dataChan,
-			blockTimeout:       config.BlockTimeout,
-			boostTimeout:       config.BoostTimeout,
-			boostWorkers:       config.BoostWorkers,
-			maxNumberOfWorkers: config.MaxWorkers,
-		},
+		pool:       NewWorkerPool(handle, config.WorkerPoolConfiguration),
 		queueName:  config.QueueName,
 		exemplar:   exemplar,
 		closed:     make(chan struct{}),
@@ -108,7 +89,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	if err := queue.client.Ping().Err(); err != nil {
 		return nil, err
 	}
-	queue.pool.qid = GetManager().Add(queue, RedisQueueType, config, exemplar, queue.pool)
+	queue.pool.qid = GetManager().Add(config.Name, RedisQueueType, config, exemplar, queue.pool)
 
 	return queue, nil
 }
@@ -117,6 +98,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 func (r *RedisQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
 	atShutdown(context.Background(), r.Shutdown)
 	atTerminate(context.Background(), r.Terminate)
+	log.Debug("RedisQueue: %s Starting", r.name)
 
 	go func() {
 		_ = r.pool.AddWorkers(r.workers, 0)
@@ -156,16 +138,7 @@ func (r *RedisQueue) readToChan() {
 				continue
 			}
 
-			var data Data
-			if r.exemplar != nil {
-				t := reflect.TypeOf(r.exemplar)
-				n := reflect.New(t)
-				ne := n.Elem()
-				err = json.Unmarshal(bs, ne.Addr().Interface())
-				data = ne.Interface().(Data)
-			} else {
-				err = json.Unmarshal(bs, &data)
-			}
+			data, err := unmarshalAs(bs, r.exemplar)
 			if err != nil {
 				log.Error("RedisQueue: %s Error on Unmarshal: %v", r.name, err)
 				time.Sleep(time.Millisecond * 100)
@@ -180,14 +153,8 @@ func (r *RedisQueue) readToChan() {
 
 // Push implements Queue
 func (r *RedisQueue) Push(data Data) error {
-	if r.exemplar != nil {
-		// Assert data is of same type as r.exemplar
-		value := reflect.ValueOf(data)
-		t := value.Type()
-		exemplarType := reflect.ValueOf(r.exemplar).Type()
-		if !t.AssignableTo(exemplarType) || data == nil {
-			return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, r.exemplar, r.name)
-		}
+	if !assignableTo(data, r.exemplar) {
+		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, r.exemplar, r.name)
 	}
 	bs, err := json.Marshal(data)
 	if err != nil {
@@ -196,9 +163,14 @@ func (r *RedisQueue) Push(data Data) error {
 	return r.client.RPush(r.queueName, bs).Err()
 }
 
+// Flush flushes the queue and blocks till the queue is empty
+func (r *RedisQueue) Flush(timeout time.Duration) error {
+	return r.pool.Flush(timeout)
+}
+
 // Shutdown processing from this queue
 func (r *RedisQueue) Shutdown() {
-	log.Trace("Shutdown: %s", r.name)
+	log.Trace("RedisQueue: %s Shutting down", r.name)
 	r.lock.Lock()
 	select {
 	case <-r.closed:
@@ -206,11 +178,12 @@ func (r *RedisQueue) Shutdown() {
 		close(r.closed)
 	}
 	r.lock.Unlock()
+	log.Debug("RedisQueue: %s Shutdown", r.name)
 }
 
 // Terminate this queue and close the queue
 func (r *RedisQueue) Terminate() {
-	log.Trace("Terminating: %s", r.name)
+	log.Trace("RedisQueue: %s Terminating", r.name)
 	r.Shutdown()
 	r.lock.Lock()
 	select {
@@ -223,6 +196,7 @@ func (r *RedisQueue) Terminate() {
 			log.Error("Error whilst closing internal redis client in %s: %v", r.name, err)
 		}
 	}
+	log.Debug("RedisQueue: %s Terminated", r.name)
 }
 
 // Name returns the name of this queue

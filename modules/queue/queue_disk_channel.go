@@ -31,6 +31,8 @@ type PersistableChannelQueueConfiguration struct {
 }
 
 // PersistableChannelQueue wraps a channel queue and level queue together
+// The disk level queue will be used to store data at shutdown and terminate - and will be restored
+// on start up.
 type PersistableChannelQueue struct {
 	*ChannelQueue
 	delayedStarter
@@ -48,14 +50,16 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 	config := configInterface.(PersistableChannelQueueConfiguration)
 
 	channelQueue, err := NewChannelQueue(handle, ChannelQueueConfiguration{
-		QueueLength:  config.QueueLength,
-		BatchLength:  config.BatchLength,
-		Workers:      config.Workers,
-		MaxWorkers:   config.MaxWorkers,
-		BlockTimeout: config.BlockTimeout,
-		BoostTimeout: config.BoostTimeout,
-		BoostWorkers: config.BoostWorkers,
-		Name:         config.Name + "-channel",
+		WorkerPoolConfiguration: WorkerPoolConfiguration{
+			QueueLength:  config.QueueLength,
+			BatchLength:  config.BatchLength,
+			BlockTimeout: config.BlockTimeout,
+			BoostTimeout: config.BoostTimeout,
+			BoostWorkers: config.BoostWorkers,
+			MaxWorkers:   config.MaxWorkers,
+		},
+		Workers: config.Workers,
+		Name:    config.Name + "-channel",
 	}, exemplar)
 	if err != nil {
 		return nil, err
@@ -63,15 +67,17 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 
 	// the level backend only needs temporary workers to catch up with the previously dropped work
 	levelCfg := LevelQueueConfiguration{
-		DataDir:      config.DataDir,
-		QueueLength:  config.QueueLength,
-		BatchLength:  config.BatchLength,
-		Workers:      1,
-		MaxWorkers:   6,
-		BlockTimeout: 1 * time.Second,
-		BoostTimeout: 5 * time.Minute,
-		BoostWorkers: 5,
-		Name:         config.Name + "-level",
+		WorkerPoolConfiguration: WorkerPoolConfiguration{
+			QueueLength:  config.QueueLength,
+			BatchLength:  config.BatchLength,
+			BlockTimeout: 1 * time.Second,
+			BoostTimeout: 5 * time.Minute,
+			BoostWorkers: 5,
+			MaxWorkers:   6,
+		},
+		DataDir: config.DataDir,
+		Workers: 1,
+		Name:    config.Name + "-level",
 	}
 
 	levelQueue, err := NewLevelQueue(handle, levelCfg, exemplar)
@@ -84,7 +90,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 			},
 			closed: make(chan struct{}),
 		}
-		_ = GetManager().Add(queue, PersistableChannelQueueType, config, exemplar, nil)
+		_ = GetManager().Add(config.Name, PersistableChannelQueueType, config, exemplar, nil)
 		return queue, nil
 	}
 	if IsErrInvalidConfiguration(err) {
@@ -103,7 +109,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		},
 		closed: make(chan struct{}),
 	}
-	_ = GetManager().Add(queue, PersistableChannelQueueType, config, exemplar, nil)
+	_ = GetManager().Add(config.Name, PersistableChannelQueueType, config, exemplar, nil)
 	return queue, nil
 }
 
@@ -124,6 +130,8 @@ func (p *PersistableChannelQueue) Push(data Data) error {
 
 // Run starts to run the queue
 func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
+	log.Debug("PersistableChannelQueue: %s Starting", p.delayedStarter.name)
+
 	p.lock.Lock()
 	if p.internal == nil {
 		err := p.setInternal(atShutdown, p.ChannelQueue.pool.handle, p.exemplar)
@@ -164,9 +172,14 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 	log.Trace("PersistableChannelQueue: %s Done main loop", p.delayedStarter.name)
 }
 
+// Flush flushes the queue and blocks till the queue is empty
+func (p *PersistableChannelQueue) Flush(timeout time.Duration) error {
+	return p.ChannelQueue.pool.Flush(timeout)
+}
+
 // Shutdown processing this queue
 func (p *PersistableChannelQueue) Shutdown() {
-	log.Trace("PersistableChannelQueue: %s Shutdown", p.delayedStarter.name)
+	log.Trace("PersistableChannelQueue: %s Shutting down", p.delayedStarter.name)
 	select {
 	case <-p.closed:
 	default:
@@ -177,6 +190,7 @@ func (p *PersistableChannelQueue) Shutdown() {
 		}
 		close(p.closed)
 	}
+	log.Debug("PersistableChannelQueue: %s Shutdown", p.delayedStarter.name)
 }
 
 // Terminate this queue and close the queue
@@ -188,6 +202,7 @@ func (p *PersistableChannelQueue) Terminate() {
 	if p.internal != nil {
 		p.internal.(*LevelQueue).Terminate()
 	}
+	log.Debug("PersistableChannelQueue: %s Terminated", p.delayedStarter.name)
 }
 
 func init() {

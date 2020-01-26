@@ -12,7 +12,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// WorkerPool takes
+// WorkerPool represent a dynamically growable worker pool for a
+// provided handler function. They have an internal channel which
+// they use to detect if there is a block and will grow and shrink in
+// response to demand as per configuration.
 type WorkerPool struct {
 	lock               sync.Mutex
 	baseCtx            context.Context
@@ -27,6 +30,36 @@ type WorkerPool struct {
 	blockTimeout       time.Duration
 	boostTimeout       time.Duration
 	boostWorkers       int
+}
+
+// WorkerPoolConfiguration is the basic configuration for a WorkerPool
+type WorkerPoolConfiguration struct {
+	QueueLength  int
+	BatchLength  int
+	BlockTimeout time.Duration
+	BoostTimeout time.Duration
+	BoostWorkers int
+	MaxWorkers   int
+}
+
+// NewWorkerPool creates a new worker pool
+func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPool {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	dataChan := make(chan Data, config.QueueLength)
+	pool := &WorkerPool{
+		baseCtx:            ctx,
+		cancel:             cancel,
+		batchLength:        config.BatchLength,
+		dataChan:           dataChan,
+		handle:             handle,
+		blockTimeout:       config.BlockTimeout,
+		boostTimeout:       config.BoostTimeout,
+		boostWorkers:       config.BoostWorkers,
+		maxNumberOfWorkers: config.MaxWorkers,
+	}
+
+	return pool
 }
 
 // Push pushes the data to the internal channel
@@ -80,7 +113,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
 
 				start := time.Now()
-				pid := mq.RegisterWorkers(boost, start, false, start, cancel)
+				pid := mq.RegisterWorkers(boost, start, false, start, cancel, false)
 				go func() {
 					<-ctx.Done()
 					mq.RemoveWorkers(pid)
@@ -156,8 +189,7 @@ func (p *WorkerPool) SetMaxNumberOfWorkers(newMax int) {
 	p.maxNumberOfWorkers = newMax
 }
 
-// AddWorkers adds workers to the pool - this allows the number of workers to go above the limit
-func (p *WorkerPool) AddWorkers(number int, timeout time.Duration) context.CancelFunc {
+func (p *WorkerPool) commonRegisterWorkers(number int, timeout time.Duration, isFlush bool) (context.Context, context.CancelFunc) {
 	var ctx context.Context
 	var cancel context.CancelFunc
 	start := time.Now()
@@ -173,7 +205,7 @@ func (p *WorkerPool) AddWorkers(number int, timeout time.Duration) context.Cance
 
 	mq := GetManager().GetManagedQueue(p.qid)
 	if mq != nil {
-		pid := mq.RegisterWorkers(number, start, hasTimeout, end, cancel)
+		pid := mq.RegisterWorkers(number, start, hasTimeout, end, cancel, isFlush)
 		go func() {
 			<-ctx.Done()
 			mq.RemoveWorkers(pid)
@@ -184,6 +216,12 @@ func (p *WorkerPool) AddWorkers(number int, timeout time.Duration) context.Cance
 		log.Trace("WorkerPool: %d adding %d workers (no group id)", p.qid, number)
 
 	}
+	return ctx, cancel
+}
+
+// AddWorkers adds workers to the pool - this allows the number of workers to go above the limit
+func (p *WorkerPool) AddWorkers(number int, timeout time.Duration) context.CancelFunc {
+	ctx, cancel := p.commonRegisterWorkers(number, timeout, false)
 	p.addWorkers(ctx, number)
 	return cancel
 }
@@ -243,6 +281,31 @@ func (p *WorkerPool) CleanUp(ctx context.Context) {
 		}
 	}
 	log.Trace("WorkerPool: %d CleanUp Done", p.qid)
+}
+
+// Flush flushes the channel with a timeout - the Flush worker will be registered as a flush worker with the manager
+func (p *WorkerPool) Flush(timeout time.Duration) error {
+	ctx, cancel := p.commonRegisterWorkers(1, timeout, true)
+	defer cancel()
+	return p.FlushWithContext(ctx)
+}
+
+// FlushWithContext is very similar to CleanUp but it will return as soon as the dataChan is empty
+// NB: The worker will not be registered with the manager.
+func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
+	log.Trace("WorkerPool: %d Flush", p.qid)
+	for {
+		select {
+		case data := <-p.dataChan:
+			p.handle(data)
+		case <-p.baseCtx.Done():
+			return p.baseCtx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			return nil
+		}
+	}
 }
 
 func (p *WorkerPool) doWork(ctx context.Context) {

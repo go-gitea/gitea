@@ -26,11 +26,13 @@ type Manager struct {
 	Queues  map[int64]*ManagedQueue
 }
 
-// ManagedQueue represents a working queue inheriting from Gitea.
+// ManagedQueue represents a working queue with a Pool of workers.
+//
+// Although a ManagedQueue should really represent a Queue this does not
+// necessarily have to be the case. This could be used to describe any queue.WorkerPool.
 type ManagedQueue struct {
 	mutex         sync.Mutex
 	QID           int64
-	Queue         Queue
 	Type          Type
 	Name          string
 	Configuration interface{}
@@ -50,12 +52,13 @@ type ManagedPool interface {
 	BlockTimeout() time.Duration
 	BoostWorkers() int
 	SetSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration)
+	Flush(time.Duration) error
 }
 
 // ManagedQueueList implements the sort.Interface
 type ManagedQueueList []*ManagedQueue
 
-// PoolWorkers represents a working queue inheriting from Gitea.
+// PoolWorkers represents a group of workers working on a queue
 type PoolWorkers struct {
 	PID        int64
 	Workers    int
@@ -63,9 +66,10 @@ type PoolWorkers struct {
 	Timeout    time.Time
 	HasTimeout bool
 	Cancel     context.CancelFunc
+	IsFlush    bool
 }
 
-// PoolWorkersList implements the sort.Interface
+// PoolWorkersList implements the sort.Interface for PoolWorkers
 type PoolWorkersList []*PoolWorkers
 
 func init() {
@@ -83,7 +87,7 @@ func GetManager() *Manager {
 }
 
 // Add adds a queue to this manager
-func (m *Manager) Add(queue Queue,
+func (m *Manager) Add(name string,
 	t Type,
 	configuration,
 	exemplar interface{},
@@ -91,7 +95,6 @@ func (m *Manager) Add(queue Queue,
 
 	cfg, _ := json.Marshal(configuration)
 	mq := &ManagedQueue{
-		Queue:         queue,
 		Type:          t,
 		Configuration: string(cfg),
 		ExemplarType:  reflect.TypeOf(exemplar).String(),
@@ -102,8 +105,8 @@ func (m *Manager) Add(queue Queue,
 	m.counter++
 	mq.QID = m.counter
 	mq.Name = fmt.Sprintf("queue-%d", mq.QID)
-	if named, ok := queue.(Named); ok {
-		mq.Name = named.Name()
+	if len(name) > 0 {
+		mq.Name = name
 	}
 	m.Queues[mq.QID] = mq
 	m.mutex.Unlock()
@@ -152,7 +155,7 @@ func (q *ManagedQueue) Workers() []*PoolWorkers {
 }
 
 // RegisterWorkers registers workers to this queue
-func (q *ManagedQueue) RegisterWorkers(number int, start time.Time, hasTimeout bool, timeout time.Time, cancel context.CancelFunc) int64 {
+func (q *ManagedQueue) RegisterWorkers(number int, start time.Time, hasTimeout bool, timeout time.Time, cancel context.CancelFunc, isFlush bool) int64 {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	q.counter++
@@ -163,6 +166,7 @@ func (q *ManagedQueue) RegisterWorkers(number int, start time.Time, hasTimeout b
 		Timeout:    timeout,
 		HasTimeout: hasTimeout,
 		Cancel:     cancel,
+		IsFlush:    isFlush,
 	}
 	return q.counter
 }
@@ -194,6 +198,14 @@ func (q *ManagedQueue) AddWorkers(number int, timeout time.Duration) context.Can
 	if q.Pool != nil {
 		// the cancel will be added to the pool workers description above
 		return q.Pool.AddWorkers(number, timeout)
+	}
+	return nil
+}
+
+// Flush flushes the queue with a timeout
+func (q *ManagedQueue) Flush(timeout time.Duration) error {
+	if q.Pool != nil {
+		return q.Pool.Flush(timeout)
 	}
 	return nil
 }
