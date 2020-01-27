@@ -315,6 +315,17 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 
 // accessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func accessibleRepositoryCondition(userID int64) builder.Cond {
+	if userID <= 0 {
+		return builder.And(
+			builder.Eq{"`repository`.is_private": false},
+			builder.Or(
+				//   A. Aren't in organisations  __OR__
+				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
+				//   B. Is a public organisation.
+				builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePublic}))),
+		)
+	}
+
 	return builder.Or(
 		// 1. Be able to see all non-private repositories that either:
 		builder.And(
@@ -347,6 +358,12 @@ func accessibleRepositoryCondition(userID int64) builder.Cond {
 func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	opts.IncludeDescription = false
 	return SearchRepository(opts)
+}
+
+// AccessibleRepoIDsQuery queries accessible repository ids. Usable as a subquery wherever repo ids need to be filtered.
+func AccessibleRepoIDsQuery(userID int64) *builder.Builder {
+	// NB: Please note this code needs to still work if user is nil
+	return builder.Select("id").From("repository").Where(accessibleRepositoryCondition(userID))
 }
 
 // FindUserAccessibleRepoIDs find all accessible repositories' ID by user's id

@@ -142,11 +142,17 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
+	requestingUserID := int64(0)
+	if ctx.User != nil {
+		requestingUserID = ctx.User.ID
+	}
+
 	retrieveFeeds(ctx, models.GetFeedsOptions{
-		RequestedUser:   ctxUser,
-		IncludePrivate:  true,
-		OnlyPerformedBy: false,
-		IncludeDeleted:  false,
+		RequestedUser:    ctxUser,
+		RequestingUserID: requestingUserID,
+		IncludePrivate:   true,
+		OnlyPerformedBy:  false,
+		IncludeDeleted:   false,
 	})
 
 	if ctx.Written() {
