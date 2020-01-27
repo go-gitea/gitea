@@ -134,7 +134,7 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 
 	p.lock.Lock()
 	if p.internal == nil {
-		err := p.setInternal(atShutdown, p.ChannelQueue.pool.handle, p.exemplar)
+		err := p.setInternal(atShutdown, p.ChannelQueue.handle, p.exemplar)
 		p.lock.Unlock()
 		if err != nil {
 			log.Fatal("Unable to create internal queue for %s Error: %v", p.Name(), err)
@@ -150,21 +150,21 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 	go p.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
 
 	go func() {
-		_ = p.ChannelQueue.pool.AddWorkers(p.workers, 0)
+		_ = p.ChannelQueue.AddWorkers(p.workers, 0)
 	}()
 
 	log.Trace("PersistableChannelQueue: %s Waiting til closed", p.delayedStarter.name)
 	<-p.closed
 	log.Trace("PersistableChannelQueue: %s Cancelling pools", p.delayedStarter.name)
-	p.ChannelQueue.pool.cancel()
+	p.ChannelQueue.cancel()
 	p.internal.(*LevelQueue).pool.cancel()
 	log.Trace("PersistableChannelQueue: %s Waiting til done", p.delayedStarter.name)
-	p.ChannelQueue.pool.Wait()
+	p.ChannelQueue.Wait()
 	p.internal.(*LevelQueue).pool.Wait()
 	// Redirect all remaining data in the chan to the internal channel
 	go func() {
 		log.Trace("PersistableChannelQueue: %s Redirecting remaining data", p.delayedStarter.name)
-		for data := range p.ChannelQueue.pool.dataChan {
+		for data := range p.ChannelQueue.dataChan {
 			_ = p.internal.Push(data)
 		}
 		log.Trace("PersistableChannelQueue: %s Done Redirecting remaining data", p.delayedStarter.name)
@@ -174,7 +174,20 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 
 // Flush flushes the queue and blocks till the queue is empty
 func (p *PersistableChannelQueue) Flush(timeout time.Duration) error {
-	return p.ChannelQueue.pool.Flush(timeout)
+	return p.ChannelQueue.Flush(timeout)
+}
+
+// IsEmpty checks if a queue is empty
+func (p *PersistableChannelQueue) IsEmpty() bool {
+	if !p.ChannelQueue.IsEmpty() {
+		return false
+	}
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	if p.internal == nil {
+		return false
+	}
+	return p.internal.IsEmpty()
 }
 
 // Shutdown processing this queue

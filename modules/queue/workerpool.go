@@ -7,6 +7,7 @@ package queue
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -30,6 +31,7 @@ type WorkerPool struct {
 	blockTimeout       time.Duration
 	boostTimeout       time.Duration
 	boostWorkers       int
+	numInQueue         int64
 }
 
 // WorkerPoolConfiguration is the basic configuration for a WorkerPool
@@ -65,6 +67,7 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 // Push pushes the data to the internal channel
 func (p *WorkerPool) Push(data Data) {
 	p.lock.Lock()
+	atomic.AddInt64(&p.numInQueue, 1)
 	if p.blockTimeout > 0 && p.boostTimeout > 0 && (p.numberOfWorkers <= p.maxNumberOfWorkers || p.maxNumberOfWorkers < 0) {
 		p.lock.Unlock()
 		p.pushBoost(data)
@@ -273,6 +276,7 @@ func (p *WorkerPool) CleanUp(ctx context.Context) {
 	close(p.dataChan)
 	for data := range p.dataChan {
 		p.handle(data)
+		atomic.AddInt64(&p.numInQueue, -1)
 		select {
 		case <-ctx.Done():
 			log.Warn("WorkerPool: %d Cleanup context closed before finishing clean-up", p.qid)
@@ -290,6 +294,11 @@ func (p *WorkerPool) Flush(timeout time.Duration) error {
 	return p.FlushWithContext(ctx)
 }
 
+// IsEmpty returns if true if the worker queue is empty
+func (p *WorkerPool) IsEmpty() bool {
+	return atomic.LoadInt64(&p.numInQueue) == 0
+}
+
 // FlushWithContext is very similar to CleanUp but it will return as soon as the dataChan is empty
 // NB: The worker will not be registered with the manager.
 func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
@@ -298,6 +307,7 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 		select {
 		case data := <-p.dataChan:
 			p.handle(data)
+			atomic.AddInt64(&p.numInQueue, -1)
 		case <-p.baseCtx.Done():
 			return p.baseCtx.Err()
 		case <-ctx.Done():
@@ -317,6 +327,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 			if len(data) > 0 {
 				log.Trace("Handling: %d data, %v", len(data), data)
 				p.handle(data...)
+				atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 			}
 			log.Trace("Worker shutting down")
 			return
@@ -326,6 +337,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				if len(data) > 0 {
 					log.Trace("Handling: %d data, %v", len(data), data)
 					p.handle(data...)
+					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 				}
 				log.Trace("Worker shutting down")
 				return
@@ -334,6 +346,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 			if len(data) >= p.batchLength {
 				log.Trace("Handling: %d data, %v", len(data), data)
 				p.handle(data...)
+				atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 				data = make([]Data, 0, p.batchLength)
 			}
 		default:
@@ -349,6 +362,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				if len(data) > 0 {
 					log.Trace("Handling: %d data, %v", len(data), data)
 					p.handle(data...)
+					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 				}
 				log.Trace("Worker shutting down")
 				return
@@ -364,6 +378,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 					if len(data) > 0 {
 						log.Trace("Handling: %d data, %v", len(data), data)
 						p.handle(data...)
+						atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 					}
 					log.Trace("Worker shutting down")
 					return
@@ -372,6 +387,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				if len(data) >= p.batchLength {
 					log.Trace("Handling: %d data, %v", len(data), data)
 					p.handle(data...)
+					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 					data = make([]Data, 0, p.batchLength)
 				}
 			case <-timer.C:
@@ -379,6 +395,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				if len(data) > 0 {
 					log.Trace("Handling: %d data, %v", len(data), data)
 					p.handle(data...)
+					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 					data = make([]Data, 0, p.batchLength)
 				}
 

@@ -7,7 +7,6 @@ package queue
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -27,7 +26,7 @@ type ChannelQueueConfiguration struct {
 // A channel queue is not persistable and does not shutdown or terminate cleanly
 // It is basically a very thin wrapper around a WorkerPool
 type ChannelQueue struct {
-	pool     *WorkerPool
+	*WorkerPool
 	exemplar interface{}
 	workers  int
 	name     string
@@ -44,12 +43,12 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 		config.BatchLength = 1
 	}
 	queue := &ChannelQueue{
-		pool:     NewWorkerPool(handle, config.WorkerPoolConfiguration),
-		exemplar: exemplar,
-		workers:  config.Workers,
-		name:     config.Name,
+		WorkerPool: NewWorkerPool(handle, config.WorkerPoolConfiguration),
+		exemplar:   exemplar,
+		workers:    config.Workers,
+		name:       config.Name,
 	}
-	queue.pool.qid = GetManager().Add(config.Name, ChannelQueueType, config, exemplar, queue.pool)
+	queue.qid = GetManager().Add(config.Name, ChannelQueueType, config, exemplar, queue)
 	return queue, nil
 }
 
@@ -63,7 +62,7 @@ func (c *ChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())
 	})
 	log.Debug("ChannelQueue: %s Starting", c.name)
 	go func() {
-		_ = c.pool.AddWorkers(c.workers, 0)
+		_ = c.AddWorkers(c.workers, 0)
 	}()
 }
 
@@ -72,18 +71,13 @@ func (c *ChannelQueue) Push(data Data) error {
 	if !assignableTo(data, c.exemplar) {
 		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in queue: %s", data, c.exemplar, c.name)
 	}
-	c.pool.Push(data)
+	c.WorkerPool.Push(data)
 	return nil
 }
 
 // Name returns the name of this queue
 func (c *ChannelQueue) Name() string {
 	return c.name
-}
-
-// Flush flushes the queue and blocks till the queue is empty
-func (c *ChannelQueue) Flush(timeout time.Duration) error {
-	return c.pool.Flush(timeout)
 }
 
 func init() {

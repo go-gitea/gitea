@@ -24,6 +24,7 @@ const RedisQueueType Type = "redis"
 type redisClient interface {
 	RPush(key string, args ...interface{}) *redis.IntCmd
 	LPop(key string) *redis.StringCmd
+	LLen(key string) *redis.IntCmd
 	Ping() *redis.StatusCmd
 	Close() error
 }
@@ -166,6 +167,19 @@ func (r *RedisQueue) Push(data Data) error {
 // Flush flushes the queue and blocks till the queue is empty
 func (r *RedisQueue) Flush(timeout time.Duration) error {
 	return r.pool.Flush(timeout)
+}
+
+// IsEmpty checks if the queue is empty
+func (r *RedisQueue) IsEmpty() bool {
+	if !r.pool.IsEmpty() {
+		return false
+	}
+	length, err := r.client.LLen(r.queueName).Result()
+	if err != nil {
+		log.Error("Error whilst getting queue length for %s: Error: %v", r.name, err)
+		return false
+	}
+	return length == 0
 }
 
 // Shutdown processing from this queue

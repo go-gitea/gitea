@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -87,10 +88,11 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 // WrappedQueue wraps a delayed starting queue
 type WrappedQueue struct {
 	delayedStarter
-	lock     sync.Mutex
-	handle   HandlerFunc
-	exemplar interface{}
-	channel  chan Data
+	lock       sync.Mutex
+	handle     HandlerFunc
+	exemplar   interface{}
+	channel    chan Data
+	numInQueue int64
 }
 
 // NewWrappedQueue will attempt to create a queue of the provided type,
@@ -140,6 +142,7 @@ func (q *WrappedQueue) Push(data Data) error {
 	if !assignableTo(data, q.exemplar) {
 		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
+	atomic.AddInt64(&q.numInQueue, 1)
 	q.channel <- data
 	return nil
 }
@@ -181,6 +184,20 @@ func (q *WrappedQueue) Flush(timeout time.Duration) error {
 	}
 }
 
+// IsEmpty checks whether the queue is empty
+func (q *WrappedQueue) IsEmpty() bool {
+	val := atomic.LoadInt64(&q.numInQueue)
+	if val != 0 {
+		return false
+	}
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.internal == nil {
+		return false
+	}
+	return q.internal.IsEmpty()
+}
+
 // Run starts to run the queue and attempts to create the internal queue
 func (q *WrappedQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
 	log.Debug("WrappedQueue: %s Starting", q.name)
@@ -195,6 +212,7 @@ func (q *WrappedQueue) Run(atShutdown, atTerminate func(context.Context, func())
 		go func() {
 			for data := range q.channel {
 				_ = q.internal.Push(data)
+				atomic.AddInt64(&q.numInQueue, -1)
 			}
 		}()
 	} else {

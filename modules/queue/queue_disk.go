@@ -145,6 +145,14 @@ func (l *LevelQueue) Flush(timeout time.Duration) error {
 	return l.pool.Flush(timeout)
 }
 
+// IsEmpty checks whether the queue is empty
+func (l *LevelQueue) IsEmpty() bool {
+	if !l.pool.IsEmpty() {
+		return false
+	}
+	return l.queue.Len() == 0
+}
+
 // Shutdown this queue and stop processing
 func (l *LevelQueue) Shutdown() {
 	l.lock.Lock()

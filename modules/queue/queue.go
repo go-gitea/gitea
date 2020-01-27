@@ -59,6 +59,7 @@ type Queue interface {
 	Run(atShutdown, atTerminate func(context.Context, func()))
 	Push(Data) error
 	Flush(time.Duration) error
+	IsEmpty() bool
 }
 
 // DummyQueueType is the type for the dummy queue
@@ -84,6 +85,11 @@ func (b *DummyQueue) Push(Data) error {
 // Flush always returns nil
 func (b *DummyQueue) Flush(time.Duration) error {
 	return nil
+}
+
+// IsEmpty asserts that the queue is empty
+func (b *DummyQueue) IsEmpty() bool {
+	return true
 }
 
 var queuesMap = map[Type]NewQueueFunc{DummyQueueType: NewDummyQueue}
