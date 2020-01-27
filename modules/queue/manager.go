@@ -37,22 +37,37 @@ type ManagedQueue struct {
 	Name          string
 	Configuration interface{}
 	ExemplarType  string
-	Pool          ManagedPool
+	Managed       interface{}
 	counter       int64
 	PoolWorkers   map[int64]*PoolWorkers
 }
 
+// Flushable represents a pool or queue that is flushable
+type Flushable interface {
+	// Flush will add a flush worker to the pool
+	Flush(time.Duration) error
+	// IsEmpty will return if the managed pool is empty and has no work
+	IsEmpty() bool
+}
+
 // ManagedPool is a simple interface to get certain details from a worker pool
 type ManagedPool interface {
+	// AddWorkers adds a number of worker as group to the pool with the provided timeout. A CancelFunc is provided to cancel the group
 	AddWorkers(number int, timeout time.Duration) context.CancelFunc
+	// NumberOfWorkers returns the total number of workers in the pool
 	NumberOfWorkers() int
+	// MaxNumberOfWorkers returns the maximum number of workers the pool can dynamically grow to
 	MaxNumberOfWorkers() int
+	// SetMaxNumberOfWorkers sets the maximum number of workers the pool can dynamically grow to
 	SetMaxNumberOfWorkers(int)
+	// BoostTimeout returns the current timeout for worker groups created during a boost
 	BoostTimeout() time.Duration
+	// BlockTimeout returns the timeout the internal channel can block for before a boost would occur
 	BlockTimeout() time.Duration
+	// BoostWorkers sets the number of workers to be created during a boost
 	BoostWorkers() int
-	SetSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration)
-	Flush(time.Duration) error
+	// SetPoolSettings sets the user updatable settings for the pool
+	SetPoolSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration)
 }
 
 // ManagedQueueList implements the sort.Interface
@@ -66,7 +81,7 @@ type PoolWorkers struct {
 	Timeout    time.Time
 	HasTimeout bool
 	Cancel     context.CancelFunc
-	IsFlush    bool
+	IsFlusher  bool
 }
 
 // PoolWorkersList implements the sort.Interface for PoolWorkers
@@ -87,11 +102,10 @@ func GetManager() *Manager {
 }
 
 // Add adds a queue to this manager
-func (m *Manager) Add(name string,
+func (m *Manager) Add(managed interface{},
 	t Type,
 	configuration,
-	exemplar interface{},
-	pool ManagedPool) int64 {
+	exemplar interface{}) int64 {
 
 	cfg, _ := json.Marshal(configuration)
 	mq := &ManagedQueue{
@@ -99,14 +113,17 @@ func (m *Manager) Add(name string,
 		Configuration: string(cfg),
 		ExemplarType:  reflect.TypeOf(exemplar).String(),
 		PoolWorkers:   make(map[int64]*PoolWorkers),
-		Pool:          pool,
+		Managed:       managed,
 	}
 	m.mutex.Lock()
 	m.counter++
 	mq.QID = m.counter
 	mq.Name = fmt.Sprintf("queue-%d", mq.QID)
-	if len(name) > 0 {
-		mq.Name = name
+	if named, ok := managed.(Named); ok {
+		name := named.Name()
+		if len(name) > 0 {
+			mq.Name = name
+		}
 	}
 	m.Queues[mq.QID] = mq
 	m.mutex.Unlock()
@@ -155,7 +172,7 @@ func (q *ManagedQueue) Workers() []*PoolWorkers {
 }
 
 // RegisterWorkers registers workers to this queue
-func (q *ManagedQueue) RegisterWorkers(number int, start time.Time, hasTimeout bool, timeout time.Time, cancel context.CancelFunc, isFlush bool) int64 {
+func (q *ManagedQueue) RegisterWorkers(number int, start time.Time, hasTimeout bool, timeout time.Time, cancel context.CancelFunc, isFlusher bool) int64 {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	q.counter++
@@ -166,7 +183,7 @@ func (q *ManagedQueue) RegisterWorkers(number int, start time.Time, hasTimeout b
 		Timeout:    timeout,
 		HasTimeout: hasTimeout,
 		Cancel:     cancel,
-		IsFlush:    isFlush,
+		IsFlusher:  isFlusher,
 	}
 	return q.counter
 }
@@ -195,65 +212,74 @@ func (q *ManagedQueue) RemoveWorkers(pid int64) {
 
 // AddWorkers adds workers to the queue if it has registered an add worker function
 func (q *ManagedQueue) AddWorkers(number int, timeout time.Duration) context.CancelFunc {
-	if q.Pool != nil {
+	if pool, ok := q.Managed.(ManagedPool); ok {
 		// the cancel will be added to the pool workers description above
-		return q.Pool.AddWorkers(number, timeout)
+		return pool.AddWorkers(number, timeout)
 	}
 	return nil
 }
 
 // Flush flushes the queue with a timeout
 func (q *ManagedQueue) Flush(timeout time.Duration) error {
-	if q.Pool != nil {
-		return q.Pool.Flush(timeout)
+	if flushable, ok := q.Managed.(Flushable); ok {
+		// the cancel will be added to the pool workers description above
+		return flushable.Flush(timeout)
 	}
 	return nil
 }
 
+// IsEmpty returns if the queue is empty
+func (q *ManagedQueue) IsEmpty() bool {
+	if flushable, ok := q.Managed.(Flushable); ok {
+		return flushable.IsEmpty()
+	}
+	return true
+}
+
 // NumberOfWorkers returns the number of workers in the queue
 func (q *ManagedQueue) NumberOfWorkers() int {
-	if q.Pool != nil {
-		return q.Pool.NumberOfWorkers()
+	if pool, ok := q.Managed.(ManagedPool); ok {
+		return pool.NumberOfWorkers()
 	}
 	return -1
 }
 
 // MaxNumberOfWorkers returns the maximum number of workers for the pool
 func (q *ManagedQueue) MaxNumberOfWorkers() int {
-	if q.Pool != nil {
-		return q.Pool.MaxNumberOfWorkers()
+	if pool, ok := q.Managed.(ManagedPool); ok {
+		return pool.MaxNumberOfWorkers()
 	}
 	return 0
 }
 
 // BoostWorkers returns the number of workers for a boost
 func (q *ManagedQueue) BoostWorkers() int {
-	if q.Pool != nil {
-		return q.Pool.BoostWorkers()
+	if pool, ok := q.Managed.(ManagedPool); ok {
+		return pool.BoostWorkers()
 	}
 	return -1
 }
 
 // BoostTimeout returns the timeout of the next boost
 func (q *ManagedQueue) BoostTimeout() time.Duration {
-	if q.Pool != nil {
-		return q.Pool.BoostTimeout()
+	if pool, ok := q.Managed.(ManagedPool); ok {
+		return pool.BoostTimeout()
 	}
 	return 0
 }
 
 // BlockTimeout returns the timeout til the next boost
 func (q *ManagedQueue) BlockTimeout() time.Duration {
-	if q.Pool != nil {
-		return q.Pool.BlockTimeout()
+	if pool, ok := q.Managed.(ManagedPool); ok {
+		return pool.BlockTimeout()
 	}
 	return 0
 }
 
-// SetSettings sets the setable boost values
-func (q *ManagedQueue) SetSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration) {
-	if q.Pool != nil {
-		q.Pool.SetSettings(maxNumberOfWorkers, boostWorkers, timeout)
+// SetPoolSettings sets the setable boost values
+func (q *ManagedQueue) SetPoolSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration) {
+	if pool, ok := q.Managed.(ManagedPool); ok {
+		pool.SetPoolSettings(maxNumberOfWorkers, boostWorkers, timeout)
 	}
 }
 

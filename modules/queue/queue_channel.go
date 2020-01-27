@@ -48,7 +48,7 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 		workers:    config.Workers,
 		name:       config.Name,
 	}
-	queue.qid = GetManager().Add(config.Name, ChannelQueueType, config, exemplar, queue)
+	queue.qid = GetManager().Add(queue, ChannelQueueType, config, exemplar)
 	return queue, nil
 }
 

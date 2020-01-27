@@ -446,7 +446,7 @@ func AddWorkers(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 		return
 	}
-	if mq.Pool == nil {
+	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
 		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 		return
@@ -464,7 +464,7 @@ func SetQueueSettings(ctx *context.Context) {
 		ctx.Status(404)
 		return
 	}
-	if mq.Pool == nil {
+	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
 		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 		return
@@ -510,10 +510,10 @@ func SetQueueSettings(ctx *context.Context) {
 			return
 		}
 	} else {
-		timeout = mq.Pool.BoostTimeout()
+		timeout = mq.BoostTimeout()
 	}
 
-	mq.SetSettings(maxNumber, number, timeout)
+	mq.SetPoolSettings(maxNumber, number, timeout)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
 	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 }

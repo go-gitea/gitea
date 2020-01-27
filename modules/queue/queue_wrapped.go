@@ -128,7 +128,7 @@ func NewWrappedQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 			name:        config.Name,
 		},
 	}
-	_ = GetManager().Add(config.Name, WrappedQueueType, config, exemplar, nil)
+	_ = GetManager().Add(queue, WrappedQueueType, config, exemplar)
 	return queue, nil
 }
 

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -29,7 +30,7 @@ type LevelQueueConfiguration struct {
 
 // LevelQueue implements a disk library queue
 type LevelQueue struct {
-	pool       *WorkerPool
+	*WorkerPool
 	queue      *levelqueue.Queue
 	closed     chan struct{}
 	terminated chan struct{}
@@ -53,7 +54,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	}
 
 	queue := &LevelQueue{
-		pool:       NewWorkerPool(handle, config.WorkerPoolConfiguration),
+		WorkerPool: NewWorkerPool(handle, config.WorkerPoolConfiguration),
 		queue:      internal,
 		exemplar:   exemplar,
 		closed:     make(chan struct{}),
@@ -61,7 +62,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 		workers:    config.Workers,
 		name:       config.Name,
 	}
-	queue.pool.qid = GetManager().Add(config.Name, LevelQueueType, config, exemplar, queue.pool)
+	queue.qid = GetManager().Add(queue, LevelQueueType, config, exemplar)
 	return queue, nil
 }
 
@@ -72,7 +73,7 @@ func (l *LevelQueue) Run(atShutdown, atTerminate func(context.Context, func())) 
 	log.Debug("LevelQueue: %s Starting", l.name)
 
 	go func() {
-		_ = l.pool.AddWorkers(l.workers, 0)
+		_ = l.AddWorkers(l.workers, 0)
 	}()
 
 	go l.readToChan()
@@ -81,12 +82,12 @@ func (l *LevelQueue) Run(atShutdown, atTerminate func(context.Context, func())) 
 	<-l.closed
 
 	log.Trace("LevelQueue: %s Waiting til done", l.name)
-	l.pool.Wait()
+	l.Wait()
 
 	log.Trace("LevelQueue: %s Waiting til cleaned", l.name)
 	ctx, cancel := context.WithCancel(context.Background())
 	atTerminate(ctx, cancel)
-	l.pool.CleanUp(ctx)
+	l.CleanUp(ctx)
 	cancel()
 	log.Trace("LevelQueue: %s Cleaned", l.name)
 
@@ -97,19 +98,22 @@ func (l *LevelQueue) readToChan() {
 		select {
 		case <-l.closed:
 			// tell the pool to shutdown.
-			l.pool.cancel()
+			l.cancel()
 			return
 		default:
+			atomic.AddInt64(&l.numInQueue, 1)
 			bs, err := l.queue.RPop()
 			if err != nil {
 				if err != levelqueue.ErrNotFound {
 					log.Error("LevelQueue: %s Error on RPop: %v", l.name, err)
 				}
+				atomic.AddInt64(&l.numInQueue, -1)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 
 			if len(bs) == 0 {
+				atomic.AddInt64(&l.numInQueue, -1)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
@@ -117,13 +121,14 @@ func (l *LevelQueue) readToChan() {
 			data, err := unmarshalAs(bs, l.exemplar)
 			if err != nil {
 				log.Error("LevelQueue: %s Failed to unmarshal with error: %v", l.name, err)
+				atomic.AddInt64(&l.numInQueue, -1)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 
 			log.Trace("LevelQueue %s: Task found: %#v", l.name, data)
-			l.pool.Push(data)
-
+			l.WorkerPool.Push(data)
+			atomic.AddInt64(&l.numInQueue, -1)
 		}
 	}
 }
@@ -140,14 +145,9 @@ func (l *LevelQueue) Push(data Data) error {
 	return l.queue.LPush(bs)
 }
 
-// Flush flushes the queue and blocks till the queue is empty
-func (l *LevelQueue) Flush(timeout time.Duration) error {
-	return l.pool.Flush(timeout)
-}
-
 // IsEmpty checks whether the queue is empty
 func (l *LevelQueue) IsEmpty() bool {
-	if !l.pool.IsEmpty() {
+	if !l.WorkerPool.IsEmpty() {
 		return false
 	}
 	return l.queue.Len() == 0
@@ -177,6 +177,9 @@ func (l *LevelQueue) Terminate() {
 	default:
 		close(l.terminated)
 		l.lock.Unlock()
+		if log.IsDebug() {
+			log.Debug("LevelQueue: %s Closing with %d tasks left in queue", l.name, l.queue.Len())
+		}
 		if err := l.queue.Close(); err != nil && err.Error() != "leveldb: closed" {
 			log.Error("Error whilst closing internal queue in %s: %v", l.name, err)
 		}

@@ -66,8 +66,8 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 
 // Push pushes the data to the internal channel
 func (p *WorkerPool) Push(data Data) {
-	p.lock.Lock()
 	atomic.AddInt64(&p.numInQueue, 1)
+	p.lock.Lock()
 	if p.blockTimeout > 0 && p.boostTimeout > 0 && (p.numberOfWorkers <= p.maxNumberOfWorkers || p.maxNumberOfWorkers < 0) {
 		p.lock.Unlock()
 		p.pushBoost(data)
@@ -174,8 +174,8 @@ func (p *WorkerPool) BlockTimeout() time.Duration {
 	return p.blockTimeout
 }
 
-// SetSettings sets the setable boost values
-func (p *WorkerPool) SetSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration) {
+// SetPoolSettings sets the setable boost values
+func (p *WorkerPool) SetPoolSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	p.maxNumberOfWorkers = maxNumberOfWorkers
@@ -192,7 +192,7 @@ func (p *WorkerPool) SetMaxNumberOfWorkers(newMax int) {
 	p.maxNumberOfWorkers = newMax
 }
 
-func (p *WorkerPool) commonRegisterWorkers(number int, timeout time.Duration, isFlush bool) (context.Context, context.CancelFunc) {
+func (p *WorkerPool) commonRegisterWorkers(number int, timeout time.Duration, isFlusher bool) (context.Context, context.CancelFunc) {
 	var ctx context.Context
 	var cancel context.CancelFunc
 	start := time.Now()
@@ -208,7 +208,7 @@ func (p *WorkerPool) commonRegisterWorkers(number int, timeout time.Duration, is
 
 	mq := GetManager().GetManagedQueue(p.qid)
 	if mq != nil {
-		pid := mq.RegisterWorkers(number, start, hasTimeout, end, cancel, isFlush)
+		pid := mq.RegisterWorkers(number, start, hasTimeout, end, cancel, isFlusher)
 		go func() {
 			<-ctx.Done()
 			mq.RemoveWorkers(pid)

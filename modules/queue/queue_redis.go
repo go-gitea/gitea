@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -31,7 +32,7 @@ type redisClient interface {
 
 // RedisQueue redis queue
 type RedisQueue struct {
-	pool       *WorkerPool
+	*WorkerPool
 	client     redisClient
 	queueName  string
 	closed     chan struct{}
@@ -65,7 +66,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	dbs := strings.Split(config.Addresses, ",")
 
 	var queue = &RedisQueue{
-		pool:       NewWorkerPool(handle, config.WorkerPoolConfiguration),
+		WorkerPool: NewWorkerPool(handle, config.WorkerPoolConfiguration),
 		queueName:  config.QueueName,
 		exemplar:   exemplar,
 		closed:     make(chan struct{}),
@@ -90,7 +91,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	if err := queue.client.Ping().Err(); err != nil {
 		return nil, err
 	}
-	queue.pool.qid = GetManager().Add(config.Name, RedisQueueType, config, exemplar, queue.pool)
+	queue.qid = GetManager().Add(queue, RedisQueueType, config, exemplar)
 
 	return queue, nil
 }
@@ -102,7 +103,7 @@ func (r *RedisQueue) Run(atShutdown, atTerminate func(context.Context, func())) 
 	log.Debug("RedisQueue: %s Starting", r.name)
 
 	go func() {
-		_ = r.pool.AddWorkers(r.workers, 0)
+		_ = r.AddWorkers(r.workers, 0)
 	}()
 
 	go r.readToChan()
@@ -110,12 +111,12 @@ func (r *RedisQueue) Run(atShutdown, atTerminate func(context.Context, func())) 
 	log.Trace("RedisQueue: %s Waiting til closed", r.name)
 	<-r.closed
 	log.Trace("RedisQueue: %s Waiting til done", r.name)
-	r.pool.Wait()
+	r.Wait()
 
 	log.Trace("RedisQueue: %s Waiting til cleaned", r.name)
 	ctx, cancel := context.WithCancel(context.Background())
 	atTerminate(ctx, cancel)
-	r.pool.CleanUp(ctx)
+	r.CleanUp(ctx)
 	cancel()
 }
 
@@ -124,17 +125,20 @@ func (r *RedisQueue) readToChan() {
 		select {
 		case <-r.closed:
 			// tell the pool to shutdown
-			r.pool.cancel()
+			r.cancel()
 			return
 		default:
+			atomic.AddInt64(&r.numInQueue, 1)
 			bs, err := r.client.LPop(r.queueName).Bytes()
 			if err != nil && err != redis.Nil {
 				log.Error("RedisQueue: %s Error on LPop: %v", r.name, err)
+				atomic.AddInt64(&r.numInQueue, -1)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 
 			if len(bs) == 0 {
+				atomic.AddInt64(&r.numInQueue, -1)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
@@ -142,12 +146,14 @@ func (r *RedisQueue) readToChan() {
 			data, err := unmarshalAs(bs, r.exemplar)
 			if err != nil {
 				log.Error("RedisQueue: %s Error on Unmarshal: %v", r.name, err)
+				atomic.AddInt64(&r.numInQueue, -1)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 
 			log.Trace("RedisQueue: %s Task found: %#v", r.name, data)
-			r.pool.Push(data)
+			r.WorkerPool.Push(data)
+			atomic.AddInt64(&r.numInQueue, -1)
 		}
 	}
 }
@@ -164,14 +170,9 @@ func (r *RedisQueue) Push(data Data) error {
 	return r.client.RPush(r.queueName, bs).Err()
 }
 
-// Flush flushes the queue and blocks till the queue is empty
-func (r *RedisQueue) Flush(timeout time.Duration) error {
-	return r.pool.Flush(timeout)
-}
-
 // IsEmpty checks if the queue is empty
 func (r *RedisQueue) IsEmpty() bool {
-	if !r.pool.IsEmpty() {
+	if !r.WorkerPool.IsEmpty() {
 		return false
 	}
 	length, err := r.client.LLen(r.queueName).Result()
@@ -206,6 +207,9 @@ func (r *RedisQueue) Terminate() {
 	default:
 		close(r.terminated)
 		r.lock.Unlock()
+		if log.IsDebug() {
+			log.Debug("RedisQueue: %s Closing with %d tasks left in queue", r.name, r.client.LLen(r.queueName))
+		}
 		if err := r.client.Close(); err != nil {
 			log.Error("Error whilst closing internal redis client in %s: %v", r.name, err)
 		}

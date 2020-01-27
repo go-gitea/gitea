@@ -126,7 +126,7 @@
 				<tbody>
 					{{range .Queue.Workers}}
 					<tr>
-						<td>{{.Workers}}{{if .IsFlush}}<i class="icon sync-alternate" title="{{.i18n.Tr "admin.monitor.queue.flush"}}"></i>{{end}}</td>
+						<td>{{.Workers}}{{if .IsFlusher}}<i class="icon sync-alternate" title="{{.i18n.Tr "admin.monitor.queue.flush"}}"></i>{{end}}</td>
 						<td>{{DateFmtLong .Start}}</td>
 						<td>{{if .HasTimeout}}{{DateFmtLong .Timeout}}{{else}}-{{end}}</td>
 						<td>

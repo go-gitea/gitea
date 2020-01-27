@@ -7,6 +7,7 @@ package queue
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -34,7 +35,7 @@ type PersistableChannelQueueConfiguration struct {
 // The disk level queue will be used to store data at shutdown and terminate - and will be restored
 // on start up.
 type PersistableChannelQueue struct {
-	*ChannelQueue
+	channelQueue *ChannelQueue
 	delayedStarter
 	lock   sync.Mutex
 	closed chan struct{}
@@ -83,14 +84,14 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 	levelQueue, err := NewLevelQueue(handle, levelCfg, exemplar)
 	if err == nil {
 		queue := &PersistableChannelQueue{
-			ChannelQueue: channelQueue.(*ChannelQueue),
+			channelQueue: channelQueue.(*ChannelQueue),
 			delayedStarter: delayedStarter{
 				internal: levelQueue.(*LevelQueue),
 				name:     config.Name,
 			},
 			closed: make(chan struct{}),
 		}
-		_ = GetManager().Add(config.Name, PersistableChannelQueueType, config, exemplar, nil)
+		_ = GetManager().Add(queue, PersistableChannelQueueType, config, exemplar)
 		return queue, nil
 	}
 	if IsErrInvalidConfiguration(err) {
@@ -99,7 +100,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 	}
 
 	queue := &PersistableChannelQueue{
-		ChannelQueue: channelQueue.(*ChannelQueue),
+		channelQueue: channelQueue.(*ChannelQueue),
 		delayedStarter: delayedStarter{
 			cfg:         levelCfg,
 			underlying:  LevelQueueType,
@@ -109,7 +110,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		},
 		closed: make(chan struct{}),
 	}
-	_ = GetManager().Add(config.Name, PersistableChannelQueueType, config, exemplar, nil)
+	_ = GetManager().Add(queue, PersistableChannelQueueType, config, exemplar)
 	return queue, nil
 }
 
@@ -124,7 +125,7 @@ func (p *PersistableChannelQueue) Push(data Data) error {
 	case <-p.closed:
 		return p.internal.Push(data)
 	default:
-		return p.ChannelQueue.Push(data)
+		return p.channelQueue.Push(data)
 	}
 }
 
@@ -134,7 +135,7 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 
 	p.lock.Lock()
 	if p.internal == nil {
-		err := p.setInternal(atShutdown, p.ChannelQueue.handle, p.exemplar)
+		err := p.setInternal(atShutdown, p.channelQueue.handle, p.channelQueue.exemplar)
 		p.lock.Unlock()
 		if err != nil {
 			log.Fatal("Unable to create internal queue for %s Error: %v", p.Name(), err)
@@ -150,22 +151,23 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 	go p.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
 
 	go func() {
-		_ = p.ChannelQueue.AddWorkers(p.workers, 0)
+		_ = p.channelQueue.AddWorkers(p.channelQueue.workers, 0)
 	}()
 
 	log.Trace("PersistableChannelQueue: %s Waiting til closed", p.delayedStarter.name)
 	<-p.closed
 	log.Trace("PersistableChannelQueue: %s Cancelling pools", p.delayedStarter.name)
-	p.ChannelQueue.cancel()
-	p.internal.(*LevelQueue).pool.cancel()
+	p.channelQueue.cancel()
+	p.internal.(*LevelQueue).cancel()
 	log.Trace("PersistableChannelQueue: %s Waiting til done", p.delayedStarter.name)
-	p.ChannelQueue.Wait()
-	p.internal.(*LevelQueue).pool.Wait()
+	p.channelQueue.Wait()
+	p.internal.(*LevelQueue).Wait()
 	// Redirect all remaining data in the chan to the internal channel
 	go func() {
 		log.Trace("PersistableChannelQueue: %s Redirecting remaining data", p.delayedStarter.name)
-		for data := range p.ChannelQueue.dataChan {
+		for data := range p.channelQueue.dataChan {
 			_ = p.internal.Push(data)
+			atomic.AddInt64(&p.channelQueue.numInQueue, -1)
 		}
 		log.Trace("PersistableChannelQueue: %s Done Redirecting remaining data", p.delayedStarter.name)
 	}()
@@ -174,12 +176,12 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 
 // Flush flushes the queue and blocks till the queue is empty
 func (p *PersistableChannelQueue) Flush(timeout time.Duration) error {
-	return p.ChannelQueue.Flush(timeout)
+	return p.channelQueue.Flush(timeout)
 }
 
 // IsEmpty checks if a queue is empty
 func (p *PersistableChannelQueue) IsEmpty() bool {
-	if !p.ChannelQueue.IsEmpty() {
+	if !p.channelQueue.IsEmpty() {
 		return false
 	}
 	p.lock.Lock()
