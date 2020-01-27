@@ -312,7 +312,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		}
 
 		cond = cond.And(builder.In("repo_id", repoIDs))
-	} else if opts.Actor != nil {
+	} else {
 		cond = cond.And(builder.In("repo_id", opts.Actor.AccessibleRepoIDsQuery()))
 	}
 
