@@ -319,7 +319,7 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 func accessibleRepositoryCondition(user *User) builder.Cond {
 	var cond = builder.NewCond()
 
-	if user == nil || !user.IsRestricted {
+	if user == nil || !user.IsRestricted || user.ID <= 0 {
 		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
 		if user == nil {
 			orgVisibilityLimit = append(orgVisibilityLimit, structs.VisibleTypeLimited)
