@@ -321,7 +321,7 @@ func accessibleRepositoryCondition(user *User) builder.Cond {
 
 	if user == nil || !user.IsRestricted || user.ID <= 0 {
 		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
-		if user == nil {
+		if user == nil || user.ID <= 0 {
 			orgVisibilityLimit = append(orgVisibilityLimit, structs.VisibleTypeLimited)
 		}
 		// 1. Be able to see all non-private repositories that either:
