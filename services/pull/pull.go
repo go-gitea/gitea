@@ -320,7 +320,7 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 	defer func() {
 		err := models.RemoveTemporaryPath(tmpBasePath)
 		if err != nil {
-			log.Error("Error whilst removing temporary path: %v", err)
+			log.Error("Error whilst removing temporary path: %s Error: %v", tmpBasePath, err)
 		}
 	}()
 
