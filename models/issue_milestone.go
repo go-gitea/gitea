@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -94,6 +95,8 @@ func NewMilestone(m *Milestone) (err error) {
 	if err = sess.Begin(); err != nil {
 		return err
 	}
+
+	m.Name = strings.TrimSpace(m.Name)
 
 	if _, err = sess.Insert(m); err != nil {
 		return err
@@ -272,6 +275,7 @@ func GetMilestones(repoID int64, page int, isClosed bool, sortType string) (Mile
 }
 
 func updateMilestone(e Engine, m *Milestone) error {
+	m.Name = strings.TrimSpace(m.Name)
 	_, err := e.ID(m.ID).AllCols().
 		SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
 			builder.Eq{"milestone_id": m.ID},
