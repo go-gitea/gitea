@@ -510,7 +510,7 @@ func WikiRaw(ctx *context.Context) {
 	if commit != nil {
 		// Try to find a file with that name
 		entry, err = findEntryForFile(commit, providedPath)
-		if err != nil {
+		if err != nil && !git.IsErrNotExist(err) {
 			ctx.ServerError("findFile", err)
 			return
 		}
@@ -523,7 +523,7 @@ func WikiRaw(ctx *context.Context) {
 
 			wikiPath := wiki_service.NameToFilename(providedPath)
 			entry, err = findEntryForFile(commit, wikiPath)
-			if err != nil {
+			if err != nil && !git.IsErrNotExist(err) {
 				ctx.ServerError("findFile", err)
 				return
 			}
