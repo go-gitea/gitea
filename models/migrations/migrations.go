@@ -27,7 +27,7 @@ import (
 	"xorm.io/xorm"
 )
 
-const minDBVersion = 4
+const minDBVersion = 70 // Gitea 1.5.3
 
 // Migration describes on migration from lower version to high version
 type Migration interface {
@@ -69,143 +69,27 @@ func emptyMigration(x *xorm.Engine) error {
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
 var migrations = []Migration{
-	// v0 -> v4: before 0.6.0 -> 0.7.33
-	NewMigration("fix locale file load panic", fixLocaleFileLoadPanic),                           // V4 -> V5:v0.6.0
-	NewMigration("trim action compare URL prefix", trimCommitActionAppURLPrefix),                 // V5 -> V6:v0.6.3
-	NewMigration("generate issue-label from issue", issueToIssueLabel),                           // V6 -> V7:v0.6.4
-	NewMigration("refactor attachment table", attachmentRefactor),                                // V7 -> V8:v0.6.4
-	NewMigration("rename pull request fields", renamePullRequestFields),                          // V8 -> V9:v0.6.16
-	NewMigration("clean up migrate repo info", cleanUpMigrateRepoInfo),                           // V9 -> V10:v0.6.20
-	NewMigration("generate rands and salt for organizations", generateOrgRandsAndSalt),           // V10 -> V11:v0.8.5
-	NewMigration("convert date to unix timestamp", convertDateToUnix),                            // V11 -> V12:v0.9.2
-	NewMigration("convert LDAP UseSSL option to SecurityProtocol", ldapUseSSLToSecurityProtocol), // V12 -> V13:v0.9.37
 
-	// v13 -> v14:v0.9.87
-	NewMigration("set comment updated with created", setCommentUpdatedWithCreated),
-	// v14 -> v15
-	NewMigration("create user column diff view style", createUserColumnDiffViewStyle),
-	// v15 -> v16
-	NewMigration("create user column allow create organization", createAllowCreateOrganizationColumn),
-	// V16 -> v17
-	NewMigration("create repo unit table and add units for all repos", addUnitsToTables),
-	// v17 -> v18
-	NewMigration("set protect branches updated with created", setProtectedBranchUpdatedWithCreated),
-	// v18 -> v19
-	NewMigration("add external login user", addExternalLoginUser),
-	// v19 -> v20
-	NewMigration("generate and migrate Git hooks", generateAndMigrateGitHooks),
-	// v20 -> v21
-	NewMigration("use new avatar path name for security reason", useNewNameAvatars),
-	// v21 -> v22
-	NewMigration("rewrite authorized_keys file via new format", useNewPublickeyFormat),
-	// v22 -> v23
-	NewMigration("generate and migrate wiki Git hooks", generateAndMigrateWikiGitHooks),
-	// v23 -> v24
-	NewMigration("add user openid table", addUserOpenID),
-	// v24 -> v25
-	NewMigration("change the key_id and primary_key_id type", changeGPGKeysColumns),
-	// v25 -> v26
-	NewMigration("add show field in user openid table", addUserOpenIDShow),
-	// v26 -> v27
-	NewMigration("generate and migrate repo and wiki Git hooks", generateAndMigrateGitHookChains),
-	// v27 -> v28
-	NewMigration("change mirror interval from hours to time.Duration", convertIntervalToDuration),
-	// v28 -> v29
-	NewMigration("add field for repo size", addRepoSize),
-	// v29 -> v30
-	NewMigration("add commit status table", addCommitStatus),
-	// v30 -> 31
-	NewMigration("add primary key to external login user", addExternalLoginUserPK),
-	// v31 -> 32
-	NewMigration("add field for login source synchronization", addLoginSourceSyncEnabledColumn),
-	// v32 -> v33
-	NewMigration("add units for team", addUnitsToRepoTeam),
-	// v33 -> v34
-	NewMigration("remove columns from action", removeActionColumns),
-	// v34 -> v35
-	NewMigration("give all units to owner teams", giveAllUnitsToOwnerTeams),
-	// v35 -> v36
-	NewMigration("adds comment to an action", addCommentIDToAction),
-	// v36 -> v37
-	NewMigration("regenerate git hooks", regenerateGitHooks36),
-	// v37 -> v38
-	NewMigration("unescape user full names", unescapeUserFullNames),
-	// v38 -> v39
-	NewMigration("remove commits and settings unit types", removeCommitsUnitType),
-	// v39 -> v40
-	NewMigration("add tags to releases and sync existing repositories", releaseAddColumnIsTagAndSyncTags),
-	// v40 -> v41
-	NewMigration("fix protected branch can push value to false", fixProtectedBranchCanPushValue),
-	// v41 -> v42
-	NewMigration("remove duplicate unit types", removeDuplicateUnitTypes),
-	// v42 -> v43
-	NewMigration("empty step", emptyMigration),
-	// v43 -> v44
-	NewMigration("empty step", emptyMigration),
-	// v44 -> v45
-	NewMigration("empty step", emptyMigration),
-	// v45 -> v46
-	NewMigration("remove index column from repo_unit table", removeIndexColumnFromRepoUnitTable),
-	// v46 -> v47
-	NewMigration("remove organization watch repositories", removeOrganizationWatchRepo),
-	// v47 -> v48
-	NewMigration("add deleted branches", addDeletedBranch),
-	// v48 -> v49
-	NewMigration("add repo indexer status", addRepoIndexerStatus),
-	// v49 -> v50
-	NewMigration("adds time tracking and stopwatches", addTimetracking),
-	// v50 -> v51
-	NewMigration("migrate protected branch struct", migrateProtectedBranchStruct),
-	// v51 -> v52
-	NewMigration("add default value to user prohibit_login", addDefaultValueToUserProhibitLogin),
-	// v52 -> v53
-	NewMigration("add lfs lock table", addLFSLock),
-	// v53 -> v54
-	NewMigration("add reactions", addReactions),
-	// v54 -> v55
-	NewMigration("add pull request options", addPullRequestOptions),
-	// v55 -> v56
-	NewMigration("add writable deploy keys", addModeToDeploKeys),
-	// v56 -> v57
-	NewMigration("remove is_owner, num_teams columns from org_user", removeIsOwnerColumnFromOrgUser),
-	// v57 -> v58
-	NewMigration("add closed_unix column for issues", addIssueClosedTime),
-	// v58 -> v59
-	NewMigration("add label descriptions", addLabelsDescriptions),
-	// v59 -> v60
-	NewMigration("add merge whitelist for protected branches", addProtectedBranchMergeWhitelist),
-	// v60 -> v61
-	NewMigration("add is_fsck_enabled column for repos", addFsckEnabledToRepo),
-	// v61 -> v62
-	NewMigration("add size column for attachments", addSizeToAttachment),
-	// v62 -> v63
-	NewMigration("add last used passcode column for TOTP", addLastUsedPasscodeTOTP),
-	// v63 -> v64
-	NewMigration("add language column for user setting", addLanguageSetting),
-	// v64 -> v65
-	NewMigration("add multiple assignees", addMultipleAssignees),
-	// v65 -> v66
-	NewMigration("add u2f", addU2FReg),
-	// v66 -> v67
-	NewMigration("add login source id column for public_key table", addLoginSourceIDToPublicKeyTable),
-	// v67 -> v68
-	NewMigration("remove stale watches", removeStaleWatches),
-	// v68 -> V69
-	NewMigration("Reformat and remove incorrect topics", reformatAndRemoveIncorrectTopics),
-	// v69 -> v70
-	NewMigration("move team units to team_unit table", moveTeamUnitsToTeamUnitTable),
+	// Gitea 1.5.3 ends at v70
+
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
 	// v71 -> v72
 	NewMigration("protect each scratch token", addScratchHash),
 	// v72 -> v73
 	NewMigration("add review", addReview),
+
+	// Gitea 1.6.4 ends at v73
+
 	// v73 -> v74
 	NewMigration("add must_change_password column for users table", addMustChangePassword),
 	// v74 -> v75
 	NewMigration("add approval whitelists to protected branches", addApprovalWhitelistsToProtectedBranches),
 	// v75 -> v76
 	NewMigration("clear nonused data which not deleted when user was deleted", clearNonusedData),
+
+	// Gitea 1.7.6 ends at v76
+
 	// v76 -> v77
 	NewMigration("add pull request rebase with merge commit", addPullRequestRebaseWithMerge),
 	// v77 -> v78
@@ -218,6 +102,9 @@ var migrations = []Migration{
 	NewMigration("add is locked to issues", addIsLockedToIssues),
 	// v81 -> v82
 	NewMigration("update U2F counter type", changeU2FCounterType),
+
+	// Gitea 1.8.3 ends at v82
+
 	// v82 -> v83
 	NewMigration("hot fix for wrong release sha1 on release table", fixReleaseSha1OnReleaseTable),
 	// v83 -> v84
@@ -230,6 +117,9 @@ var migrations = []Migration{
 	NewMigration("add http method to webhook", addHTTPMethodToWebhook),
 	// v87 -> v88
 	NewMigration("add avatar field to repository", addAvatarFieldToRepository),
+
+	// Gitea 1.9.6 ends at v88
+
 	// v88 -> v89
 	NewMigration("add commit status context field to commit_status", addCommitStatusContext),
 	// v89 -> v90
@@ -252,6 +142,9 @@ var migrations = []Migration{
 	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
+
+	// Gitea 1.10.3 ends at v99
+
 	// v99 -> v100
 	NewMigration("add task table and status column for repository table", addTaskTable),
 	// v100 -> v101
@@ -332,7 +225,7 @@ func Migrate(x *xorm.Engine) error {
 	v := currentVersion.Version
 	if minDBVersion > v {
 		log.Fatal(`Gitea no longer supports auto-migration from your previously installed version.
-Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to current version.`)
+Please try upgrading to a lower version first (suggested v1.6.4), then upgrade to this version.`)
 		return nil
 	}
 
@@ -848,6 +741,19 @@ func generateOrgRandsAndSalt(x *xorm.Engine) (err error) {
 
 	return sess.Commit()
 }
+
+// Enumerate all the unit types as of v16 (Gitea 1.1.0)
+const (
+	V16UnitTypeCode            = iota + 1 // 1 code
+	V16UnitTypeIssues                     // 2 issues
+	V16UnitTypePRs                        // 3 PRs
+	V16UnitTypeCommits                    // 4 Commits
+	V16UnitTypeReleases                   // 5 Releases
+	V16UnitTypeWiki                       // 6 Wiki
+	V16UnitTypeSettings                   // 7 Settings
+	V16UnitTypeExternalWiki               // 8 ExternalWiki
+	V16UnitTypeExternalTracker            // 9 ExternalTracker
+)
 
 // TAction defines the struct for migrating table action
 type TAction struct {
