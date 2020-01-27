@@ -363,7 +363,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 }
 
 // AccessibleRepoIDsQuery queries accessible repository ids. Usable as a subquery wherever repo ids need to be filtered.
-func (user *User) AccessibleRepoIDsQuery() *builder.Builder {
+func AccessibleRepoIDsQuery(user *User) *builder.Builder {
 	// NB: Please note this code needs to still work if user is nil
 	return builder.Select("id").From("repository").Where(accessibleRepositoryCondition(user))
 }
