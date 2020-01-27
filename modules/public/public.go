@@ -18,8 +18,6 @@ import (
 	"gitea.com/macaron/macaron"
 )
 
-//go:generate go run -mod=vendor main.go
-
 // Options represents the available options to configure the macaron handler.
 type Options struct {
 	Directory   string

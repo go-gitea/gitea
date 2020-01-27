@@ -22,6 +22,7 @@
   "admin": false,
   "components": [
     "accordion",
+    "api",
     "breadcrumb",
     "button",
     "checkbox",

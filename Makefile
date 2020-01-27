@@ -52,6 +52,7 @@ CSS_SOURCES ?= $(shell find web_src/less -type f)
 JS_DEST := public/js/index.js
 CSS_DEST := public/css/index.css
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
+BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
 JS_DEST_DIR := public/js
 CSS_DEST_DIR := public/css
@@ -145,7 +146,7 @@ clean-all: clean
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) \
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
 		integrations*.test \
 		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-mysql8/ integrations/gitea-integration-sqlite/ \
 		integrations/gitea-integration-mssql/ integrations/indexers-mysql/ integrations/indexers-mysql8/ integrations/indexers-pgsql integrations/indexers-sqlite \
@@ -161,7 +162,7 @@ vet:
 
 .PHONY: generate
 generate: fomantic js css
-	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
+	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
@@ -225,6 +226,18 @@ fmt-check:
 .PHONY: test
 test:
 	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+
+PHONY: test-check
+test-check:
+	@echo "Checking if tests have changed the source tree...";
+	@diff=$$(git status -s); \
+	if [ -n "$$diff" ]; then \
+		echo "make test has changed files in the source tree:"; \
+		echo "$${diff}"; \
+		echo "You should change the tests to create these files in a temporary directory."; \
+		echo "Do not simply add these files to .gitignore"; \
+		exit 1; \
+	fi;
 
 .PHONY: test\#%
 test\#%:
@@ -470,7 +483,7 @@ node_modules: package-lock.json
 	npm install --no-save
 
 .PHONY: npm-update
-npm-update: node-check node_modules
+npm-update: node-check | node_modules
 	npx updates -cu
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
@@ -478,25 +491,29 @@ npm-update: node-check node_modules
 .PHONY: js
 js: node-check $(JS_DEST)
 
-$(JS_DEST): node_modules $(JS_SOURCES)
+$(JS_DEST): $(JS_SOURCES) | node_modules
 	npx eslint web_src/js webpack.config.js
 	npx webpack --hide-modules --display-entrypoints=false
+	@touch $(JS_DEST)
 
 .PHONY: fomantic
 fomantic: node-check $(FOMANTIC_DEST_DIR)
 
-$(FOMANTIC_DEST_DIR): node_modules semantic.json web_src/fomantic/theme.config.less
+$(FOMANTIC_DEST_DIR): semantic.json web_src/fomantic/theme.config.less | node_modules
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
+	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+	@touch $(FOMANTIC_DEST_DIR)
 
 .PHONY: css
 css: node-check $(CSS_DEST)
 
-$(CSS_DEST): node_modules $(CSS_SOURCES)
+$(CSS_DEST): $(CSS_SOURCES) | node_modules
 	npx stylelint web_src/less
 	npx lessc web_src/less/index.less public/css/index.css
 	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 	npx postcss --use autoprefixer --use cssnano --no-map --replace public/css/*
+	@touch $(CSS_DEST)
 
 .PHONY: update-translations
 update-translations:

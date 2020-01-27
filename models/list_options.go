@@ -13,7 +13,7 @@ import (
 // ListOptions options to paginate results
 type ListOptions struct {
 	PageSize int
-	Page     int
+	Page     int // start from 1
 }
 
 func (opts ListOptions) getPaginatedSession() *xorm.Session {
