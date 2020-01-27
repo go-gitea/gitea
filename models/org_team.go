@@ -597,17 +597,14 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 		return []string{}, nil
 	}
 
-	teams := make([]*Team, 0, len(teamIDs))
-
-	err := x.In("id", teamIDs).
+	var teamNames []string
+	err := x.Table("team").
+		Select("lower_name").
+		In("id", teamIDs).
 		Asc("name").
-		Find(&teams)
+		Find(&teamNames)
 
-	teamnames := make([]string, 0, len(teams))
-	for _, t := range teams {
-		teamnames = append(teamnames, t.LowerName)
-	}
-	return teamnames, err
+	return teamNames, err
 }
 
 // UpdateTeam updates information of team.
