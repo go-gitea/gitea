@@ -100,16 +100,12 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	}
 	writerCloser.setT(&t)
 	return func() {
-		qs := queue.GetManager().ManagedQueues()
-		for _, q := range qs {
-			if err := q.Flush(10 * time.Second); err != nil {
-				t.Errorf("Flushing queue %s failed with error %v", q.Name, err)
-			}
-		}
-		qs = queue.GetManager().ManagedQueues()
-		for _, q := range qs {
-			if err := q.Flush(10 * time.Second); err != nil {
-				t.Errorf("Flushing queue %s failed with error %v", q.Name, err)
+		for i := 0; i < 5; i++ {
+			qs := queue.GetManager().ManagedQueues()
+			for _, q := range qs {
+				if err := q.Flush(10 * time.Second); err != nil {
+					t.Errorf("Flushing queue %s failed with error %v", q.Name, err)
+				}
 			}
 		}
 		_ = writerCloser.Close()
