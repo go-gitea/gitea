@@ -1,23 +1,38 @@
-const path = require('path');
-const TerserPlugin = require('terser-webpack-plugin');
-const { SourceMapDevToolPlugin } = require('webpack');
-const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const cssnano = require('cssnano');
+const fastGlob = require('fast-glob');
+const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
-const PostCSSSafeParser = require('postcss-safe-parser');
 const PostCSSPresetEnv = require('postcss-preset-env');
+const PostCSSSafeParser = require('postcss-safe-parser');
+const TerserPlugin = require('terser-webpack-plugin');
+const VueLoaderPlugin = require('vue-loader/lib/plugin');
+const { resolve, parse } = require('path');
+const { SourceMapDevToolPlugin } = require('webpack');
+
+const themes = {};
+for (const path of fastGlob.sync(resolve(__dirname, 'web_src/less/themes/*.less'))) {
+  themes[parse(path).name] = [path];
+}
 
 module.exports = {
   mode: 'production',
   entry: {
-    index: ['./web_src/js/index'],
-    swagger: ['./web_src/js/swagger'],
-    jquery: ['./web_src/js/jquery'],
+    index: [
+      resolve(__dirname, 'web_src/js/index.js'),
+      resolve(__dirname, 'web_src/less/index.less'),
+    ],
+    swagger: [
+      resolve(__dirname, 'web_src/js/swagger.js'),
+    ],
+    jquery: [
+      resolve(__dirname, 'web_src/js/jquery.js'),
+    ],
+    ...themes,
   },
   devtool: false,
   output: {
-    path: path.resolve(__dirname, 'public'),
+    path: resolve(__dirname, 'public'),
     filename: 'js/[name].js',
     chunkFilename: 'js/[name].js',
   },
@@ -88,7 +103,7 @@ module.exports = {
         ],
       },
       {
-        test: /\.css$/i,
+        test: /\.(less|css)$/i,
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
@@ -96,7 +111,8 @@ module.exports = {
           {
             loader: 'css-loader',
             options: {
-              importLoaders: 1,
+              importLoaders: 2,
+              url: false,
             }
           },
           {
@@ -107,12 +123,19 @@ module.exports = {
               ],
             },
           },
+          {
+            loader: 'less-loader',
+          },
         ],
       },
     ],
   },
   plugins: [
     new VueLoaderPlugin(),
+    // needed so themes don't generate useless js files
+    new FixStyleOnlyEntriesPlugin({
+      silent: true,
+    }),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].css',
