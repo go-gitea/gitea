@@ -147,40 +147,45 @@ func (q *WrappedQueue) Push(data Data) error {
 	return nil
 }
 
-func (q *WrappedQueue) flushInternal(timeout time.Duration) error {
+func (q *WrappedQueue) flushInternalWithContext(ctx context.Context) error {
 	q.lock.Lock()
 	if q.internal == nil {
 		q.lock.Unlock()
 		return fmt.Errorf("not ready to flush wrapped queue %s yet", q.Name())
 	}
 	q.lock.Unlock()
-	return q.internal.Flush(timeout)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	return q.internal.FlushWithContext(ctx)
 }
 
 // Flush flushes the queue and blocks till the queue is empty
 func (q *WrappedQueue) Flush(timeout time.Duration) error {
-	if timeout < 0 {
-		return q.flushInternal(timeout)
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return q.FlushWithContext(ctx)
+}
 
-	timer := time.NewTimer(timeout)
+// FlushWithContext implements the final part of Flushable
+func (q *WrappedQueue) FlushWithContext(ctx context.Context) error {
+	log.Trace("WrappedQueue: %s FlushWithContext", q.Name())
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- q.flushInternal(timeout)
+		errChan <- q.flushInternalWithContext(ctx)
 		close(errChan)
 	}()
+
 	select {
 	case err := <-errChan:
-		if !timer.Stop() {
-			<-timer.C
-		}
 		return err
-	case <-timer.C:
+	case <-ctx.Done():
 		go func() {
 			<-errChan
 		}()
-		timer.Stop()
-		return fmt.Errorf("timed out whilst trying to flush %s", q.Name())
+		return ctx.Err()
 	}
 }
 

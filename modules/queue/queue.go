@@ -56,10 +56,9 @@ type Named interface {
 //
 // Queues will handle their own contents in the Run method
 type Queue interface {
+	Flushable
 	Run(atShutdown, atTerminate func(context.Context, func()))
 	Push(Data) error
-	Flush(time.Duration) error
-	IsEmpty() bool
 }
 
 // DummyQueueType is the type for the dummy queue
@@ -84,6 +83,11 @@ func (b *DummyQueue) Push(Data) error {
 
 // Flush always returns nil
 func (b *DummyQueue) Flush(time.Duration) error {
+	return nil
+}
+
+// FlushWithContext always returns nil
+func (b *DummyQueue) FlushWithContext(context.Context) error {
 	return nil
 }
 

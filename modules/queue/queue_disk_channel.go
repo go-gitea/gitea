@@ -6,6 +6,7 @@ package queue
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -176,7 +177,34 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 
 // Flush flushes the queue and blocks till the queue is empty
 func (p *PersistableChannelQueue) Flush(timeout time.Duration) error {
-	return p.channelQueue.Flush(timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return p.FlushWithContext(ctx)
+}
+
+// FlushWithContext flushes the queue and blocks till the queue is empty
+func (p *PersistableChannelQueue) FlushWithContext(ctx context.Context) error {
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- p.channelQueue.FlushWithContext(ctx)
+	}()
+	go func() {
+		p.lock.Lock()
+		if p.internal == nil {
+			p.lock.Unlock()
+			errChan <- fmt.Errorf("not ready to flush internal queue %s yet", p.Name())
+			return
+		}
+		p.lock.Unlock()
+		errChan <- p.internal.FlushWithContext(ctx)
+	}()
+	err1 := <-errChan
+	err2 := <-errChan
+
+	if err1 != nil {
+		return err1
+	}
+	return err2
 }
 
 // IsEmpty checks if a queue is empty
