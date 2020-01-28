@@ -15,7 +15,7 @@ steps:
     pull: always
     image: node:10 # this step is kept at the lowest version of node that we support
     commands:
-      - make css js
+      - make webpack
 
   - name: build-without-gcc
     pull: always
