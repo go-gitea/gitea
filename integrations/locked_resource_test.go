@@ -99,23 +99,23 @@ func blockTestFunc(name string, blocker bool, ref time.Time, f func(ctx models.D
 		name = fmt.Sprintf("waiter [%s]", name)
 	}
 	err := models.WithTx(func(ctx models.DBContext) error {
-		log.Trace("Entering %s @%d", name, time.Now().Sub(ref).Milliseconds())
+		log.Trace("Entering %s @%d", name, time.Since(ref).Milliseconds())
 		if !blocker {
-			log.Trace("Waiting on %s @%d", name, time.Now().Sub(ref).Milliseconds())
+			log.Trace("Waiting on %s @%d", name, time.Since(ref).Milliseconds())
 			time.Sleep(waiterDelay)
-			log.Trace("Wait finished on %s @%d", name, time.Now().Sub(ref).Milliseconds())
+			log.Trace("Wait finished on %s @%d", name, time.Since(ref).Milliseconds())
 		}
 		if err := f(ctx); err != nil {
 			return err
 		}
 		if blocker {
-			log.Trace("Waiting on %s @%d", name, time.Now().Sub(ref).Milliseconds())
+			log.Trace("Waiting on %s @%d", name, time.Since(ref).Milliseconds())
 			time.Sleep(blockerDelay)
-			log.Trace("Wait finished on %s @%d", name, time.Now().Sub(ref).Milliseconds())
+			log.Trace("Wait finished on %s @%d", name, time.Since(ref).Milliseconds())
 		} else {
-			wr.Waited = time.Now().Sub(ref)
+			wr.Waited = time.Since(ref)
 		}
-		log.Trace("Finishing %s @%d", name, time.Now().Sub(ref).Milliseconds())
+		log.Trace("Finishing %s @%d", name, time.Since(ref).Milliseconds())
 		return nil
 	})
 	if err != nil {
