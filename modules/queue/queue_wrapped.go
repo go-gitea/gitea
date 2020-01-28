@@ -186,8 +186,7 @@ func (q *WrappedQueue) Flush(timeout time.Duration) error {
 
 // IsEmpty checks whether the queue is empty
 func (q *WrappedQueue) IsEmpty() bool {
-	val := atomic.LoadInt64(&q.numInQueue)
-	if val != 0 {
+	if atomic.LoadInt64(&q.numInQueue) != 0 {
 		return false
 	}
 	q.lock.Lock()

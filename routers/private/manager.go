@@ -17,13 +17,9 @@ import (
 
 // FlushQueues flushes all the Queues
 func FlushQueues(ctx *macaron.Context, opts private.FlushOptions) {
-
-	baseCtx := ctx.Req.Request.Context()
 	if opts.NonBlocking {
-		baseCtx = graceful.GetManager().HammerContext()
-	}
-
-	if opts.NonBlocking {
+		// Save the hammer ctx here - as a new one is created each time you call this.
+		baseCtx := graceful.GetManager().HammerContext()
 		go func() {
 			err := queue.GetManager().FlushAll(baseCtx, opts.Timeout)
 			if err != nil {
@@ -35,7 +31,7 @@ func FlushQueues(ctx *macaron.Context, opts private.FlushOptions) {
 		})
 		return
 	}
-	err := queue.GetManager().FlushAll(baseCtx, opts.Timeout)
+	err := queue.GetManager().FlushAll(ctx.Req.Request.Context(), opts.Timeout)
 	if err != nil {
 		ctx.JSON(http.StatusRequestTimeout, map[string]interface{}{
 			"err": err,
