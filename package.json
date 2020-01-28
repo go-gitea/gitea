@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "fomantic-ui": "2.8.3",
+    "highlight.js": "9.18.0",
     "jquery": "3.4.1",
     "jquery-migrate": "3.1.0",
     "swagger-ui": "3.24.3",
