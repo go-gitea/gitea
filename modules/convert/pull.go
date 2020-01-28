@@ -35,11 +35,12 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 			return nil
 		}
 	}
-	if pr.HeadRepo == nil {
+	if pr.HeadRepoID != 0 && pr.HeadRepo == nil {
 		pr.HeadRepo, err = models.GetRepositoryByID(pr.HeadRepoID)
-		if err != nil {
+		if err != nil && !models.IsErrRepoNotExist(err) {
 			log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 			return nil
+
 		}
 	}
 
@@ -99,33 +100,41 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		apiPullRequest.Base = apiBaseBranchInfo
 	}
 
-	headBranch, err = repo_module.GetBranch(pr.HeadRepo, pr.HeadBranch)
-	if err != nil {
-		if git.IsErrBranchNotExist(err) {
-			apiPullRequest.Head = nil
-		} else {
-			log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
-			return nil
-		}
-	} else {
-		apiHeadBranchInfo := &api.PRBranchInfo{
-			Name:       pr.HeadBranch,
-			Ref:        pr.HeadBranch,
-			RepoID:     pr.HeadRepoID,
-			Repository: pr.HeadRepo.APIFormat(models.AccessModeNone),
-		}
-		headCommit, err = headBranch.GetCommit()
+	if pr.HeadRepo != nil {
+		headBranch, err = repo_module.GetBranch(pr.HeadRepo, pr.HeadBranch)
 		if err != nil {
-			if git.IsErrNotExist(err) {
-				apiHeadBranchInfo.Sha = ""
+			if git.IsErrBranchNotExist(err) {
+				apiPullRequest.Head = nil
 			} else {
-				log.Error("GetCommit[%s]: %v", headBranch.Name, err)
+				log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
 				return nil
 			}
 		} else {
-			apiHeadBranchInfo.Sha = headCommit.ID.String()
+			apiHeadBranchInfo := &api.PRBranchInfo{
+				Name:       pr.HeadBranch,
+				Ref:        pr.HeadBranch,
+				RepoID:     pr.HeadRepoID,
+				Repository: pr.HeadRepo.APIFormat(models.AccessModeNone),
+			}
+			headCommit, err = headBranch.GetCommit()
+			if err != nil {
+				if git.IsErrNotExist(err) {
+					apiHeadBranchInfo.Sha = ""
+				} else {
+					log.Error("GetCommit[%s]: %v", headBranch.Name, err)
+					return nil
+				}
+			} else {
+				apiHeadBranchInfo.Sha = headCommit.ID.String()
+			}
+			apiPullRequest.Head = apiHeadBranchInfo
 		}
-		apiPullRequest.Head = apiHeadBranchInfo
+	} else {
+		apiPullRequest.Head = &api.PRBranchInfo{
+			Name:   pr.HeadBranch,
+			Ref:    pr.HeadBranch,
+			RepoID: -1,
+		}
 	}
 
 	if pr.Status != models.PullRequestStatusChecking {
