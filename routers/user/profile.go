@@ -156,14 +156,20 @@ func Profile(ctx *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
+	requestingUserID := int64(0)
+	if ctx.User != nil {
+		requestingUserID = ctx.User.ID
+	}
+
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "activity":
 		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
-			IncludePrivate:  showPrivate,
-			OnlyPerformedBy: true,
-			IncludeDeleted:  false,
+			RequestingUserID: requestingUserID,
+			IncludePrivate:   showPrivate,
+			OnlyPerformedBy:  true,
+			IncludeDeleted:   false,
 		})
 		if ctx.Written() {
 			return
