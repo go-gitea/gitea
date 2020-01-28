@@ -85,4 +85,4 @@ prime/
 .DS_Store
 
 # Make evidence files
-/.make_evidence/*
+/.make_evidence
