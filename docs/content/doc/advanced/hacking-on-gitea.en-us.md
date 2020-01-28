@@ -140,23 +140,20 @@ You should run revive, vet and spell-check on the code with:
 make revive vet misspell-check
 ```
 
-### Working on CSS
+### Working on JS and CSS
 
-Edit files in `web_src/less` and run the linter and build the CSS files via:
-
-```bash
-make css
-```
-
-### Working on JS
-
-Edit files in `web_src/js`, run the linter and build the JS files via:
+Edit files in `web_src` and run the linter and build the files in `public`:
 
 ```bash
-make js
+make webpack
 ```
 
 Note: When working on frontend code, it is advisable to set `USE_SERVICE_WORKER` to `false` in `app.ini` which will prevent undesirable caching of frontend assets.
+
+### Building Images
+
+To build the images, ImageMagick, `inkscape` and `zopflipng` binaries must be available in
+your `PATH` to run `make generate-images`.
 
 ### Updating the API
 

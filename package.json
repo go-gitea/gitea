@@ -17,7 +17,6 @@
     "@babel/plugin-transform-runtime": "7.7.6",
     "@babel/preset-env": "7.7.7",
     "@babel/runtime": "7.7.7",
-    "autoprefixer": "9.7.3",
     "babel-loader": "8.0.6",
     "core-js": "3.6.2",
     "css-loader": "3.4.1",
@@ -25,10 +24,10 @@
     "eslint": "6.8.0",
     "eslint-config-airbnb-base": "14.0.0",
     "eslint-plugin-import": "2.19.1",
-    "less": "3.10.3",
+    "fast-glob": "3.1.1",
+    "less-loader": "5.0.0",
     "mini-css-extract-plugin": "0.9.0",
     "optimize-css-assets-webpack-plugin": "5.0.3",
-    "postcss-cli": "7.1.0",
     "postcss-loader": "3.0.0",
     "postcss-preset-env": "6.7.0",
     "postcss-safe-parser": "4.0.1",
@@ -39,7 +38,8 @@
     "vue-loader": "15.8.3",
     "vue-template-compiler": "2.6.11",
     "webpack": "4.41.5",
-    "webpack-cli": "3.3.10"
+    "webpack-cli": "3.3.10",
+    "webpack-fix-style-only-entries": "0.4.0"
   },
   "browserslist": [
     "defaults"

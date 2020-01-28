@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/services/gitdiff"
 
 	gouuid "github.com/satori/go.uuid"
 )
@@ -783,18 +782,21 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 
 		for _, comment := range review.Comments {
+			_, _, line, _ := git.ParseDiffHunkString(comment.DiffHunk)
+
 			headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
 			if err != nil {
 				return fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
 			}
+
+			var patch string
 			patchBuf := new(bytes.Buffer)
-			if err := gitdiff.GetRawDiffForFile(g.gitRepo.Path, pr.MergeBase, headCommitID, gitdiff.RawDiffNormal, comment.TreePath, patchBuf); err != nil {
-				return fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
+			if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, patchBuf); err != nil {
+				// We should ignore the error since the commit maybe removed when force push to the pull request
+				log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
+			} else {
+				patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 			}
-
-			_, _, line, _ := gitdiff.ParseDiffHunkString(comment.DiffHunk)
-
-			patch := gitdiff.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 
 			var c = models.Comment{
 				Type:        models.CommentTypeCode,
