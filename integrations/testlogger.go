@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -100,13 +101,8 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	}
 	writerCloser.setT(&t)
 	return func() {
-		for i := 0; i < 5; i++ {
-			qs := queue.GetManager().ManagedQueues()
-			for _, q := range qs {
-				if err := q.Flush(10 * time.Second); err != nil {
-					t.Errorf("Flushing queue %s failed with error %v", q.Name, err)
-				}
-			}
+		if err := queue.GetManager().FlushAll(context.Background(), 20*time.Second); err != nil {
+			t.Errorf("Flushing queues failed with error %v", err)
 		}
 		_ = writerCloser.Close()
 	}

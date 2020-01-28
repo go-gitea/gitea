@@ -44,8 +44,11 @@ type ManagedQueue struct {
 
 // Flushable represents a pool or queue that is flushable
 type Flushable interface {
-	// Flush will add a flush worker to the pool
+	// Flush will add a flush worker to the pool - the worker should be autoregistered with the manager
 	Flush(time.Duration) error
+	// FlushWithContext is very similar to Flush
+	// NB: The worker will not be registered with the manager.
+	FlushWithContext(ctx context.Context) error
 	// IsEmpty will return if the managed pool is empty and has no work
 	IsEmpty() bool
 }
@@ -145,6 +148,64 @@ func (m *Manager) GetManagedQueue(qid int64) *ManagedQueue {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	return m.Queues[qid]
+}
+
+// FlushAll flushes all the flushable queues attached to this manager
+func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error {
+	var ctx context.Context
+	var cancel context.CancelFunc
+	start := time.Now()
+	end := start
+	hasTimeout := false
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(baseCtx, timeout)
+		end = start.Add(timeout)
+		hasTimeout = true
+	} else {
+		ctx, cancel = context.WithCancel(baseCtx)
+	}
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		mqs := m.ManagedQueues()
+		wg := sync.WaitGroup{}
+		wg.Add(len(mqs))
+		allEmpty := true
+		for _, mq := range mqs {
+			if mq.IsEmpty() {
+				wg.Done()
+				continue
+			}
+			allEmpty = false
+			if flushable, ok := mq.Managed.(Flushable); ok {
+				go func() {
+					localCtx, localCancel := context.WithCancel(ctx)
+					pid := mq.RegisterWorkers(1, start, hasTimeout, end, localCancel, true)
+					err := flushable.FlushWithContext(localCtx)
+					if err != nil && err != ctx.Err() {
+						cancel()
+					}
+					mq.CancelWorkers(pid)
+					localCancel()
+					wg.Done()
+				}()
+			} else {
+				wg.Done()
+			}
+
+		}
+		if allEmpty {
+			break
+		}
+		wg.Wait()
+	}
+	return nil
+
 }
 
 // ManagedQueues returns the managed queues
