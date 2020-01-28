@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -48,6 +49,7 @@ type GiteaLocalUploader struct {
 	gitRepo        *git.Repository
 	prHeadCache    map[string]struct{}
 	userMap        map[int64]int64 // external user id mapping to user id
+	prCache        map[int64]*models.PullRequest
 	gitServiceType structs.GitServiceType
 }
 
@@ -60,6 +62,7 @@ func NewGiteaLocalUploader(ctx context.Context, doer *models.User, repoOwner, re
 		repoName:    repoName,
 		prHeadCache: make(map[string]struct{}),
 		userMap:     make(map[int64]int64),
+		prCache:     make(map[int64]*models.PullRequest),
 	}
 }
 
@@ -704,6 +707,125 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	// TODO: assignees
 
 	return &pullRequest, nil
+}
+
+func convertReviewState(state string) models.ReviewType {
+	switch state {
+	case base.ReviewStatePending:
+		return models.ReviewTypePending
+	case base.ReviewStateApproved:
+		return models.ReviewTypeApprove
+	case base.ReviewStateChangesRequested:
+		return models.ReviewTypeReject
+	case base.ReviewStateCommented:
+		return models.ReviewTypeComment
+	default:
+		return models.ReviewTypePending
+	}
+}
+
+// CreateReviews create pull request reviews
+func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
+	var cms = make([]*models.Review, 0, len(reviews))
+	for _, review := range reviews {
+		var issueID int64
+		if issueIDStr, ok := g.issues.Load(review.IssueIndex); !ok {
+			issue, err := models.GetIssueByIndex(g.repo.ID, review.IssueIndex)
+			if err != nil {
+				return err
+			}
+			issueID = issue.ID
+			g.issues.Store(review.IssueIndex, issueID)
+		} else {
+			issueID = issueIDStr.(int64)
+		}
+
+		userid, ok := g.userMap[review.ReviewerID]
+		tp := g.gitServiceType.Name()
+		if !ok && tp != "" {
+			var err error
+			userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", review.ReviewerID))
+			if err != nil {
+				log.Error("GetUserIDByExternalUserID: %v", err)
+			}
+			if userid > 0 {
+				g.userMap[review.ReviewerID] = userid
+			}
+		}
+
+		var cm = models.Review{
+			Type:        convertReviewState(review.State),
+			IssueID:     issueID,
+			Content:     review.Content,
+			Official:    review.Official,
+			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
+			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
+		}
+
+		if userid > 0 {
+			cm.ReviewerID = userid
+		} else {
+			cm.ReviewerID = g.doer.ID
+			cm.OriginalAuthor = review.ReviewerName
+			cm.OriginalAuthorID = review.ReviewerID
+		}
+
+		// get pr
+		pr, ok := g.prCache[issueID]
+		if !ok {
+			var err error
+			pr, err = models.GetPullRequestByIssueIDWithNoAttributes(issueID)
+			if err != nil {
+				return err
+			}
+			g.prCache[issueID] = pr
+		}
+
+		for _, comment := range review.Comments {
+			_, _, line, _ := git.ParseDiffHunkString(comment.DiffHunk)
+
+			headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
+			if err != nil {
+				return fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+			}
+
+			var patch string
+			patchBuf := new(bytes.Buffer)
+			if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, patchBuf); err != nil {
+				// We should ignore the error since the commit maybe removed when force push to the pull request
+				log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
+			} else {
+				patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+			}
+
+			var c = models.Comment{
+				Type:        models.CommentTypeCode,
+				PosterID:    comment.PosterID,
+				IssueID:     issueID,
+				Content:     comment.Content,
+				Line:        int64(line + comment.Position - 1),
+				TreePath:    comment.TreePath,
+				CommitSHA:   comment.CommitID,
+				Patch:       patch,
+				CreatedUnix: timeutil.TimeStamp(comment.CreatedAt.Unix()),
+				UpdatedUnix: timeutil.TimeStamp(comment.UpdatedAt.Unix()),
+			}
+
+			if userid > 0 {
+				c.PosterID = userid
+			} else {
+				c.PosterID = g.doer.ID
+				c.OriginalAuthor = review.ReviewerName
+				c.OriginalAuthorID = review.ReviewerID
+			}
+
+			cm.Comments = append(cm.Comments, &c)
+		}
+
+		cms = append(cms, &cm)
+	}
+
+	return models.InsertReviews(cms)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.

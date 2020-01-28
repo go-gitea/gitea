@@ -343,19 +343,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	setMergeTarget(ctx, pull)
 
-	divergence, err := pull_service.GetDiverging(pull)
-	if err != nil {
-		ctx.ServerError("GetDiverging", err)
-		return nil
-	}
-	ctx.Data["Divergence"] = divergence
-	allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
-	if err != nil {
-		ctx.ServerError("IsUserAllowedToUpdate", err)
-		return nil
-	}
-	ctx.Data["UpdateAllowed"] = allowUpdate
-
 	if err := pull.LoadProtectedBranch(); err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
 		return nil
@@ -390,6 +377,22 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 				return nil
 			}
 		}
+	}
+
+	if headBranchExist {
+		allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+		if err != nil {
+			ctx.ServerError("IsUserAllowedToUpdate", err)
+			return nil
+		}
+		ctx.Data["UpdateAllowed"] = allowUpdate
+
+		divergence, err := pull_service.GetDiverging(pull)
+		if err != nil {
+			ctx.ServerError("GetDiverging", err)
+			return nil
+		}
+		ctx.Data["Divergence"] = divergence
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
@@ -676,7 +679,13 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 	if issue.IsClosed {
-		ctx.NotFound("MergePullRequest", nil)
+		if issue.IsPull {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+			return
+		}
+		ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
 		return
 	}
 
@@ -688,12 +697,20 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 	if !allowedMerge {
-		ctx.NotFound("MergePullRequest", nil)
+		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 		return
 	}
 
-	if !pr.CanAutoMerge() || pr.HasMerged {
-		ctx.NotFound("MergePullRequest", nil)
+	if !pr.CanAutoMerge() {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		return
+	}
+
+	if pr.HasMerged {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 		return
 	}
 

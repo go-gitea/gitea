@@ -80,7 +80,7 @@
 				</div>
 			{{else}}
 				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}" id="diff-{{.Index}}">
-					<h4 class="ui top attached normal header">
+					<h4 class="diff-file-header ui top attached normal header">
 						{{$isImage := false}}
 						{{if $file.IsDeleted}}
 							{{$isImage = (call $.IsImageFileInBase $file.Name)}}
@@ -111,7 +111,7 @@
 							{{end}}
 						{{end}}
 					</h4>
-					<div class="ui attached unstackable table segment">
+					<div class="diff-file-body ui attached unstackable table segment">
 						{{if ne $file.Type 4}}
 							<div class="file-body file-code code-view has-context-menu code-diff {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}}">
 								<table>

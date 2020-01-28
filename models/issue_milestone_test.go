@@ -71,7 +71,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(repoID int64, state api.StateType) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		milestones, err := GetMilestonesByRepoID(repo.ID, state)
+		milestones, err := GetMilestonesByRepoID(repo.ID, state, ListOptions{})
 		assert.NoError(t, err)
 
 		var n int
@@ -105,7 +105,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	test(3, api.StateClosed)
 	test(3, api.StateAll)
 
-	milestones, err := GetMilestonesByRepoID(NonexistentID, api.StateOpen)
+	milestones, err := GetMilestonesByRepoID(NonexistentID, api.StateOpen, ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 0)
 }
@@ -158,10 +158,11 @@ func TestUpdateMilestone(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	milestone := AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
-	milestone.Name = "newMilestoneName"
+	milestone.Name = " newMilestoneName  "
 	milestone.Content = "newMilestoneContent"
 	assert.NoError(t, UpdateMilestone(milestone))
-	AssertExistsAndLoadBean(t, milestone)
+	milestone = AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
+	assert.EqualValues(t, "newMilestoneName", milestone.Name)
 	CheckConsistencyFor(t, &Milestone{})
 }
 

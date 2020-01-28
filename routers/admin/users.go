@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -33,8 +34,10 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:          models.UserTypeIndividual,
-		PageSize:      setting.UI.Admin.UserPagingNum,
+		Type: models.UserTypeIndividual,
+		ListOptions: models.ListOptions{
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
 		SearchByEmail: true,
 	}, tplUsers)
 }

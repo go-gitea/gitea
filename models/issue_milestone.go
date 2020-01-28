@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -94,6 +95,8 @@ func NewMilestone(m *Milestone) (err error) {
 	if err = sess.Begin(); err != nil {
 		return err
 	}
+
+	m.Name = strings.TrimSpace(m.Name)
 
 	if _, err = sess.Insert(m); err != nil {
 		return err
@@ -221,7 +224,7 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 }
 
 // GetMilestonesByRepoID returns all opened milestones of a repository.
-func GetMilestonesByRepoID(repoID int64, state api.StateType) (MilestoneList, error) {
+func GetMilestonesByRepoID(repoID int64, state api.StateType, listOptions ListOptions) (MilestoneList, error) {
 	sess := x.Where("repo_id = ?", repoID)
 
 	switch state {
@@ -238,7 +241,11 @@ func GetMilestonesByRepoID(repoID int64, state api.StateType) (MilestoneList, er
 		sess = sess.And("is_closed = ?", false)
 	}
 
-	miles := make([]*Milestone, 0, 10)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+	}
+
+	miles := make([]*Milestone, 0, listOptions.PageSize)
 	return miles, sess.Asc("deadline_unix").Asc("id").Find(&miles)
 }
 
@@ -268,6 +275,7 @@ func GetMilestones(repoID int64, page int, isClosed bool, sortType string) (Mile
 }
 
 func updateMilestone(e Engine, m *Milestone) error {
+	m.Name = strings.TrimSpace(m.Name)
 	_, err := e.ID(m.ID).AllCols().
 		SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
 			builder.Eq{"milestone_id": m.ID},

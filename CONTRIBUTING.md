@@ -114,15 +114,7 @@ included in the next released version.
 
 ## Building Gitea
 
-Generally, the go build tools are installed as-needed in the `Makefile`.
-An exception are the tools to build the CSS, JS and images.
-
-- To build CSS and JS: Install [Node.js](https://nodejs.org/en/download/package-manager) at version 10.0 or above
-  with `npm` and then run `npm install`, `make css` and `make js`.
-- To build Images: ImageMagick, inkscape and zopflipng binaries must be
-  available in your `PATH` to run `make generate-images`.
-
-For more details on how to generate files, build and test Gitea, see the [hacking instructions](https://docs.gitea.io/en-us/hacking-on-gitea/)
+See the [hacking instructions](https://docs.gitea.io/en-us/hacking-on-gitea/).
 
 ## Code review
 

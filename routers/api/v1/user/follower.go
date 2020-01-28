@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -11,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
@@ -22,7 +24,7 @@ func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
 }
 
 func listUserFollowers(ctx *context.APIContext, u *models.User) {
-	users, err := u.GetFollowers(ctx.QueryInt("page"))
+	users, err := u.GetFollowers(utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
 		return
@@ -35,6 +37,15 @@ func ListMyFollowers(ctx *context.APIContext) {
 	// swagger:operation GET /user/followers user userCurrentListFollowers
 	// ---
 	// summary: List the authenticated user's followers
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
@@ -57,6 +68,14 @@ func ListFollowers(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
@@ -69,7 +88,7 @@ func ListFollowers(ctx *context.APIContext) {
 }
 
 func listUserFollowing(ctx *context.APIContext, u *models.User) {
-	users, err := u.GetFollowing(ctx.QueryInt("page"))
+	users, err := u.GetFollowing(utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFollowing", err)
 		return
@@ -82,6 +101,15 @@ func ListMyFollowing(ctx *context.APIContext) {
 	// swagger:operation GET /user/following user userCurrentListFollowing
 	// ---
 	// summary: List the users that the authenticated user is following
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
@@ -104,6 +132,14 @@ func ListFollowing(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
