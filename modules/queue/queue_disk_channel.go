@@ -177,7 +177,13 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 
 // Flush flushes the queue and blocks till the queue is empty
 func (p *PersistableChannelQueue) Flush(timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
 	defer cancel()
 	return p.FlushWithContext(ctx)
 }
