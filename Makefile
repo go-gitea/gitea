@@ -54,6 +54,8 @@ BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/tem
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
 WEBPACK_DEST_DIRS := public/js public/css
+
+FOMANTIC_SOURCES ?= $(shell find web_src/fomantic -type f)
 FOMANTIC_DEST_DIR := public/fomantic
 FOMANTIC_EVIDENCE := $(MAKE_EVIDENCE_DIR)/fomantic
 
@@ -497,7 +499,7 @@ css:
 .PHONY: fomantic
 fomantic: node-check $(FOMANTIC_EVIDENCE)
 
-$(FOMANTIC_EVIDENCE): semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/* | node_modules
+$(FOMANTIC_EVIDENCE): semantic.json $(FOMANTIC_SOURCES) | node_modules
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
