@@ -43,6 +43,7 @@ type Manager struct {
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
+	shutdownRequested	   chan struct{}
 }
 
 func newGracefulManager(ctx context.Context) *Manager {
@@ -62,6 +63,7 @@ func (g *Manager) start() {
 	g.shutdown = make(chan struct{})
 	g.hammer = make(chan struct{})
 	g.done = make(chan struct{})
+	g.shutdownRequested = make(chan struct{})
 
 	// Set the running state
 	g.setState(stateRunning)
@@ -108,6 +110,9 @@ loop:
 		select {
 		case <-g.ctx.Done():
 			g.DoGracefulShutdown()
+			waitTime += setting.GracefulHammerTime
+			break loop
+		case <-g.shutdownRequested:
 			waitTime += setting.GracefulHammerTime
 			break loop
 		case change := <-changes:
@@ -159,7 +164,15 @@ func (g *Manager) DoImmediateHammer() {
 
 // DoGracefulShutdown causes a graceful shutdown
 func (g *Manager) DoGracefulShutdown() {
-	g.doShutdown()
+	g.lock.Lock()
+	select {
+	case <-g.shutdownRequested:
+		g.lock.Unlock()
+	default:
+		close(g.shutdownRequested)
+		g.lock.Unlock()
+		g.doShutdown()
+	}
 }
 
 // RegisterServer registers the running of a listening server.

@@ -151,7 +151,7 @@ func (g *Manager) doFork() error {
 	return err
 }
 
-// DoGracefulRestart causes a graceful shutdown
+// DoGracefulRestart causes a graceful restart
 func (g *Manager) DoGracefulRestart() {
 	if setting.GracefulRestartable {
 		log.Info("PID: %d. Forking...", os.Getpid())
