@@ -69,6 +69,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdKeys,
 		cmd.CmdConvert,
 		cmd.CmdDoctor,
+		cmd.CmdManager,
 	}
 	// Now adjust these commands to add our global configuration options
 

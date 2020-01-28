@@ -107,7 +107,7 @@ loop:
 	for {
 		select {
 		case <-g.ctx.Done():
-			g.doShutdown()
+			g.DoGracefulShutdown()
 			waitTime += setting.GracefulHammerTime
 			break loop
 		case change := <-changes:
@@ -115,12 +115,12 @@ loop:
 			case svc.Interrogate:
 				status <- change.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				g.doShutdown()
+				g.DoGracefulShutdown()
 				waitTime += setting.GracefulHammerTime
 				break loop
 			case hammerCode:
-				g.doShutdown()
-				g.doHammerTime(0 * time.Second)
+				g.DoGracefulShutdown()
+				g.DoImmediateHammer()
 				break loop
 			default:
 				log.Debug("Unexpected control request: %v", change.Cmd)
@@ -140,7 +140,7 @@ hammerLoop:
 			case svc.Interrogate:
 				status <- change.CurrentStatus
 			case svc.Stop, svc.Shutdown, hammerCmd:
-				g.doHammerTime(0 * time.Second)
+				g.DoImmediateHammer()
 				break hammerLoop
 			default:
 				log.Debug("Unexpected control request: %v", change.Cmd)
@@ -150,6 +150,16 @@ hammerLoop:
 		}
 	}
 	return false, 0
+}
+
+// DoImmediateHammer causes an immediate hammer
+func (g *Manager) DoImmediateHammer() {
+	g.doHammerTime(0 * time.Second)
+}
+
+// DoGracefulShutdown causes a graceful shutdown
+func (g *Manager) DoGracefulShutdown() {
+	g.doShutdown()
 }
 
 // RegisterServer registers the running of a listening server.
