@@ -28,6 +28,7 @@ GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
+MAKE_EVIDENCE_DIR := .make_evidence
 
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
@@ -57,6 +58,7 @@ BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 JS_DEST_DIR := public/js
 CSS_DEST_DIR := public/css
 FOMANTIC_DEST_DIR := public/fomantic
+FOMANTIC_EVIDENCE := $(MAKE_EVIDENCE_DIR)/fomantic
 
 TAGS ?=
 
@@ -141,7 +143,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR) $(FOMANTIC_DEST_DIR)
+	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR) $(FOMANTIC_DEST_DIR) $(FOMANTIC_EVIDENCE)
 
 .PHONY: clean
 clean:
@@ -497,13 +499,13 @@ $(JS_DEST): $(JS_SOURCES) | node_modules
 	@touch $(JS_DEST)
 
 .PHONY: fomantic
-fomantic: node-check $(FOMANTIC_DEST_DIR)
+fomantic: node-check $(FOMANTIC_EVIDENCE)
 
-$(FOMANTIC_DEST_DIR): semantic.json web_src/fomantic/theme.config.less | node_modules
+$(FOMANTIC_EVIDENCE): semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/* | node_modules
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
-	@touch $(FOMANTIC_DEST_DIR)
+	@mkdir -p $(MAKE_EVIDENCE_DIR) && touch $(FOMANTIC_EVIDENCE)
 
 .PHONY: css
 css: node-check $(CSS_DEST)
