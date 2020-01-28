@@ -115,6 +115,7 @@ func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
 			SearchPageSize:        pageSize,
 			Filter:                form.Filter,
 			AdminFilter:           form.AdminFilter,
+			AllowDeactivateAll:    form.AllowDeactivateAll,
 			Enabled:               true,
 		},
 	}
