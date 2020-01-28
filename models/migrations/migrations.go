@@ -304,7 +304,7 @@ var migrations = []Migration{
 	NewMigration("Add original informations for reactions", addReactionOriginals),
 	// v124 -> v125
 	NewMigration("Add columns to user and repository", addUserRepoMissingColumns),
-	// v125 -> v126
+	// v126 -> v127
 	NewMigration("Add locked_resource table", addLockedResourceTable),
 }
 
