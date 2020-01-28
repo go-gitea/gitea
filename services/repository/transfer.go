@@ -16,7 +16,7 @@ import (
 var repoWorkingPool = sync.NewExclusivePool()
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
-func TransferOwnership(doer *models.User, newOwnerName string, repo *models.Repository) error {
+func TransferOwnership(doer, newOwner *models.User, repo *models.Repository, teams []*models.Team) error {
 	if err := repo.GetOwner(); err != nil {
 		return err
 	}
@@ -24,11 +24,25 @@ func TransferOwnership(doer *models.User, newOwnerName string, repo *models.Repo
 	oldOwner := repo.Owner
 
 	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	if err := models.TransferOwnership(doer, newOwnerName, repo); err != nil {
+	if err := models.TransferOwnership(doer, newOwner.Name, repo); err != nil {
 		repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 		return err
 	}
 	repoWorkingPool.CheckOut(com.ToStr(repo.ID))
+
+	newRepo, err := models.GetRepositoryByID(repo.ID)
+	if err != nil {
+		return err
+	}
+	for _, team := range teams {
+		if models.HasTeamRepo(newOwner.ID, team.ID, repo.ID) {
+			continue
+		}
+
+		if err := team.AddRepository(newRepo); err != nil {
+			return err
+		}
+	}
 
 	notification.NotifyTransferRepository(doer, repo, oldOwner.Name)
 
