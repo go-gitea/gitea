@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/huandu/xstrings"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+
+	"github.com/huandu/xstrings"
 )
 
 type transformer struct {
