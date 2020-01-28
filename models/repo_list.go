@@ -319,9 +319,9 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 func accessibleRepositoryCondition(user *User) builder.Cond {
 	var cond = builder.NewCond()
 
-	if user == nil || !user.IsRestricted {
+	if user == nil || !user.IsRestricted || user.ID <= 0 {
 		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
-		if user == nil {
+		if user == nil || user.ID <= 0 {
 			orgVisibilityLimit = append(orgVisibilityLimit, structs.VisibleTypeLimited)
 		}
 		// 1. Be able to see all non-private repositories that either:
@@ -363,7 +363,8 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 }
 
 // AccessibleRepoIDsQuery queries accessible repository ids. Usable as a subquery wherever repo ids need to be filtered.
-func (user *User) AccessibleRepoIDsQuery() *builder.Builder {
+func AccessibleRepoIDsQuery(user *User) *builder.Builder {
+	// NB: Please note this code needs to still work if user is nil
 	return builder.Select("id").From("repository").Where(accessibleRepositoryCondition(user))
 }
 
