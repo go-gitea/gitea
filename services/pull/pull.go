@@ -311,23 +311,39 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 func PushToBaseRepo(pr *models.PullRequest) (err error) {
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
 
+	// Clone base repo.
+	tmpBasePath, err := models.CreateTemporaryPath("pull")
+	if err != nil {
+		log.Error("CreateTemporaryPath: %v", err)
+		return err
+	}
+	defer func() {
+		err := models.RemoveTemporaryPath(tmpBasePath)
+		if err != nil {
+			log.Error("Error whilst removing temporary path: %s Error: %v", tmpBasePath, err)
+		}
+	}()
+
 	headRepoPath := pr.HeadRepo.RepoPath()
-	headGitRepo, err := git.OpenRepository(headRepoPath)
+
+	if err := git.Clone(headRepoPath, tmpBasePath, git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
+		Branch: pr.HeadBranch,
+		Quiet:  true,
+	}); err != nil {
+		log.Error("git clone tmpBasePath: %v", err)
+		return err
+	}
+	gitRepo, err := git.OpenRepository(tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
-	defer headGitRepo.Close()
 
-	tmpRemoteName := fmt.Sprintf("tmp-pull-%d", pr.ID)
-	if err = headGitRepo.AddRemote(tmpRemoteName, pr.BaseRepo.RepoPath(), false); err != nil {
-		return fmt.Errorf("headGitRepo.AddRemote: %v", err)
+	if err := gitRepo.AddRemote("base", pr.BaseRepo.RepoPath(), false); err != nil {
+		return fmt.Errorf("tmpGitRepo.AddRemote: %v", err)
 	}
-	// Make sure to remove the remote even if the push fails
-	defer func() {
-		if err := headGitRepo.RemoveRemote(tmpRemoteName); err != nil {
-			log.Error("PushToBaseRepo: RemoveRemote: %s", err)
-		}
-	}()
+	defer gitRepo.Close()
 
 	headFile := pr.GetGitRefName()
 
@@ -343,14 +359,14 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 		return fmt.Errorf("unable to load poster %d for pr %d: %v", pr.Issue.PosterID, pr.ID, err)
 	}
 
-	if err = git.Push(headRepoPath, git.PushOptions{
-		Remote: tmpRemoteName,
+	if err = git.Push(tmpBasePath, git.PushOptions{
+		Remote: "base",
 		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
 		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
-		return fmt.Errorf("Push: %v", err)
+		return fmt.Errorf("Push: %s:%s %s:%s %v", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), headFile, err)
 	}
 
 	return nil
