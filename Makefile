@@ -5,8 +5,9 @@ export GO111MODULE=off
 GO ?= go
 SED_INPLACE := sed -i
 SHASUM ?= shasum -a 256
+GOPATH ?= $(shell $(GO) env GOPATH)
 
-export PATH := $($(GO) env GOPATH)/bin:$(PATH)
+export PATH := $(GOPATH)/bin:$(PATH)
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE ?= gitea.exe

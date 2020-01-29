@@ -50,31 +50,23 @@ is the relevant line - but this may change.)
 
 ## Downloading and cloning the Gitea source code
 
-Go is quite opinionated about where it expects its source code, and simply
-cloning the Gitea repository to an arbitrary path is likely to lead to
-problems - the fixing of which is out of scope for this document. Further, some
-internal packages are referenced using their respective GitHub URL and at
-present we use `vendor/` directories.
-
-The recommended method of obtaining the source code is by using the `go get` command:
+The recommended method of obtaining the source code is by using `git clone`.
 
 ```bash
-go get -d code.gitea.io/gitea
-cd "$GOPATH/src/code.gitea.io/gitea"
+git clone https://github.com/go-gitea/gitea
 ```
 
-This will clone the Gitea source code to: `"$GOPATH/src/code.gitea.io/gitea"`, or if `$GOPATH`
-is not set `"$HOME/go/src/code.gitea.io/gitea"`.
+(Since the advent of go modules, it is no longer necessary to build go projects
+from within the `$GOPATH`, hence the `go get` approach is no longer recommended.)
 
 ## Forking Gitea
 
-As stated above, you cannot clone Gitea to an arbitrary path. Download the master Gitea source
-code as above. Then, fork the [Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
+Download the master Gitea source code as above. Then, fork the 
+[Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
 and either switch the git remote origin for your fork or add your fork as another remote:
 
 ```bash
 # Rename original Gitea origin to upstream
-cd "$GOPATH/src/code.gitea.io/gitea"
 git remote rename origin upstream
 git remote add origin "git@github.com:$GITHUB_USERNAME/gitea.git"
 git fetch --all --prune
@@ -84,7 +76,6 @@ or:
 
 ```bash
 # Add new remote for our fork
-cd "$GOPATH/src/code.gitea.io/gitea"
 git remote add "$FORK_NAME" "git@github.com:$GITHUB_USERNAME/gitea.git"
 git fetch --all --prune
 ```
@@ -114,7 +105,7 @@ how our continuous integration works.
 
 ### Formatting, code analysis and spell check
 
-Our continous integration will reject PRs that are not properly formatted, fail
+Our continuous integration will reject PRs that are not properly formatted, fail
 code analysis or spell check.
 
 You should format your code with `go fmt` using:
@@ -237,8 +228,9 @@ have written integration tests; however, these are database dependent.
 TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 ```
 
-will run the integration tests in an sqlite environment. Other database tests
-are available but may need adjustment to the local environment.
+will run the integration tests in an sqlite environment. Integration tests
+require  `git lfs` to be installed. Other database tests are available but
+may need adjustment to the local environment.
 
 Look at
 [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/master/integrations/README.md)
@@ -257,7 +249,7 @@ Documentation for the website is found in `docs/`. If you change this you
 can test your changes to ensure that they pass continuous integration using:
 
 ```bash
-cd "$GOPATH/src/code.gitea.io/gitea/docs"
+# from the docs directory within Gitea
 make trans-copy clean build
 ```
 
