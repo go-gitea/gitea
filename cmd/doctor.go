@@ -26,7 +26,7 @@ import (
 var CmdDoctor = cli.Command{
 	Name:        "doctor",
 	Usage:       "Diagnose problems",
-	Description: "A command to diagnose problems of current gitea instance according the given configuration.",
+	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration.",
 	Action:      runDoctor,
 }
 
