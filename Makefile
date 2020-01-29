@@ -553,7 +553,7 @@ generate-images:
 	convert -flatten $(PWD)/public/img/favicon.png $(PWD)/public/img/apple-touch-icon.png
 
 	rm -rf $(TMPDIR)/images
-	$(foreach file, $(shell find public/img -type f -name '*.png'),zopflipng -m -y $(file) $(file);)
+	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
 
 .PHONY: pr
 pr:
