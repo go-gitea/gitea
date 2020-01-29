@@ -107,11 +107,15 @@ func runDoctorPathInfo(ctx *cli.Context) ([]string, error) {
 
 	fail := false
 
-	check := func(name, path string, is_dir, is_write bool) {
+	check := func(name, path string, is_dir, required, is_write bool) {
 		res = append(res, fmt.Sprintf("%-25s  '%s'", name+":", path))
 		if fi, err := os.Stat(path); err != nil {
-			res = append(res, fmt.Sprintf("    ERROR: %v", err))
-			fail = true
+			if required {
+				res = append(res, fmt.Sprintf("    ERROR: %v", err))
+				fail = true
+			} else {
+				res = append(res, fmt.Sprintf("    NOTICE: not accessible (%v)", err))
+			}
 			return
 		} else if is_dir && !fi.IsDir() {
 			res = append(res, "    ERROR: not a directory")
@@ -132,16 +136,16 @@ func runDoctorPathInfo(ctx *cli.Context) ([]string, error) {
 	}
 
 	// Note print paths inside quotes to make any leading/trailing spaces evident
-	check("Configuration File Path", setting.CustomConf, false, false)
-	check("Repository Root Path", setting.RepoRootPath, true, true)
-	check("Data Root Path", setting.AppDataPath, true, true)
-	check("Custom File Root Path", setting.CustomPath, true, false)
-	check("Work directory", setting.AppWorkPath, true, false)
-	check("Log Root Path", setting.LogRootPath, true, true)
+	check("Configuration File Path", setting.CustomConf, false, true, false)
+	check("Repository Root Path", setting.RepoRootPath, true, true, true)
+	check("Data Root Path", setting.AppDataPath, true, true, true)
+	check("Custom File Root Path", setting.CustomPath, true, false, false)
+	check("Work directory", setting.AppWorkPath, true, true, false)
+	check("Log Root Path", setting.LogRootPath, true, true, true)
 
 	if options.IsDynamic() {
 		// Do not check/report on StaticRootPath if data is embedded in Gitea (-tags bindata)
-		check("Static File Root Path", setting.StaticRootPath, true, false)
+		check("Static File Root Path", setting.StaticRootPath, true, true, false)
 	}
 
 	if fail {
