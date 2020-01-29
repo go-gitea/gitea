@@ -34,11 +34,8 @@ func TransferOwnership(doer, newOwner *models.User, repo *models.Repository, tea
 	if err != nil {
 		return err
 	}
-	for _, team := range teams {
-		if models.HasTeamRepo(newOwner.ID, team.ID, repo.ID) {
-			continue
-		}
 
+	for _, team := range teams {
 		if err := team.AddRepository(newRepo); err != nil {
 			return err
 		}
