@@ -35,6 +35,7 @@ func (repo *Repository) addCollaborator(e Engine, u *User) error {
 		return err
 	}
 
+	// TODO: Is it better to recalculate by user or by repo?
 	return repo.recalculateUserAccess(e, u.ID)
 }
 

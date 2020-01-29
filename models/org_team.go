@@ -218,8 +218,8 @@ func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
 
 	t.NumRepos++
 
-	if err = repo.recalculateTeamAccesses(e, 0); err != nil {
-		return fmt.Errorf("recalculateAccesses: %v", err)
+	if err = repo.addTeamAccesses(e, t); err != nil {
+		return fmt.Errorf("addTeamAccesses: %v", err)
 	}
 
 	// Make all team members watch this repo if enabled in global settings
@@ -314,9 +314,16 @@ func (t *Team) RemoveAllRepositories() (err error) {
 // removeAllRepositories removes all repositories from team and recalculates access
 // Note: Shall not be called if team includes all repositories
 func (t *Team) removeAllRepositories(e Engine) (err error) {
-	// Delete all accesses.
+	// Delete all team-repo
+	if _, err := e.
+		Where("team_id=?", t.ID).
+		Delete(new(TeamRepo)); err != nil {
+		return err
+	}
+
+	// Rebuild all accesses.
 	for _, repo := range t.Repos {
-		if err := repo.recalculateTeamAccesses(e, t.ID); err != nil {
+		if err := repo.recalculateAccesses(e); err != nil {
 			return err
 		}
 
@@ -338,13 +345,6 @@ func (t *Team) removeAllRepositories(e Engine) (err error) {
 				return err
 			}
 		}
-	}
-
-	// Delete team-repo
-	if _, err := e.
-		Where("team_id=?", t.ID).
-		Delete(new(TeamRepo)); err != nil {
-		return err
 	}
 
 	t.NumRepos = 0
@@ -369,7 +369,7 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 
 	// Don't need to recalculate when delete a repository from organization.
 	if recalculate {
-		if err = repo.recalculateTeamAccesses(e, t.ID); err != nil {
+		if err = repo.recalculateAccesses(e); err != nil {
 			return err
 		}
 	}
@@ -628,23 +628,16 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 	}
 
 	// Update access for team members if needed.
-	if authChanged {
+	if authChanged || includeAllChanged {
 		if err = t.getRepositories(sess); err != nil {
 			return fmt.Errorf("getRepositories: %v", err)
 		}
 
 		for _, repo := range t.Repos {
-			if err = repo.recalculateTeamAccesses(sess, 0); err != nil {
-				return fmt.Errorf("recalculateTeamAccesses: %v", err)
+			if err = repo.recalculateAccesses(sess); err != nil {
+				return fmt.Errorf("recalculateAccesses: %v", err)
 			}
-		}
-	}
-
-	// Add all repositories to the team if it has access to all of them.
-	if includeAllChanged && t.IncludesAllRepositories {
-		err = t.addAllRepositories(sess)
-		if err != nil {
-			return fmt.Errorf("addAllRepositories: %v", err)
+			// FIXME: GAP: Users need to be unsubscribed if no longer have access
 		}
 	}
 
@@ -833,11 +826,12 @@ func AddTeamMember(team *Team, userID int64) error {
 	team.NumMembers++
 
 	// Give access to team repositories.
-	for _, repo := range team.Repos {
-		if err := repo.recalculateUserAccess(sess, userID); err != nil {
-			return err
-		}
-		if setting.Service.AutoWatchNewRepos {
+	if err := RebuildUserIDUnits(sess, userID); err != nil {
+		return err
+	}
+
+	if setting.Service.AutoWatchNewRepos {
+		for _, repo := range team.Repos {
 			if err = watchRepo(sess, userID, repo.ID, true); err != nil {
 				return err
 			}
@@ -878,11 +872,13 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 	}
 
 	// Delete access to team repositories.
-	for _, repo := range team.Repos {
-		if err := repo.recalculateUserAccess(e, userID); err != nil {
-			return err
-		}
+	// Give access to team repositories.
+	if err := RebuildUserIDUnits(e, userID); err != nil {
+		return err
+	}
 
+	// FIXME: GAP: Can do this with a couple of SQL statements
+	for _, repo := range team.Repos {
 		// Remove watches from now unaccessible
 		has, err := hasAccess(e, userID, repo)
 		if err != nil {

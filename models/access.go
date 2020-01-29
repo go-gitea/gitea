@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
+
+	"xorm.io/builder"
 )
 
 // AccessMode specifies the users access mode
@@ -61,14 +63,14 @@ func ParseAccessMode(permission string) AccessMode {
 	}
 }
 
-// Access represents the highest access level of a user to the repository. The only access type
-// that is not in this table is the real owner of a repository. In case of an organization
-// repository, the members of the owners team are in this table.
+// Access struct is deprecated
 type Access struct {
-	ID     int64 `xorm:"pk autoincr"`
-	UserID int64 `xorm:"UNIQUE(s)"`
-	RepoID int64 `xorm:"UNIQUE(s)"`
-	Mode   AccessMode
+	// FIXME: GAP: Remove Access from database
+
+	// ID     int64 `xorm:"pk autoincr"`
+	// UserID int64 `xorm:"UNIQUE(s)"`
+	// RepoID int64 `xorm:"UNIQUE(s)"`
+	// Mode   AccessMode
 }
 
 func accessLevel(e Engine, user *User, repo *Repository) (AccessMode, error) {
@@ -109,8 +111,13 @@ func (repoAccess) TableName() string {
 	return "access"
 }
 
-// GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
+// GetRepositoryAccesses finds all repositories with their access mode where a user has any kind of access but does not own.
 func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
+	sess := x.Table(new(Repository)).
+		Where(accessibleRepositoryCondition(user)).
+		And("repository.owner_id <> ?", user.ID).
+		Desc("updated_unix")
+
 	rows, err := x.
 		Join("INNER", "repository", "repository.id = access.repo_id").
 		Where("access.user_id = ?", user.ID).
@@ -146,8 +153,10 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 // GetAccessibleRepositories finds repositories which the user has access but does not own.
 // If limit is smaller than 1 means returns all found results.
 func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ error) {
-	sess := x.
-		Where("owner_id !=? ", user.ID).
+	// FIXME: GAP: Test this query
+	sess := x.Table(&Repository{}).
+		Where(accessibleRepositoryCondition(user)).
+		And("repository.owner_id <> ?", user.ID).
 		Desc("updated_unix")
 	if limit > 0 {
 		sess.Limit(limit)
@@ -155,9 +164,8 @@ func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ e
 	} else {
 		repos = make([]*Repository, 0, 10)
 	}
-	return repos, sess.
-		Join("INNER", "access", "access.user_id = ? AND access.repo_id = repository.id", user.ID).
-		Find(&repos)
+	
+	return repos, sess.Find(&repos)
 }
 
 func maxAccessMode(modes ...AccessMode) AccessMode {
@@ -170,167 +178,26 @@ func maxAccessMode(modes ...AccessMode) AccessMode {
 	return max
 }
 
-type userAccess struct {
-	User *User
-	Mode AccessMode
-}
-
-// updateUserAccess updates an access map so that user has at least mode
-func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMode) {
-	if ua, ok := accessMap[user.ID]; ok {
-		ua.Mode = maxAccessMode(ua.Mode, mode)
-	} else {
-		accessMap[user.ID] = &userAccess{User: user, Mode: mode}
-	}
-}
-
-// FIXME: do cross-comparison so reduce deletions and additions to the minimum?
-func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]*userAccess) (err error) {
-	minMode := AccessModeRead
-	if !repo.IsPrivate {
-		minMode = AccessModeWrite
-	}
-
-	newAccesses := make([]Access, 0, len(accessMap))
-	for userID, ua := range accessMap {
-		if ua.Mode < minMode && !ua.User.IsRestricted {
-			continue
-		}
-
-		newAccesses = append(newAccesses, Access{
-			UserID: userID,
-			RepoID: repo.ID,
-			Mode:   ua.Mode,
-		})
-	}
-
-	// Delete old accesses and insert new ones for repository.
-	if _, err = e.Delete(&Access{RepoID: repo.ID}); err != nil {
-		return fmt.Errorf("delete old accesses: %v", err)
-	} else if _, err = e.Insert(newAccesses); err != nil {
-		return fmt.Errorf("insert new accesses: %v", err)
-	}
-	return nil
-}
-
-// refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
-func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[int64]*userAccess) error {
-	collaborators, err := repo.getCollaborators(e, ListOptions{})
-	if err != nil {
-		return fmt.Errorf("getCollaborations: %v", err)
-	}
-	for _, c := range collaborators {
-		updateUserAccess(accessMap, c.User, c.Collaboration.Mode)
-	}
-	return nil
-}
-
-// recalculateTeamAccesses recalculates new accesses for teams of an organization
-// except the team whose ID is given. It is used to assign a team ID when
-// remove repository from that team.
-func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err error) {
-	accessMap := make(map[int64]*userAccess, 20)
-
-	if err = repo.getOwner(e); err != nil {
-		return err
-	} else if !repo.Owner.IsOrganization() {
-		return fmt.Errorf("owner is not an organization: %d", repo.OwnerID)
-	}
-
-	if err = repo.refreshCollaboratorAccesses(e, accessMap); err != nil {
-		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
-	}
-
-	if err = repo.Owner.getTeams(e); err != nil {
-		return err
-	}
-
-	for _, t := range repo.Owner.Teams {
-		if t.ID == ignTeamID {
-			continue
-		}
-
-		// Owner team gets owner access, and skip for teams that do not
-		// have relations with repository.
-		if t.IsOwnerTeam() {
-			t.Authorize = AccessModeOwner
-		} else if !t.hasRepository(e, repo.ID) {
-			continue
-		}
-
-		if err = t.getMembers(e); err != nil {
-			return fmt.Errorf("getMembers '%d': %v", t.ID, err)
-		}
-		for _, m := range t.Members {
-			updateUserAccess(accessMap, m, t.Authorize)
-		}
-	}
-
-	return repo.refreshAccesses(e, accessMap)
-}
-
-// recalculateUserAccess recalculates new access for a single user
-// Usable if we know access only affected one user
+// recalculateUserAccess recalculates repository access for a single user
 func (repo *Repository) recalculateUserAccess(e Engine, uid int64) (err error) {
-	minMode := AccessModeRead
-	if !repo.IsPrivate {
-		minMode = AccessModeWrite
-	}
-
-	accessMode := AccessModeNone
-	collaborator, err := repo.getCollaboration(e, uid)
-	if err != nil {
-		return err
-	} else if collaborator != nil {
-		accessMode = collaborator.Mode
-	}
-
-	if err = repo.getOwner(e); err != nil {
-		return err
-	} else if repo.Owner.IsOrganization() {
-		var teams []Team
-		if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
-			Join("INNER", "team_user", "team_user.team_id = team.id").
-			Where("team.org_id = ?", repo.OwnerID).
-			And("team_repo.repo_id=?", repo.ID).
-			And("team_user.uid=?", uid).
-			Find(&teams); err != nil {
-			return err
-		}
-
-		for _, t := range teams {
-			if t.IsOwnerTeam() {
-				t.Authorize = AccessModeOwner
-			}
-
-			accessMode = maxAccessMode(accessMode, t.Authorize)
-		}
-	}
-
-	// Delete old user accesses and insert new one for repository.
-	if _, err = e.Delete(&Access{RepoID: repo.ID, UserID: uid}); err != nil {
-		return fmt.Errorf("delete old user accesses: %v", err)
-	} else if accessMode >= minMode {
-		if _, err = e.Insert(&Access{RepoID: repo.ID, UserID: uid, Mode: accessMode}); err != nil {
-			return fmt.Errorf("insert new user accesses: %v", err)
-		}
-	}
-	return nil
+	return RebuildUserIDRepoUnits(e, uid, repo)
 }
 
 func (repo *Repository) recalculateAccesses(e Engine) error {
-	if repo.Owner.IsOrganization() {
-		return repo.recalculateTeamAccesses(e, 0)
-	}
-
-	accessMap := make(map[int64]*userAccess, 20)
-	if err := repo.refreshCollaboratorAccesses(e, accessMap); err != nil {
-		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
-	}
-	return repo.refreshAccesses(e, accessMap)
+	return RebuildRepoUnits(e, repo, -1)
 }
 
 // RecalculateAccesses recalculates all accesses for repository.
 func (repo *Repository) RecalculateAccesses() error {
 	return repo.recalculateAccesses(x)
+}
+
+// addTeamAccesses adds accesses for a team on the repository.
+func (repo *Repository) addTeamAccesses(e Engine, team *Team) error {
+	return AddTeamRepoUnits(e, team, repo)
+}
+
+// addTeamAccesses adds accesses for a team on the repository.
+func (repo *Repository) removeTeamAccesses(e Engine, teamID int64) error {
+	return RebuildRepoUnits(e, repo, teamID)
 }

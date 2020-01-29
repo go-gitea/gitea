@@ -1319,14 +1319,8 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 	}
 
 	if visibilityChanged {
-		if err = repo.getOwner(e); err != nil {
-			return fmt.Errorf("getOwner: %v", err)
-		}
-		if repo.Owner.IsOrganization() {
-			// Organization repository need to recalculate access table when visibility is changed.
-			if err = repo.recalculateTeamAccesses(e, 0); err != nil {
-				return fmt.Errorf("recalculateTeamAccesses: %v", err)
-			}
+		if err = repo.recalculateAccesses(e); err != nil {
+			return fmt.Errorf("recalculateAccesses: %v", err)
 		}
 
 		// If repo has become private, we need to set its actions to private.

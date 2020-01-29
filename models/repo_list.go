@@ -349,8 +349,8 @@ func accessibleRepositoryCondition(user *User) builder.Cond {
 		Where(builder.In("user_id", []int64{user.ID, UserRepoUnitLoggedInUser})))
 }
 
-// accessibleRepositoryConditionUnit takes a user a returns a condition for checking if a repository is accessible
-// for a given unit type
+// accessibleRepositoryConditionUnit takes a user and returns a condition for checking
+// if a repository is accessible for a given unit type
 func accessibleRepositoryConditionUnit(user *User, unitType UnitType) builder.Cond {
 	if user == nil || user.ID == 0 {
 		// Anonymous users (i.e. not logged in) can access whatever is public.
