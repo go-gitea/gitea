@@ -19,7 +19,6 @@ globals:
   CodeMirror: false
   Dropzone: false
   emojify: false
-  hljs: false
   SimpleMDE: false
   u2fApi: false
   Vue: false

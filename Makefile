@@ -46,16 +46,13 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
 GO_SOURCES ?= $(shell find . -name "*.go" -type f)
-JS_SOURCES ?= $(shell find web_src/js web_src/css -type f)
-CSS_SOURCES ?= $(shell find web_src/less -type f)
+WEBPACK_SOURCES ?= $(shell find web_src/js web_src/css web_src/less -type f)
 
-JS_DEST := public/js/index.js
-CSS_DEST := public/css/index.css
+WEBPACK_DEST := public/js/index.js public/css/index.css
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
-JS_DEST_DIR := public/js
-CSS_DEST_DIR := public/css
+WEBPACK_DEST_DIRS := public/js public/css
 FOMANTIC_DEST_DIR := public/fomantic
 
 TAGS ?=
@@ -87,9 +84,6 @@ TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
-# $(call strip-suffix,filename)
-strip-suffix = $(firstword $(subst ., ,$(1)))
-
 .PHONY: all
 all: build
 
@@ -102,10 +96,9 @@ help:
 	@echo " - build             creates the entire project"
 	@echo " - clean             delete integration files and build files but not css and js files"
 	@echo " - clean-all         delete all generated files (integration test, build, css and js files)"
-	@echo " - css               rebuild only css files"
-	@echo " - js                rebuild only js files"
+	@echo " - webpack           rebuild only js and css files"
 	@echo " - fomantic          rebuild fomantic-ui files"
-	@echo " - generate          run \"make fomantic css js\" and \"go generate\""
+	@echo " - generate          run \"make fomantic webpack\" and \"go generate\""
 	@echo " - fmt               format the code"
 	@echo " - generate-swagger  generate the swagger spec from code comments"
 	@echo " - swagger-validate  check if the swagger spec is valid"
@@ -141,7 +134,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR) $(FOMANTIC_DEST_DIR)
+	rm -rf $(WEBPACK_DEST_DIRS) $(FOMANTIC_DEST_DIR)
 
 .PHONY: clean
 clean:
@@ -161,7 +154,7 @@ vet:
 	$(GO) vet $(PACKAGES)
 
 .PHONY: generate
-generate: fomantic js css
+generate: fomantic webpack
 	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
 
 .PHONY: generate-swagger
@@ -481,6 +474,7 @@ release-compress:
 
 node_modules: package-lock.json
 	npm install --no-save
+	@touch node_modules
 
 .PHONY: npm-update
 npm-update: node-check | node_modules
@@ -489,12 +483,14 @@ npm-update: node-check | node_modules
 	npm install --package-lock
 
 .PHONY: js
-js: node-check $(JS_DEST)
+js:
+	@echo "'make js' is deprecated, please use 'make webpack'"
+	$(MAKE) webpack
 
-$(JS_DEST): $(JS_SOURCES) | node_modules
-	npx eslint web_src/js webpack.config.js
-	npx webpack --hide-modules --display-entrypoints=false
-	@touch $(JS_DEST)
+.PHONY: css
+css:
+	@echo "'make css' is deprecated, please use 'make webpack'"
+	$(MAKE) webpack
 
 .PHONY: fomantic
 fomantic: node-check $(FOMANTIC_DEST_DIR)
@@ -505,15 +501,14 @@ $(FOMANTIC_DEST_DIR): semantic.json web_src/fomantic/theme.config.less | node_mo
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 	@touch $(FOMANTIC_DEST_DIR)
 
-.PHONY: css
-css: node-check $(CSS_DEST)
+.PHONY: webpack
+webpack: node-check $(WEBPACK_DEST)
 
-$(CSS_DEST): $(CSS_SOURCES) | node_modules
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) | node_modules
+	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
-	npx lessc web_src/less/index.less public/css/index.css
-	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	npx postcss --use autoprefixer --use cssnano --no-map --replace public/css/*
-	@touch $(CSS_DEST)
+	npx webpack --hide-modules --display-entrypoints=false
+	@touch $(WEBPACK_DEST)
 
 .PHONY: update-translations
 update-translations:
