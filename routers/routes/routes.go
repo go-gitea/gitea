@@ -423,6 +423,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/set", admin.SetQueueSettings)
 				m.Post("/add", admin.AddWorkers)
 				m.Post("/cancel/:pid", admin.WorkerCancel)
+				m.Post("/flush", admin.Flush)
 			})
 		})
 
