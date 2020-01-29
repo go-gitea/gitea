@@ -181,6 +181,7 @@ func (q *WrappedUniqueQueue) Flush(timeout time.Duration) error {
 	return q.FlushWithContext(ctx)
 }
 
+// FlushWithContext implements the final part of Flushable
 func (q *WrappedUniqueQueue) FlushWithContext(ctx context.Context) error {
 	log.Trace("WrappedUniqueQueue: %s FlushWithContext", q.Name())
 	errChan := make(chan error, 1)
