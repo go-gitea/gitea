@@ -192,7 +192,7 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	m.Name = form.Title
 	m.Content = form.Content
 	m.DeadlineUnix = timeutil.TimeStamp(deadline.Unix())
-	if err = models.UpdateMilestone(m); err != nil {
+	if err = models.UpdateMilestone(m, m.IsClosed); err != nil {
 		ctx.ServerError("UpdateMilestone", err)
 		return
 	}
