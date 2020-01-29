@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -69,14 +70,22 @@ func NewContext() {
 		}
 	}
 	if setting.Cron.RepoHealthCheck.Enabled {
-		entry, err = c.AddFunc("Repository health check", setting.Cron.RepoHealthCheck.Schedule, WithUnique(gitFsck, models.GitFsck))
+		entry, err = c.AddFunc("Repository health check", setting.Cron.RepoHealthCheck.Schedule, WithUnique(gitFsck, func(ctx context.Context) {
+			if err := repo_module.GitFsck(ctx); err != nil {
+				log.Error("GitFsck: %s", err)
+			}
+		}))
 		if err != nil {
 			log.Fatal("Cron[Repository health check]: %v", err)
 		}
 		if setting.Cron.RepoHealthCheck.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go WithUnique(gitFsck, models.GitFsck)()
+			go WithUnique(gitFsck, func(ctx context.Context) {
+				if err := repo_module.GitFsck(ctx); err != nil {
+					log.Error("GitFsck: %s", err)
+				}
+			})()
 		}
 	}
 	if setting.Cron.CheckRepoStats.Enabled {

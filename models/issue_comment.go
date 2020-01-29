@@ -777,6 +777,7 @@ func GetCommentByID(id int64) (*Comment, error) {
 
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
+	ListOptions
 	RepoID   int64
 	IssueID  int64
 	ReviewID int64
@@ -814,6 +815,11 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
+
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
+
 	return comments, sess.
 		Asc("comment.created_unix").
 		Asc("comment.id").

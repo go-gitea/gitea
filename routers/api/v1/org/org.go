@@ -13,10 +13,14 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
-	if err := u.GetOrganizations(all); err != nil {
+	if err := u.GetOrganizations(&models.SearchOrganizationsOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		All:         all,
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetOrganizations", err)
 		return
 	}
@@ -35,6 +39,15 @@ func ListMyOrgs(ctx *context.APIContext) {
 	// summary: List the current user's organizations
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
@@ -55,6 +68,14 @@ func ListUserOrgs(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
@@ -95,11 +116,10 @@ func GetAll(ctx *context.APIContext) {
 	}
 
 	publicOrgs, _, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
-		OrderBy:  models.SearchOrderByAlphabetically,
-		Page:     ctx.QueryInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		Visible:  vMode,
+		ListOptions: utils.GetListOptions(ctx),
+		Type:        models.UserTypeOrganization,
+		OrderBy:     models.SearchOrderByAlphabetically,
+		Visible:     vMode,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)

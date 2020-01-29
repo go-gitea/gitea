@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListCollaborators list a repository's collaborators
@@ -33,11 +34,19 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	collaborators, err := ctx.Repo.Repository.GetCollaborators()
+	collaborators, err := ctx.Repo.Repository.GetCollaborators(utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return

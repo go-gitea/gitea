@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -27,6 +26,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -91,14 +91,6 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: include template repositories this user has access to (defaults to true)
 	//   type: boolean
-	// - name: page
-	//   in: query
-	//   description: page number of results to return (1-based)
-	//   type: integer
-	// - name: limit
-	//   in: query
-	//   description: page size of results, maximum page size is 50
-	//   type: integer
 	// - name: mode
 	//   in: query
 	//   description: type of repository to search for. Supported values are
@@ -119,6 +111,14 @@ func Search(ctx *context.APIContext) {
 	//   description: sort order, either "asc" (ascending) or "desc" (descending).
 	//                Default is "asc", ignored if "sort" is not specified.
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SearchResults"
@@ -126,12 +126,11 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	opts := &models.SearchRepoOptions{
+		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.User,
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
 		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
-		Page:               ctx.QueryInt("page"),
-		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
@@ -214,7 +213,7 @@ func Search(ctx *context.APIContext) {
 		results[i] = repo.APIFormat(accessMode)
 	}
 
-	ctx.SetLinkHeader(int(count), setting.API.MaxResponseItems)
+	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
@@ -757,25 +756,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	repo := ctx.Repo.Repository
 
 	var units []models.RepoUnit
+	var deleteUnitTypes []models.UnitType
 
-	for _, tp := range models.MustRepoUnits {
-		units = append(units, models.RepoUnit{
-			RepoID: repo.ID,
-			Type:   tp,
-			Config: new(models.UnitConfig),
-		})
-	}
-
-	if opts.HasIssues == nil {
-		// If HasIssues setting not touched, rewrite existing repo unit
-		if unit, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
-			units = append(units, *unit)
-		} else if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err == nil {
-			units = append(units, *unit)
-		}
-	} else if *opts.HasIssues {
-		if opts.ExternalTracker != nil {
-
+	if opts.HasIssues != nil {
+		if *opts.HasIssues && opts.ExternalTracker != nil && !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := fmt.Errorf("External tracker URL not valid")
@@ -797,7 +781,8 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					ExternalTrackerStyle:  opts.ExternalTracker.ExternalTrackerStyle,
 				},
 			})
-		} else {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
+		} else if *opts.HasIssues && opts.ExternalTracker == nil && !models.UnitTypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
 			var config *models.IssuesConfig
 
@@ -823,19 +808,19 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   models.UnitTypeIssues,
 				Config: config,
 			})
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+		} else if !*opts.HasIssues {
+			if !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+			}
+			if !models.UnitTypeIssues.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
+			}
 		}
 	}
 
-	if opts.HasWiki == nil {
-		// If HasWiki setting not touched, rewrite existing repo unit
-		if unit, err := repo.GetUnit(models.UnitTypeWiki); err == nil {
-			units = append(units, *unit)
-		} else if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err == nil {
-			units = append(units, *unit)
-		}
-	} else if *opts.HasWiki {
-		if opts.ExternalWiki != nil {
-
+	if opts.HasWiki != nil {
+		if *opts.HasWiki && opts.ExternalWiki != nil && !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := fmt.Errorf("External wiki URL not valid")
@@ -850,64 +835,72 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					ExternalWikiURL: opts.ExternalWiki.ExternalWikiURL,
 				},
 			})
-		} else {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
+		} else if *opts.HasWiki && opts.ExternalWiki == nil && !models.UnitTypeWiki.UnitGlobalDisabled() {
 			config := &models.UnitConfig{}
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypeWiki,
 				Config: config,
 			})
-		}
-	}
-
-	if opts.HasPullRequests == nil {
-		// If HasPullRequest setting not touched, rewrite existing repo unit
-		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
-			units = append(units, *unit)
-		}
-	} else if *opts.HasPullRequests {
-		// We do allow setting individual PR settings through the API, so
-		// we get the config settings and then set them
-		// if those settings were provided in the opts.
-		unit, err := repo.GetUnit(models.UnitTypePullRequests)
-		var config *models.PullRequestsConfig
-		if err != nil {
-			// Unit type doesn't exist so we make a new config file with default values
-			config = &models.PullRequestsConfig{
-				IgnoreWhitespaceConflicts: false,
-				AllowMerge:                true,
-				AllowRebase:               true,
-				AllowRebaseMerge:          true,
-				AllowSquash:               true,
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+		} else if !*opts.HasWiki {
+			if !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
 			}
-		} else {
-			config = unit.PullRequestsConfig()
+			if !models.UnitTypeWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
+			}
 		}
-
-		if opts.IgnoreWhitespaceConflicts != nil {
-			config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
-		}
-		if opts.AllowMerge != nil {
-			config.AllowMerge = *opts.AllowMerge
-		}
-		if opts.AllowRebase != nil {
-			config.AllowRebase = *opts.AllowRebase
-		}
-		if opts.AllowRebaseMerge != nil {
-			config.AllowRebaseMerge = *opts.AllowRebaseMerge
-		}
-		if opts.AllowSquash != nil {
-			config.AllowSquash = *opts.AllowSquash
-		}
-
-		units = append(units, models.RepoUnit{
-			RepoID: repo.ID,
-			Type:   models.UnitTypePullRequests,
-			Config: config,
-		})
 	}
 
-	if err := models.UpdateRepositoryUnits(repo, units); err != nil {
+	if opts.HasPullRequests != nil {
+		if *opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
+			// We do allow setting individual PR settings through the API, so
+			// we get the config settings and then set them
+			// if those settings were provided in the opts.
+			unit, err := repo.GetUnit(models.UnitTypePullRequests)
+			var config *models.PullRequestsConfig
+			if err != nil {
+				// Unit type doesn't exist so we make a new config file with default values
+				config = &models.PullRequestsConfig{
+					IgnoreWhitespaceConflicts: false,
+					AllowMerge:                true,
+					AllowRebase:               true,
+					AllowRebaseMerge:          true,
+					AllowSquash:               true,
+				}
+			} else {
+				config = unit.PullRequestsConfig()
+			}
+
+			if opts.IgnoreWhitespaceConflicts != nil {
+				config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
+			}
+			if opts.AllowMerge != nil {
+				config.AllowMerge = *opts.AllowMerge
+			}
+			if opts.AllowRebase != nil {
+				config.AllowRebase = *opts.AllowRebase
+			}
+			if opts.AllowRebaseMerge != nil {
+				config.AllowRebaseMerge = *opts.AllowRebaseMerge
+			}
+			if opts.AllowSquash != nil {
+				config.AllowSquash = *opts.AllowSquash
+			}
+
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypePullRequests,
+				Config: config,
+			})
+		} else if !*opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypePullRequests)
+		}
+	}
+
+	if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
 		return err
 	}

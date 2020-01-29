@@ -303,6 +303,10 @@ var migrations = []Migration{
 	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
 	// v123 -> v124
 	NewMigration("Add original informations for reactions", addReactionOriginals),
+	// v124 -> v125
+	NewMigration("Add columns to user and repository", addUserRepoMissingColumns),
+	// v125 -> v126
+	NewMigration("Add some columns on review for migration", addReviewMigrateInfo),
 }
 
 var RebuildPermissionsRequired bool

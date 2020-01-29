@@ -655,6 +655,13 @@
                 .icon-octicon {
                     padding-left: 2px;
                 }
+                .branch-update.grid {
+                    margin-bottom: -1.5rem;
+                    margin-top: -0.5rem;
+                    .row {
+                        padding-bottom: 0;
+                    }
+                }
             }
 
             .review-item {
@@ -2516,4 +2523,12 @@ td.blob-excerpt {
 
 .title_wip_desc {
     margin-top: 1em;
+}
+
+.diff-file-box[data-folded="true"] .diff-file-body {
+    visibility: hidden;
+}
+
+.diff-file-box[data-folded="true"] .diff-file-header {
+    border-radius: 0.28571429rem !important;
 }

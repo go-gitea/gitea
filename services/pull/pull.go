@@ -311,23 +311,39 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 func PushToBaseRepo(pr *models.PullRequest) (err error) {
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
 
+	// Clone base repo.
+	tmpBasePath, err := models.CreateTemporaryPath("pull")
+	if err != nil {
+		log.Error("CreateTemporaryPath: %v", err)
+		return err
+	}
+	defer func() {
+		err := models.RemoveTemporaryPath(tmpBasePath)
+		if err != nil {
+			log.Error("Error whilst removing temporary path: %s Error: %v", tmpBasePath, err)
+		}
+	}()
+
 	headRepoPath := pr.HeadRepo.RepoPath()
-	headGitRepo, err := git.OpenRepository(headRepoPath)
+
+	if err := git.Clone(headRepoPath, tmpBasePath, git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
+		Branch: pr.HeadBranch,
+		Quiet:  true,
+	}); err != nil {
+		log.Error("git clone tmpBasePath: %v", err)
+		return err
+	}
+	gitRepo, err := git.OpenRepository(tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
-	defer headGitRepo.Close()
 
-	tmpRemoteName := fmt.Sprintf("tmp-pull-%d", pr.ID)
-	if err = headGitRepo.AddRemote(tmpRemoteName, pr.BaseRepo.RepoPath(), false); err != nil {
-		return fmt.Errorf("headGitRepo.AddRemote: %v", err)
+	if err := gitRepo.AddRemote("base", pr.BaseRepo.RepoPath(), false); err != nil {
+		return fmt.Errorf("tmpGitRepo.AddRemote: %v", err)
 	}
-	// Make sure to remove the remote even if the push fails
-	defer func() {
-		if err := headGitRepo.RemoveRemote(tmpRemoteName); err != nil {
-			log.Error("PushToBaseRepo: RemoveRemote: %s", err)
-		}
-	}()
+	defer gitRepo.Close()
 
 	headFile := pr.GetGitRefName()
 
@@ -343,15 +359,91 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 		return fmt.Errorf("unable to load poster %d for pr %d: %v", pr.Issue.PosterID, pr.ID, err)
 	}
 
-	if err = git.Push(headRepoPath, git.PushOptions{
-		Remote: tmpRemoteName,
+	if err = git.Push(tmpBasePath, git.PushOptions{
+		Remote: "base",
 		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
 		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
-		return fmt.Errorf("Push: %v", err)
+		return fmt.Errorf("Push: %s:%s %s:%s %v", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), headFile, err)
 	}
 
+	return nil
+}
+
+type errlist []error
+
+func (errs errlist) Error() string {
+	if len(errs) > 0 {
+		var buf strings.Builder
+		for i, err := range errs {
+			if i > 0 {
+				buf.WriteString(", ")
+			}
+			buf.WriteString(err.Error())
+		}
+		return buf.String()
+	}
+	return ""
+}
+
+// CloseBranchPulls close all the pull requests who's head branch is the branch
+func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
+	prs, err := models.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
+	if err != nil {
+		return err
+	}
+
+	prs2, err := models.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
+	if err != nil {
+		return err
+	}
+
+	prs = append(prs, prs2...)
+	if err := models.PullRequestList(prs).LoadAttributes(); err != nil {
+		return err
+	}
+
+	var errs errlist
+	for _, pr := range prs {
+		if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrIssueWasClosed(err) {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
+}
+
+// CloseRepoBranchesPulls close all pull requests which head branches are in the given repository
+func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
+	branches, err := git.GetBranchesByPath(repo.RepoPath())
+	if err != nil {
+		return err
+	}
+
+	var errs errlist
+	for _, branch := range branches {
+		prs, err := models.GetUnmergedPullRequestsByHeadInfo(repo.ID, branch.Name)
+		if err != nil {
+			return err
+		}
+
+		if err = models.PullRequestList(prs).LoadAttributes(); err != nil {
+			return err
+		}
+
+		for _, pr := range prs {
+			if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrIssueWasClosed(err) {
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	if len(errs) > 0 {
+		return errs
+	}
 	return nil
 }

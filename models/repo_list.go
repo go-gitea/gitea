@@ -112,6 +112,7 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
+	ListOptions
 	Actor           *User
 	Keyword         string
 	OwnerID         int64
@@ -119,11 +120,9 @@ type SearchRepoOptions struct {
 	OrderBy         SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
-	Page            int
 	IsProfile       bool
 	AllPublic       bool // Include also all public repositories of users and public organisations
 	AllLimited      bool // Include also all public repositories of limited organisations
-	PageSize        int  // Can be smaller than or equal to setting.ExplorePagingNum
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> incude just non-collaborative
@@ -395,7 +394,8 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 }
 
 // AccessibleRepoIDsQuery queries accessible repository ids. Usable as a subquery wherever repo ids need to be filtered.
-func (user *User) AccessibleRepoIDsQuery() *builder.Builder {
+func AccessibleRepoIDsQuery(user *User) *builder.Builder {
+	// NB: Please note this code needs to still work if user is nil
 	return builder.Select("id").From("repository").Where(accessibleRepositoryCondition(user))
 }
 

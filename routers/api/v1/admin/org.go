@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // CreateOrg api for create organization
@@ -100,11 +101,10 @@ func GetAllOrgs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	users, _, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
-		OrderBy:  models.SearchOrderByAlphabetically,
-		Page:     ctx.QueryInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		Visible:  []api.VisibleType{api.VisibleTypePublic, api.VisibleTypeLimited, api.VisibleTypePrivate},
+		Type:        models.UserTypeOrganization,
+		OrderBy:     models.SearchOrderByAlphabetically,
+		ListOptions: utils.GetListOptions(ctx),
+		Visible:     []api.VisibleType{api.VisibleTypePublic, api.VisibleTypeLimited, api.VisibleTypePrivate},
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)

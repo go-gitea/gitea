@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -10,12 +11,13 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
-func getStarredRepos(user *models.User, private bool) ([]*api.Repository, error) {
-	starredRepos, err := models.GetStarredRepos(user.ID, private)
+func getStarredRepos(user *models.User, private bool, listOptions models.ListOptions) ([]*api.Repository, error) {
+	starredRepos, err := models.GetStarredRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -44,13 +46,21 @@ func GetStarredRepos(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
 	user := GetUserByParams(ctx)
 	private := user.ID == ctx.User.ID
-	repos, err := getStarredRepos(user, private)
+	repos, err := getStarredRepos(user, private, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}
@@ -62,13 +72,22 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	// swagger:operation GET /user/starred user userCurrentListStarred
 	// ---
 	// summary: The repos that the authenticated user has starred
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	repos, err := getStarredRepos(ctx.User, true)
+	repos, err := getStarredRepos(ctx.User, true, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}

@@ -69,10 +69,18 @@ func (exprs *exprParams) writeArgs(w *builder.BytesWriter) error {
 			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
-		default:
+		case string:
+			if arg == "" {
+				arg = "''"
+			}
 			if _, err := w.WriteString(fmt.Sprintf("%v", arg)); err != nil {
 				return err
 			}
+		default:
+			if _, err := w.WriteString("?"); err != nil {
+				return err
+			}
+			w.Append(arg)
 		}
 		if i != len(exprs.args)-1 {
 			if _, err := w.WriteString(","); err != nil {

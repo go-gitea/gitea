@@ -6,7 +6,6 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -32,7 +31,7 @@ type Notifier interface {
 		addedLabels []*models.Label, removedLabels []*models.Label)
 
 	NotifyNewPullRequest(*models.PullRequest)
-	NotifyMergePullRequest(*models.PullRequest, *models.User, *git.Repository)
+	NotifyMergePullRequest(*models.PullRequest, *models.User)
 	NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest)
 	NotifyPullRequestReview(*models.PullRequest, *models.Review, *models.Comment)
 	NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string)

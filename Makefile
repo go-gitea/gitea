@@ -46,15 +46,14 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
 GO_SOURCES ?= $(shell find . -name "*.go" -type f)
-JS_SOURCES ?= $(shell find web_src/js web_src/css -type f)
-CSS_SOURCES ?= $(shell find web_src/less -type f)
+WEBPACK_SOURCES ?= $(shell find web_src/js web_src/css web_src/less -type f)
 
-JS_DEST := public/js/index.js
-CSS_DEST := public/css/index.css
+WEBPACK_DEST := public/js/index.js public/css/index.css
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
+BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
-JS_DEST_DIR := public/js
-CSS_DEST_DIR := public/css
+WEBPACK_DEST_DIRS := public/js public/css
+FOMANTIC_DEST_DIR := public/fomantic
 
 TAGS ?=
 
@@ -79,13 +78,11 @@ TEST_PGSQL_HOST ?= pgsql:5432
 TEST_PGSQL_DBNAME ?= testgitea
 TEST_PGSQL_USERNAME ?= postgres
 TEST_PGSQL_PASSWORD ?= postgres
+TEST_PGSQL_SCHEMA ?= gtestschema
 TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
-
-# $(call strip-suffix,filename)
-strip-suffix = $(firstword $(subst ., ,$(1)))
 
 .PHONY: all
 all: build
@@ -99,12 +96,12 @@ help:
 	@echo " - build             creates the entire project"
 	@echo " - clean             delete integration files and build files but not css and js files"
 	@echo " - clean-all         delete all generated files (integration test, build, css and js files)"
-	@echo " - css               rebuild only css files"
-	@echo " - js                rebuild only js files"
-	@echo " - generate          run \"make css js\" and \"go generate\""
+	@echo " - webpack           rebuild only js and css files"
+	@echo " - fomantic          rebuild fomantic-ui files"
+	@echo " - generate          run \"make fomantic webpack\" and \"go generate\""
 	@echo " - fmt               format the code"
 	@echo " - generate-swagger  generate the swagger spec from code comments"
-	@echo " - swagger-validate  check if the swagger spec is valide"
+	@echo " - swagger-validate  check if the swagger spec is valid"
 	@echo " - revive            run code linter revive"
 	@echo " - misspell          check if a word is written wrong"
 	@echo " - vet               examines Go source code and reports suspicious constructs"
@@ -137,12 +134,12 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR)
+	rm -rf $(WEBPACK_DEST_DIRS) $(FOMANTIC_DEST_DIR)
 
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) \
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
 		integrations*.test \
 		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-mysql8/ integrations/gitea-integration-sqlite/ \
 		integrations/gitea-integration-mssql/ integrations/indexers-mysql/ integrations/indexers-mysql8/ integrations/indexers-pgsql integrations/indexers-sqlite \
@@ -157,8 +154,8 @@ vet:
 	$(GO) vet $(PACKAGES)
 
 .PHONY: generate
-generate: js css
-	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
+generate: fomantic webpack
+	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
@@ -220,8 +217,20 @@ fmt-check:
 	fi;
 
 .PHONY: test
-test: git-check
+test:
 	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+
+PHONY: test-check
+test-check:
+	@echo "Checking if tests have changed the source tree...";
+	@diff=$$(git status -s); \
+	if [ -n "$$diff" ]; then \
+		echo "make test has changed files in the source tree:"; \
+		echo "$${diff}"; \
+		echo "You should change the tests to create these files in a temporary directory."; \
+		echo "Do not simply add these files to .gitignore"; \
+		exit 1; \
+	fi;
 
 .PHONY: test\#%
 test\#%:
@@ -236,7 +245,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	$(GO) test -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -306,6 +315,7 @@ generate-ini-pgsql:
 		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
+		-e 's|{{TEST_PGSQL_SCHEMA}}|${TEST_PGSQL_SCHEMA}|g' \
 			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
 
 .PHONY: test-pgsql
@@ -374,7 +384,7 @@ integrations.mssql.test: git-check $(GO_SOURCES)
 integrations.sqlite.test: git-check $(GO_SOURCES)
 	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
-integrations.cover.test: $(GO_SOURCES)
+integrations.cover.test: git-check $(GO_SOURCES)
 	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: migrations.mysql.test
@@ -464,28 +474,41 @@ release-compress:
 
 node_modules: package-lock.json
 	npm install --no-save
+	@touch node_modules
 
 .PHONY: npm-update
-npm-update: node-check node_modules
+npm-update: node-check | node_modules
 	npx updates -cu
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
 
 .PHONY: js
-js: node-check $(JS_DEST)
-
-$(JS_DEST): node_modules $(JS_SOURCES)
-	npx eslint web_src/js webpack.config.js
-	npx webpack
+js:
+	@echo "'make js' is deprecated, please use 'make webpack'"
+	$(MAKE) webpack
 
 .PHONY: css
-css: node-check $(CSS_DEST)
+css:
+	@echo "'make css' is deprecated, please use 'make webpack'"
+	$(MAKE) webpack
 
-$(CSS_DEST): node_modules $(CSS_SOURCES)
+.PHONY: fomantic
+fomantic: node-check $(FOMANTIC_DEST_DIR)
+
+$(FOMANTIC_DEST_DIR): semantic.json web_src/fomantic/theme.config.less | node_modules
+	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
+	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
+	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+	@touch $(FOMANTIC_DEST_DIR)
+
+.PHONY: webpack
+webpack: node-check $(WEBPACK_DEST)
+
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) | node_modules
+	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
-	npx lessc web_src/less/index.less public/css/index.css
-	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	npx postcss --use autoprefixer --use cssnano --no-map --replace public/css/*
+	npx webpack --hide-modules --display-entrypoints=false
+	@touch $(WEBPACK_DEST)
 
 .PHONY: update-translations
 update-translations:
