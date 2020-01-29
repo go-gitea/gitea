@@ -1910,6 +1910,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	if len(repo.Topics) > 0 {
+		if err = removeTopicsFromRepo(sess, repo.ID); err != nil {
+			return err
+		}
+	}
+
 	// FIXME: Remove repository files should be executed after transaction succeed.
 	repoPath := repo.repoPath(sess)
 	removeAllWithNotice(sess, "Delete repository files", repoPath)
