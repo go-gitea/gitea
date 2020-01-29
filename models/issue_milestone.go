@@ -291,12 +291,33 @@ func updateMilestone(e Engine, m *Milestone) error {
 }
 
 // UpdateMilestone updates information of given milestone.
-func UpdateMilestone(m *Milestone) error {
-	if err := updateMilestone(x, m); err != nil {
+func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	return updateMilestoneCompleteness(x, m.ID)
+	if m.IsClosed && !oldIsClosed {
+		m.ClosedDateUnix = timeutil.TimeStampNow()
+	}
+
+	if err := updateMilestone(sess, m); err != nil {
+		return err
+	}
+
+	if err := updateMilestoneCompleteness(sess, m.ID); err != nil {
+		return err
+	}
+
+	// if IsClosed changed, update milestone numbers of repository
+	if oldIsClosed != m.IsClosed {
+		if err := updateRepoMilestoneNum(sess, m.RepoID); err != nil {
+			return err
+		}
+	}
+
+	return sess.Commit()
 }
 
 func updateMilestoneCompleteness(e Engine, milestoneID int64) error {

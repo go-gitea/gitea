@@ -7,8 +7,8 @@ package queue
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -56,7 +56,7 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 	for q.internal == nil {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("Timedout creating queue %v with cfg %v in %s", q.underlying, q.cfg, q.name)
+			return fmt.Errorf("Timedout creating queue %v with cfg %s in %s", q.underlying, q.cfg, q.name)
 		default:
 			queue, err := NewQueue(q.underlying, handle, q.cfg, exemplar)
 			if err == nil {
@@ -64,11 +64,11 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 				break
 			}
 			if err.Error() != "resource temporarily unavailable" {
-				log.Warn("[Attempt: %d] Failed to create queue: %v for %s cfg: %v error: %v", i, q.underlying, q.name, q.cfg, err)
+				log.Warn("[Attempt: %d] Failed to create queue: %v for %s cfg: %s error: %v", i, q.underlying, q.name, q.cfg, err)
 			}
 			i++
 			if q.maxAttempts > 0 && i > q.maxAttempts {
-				return fmt.Errorf("Unable to create queue %v for %s with cfg %v by max attempts: error: %v", q.underlying, q.name, q.cfg, err)
+				return fmt.Errorf("Unable to create queue %v for %s with cfg %s by max attempts: error: %v", q.underlying, q.name, q.cfg, err)
 			}
 			sleepTime := 100 * time.Millisecond
 			if q.timeout > 0 && q.maxAttempts > 0 {
@@ -88,10 +88,11 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 // WrappedQueue wraps a delayed starting queue
 type WrappedQueue struct {
 	delayedStarter
-	lock     sync.Mutex
-	handle   HandlerFunc
-	exemplar interface{}
-	channel  chan Data
+	lock       sync.Mutex
+	handle     HandlerFunc
+	exemplar   interface{}
+	channel    chan Data
+	numInQueue int64
 }
 
 // NewWrappedQueue will attempt to create a queue of the provided type,
@@ -127,7 +128,7 @@ func NewWrappedQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 			name:        config.Name,
 		},
 	}
-	_ = GetManager().Add(queue, WrappedQueueType, config, exemplar, nil)
+	_ = GetManager().Add(queue, WrappedQueueType, config, exemplar)
 	return queue, nil
 }
 
@@ -138,21 +139,78 @@ func (q *WrappedQueue) Name() string {
 
 // Push will push the data to the internal channel checking it against the exemplar
 func (q *WrappedQueue) Push(data Data) error {
-	if q.exemplar != nil {
-		// Assert data is of same type as r.exemplar
-		value := reflect.ValueOf(data)
-		t := value.Type()
-		exemplarType := reflect.ValueOf(q.exemplar).Type()
-		if !t.AssignableTo(exemplarType) || data == nil {
-			return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
-		}
+	if !assignableTo(data, q.exemplar) {
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
+	atomic.AddInt64(&q.numInQueue, 1)
 	q.channel <- data
 	return nil
 }
 
+func (q *WrappedQueue) flushInternalWithContext(ctx context.Context) error {
+	q.lock.Lock()
+	if q.internal == nil {
+		q.lock.Unlock()
+		return fmt.Errorf("not ready to flush wrapped queue %s yet", q.Name())
+	}
+	q.lock.Unlock()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	return q.internal.FlushWithContext(ctx)
+}
+
+// Flush flushes the queue and blocks till the queue is empty
+func (q *WrappedQueue) Flush(timeout time.Duration) error {
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
+	defer cancel()
+	return q.FlushWithContext(ctx)
+}
+
+// FlushWithContext implements the final part of Flushable
+func (q *WrappedQueue) FlushWithContext(ctx context.Context) error {
+	log.Trace("WrappedQueue: %s FlushWithContext", q.Name())
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- q.flushInternalWithContext(ctx)
+		close(errChan)
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-ctx.Done():
+		go func() {
+			<-errChan
+		}()
+		return ctx.Err()
+	}
+}
+
+// IsEmpty checks whether the queue is empty
+func (q *WrappedQueue) IsEmpty() bool {
+	if atomic.LoadInt64(&q.numInQueue) != 0 {
+		return false
+	}
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.internal == nil {
+		return false
+	}
+	return q.internal.IsEmpty()
+}
+
 // Run starts to run the queue and attempts to create the internal queue
 func (q *WrappedQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
+	log.Debug("WrappedQueue: %s Starting", q.name)
 	q.lock.Lock()
 	if q.internal == nil {
 		err := q.setInternal(atShutdown, q.handle, q.exemplar)
@@ -164,6 +222,7 @@ func (q *WrappedQueue) Run(atShutdown, atTerminate func(context.Context, func())
 		go func() {
 			for data := range q.channel {
 				_ = q.internal.Push(data)
+				atomic.AddInt64(&q.numInQueue, -1)
 			}
 		}()
 	} else {
@@ -176,7 +235,7 @@ func (q *WrappedQueue) Run(atShutdown, atTerminate func(context.Context, func())
 
 // Shutdown this queue and stop processing
 func (q *WrappedQueue) Shutdown() {
-	log.Trace("WrappedQueue: %s Shutdown", q.name)
+	log.Trace("WrappedQueue: %s Shutting down", q.name)
 	q.lock.Lock()
 	defer q.lock.Unlock()
 	if q.internal == nil {
@@ -185,6 +244,7 @@ func (q *WrappedQueue) Shutdown() {
 	if shutdownable, ok := q.internal.(Shutdownable); ok {
 		shutdownable.Shutdown()
 	}
+	log.Debug("WrappedQueue: %s Shutdown", q.name)
 }
 
 // Terminate this queue and close the queue
@@ -198,6 +258,7 @@ func (q *WrappedQueue) Terminate() {
 	if shutdownable, ok := q.internal.(Shutdownable); ok {
 		shutdownable.Terminate()
 	}
+	log.Debug("WrappedQueue: %s Terminated", q.name)
 }
 
 func init() {

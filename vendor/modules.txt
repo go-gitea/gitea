@@ -237,6 +237,8 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
+# github.com/huandu/xstrings v1.3.0
+github.com/huandu/xstrings
 # github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
 github.com/issue9/identicon
 # github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d
