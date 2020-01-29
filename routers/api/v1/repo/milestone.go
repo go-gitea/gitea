@@ -204,7 +204,12 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 		milestone.DeadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
-	if err := models.UpdateMilestone(milestone); err != nil {
+	var oldIsClosed = milestone.IsClosed
+	if form.State != nil {
+		milestone.IsClosed = *form.State == string(api.StateClosed)
+	}
+
+	if err := models.UpdateMilestone(milestone, oldIsClosed); err != nil {
 		ctx.ServerError("UpdateMilestone", err)
 		return
 	}
