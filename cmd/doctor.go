@@ -25,23 +25,26 @@ import (
 // CmdDoctor represents the available doctor sub-command.
 var CmdDoctor = cli.Command{
 	Name:        "doctor",
-	Usage:       "Diagnose and repair problems",
-	Description: "A command to diagnose and repair problems of current gitea instance according the given configuration.",
+	Usage:       "Diagnose problems",
+	Description: "A command to diagnose problems of current gitea instance according the given configuration.",
 	Action:      runDoctor,
 }
 
 type check struct {
-	title string
-	f     func(ctx *cli.Context) ([]string, error)
-	abort bool
+	title            string
+	f                func(ctx *cli.Context) ([]string, error)
+	abortIfFailed    bool
+	skipDatabaseInit bool
 }
 
 // checklist represents list for all checks
 var checklist = []check{
 	{
-		title: "Check paths and basic configuration",
-		f:     runDoctorPathInfo,
-		abort: true,
+		// NOTE: this check should be the first in the list
+		title:            "Check paths and basic configuration",
+		f:                runDoctorPathInfo,
+		abortIfFailed:    true,
+		skipDatabaseInit: true,
 	},
 	{
 		title: "Check if OpenSSH authorized_keys file id correct",
@@ -57,14 +60,17 @@ func runDoctor(ctx *cli.Context) error {
 	log.DelNamedLogger("console")
 	log.DelNamedLogger(log.DEFAULT)
 
+	dbIsInit := false
+
 	for i, check := range checklist {
-		if i == 1 {
+		if !dbIsInit && !check.skipDatabaseInit {
 			// Only open database after the most basic configuration check
 			if err := initDB(); err != nil {
 				fmt.Println(err)
 				fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
 				return nil
 			}
+			dbIsInit = true
 		}
 		fmt.Println("[", i+1, "]", check.title)
 		messages, err := check.f(ctx)
@@ -73,7 +79,7 @@ func runDoctor(ctx *cli.Context) error {
 		}
 		if err != nil {
 			fmt.Println("Error:", err)
-			if check.abort {
+			if check.abortIfFailed {
 				return nil
 			}
 		} else {
