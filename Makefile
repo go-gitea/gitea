@@ -545,6 +545,8 @@ generate-images:
 	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
 					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
 					$(PWD)/public/img/favicon.ico
+	convert $(PWD)/public/img/favicon.png -fill white -opaque none $(PWD)/public/img/apple-touch-icon.png
+					
 	rm -rf $(TMPDIR)/images
 	$(foreach file, $(shell find public/img -type f -name '*.png'),zopflipng -m -y $(file) $(file);)
 
