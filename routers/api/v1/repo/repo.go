@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -783,39 +782,4 @@ func Delete(ctx *context.APIContext) {
 
 	log.Trace("Repository deleted: %s/%s", owner.Name, repo.Name)
 	ctx.Status(http.StatusNoContent)
-}
-
-// MirrorSync adds a mirrored repository to the sync queue
-func MirrorSync(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/mirror-sync repository repoMirrorSync
-	// ---
-	// summary: Sync a mirrored repository
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo to sync
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo to sync
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-
-	repo := ctx.Repo.Repository
-
-	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Error(http.StatusForbidden, "MirrorSync", "Must have write access")
-	}
-
-	mirror_service.StartToMirror(repo.ID)
-
-	ctx.Status(http.StatusOK)
 }
