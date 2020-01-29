@@ -319,7 +319,14 @@ func Config(ctx *context.Context) {
 		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
 			log.Error("Unable to unmarshall session config for virtualed provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
 		}
-		sessionCfg = realSession
+		sessionCfg.Provider = realSession.Provider
+		sessionCfg.ProviderConfig = realSession.ProviderConfig
+		sessionCfg.CookieName = realSession.CookieName
+		sessionCfg.CookiePath = realSession.CookiePath
+		sessionCfg.Gclifetime = realSession.Gclifetime
+		sessionCfg.Maxlifetime = realSession.Maxlifetime
+		sessionCfg.Secure = realSession.Secure
+		sessionCfg.Domain = realSession.Domain
 	}
 	sessionCfg.ProviderConfig = shadowPassword(sessionCfg.Provider, sessionCfg.ProviderConfig)
 	ctx.Data["SessionConfig"] = sessionCfg

@@ -201,7 +201,16 @@ func NewMacaron() *macaron.Macaron {
 	m.Use(captcha.Captchaer(captcha.Options{
 		SubURL: setting.AppSubURL,
 	}))
-	m.Use(session.Sessioner(setting.SessionConfig))
+	m.Use(session.Sessioner(session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		Domain:         setting.SessionConfig.Domain,
+	}))
 	m.Use(csrf.Csrfer(csrf.Options{
 		Secret:         setting.SecretKey,
 		Cookie:         setting.CSRFCookieName,
@@ -963,8 +972,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}
 
 	var handlers []macaron.Handler
-	if setting.EnableCORS {
-		handlers = append(handlers, cors.CORS(setting.CORSConfig))
+	if setting.CORSConfig.Enabled {
+		handlers = append(handlers, cors.CORS(cors.Options{
+			Scheme:           setting.CORSConfig.Scheme,
+			AllowDomain:      setting.CORSConfig.AllowDomain,
+			AllowSubdomain:   setting.CORSConfig.AllowSubdomain,
+			Methods:          setting.CORSConfig.Methods,
+			MaxAgeSeconds:    int(setting.CORSConfig.MaxAge.Seconds()),
+			AllowCredentials: setting.CORSConfig.AllowCredentials,
+		}))
 	}
 	handlers = append(handlers, ignSignIn)
 	m.Group("/api", func() {

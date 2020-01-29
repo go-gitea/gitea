@@ -11,6 +11,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	mc "gitea.com/macaron/cache"
+
+	_ "gitea.com/macaron/cache/memcache" // memcache plugin for cache
+	_ "gitea.com/macaron/cache/redis"
 )
 
 var conn mc.Cache
