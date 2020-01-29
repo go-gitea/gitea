@@ -8,12 +8,15 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
@@ -22,18 +25,24 @@ import (
 // CmdDoctor represents the available doctor sub-command.
 var CmdDoctor = cli.Command{
 	Name:        "doctor",
-	Usage:       "Diagnose the problems",
-	Description: "A command to diagnose the problems of current gitea instance according the given configuration.",
+	Usage:       "Diagnose and repair problems",
+	Description: "A command to diagnose and repair problems of current gitea instance according the given configuration.",
 	Action:      runDoctor,
 }
 
 type check struct {
 	title string
 	f     func(ctx *cli.Context) ([]string, error)
+	abort bool
 }
 
 // checklist represents list for all checks
 var checklist = []check{
+	{
+		title: "Check paths and basic configuration",
+		f:     runDoctorPathInfo,
+		abort: true,
+	},
 	{
 		title: "Check if OpenSSH authorized_keys file id correct",
 		f:     runDoctorLocationMoved,
@@ -42,21 +51,30 @@ var checklist = []check{
 }
 
 func runDoctor(ctx *cli.Context) error {
-	err := initDB()
-	fmt.Println("Using app.ini at", setting.CustomConf)
-	if err != nil {
-		fmt.Println(err)
-		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
-		return nil
-	}
+
+	// Silence the console logger
+	// TODO: Redirect all logs into `doctor.log` ignoring any other log configuration
+	log.DelNamedLogger("console")
+	log.DelNamedLogger(log.DEFAULT)
 
 	for i, check := range checklist {
+		if i == 1 {
+			// Only open database after the most basic configuration check
+			if err := initDB(); err != nil {
+				fmt.Println(err)
+				fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
+				return nil
+			}
+		}
 		fmt.Println("[", i+1, "]", check.title)
-		if messages, err := check.f(ctx); err != nil {
+		messages, err := check.f(ctx)
+		for _, message := range messages {
+			fmt.Println("-", message)
+		}
+		if err != nil {
 			fmt.Println("Error:", err)
-		} else if len(messages) > 0 {
-			for _, message := range messages {
-				fmt.Println("-", message)
+			if check.abort {
+				return nil
 			}
 		} else {
 			fmt.Println("OK.")
@@ -72,6 +90,80 @@ func exePath() (string, error) {
 		return "", err
 	}
 	return filepath.Abs(file)
+}
+
+func runDoctorPathInfo(ctx *cli.Context) ([]string, error) {
+
+	res := make([]string, 0, 10)
+
+	if fi, err := os.Stat(setting.CustomConf); err != nil || !fi.Mode().IsRegular() {
+		res = append(res, fmt.Sprintf("Failed to find configuration file at '%s'.", setting.CustomConf))
+		res = append(res, fmt.Sprintf("If you've never ran Gitea yet, this is normal and '%s' will be created for you on first run.", setting.CustomConf))
+		res = append(res, "Otherwise check that you are running this command from the correct path and/or provide a `--config` parameter.")
+		return res, fmt.Errorf("Can't proceed without a configuration file")
+	}
+
+	setting.NewContext()
+
+	fail := false
+
+	check := func(name, path string, is_dir, is_write bool) {
+		res = append(res, fmt.Sprintf("%-25s  '%s'", name+":", path))
+		if fi, err := os.Stat(path); err != nil {
+			res = append(res, fmt.Sprintf("    ERROR: %v", err))
+			fail = true
+			return
+		} else if is_dir && !fi.IsDir() {
+			res = append(res, "    ERROR: not a directory")
+			fail = true
+			return
+		} else if !is_dir && !fi.Mode().IsRegular() {
+			res = append(res, "    ERROR: not a regular file")
+			fail = true
+			return
+		} else if is_write {
+			if err := runDoctorWritableDir(path); err != nil {
+				res = append(res, fmt.Sprintf("    ERROR: not writable: %v", err))
+				fail = true
+				return
+			}
+		}
+		return
+	}
+
+	// Note print paths inside quotes to make any leading/trailing spaces evident
+	check("Configuration File Path", setting.CustomConf, false, false)
+	check("Repository Root Path", setting.RepoRootPath, true, true)
+	check("Data Root Path", setting.AppDataPath, true, true)
+	check("Custom File Root Path", setting.CustomPath, true, false)
+	check("Work directory", setting.AppWorkPath, true, false)
+	check("Log Root Path", setting.LogRootPath, true, true)
+
+	if options.IsDynamic() {
+		// Do not check/report on StaticRootPath if data is embedded in Gitea (-tags bindata)
+		check("Static File Root Path", setting.StaticRootPath, true, false)
+	}
+
+	if fail {
+		return res, fmt.Errorf("Please check your configuration file and try again.")
+	}
+
+	return res, nil
+}
+
+func runDoctorWritableDir(path string) error {
+	// There's no platform-independent way of checking if a directory is writable
+	// https://stackoverflow.com/questions/20026320/how-to-tell-if-folder-exists-and-is-writable
+
+	tmpFile, err := ioutil.TempFile(path, "doctors-order")
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(tmpFile.Name()); err != nil {
+		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name())
+	}
+	tmpFile.Close()
+	return nil
 }
 
 func runDoctorLocationMoved(ctx *cli.Context) ([]string, error) {

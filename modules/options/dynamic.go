@@ -98,3 +98,7 @@ func fileFromDir(name string) ([]byte, error) {
 
 	return []byte{}, fmt.Errorf("Asset file does not exist: %s", name)
 }
+
+func IsDynamic() bool {
+	return true
+}

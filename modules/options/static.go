@@ -112,3 +112,7 @@ func fileFromDir(name string) ([]byte, error) {
 
 	return ioutil.ReadAll(f)
 }
+
+func IsDynamic() bool {
+	return false
+}
