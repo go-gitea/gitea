@@ -62,14 +62,14 @@ Note: All steps below requires that the database engine of your choice is instal
     For local database:
 
     ```sql
-    GRANT ALL PRIVILEGES ON 'giteadb' TO 'gitea';
+    GRANT ALL PRIVILEGES ON giteadb.* TO 'gitea';
     FLUSH PRIVILEGES;
     ```
 
     For remote database:
 
     ```sql
-    GRANT ALL PRIVILEGES ON 'giteadb' TO 'gitea'@'12.34.56.78';
+    GRANT ALL PRIVILEGES ON giteadb.* TO 'gitea'@'12.34.56.78';
     FLUSH PRIVILEGES;
     ```
 
