@@ -122,23 +122,18 @@ func runDoctorPathInfo(ctx *cli.Context) ([]string, error) {
 			} else {
 				res = append(res, fmt.Sprintf("    NOTICE: not accessible (%v)", err))
 			}
-			return
 		} else if is_dir && !fi.IsDir() {
 			res = append(res, "    ERROR: not a directory")
 			fail = true
-			return
 		} else if !is_dir && !fi.Mode().IsRegular() {
 			res = append(res, "    ERROR: not a regular file")
 			fail = true
-			return
 		} else if is_write {
 			if err := runDoctorWritableDir(path); err != nil {
 				res = append(res, fmt.Sprintf("    ERROR: not writable: %v", err))
 				fail = true
-				return
 			}
 		}
-		return
 	}
 
 	// Note print paths inside quotes to make any leading/trailing spaces evident
