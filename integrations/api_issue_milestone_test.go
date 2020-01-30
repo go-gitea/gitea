@@ -16,7 +16,7 @@ import (
 )
 
 func TestAPIIssuesMilestone(t *testing.T) {
-	defer prepareTestEnv(t)()
+	prepareTestEnv(t)
 
 	milestone := models.AssertExistsAndLoadBean(t, &models.Milestone{ID: 1}).(*models.Milestone)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: milestone.RepoID}).(*models.Repository)
