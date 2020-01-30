@@ -15,7 +15,7 @@ steps:
     pull: always
     image: node:10 # this step is kept at the lowest version of node that we support
     commands:
-      - make css js
+      - make webpack
 
   - name: build-without-gcc
     pull: always
@@ -118,7 +118,7 @@ steps:
     pull: always
     image: golang:1.13
     commands:
-      - make unit-test-coverage
+      - make unit-test-coverage test-check
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify

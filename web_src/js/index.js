@@ -2,10 +2,13 @@
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
+import 'jquery.are-you-sure';
 import './publicPath.js';
+import './polyfills.js';
 import './gitGraphLoader.js';
 import './semanticDropdown.js';
-import initContextPopups from './features/contextPopup';
+import initContextPopups from './features/contextPopup.js';
+import initHighlight from './features/highlight.js';
 
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
@@ -19,6 +22,7 @@ let previewFileModes;
 let simpleMDEditor;
 const commentMDEditors = {};
 let codeMirrorEditor;
+let hljs;
 
 // Disable Dropzone auto-discover because it's manually initialized
 if (typeof (Dropzone) !== 'undefined') {
@@ -2109,17 +2113,12 @@ function initCodeView() {
       }
     }).trigger('hashchange');
   }
-  $('.ui.fold-code').on('click', (e) => {
-    const $foldButton = $(e.target);
-    if ($foldButton.hasClass('fa-chevron-down')) {
-      $(e.target).parent().next().slideUp('fast', () => {
-        $foldButton.removeClass('fa-chevron-down').addClass('fa-chevron-right');
-      });
-    } else {
-      $(e.target).parent().next().slideDown('fast', () => {
-        $foldButton.removeClass('fa-chevron-right').addClass('fa-chevron-down');
-      });
-    }
+  $('.fold-code').on('click', ({ target }) => {
+    const box = target.closest('.file-content');
+    const folded = box.dataset.folded !== 'true';
+    target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
+    target.classList.remove(`fa-chevron-${folded ? 'down' : 'right'}`);
+    box.dataset.folded = String(folded);
   });
   function insertBlobExcerpt(e) {
     const $blob = $(e.target);
@@ -2322,7 +2321,7 @@ function initTemplateSearch() {
   changeOwner();
 }
 
-$(document).ready(() => {
+$(document).ready(async () => {
   csrf = $('meta[name=_csrf]').attr('content');
   suburl = $('meta[name=_suburl]').attr('content');
 
@@ -2373,14 +2372,6 @@ $(document).ready(() => {
   $('tr[data-href]').click(function () {
     window.location = $(this).data('href');
   });
-
-  // Highlight JS
-  if (typeof hljs !== 'undefined') {
-    const nodes = [].slice.call(document.querySelectorAll('pre code') || []);
-    for (let i = 0; i < nodes.length; i++) {
-      hljs.highlightBlock(nodes[i]);
-    }
-  }
 
   // Dropzone
   const $dropzone = $('#dropzone');
@@ -2595,6 +2586,10 @@ $(document).ready(() => {
       $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
     }
   });
+
+  [hljs] = await Promise.all([
+    initHighlight(),
+  ]);
 });
 
 function changeHash(hash) {
