@@ -112,3 +112,8 @@ func fileFromDir(name string) ([]byte, error) {
 
 	return ioutil.ReadAll(f)
 }
+
+// IsDynamic will return false when using embedded data (-tags bindata)
+func IsDynamic() bool {
+	return false
+}
