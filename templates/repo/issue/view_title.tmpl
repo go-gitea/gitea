@@ -20,6 +20,8 @@
 		<div class="ui purple large label"><i class="octicon octicon-git-pull-request"></i> {{.i18n.Tr "repo.pulls.merged"}}</div>
 	{{else if .Issue.IsClosed}}
 		<div class="ui red large label"><i class="octicon octicon-issue-closed"></i> {{.i18n.Tr "repo.issues.closed_title"}}</div>
+	{{else if .Issue.IsPull}}
+		<div class="ui green large label"><i class="octicon octicon-git-pull-request"></i> {{.i18n.Tr "repo.issues.open_title"}}</div>
 	{{else}}
 		<div class="ui green large label"><i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues.open_title"}}</div>
 	{{end}}
