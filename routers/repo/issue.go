@@ -702,9 +702,8 @@ func ViewIssue(ctx *context.Context) {
 		}
 		if !exists {
 			iw = &models.IssueWatch{
-				UserID:     ctx.User.ID,
-				IssueID:    issue.ID,
-				IsWatching: models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID),
+				UserID:  ctx.User.ID,
+				IssueID: issue.ID,
 			}
 		}
 	}

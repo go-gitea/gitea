@@ -48,8 +48,13 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueWatch(ctx.User.ID, issue.ID, watch); err != nil {
-		ctx.ServerError("CreateOrUpdateIssueWatch", err)
+	mode := models.IssueWatchModeNormal
+	if !watch {
+		mode = models.IssueWatchModeDont
+	}
+
+	if err := models.CreateOrUpdateIssueWatchMode(ctx.User.ID, issue.ID, mode); err != nil {
+		ctx.ServerError("CreateOrUpdateIssueWatchMode", err)
 		return
 	}
 

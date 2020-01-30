@@ -125,7 +125,12 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, watch); err != nil {
+	mode := models.IssueWatchModeNormal
+	if !watch {
+		mode = models.IssueWatchModeDont
+	}
+
+	if err := models.CreateOrUpdateIssueWatchMode(user.ID, issue.ID, mode); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrUpdateIssueWatch", err)
 		return
 	}

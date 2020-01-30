@@ -133,55 +133,35 @@ func CreateOrUpdateIssueNotifications(issueID, commentID int64, notificationAuth
 }
 
 func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notificationAuthorID int64) error {
-	issueWatches, err := getIssueWatchers(e, issueID, ListOptions{})
+	// init
+	alreadyNotified := make(map[int64]struct{}, 50)
+	notifications, err := getNotificationsByIssueID(e, issueID)
 	if err != nil {
 		return err
 	}
-
 	issue, err := getIssueByID(e, issueID)
 	if err != nil {
 		return err
 	}
 
-	watches, err := getWatchers(e, issue.RepoID)
+	// explicit unwatch on issue
+	if issueUnWatches, err := getIssueWatchersIDs(e, issueID, IssueWatchModeDont); err != nil {
+		return err
+	} else {
+		fmt.Println("DEBUG: issueUnWatches: ", issueUnWatches)
+		for _, id := range issueUnWatches {
+			alreadyNotified[id] = struct{}{}
+		}
+	}
+
+	issueWatches, err := getIssueWatchersIDs(e, issueID, IssueWatchModeNormal, IssueWatchModeAuto)
 	if err != nil {
 		return err
 	}
 
-	notifications, err := getNotificationsByIssueID(e, issueID)
+	repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
 	if err != nil {
 		return err
-	}
-
-	alreadyNotified := make(map[int64]struct{}, len(issueWatches)+len(watches))
-
-	notifyUser := func(userID int64) error {
-		// do not send notification for the own issuer/commenter
-		if userID == notificationAuthorID {
-			return nil
-		}
-
-		if _, ok := alreadyNotified[userID]; ok {
-			return nil
-		}
-		alreadyNotified[userID] = struct{}{}
-
-		if notificationExists(notifications, issue.ID, userID) {
-			return updateIssueNotification(e, userID, issue.ID, commentID, notificationAuthorID)
-		}
-		return createIssueNotification(e, userID, issue, commentID, notificationAuthorID)
-	}
-
-	for _, issueWatch := range issueWatches {
-		// ignore if user unwatched the issue
-		if !issueWatch.IsWatching {
-			alreadyNotified[issueWatch.UserID] = struct{}{}
-			continue
-		}
-
-		if err := notifyUser(issueWatch.UserID); err != nil {
-			return err
-		}
 	}
 
 	err = issue.loadRepo(e)
@@ -189,16 +169,41 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 		return err
 	}
 
-	for _, watch := range watches {
+	// if Issue/Comment creator/updater is not subscribed ... auto subscribe to issue
+	if _, ok := alreadyNotified[notificationAuthorID]; !ok {
+		alreadyNotified[notificationAuthorID] = struct{}{}
+		if err = createOrUpdateIssueWatchMode(e, notificationAuthorID, issueID, IssueWatchModeAuto); err != nil {
+			return err
+		}
+	}
+
+	// ToDo get Mentioned Users!!!
+	fmt.Println("DEBUG: alreadyNotified: ", alreadyNotified)
+	fmt.Println("DEBUG: repoWatches: ", repoWatches)
+	fmt.Println("DEBUG: issueWatches: ", issueWatches)
+
+	// notify
+	for _, userID := range append(repoWatches, issueWatches...) {
 		issue.Repo.Units = nil
-		if issue.IsPull && !issue.Repo.checkUnitUser(e, watch.UserID, false, UnitTypePullRequests) {
+		if issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypePullRequests) {
 			continue
 		}
-		if !issue.IsPull && !issue.Repo.checkUnitUser(e, watch.UserID, false, UnitTypeIssues) {
+		if !issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypeIssues) {
 			continue
 		}
 
-		if err := notifyUser(watch.UserID); err != nil {
+		if _, ok := alreadyNotified[userID]; ok {
+			continue
+		}
+		alreadyNotified[userID] = struct{}{}
+
+		if notificationExists(notifications, issue.ID, userID) {
+			if err = updateIssueNotification(e, userID, issue.ID, commentID, notificationAuthorID); err != nil {
+				return err
+			}
+			continue
+		}
+		if err = createIssueNotification(e, userID, issue, commentID, notificationAuthorID); err != nil {
 			return err
 		}
 	}
