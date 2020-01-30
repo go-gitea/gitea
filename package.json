@@ -9,6 +9,7 @@
     "highlight.js": "9.18.0",
     "jquery": "3.4.1",
     "jquery-migrate": "3.1.0",
+    "jquery.are-you-sure": "1.9.0",
     "swagger-ui": "3.24.3",
     "vue-bar-graph": "1.2.0"
   },

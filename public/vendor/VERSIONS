@@ -2,9 +2,6 @@
 # To do: Choose a dependency management solution and use it to replace both files.
 # Notes:  Download and license information is available in librejs.html.
 
-File(s): /vendor/plugins/jquery.areyousure/jquery.are-you-sure.js
-Version: 1.9.0
-
 File(s): /vendor/plugins/jquery/jquery.min.js
 Version: 3.4.1
 
