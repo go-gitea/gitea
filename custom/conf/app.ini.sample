@@ -632,6 +632,8 @@ SENDMAIL_PATH = sendmail
 SENDMAIL_ARGS =
 
 [cache]
+; if the cache enabled
+ENABLED = true
 ; Either "memory", "redis", or "memcache", default is "memory"
 ADAPTER = memory
 ; For "memory" only, GC interval in seconds, default is 60
@@ -643,6 +645,24 @@ HOST =
 ; Time to keep items in cache if not used, default is 16 hours.
 ; Setting it to 0 disables caching
 ITEM_TTL = 16h
+
+; Last commit cache
+[cache.last_commit]
+; if the cache enabled
+ENABLED = true
+; Either "memory", "redis", or "memcache", default is "memory"
+ADAPTER = memory
+; For "memory" only, GC interval in seconds, default is 60
+INTERVAL = 60
+; For "redis" and "memcache", connection host address
+; redis: network=tcp,addr=:6379,password=macaron,db=0,pool_size=100,idle_timeout=180
+; memcache: `127.0.0.1:11211`
+HOST =
+; Time to keep items in cache if not used, default is 16 hours.
+; Setting it to 0 disables caching
+ITEM_TTL = 16h
+; Only enable the cache when repository's commits count great than
+COMMITS_COUNT = 1000
 
 [session]
 ; Either "memory", "file", or "redis", default is "memory"
