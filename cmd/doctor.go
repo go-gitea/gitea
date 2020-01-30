@@ -106,7 +106,7 @@ func runDoctorPathInfo(ctx *cli.Context) ([]string, error) {
 		res = append(res, fmt.Sprintf("Failed to find configuration file at '%s'.", setting.CustomConf))
 		res = append(res, fmt.Sprintf("If you've never ran Gitea yet, this is normal and '%s' will be created for you on first run.", setting.CustomConf))
 		res = append(res, "Otherwise check that you are running this command from the correct path and/or provide a `--config` parameter.")
-		return res, fmt.Errorf("Can't proceed without a configuration file")
+		return res, fmt.Errorf("can't proceed without a configuration file")
 	}
 
 	setting.NewContext()
@@ -155,7 +155,7 @@ func runDoctorPathInfo(ctx *cli.Context) ([]string, error) {
 	}
 
 	if fail {
-		return res, fmt.Errorf("Please check your configuration file and try again.")
+		return res, fmt.Errorf("please check your configuration file and try again")
 	}
 
 	return res, nil
