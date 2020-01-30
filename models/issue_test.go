@@ -292,7 +292,7 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 	assert.EqualValues(t, []int64{1}, ids)
 }
 
-func testInsertIssue(t *testing.T, title, content string, idx int64) {
+func testInsertIssue(t *testing.T, title, content string, idx int64) int64 {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
@@ -313,17 +313,20 @@ func testInsertIssue(t *testing.T, title, content string, idx int64) {
 	assert.EqualValues(t, issue.Content, newIssue.Content)
 	assert.EqualValues(t, idx, newIssue.Index)
 
-	_, err = x.ID(issue.ID).Delete(new(Issue))
-	assert.NoError(t, err)
+	return issue.ID
 }
 
 func TestIssue_InsertIssue(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	// there are 5 issues and max index is 5 on repository 1, so this one should be 6
-	testInsertIssue(t, "my issue1", "special issue's comments?", 6)
+	created := testInsertIssue(t, "my issue1", "special issue's comments?", 6)
+
+	_, err := x.ID(created).Delete(new(Issue))
+	assert.NoError(t, err)
+
 	// deleting an issue should not let a new issue reuse its index number; this one should be 7
-	testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
+	_ = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
 }
 
 func TestIssue_ResolveMentions(t *testing.T) {
