@@ -93,6 +93,24 @@
 			</form>
 		</div>
 		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.monitor.queue.pool.flush.title"}}
+		</h4>
+		<div class="ui attached segment">
+			<p>{{.i18n.Tr "admin.monitor.queue.pool.flush.desc"}}</p>
+			<form method="POST" action="{{.Link}}/flush">
+				{{$.CsrfTokenHtml}}
+				<div class="ui form">
+					<div class="fields">
+						<div class="field">
+							<label>{{.i18n.Tr "admin.monitor.queue.pool.timeout"}}</label>
+							<input name="timeout" type="text" placeholder="{{.i18n.Tr "admin.monitor.queue.pool.addworkers.timeout.placeholder"}}">
+						</div>
+					</div>
+					<button class="ui submit button">{{.i18n.Tr "admin.monitor.queue.pool.flush.submit"}}</button>
+				</div>
+			</form>
+		</div>
+		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.monitor.queue.pool.workers.title"}}
 		</h4>
 		<div class="ui attached table segment">
@@ -108,7 +126,7 @@
 				<tbody>
 					{{range .Queue.Workers}}
 					<tr>
-						<td>{{.Workers}}</td>
+						<td>{{.Workers}}{{if .IsFlusher}}<i class="icon sync-alternate" title="{{.i18n.Tr "admin.monitor.queue.flush"}}"></i>{{end}}</td>
 						<td>{{DateFmtLong .Start}}</td>
 						<td>{{if .HasTimeout}}{{DateFmtLong .Timeout}}{{else}}-{{end}}</td>
 						<td>

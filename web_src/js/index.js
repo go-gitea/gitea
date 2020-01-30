@@ -2,6 +2,7 @@
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
+import 'jquery.are-you-sure';
 import './publicPath.js';
 import './polyfills.js';
 import './gitGraphLoader.js';
