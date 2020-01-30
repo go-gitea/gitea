@@ -100,24 +100,11 @@ func accessLevel(e Engine, user *User, repo *Repository) (AccessMode, error) {
 	return a.Mode, nil
 }
 
-type repoAccess struct {
-	Access     `xorm:"extends"`
-	Repository `xorm:"extends"`
-}
-
-func (repoAccess) TableName() string {
-	return "access"
-}
-
 // GetRepositoryAccesses finds all repositories with their access mode where a user has any kind of access but does not own.
 func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
-/*
-	rows, err := x.
-		Join("INNER", "repository", "repository.id = access.repo_id").
-		Where("access.user_id = ?", user.ID).
-		And("repository.owner_id <> ?", user.ID).
-		Rows(new(repoAccess))
-*/
+	// Xorm doesn't currently support such complex queries, so we first
+	// retrieve the list of repositories; later we will retrieve the best
+	// set of permissions for each and relate each other.
 	rows, err := x.
 		Where(accessibleRepositoryCondition(user)).
 		And("repository.owner_id <> ?", user.ID).
@@ -128,9 +115,11 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 	defer rows.Close()
 
 	var repos = make(map[*Repository]AccessMode, 10)
+	var reposByID = make(map[int64]*Repository, 10)
 	var ownerCache = make(map[int64]*User, 10)
+
 	for rows.Next() {
-		var repo repoAccess
+		var repo Repository
 		err = rows.Scan(&repo)
 		if err != nil {
 			return nil, err
@@ -143,9 +132,50 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 			}
 			ownerCache[repo.OwnerID] = repo.Owner
 		}
-
-		repos[&repo.Repository] = repo.Access.Mode
+		// Temporary nil permission until we find out the correct one
+		repos[&repo] = AccessModeNone
+		reposByID[repo.ID] = &repo
 	}
+
+	rows.Close()
+
+	type bestAccessMode struct {
+		RepoID		int64
+		Mode		AccessMode
+	}
+
+	rows, err = x.Table("user_repo_unit").
+		Join("INNER", "repository", "repository.id = user_repo_unit.repo_id").
+		Where(accessibleRepositoryCondition(user)).
+		And("repository.owner_id <> ?", user.ID).
+		Select("repo_id, max(mode) as mode").
+		GroupBy("repo_id").
+		Rows(new(bestAccessMode))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var bestMode bestAccessMode
+		err = rows.Scan(&bestMode)
+		if err != nil {
+			return nil, err
+		}
+		if repo, ok := reposByID[bestMode.RepoID]; ok {
+			repos[repo] = bestMode.Mode
+		}
+	}
+
+	// Final pass, delete any repos from the map
+	// that have not been updated (e.g. might have lose
+	// access between the first and second queries)
+	for _, repo := range reposByID {
+		if repos[repo] == AccessModeNone {
+			delete(repos, repo)
+		}
+	}
+
 	return repos, nil
 }
 

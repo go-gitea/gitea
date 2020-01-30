@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -90,14 +91,33 @@ func TestHasAccess(t *testing.T) {
 func TestUser_GetRepositoryAccesses(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
+	urus := make([]*UserRepoUnit, 0, 10)
+	assert.NoError(t, x.Where("user_id = 1").OrderBy("repo_id, `type`").Find(&urus))
+	for _, uru := range urus {
+		fmt.Printf("uru user_id:%4d,   repo_id:%4d,  type: %-25s,  mode: %-10s\n",
+			uru.UserID, uru.RepoID, uru.Type.String(), uru.Mode.String())
+	}
+
 	user1 := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	accesses, err := user1.GetRepositoryAccesses()
 	assert.NoError(t, err)
+	for repo, mode := range accesses {
+		_ = repo.GetOwner()
+		fmt.Printf("repo %d %s mode=%s; private: %v, org?: %v, org visibility: %v\n", repo.ID, repo.FullName(), mode.String(),
+			repo.IsPrivate, repo.Owner.IsOrganization(), repo.Owner.Visibility.String())
+	}
+	fmt.Printf("...\n")
 	assert.Len(t, accesses, 0)
 
 	user29 := AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
 	accesses, err = user29.GetRepositoryAccesses()
 	assert.NoError(t, err)
+	for repo, mode := range accesses {
+		_ = repo.GetOwner()
+		fmt.Printf("repo %d %s mode=%s; private: %v, org?: %v, org visibility: %v\n", repo.ID, repo.FullName(), mode.String(),
+			repo.IsPrivate, repo.Owner.IsOrganization(), repo.Owner.Visibility.String())
+	}
+	fmt.Printf("...\n")
 	assert.Len(t, accesses, 2)
 }
 
