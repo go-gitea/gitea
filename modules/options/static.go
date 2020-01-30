@@ -143,3 +143,8 @@ func AssetIsDir(name string) (bool, error) {
 		}
 	}
 }
+
+// IsDynamic will return false when using embedded data (-tags bindata)
+func IsDynamic() bool {
+	return false
+}
