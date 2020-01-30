@@ -415,14 +415,8 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		if err := models.TransferOwnership(repoTransfer.User, repoTransfer.Recipient, ctx.Repo.Repository); err != nil {
+		if err := models.TransferOwnership(repoTransfer.User, repoTransfer.Recipient.LoginName, ctx.Repo.Repository); err != nil {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
-			return
-		}
-
-		err = models.NewRepoRedirect(repoTransfer.User.ID, ctx.Repo.Repository.ID, ctx.Repo.Repository.Name, ctx.Repo.Repository.Name)
-		if err != nil {
-			ctx.ServerError("NewRepoRedirect", err)
 			return
 		}
 

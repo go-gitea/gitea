@@ -42,17 +42,9 @@ func NewNotifier() base.Notifier {
 }
 
 func (ns *notificationService) Run() {
-	for {
-		select {
-		case opts := <-ns.issueQueue:
-			if err := models.CreateOrUpdateIssueNotifications(opts.issue, opts.notificationAuthorID); err != nil {
-				log.Error("Was unable to create issue notification: %v", err)
-			}
-
-		case opts := <-ns.repoQueue:
-			if err := models.CreateRepoTransferNotification(opts.doerID, opts.recipientID, opts.repo); err != nil {
-				log.Error("Was unable to create notification for a repo transfer: %v", err)
-			}
+	for opts := range ns.issueQueue {
+		if err := models.CreateOrUpdateIssueNotifications(opts.issueID, opts.commentID, opts.notificationAuthorID); err != nil {
+			log.Error("Was unable to create issue notification: %v", err)
 		}
 	}
 }
@@ -108,10 +100,10 @@ func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r
 	ns.issueQueue <- opts
 }
 
-func (ns *notificationService) NotifyTransferRepository(doer, user *models.User, repo *models.Repository) {
+func (ns *notificationService) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
 	ns.repoQueue <- repoNotificationOpts{
-		repo:        repo,
-		recipientID: user.ID,
-		doerID:      doer.ID,
+		repo: repo,
+		// recipientID: user.ID,
+		doerID: doer.ID,
 	}
 }

@@ -5,17 +5,13 @@
 package models
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mailer"
-	"code.gitea.io/gitea/modules/util"
-	"gopkg.in/macaron.v1"
+	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/xorm"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 )
 
 // TransferStatus determines the current state of a transfer
@@ -41,8 +37,8 @@ type RepoTransfer struct {
 	RecipientID int64
 	Recipient   *User `xorm:"-"`
 	RepoID      int64
-	CreatedUnix util.TimeStamp `xorm:"INDEX NOT NULL created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX NOT NULL updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
 	Status      TransferStatus
 }
 
@@ -90,7 +86,7 @@ func (r *RepoTransfer) IsTransferForUser(u *User) bool {
 		return false
 	}
 
-	if err := t.GetMembers(); err != nil {
+	if err := t.GetMembers(&SearchMembersOptions{}); err != nil {
 		return false
 	}
 
@@ -132,7 +128,7 @@ func acceptRepositoryTransfer(sess *xorm.Session, repo *Repository) error {
 // "rejected". Thus ending the transfer process
 func CancelRepositoryTransfer(repoTransfer *RepoTransfer) error {
 	repoTransfer.Status = Rejected
-	repoTransfer.UpdatedUnix = util.TimeStampNow()
+	repoTransfer.UpdatedUnix = timeutil.TimeStampNow()
 	_, err := x.ID(repoTransfer.ID).Cols("updated_unix", "status").
 		Update(repoTransfer)
 	return err
@@ -171,8 +167,8 @@ func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) 
 		RepoID:      repo.ID,
 		RecipientID: newOwner.ID,
 		Status:      Pending,
-		CreatedUnix: util.TimeStampNow(),
-		UpdatedUnix: util.TimeStampNow(),
+		CreatedUnix: timeutil.TimeStampNow(),
+		UpdatedUnix: timeutil.TimeStampNow(),
 		UserID:      doer.ID,
 	}
 
@@ -180,58 +176,61 @@ func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) 
 	return err
 }
 
-// SendRepoTransferNotifyMail triggers a notification e-mail when a repository
-// transfer is initiated
-func SendRepoTransferNotifyMail(c *macaron.Context, u *User, repo *Repository) {
-	data := map[string]interface{}{
-		"Subject":             c.Tr("mail.repo_transfer_notify"),
-		"RepoName":            repo.FullName(),
-		"Link":                repo.HTMLURL(),
-		"AcceptTransferLink":  repo.HTMLURL() + "/action/accept_transfer",
-		"DeclineTransferLink": repo.HTMLURL() + "/action/decline_transfer",
+// // SendRepoTransferNotifyMail triggers a notification e-mail when a repository
+// // transfer is initiated
+// func SendRepoTransferNotifyMail(c *macaron.Context, u *User, repo *Repository) {
+// 	data := map[string]interface{}{
+// 		"Subject":             c.Tr("mail.repo_transfer_notify"),
+// 		"RepoName":            repo.FullName(),
+// 		"Link":                repo.HTMLURL(),
+// 		"AcceptTransferLink":  repo.HTMLURL() + "/action/accept_transfer",
+// 		"DeclineTransferLink": repo.HTMLURL() + "/action/decline_transfer",
+// 	}
+
+// 	var content bytes.Buffer
+
+// 	if err := templates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
+// 		log.Error("Template: %v", err)
+// 		return
+// 	}
+
+// 	var email = u.Email
+
+// 	if u.IsOrganization() && u.Email == "" {
+// 		t, err := u.getOwnerTeam(x)
+// 		if err != nil {
+// 			log.Error("Could not retrieve owners team for organization", err)
+// 			return
+// 		}
+
+// 		if err := t.GetMembers(); err != nil {
+// 			log.Error("Could not retrieve members of the owners team", err)
+// 			return
+// 		}
+
+// 		// Just use the email address of the first user
+// 		email = t.Members[0].Email
+// 	}
+
+// 	msg := mailer.NewMessage([]string{email}, c.Tr("mail.repo_transfer_notify"), content.String())
+// 	msg.Info = fmt.Sprintf("UID: %d, repository transfer notification", u.ID)
+
+// 	mailer.SendAsync(msg)
+// }
+
+// TransferOwnership transfers all corresponding setting from old user to new one.
+func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error {
+	newOwner, err := GetUserByName(newOwnerName)
+	if err != nil {
+		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
 	}
-
-	var content bytes.Buffer
-
-	if err := templates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
-		log.Error("Template: %v", err)
-		return
-	}
-
-	var email = u.Email
-
-	if u.IsOrganization() && u.Email == "" {
-		t, err := u.getOwnerTeam(x)
-		if err != nil {
-			log.Error("Could not retrieve owners team for organization", err)
-			return
-		}
-
-		if err := t.GetMembers(); err != nil {
-			log.Error("Could not retrieve members of the owners team", err)
-			return
-		}
-
-		// Just use the email address of the first user
-		email = t.Members[0].Email
-	}
-
-	msg := mailer.NewMessage([]string{email}, c.Tr("mail.repo_transfer_notify"), content.String())
-	msg.Info = fmt.Sprintf("UID: %d, repository transfer notification", u.ID)
-
-	mailer.SendAsync(msg)
-}
-
-// TransferOwnership transfers all corresponding setting from one user to
-// another.
-func TransferOwnership(doer, newOwner *User, repo *Repository) error {
 
 	// Check if new owner has repository with same name.
 	has, err := IsRepositoryExist(newOwner, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
-		return ErrRepoAlreadyExist{newOwner.Name, repo.Name}
+		return ErrRepoAlreadyExist{newOwnerName, repo.Name}
 	}
 
 	sess := x.NewSession()
@@ -240,24 +239,21 @@ func TransferOwnership(doer, newOwner *User, repo *Repository) error {
 		return fmt.Errorf("sess.Begin: %v", err)
 	}
 
-	owner := repo.Owner
+	oldOwner := repo.Owner
 
 	// Note: we have to set value here to make sure recalculate accesses is based on
 	// new owner.
 	repo.OwnerID = newOwner.ID
 	repo.Owner = newOwner
+	repo.OwnerName = newOwner.Name
 
 	// Update repository.
 	if _, err := sess.ID(repo.ID).Update(repo); err != nil {
 		return fmt.Errorf("update owner: %v", err)
 	}
 
-	if err := acceptRepositoryTransfer(sess, repo); err != nil {
-		return err
-	}
-
 	// Remove redundant collaborators.
-	collaborators, err := repo.getCollaborators(sess)
+	collaborators, err := repo.getCollaborators(sess, ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborators: %v", err)
 	}
@@ -266,7 +262,7 @@ func TransferOwnership(doer, newOwner *User, repo *Repository) error {
 	collaboration := &Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
 		if c.ID != newOwner.ID {
-			isMember, err := newOwner.IsOrgMember(c.ID)
+			isMember, err := isOrganizationMember(sess, newOwner.ID, c.ID)
 			if err != nil {
 				return fmt.Errorf("IsOrgMember: %v", err)
 			} else if !isMember {
@@ -280,37 +276,44 @@ func TransferOwnership(doer, newOwner *User, repo *Repository) error {
 	}
 
 	// Remove old team-repository relations.
-	if owner.IsOrganization() {
-		if err = owner.removeOrgRepo(sess, repo.ID); err != nil {
+	if oldOwner.IsOrganization() {
+		if err = oldOwner.removeOrgRepo(sess, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %v", err)
 		}
 	}
 
 	if newOwner.IsOrganization() {
-		t, err := newOwner.getOwnerTeam(sess)
-		if err != nil {
-			return fmt.Errorf("getOwnerTeam: %v", err)
-		} else if err = t.addRepository(sess, repo); err != nil {
-			return fmt.Errorf("add to owner team: %v", err)
+		if err := newOwner.GetTeams(&SearchTeamOptions{}); err != nil {
+			return fmt.Errorf("GetTeams: %v", err)
 		}
-	} else {
+		for _, t := range newOwner.Teams {
+			if t.IncludesAllRepositories {
+				if err := t.addRepository(sess, repo); err != nil {
+					return fmt.Errorf("addRepository: %v", err)
+				}
+			}
+		}
+	} else if err = repo.recalculateAccesses(sess); err != nil {
 		// Organization called this in addRepository method.
-		if err = repo.recalculateAccesses(sess); err != nil {
-			return fmt.Errorf("recalculateAccesses: %v", err)
-		}
+		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
 	// Update repository count.
 	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
 		return fmt.Errorf("increase new owner repository count: %v", err)
-	} else if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", owner.ID); err != nil {
+	} else if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
 	if err = watchRepo(sess, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
-	} else if err = transferRepoAction(sess, doer, owner, repo); err != nil {
-		return fmt.Errorf("transferRepoAction: %v", err)
+	}
+
+	// Remove watch for organization.
+	if oldOwner.IsOrganization() {
+		if err = watchRepo(sess, oldOwner.ID, repo.ID, false); err != nil {
+			return fmt.Errorf("watchRepo [false]: %v", err)
+		}
 	}
 
 	// Rename remote repository to new path and delete local copy.
@@ -320,18 +323,25 @@ func TransferOwnership(doer, newOwner *User, repo *Repository) error {
 		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
-	if err = os.Rename(RepoPath(owner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
+	if err = os.Rename(RepoPath(oldOwner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
-	RemoveAllWithNotice("Delete repository local copy", repo.LocalCopyPath())
 
 	// Rename remote wiki repository to new path and delete local copy.
-	wikiPath := WikiPath(owner.Name, repo.Name)
+	wikiPath := WikiPath(oldOwner.Name, repo.Name)
 	if com.IsExist(wikiPath) {
-		RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
 		if err = os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
+	}
+
+	// If there was previously a redirect at this location, remove it.
+	if err = deleteRepoRedirect(sess, newOwner.ID, repo.Name); err != nil {
+		return fmt.Errorf("delete repo redirect: %v", err)
+	}
+
+	if err := NewRepoRedirect(DBContext{sess}, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
+		return fmt.Errorf("NewRepoRedirect: %v", err)
 	}
 
 	return sess.Commit()

@@ -5,9 +5,9 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addRepoTransfer(x *xorm.Engine) error {
@@ -16,8 +16,8 @@ func addRepoTransfer(x *xorm.Engine) error {
 		UserID      int64
 		RecipientID int64
 		RepoID      int64
-		CreatedUnix util.TimeStamp `xorm:"INDEX NOT NULL created"`
-		UpdatedUnix util.TimeStamp `xorm:"INDEX NOT NULL updated"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
 		Status      bool
 	}
 

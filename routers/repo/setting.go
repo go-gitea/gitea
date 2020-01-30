@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -379,6 +378,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		newOwner := ctx.Query("new_owner_name")
 		u, err := models.GetUserByName(newOwner)
+		_ = u
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 			return
@@ -405,10 +405,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if setting.Service.EnableNotifyMail {
-			models.SendRepoTransferNotifyMail(ctx.Context, u, ctx.Repo.Repository)
+			// models.SendRepoTransferNotifyMail(ctx.Context, u, ctx.Repo.Repository)
 		}
 
-		notification.NotifyTransferRepo(ctx.Repo.Owner, u, ctx.Repo.Repository)
+		// notification.NotifyTransferRepo(ctx.Repo.Owner, u.Name, ctx.Repo.Repository)
 
 		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner))
