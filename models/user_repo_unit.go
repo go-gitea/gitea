@@ -1118,7 +1118,8 @@ func buildTeamUnits(e Engine, batchID int64, team *Team) error {
 }
 
 func addTeamRepoUnits(e Engine, batchID int64, team *Team, repo *Repository) error {
-	// TODO: GAP:
+	// FIXME: GAP: NO IMPLEMENTADO
+	return fmt.Errorf("not implemented")
 }
 
 // userRepoUnitStartBatch will return a unique ID for the batch transaction
@@ -1220,7 +1221,7 @@ func batchBuildRepoUnits(xe *xorm.Engine, fromID int64, count int) error {
 	}
 
 	for _, repo := range repos {
-		if err := RebuildRepoUnits(sess, repo); err != nil {
+		if err := RebuildRepoUnits(sess, repo, -1); err != nil {
 			return fmt.Errorf("RebuildRepoUnits(%d): %v", repo.ID, err)
 		}
 	}

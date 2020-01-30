@@ -9,8 +9,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"xorm.io/builder"
 )
 
 // AccessMode specifies the users access mode
@@ -67,10 +65,10 @@ func ParseAccessMode(permission string) AccessMode {
 type Access struct {
 	// FIXME: GAP: Remove Access from database
 
-	// ID     int64 `xorm:"pk autoincr"`
-	// UserID int64 `xorm:"UNIQUE(s)"`
-	// RepoID int64 `xorm:"UNIQUE(s)"`
-	// Mode   AccessMode
+	ID     int64 `xorm:"pk autoincr"`
+	UserID int64 `xorm:"UNIQUE(s)"`
+	RepoID int64 `xorm:"UNIQUE(s)"`
+	Mode   AccessMode
 }
 
 func accessLevel(e Engine, user *User, repo *Repository) (AccessMode, error) {
@@ -113,16 +111,17 @@ func (repoAccess) TableName() string {
 
 // GetRepositoryAccesses finds all repositories with their access mode where a user has any kind of access but does not own.
 func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
-	sess := x.Table(new(Repository)).
-		Where(accessibleRepositoryCondition(user)).
-		And("repository.owner_id <> ?", user.ID).
-		Desc("updated_unix")
-
+/*
 	rows, err := x.
 		Join("INNER", "repository", "repository.id = access.repo_id").
 		Where("access.user_id = ?", user.ID).
 		And("repository.owner_id <> ?", user.ID).
 		Rows(new(repoAccess))
+*/
+	rows, err := x.
+		Where(accessibleRepositoryCondition(user)).
+		And("repository.owner_id <> ?", user.ID).
+		Rows(new(Repository))
 	if err != nil {
 		return nil, err
 	}

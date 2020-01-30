@@ -334,12 +334,8 @@ func batchRebuildTeam(x *xorm.Engine, teamID int64) error {
 		return err
 	}
 
-	if err := RemoveTeamUnits(sess, team); err != nil {
-		return fmt.Errorf("RemoveTeamUnits(%d): %v", team.ID, err)
-	}
-
-	if err := AddTeamUnits(sess, team); err != nil {
-		return fmt.Errorf("AddTeamUnits(%d): %v", team.ID, err)
+	if err := RebuildTeamUnits(sess, team, false); err != nil {
+		return fmt.Errorf("RebuildTeamUnits(%d): %v", team.ID, err)
 	}
 
 	return sess.Commit()
