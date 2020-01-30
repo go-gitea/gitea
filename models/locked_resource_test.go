@@ -97,5 +97,5 @@ func TestLockedResource(t *testing.T) {
 	})
 
 	// Note: testing the validity of the locking mechanism (i.e. whether it actually locks)
-	// is be done at the integration tests to ensure that all the supported databases are checked.
+	// is performed at the integration tests to ensure that all the supported databases are checked.
 }
