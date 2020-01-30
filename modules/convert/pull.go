@@ -5,6 +5,8 @@
 package convert
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -23,10 +25,12 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		headCommit *git.Commit
 		err        error
 	)
+
 	if err = pr.Issue.LoadRepo(); err != nil {
-		log.Error("loadRepo[%d]: %v", pr.ID, err)
+		log.Error("pr.Issue.loadRepo[%d]: %v", pr.ID, err)
 		return nil
 	}
+
 	apiIssue := pr.Issue.APIFormat()
 	if pr.BaseRepo == nil {
 		pr.BaseRepo, err = models.GetRepositoryByID(pr.BaseRepoID)
@@ -42,11 +46,6 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 			return nil
 
 		}
-	}
-
-	if err = pr.Issue.LoadRepo(); err != nil {
-		log.Error("pr.Issue.loadRepo[%d]: %v", pr.ID, err)
-		return nil
 	}
 
 	apiPullRequest := &api.PullRequest{
@@ -132,7 +131,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 	} else {
 		apiPullRequest.Head = &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
-			Ref:    pr.HeadBranch,
+			Ref:    fmt.Sprintf("refs/pull/%d/head", pr.Index),
 			RepoID: -1,
 		}
 	}
