@@ -650,6 +650,8 @@ ITEM_TTL = 16h
 [cache.last_commit]
 ; if the cache enabled
 ENABLED = true
+; if use the default cache, by pass all the next options
+USE_SEPERATE_CACHE = false
 ; Either "memory", "redis", or "memcache", default is "memory"
 ADAPTER = memory
 ; For "memory" only, GC interval in seconds, default is 60

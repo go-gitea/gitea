@@ -394,6 +394,7 @@ relation to port exhaustion.
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
 - `ENABLED`: **true**: Enable the cache.
+- `USE_SEPERATE_CACHE`: **false** If use a seperate cache setting, `false` will bypass all the next options.
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.

@@ -27,7 +27,8 @@ var (
 
 		LastCommit struct {
 			Cache
-			CommitsCount int64
+			UseSeperateCache bool
+			CommitsCount     int64
 		} `ini:"cache.last_commit"`
 	}{
 		Cache: Cache{
@@ -38,7 +39,8 @@ var (
 		},
 		LastCommit: struct {
 			Cache
-			CommitsCount int64
+			UseSeperateCache bool
+			CommitsCount     int64
 		}{
 			Cache: Cache{
 				Enabled:  true,
@@ -46,7 +48,8 @@ var (
 				Interval: 60,
 				TTL:      86400 * time.Hour,
 			},
-			CommitsCount: 1000,
+			UseSeperateCache: false,
+			CommitsCount:     1000,
 		},
 	}
 )
@@ -73,16 +76,19 @@ func newCacheService() {
 	}
 
 	sec = Cfg.Section("cache.last_commit")
-
-	CacheService.LastCommit.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
-	switch CacheService.LastCommit.Adapter {
-	case "memory":
-	case "redis", "memcache":
-		CacheService.LastCommit.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
-	case "": // disable cache
-		CacheService.LastCommit.Enabled = false
-	default:
-		log.Fatal("Unknown cache.last_commit adapter: %s", CacheService.LastCommit.Adapter)
+	if !CacheService.LastCommit.UseSeperateCache {
+		CacheService.LastCommit.Cache = CacheService.Cache
+	} else {
+		CacheService.LastCommit.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
+		switch CacheService.LastCommit.Adapter {
+		case "memory":
+		case "redis", "memcache":
+			CacheService.LastCommit.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
+		case "": // disable cache
+			CacheService.LastCommit.Enabled = false
+		default:
+			log.Fatal("Unknown cache.last_commit adapter: %s", CacheService.LastCommit.Adapter)
+		}
 	}
 
 	CacheService.LastCommit.CommitsCount = sec.Key("COMMITS_COUNT").MustInt64(1000)

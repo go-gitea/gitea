@@ -159,6 +159,7 @@ menu:
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
 - `ENABLED`: **true**: 是否启用。
+- `USE_SEPERATE_CACHE`: **false** 是否启用独立的Cache设置，如果为否，则以下的Cache设置无效。
 - `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
 - `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。

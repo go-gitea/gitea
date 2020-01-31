@@ -34,6 +34,7 @@ func NewLastCommitCache(repoPath string, gitRepo *git.Repository, ttl int64) *La
 	}
 }
 
+// Get get the last commit information by commit id and entry path
 func (c LastCommitCache) Get(ref, entryPath string) (*object.Commit, error) {
 	v := c.Cache.Get(fmt.Sprintf("%s:%s:%s", c.repoPath, ref, entryPath))
 	if vs, ok := v.(string); ok {
@@ -56,6 +57,7 @@ func (c LastCommitCache) Get(ref, entryPath string) (*object.Commit, error) {
 	return nil, nil
 }
 
+// Put put the last commit id with commit and entry path
 func (c LastCommitCache) Put(ref, entryPath, commitID string) error {
 	log.Trace("LastCommitCache save: [%s:%s:%s]", ref, entryPath, commitID)
 	return c.Cache.Put(fmt.Sprintf("%s:%s:%s", c.repoPath, ref, entryPath), commitID, c.ttl)
