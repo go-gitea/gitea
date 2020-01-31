@@ -139,6 +139,16 @@ func Init(ctx context.Context) error {
 			return fmt.Errorf("Failed to execute 'git config --global gc.writeCommitGraph true': %s", stderr)
 		}
 	}
+	if version.Compare(gitVersion, "2.24", ">=") {
+		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global uploadPack.allowFilter true)",
+			GitExecutable, "config", "--global", "uploadPack.allowFilter", "true"); err != nil {
+			return fmt.Errorf("Failed to execute 'git config --global uploadPack.allowFilter true': %s", stderr)
+		}
+		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global uploadPack.allowAnySHA1InWant true)",
+			GitExecutable, "config", "--global", "uploadPack.allowAnySHA1InWant", "true"); err != nil {
+			return fmt.Errorf("Failed to execute 'git config --global uploadPack.allowAnySHA1InWant true': %s", stderr)
+		}
+	}
 
 	if runtime.GOOS == "windows" {
 		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global core.longpaths true)",

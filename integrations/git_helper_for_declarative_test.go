@@ -115,6 +115,24 @@ func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	}
 }
 
+func doGitPartialClone(dstLocalPath string, u *url.URL) func(*testing.T) {
+	return func(t *testing.T) {
+		assert.NoError(t, git.CloneWithArgs(u.String(), dstLocalPath, allowLFSFilters(), git.CloneRepoOptions{NoCheckout: true, Filter: "blob:none"}))
+		assert.True(t, !com.IsExist(filepath.Join(dstLocalPath, "A", "A.txt")))
+		assert.True(t, !com.IsExist(filepath.Join(dstLocalPath, "README.md")))
+		assert.True(t, !com.IsExist(filepath.Join(dstLocalPath, "B")))
+		assert.True(t, !com.IsExist(filepath.Join(dstLocalPath, "C")))
+
+		assert.NoError(t, git.InitSparseCheckout(dstLocalPath, git.InitSparseCheckoutOptions{Cone: false}))
+		assert.NoError(t, git.SetSparseCheckout(dstLocalPath, "/A/"))
+		assert.True(t, com.IsExist(filepath.Join(dstLocalPath, "A", "A.txt")))
+		assert.True(t, !com.IsExist(filepath.Join(dstLocalPath, "B")))
+		assert.True(t, !com.IsExist(filepath.Join(dstLocalPath, "C")))
+		assert.True(t, !com.IsExist(filepath.Join(dstLocalPath, "README.md")))
+
+	}
+}
+
 func doGitCloneFail(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
 		assert.Error(t, git.Clone(u.String(), dstLocalPath, git.CloneRepoOptions{}))

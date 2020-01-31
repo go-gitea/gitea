@@ -162,6 +162,7 @@ type CloneRepoOptions struct {
 	Shared     bool
 	NoCheckout bool
 	Depth      int
+	Filter     string
 }
 
 // Clone clones original repository to target path.
@@ -196,6 +197,9 @@ func CloneWithArgs(from, to string, args []string, opts CloneRepoOptions) (err e
 	}
 	if opts.Depth > 0 {
 		cmd.AddArguments("--depth", strconv.Itoa(opts.Depth))
+	}
+	if opts.Filter != "" {
+		cmd.AddArguments("--filter=" + opts.Filter)
 	}
 
 	if len(opts.Branch) > 0 {
@@ -284,6 +288,42 @@ func Checkout(repoPath string, opts CheckoutOptions) error {
 	}
 
 	_, err := cmd.RunInDirTimeout(opts.Timeout, repoPath)
+	return err
+}
+
+// InitSparseCheckoutOptions options when initializing a sparse checkout
+type InitSparseCheckoutOptions struct {
+	Timeout time.Duration
+	Cone    bool
+}
+
+// InitSparseCheckout initializes a sparse-checkout
+func InitSparseCheckout(repoPath string, opts InitSparseCheckoutOptions) error {
+	cmd := NewCommand("sparse-checkout")
+
+	if opts.Timeout <= 0 {
+		opts.Timeout = -1
+	}
+
+	cmd.AddArguments("init")
+	if opts.Cone {
+		cmd.AddArguments("--cone")
+	}
+
+	_, err := cmd.RunInDirTimeout(opts.Timeout, repoPath)
+	return err
+}
+
+// SetSparseCheckout sets sparse-checkout patterns
+func SetSparseCheckout(repoPath string, pats ...string) error {
+	cmd := NewCommand("sparse-checkout")
+
+	cmd.AddArguments("set")
+	for _, p := range pats {
+		cmd.AddArguments(p)
+	}
+
+	_, err := cmd.RunInDir(repoPath)
 	return err
 }
 

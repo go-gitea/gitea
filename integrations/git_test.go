@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
+	"github.com/mcuadros/go-version"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,6 +33,17 @@ const (
 
 func TestGit(t *testing.T) {
 	onGiteaRun(t, testGit)
+}
+
+func TestGitPartialClone(t *testing.T) {
+	gitVersion, err := git.BinVersion()
+	if err != nil {
+		t.Fatalf("cannot get the version of Git: %v", err)
+	}
+	if version.Compare(gitVersion, "2.25", "<") {
+		return
+	}
+	onGiteaRun(t, testGitPartialClone)
 }
 
 func testGit(t *testing.T, u *url.URL) {
@@ -117,6 +129,43 @@ func testGit(t *testing.T, u *url.URL) {
 			})
 
 			t.Run("PushCreate", doPushCreate(sshContext, sshURL))
+		})
+	})
+}
+
+func testGitPartialClone(t *testing.T, u *url.URL) {
+	username := "user2"
+	baseAPITestContext := NewAPITestContext(t, username, "partial_clone")
+
+	u.Path = baseAPITestContext.GitPath()
+
+	t.Run("HTTP", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+		dstLocalPath, err := ioutil.TempDir("", "partial_clone")
+		assert.NoError(t, err)
+		defer os.RemoveAll(dstLocalPath)
+		t.Run("CloneAnonymous", doGitPartialClone(dstLocalPath, u))
+	})
+	t.Run("SSH", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+		sshContext := baseAPITestContext
+		sshContext.Reponame = "partial_clone"
+		keyname := "my-testing-key"
+
+		//Setup key the user ssh key
+		withKeyFile(t, keyname, func(keyFile string) {
+			t.Run("CreateUserKey", doAPICreateUserKey(sshContext, "test-key", keyFile))
+
+			//Setup remote link
+			//TODO: get url from api
+			sshURL := createSSHUrl(sshContext.GitPath(), u)
+
+			//Setup clone folder
+			dstPath, err := ioutil.TempDir("", sshContext.Reponame)
+			assert.NoError(t, err)
+			defer os.RemoveAll(dstPath)
+
+			t.Run("Clone", doGitPartialClone(dstPath, sshURL))
 		})
 	})
 }
