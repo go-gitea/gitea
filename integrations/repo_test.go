@@ -7,6 +7,7 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 	"testing"
 
@@ -29,12 +30,71 @@ func TestViewRepo(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestViewRepo2(t *testing.T) {
+func testViewRepo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user3/repo3")
 	session := loginUser(t, "user2")
-	session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	files := htmlDoc.doc.Find("#repo-files-table  > TBODY > TR")
+
+	type file struct {
+		fileName   string
+		commitID   string
+		commitMsg  string
+		commitTime string
+	}
+
+	var items []file
+
+	files.Each(func(i int, s *goquery.Selection) {
+		tds := s.Find("td")
+		var f file
+		tds.Each(func(i int, s *goquery.Selection) {
+			if i == 0 {
+				f.fileName = strings.TrimSpace(s.Text())
+			} else if i == 1 {
+				a := s.Find("a")
+				f.commitMsg = strings.TrimSpace(a.Text())
+				l, _ := a.Attr("href")
+				f.commitID = path.Base(l)
+			}
+		})
+
+		f.commitTime, _ = s.Find("span.time-since").Attr("title")
+		items = append(items, f)
+	})
+
+	assert.EqualValues(t, []file{
+		{
+			fileName:   "doc",
+			commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
+			commitMsg:  "init project",
+			commitTime: "Wed, 14 Jun 2017 21:54:21 CST",
+		},
+		{
+			fileName:   "README.md",
+			commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
+			commitMsg:  "init project",
+			commitTime: "Wed, 14 Jun 2017 21:54:21 CST",
+		},
+	}, items)
+}
+
+func TestViewRepo2(t *testing.T) {
+	// no last commit cache
+	testViewRepo(t)
+
+	// enable last commit cache for all repositories
+	oldCommitsCount := setting.CacheService.LastCommit.CommitsCount
+	setting.CacheService.LastCommit.CommitsCount = 0
+	// first view will not hit the cache
+	testViewRepo(t)
+	// second view will hit the cache
+	testViewRepo(t)
+	setting.CacheService.LastCommit.CommitsCount = oldCommitsCount
 }
 
 func TestViewRepo3(t *testing.T) {
