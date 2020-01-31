@@ -27,7 +27,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 	)
 
 	if err = pr.Issue.LoadRepo(); err != nil {
-		log.Error("pr.Issue.loadRepo[%d]: %v", pr.ID, err)
+		log.Error("pr.Issue.LoadRepo[%d]: %v", pr.ID, err)
 		return nil
 	}
 
