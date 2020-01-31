@@ -13,7 +13,6 @@ import (
 
 // Cache represents cache settings
 type Cache struct {
-	Enabled  bool
 	Adapter  string
 	Interval int
 	Conn     string
@@ -26,30 +25,21 @@ var (
 		Cache
 
 		LastCommit struct {
-			Cache
-			UseSeperateCache bool
-			CommitsCount     int64
+			TTL          time.Duration `ini:"ITEM_TTL"`
+			CommitsCount int64
 		} `ini:"cache.last_commit"`
 	}{
 		Cache: Cache{
-			Enabled:  true,
 			Adapter:  "memory",
 			Interval: 60,
 			TTL:      16 * time.Hour,
 		},
 		LastCommit: struct {
-			Cache
-			UseSeperateCache bool
-			CommitsCount     int64
+			TTL          time.Duration `ini:"ITEM_TTL"`
+			CommitsCount int64
 		}{
-			Cache: Cache{
-				Enabled:  true,
-				Adapter:  "memory",
-				Interval: 60,
-				TTL:      86400 * time.Hour,
-			},
-			UseSeperateCache: false,
-			CommitsCount:     1000,
+			TTL:          16 * time.Hour,
+			CommitsCount: 1000,
 		},
 	}
 )
@@ -66,34 +56,23 @@ func newCacheService() {
 	case "redis", "memcache":
 		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
 	case "": // disable cache
-		CacheService.Enabled = false
+		CacheService.TTL = 0
 	default:
 		log.Fatal("Unknown cache adapter: %s", CacheService.Adapter)
 	}
 
-	if CacheService.Enabled {
+	if CacheService.TTL > 0 {
 		log.Info("Cache Service Enabled")
 	}
 
 	sec = Cfg.Section("cache.last_commit")
-	if !CacheService.LastCommit.UseSeperateCache {
-		CacheService.LastCommit.Cache = CacheService.Cache
-	} else {
-		CacheService.LastCommit.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
-		switch CacheService.LastCommit.Adapter {
-		case "memory":
-		case "redis", "memcache":
-			CacheService.LastCommit.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
-		case "": // disable cache
-			CacheService.LastCommit.Enabled = false
-		default:
-			log.Fatal("Unknown cache.last_commit adapter: %s", CacheService.LastCommit.Adapter)
-		}
+	if CacheService.TTL == 0 {
+		CacheService.LastCommit.TTL = 0
 	}
 
 	CacheService.LastCommit.CommitsCount = sec.Key("COMMITS_COUNT").MustInt64(1000)
 
-	if CacheService.LastCommit.Enabled {
+	if CacheService.LastCommit.TTL > 0 {
 		log.Info("Last Commit Cache Service Enabled")
 	}
 }

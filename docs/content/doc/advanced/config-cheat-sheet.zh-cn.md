@@ -148,7 +148,6 @@ menu:
 
 ## Cache (`cache`)
 
-- `ENABLED`: **true**: 是否启用。
 - `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
 - `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
@@ -158,13 +157,6 @@ menu:
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
-- `ENABLED`: **true**: 是否启用。
-- `USE_SEPERATE_CACHE`: **false** 是否启用独立的Cache设置，如果为否，则以下的Cache设置无效。
-- `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
-- `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
-- `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
-    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
-    - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 - `ITEM_TTL`: **86400h**: 缓存项目失效时间，设置为 0 则禁用缓存。
 - `COMMITS_COUNT`: **1000**: 仅当仓库的提交数大于时才启用缓存。
 

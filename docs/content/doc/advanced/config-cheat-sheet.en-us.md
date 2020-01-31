@@ -383,7 +383,6 @@ relation to port exhaustion.
 
 ## Cache (`cache`)
 
-- `ENABLED`: **true**: Enable the cache.
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
@@ -393,13 +392,6 @@ relation to port exhaustion.
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
-- `ENABLED`: **true**: Enable the cache.
-- `USE_SEPERATE_CACHE`: **false** If use a seperate cache setting, `false` will bypass all the next options.
-- `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
-- `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
-- `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
-   - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
-   - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
 - `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
 - `COMMITS_COUNT`: **1000**: Only enable the cache when repository's commits count great than.
 

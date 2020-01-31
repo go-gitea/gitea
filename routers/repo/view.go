@@ -51,7 +51,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	entries.CustomSort(base.NaturalSortLess)
 
 	var c git.LastCommitCache
-	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
+	if setting.CacheService.LastCommit.TTL > 0 && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
 		c = cache.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
 	}
 

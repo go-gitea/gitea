@@ -17,8 +17,7 @@ import (
 )
 
 var (
-	conn            mc.Cache
-	lastCommitCache mc.Cache
+	conn mc.Cache
 )
 
 func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
@@ -33,14 +32,8 @@ func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
 func NewContext() error {
 	var err error
 
-	if conn == nil && setting.CacheService.Enabled {
+	if conn == nil && setting.CacheService.TTL > 0 {
 		if conn, err = newCache(setting.CacheService.Cache); err != nil {
-			return err
-		}
-	}
-
-	if lastCommitCache == nil && setting.CacheService.LastCommit.Enabled {
-		if lastCommitCache, err = newCache(setting.CacheService.LastCommit.Cache); err != nil {
 			return err
 		}
 	}
