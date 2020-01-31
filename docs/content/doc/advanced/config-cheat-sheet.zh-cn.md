@@ -148,6 +148,7 @@ menu:
 
 ## Cache (`cache`)
 
+- `ENABLED`: **true**: 是否启用。
 - `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
 - `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
@@ -157,6 +158,7 @@ menu:
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
+- `ENABLED`: **true**: 是否启用。
 - `ITEM_TTL`: **86400h**: 缓存项目失效时间，设置为 0 则禁用缓存。
 - `COMMITS_COUNT`: **1000**: 仅当仓库的提交数大于时才启用缓存。
 

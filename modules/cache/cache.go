@@ -32,7 +32,7 @@ func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
 func NewContext() error {
 	var err error
 
-	if conn == nil && setting.CacheService.TTL > 0 {
+	if conn == nil && setting.CacheService.Enabled {
 		if conn, err = newCache(setting.CacheService.Cache); err != nil {
 			return err
 		}

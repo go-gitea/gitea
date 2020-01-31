@@ -632,6 +632,8 @@ SENDMAIL_PATH = sendmail
 SENDMAIL_ARGS =
 
 [cache]
+; if the cache enabled
+ENABLED = true
 ; Either "memory", "redis", or "memcache", default is "memory"
 ADAPTER = memory
 ; For "memory" only, GC interval in seconds, default is 60
@@ -646,6 +648,8 @@ ITEM_TTL = 16h
 
 ; Last commit cache
 [cache.last_commit]
+; if the cache enabled
+ENABLED = true
 ; Time to keep items in cache if not used, default is 16 hours.
 ; Setting it to 0 disables caching
 ITEM_TTL = 16h
