@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 
@@ -72,13 +73,13 @@ func testViewRepo(t *testing.T) {
 			fileName:   "doc",
 			commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
 			commitMsg:  "init project",
-			commitTime: "Wed, 14 Jun 2017 21:54:21 CST",
+			commitTime: time.Date(2017, time.June, 14, 13, 54, 21, 0, time.UTC).Format(time.RFC1123),
 		},
 		{
 			fileName:   "README.md",
 			commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
 			commitMsg:  "init project",
-			commitTime: "Wed, 14 Jun 2017 21:54:21 CST",
+			commitTime: time.Date(2017, time.June, 14, 13, 54, 21, 0, time.UTC).Format(time.RFC1123),
 		},
 	}, items)
 }
