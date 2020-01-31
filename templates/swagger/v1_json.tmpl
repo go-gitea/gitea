@@ -7321,6 +7321,57 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/transfer": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Transfer a repo ownership",
+        "operationId": "repoTransfer",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to transfer",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to transfer",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Transfer Options",
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TransferRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repositories/{id}": {
       "get": {
         "produces": [
@@ -12576,6 +12627,29 @@
         "user_name": {
           "type": "string",
           "x-go-name": "UserName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "TransferRepoOption": {
+      "description": "TransferRepoOption options when transfer a repository's ownership",
+      "type": "object",
+      "required": [
+        "new_owner"
+      ],
+      "properties": {
+        "new_owner": {
+          "type": "string",
+          "x-go-name": "NewOwner"
+        },
+        "team_ids": {
+          "description": "ID of the team or teams to add to the repository. Teams can only be added to organization-owned repositories.",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "TeamIDs"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
