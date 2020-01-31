@@ -650,9 +650,9 @@ ITEM_TTL = 16h
 [cache.last_commit]
 ; if the cache enabled
 ENABLED = true
-; Time to keep items in cache if not used, default is 16 hours.
+; Time to keep items in cache if not used, default is 8760 hours.
 ; Setting it to 0 disables caching
-ITEM_TTL = 16h
+ITEM_TTL = 8760h
 ; Only enable the cache when repository's commits count great than
 COMMITS_COUNT = 1000
 

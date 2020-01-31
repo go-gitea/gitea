@@ -43,7 +43,7 @@ var (
 			CommitsCount int64
 		}{
 			Enabled:      true,
-			TTL:          16 * time.Hour,
+			TTL:          8760 * time.Hour,
 			CommitsCount: 1000,
 		},
 	}

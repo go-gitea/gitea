@@ -159,7 +159,7 @@ menu:
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
 - `ENABLED`: **true**: 是否启用。
-- `ITEM_TTL`: **86400h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+- `ITEM_TTL`: **8760h**: 缓存项目失效时间，设置为 0 则禁用缓存。
 - `COMMITS_COUNT`: **1000**: 仅当仓库的提交数大于时才启用缓存。
 
 ## Session (`session`)
