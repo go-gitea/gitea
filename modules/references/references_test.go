@@ -136,6 +136,32 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
+			"For [!123] yes",
+			[]testResult{
+				{123, "", "", "123", true, XRefActionNone, &RefSpan{Start: 5, End: 9}, nil},
+			},
+		},
+		{
+			"For (#345) also",
+			[]testResult{
+				{345, "", "", "345", false, XRefActionNone, &RefSpan{Start: 5, End: 9}, nil},
+			},
+		},
+		{
+			"For #22,#23 no, neither #28:#29 or !30!31#32;33 should",
+			[]testResult{
+			},
+		},
+		{
+			"For #24, and #25. yes, also #26; and #27: should",
+			[]testResult{
+				{24, "", "", "24", false, XRefActionNone, &RefSpan{Start: 4, End: 7}, nil},
+				{25, "", "", "25", false, XRefActionNone, &RefSpan{Start: 13, End: 16}, nil},
+				{26, "", "", "26", false, XRefActionNone, &RefSpan{Start: 28, End: 31}, nil},
+				{27, "", "", "27", false, XRefActionNone, &RefSpan{Start: 37, End: 40}, nil},
+			},
+		},
+		{
 			"Which abc. #9434 same as above",
 			[]testResult{
 				{9434, "", "", "9434", false, XRefActionNone, &RefSpan{Start: 11, End: 16}, nil},
