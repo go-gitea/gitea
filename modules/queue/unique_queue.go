@@ -5,7 +5,6 @@
 package queue
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -19,8 +18,7 @@ import (
 // Users of this queue should be careful to push only the identifier of the
 // data
 type UniqueQueue interface {
-	Run(atShutdown, atTerminate func(context.Context, func()))
-	Push(Data) error
+	Queue
 	PushFunc(Data, func() error) error
 	Has(Data) (bool, error)
 }

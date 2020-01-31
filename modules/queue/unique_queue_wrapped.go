@@ -5,12 +5,9 @@
 package queue
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
 // WrappedUniqueQueueType is the type for a wrapped delayed starting queue
@@ -28,14 +25,10 @@ type WrappedUniqueQueueConfiguration struct {
 
 // WrappedUniqueQueue wraps a delayed starting unique queue
 type WrappedUniqueQueue struct {
-	delayedStarter
-	lock     sync.Mutex
-	handle   HandlerFunc
-	exemplar interface{}
-	channel  chan Data
-	table    map[Data]bool
-	tlock    sync.Mutex
-	ready    bool
+	*WrappedQueue
+	table map[Data]bool
+	tlock sync.Mutex
+	ready bool
 }
 
 // NewWrappedUniqueQueue will attempt to create a unique queue of the provided type,
@@ -60,14 +53,16 @@ func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 	}
 
 	wrapped := &WrappedUniqueQueue{
-		channel:  make(chan Data, config.QueueLength),
-		exemplar: exemplar,
-		delayedStarter: delayedStarter{
-			cfg:         config.Config,
-			underlying:  config.Underlying,
-			timeout:     config.Timeout,
-			maxAttempts: config.MaxAttempts,
-			name:        config.Name,
+		WrappedQueue: &WrappedQueue{
+			channel:  make(chan Data, config.QueueLength),
+			exemplar: exemplar,
+			delayedStarter: delayedStarter{
+				cfg:         config.Config,
+				underlying:  config.Underlying,
+				timeout:     config.Timeout,
+				maxAttempts: config.MaxAttempts,
+				name:        config.Name,
+			},
 		},
 		table: map[Data]bool{},
 	}
@@ -88,11 +83,6 @@ func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 	}
 	_ = GetManager().Add(queue, WrappedUniqueQueueType, config, exemplar)
 	return wrapped, nil
-}
-
-// Name returns the name of the queue
-func (q *WrappedUniqueQueue) Name() string {
-	return q.name + "-wrapper"
 }
 
 // Push will push the data to the internal channel checking it against the exemplar
@@ -154,53 +144,6 @@ func (q *WrappedUniqueQueue) Has(data Data) (bool, error) {
 	return has, nil
 }
 
-func (q *WrappedUniqueQueue) flushInternalWithContext(ctx context.Context) error {
-	q.lock.Lock()
-	if q.internal == nil {
-		q.lock.Unlock()
-		return fmt.Errorf("not ready to flush wrapped queue %s yet", q.Name())
-	}
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-	}
-	return q.internal.FlushWithContext(ctx)
-}
-
-// Flush flushes the queue and blocks till the queue is empty
-func (q *WrappedUniqueQueue) Flush(timeout time.Duration) error {
-	var ctx context.Context
-	var cancel context.CancelFunc
-	if timeout > 0 {
-		ctx, cancel = context.WithTimeout(context.Background(), timeout)
-	} else {
-		ctx, cancel = context.WithCancel(context.Background())
-	}
-	defer cancel()
-	return q.FlushWithContext(ctx)
-}
-
-// FlushWithContext implements the final part of Flushable
-func (q *WrappedUniqueQueue) FlushWithContext(ctx context.Context) error {
-	log.Trace("WrappedUniqueQueue: %s FlushWithContext", q.Name())
-	errChan := make(chan error, 1)
-	go func() {
-		errChan <- q.flushInternalWithContext(ctx)
-		close(errChan)
-	}()
-
-	select {
-	case err := <-errChan:
-		return err
-	case <-ctx.Done():
-		go func() {
-			<-errChan
-		}()
-		return ctx.Err()
-	}
-}
-
 // IsEmpty checks whether the queue is empty
 func (q *WrappedUniqueQueue) IsEmpty() bool {
 	q.tlock.Lock()
@@ -214,55 +157,6 @@ func (q *WrappedUniqueQueue) IsEmpty() bool {
 	}
 	q.tlock.Unlock()
 	return false
-}
-
-// Run starts to run the queue and attempts to create the internal queue
-func (q *WrappedUniqueQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
-	q.lock.Lock()
-	if q.internal == nil {
-		err := q.setInternal(atShutdown, q.handle, q.exemplar)
-		q.lock.Unlock()
-		if err != nil {
-			log.Fatal("Unable to set the internal queue for %s Error: %v", q.Name(), err)
-			return
-		}
-		go func() {
-			for data := range q.channel {
-				_ = q.internal.Push(data)
-			}
-		}()
-	} else {
-		q.lock.Unlock()
-	}
-
-	q.internal.Run(atShutdown, atTerminate)
-	log.Trace("WrappedUniqueQueue: %s Done", q.name)
-}
-
-// Shutdown this queue and stop processing
-func (q *WrappedUniqueQueue) Shutdown() {
-	log.Trace("WrappedUniqueQueue: %s Shutdown", q.name)
-	q.lock.Lock()
-	defer q.lock.Unlock()
-	if q.internal == nil {
-		return
-	}
-	if shutdownable, ok := q.internal.(Shutdownable); ok {
-		shutdownable.Shutdown()
-	}
-}
-
-// Terminate this queue and close the queue
-func (q *WrappedUniqueQueue) Terminate() {
-	log.Trace("WrappedUniqueQueue: %s Terminating", q.name)
-	q.lock.Lock()
-	defer q.lock.Unlock()
-	if q.internal == nil {
-		return
-	}
-	if shutdownable, ok := q.internal.(Shutdownable); ok {
-		shutdownable.Terminate()
-	}
 }
 
 func init() {

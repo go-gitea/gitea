@@ -32,16 +32,18 @@ func TestLevelQueue(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	queue, err := NewLevelQueue(handle, LevelQueueConfiguration{
-		WorkerPoolConfiguration: WorkerPoolConfiguration{
-			QueueLength:  20,
-			BatchLength:  2,
-			BlockTimeout: 1 * time.Second,
-			BoostTimeout: 5 * time.Minute,
-			BoostWorkers: 5,
-			MaxWorkers:   10,
+		ByteFIFOQueueConfiguration: ByteFIFOQueueConfiguration{
+			WorkerPoolConfiguration: WorkerPoolConfiguration{
+				QueueLength:  20,
+				BatchLength:  2,
+				BlockTimeout: 1 * time.Second,
+				BoostTimeout: 5 * time.Minute,
+				BoostWorkers: 5,
+				MaxWorkers:   10,
+			},
+			Workers: 1,
 		},
 		DataDir: tmpDir,
-		Workers: 1,
 	}, &testData{})
 	assert.NoError(t, err)
 
@@ -94,16 +96,18 @@ func TestLevelQueue(t *testing.T) {
 		WrappedQueueConfiguration{
 			Underlying: LevelQueueType,
 			Config: LevelQueueConfiguration{
-				WorkerPoolConfiguration: WorkerPoolConfiguration{
-					QueueLength:  20,
-					BatchLength:  2,
-					BlockTimeout: 1 * time.Second,
-					BoostTimeout: 5 * time.Minute,
-					BoostWorkers: 5,
-					MaxWorkers:   10,
+				ByteFIFOQueueConfiguration: ByteFIFOQueueConfiguration{
+					WorkerPoolConfiguration: WorkerPoolConfiguration{
+						QueueLength:  20,
+						BatchLength:  2,
+						BlockTimeout: 1 * time.Second,
+						BoostTimeout: 5 * time.Minute,
+						BoostWorkers: 5,
+						MaxWorkers:   10,
+					},
+					Workers: 1,
 				},
 				DataDir: tmpDir,
-				Workers: 1,
 			},
 		}, &testData{})
 	assert.NoError(t, err)
