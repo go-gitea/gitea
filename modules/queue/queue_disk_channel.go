@@ -34,7 +34,7 @@ type PersistableChannelQueueConfiguration struct {
 
 // PersistableChannelQueue wraps a channel queue and level queue together
 // The disk level queue will be used to store data at shutdown and terminate - and will be restored
-// on start uq.
+// on start up.
 type PersistableChannelQueue struct {
 	channelQueue *ChannelQueue
 	delayedStarter
@@ -231,17 +231,17 @@ func (q *PersistableChannelQueue) IsEmpty() bool {
 // Shutdown processing this queue
 func (q *PersistableChannelQueue) Shutdown() {
 	log.Trace("PersistableChannelQueue: %s Shutting down", q.delayedStarter.name)
+	q.lock.Lock()
+	defer q.lock.Unlock()
 	select {
 	case <-q.closed:
 	default:
-		q.lock.Lock()
-		defer q.lock.Unlock()
 		if q.internal != nil {
 			q.internal.(*LevelQueue).Shutdown()
 		}
 		close(q.closed)
+		log.Debug("PersistableChannelQueue: %s Shutdown", q.delayedStarter.name)
 	}
-	log.Debug("PersistableChannelQueue: %s Shutdown", q.delayedStarter.name)
 }
 
 // Terminate this queue and close the queue
