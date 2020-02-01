@@ -71,7 +71,6 @@ func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 		for _, datum := range data {
 			wrapped.tlock.Lock()
 			if !wrapped.ready {
-				wrapped.tlock.Lock()
 				delete(wrapped.table, data)
 				if len(wrapped.table) == 0 {
 					wrapped.ready = true
