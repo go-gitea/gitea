@@ -234,6 +234,9 @@ func (u *User) GetEmail() string {
 
 // APIFormat converts a User to api.User
 func (u *User) APIFormat() *api.User {
+	if u == nil {
+		return nil
+	}
 	return &api.User{
 		ID:        u.ID,
 		UserName:  u.Name,

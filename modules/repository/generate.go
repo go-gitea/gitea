@@ -16,38 +16,62 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+
+	"github.com/huandu/xstrings"
 )
 
+type transformer struct {
+	Name      string
+	Transform func(string) string
+}
+
+type expansion struct {
+	Name         string
+	Value        string
+	Transformers []transformer
+}
+
+var defaultTransformers = []transformer{
+	{Name: "SNAKE", Transform: xstrings.ToSnakeCase},
+	{Name: "KEBAB", Transform: xstrings.ToKebabCase},
+	{Name: "CAMEL", Transform: func(str string) string {
+		return xstrings.FirstRuneToLower(xstrings.ToCamelCase(str))
+	}},
+	{Name: "PASCAL", Transform: xstrings.ToCamelCase},
+	{Name: "LOWER", Transform: strings.ToLower},
+	{Name: "UPPER", Transform: strings.ToUpper},
+	{Name: "TITLE", Transform: strings.Title},
+}
+
 func generateExpansion(src string, templateRepo, generateRepo *models.Repository) string {
-	return os.Expand(src, func(key string) string {
-		switch key {
-		case "REPO_NAME":
-			return generateRepo.Name
-		case "TEMPLATE_NAME":
-			return templateRepo.Name
-		case "REPO_DESCRIPTION":
-			return generateRepo.Description
-		case "TEMPLATE_DESCRIPTION":
-			return templateRepo.Description
-		case "REPO_OWNER":
-			return generateRepo.OwnerName
-		case "TEMPLATE_OWNER":
-			return templateRepo.OwnerName
-		case "REPO_LINK":
-			return generateRepo.Link()
-		case "TEMPLATE_LINK":
-			return templateRepo.Link()
-		case "REPO_HTTPS_URL":
-			return generateRepo.CloneLink().HTTPS
-		case "TEMPLATE_HTTPS_URL":
-			return templateRepo.CloneLink().HTTPS
-		case "REPO_SSH_URL":
-			return generateRepo.CloneLink().SSH
-		case "TEMPLATE_SSH_URL":
-			return templateRepo.CloneLink().SSH
-		default:
-			return key
+	expansions := []expansion{
+		{Name: "REPO_NAME", Value: generateRepo.Name, Transformers: defaultTransformers},
+		{Name: "TEMPLATE_NAME", Value: templateRepo.Name, Transformers: defaultTransformers},
+		{Name: "REPO_DESCRIPTION", Value: generateRepo.Description, Transformers: nil},
+		{Name: "TEMPLATE_DESCRIPTION", Value: templateRepo.Description, Transformers: nil},
+		{Name: "REPO_OWNER", Value: generateRepo.OwnerName, Transformers: defaultTransformers},
+		{Name: "TEMPLATE_OWNER", Value: templateRepo.OwnerName, Transformers: defaultTransformers},
+		{Name: "REPO_LINK", Value: generateRepo.Link(), Transformers: nil},
+		{Name: "TEMPLATE_LINK", Value: templateRepo.Link(), Transformers: nil},
+		{Name: "REPO_HTTPS_URL", Value: generateRepo.CloneLink().HTTPS, Transformers: nil},
+		{Name: "TEMPLATE_HTTPS_URL", Value: templateRepo.CloneLink().HTTPS, Transformers: nil},
+		{Name: "REPO_SSH_URL", Value: generateRepo.CloneLink().SSH, Transformers: nil},
+		{Name: "TEMPLATE_SSH_URL", Value: templateRepo.CloneLink().SSH, Transformers: nil},
+	}
+
+	var expansionMap = make(map[string]string)
+	for _, e := range expansions {
+		expansionMap[e.Name] = e.Value
+		for _, tr := range e.Transformers {
+			expansionMap[fmt.Sprintf("%s_%s", e.Name, tr.Name)] = tr.Transform(e.Value)
 		}
+	}
+
+	return os.Expand(src, func(key string) string {
+		if expansion, ok := expansionMap[key]; ok {
+			return expansion
+		}
+		return key
 	})
 }
 
@@ -104,41 +128,43 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 		return fmt.Errorf("checkGiteaTemplate: %v", err)
 	}
 
-	if err := os.Remove(gt.Path); err != nil {
-		return fmt.Errorf("remove .giteatemplate: %v", err)
-	}
+	if gt != nil {
+		if err := os.Remove(gt.Path); err != nil {
+			return fmt.Errorf("remove .giteatemplate: %v", err)
+		}
 
-	// Avoid walking tree if there are no globs
-	if len(gt.Globs()) > 0 {
-		tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
-		if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
-			if walkErr != nil {
-				return walkErr
-			}
-
-			if info.IsDir() {
-				return nil
-			}
-
-			base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
-			for _, g := range gt.Globs() {
-				if g.Match(base) {
-					content, err := ioutil.ReadFile(path)
-					if err != nil {
-						return err
-					}
-
-					if err := ioutil.WriteFile(path,
-						[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
-						0644); err != nil {
-						return err
-					}
-					break
+		// Avoid walking tree if there are no globs
+		if len(gt.Globs()) > 0 {
+			tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
+			if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
+				if walkErr != nil {
+					return walkErr
 				}
+
+				if info.IsDir() {
+					return nil
+				}
+
+				base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
+				for _, g := range gt.Globs() {
+					if g.Match(base) {
+						content, err := ioutil.ReadFile(path)
+						if err != nil {
+							return err
+						}
+
+						if err := ioutil.WriteFile(path,
+							[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
+							0644); err != nil {
+							return err
+						}
+						break
+					}
+				}
+				return nil
+			}); err != nil {
+				return err
 			}
-			return nil
-		}); err != nil {
-			return err
 		}
 	}
 
