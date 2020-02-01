@@ -9,9 +9,9 @@ HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 
 ifeq ($(HAS_GO), GO)
 	GOPATH ?= $(shell $(GO) env GOPATH)
+	export PATH := $(GOPATH)/bin:$(PATH)
 endif
 
-export PATH := $(GOPATH)/bin:$(PATH)
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE ?= gitea.exe
