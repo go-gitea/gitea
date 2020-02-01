@@ -98,6 +98,9 @@ func CreateUniqueQueue(name string, handle HandlerFunc, exemplar interface{}) Un
 	typ, err := validType(q.Type)
 	if err != nil || typ == PersistableChannelQueueType {
 		typ = PersistableChannelUniqueQueueType
+		if err != nil {
+			log.Error("Invalid type %s provided for queue named %s defaulting to %s", q.Type, name, string(typ))
+		}
 	}
 
 	returnable, err := NewQueue(typ, handle, cfg, exemplar)
