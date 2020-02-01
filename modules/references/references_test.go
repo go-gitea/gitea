@@ -152,12 +152,14 @@ func TestFindAllIssueReferences(t *testing.T) {
 			[]testResult{},
 		},
 		{
-			"For #24, and #25. yes; also #26; and #27: should",
+			"For #24, and #25. yes; also #26; #27? #28! and #29: should",
 			[]testResult{
 				{24, "", "", "24", false, XRefActionNone, &RefSpan{Start: 4, End: 7}, nil},
 				{25, "", "", "25", false, XRefActionNone, &RefSpan{Start: 13, End: 16}, nil},
 				{26, "", "", "26", false, XRefActionNone, &RefSpan{Start: 28, End: 31}, nil},
-				{27, "", "", "27", false, XRefActionNone, &RefSpan{Start: 37, End: 40}, nil},
+				{27, "", "", "27", false, XRefActionNone, &RefSpan{Start: 33, End: 36}, nil},
+				{28, "", "", "28", false, XRefActionNone, &RefSpan{Start: 38, End: 41}, nil},
+				{29, "", "", "29", false, XRefActionNone, &RefSpan{Start: 47, End: 50}, nil},
 			},
 		},
 		{
@@ -246,6 +248,16 @@ func testFixtures(t *testing.T, fixtures []testFixture, context string) {
 
 	// Restore for other tests that may rely on the original value
 	setting.AppURL = prevURL
+}
+
+func TestFindAllMentions(t *testing.T) {
+	res := FindAllMentionsBytes([]byte("@tasha, @mike; @lucy: @john"))
+	assert.EqualValues(t, []RefSpan{
+		{Start: 0, End: 6},
+		{Start: 8, End: 13},
+		{Start: 15, End: 20},
+		{Start: 22, End: 27},
+	}, res)
 }
 
 func TestRegExp_mentionPattern(t *testing.T) {
