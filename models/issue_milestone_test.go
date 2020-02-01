@@ -160,8 +160,9 @@ func TestUpdateMilestone(t *testing.T) {
 	milestone := AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
 	milestone.Name = "newMilestoneName"
 	milestone.Content = "newMilestoneContent"
-	assert.NoError(t, UpdateMilestone(milestone))
-	AssertExistsAndLoadBean(t, milestone)
+	assert.NoError(t, UpdateMilestone(milestone, milestone.IsClosed))
+	milestone = AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
+	assert.EqualValues(t, "newMilestoneName", milestone.Name)
 	CheckConsistencyFor(t, &Milestone{})
 }
 
