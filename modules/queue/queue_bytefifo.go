@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -81,6 +80,8 @@ func (q *ByteFIFOQueue) PushFunc(data Data, fn func() error) error {
 
 // IsEmpty checks if the queue is empty
 func (q *ByteFIFOQueue) IsEmpty() bool {
+	q.lock.Lock()
+	defer q.lock.Unlock()
 	if !q.WorkerPool.IsEmpty() {
 		return false
 	}
@@ -119,17 +120,17 @@ func (q *ByteFIFOQueue) readToChan() {
 			q.cancel()
 			return
 		default:
-			atomic.AddInt64(&q.numInQueue, 1)
+			q.lock.Lock()
 			bs, err := q.byteFIFO.Pop()
 			if err != nil {
+				q.lock.Unlock()
 				log.Error("%s: %s Error on Pop: %v", q.typ, q.name, err)
-				atomic.AddInt64(&q.numInQueue, -1)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 
 			if len(bs) == 0 {
-				atomic.AddInt64(&q.numInQueue, -1)
+				q.lock.Unlock()
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
@@ -137,14 +138,14 @@ func (q *ByteFIFOQueue) readToChan() {
 			data, err := unmarshalAs(bs, q.exemplar)
 			if err != nil {
 				log.Error("%s: %s Failed to unmarshal with error: %v", q.typ, q.name, err)
-				atomic.AddInt64(&q.numInQueue, -1)
+				q.lock.Unlock()
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 
 			log.Trace("%s %s: Task found: %#v", q.typ, q.name, data)
 			q.WorkerPool.Push(data)
-			atomic.AddInt64(&q.numInQueue, -1)
+			q.lock.Unlock()
 		}
 	}
 }
@@ -222,6 +223,5 @@ func (q *ByteFIFOUniqueQueue) Has(data Data) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	return q.byteFIFO.(UniqueByteFIFO).Has(bs)
 }
