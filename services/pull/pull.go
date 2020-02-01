@@ -407,7 +407,7 @@ func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
 
 	var errs errlist
 	for _, pr := range prs {
-		if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrIssueWasClosed(err) {
+		if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrPullWasClosed(err) {
 			errs = append(errs, err)
 		}
 	}
@@ -436,7 +436,7 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 		}
 
 		for _, pr := range prs {
-			if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrIssueWasClosed(err) {
+			if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrPullWasClosed(err) {
 				errs = append(errs, err)
 			}
 		}
