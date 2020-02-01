@@ -238,6 +238,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 			} else {
 				repoIDToRepo[pr.BaseRepoID] = pr.BaseRepo
 			}
+			pr.Issue.Repo = pr.BaseRepo
 
 			if pr.HasMerged {
 				baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
@@ -260,7 +261,6 @@ func loadBranches(ctx *context.Context) []*Branch {
 					mergeMovedOn = true
 				}
 			}
-
 		}
 
 		isIncluded := divergence.Ahead == 0 && ctx.Repo.Repository.DefaultBranch != branchName
