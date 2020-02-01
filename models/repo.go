@@ -197,6 +197,14 @@ type Repository struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+// SanitizedOriginalURL returns a sanitized OriginalURL
+func (repo *Repository) SanitizedOriginalURL() string {
+	if repo.OriginalURL == "" {
+		return ""
+	}
+	return util.SanitizeURLCredentials(repo.OriginalURL, false)
+}
+
 // ColorFormat returns a colored string to represent this repo
 func (repo *Repository) ColorFormat(s fmt.State) {
 	var ownerName interface{}
@@ -1561,6 +1569,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
 		return err
+	}
+
+	if len(repo.Topics) > 0 {
+		if err = removeTopicsFromRepo(sess, repo.ID); err != nil {
+			return err
+		}
 	}
 
 	// FIXME: Remove repository files should be executed after transaction succeed.

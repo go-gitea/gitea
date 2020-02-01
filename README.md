@@ -33,6 +33,10 @@ From the root of the source tree, run:
 
     TAGS="bindata" make build
 
+or if sqlite support is required:
+
+    TAGS="bindata sqlite sqlite_unlock_notify" make build
+
 More info: https://docs.gitea.io/en-us/install-from-source/
 
 ## Using

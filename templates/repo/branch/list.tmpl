@@ -73,7 +73,7 @@
 										</div>
 										{{end}}
 									</td>
-									<td class="two wide right aligned">
+									<td class="three wide right aligned">
 										{{if not .LatestPullRequest}}
 											{{if .IsIncluded}}
 												<a class="ui poping up orange small label" data-content="{{$.i18n.Tr "repo.branch.included_desc"}}" data-variation="tiny inverted" data-position="top right">
@@ -91,13 +91,13 @@
 											</a>
 											{{end}}
 										{{else}}
-											<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}">#{{.LatestPullRequest.Issue.Index}}</a>
+											<a href="{{.LatestPullRequest.Issue.HTMLURL}}">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
 											{{if .LatestPullRequest.HasMerged}}
-												<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui purple small label"><i class="octicon octicon-git-pull-request"></i> {{$.i18n.Tr "repo.pulls.merged"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui purple mini label"><i class="octicon octicon-git-pull-request"></i> {{$.i18n.Tr "repo.pulls.merged"}}</a>
 											{{else if .LatestPullRequest.Issue.IsClosed}}
-												<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui red small label"><i class="octicon octicon-issue-closed"></i> {{$.i18n.Tr "repo.issues.closed_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui red mini label"><i class="octicon octicon-issue-closed"></i> {{$.i18n.Tr "repo.issues.closed_title"}}</a>
 											{{else}}
-												<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}" class="ui green small label"><i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.issues.open_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui green mini label"><i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.issues.open_title"}}</a>
 											{{end}}
 										{{end}}
 									</td>

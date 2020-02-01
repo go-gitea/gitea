@@ -206,6 +206,8 @@ func FileHistory(ctx *context.Context) {
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireTribute"] = true
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
@@ -290,10 +292,10 @@ func Diff(ctx *context.Context) {
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
 func RawDiff(ctx *context.Context) {
-	if err := gitdiff.GetRawDiff(
+	if err := git.GetRawDiff(
 		models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
 		ctx.Params(":sha"),
-		gitdiff.RawDiffType(ctx.Params(":ext")),
+		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
 		ctx.ServerError("GetRawDiff", err)

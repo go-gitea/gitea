@@ -5,8 +5,9 @@ export GO111MODULE=off
 GO ?= go
 SED_INPLACE := sed -i
 SHASUM ?= shasum -a 256
+GOPATH ?= $(shell $(GO) env GOPATH)
 
-export PATH := $($(GO) env GOPATH)/bin:$(PATH)
+export PATH := $(GOPATH)/bin:$(PATH)
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE ?= gitea.exe
@@ -29,6 +30,10 @@ EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 
+ifneq ($(RACE_ENABLED),)
+	GOTESTFLAGS ?= -race
+endif
+
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
 	GITEA_VERSION ?= $(VERSION)
@@ -46,15 +51,13 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
 GO_SOURCES ?= $(shell find . -name "*.go" -type f)
-JS_SOURCES ?= $(shell find web_src/js web_src/css -type f)
-CSS_SOURCES ?= $(shell find web_src/less -type f)
+WEBPACK_SOURCES ?= $(shell find web_src/js web_src/css web_src/less -type f)
 
-JS_DEST := public/js/index.js
-CSS_DEST := public/css/index.css
+WEBPACK_DEST := public/js/index.js public/css/index.css
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
+BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
-JS_DEST_DIR := public/js
-CSS_DEST_DIR := public/css
+WEBPACK_DEST_DIRS := public/js public/css
 FOMANTIC_DEST_DIR := public/fomantic
 
 TAGS ?=
@@ -86,9 +89,6 @@ TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
-# $(call strip-suffix,filename)
-strip-suffix = $(firstword $(subst ., ,$(1)))
-
 .PHONY: all
 all: build
 
@@ -101,10 +101,9 @@ help:
 	@echo " - build             creates the entire project"
 	@echo " - clean             delete integration files and build files but not css and js files"
 	@echo " - clean-all         delete all generated files (integration test, build, css and js files)"
-	@echo " - css               rebuild only css files"
-	@echo " - js                rebuild only js files"
+	@echo " - webpack           rebuild only js and css files"
 	@echo " - fomantic          rebuild fomantic-ui files"
-	@echo " - generate          run \"make fomantic css js\" and \"go generate\""
+	@echo " - generate          run \"make fomantic webpack\" and \"go generate\""
 	@echo " - fmt               format the code"
 	@echo " - generate-swagger  generate the swagger spec from code comments"
 	@echo " - swagger-validate  check if the swagger spec is valid"
@@ -140,12 +139,12 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR) $(FOMANTIC_DEST_DIR)
+	rm -rf $(WEBPACK_DEST_DIRS) $(FOMANTIC_DEST_DIR)
 
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) \
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
 		integrations*.test \
 		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-mysql8/ integrations/gitea-integration-sqlite/ \
 		integrations/gitea-integration-mssql/ integrations/indexers-mysql/ integrations/indexers-mysql8/ integrations/indexers-pgsql integrations/indexers-sqlite \
@@ -160,8 +159,8 @@ vet:
 	$(GO) vet $(PACKAGES)
 
 .PHONY: generate
-generate: fomantic js css
-	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
+generate: fomantic webpack
+	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
@@ -224,7 +223,19 @@ fmt-check:
 
 .PHONY: test
 test:
-	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+
+PHONY: test-check
+test-check:
+	@echo "Checking if tests have changed the source tree...";
+	@diff=$$(git status -s); \
+	if [ -n "$$diff" ]; then \
+		echo "make test has changed files in the source tree:"; \
+		echo "$${diff}"; \
+		echo "You should change the tests to create these files in a temporary directory."; \
+		echo "Do not simply add these files to .gitignore"; \
+		exit 1; \
+	fi;
 
 .PHONY: test\#%
 test\#%:
@@ -239,7 +250,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -364,42 +375,42 @@ integration-test-coverage: integrations.cover.test generate-ini-mysql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
 integrations.mysql.test: git-check $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql.test
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql.test
 
 integrations.mysql8.test: git-check $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql8.test
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql8.test
 
 integrations.pgsql.test: git-check $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
 
 integrations.mssql.test: git-check $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mssql.test
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mssql.test
 
 integrations.sqlite.test: git-check $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 integrations.cover.test: git-check $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: migrations.mysql.test
 migrations.mysql.test: $(GO_SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.mysql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.mysql.test
 
 .PHONY: migrations.mysql8.test
 migrations.mysql8.test: $(GO_SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.mysql8.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.mysql8.test
 
 .PHONY: migrations.pgsql.test
 migrations.pgsql.test: $(GO_SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.pgsql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.pgsql.test
 
 .PHONY: migrations.mssql.test
 migrations.mssql.test: $(GO_SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.mssql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.mssql.test
 
 .PHONY: migrations.sqlite.test
 migrations.sqlite.test: $(GO_SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 .PHONY: check
 check: test
@@ -468,35 +479,41 @@ release-compress:
 
 node_modules: package-lock.json
 	npm install --no-save
+	@touch node_modules
 
 .PHONY: npm-update
-npm-update: node-check node_modules
+npm-update: node-check | node_modules
 	npx updates -cu
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
 
 .PHONY: js
-js: node-check $(JS_DEST)
+js:
+	@echo "'make js' is deprecated, please use 'make webpack'"
+	$(MAKE) webpack
 
-$(JS_DEST): node_modules $(JS_SOURCES)
-	npx eslint web_src/js webpack.config.js
-	npx webpack --hide-modules --display-entrypoints=false
+.PHONY: css
+css:
+	@echo "'make css' is deprecated, please use 'make webpack'"
+	$(MAKE) webpack
 
 .PHONY: fomantic
 fomantic: node-check $(FOMANTIC_DEST_DIR)
 
-$(FOMANTIC_DEST_DIR): node_modules semantic.json web_src/fomantic/theme.config.less
+$(FOMANTIC_DEST_DIR): semantic.json web_src/fomantic/theme.config.less | node_modules
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
+	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+	@touch $(FOMANTIC_DEST_DIR)
 
-.PHONY: css
-css: node-check $(CSS_DEST)
+.PHONY: webpack
+webpack: node-check $(WEBPACK_DEST)
 
-$(CSS_DEST): node_modules $(CSS_SOURCES)
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) webpack.config.js | node_modules
+	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
-	npx lessc web_src/less/index.less public/css/index.css
-	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	npx postcss --use autoprefixer --use cssnano --no-map --replace public/css/*
+	npx webpack --hide-modules --display-entrypoints=false
+	@touch $(WEBPACK_DEST)
 
 .PHONY: update-translations
 update-translations:
@@ -533,8 +550,10 @@ generate-images:
 	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
 					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
 					$(PWD)/public/img/favicon.ico
+	convert -flatten $(PWD)/public/img/favicon.png $(PWD)/public/img/apple-touch-icon.png
+
 	rm -rf $(TMPDIR)/images
-	$(foreach file, $(shell find public/img -type f -name '*.png'),zopflipng -m -y $(file) $(file);)
+	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
 
 .PHONY: pr
 pr:
