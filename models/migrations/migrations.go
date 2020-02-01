@@ -306,7 +306,7 @@ var migrations = []Migration{
 	NewMigration("Add columns to user and repository", addUserRepoMissingColumns),
 	// v125 -> v126
 	NewMigration("Add some columns on review for migration", addReviewMigrateInfo),
-	// v126 -> v127
+	// v127 -> v128
 	NewMigration("Add locked_resource table", addLockedResourceTable),
 }
 
