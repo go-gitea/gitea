@@ -32,6 +32,7 @@ var (
 		Description: "A command for extracting embedded resources, like templates and images",
 		Subcommands: []cli.Command{
 			subcmdList,
+			subcmdView,
 			subcmdExtract,
 		},
 	}
@@ -40,6 +41,18 @@ var (
 		Name:   "list",
 		Usage:  "List files matching the given pattern",
 		Action: runList,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:  "include-vendored,vendor",
+				Usage: "Include files under public/vendor as well",
+			},
+		},
+	}
+
+	subcmdView = cli.Command{
+		Name:   "view",
+		Usage:  "View a file matching the given pattern",
+		Action: runView,
 		Flags: []cli.Flag{
 			cli.BoolFlag{
 				Name:  "include-vendored,vendor",
@@ -132,6 +145,14 @@ func runList(c *cli.Context) error {
 	return nil
 }
 
+func runView(c *cli.Context) error {
+	if err := runViewDo(c); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		return err
+	}
+	return nil
+}
+
 func runExtract(c *cli.Context) error {
 	if err := runExtractDo(c); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -147,6 +168,29 @@ func runListDo(c *cli.Context) error {
 
 	for _, a := range assets {
 		fmt.Println(a.Path)
+	}
+
+	return nil
+}
+
+func runViewDo(c *cli.Context) error {
+	if err := initEmbeddedExtractor(c); err != nil {
+		return err
+	}
+
+	if len(assets) == 0 {
+		return fmt.Errorf("No files matched the given pattern")
+	} else if len(assets) > 1 {
+		return fmt.Errorf("Too many files matched the given pattern; try to be more specific")
+	}
+
+	data, err := assets[0].Section.Asset(assets[0].Name)
+	if err != nil {
+		return fmt.Errorf("%s: %v", assets[0].Path, err)
+	}
+
+	if _, err = os.Stdout.Write(data); err != nil {
+		return fmt.Errorf("%s: %v", assets[0].Path, err)
 	}
 
 	return nil
