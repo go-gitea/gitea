@@ -152,7 +152,7 @@ func NewQueueService() {
 
 	// Handle the old test pull requests configuration
 	// Please note this will be a unique queue
-	section = Cfg.Section("queue.test_pull_requests")
+	section = Cfg.Section("queue.pr_patch_checker")
 	sectionMap = map[string]bool{}
 	for _, key := range section.Keys() {
 		sectionMap[key.Name()] = true

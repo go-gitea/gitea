@@ -87,7 +87,8 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 	headFile := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
-	_, err = git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	_, err = git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).
+		RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
 		if strings.Contains(err.Error(), "exit status 1") {
@@ -107,7 +108,8 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 	cmd := commitID[:40] + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, err := git.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse", cmd).RunInDirWithEnv("", []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	mergeCommit, err := git.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse", cmd).
+		RunInDirWithEnv("", []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v", err)
 	} else if len(mergeCommit) < 40 {
@@ -182,10 +184,10 @@ func InitializePullRequests(ctx context.Context) {
 			return
 		default:
 			if err := prQueue.PushFunc(strconv.FormatInt(prID, 10), func() error {
-				log.Trace("Adding PR ID: %d to the test pull requests queue", prID)
+				log.Trace("Adding PR ID: %d to the pull requests patch checking queue", prID)
 				return nil
 			}); err != nil {
-				log.Error("Error adding prID: %s to the test pull requests queue %v", prID, err)
+				log.Error("Error adding prID: %s to the pull requests patch checking queue %v", prID, err)
 			}
 		}
 	}
@@ -197,7 +199,7 @@ func handle(data ...queue.Data) {
 		prID := datum.(string)
 		id := com.StrTo(prID).MustInt64()
 
-		log.Trace("Testing PR ID %d from the test pull requests queue", id)
+		log.Trace("Testing PR ID %d from the pull requests patch checking queue", id)
 
 		pr, err := models.GetPullRequestByID(id)
 		if err != nil {
@@ -221,10 +223,10 @@ func handle(data ...queue.Data) {
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() error {
-	prQueue = queue.CreateUniqueQueue("test_pull_requests", handle, "").(queue.UniqueQueue)
+	prQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "").(queue.UniqueQueue)
 
 	if prQueue == nil {
-		return fmt.Errorf("Unable to create test_pull_requests Queue")
+		return fmt.Errorf("Unable to create pr_patch_checker Queue")
 	}
 
 	go graceful.GetManager().RunWithShutdownFns(prQueue.Run)
