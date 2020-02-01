@@ -161,6 +161,12 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
+			"This user3/repo4#200, yes.",
+			[]testResult{
+				{200, "user3", "repo4", "200", false, XRefActionNone, &RefSpan{Start: 5, End: 20}, nil},
+			},
+		},
+		{
 			"Which abc. #9434 same as above",
 			[]testResult{
 				{9434, "", "", "9434", false, XRefActionNone, &RefSpan{Start: 11, End: 16}, nil},
