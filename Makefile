@@ -509,7 +509,7 @@ $(FOMANTIC_DEST_DIR): semantic.json web_src/fomantic/theme.config.less | node_mo
 .PHONY: webpack
 webpack: node-check $(WEBPACK_DEST)
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) | node_modules
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) webpack.config.js | node_modules
 	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
 	npx webpack --hide-modules --display-entrypoints=false
@@ -550,10 +550,10 @@ generate-images:
 	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
 					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
 					$(PWD)/public/img/favicon.ico
-	convert $(PWD)/public/img/favicon.png -fill white -opaque none $(PWD)/public/img/apple-touch-icon.png
-					
+	convert -flatten $(PWD)/public/img/favicon.png $(PWD)/public/img/apple-touch-icon.png
+
 	rm -rf $(TMPDIR)/images
-	$(foreach file, $(shell find public/img -type f -name '*.png'),zopflipng -m -y $(file) $(file);)
+	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
 
 .PHONY: pr
 pr:
