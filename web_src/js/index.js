@@ -1125,6 +1125,14 @@ function initRepository() {
       }
     });
   }
+
+  // Language stats
+  if ($('.language-stats').length > 0) {
+    $('.language-stats').on('click', (e) => {
+      e.preventDefault();
+      $('.language-stats-details, .repository-menu').slideToggle();
+    });
+  }
 }
 
 function initMigration() {

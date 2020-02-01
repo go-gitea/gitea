@@ -21,6 +21,9 @@
 					{{end}}
 				{{end}}
 				<div class="ui right metas">
+					{{if .PrimaryLanguage }}
+					<span class="text grey"><i class="color-icon" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
+					{{end}}
 					<span class="text grey"><i class="octicon octicon-star"></i> {{.NumStars}}</span>
 					<span class="text grey"><i class="octicon octicon-git-branch"></i> {{.NumForks}}</span>
 				</div>
