@@ -7,6 +7,7 @@ const PostCSSPresetEnv = require('postcss-preset-env');
 const PostCSSSafeParser = require('postcss-safe-parser');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
+const { statSync } = require('fs');
 const { resolve, parse } = require('path');
 const { SourceMapDevToolPlugin } = require('webpack');
 
@@ -84,6 +85,13 @@ module.exports = {
           {
             loader: 'babel-loader',
             options: {
+              cacheDirectory: true,
+              cacheCompression: false,
+              cacheIdentifier: [
+                resolve(__dirname, 'package.json'),
+                resolve(__dirname, 'package-lock.json'),
+                resolve(__dirname, 'webpack.config.js'),
+              ].map((path) => statSync(path).mtime.getTime()).join(':'),
               presets: [
                 [
                   '@babel/preset-env',
