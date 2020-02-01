@@ -170,15 +170,16 @@ func (q *ByteFIFOQueue) Terminate() {
 	select {
 	case <-q.terminated:
 		q.lock.Unlock()
+		return
 	default:
-		close(q.terminated)
-		q.lock.Unlock()
-		if log.IsDebug() {
-			log.Debug("%s: %s Closing with %d tasks left in queue", q.typ, q.name, q.byteFIFO.Len())
-		}
-		if err := q.byteFIFO.Close(); err != nil {
-			log.Error("Error whilst closing internal byte fifo in %s: %s: %v", q.typ, q.name, err)
-		}
+	}
+	close(q.terminated)
+	q.lock.Unlock()
+	if log.IsDebug() {
+		log.Debug("%s: %s Closing with %d tasks left in queue", q.typ, q.name, q.byteFIFO.Len())
+	}
+	if err := q.byteFIFO.Close(); err != nil {
+		log.Error("Error whilst closing internal byte fifo in %s: %s: %v", q.typ, q.name, err)
 	}
 	log.Debug("%s: %s Terminated", q.typ, q.name)
 }
