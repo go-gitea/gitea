@@ -207,11 +207,11 @@ func (q *PersistableChannelUniqueQueue) Flush(timeout time.Duration) error {
 // Shutdown processing this queue
 func (q *PersistableChannelUniqueQueue) Shutdown() {
 	log.Trace("PersistableChannelUniqueQueue: %s Shutting down", q.delayedStarter.name)
+	q.lock.Lock()
+	defer q.lock.Unlock()
 	select {
 	case <-q.closed:
 	default:
-		q.lock.Lock()
-		defer q.lock.Unlock()
 		if q.internal != nil {
 			q.internal.(*LevelUniqueQueue).Shutdown()
 		}
