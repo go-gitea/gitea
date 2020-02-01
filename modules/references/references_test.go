@@ -142,18 +142,17 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
-			"For (#345) also",
+			"For (#345) yes",
 			[]testResult{
 				{345, "", "", "345", false, XRefActionNone, &RefSpan{Start: 5, End: 9}, nil},
 			},
 		},
 		{
 			"For #22,#23 no, neither #28:#29 or !30!31#32;33 should",
-			[]testResult{
-			},
+			[]testResult{},
 		},
 		{
-			"For #24, and #25. yes, also #26; and #27: should",
+			"For #24, and #25. yes; also #26; and #27: should",
 			[]testResult{
 				{24, "", "", "24", false, XRefActionNone, &RefSpan{Start: 4, End: 7}, nil},
 				{25, "", "", "25", false, XRefActionNone, &RefSpan{Start: 13, End: 16}, nil},

@@ -301,6 +301,10 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 }
 
 func getCrossReference(content []byte, start, end int, fromLink bool, prOnly bool) *rawReference {
+	// Drop last character if it's a space to avoid skipping consecutive content
+	if content[end-1] == ' ' {
+		end--
+	}
 	refid := string(content[start:end])
 	sep := strings.IndexAny(refid, "#!")
 	if sep < 0 {
