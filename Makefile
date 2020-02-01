@@ -509,7 +509,7 @@ $(FOMANTIC_DEST_DIR): semantic.json web_src/fomantic/theme.config.less | node_mo
 .PHONY: webpack
 webpack: node-check $(WEBPACK_DEST)
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) | node_modules
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) webpack.config.js | node_modules
 	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
 	npx webpack --hide-modules --display-entrypoints=false
