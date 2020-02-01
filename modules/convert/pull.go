@@ -5,6 +5,8 @@
 package convert
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -23,10 +25,12 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		headCommit *git.Commit
 		err        error
 	)
+
 	if err = pr.Issue.LoadRepo(); err != nil {
-		log.Error("loadRepo[%d]: %v", pr.ID, err)
+		log.Error("pr.Issue.LoadRepo[%d]: %v", pr.ID, err)
 		return nil
 	}
+
 	apiIssue := pr.Issue.APIFormat()
 	if pr.BaseRepo == nil {
 		pr.BaseRepo, err = models.GetRepositoryByID(pr.BaseRepoID)
@@ -35,17 +39,13 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 			return nil
 		}
 	}
-	if pr.HeadRepo == nil {
+	if pr.HeadRepoID != 0 && pr.HeadRepo == nil {
 		pr.HeadRepo, err = models.GetRepositoryByID(pr.HeadRepoID)
-		if err != nil {
+		if err != nil && !models.IsErrRepoNotExist(err) {
 			log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 			return nil
-		}
-	}
 
-	if err = pr.Issue.LoadRepo(); err != nil {
-		log.Error("pr.Issue.loadRepo[%d]: %v", pr.ID, err)
-		return nil
+		}
 	}
 
 	apiPullRequest := &api.PullRequest{
@@ -99,33 +99,41 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		apiPullRequest.Base = apiBaseBranchInfo
 	}
 
-	headBranch, err = repo_module.GetBranch(pr.HeadRepo, pr.HeadBranch)
-	if err != nil {
-		if git.IsErrBranchNotExist(err) {
-			apiPullRequest.Head = nil
-		} else {
-			log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
-			return nil
-		}
-	} else {
-		apiHeadBranchInfo := &api.PRBranchInfo{
-			Name:       pr.HeadBranch,
-			Ref:        pr.HeadBranch,
-			RepoID:     pr.HeadRepoID,
-			Repository: pr.HeadRepo.APIFormat(models.AccessModeNone),
-		}
-		headCommit, err = headBranch.GetCommit()
+	if pr.HeadRepo != nil {
+		headBranch, err = repo_module.GetBranch(pr.HeadRepo, pr.HeadBranch)
 		if err != nil {
-			if git.IsErrNotExist(err) {
-				apiHeadBranchInfo.Sha = ""
+			if git.IsErrBranchNotExist(err) {
+				apiPullRequest.Head = nil
 			} else {
-				log.Error("GetCommit[%s]: %v", headBranch.Name, err)
+				log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
 				return nil
 			}
 		} else {
-			apiHeadBranchInfo.Sha = headCommit.ID.String()
+			apiHeadBranchInfo := &api.PRBranchInfo{
+				Name:       pr.HeadBranch,
+				Ref:        pr.HeadBranch,
+				RepoID:     pr.HeadRepoID,
+				Repository: pr.HeadRepo.APIFormat(models.AccessModeNone),
+			}
+			headCommit, err = headBranch.GetCommit()
+			if err != nil {
+				if git.IsErrNotExist(err) {
+					apiHeadBranchInfo.Sha = ""
+				} else {
+					log.Error("GetCommit[%s]: %v", headBranch.Name, err)
+					return nil
+				}
+			} else {
+				apiHeadBranchInfo.Sha = headCommit.ID.String()
+			}
+			apiPullRequest.Head = apiHeadBranchInfo
 		}
-		apiPullRequest.Head = apiHeadBranchInfo
+	} else {
+		apiPullRequest.Head = &api.PRBranchInfo{
+			Name:   pr.HeadBranch,
+			Ref:    fmt.Sprintf("refs/pull/%d/head", pr.Index),
+			RepoID: -1,
+		}
 	}
 
 	if pr.Status != models.PullRequestStatusChecking {

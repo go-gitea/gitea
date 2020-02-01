@@ -1369,7 +1369,16 @@ function initWikiForm() {
         }, '|',
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
-        'clean-block', 'preview', 'fullscreen', 'side-by-side']
+        'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
+        {
+          name: 'revert-to-textarea',
+          action(e) {
+            e.toTextArea();
+          },
+          className: 'fa fa-file',
+          title: 'Revert to simple textarea',
+        },
+      ]
     });
     $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
 
@@ -1473,7 +1482,16 @@ function setSimpleMDE($editArea) {
       'code', 'quote', '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block', 'preview', 'fullscreen', 'side-by-side']
+      'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
+      {
+        name: 'revert-to-textarea',
+        action(e) {
+          e.toTextArea();
+        },
+        className: 'fa fa-file',
+        title: 'Revert to simple textarea',
+      },
+    ]
   });
 
   return true;
@@ -1495,7 +1513,16 @@ function setCommentSimpleMDE($editArea) {
       'code', 'quote', '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block']
+      'clean-block', '|',
+      {
+        name: 'revert-to-textarea',
+        action(e) {
+          e.toTextArea();
+        },
+        className: 'fa fa-file',
+        title: 'Revert to simple textarea',
+      },
+    ]
   });
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
