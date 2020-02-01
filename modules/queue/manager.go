@@ -183,14 +183,15 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 			}
 			allEmpty = false
 			if flushable, ok := mq.Managed.(Flushable); ok {
+				ourmq := mq
 				go func() {
 					localCtx, localCancel := context.WithCancel(ctx)
-					pid := mq.RegisterWorkers(1, start, hasTimeout, end, localCancel, true)
+					pid := ourmq.RegisterWorkers(1, start, hasTimeout, end, localCancel, true)
 					err := flushable.FlushWithContext(localCtx)
 					if err != nil && err != ctx.Err() {
 						cancel()
 					}
-					mq.CancelWorkers(pid)
+					ourmq.CancelWorkers(pid)
 					localCancel()
 					wg.Done()
 				}()
