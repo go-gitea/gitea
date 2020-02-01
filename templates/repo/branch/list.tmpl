@@ -91,7 +91,7 @@
 											</a>
 											{{end}}
 										{{else}}
-											<a href="{{.LatestPullRequest.Issue.HTMLURL}}">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
+											<a href="{{.LatestPullRequest.Issue.HTMLURL}}">{{if ne .LatestPullRequest.BaseRepoID .LatestPullRequest.HeadRepoID}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
 											{{if .LatestPullRequest.HasMerged}}
 												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui purple mini label"><i class="octicon octicon-git-pull-request"></i> {{$.i18n.Tr "repo.pulls.merged"}}</a>
 											{{else if .LatestPullRequest.Issue.IsClosed}}
