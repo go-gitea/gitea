@@ -73,7 +73,11 @@ func (fifo *LevelUniqueQueueByteFIFO) PushFunc(data []byte, fn func() error) err
 
 // Pop pops data from the start of the fifo
 func (fifo *LevelUniqueQueueByteFIFO) Pop() ([]byte, error) {
-	return fifo.internal.RPop()
+	data, err := fifo.internal.RPop()
+	if err != nil && err != levelqueue.ErrNotFound {
+		return nil, err
+	}
+	return data, nil
 }
 
 // Len returns the length of the fifo

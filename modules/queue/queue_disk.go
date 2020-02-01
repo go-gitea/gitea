@@ -67,18 +67,18 @@ func NewLevelQueueByteFIFO(dataDir string) (*LevelQueueByteFIFO, error) {
 }
 
 // PushFunc will push data into the fifo
-func (q *LevelQueueByteFIFO) PushFunc(data []byte, fn func() error) error {
+func (fifo *LevelQueueByteFIFO) PushFunc(data []byte, fn func() error) error {
 	if fn != nil {
 		if err := fn(); err != nil {
 			return err
 		}
 	}
-	return q.internal.LPush(data)
+	return fifo.internal.LPush(data)
 }
 
 // Pop pops data from the start of the fifo
-func (q *LevelQueueByteFIFO) Pop() ([]byte, error) {
-	data, err := q.internal.RPop()
+func (fifo *LevelQueueByteFIFO) Pop() ([]byte, error) {
+	data, err := fifo.internal.RPop()
 	if err != nil && err != levelqueue.ErrNotFound {
 		return nil, err
 	}
@@ -86,13 +86,13 @@ func (q *LevelQueueByteFIFO) Pop() ([]byte, error) {
 }
 
 // Close this fifo
-func (q *LevelQueueByteFIFO) Close() error {
-	return q.internal.Close()
+func (fifo *LevelQueueByteFIFO) Close() error {
+	return fifo.internal.Close()
 }
 
 // Len returns the length of the fifo
-func (q *LevelQueueByteFIFO) Len() int64 {
-	return q.internal.Len()
+func (fifo *LevelQueueByteFIFO) Len() int64 {
+	return fifo.internal.Len()
 }
 
 func init() {
