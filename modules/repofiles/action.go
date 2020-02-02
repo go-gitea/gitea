@@ -188,7 +188,7 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 		refName := git.RefEndName(opts.RefFullName)
 
 		// Change default branch and empty status only if pushed ref is non-empty branch.
-		if repo.IsEmpty && !opts.isDelRef() && opts.isBranch() {
+		if repo.IsEmpty && opts.IsBranch() && !opts.IsDelRef() {
 			repo.DefaultBranch = refName
 			repo.IsEmpty = false
 			if refName != "master" {
@@ -209,18 +209,18 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 		opType := models.ActionCommitRepo
 
 		// Check it's tag push or branch.
-		if opts.isTag() {
+		if opts.IsTag() {
 			opType = models.ActionPushTag
-			if opts.isDelRef() {
+			if opts.IsDelRef() {
 				opType = models.ActionDeleteTag
 			}
 			opts.Commits = &repository.PushCommits{}
-		} else if opts.isDelRef() {
+		} else if opts.IsDelRef() {
 			opType = models.ActionDeleteBranch
 			opts.Commits = &repository.PushCommits{}
 		} else {
 			// if not the first commit, set the compare URL.
-			if !opts.isNewRef() {
+			if !opts.IsNewRef() {
 				opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 			}
 
@@ -252,7 +252,7 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 		var isHookEventPush = true
 		switch opType {
 		case models.ActionCommitRepo: // Push
-			if opts.isNewBranch() {
+			if opts.IsNewBranch() {
 				notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
 			}
 		case models.ActionDeleteBranch: // Delete Branch
