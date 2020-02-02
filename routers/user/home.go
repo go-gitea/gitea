@@ -538,13 +538,17 @@ func Issues(ctx *context.Context) {
 		}
 	}
 
-	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
+	issueStatsOpts := models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
 		IsClosed:    isShowClosed,
-	})
+	}
+	if len(repoIDs) > 0 {
+		issueStatsOpts.UserRepoIDs = repoIDs
+	}
+	issueStats, err := models.GetUserIssueStats(issueStatsOpts)
 	if err != nil {
 		ctx.ServerError("GetUserIssueStats", err)
 		return
