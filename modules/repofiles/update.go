@@ -455,12 +455,58 @@ type PushUpdateOptions struct {
 	Branch       string
 }
 
+func (opts PushUpdateOptions) isNewRef() bool {
+	return opts.OldCommitID == git.EmptySHA
+}
+
+func (opts PushUpdateOptions) isDelRef() bool {
+	return opts.NewCommitID == git.EmptySHA
+}
+
+func (opts PushUpdateOptions) isUpdateRef() bool {
+	return !opts.isNewRef() && !opts.isDelRef()
+}
+
+func (opts PushUpdateOptions) isTag() bool {
+	return strings.HasPrefix(opts.RefFullName, git.TagPrefix)
+}
+
+func (opts PushUpdateOptions) isNewTag() bool {
+	return opts.isTag() && opts.isNewRef()
+}
+
+func (opts PushUpdateOptions) isDelTag() bool {
+	return opts.isTag() && opts.isDelRef()
+}
+
+func (opts PushUpdateOptions) isBranch() bool {
+	return strings.HasPrefix(opts.RefFullName, git.BranchPrefix)
+}
+
+func (opts PushUpdateOptions) isNewBranch() bool {
+	return opts.isBranch() && opts.isNewRef()
+}
+
+func (opts PushUpdateOptions) isUpdateBranch() bool {
+	return opts.isBranch() && opts.isUpdateRef()
+}
+
+func (opts PushUpdateOptions) isDelBranch() bool {
+	return opts.isBranch() && opts.isDelRef()
+}
+
+func (opts PushUpdateOptions) tagName() string {
+	return opts.RefFullName[len(git.TagPrefix):]
+}
+
+func (opts PushUpdateOptions) branchName() string {
+	return opts.RefFullName[len(git.BranchPrefix):]
+}
+
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds and other operations
 func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) error {
-	isNewRef := opts.OldCommitID == git.EmptySHA
-	isDelRef := opts.NewCommitID == git.EmptySHA
-	if isNewRef && isDelRef {
+	if opts.isNewRef() && opts.isDelRef() {
 		return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
 
@@ -495,7 +541,7 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 		return err
 	}
 
-	if !isDelRef {
+	if !opts.isDelRef() {
 		if err = models.RemoveDeletedBranch(repo.ID, opts.Branch); err != nil {
 			log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, opts.Branch, err)
 		}
@@ -526,6 +572,8 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer gitRepo.Close()
+
 	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
@@ -549,7 +597,7 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 			}
 		}
 
-		if opts.NewCommitID != git.EmptySHA {
+		if !opts.isDelRef() {
 			if err = models.RemoveDeletedBranch(repo.ID, opts.Branch); err != nil {
 				log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, opts.Branch, err)
 			}
@@ -576,26 +624,24 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 	actions := make([]*CommitRepoActionOptions, 0, len(optsList))
 
 	for _, opts := range optsList {
-		isNewRef := opts.OldCommitID == git.EmptySHA
-		isDelRef := opts.NewCommitID == git.EmptySHA
-		if isNewRef && isDelRef {
+		if opts.isNewRef() && opts.isDelRef() {
 			return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 		}
 		var commits = &repo_module.PushCommits{}
-		if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
+		if opts.isNewTag() {
 			// If is tag reference
-			tagName := opts.RefFullName[len(git.TagPrefix):]
-			if isDelRef {
+			tagName := opts.tagName()
+			if opts.isDelRef() {
 				delTags = append(delTags, tagName)
 			} else {
 				cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
 				addTags = append(addTags, tagName)
 			}
-		} else if !isDelRef {
+		} else if !opts.isDelRef() {
 			// If is branch reference
 
 			// Clear cache for branch commit count
-			cache.Remove(repo.GetCommitsCountCacheKey(opts.RefFullName[len(git.BranchPrefix):], true))
+			cache.Remove(repo.GetCommitsCountCacheKey(opts.branchName(), true))
 
 			newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 			if err != nil {
@@ -604,7 +650,7 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 
 			// Push new branch.
 			var l *list.List
-			if isNewRef {
+			if opts.isNewRef() {
 				l, err = newCommit.CommitsBeforeLimit(10)
 				if err != nil {
 					return nil, fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
@@ -619,13 +665,9 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 			commits = repo_module.ListToPushCommits(l)
 		}
 		actions = append(actions, &CommitRepoActionOptions{
-			PusherName:  opts.PusherName,
-			RepoOwnerID: repo.OwnerID,
-			RepoName:    repo.Name,
-			RefFullName: opts.RefFullName,
-			OldCommitID: opts.OldCommitID,
-			NewCommitID: opts.NewCommitID,
-			Commits:     commits,
+			PushUpdateOptions: *opts,
+			RepoOwnerID:       repo.OwnerID,
+			Commits:           commits,
 		})
 	}
 	if err := models.PushUpdateAddDeleteTags(repo, gitRepo, addTags, delTags); err != nil {
@@ -635,17 +677,11 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 }
 
 func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Repository, opts *PushUpdateOptions) (*CommitRepoActionOptions, error) {
-	isNewRef := opts.OldCommitID == git.EmptySHA
-	isDelRef := opts.NewCommitID == git.EmptySHA
-	if isNewRef && isDelRef {
-		return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
-	}
-
 	var commits = &repo_module.PushCommits{}
-	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
+	if opts.isTag() {
 		// If is tag reference
-		tagName := opts.RefFullName[len(git.TagPrefix):]
-		if isDelRef {
+		tagName := opts.tagName()
+		if opts.isDelRef() {
 			if err := models.PushUpdateDeleteTag(repo, tagName); err != nil {
 				return nil, fmt.Errorf("PushUpdateDeleteTag: %v", err)
 			}
@@ -656,11 +692,11 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 				return nil, fmt.Errorf("PushUpdateAddTag: %v", err)
 			}
 		}
-	} else if !isDelRef {
+	} else if !opts.isDelRef() {
 		// If is branch reference
 
 		// Clear cache for branch commit count
-		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefFullName[len(git.BranchPrefix):], true))
+		cache.Remove(repo.GetCommitsCountCacheKey(opts.branchName(), true))
 
 		newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 		if err != nil {
@@ -669,7 +705,7 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 
 		// Push new branch.
 		var l *list.List
-		if isNewRef {
+		if opts.isNewRef() {
 			l, err = newCommit.CommitsBeforeLimit(10)
 			if err != nil {
 				return nil, fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
@@ -685,12 +721,8 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 	}
 
 	return &CommitRepoActionOptions{
-		PusherName:  opts.PusherName,
-		RepoOwnerID: repo.OwnerID,
-		RepoName:    repo.Name,
-		RefFullName: opts.RefFullName,
-		OldCommitID: opts.OldCommitID,
-		NewCommitID: opts.NewCommitID,
-		Commits:     commits,
+		PushUpdateOptions: *opts,
+		RepoOwnerID:       repo.OwnerID,
+		Commits:           commits,
 	}, nil
 }
