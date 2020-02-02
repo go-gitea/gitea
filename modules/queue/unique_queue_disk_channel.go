@@ -31,6 +31,10 @@ type PersistableChannelUniqueQueueConfiguration struct {
 }
 
 // PersistableChannelUniqueQueue wraps a channel queue and level queue together
+//
+// Please note that this Queue does not guarantee that a particular
+// task cannot be processed twice or more at the same time. Uniqueness is
+// only guaranteed whilst the task is waiting in the queue.
 type PersistableChannelUniqueQueue struct {
 	*ChannelUniqueQueue
 	delayedStarter

@@ -23,6 +23,10 @@ type LevelUniqueQueue struct {
 }
 
 // NewLevelUniqueQueue creates a ledis local queue
+//
+// Please note that this Queue does not guarantee that a particular
+// task cannot be processed twice or more at the same time. Uniqueness is
+// only guaranteed whilst the task is waiting in the queue.
 func NewLevelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error) {
 	configInterface, err := toConfig(LevelUniqueQueueConfiguration{}, cfg)
 	if err != nil {

@@ -13,7 +13,9 @@ import (
 // discarded if there is already one in the line.
 //
 // This queue is particularly useful for preventing duplicated task
-// of same purpose.
+// of same purpose - please note that this does not guarantee that a particular
+// task cannot be processed twice or more at the same time. Uniqueness is
+// only guaranteed whilst the task is waiting in the queue.
 //
 // Users of this queue should be careful to push only the identifier of the
 // data

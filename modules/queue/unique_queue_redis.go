@@ -18,7 +18,11 @@ type RedisUniqueQueueConfiguration struct {
 	RedisUniqueByteFIFOConfiguration
 }
 
-// NewRedisUniqueQueue creates single redis or cluster redis queue
+// NewRedisUniqueQueue creates single redis or cluster redis queue.
+//
+// Please note that this Queue does not guarantee that a particular
+// task cannot be processed twice or more at the same time. Uniqueness is
+// only guaranteed whilst the task is waiting in the queue.
 func NewRedisUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error) {
 	configInterface, err := toConfig(RedisUniqueQueueConfiguration{}, cfg)
 	if err != nil {

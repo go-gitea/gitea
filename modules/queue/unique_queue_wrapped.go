@@ -35,6 +35,10 @@ type WrappedUniqueQueue struct {
 // but if there is a problem creating this queue it will instead create
 // a WrappedUniqueQueue with delayed startup of the queue instead and a
 // channel which will be redirected to the queue
+//
+// Please note that this Queue does not guarantee that a particular
+// task cannot be processed twice or more at the same time. Uniqueness is
+// only guaranteed whilst the task is waiting in the queue.
 func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error) {
 	configInterface, err := toConfig(WrappedUniqueQueueConfiguration{}, cfg)
 	if err != nil {
@@ -67,11 +71,17 @@ func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 		table: map[Data]bool{},
 	}
 
+	// wrapped.handle is passed to the delayedStarting internal queue and is run to handle
+	// data passed to
 	wrapped.handle = func(data ...Data) {
 		for _, datum := range data {
 			wrapped.tlock.Lock()
 			if !wrapped.ready {
 				delete(wrapped.table, data)
+				// If our table is empty all of the requests we have buffered between the
+				// wrapper queue starting and the internal queue starting have been handled.
+				// We can stop buffering requests in our local table and just pass Push
+				// direct to the internal queue
 				if len(wrapped.table) == 0 {
 					wrapped.ready = true
 				}
@@ -97,6 +107,10 @@ func (q *WrappedUniqueQueue) PushFunc(data Data, fn func() error) error {
 
 	q.tlock.Lock()
 	if q.ready {
+		// ready means our table is empty and all of the requests we have buffered between the
+		// wrapper queue starting and the internal queue starting have been handled.
+		// We can stop buffering requests in our local table and just pass Push
+		// direct to the internal queue
 		q.tlock.Unlock()
 		return q.internal.(UniqueQueue).PushFunc(data, fn)
 	}

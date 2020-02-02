@@ -21,7 +21,11 @@ type ChannelUniqueQueueConfiguration ChannelQueueConfiguration
 // ChannelUniqueQueue implements UniqueQueue
 //
 // It is basically a thin wrapper around a WorkerPool but keeps a store of
-// what has been pushed within a table
+// what has been pushed within a table.
+//
+// Please note that this Queue does not guarantee that a particular
+// task cannot be processed twice or more at the same time. Uniqueness is
+// only guaranteed whilst the task is waiting in the queue.
 type ChannelUniqueQueue struct {
 	*WorkerPool
 	lock     sync.Mutex
