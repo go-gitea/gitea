@@ -50,7 +50,6 @@
 	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
 {{end}}
-
 	<script>
 	{{SafeJS `/*
 	@licstart  The following is the entire license notice for the
@@ -84,13 +83,25 @@
         for the JavaScript code in this page.
 	*/`}}
 	</script>
-
-	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png" />
+	<script>
+		window.config = {
+			Datetimepicker: {{if .RequireDatetimepicker}}true{{else}}false{{end}},
+			Dropzone: {{if .RequireDropzone}}true{{else}}false{{end}},
+			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
+			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},
+			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
+			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
+			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
+		};
+	</script>
+	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">
+	<link rel="apple-touch-icon" href="{{StaticUrlPrefix}}/img/apple-touch-icon.png">
 	<link rel="mask-icon" href="{{StaticUrlPrefix}}/img/gitea-safari.svg" color="#609926">
-	<link rel="preload" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css" as="style" onload="this.rel='stylesheet'">
-	<noscript><link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css"></noscript>
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css">
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/octicons/octicons.min.css">
-
+	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/icons.woff2" type="font/woff2" crossorigin="anonymous">
+	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/outline-icons.woff2" type="font/woff2" crossorigin="anonymous">
+	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/vendor/assets/octicons/octicons.woff2?ef21c39f0ca9b1b5116e5eb7ac5eabe6" type="font/woff2" crossorigin="anonymous">
 {{if .RequireSimpleMDE}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.css">
 {{end}}
@@ -98,9 +109,7 @@
 {{if .RequireTribute}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/tribute/tribute.css">
 {{end}}
-
-	<!-- Stylesheet -->
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/fomantic/semantic.min.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/fomantic/semantic.min.css?v={{MD5 AppVer}}">
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
 	<noscript>
 		<style>
@@ -108,10 +117,6 @@
 			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
 		</style>
 	</noscript>
-
-{{if .RequireHighlightJS}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/highlight/github.css">
-{{end}}
 {{if .RequireMinicolors}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
 {{end}}
@@ -125,9 +130,6 @@
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.css">
 {{end}}
 	<style class="list-search-style"></style>
-
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/cssrelpreload/loadCSS.min.js"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/cssrelpreload/cssrelpreload.min.js"></script>
 {{if .PageIsUserProfile}}
 	<meta property="og:title" content="{{.Owner.Name}}" />
 	<meta property="og:type" content="profile" />

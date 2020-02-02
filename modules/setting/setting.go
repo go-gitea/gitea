@@ -511,6 +511,7 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 		CustomConf = path.Join(CustomPath, "conf/app.ini")
 	} else if !filepath.IsAbs(CustomConf) {
 		CustomConf = path.Join(CustomPath, CustomConf)
+		log.Warn("Using 'custom' directory as relative origin for configuration file: '%s'", CustomConf)
 	}
 }
 
@@ -554,6 +555,12 @@ func NewContext() {
 		Protocol = HTTPS
 		CertFile = sec.Key("CERT_FILE").String()
 		KeyFile = sec.Key("KEY_FILE").String()
+		if !filepath.IsAbs(CertFile) && len(CertFile) > 0 {
+			CertFile = filepath.Join(CustomPath, CertFile)
+		}
+		if !filepath.IsAbs(KeyFile) && len(KeyFile) > 0 {
+			KeyFile = filepath.Join(CustomPath, KeyFile)
+		}
 	case "fcgi":
 		Protocol = FCGI
 	case "fcgi+unix":

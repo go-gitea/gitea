@@ -65,7 +65,9 @@ To migrate from Gogs to Gitea:
 * [Gogs version 0.9.146 or less]({{< relref "doc/upgrade/from-gogs.en-us.md" >}})
 * [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
-To migrate from GitHub to Gitea, you can use Gitea's [Migrator tool](https://gitea.com/gitea/migrator)
+To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.  
+In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.  
+[Example (requires login)](https://try.gitea.io/repo/migrate)
 
 To migrate from Gitlab to Gitea, you can use this non-affiliated tool:  
 https://github.com/loganinak/MigrateGitlabToGogs

@@ -54,7 +54,7 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	if err := ctx.User.GetOrganizations(true); err != nil {
+	if err := ctx.User.GetOrganizations(&models.SearchOrganizationsOptions{All: true}); err != nil {
 		ctx.ServerError("GetOrganizations", err)
 		return nil
 	}
@@ -159,6 +159,12 @@ func Dashboard(ctx *context.Context) {
 
 // Milestones render the user milestones page
 func Milestones(ctx *context.Context) {
+	if models.UnitTypeIssues.UnitGlobalDisabled() && models.UnitTypePullRequests.UnitGlobalDisabled() {
+		log.Debug("Milestones overview page not available as both issues and pull requests are globally disabled")
+		ctx.Status(404)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("milestones")
 	ctx.Data["PageIsMilestonesDashboard"] = true
 
@@ -336,10 +342,22 @@ func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
 	unitType := models.UnitTypeIssues
 	if isPullList {
+		if models.UnitTypePullRequests.UnitGlobalDisabled() {
+			log.Debug("Pull request overview page not available as it is globally disabled.")
+			ctx.Status(404)
+			return
+		}
+
 		ctx.Data["Title"] = ctx.Tr("pull_requests")
 		ctx.Data["PageIsPulls"] = true
 		unitType = models.UnitTypePullRequests
 	} else {
+		if models.UnitTypeIssues.UnitGlobalDisabled() {
+			log.Debug("Issues overview page not available as it is globally disabled.")
+			ctx.Status(404)
+			return
+		}
+
 		ctx.Data["Title"] = ctx.Tr("issues")
 		ctx.Data["PageIsIssues"] = true
 	}
@@ -660,7 +678,7 @@ func Issues(ctx *context.Context) {
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListPublicKeys(uid)
+	keys, err := models.ListPublicKeys(uid, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -676,7 +694,7 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListGPGKeys(uid)
+	keys, err := models.ListGPGKeys(uid, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return

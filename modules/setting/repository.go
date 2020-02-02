@@ -37,6 +37,9 @@ var (
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
 		EnablePushCreateUser                    bool
 		EnablePushCreateOrg                     bool
+		DisabledRepoUnits                       []string
+		DefaultRepoUnits                        []string
+		PrefixArchiveFiles                      bool
 
 		// Repository editor settings
 		Editor struct {
@@ -98,6 +101,9 @@ var (
 		DefaultCloseIssuesViaCommitsInAnyBranch: false,
 		EnablePushCreateUser:                    false,
 		EnablePushCreateOrg:                     false,
+		DisabledRepoUnits:                       []string{},
+		DefaultRepoUnits:                        []string{},
+		PrefixArchiveFiles:                      true,
 
 		// Repository editor settings
 		Editor: struct {

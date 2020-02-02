@@ -196,7 +196,7 @@ func Repos(ctx *context.Context) {
 	ctxUser := ctx.User
 
 	var err error
-	if err = ctxUser.GetRepositories(1, setting.UI.User.RepoPagingNum); err != nil {
+	if err = ctxUser.GetRepositories(models.ListOptions{Page: 1, PageSize: setting.UI.User.RepoPagingNum}); err != nil {
 		ctx.ServerError("GetRepositories", err)
 		return
 	}

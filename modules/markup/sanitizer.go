@@ -38,7 +38,7 @@ func NewSanitizer() {
 func ReplaceSanitizer() {
 	sanitizer.policy = bluemonday.UGCPolicy()
 	// We only want to allow HighlightJS specific classes for code blocks
-	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^language-\w+$`)).OnElements("code")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^language-[\w-]+$`)).OnElements("code")
 
 	// Checkboxes
 	sanitizer.policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
@@ -52,6 +52,9 @@ func ReplaceSanitizer() {
 
 	// Allow <kbd> tags for keyboard shortcut styling
 	sanitizer.policy.AllowElements("kbd")
+
+	// Allow classes for anchors
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`ref-issue`)).OnElements("a")
 
 	// Custom keyword markup
 	for _, rule := range setting.ExternalSanitizerRules {

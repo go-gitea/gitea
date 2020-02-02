@@ -50,6 +50,7 @@ require (
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
+	github.com/huandu/xstrings v1.3.0
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
 	github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d
@@ -112,6 +113,6 @@ require (
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.6
-	xorm.io/core v0.7.2
-	xorm.io/xorm v0.8.1
+	xorm.io/core v0.7.3
+	xorm.io/xorm v0.8.2-0.20200120024500-c37aff9b3a4a
 )

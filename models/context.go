@@ -4,6 +4,12 @@
 
 package models
 
+import (
+	"code.gitea.io/gitea/modules/setting"
+
+	"xorm.io/builder"
+)
+
 // DBContext represents a db context
 type DBContext struct {
 	e Engine
@@ -52,4 +58,11 @@ func WithTx(f func(ctx DBContext) error) error {
 	err := sess.Commit()
 	sess.Close()
 	return err
+}
+
+// Iterate iterates the databases and doing something
+func Iterate(ctx DBContext, tableBean interface{}, cond builder.Cond, fun func(idx int, bean interface{}) error) error {
+	return ctx.e.Where(cond).
+		BufferSize(setting.Database.IterateBufferSize).
+		Iterate(tableBean, fun)
 }

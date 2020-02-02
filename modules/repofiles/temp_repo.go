@@ -243,9 +243,9 @@ func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, b
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
 
-	if _, err := git.NewCommand("push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)).RunInDirWithEnv(t.basePath, env); err != nil {
-		log.Error("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
-			t.repo.FullName(), t.basePath, err)
+	if stdout, err := git.NewCommand("push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)).RunInDirWithEnv(t.basePath, env); err != nil {
+		log.Error("Unable to push back to repo from temporary repo: %s (%s)\nStdout: %s\nError: %v",
+			t.repo.FullName(), t.basePath, stdout, err)
 		return fmt.Errorf("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
 			t.repo.FullName(), t.basePath, err)
 	}

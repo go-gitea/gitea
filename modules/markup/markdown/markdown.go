@@ -48,8 +48,9 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 				common.FootnoteExtension,
 				extension.NewTypographer(
 					extension.WithTypographicSubstitutions(extension.TypographicSubstitutions{
-						extension.EnDash: nil,
-						extension.EmDash: nil,
+						extension.EnDash:   nil,
+						extension.EmDash:   nil,
+						extension.Ellipsis: nil,
 					}),
 				),
 			),
