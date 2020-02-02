@@ -1,6 +1,6 @@
 # cloud.google.com/go v0.45.0
 cloud.google.com/go/compute/metadata
-# gitea.com/lunny/levelqueue v0.1.0
+# gitea.com/lunny/levelqueue v0.2.0
 gitea.com/lunny/levelqueue
 # gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 gitea.com/macaron/binding

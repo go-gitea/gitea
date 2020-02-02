@@ -26,6 +26,7 @@ type QueueSettings struct {
 	Addresses        string
 	Password         string
 	QueueName        string
+	SetName          string
 	DBIndex          int
 	WrapIfNecessary  bool
 	MaxAttempts      int
@@ -54,7 +55,12 @@ func GetQueueSettings(name string) QueueSettings {
 			q.DataDir = key.MustString(q.DataDir)
 		case "QUEUE_NAME":
 			q.QueueName = key.MustString(q.QueueName)
+		case "SET_NAME":
+			q.SetName = key.MustString(q.SetName)
 		}
+	}
+	if len(q.SetName) == 0 && len(Queue.SetName) > 0 {
+		q.SetName = q.QueueName + Queue.SetName
 	}
 	if !filepath.IsAbs(q.DataDir) {
 		q.DataDir = filepath.Join(AppDataPath, q.DataDir)
@@ -100,6 +106,7 @@ func NewQueueService() {
 	Queue.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(5 * time.Minute)
 	Queue.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(5)
 	Queue.QueueName = sec.Key("QUEUE_NAME").MustString("_queue")
+	Queue.SetName = sec.Key("SET_NAME").MustString("")
 
 	// Now handle the old issue_indexer configuration
 	section := Cfg.Section("queue.issue_indexer")
@@ -141,6 +148,17 @@ func NewQueueService() {
 	}
 	if _, ok := sectionMap["LENGTH"]; !ok {
 		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Cfg.Section("mailer").Key("SEND_BUFFER_LEN").MustInt(100)))
+	}
+
+	// Handle the old test pull requests configuration
+	// Please note this will be a unique queue
+	section = Cfg.Section("queue.pr_patch_checker")
+	sectionMap = map[string]bool{}
+	for _, key := range section.Keys() {
+		sectionMap[key.Name()] = true
+	}
+	if _, ok := sectionMap["LENGTH"]; !ok {
+		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Repository.PullRequestQueueLength))
 	}
 }
 
