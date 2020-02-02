@@ -8,7 +8,7 @@
 				{{else if .IsTemplate}}
 					<svg class="mega-octicon-svg"><use xlink:href="{{StaticUrlPrefix}}/img/svg/octicons.svg#repo-template{{if .IsPrivate}}-private{{end}}" /></svg>
 				{{else}}
-				<i class="mega-octicon octicon-{{if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else if .IsFork}}repo-forked{{else}}repo{{end}}"></i>
+					<svg class="mega-octicon-svg"><use xlink:href="{{StaticUrlPrefix}}/img/svg/octicons.svg#{{if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else if .IsFork}}repo-forked{{else}}repo{{end}}" /></svg>
 				{{end}}
 				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 				<div class="divider"> / </div>
