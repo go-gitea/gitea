@@ -500,7 +500,7 @@ func (opts PushUpdateOptions) IsUpdateBranch() bool {
 }
 
 // IsDelBranch return true if it's a deletion to a branch
-func (opts PushUpdateOptions) isDelBranch() bool {
+func (opts PushUpdateOptions) IsDelBranch() bool {
 	return opts.IsBranch() && opts.IsDelRef()
 }
 
