@@ -6,7 +6,7 @@
 				{{if .RelAvatarLink}}
 				<img class="ui avatar image" src="{{.RelAvatarLink}}">
 				{{else if .IsTemplate}}
-					<svg class="mega-octicon-svg"><use xlink:href="{{AppSubUrl}}/img/svg/octicons.svg#repo-template{{if .IsPrivate}}-private{{end}}" /></svg>
+					<svg class="mega-octicon-svg"><use xlink:href="{{StaticUrlPrefix}}/img/svg/octicons.svg#repo-template{{if .IsPrivate}}-private{{end}}" /></svg>
 				{{else}}
 				<i class="mega-octicon octicon-{{if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else if .IsFork}}repo-forked{{else}}repo{{end}}"></i>
 				{{end}}
