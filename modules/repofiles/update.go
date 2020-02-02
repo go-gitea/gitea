@@ -600,11 +600,9 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 			log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
 			go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
-		} else {
+		} else if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
 			// close all related pulls
-			if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
-				log.Error("close related pull request failed: %v", err)
-			}
+			log.Error("close related pull request failed: %v", err)
 		}
 	}
 
