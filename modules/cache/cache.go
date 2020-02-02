@@ -11,22 +11,33 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	mc "gitea.com/macaron/cache"
+
+	_ "gitea.com/macaron/cache/memcache" // memcache plugin for cache
+	_ "gitea.com/macaron/cache/redis"
 )
 
-var conn mc.Cache
+var (
+	conn mc.Cache
+)
+
+func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
+	return mc.NewCacher(cacheConfig.Adapter, mc.Options{
+		Adapter:       cacheConfig.Adapter,
+		AdapterConfig: cacheConfig.Conn,
+		Interval:      cacheConfig.Interval,
+	})
+}
 
 // NewContext start cache service
 func NewContext() error {
-	if setting.CacheService == nil || conn != nil {
-		return nil
+	var err error
+
+	if conn == nil && setting.CacheService.Enabled {
+		if conn, err = newCache(setting.CacheService.Cache); err != nil {
+			return err
+		}
 	}
 
-	var err error
-	conn, err = mc.NewCacher(setting.CacheService.Adapter, mc.Options{
-		Adapter:       setting.CacheService.Adapter,
-		AdapterConfig: setting.CacheService.Conn,
-		Interval:      setting.CacheService.Interval,
-	})
 	return err
 }
 

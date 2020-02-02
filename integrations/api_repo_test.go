@@ -392,3 +392,54 @@ func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 		assert.Equal(t, respJSON["message"], "The repository with the same name already exists.")
 	})
 }
+
+func TestAPIRepoTransfer(t *testing.T) {
+	testCases := []struct {
+		ctxUserID      int64
+		newOwner       string
+		teams          *[]int64
+		expectedStatus int
+	}{
+		{ctxUserID: 1, newOwner: "user2", teams: nil, expectedStatus: http.StatusAccepted},
+		{ctxUserID: 2, newOwner: "user1", teams: nil, expectedStatus: http.StatusAccepted},
+		{ctxUserID: 2, newOwner: "user6", teams: nil, expectedStatus: http.StatusForbidden},
+		{ctxUserID: 1, newOwner: "user2", teams: &[]int64{2}, expectedStatus: http.StatusUnprocessableEntity},
+		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{5}, expectedStatus: http.StatusForbidden},
+		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{2}, expectedStatus: http.StatusAccepted},
+	}
+
+	defer prepareTestEnv(t)()
+
+	//create repo to move
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session)
+	repoName := "moveME"
+	repo := new(models.Repository)
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/user/repos?token=%s", token), &api.CreateRepoOption{
+		Name:        repoName,
+		Description: "repo move around",
+		Private:     false,
+		Readme:      "Default",
+		AutoInit:    true,
+	})
+	resp := session.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, repo)
+
+	//start testing
+	for _, testCase := range testCases {
+		user = models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
+		repo = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repo.ID}).(*models.Repository)
+		session = loginUser(t, user.Name)
+		token = getTokenForLoggedInUser(t, session)
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
+			NewOwner: testCase.newOwner,
+			TeamIDs:  testCase.teams,
+		})
+		session.MakeRequest(t, req, testCase.expectedStatus)
+	}
+
+	//cleanup
+	repo = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repo.ID}).(*models.Repository)
+	_ = models.DeleteRepository(user, repo.OwnerID, repo.ID)
+}

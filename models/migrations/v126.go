@@ -1,25 +1,25 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
-func addRepoTransfer(x *xorm.Engine) error {
-	type RepoTransfer struct {
-		ID          int64 `xorm:"pk autoincr"`
-		UserID      int64
-		RecipientID int64
-		RepoID      int64
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
-		Status      bool
+func fixTopicRepositoryCount(x *xorm.Engine) error {
+	_, err := x.Exec(builder.Delete(builder.NotIn("`repo_id`", builder.Select("`id`").From("`repository`"))).From("`repo_topic`"))
+	if err != nil {
+		return err
 	}
 
-	return x.Sync(new(RepoTransfer))
+	_, err = x.Exec(builder.Update(
+		builder.Eq{
+			"`repo_count`": builder.Select("count(*)").From("`repo_topic`").Where(builder.Eq{
+				"`repo_topic`.`topic_id`": builder.Expr("`topic`.`id`"),
+			}),
+		}).From("`topic`").Where(builder.Eq{"'1'": "1"}))
+	return err
 }
