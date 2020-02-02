@@ -304,12 +304,6 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 
 	for i := range opts.OldCommitIDs {
 		refFullName := opts.RefFullNames[i]
-		branch := opts.RefFullNames[i]
-		if strings.HasPrefix(branch, git.BranchPrefix) {
-			branch = strings.TrimPrefix(branch, git.BranchPrefix)
-		} else {
-			branch = strings.TrimPrefix(branch, git.TagPrefix)
-		}
 
 		// Only trigger activity updates for changes to branches or
 		// tags.  Updates to other refs (eg, refs/notes, refs/changes,
@@ -336,14 +330,13 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				RefFullName:  refFullName,
 				OldCommitID:  opts.OldCommitIDs[i],
 				NewCommitID:  opts.NewCommitIDs[i],
-				Branch:       branch,
 				PusherID:     opts.UserID,
 				PusherName:   opts.UserName,
 				RepoUserName: ownerName,
 				RepoName:     repoName,
 			}
 			updates = append(updates, &option)
-			if repo.IsEmpty && branch == "master" && strings.HasPrefix(refFullName, git.BranchPrefix) {
+			if repo.IsEmpty && option.IsBranch() && option.BranchName() == "master" {
 				// put the master branch first
 				copy(updates[1:], updates)
 				updates[0] = &option
@@ -355,7 +348,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 		if err := repofiles.PushUpdates(repo, updates); err != nil {
 			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
 			for i, update := range updates {
-				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.Branch)
+				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.BranchName())
 			}
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 
