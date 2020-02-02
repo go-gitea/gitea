@@ -57,14 +57,21 @@ the url `http://gitea.domain.tld/image.png`.
 
 Place the png image at the following path: `custom/public/img/avatar_default.png`
 
-## Customizing Gitea pages
+## Customizing Gitea pages and resources
 
-The `custom/templates` folder allows changing every single page of Gitea. Templates
-to override can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source (Note: the example link is from `master` branch. Make sure to copy templates from same release you are using). Override by
-making a copy of the file under `custom/templates` using a full path structure
-matching source.
+Gitea's executable contains all the resources required to run: templates, images, style-sheets
+and translations. Any of them can be overridden by placing a replacement in a matching path
+inside the `custom` directory. For example, to replace the default `.gitignore` provided
+for C++ repositories, we want to replace `options/gitignore/C++`. To do this, a replacement
+must be placed in `custom/options/gitignore/C++` (see about the location of the `custom`
+directory at the top of this document).
 
-Any statement contained inside `{{` and `}}` are Gitea's template syntax and
+Every single page of Gitea can be changed. Dynamic content is generated using [go templates](https://golang.org/pkg/html/template/),
+which can be modified by placing replacements below the `custom/templates` directory.
+
+To obtain any embedded file (including templates), the [`gitea embedded` tool]({{< relref "doc/advanced/cmd-embedded.en-us.md" >}}) can be used. Alternatively, they can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source (Note: the example link is from the `master` branch. Make sure to use templates compatible with the release you are using).
+
+Be aware that any statement contained inside `{{` and `}}` are Gitea's template syntax and
 shouldn't be touched without fully understanding these components.
 
 ### Customizing startpage / homepage
