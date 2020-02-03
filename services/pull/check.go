@@ -205,7 +205,7 @@ func handle(data ...queue.Data) {
 		if err != nil {
 			log.Error("GetPullRequestByID[%s]: %v", prID, err)
 			continue
-		} else if pr.Status != models.PullRequestStatusChecking || pr.HasMerged {
+		} else if pr.HasMerged {
 			continue
 		} else if manuallyMerged(pr) {
 			continue
