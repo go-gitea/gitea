@@ -250,6 +250,28 @@ func FileSize(s int64) string {
 	return humanateBytes(uint64(s), 1024, sizes)
 }
 
+// PrettyNumber formats a number string representation with thousand separator as spaces.
+func PrettyNumber(i int64) string {
+	s := strconv.FormatInt(i, 10)
+	r1 := ""
+	idx := 0
+
+	for p := len(s) - 1; p >= 0; p-- {
+		idx++
+		if idx == 4 {
+			idx = 1
+			r1 += ","
+		}
+		r1 += string(s[p])
+	}
+
+	r2 := ""
+	for p := len(r1) - 1; p >= 0; p-- {
+		r2 += string(r1[p])
+	}
+	return r2
+}
+
 // Subtract deals with subtraction of all types of number.
 func Subtract(left interface{}, right interface{}) interface{} {
 	var rleft, rright int64
