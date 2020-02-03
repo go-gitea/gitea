@@ -719,7 +719,7 @@ func (pr *PullRequest) UpdateCols(cols ...string) error {
 
 // UpdateColsIfNotMerged updates specific fields of a pull request if it has not been merged
 func (pr *PullRequest) UpdateColsIfNotMerged(cols ...string) error {
-	_, err := x.ID(pr.ID).Where("has_merged = ?", false).Cols(cols...).Update(pr)
+	_, err := x.Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
 	return err
 }
 
