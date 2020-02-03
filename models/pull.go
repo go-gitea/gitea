@@ -202,7 +202,7 @@ func (pr *PullRequest) GetReviewLabel() string {
 	return "repo.pulls.review_approved" // by default
 }
 
-// GetReviewLabel returns the counter for the review of this pull request
+// GetReviewCount returns the counter for the review of this pull request
 func (pr *PullRequest) GetReviewCount() int64 {
 	if pr.RequiresApproval() {
 		rejections := pr.GetRejectedReviewsCount()
