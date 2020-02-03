@@ -29,7 +29,7 @@ import (
 
 var (
 	// Version holds the current Gitea version
-	Version = "1.9.0-dev"
+	Version = "development"
 	// Tags holds the build tags used
 	Tags = ""
 	// MakeVersion holds the current Make version if built with make
@@ -68,6 +68,9 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdMigrate,
 		cmd.CmdKeys,
 		cmd.CmdConvert,
+		cmd.CmdDoctor,
+		cmd.CmdManager,
+		cmd.Cmdembedded,
 	}
 	// Now adjust these commands to add our global configuration options
 

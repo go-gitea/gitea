@@ -60,10 +60,10 @@ Comme nous regroupons déjà toutes les bibliothèques requises pour compiler Gi
 * `sqlite sqlite_unlock_notify`: Active la prise en charge d'une base de données [SQLite3](https://sqlite.org/), ceci n'est recommandé que pour les petites installations de Gitea.
 * `pam`: Active la prise en charge de PAM (mLinux Pluggable Authentication Modules), très utile si vos utilisateurs doivent être authentifiés avec les comptes du système.
 
-Il est temps de compiler le binaire, nous suggérons d'intégrer les ressources avec l'option de compilation `bindata`. Pour inclure les ressources, vous devrez également exécuter la tâche Make `generate`. Dans le cas échéant, les ressources ne pourront pas être intégrées:
+Il est temps de compiler le binaire, nous suggérons d'intégrer les ressources avec l'option de compilation `bindata`:
 
 ```
-TAGS="bindata" make generate build
+TAGS="bindata" make build
 ```
 
 ## Test

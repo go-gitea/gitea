@@ -239,14 +239,20 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	for i, colName := range exprColumns.colNames {
 		switch tp := exprColumns.args[i].(type) {
 		case string:
-			colNames = append(colNames, session.engine.Quote(colName)+" = "+tp)
+			if len(tp) == 0 {
+				tp = "''"
+			}
+			colNames = append(colNames, session.engine.Quote(colName)+"="+tp)
 		case *builder.Builder:
 			subQuery, subArgs, err := builder.ToSQL(tp)
 			if err != nil {
 				return 0, err
 			}
-			colNames = append(colNames, session.engine.Quote(colName)+" = ("+subQuery+")")
+			colNames = append(colNames, session.engine.Quote(colName)+"=("+subQuery+")")
 			args = append(args, subArgs...)
+		default:
+			colNames = append(colNames, session.engine.Quote(colName)+"=?")
+			args = append(args, exprColumns.args[i])
 		}
 	}
 
@@ -377,10 +383,23 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		return 0, errors.New("No content found to be updated")
 	}
 
-	sqlStr = fmt.Sprintf("UPDATE %v%v SET %v %v",
+	var tableAlias = session.engine.Quote(tableName)
+	var fromSQL string
+	if session.statement.TableAlias != "" {
+		switch session.engine.dialect.DBType() {
+		case core.MSSQL:
+			fromSQL = fmt.Sprintf("FROM %s %s ", tableAlias, session.statement.TableAlias)
+			tableAlias = session.statement.TableAlias
+		default:
+			tableAlias = fmt.Sprintf("%s AS %s", tableAlias, session.statement.TableAlias)
+		}
+	}
+
+	sqlStr = fmt.Sprintf("UPDATE %v%v SET %v %v%v",
 		top,
-		session.engine.Quote(tableName),
+		tableAlias,
 		strings.Join(colNames, ", "),
+		fromSQL,
 		condSQL)
 
 	res, err := session.exec(sqlStr, append(args, condArgs...)...)

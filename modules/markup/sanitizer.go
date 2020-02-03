@@ -6,6 +6,8 @@
 package markup
 
 import (
+	"bytes"
+	"io"
 	"regexp"
 	"sync"
 
@@ -36,7 +38,7 @@ func NewSanitizer() {
 func ReplaceSanitizer() {
 	sanitizer.policy = bluemonday.UGCPolicy()
 	// We only want to allow HighlightJS specific classes for code blocks
-	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^language-\w+$`)).OnElements("code")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^language-[\w-]+$`)).OnElements("code")
 
 	// Checkboxes
 	sanitizer.policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
@@ -50,12 +52,30 @@ func ReplaceSanitizer() {
 
 	// Allow <kbd> tags for keyboard shortcut styling
 	sanitizer.policy.AllowElements("kbd")
+
+	// Allow classes for anchors
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`ref-issue`)).OnElements("a")
+
+	// Custom keyword markup
+	for _, rule := range setting.ExternalSanitizerRules {
+		if rule.Regexp != nil {
+			sanitizer.policy.AllowAttrs(rule.AllowAttr).Matching(rule.Regexp).OnElements(rule.Element)
+		} else {
+			sanitizer.policy.AllowAttrs(rule.AllowAttr).OnElements(rule.Element)
+		}
+	}
 }
 
 // Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.
 func Sanitize(s string) string {
 	NewSanitizer()
 	return sanitizer.policy.Sanitize(s)
+}
+
+// SanitizeReader sanitizes a Reader
+func SanitizeReader(r io.Reader) *bytes.Buffer {
+	NewSanitizer()
+	return sanitizer.policy.SanitizeReader(r)
 }
 
 // SanitizeBytes takes a []byte slice that contains a HTML fragment or document and applies policy whitelist.

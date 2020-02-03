@@ -250,16 +250,14 @@ export default function gitGraph(canvas, rawGraphList, config) {
           }
         }
 
-        /* eslint-disable-next-line */
         if (condensePrevLength < condenseCurrentLength
-          && ((nodePos = findColomn('*', currentRow)) !== -1
+          && ((nodePos = findColomn('*', currentRow)) !== -1 // eslint-disable-line no-cond-assign
           && (findColomn('_', currentRow) === -1))) {
           flows.splice(nodePos - 1, 0, genNewFlow());
         }
 
-        /* eslint-disable-next-line */
         if (prevRowLength > currentRow.length
-          && (nodePos = findColomn('*', prevRow)) !== -1) {
+          && (nodePos = findColomn('*', prevRow)) !== -1) { // eslint-disable-line no-cond-assign
           if (findColomn('_', currentRow) === -1
             && findColomn('/', currentRow) === -1
             && findColomn('\\', currentRow) === -1) {

@@ -10,6 +10,16 @@ import (
 	"strings"
 )
 
+// InternalPushingEnvironment returns an os environment to switch off hooks on push
+// It is recommended to avoid using this unless you are pushing within a transaction
+// or if you absolutely are sure that post-receive and pre-receive will do nothing
+// We provide the full pushing-environment for other hook providers
+func InternalPushingEnvironment(doer *User, repo *Repository) []string {
+	return append(PushingEnvironment(doer, repo),
+		EnvIsInternal+"=true",
+	)
+}
+
 // PushingEnvironment returns an os environment to allow hooks to work on push
 func PushingEnvironment(doer *User, repo *Repository) []string {
 	return FullPushingEnvironment(doer, doer, repo, repo.Name, 0)
@@ -33,7 +43,7 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 		"GIT_COMMITTER_NAME="+committerSig.Name,
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		EnvRepoName+"="+repoName,
-		EnvRepoUsername+"="+repo.MustOwnerName(),
+		EnvRepoUsername+"="+repo.OwnerName,
 		EnvRepoIsWiki+"="+isWiki,
 		EnvPusherName+"="+committer.Name,
 		EnvPusherID+"="+fmt.Sprintf("%d", committer.ID),

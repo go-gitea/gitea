@@ -192,7 +192,7 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	m.Name = form.Title
 	m.Content = form.Content
 	m.DeadlineUnix = timeutil.TimeStamp(deadline.Unix())
-	if err = models.UpdateMilestone(m); err != nil {
+	if err = models.UpdateMilestone(m, m.IsClosed); err != nil {
 		ctx.ServerError("UpdateMilestone", err)
 		return
 	}
@@ -268,13 +268,8 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 
 	issues(ctx, milestoneID, util.OptionalBoolNone)
 
-	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
-	if err != nil {
-		ctx.ServerError("GetUserRepoPermission", err)
-		return
-	}
-	ctx.Data["CanWriteIssues"] = perm.CanWriteIssuesOrPulls(false)
-	ctx.Data["CanWritePulls"] = perm.CanWriteIssuesOrPulls(true)
+	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWriteIssuesOrPulls(false)
+	ctx.Data["CanWritePulls"] = ctx.Repo.CanWriteIssuesOrPulls(true)
 
 	ctx.HTML(200, tplMilestoneIssues)
 }

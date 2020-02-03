@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
@@ -204,78 +205,85 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 	case "advanced":
 		var units []models.RepoUnit
+		var deleteUnitTypes []models.UnitType
 
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
 
-		for _, tp := range models.MustRepoUnits {
+		if form.EnableWiki && form.EnableExternalWiki && !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
+			if !validation.IsValidExternalURL(form.ExternalWikiURL) {
+				ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
+				ctx.Redirect(repo.Link() + "/settings")
+				return
+			}
+
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   tp,
+				Type:   models.UnitTypeExternalWiki,
+				Config: &models.ExternalWikiConfig{
+					ExternalWikiURL: form.ExternalWikiURL,
+				},
+			})
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
+		} else if form.EnableWiki && !form.EnableExternalWiki && !models.UnitTypeWiki.UnitGlobalDisabled() {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeWiki,
 				Config: new(models.UnitConfig),
 			})
-		}
-
-		if form.EnableWiki {
-			if form.EnableExternalWiki {
-				if !validation.IsValidExternalURL(form.ExternalWikiURL) {
-					ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
-					ctx.Redirect(repo.Link() + "/settings")
-					return
-				}
-
-				units = append(units, models.RepoUnit{
-					RepoID: repo.ID,
-					Type:   models.UnitTypeExternalWiki,
-					Config: &models.ExternalWikiConfig{
-						ExternalWikiURL: form.ExternalWikiURL,
-					},
-				})
-			} else {
-				units = append(units, models.RepoUnit{
-					RepoID: repo.ID,
-					Type:   models.UnitTypeWiki,
-					Config: new(models.UnitConfig),
-				})
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+		} else {
+			if !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+			}
+			if !models.UnitTypeWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
 			}
 		}
 
-		if form.EnableIssues {
-			if form.EnableExternalTracker {
-				if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
-					ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
-					ctx.Redirect(repo.Link() + "/settings")
-					return
-				}
-				if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(form.TrackerURLFormat) {
-					ctx.Flash.Error(ctx.Tr("repo.settings.tracker_url_format_error"))
-					ctx.Redirect(repo.Link() + "/settings")
-					return
-				}
-				units = append(units, models.RepoUnit{
-					RepoID: repo.ID,
-					Type:   models.UnitTypeExternalTracker,
-					Config: &models.ExternalTrackerConfig{
-						ExternalTrackerURL:    form.ExternalTrackerURL,
-						ExternalTrackerFormat: form.TrackerURLFormat,
-						ExternalTrackerStyle:  form.TrackerIssueStyle,
-					},
-				})
-			} else {
-				units = append(units, models.RepoUnit{
-					RepoID: repo.ID,
-					Type:   models.UnitTypeIssues,
-					Config: &models.IssuesConfig{
-						EnableTimetracker:                form.EnableTimetracker,
-						AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
-						EnableDependencies:               form.EnableIssueDependencies,
-					},
-				})
+		if form.EnableIssues && form.EnableExternalTracker && !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
+			if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
+				ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
+				ctx.Redirect(repo.Link() + "/settings")
+				return
+			}
+			if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(form.TrackerURLFormat) {
+				ctx.Flash.Error(ctx.Tr("repo.settings.tracker_url_format_error"))
+				ctx.Redirect(repo.Link() + "/settings")
+				return
+			}
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeExternalTracker,
+				Config: &models.ExternalTrackerConfig{
+					ExternalTrackerURL:    form.ExternalTrackerURL,
+					ExternalTrackerFormat: form.TrackerURLFormat,
+					ExternalTrackerStyle:  form.TrackerIssueStyle,
+				},
+			})
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
+		} else if form.EnableIssues && !form.EnableExternalTracker && !models.UnitTypeIssues.UnitGlobalDisabled() {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeIssues,
+				Config: &models.IssuesConfig{
+					EnableTimetracker:                form.EnableTimetracker,
+					AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
+					EnableDependencies:               form.EnableIssueDependencies,
+				},
+			})
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+		} else {
+			if !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+			}
+			if !models.UnitTypeIssues.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
 			}
 		}
 
-		if form.EnablePulls {
+		if form.EnablePulls && !models.UnitTypePullRequests.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypePullRequests,
@@ -287,9 +295,11 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					AllowSquash:               form.PullsAllowSquash,
 				},
 			})
+		} else if !models.UnitTypePullRequests.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypePullRequests)
 		}
 
-		if err := models.UpdateRepositoryUnits(repo, units); err != nil {
+		if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 			ctx.ServerError("UpdateRepositoryUnits", err)
 			return
 		}
@@ -338,7 +348,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 		repo.IsMirror = false
 
-		if _, err := models.CleanUpMigrateInfo(repo); err != nil {
+		if _, err := repository.CleanUpMigrateInfo(repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
 		} else if err = models.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
@@ -359,13 +369,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		newOwner := ctx.Query("new_owner_name")
-		isExist, err := models.IsUserExist(0, newOwner)
+		newOwner, err := models.GetUserByName(ctx.Query("new_owner_name"))
 		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+				return
+			}
 			ctx.ServerError("IsUserExist", err)
-			return
-		} else if !isExist {
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 			return
 		}
 
@@ -374,7 +384,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Repo.GitRepo.Close()
 			ctx.Repo.GitRepo = nil
 		}
-		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo); err != nil {
+		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo, nil); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else {
@@ -385,7 +395,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		log.Trace("Repository transferred: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))
-		ctx.Redirect(setting.AppSubURL + "/" + newOwner + "/" + repo.Name)
+		ctx.Redirect(setting.AppSubURL + "/" + newOwner.Name + "/" + repo.Name)
 
 	case "delete":
 		if !ctx.Repo.IsOwner() {
@@ -476,7 +486,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := ctx.Repo.Repository.GetCollaborators()
+	users, err := ctx.Repo.Repository.GetCollaborators(models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return
@@ -580,7 +590,7 @@ func AddTeamPost(ctx *context.Context) {
 	}
 
 	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Query("team")))
-	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
+	if len(name) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
 	}
@@ -728,7 +738,7 @@ func DeployKeys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
+	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -743,7 +753,7 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
+	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return

@@ -5,8 +5,13 @@ export GO111MODULE=off
 GO ?= go
 SED_INPLACE := sed -i
 SHASUM ?= shasum -a 256
+HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 
-export PATH := $($(GO) env GOPATH)/bin:$(PATH)
+ifeq ($(HAS_GO), GO)
+	GOPATH ?= $(shell $(GO) env GOPATH)
+	export PATH := $(GOPATH)/bin:$(PATH)
+endif
+
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE ?= gitea.exe
@@ -14,6 +19,9 @@ else
 	EXECUTABLE ?= gitea
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Darwin)
+		SED_INPLACE := sed -i ''
+	endif
+	ifeq ($(UNAME_S),FreeBSD)
 		SED_INPLACE := sed -i ''
 	endif
 endif
@@ -24,7 +32,12 @@ GOFMT ?= gofmt -s
 GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell make -v | head -n 1)
+MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
+MAKE_EVIDENCE_DIR := .make_evidence
+
+ifneq ($(RACE_ENABLED),)
+	GOTESTFLAGS ?= -race
+endif
 
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
@@ -43,15 +56,17 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
 GO_SOURCES ?= $(shell find . -name "*.go" -type f)
-JS_SOURCES ?= $(shell find web_src/js web_src/css -type f)
-CSS_SOURCES ?= $(shell find web_src/less -type f)
+WEBPACK_SOURCES ?= $(shell find web_src/js web_src/css web_src/less -type f)
 
-JS_DEST := public/js/index.js
-CSS_DEST := public/css/index.css
+WEBPACK_DEST := public/js/index.js public/css/index.css
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
+BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
-JS_DEST_DIR := public/js
-CSS_DEST_DIR := public/css
+WEBPACK_DEST_DIRS := public/js public/css
+
+FOMANTIC_SOURCES ?= $(shell find web_src/fomantic -type f)
+FOMANTIC_DEST_DIR := public/fomantic
+FOMANTIC_EVIDENCE := $(MAKE_EVIDENCE_DIR)/fomantic
 
 TAGS ?=
 
@@ -76,24 +91,48 @@ TEST_PGSQL_HOST ?= pgsql:5432
 TEST_PGSQL_DBNAME ?= testgitea
 TEST_PGSQL_USERNAME ?= postgres
 TEST_PGSQL_PASSWORD ?= postgres
+TEST_PGSQL_SCHEMA ?= gtestschema
 TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
-
-# $(call strip-suffix,filename)
-strip-suffix = $(firstword $(subst ., ,$(1)))
 
 .PHONY: all
 all: build
 
 include docker/Makefile
 
+.PHONY: help
+help:
+	@echo "Make Routines:"
+	@echo " - \"\"                equivalent to \"build\""
+	@echo " - build             creates the entire project"
+	@echo " - clean             delete integration files and build files but not css and js files"
+	@echo " - clean-all         delete all generated files (integration test, build, css and js files)"
+	@echo " - webpack           rebuild only js and css files"
+	@echo " - fomantic          rebuild fomantic-ui files"
+	@echo " - generate          run \"make fomantic webpack\" and \"go generate\""
+	@echo " - fmt               format the code"
+	@echo " - generate-swagger  generate the swagger spec from code comments"
+	@echo " - swagger-validate  check if the swagger spec is valid"
+	@echo " - revive            run code linter revive"
+	@echo " - misspell          check if a word is written wrong"
+	@echo " - vet               examines Go source code and reports suspicious constructs"
+	@echo " - test              run unit test"
+	@echo " - test-sqlite       run integration test for sqlite"
+
 .PHONY: go-check
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?\s' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "001011000" ]; then \
 		echo "Gitea requires Go 1.11.0 or greater to build. You can get it at https://golang.org/dl/"; \
+		exit 1; \
+	fi
+
+.PHONY: git-check
+git-check:
+	@if git lfs >/dev/null 2>&1 ; then : ; else \
+		echo "Gitea requires git with lfs support to run tests." ; \
 		exit 1; \
 	fi
 
@@ -108,12 +147,12 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(JS_DEST_DIR) $(CSS_DEST_DIR)
+	rm -rf $(WEBPACK_DEST_DIRS) $(FOMANTIC_DEST_DIR) $(FOMANTIC_EVIDENCE)
 
 .PHONY: clean
 clean:
 	$(GO) clean -i ./...
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) \
+	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
 		integrations*.test \
 		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-mysql8/ integrations/gitea-integration-sqlite/ \
 		integrations/gitea-integration-mssql/ integrations/indexers-mysql/ integrations/indexers-mysql8/ integrations/indexers-pgsql integrations/indexers-sqlite \
@@ -128,8 +167,8 @@ vet:
 	$(GO) vet $(PACKAGES)
 
 .PHONY: generate
-generate:
-	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
+generate: fomantic webpack
+	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
@@ -158,10 +197,6 @@ errcheck:
 		$(GO) get -u github.com/kisielk/errcheck; \
 	fi
 	errcheck $(PACKAGES)
-
-.PHONY: lint
-lint:
-	@echo 'make lint is depricated. Use "make revive" if you want to use the old lint tool, or "make golangci-lint" to run a complete code check.'
 
 .PHONY: revive
 revive:
@@ -196,7 +231,19 @@ fmt-check:
 
 .PHONY: test
 test:
-	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+
+PHONY: test-check
+test-check:
+	@echo "Checking if tests have changed the source tree...";
+	@diff=$$(git status -s); \
+	if [ -n "$$diff" ]; then \
+		echo "make test has changed files in the source tree:"; \
+		echo "$${diff}"; \
+		echo "You should change the tests to create these files in a temporary directory."; \
+		echo "Do not simply add these files to .gitignore"; \
+		exit 1; \
+	fi;
 
 .PHONY: test\#%
 test\#%:
@@ -211,7 +258,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	$(GO) test -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -257,7 +304,6 @@ test-mysql\#%: integrations.mysql.test generate-ini-mysql
 test-mysql-migration: migrations.mysql.test generate-ini-mysql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./migrations.mysql.test
 
-
 generate-ini-mysql8:
 	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
 		-e 's|{{TEST_MYSQL8_DBNAME}}|${TEST_MYSQL8_DBNAME}|g' \
@@ -277,12 +323,12 @@ test-mysql8\#%: integrations.mysql8.test generate-ini-mysql8
 test-mysql8-migration: migrations.mysql8.test generate-ini-mysql8
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./migrations.mysql8.test
 
-
 generate-ini-pgsql:
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
 		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
+		-e 's|{{TEST_PGSQL_SCHEMA}}|${TEST_PGSQL_SCHEMA}|g' \
 			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
 
 .PHONY: test-pgsql
@@ -296,7 +342,6 @@ test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql
 .PHONY: test-pgsql-migration
 test-pgsql-migration: migrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./migrations.pgsql.test
-
 
 generate-ini-mssql:
 	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
@@ -317,7 +362,6 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 test-mssql-migration: migrations.mssql.test generate-ini-mssql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test
 
-
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
@@ -334,48 +378,47 @@ bench-mssql: integrations.mssql.test generate-ini-mssql
 bench-pgsql: integrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
-
 .PHONY: integration-test-coverage
 integration-test-coverage: integrations.cover.test generate-ini-mysql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
-integrations.mysql.test: $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql.test
+integrations.mysql.test: git-check $(GO_SOURCES)
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql.test
 
-integrations.mysql8.test: $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql8.test
+integrations.mysql8.test: git-check $(GO_SOURCES)
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql8.test
 
-integrations.pgsql.test: $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
+integrations.pgsql.test: git-check $(GO_SOURCES)
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
 
-integrations.mssql.test: $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mssql.test
+integrations.mssql.test: git-check $(GO_SOURCES)
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mssql.test
 
-integrations.sqlite.test: $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+integrations.sqlite.test: git-check $(GO_SOURCES)
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
-integrations.cover.test: $(GO_SOURCES)
-	GO111MODULE=on $(GO) test -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
+integrations.cover.test: git-check $(GO_SOURCES)
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: migrations.mysql.test
 migrations.mysql.test: $(GO_SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.mysql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.mysql.test
 
 .PHONY: migrations.mysql8.test
 migrations.mysql8.test: $(GO_SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.mysql8.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.mysql8.test
 
 .PHONY: migrations.pgsql.test
 migrations.pgsql.test: $(GO_SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.pgsql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.pgsql.test
 
 .PHONY: migrations.mssql.test
 migrations.mssql.test: $(GO_SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.mssql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.mssql.test
 
 .PHONY: migrations.sqlite.test
 migrations.sqlite.test: $(GO_SOURCES)
-	$(GO) test -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 .PHONY: check
 check: test
@@ -384,20 +427,14 @@ check: test
 install: $(wildcard *.go)
 	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
-.PHONY: go
-go: go-check $(EXECUTABLE)
-
-.PHONY: go-all
-go-all: go-check generate go
-
 .PHONY: build
-build: js css go-all
+build: go-check generate $(EXECUTABLE)
 
 $(EXECUTABLE): $(GO_SOURCES)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
+release: generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
 
 .PHONY: release-dirs
 release-dirs:
@@ -450,51 +487,41 @@ release-compress:
 
 node_modules: package-lock.json
 	npm install --no-save
+	@touch node_modules
 
 .PHONY: npm-update
-npm-update: node-check node_modules
+npm-update: node-check | node_modules
 	npx updates -cu
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
 
 .PHONY: js
-js: node-check $(JS_DEST)
-
-$(JS_DEST): node_modules $(JS_SOURCES)
-	npx eslint web_src/js webpack.config.js
-	npx webpack
+js:
+	@echo "'make js' is deprecated, please use 'make webpack'"
+	$(MAKE) webpack
 
 .PHONY: css
-css: node-check $(CSS_DEST)
+css:
+	@echo "'make css' is deprecated, please use 'make webpack'"
+	$(MAKE) webpack
 
-$(CSS_DEST): node_modules $(CSS_SOURCES)
+.PHONY: fomantic
+fomantic: node-check $(FOMANTIC_EVIDENCE)
+
+$(FOMANTIC_EVIDENCE): semantic.json $(FOMANTIC_SOURCES) | node_modules
+	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
+	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
+	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+	@mkdir -p $(MAKE_EVIDENCE_DIR) && touch $(FOMANTIC_EVIDENCE)
+
+.PHONY: webpack
+webpack: node-check $(WEBPACK_DEST)
+
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) webpack.config.js | node_modules
+	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
-	npx lessc web_src/less/index.less public/css/index.css
-	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	npx postcss --use autoprefixer --use cssnano --no-map --replace public/css/*
-
-.PHONY: javascripts
-javascripts:
-	echo "'make javascripts' is deprecated, please use 'make js'"
-	$(MAKE) js
-
-.PHONY: stylesheets-check
-stylesheets-check:
-	echo "'make stylesheets-check' is deprecated, please use 'make css'"
-	$(MAKE) css
-
-.PHONY: generate-stylesheets
-generate-stylesheets:
-	echo "'make generate-stylesheets' is deprecated, please use 'make css'"
-	$(MAKE) css
-
-.PHONY: swagger-ui
-swagger-ui:
-	rm -Rf public/vendor/assets/swagger-ui
-	git clone --depth=10 -b v3.13.4 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
-	mv $(TMPDIR)/swagger-ui/dist public/vendor/assets/swagger-ui
-	rm -Rf $(TMPDIR)/swagger-ui
-	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../../swagger.v1.json;g" public/vendor/assets/swagger-ui/index.html
+	npx webpack --hide-modules --display-entrypoints=false
+	@touch $(WEBPACK_DEST)
 
 .PHONY: update-translations
 update-translations:
@@ -531,8 +558,10 @@ generate-images:
 	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
 					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
 					$(PWD)/public/img/favicon.ico
+	convert -flatten $(PWD)/public/img/favicon.png $(PWD)/public/img/apple-touch-icon.png
+
 	rm -rf $(TMPDIR)/images
-	$(foreach file, $(shell find public/img -type f -name '*.png'),zopflipng -m -y $(file) $(file);)
+	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
 
 .PHONY: pr
 pr:

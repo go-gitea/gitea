@@ -79,8 +79,8 @@
 										<input type="hidden" name="template_name" value="Default">
 										<div class="default text">{{.i18n.Tr "repo.issues.label_templates.helper"}}</div>
 										<div class="menu">
-											{{range .LabelTemplates}}
-											<div class="item" data-value="{{.}}">{{.}}</div>
+											{{range $template, $labels := .LabelTemplates}}
+												<div class="item" data-value="{{$template}}">{{$template}}<br/><i>({{$labels}})</i></div>
 											{{end}}
 										</div>
 									</div>

@@ -22,6 +22,8 @@ it is just a matter of:
 * add some configuration to your `app.ini` file
 * restart your Gitea instance
 
+This supports rendering of whole files. If you want to render code blocks in markdown you would need to do something with javascript. See some examples on the [Customizing Gitea](../customizing-gitea) page.
+
 ## Installing external binaries
 
 In order to get file rendering through external binaries, their associated packages must be installed. 
@@ -67,5 +69,23 @@ FILE_EXTENSIONS = .rst
 RENDER_COMMAND = rst2html.py
 IS_INPUT_FILE = false
 ```
+
+If your external markup relies on additional classes and attributes on the generated HTML elements, you might need to enable custom sanitizer policies. Gitea uses the [`bluemonday`](https://godoc.org/github.com/microcosm-cc/bluemonday) package as our HTML sanitizier. The example below will support [KaTeX](https://katex.org/) output from [`pandoc`](https://pandoc.org/).
+
+```ini
+[markup.sanitizer]
+; Pandoc renders TeX segments as <span>s with the "math" class, optionally
+; with "inline" or "display" classes depending on context.
+ELEMENT = span
+ALLOW_ATTR = class
+REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
+
+[markup.markdown]
+ENABLED         = true
+FILE_EXTENSIONS = .md,.markdown
+RENDER_COMMAND  = pandoc -f markdown -t html --katex
+```
+
+You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time all three are defined is a single policy entry. All three must be defined, but `REGEXP` may be blank to allow unconditional whitelisting of that attribute.
 
 Once your configuration changes have been made, restart Gitea to have changes take effect.

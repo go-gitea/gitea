@@ -34,8 +34,11 @@ _testmain.go
 coverage.all
 
 /modules/options/bindata.go
+/modules/options/bindata.go.hash
 /modules/public/bindata.go
+/modules/public/bindata.go.hash
 /modules/templates/bindata.go
+/modules/templates/bindata.go.hash
 
 *.db
 *.log
@@ -66,11 +69,10 @@ coverage.all
 /integrations/pgsql.ini
 /integrations/mssql.ini
 /node_modules
-/modules/indexer/issues/indexers
-routers/repo/authorized_keys
 /yarn.lock
 /public/js
 /public/css
+/public/fomantic
 
 # Snapcraft
 snap/.snapcraft/
@@ -81,3 +83,6 @@ prime/
 *.snap-build
 *_source.tar.bz2
 .DS_Store
+
+# Make evidence files
+/.make_evidence

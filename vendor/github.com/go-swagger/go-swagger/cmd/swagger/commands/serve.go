@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-openapi/spec"
 	"log"
 	"net"
 	"net/http"
@@ -25,6 +26,7 @@ type ServeCmd struct {
 	DocURL   string `long:"doc-url" description:"override the url which takes a url query param to render the doc ui"`
 	NoOpen   bool   `long:"no-open" description:"when present won't open the the browser to show the url"`
 	NoUI     bool   `long:"no-ui" description:"when present, only the swagger spec will be served"`
+	Flatten  bool   `long:"flatten" description:"when present, flatten the swagger spec before serving it"`
 	Port     int    `long:"port" short:"p" description:"the port to serve this site" env:"PORT"`
 	Host     string `long:"host" description:"the interface to serve this site, defaults to 0.0.0.0" env:"HOST"`
 }
@@ -39,6 +41,20 @@ func (s *ServeCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
+
+	if s.Flatten {
+		var err error
+		specDoc, err = specDoc.Expanded(&spec.ExpandOptions{
+			SkipSchemas:         false,
+			ContinueOnError:     true,
+			AbsoluteCircularRef: true,
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
 	b, err := json.MarshalIndent(specDoc.Spec(), "", "  ")
 	if err != nil {
 		return err

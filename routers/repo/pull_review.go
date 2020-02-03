@@ -37,12 +37,14 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 
 	comment, err := pull_service.CreateCodeComment(
 		ctx.User,
+		ctx.Repo.GitRepo,
 		issue,
 		signedLine,
 		form.Content,
 		form.TreePath,
 		form.IsReview,
 		form.Reply,
+		form.LatestCommitID,
 	)
 	if err != nil {
 		ctx.ServerError("CreateCodeComment", err)
@@ -81,7 +83,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 
 	// can not approve/reject your own PR
 	case models.ReviewTypeApprove, models.ReviewTypeReject:
-		if issue.Poster.ID == ctx.User.ID {
+		if issue.IsPoster(ctx.User.ID) {
 			var translated string
 			if reviewType == models.ReviewTypeApprove {
 				translated = ctx.Tr("repo.issues.review.self.approval")
@@ -95,7 +97,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 		}
 	}
 
-	_, comm, err := pull_service.SubmitReview(ctx.User, issue, reviewType, form.Content)
+	_, comm, err := pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID)
 	if err != nil {
 		if models.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))

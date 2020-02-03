@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -31,20 +32,24 @@ type ProtectedBranch struct {
 	BranchName                string `xorm:"UNIQUE(s)"`
 	CanPush                   bool   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist           bool
-	WhitelistUserIDs          []int64            `xorm:"JSON TEXT"`
-	WhitelistTeamIDs          []int64            `xorm:"JSON TEXT"`
-	EnableMergeWhitelist      bool               `xorm:"NOT NULL DEFAULT false"`
-	WhitelistDeployKeys       bool               `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs     []int64            `xorm:"JSON TEXT"`
-	MergeWhitelistTeamIDs     []int64            `xorm:"JSON TEXT"`
-	EnableStatusCheck         bool               `xorm:"NOT NULL DEFAULT false"`
-	StatusCheckContexts       []string           `xorm:"JSON TEXT"`
-	EnableApprovalsWhitelist  bool               `xorm:"NOT NULL DEFAULT false"`
-	ApprovalsWhitelistUserIDs []int64            `xorm:"JSON TEXT"`
-	ApprovalsWhitelistTeamIDs []int64            `xorm:"JSON TEXT"`
-	RequiredApprovals         int64              `xorm:"NOT NULL DEFAULT 0"`
-	CreatedUnix               timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix               timeutil.TimeStamp `xorm:"updated"`
+	WhitelistUserIDs          []int64  `xorm:"JSON TEXT"`
+	WhitelistTeamIDs          []int64  `xorm:"JSON TEXT"`
+	EnableMergeWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`
+	WhitelistDeployKeys       bool     `xorm:"NOT NULL DEFAULT false"`
+	MergeWhitelistUserIDs     []int64  `xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs     []int64  `xorm:"JSON TEXT"`
+	EnableStatusCheck         bool     `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckContexts       []string `xorm:"JSON TEXT"`
+	EnableApprovalsWhitelist  bool     `xorm:"NOT NULL DEFAULT false"`
+	ApprovalsWhitelistUserIDs []int64  `xorm:"JSON TEXT"`
+	ApprovalsWhitelistTeamIDs []int64  `xorm:"JSON TEXT"`
+	RequiredApprovals         int64    `xorm:"NOT NULL DEFAULT 0"`
+	BlockOnRejectedReviews    bool     `xorm:"NOT NULL DEFAULT false"`
+	DismissStaleApprovals     bool     `xorm:"NOT NULL DEFAULT false"`
+	RequireSignedCommits      bool     `xorm:"NOT NULL DEFAULT false"`
+
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
 // IsProtected returns if the branch is protected
@@ -89,8 +94,8 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 	return in
 }
 
-// CanUserMerge returns if some user could merge a pull request to this protected branch
-func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
+// IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
+func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64) bool {
 	if !protectBranch.EnableMergeWhitelist {
 		return true
 	}
@@ -153,10 +158,13 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	approvals, err := x.Where("issue_id = ?", pr.Issue.ID).
+	sess := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeApprove).
-		And("official = ?", true).
-		Count(new(Review))
+		And("official = ?", true)
+	if protectBranch.DismissStaleApprovals {
+		sess = sess.And("stale = ?", false)
+	}
+	approvals, err := sess.Count(new(Review))
 	if err != nil {
 		log.Error("GetGrantedApprovalsCount: %v", err)
 		return 0
@@ -177,6 +185,23 @@ func (protectBranch *ProtectedBranch) GetRejectedReviewsCount(pr *PullRequest) i
 	}
 
 	return rejects
+}
+
+// MergeBlockedByRejectedReview returns true if merge is blocked by rejected reviews
+func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullRequest) bool {
+	if !protectBranch.BlockOnRejectedReviews {
+		return false
+	}
+	rejectExist, err := x.Where("issue_id = ?", pr.IssueID).
+		And("type = ?", ReviewTypeReject).
+		And("official = ?", true).
+		Exist(new(Review))
+	if err != nil {
+		log.Error("MergeBlockedByRejectedReview: %v", err)
+		return true
+	}
+
+	return rejectExist
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
@@ -333,27 +358,6 @@ func (repo *Repository) IsProtectedBranchForPush(branchName string, doer *User) 
 		return true, err
 	} else if has {
 		return !protectedBranch.CanUserPush(doer.ID), nil
-	}
-
-	return false, nil
-}
-
-// IsProtectedBranchForMerging checks if branch is protected for merging
-func (repo *Repository) IsProtectedBranchForMerging(pr *PullRequest, branchName string, doer *User) (bool, error) {
-	if doer == nil {
-		return true, nil
-	}
-
-	protectedBranch := &ProtectedBranch{
-		RepoID:     repo.ID,
-		BranchName: branchName,
-	}
-
-	has, err := x.Get(protectedBranch)
-	if err != nil {
-		return true, err
-	} else if has {
-		return !protectedBranch.CanUserMerge(doer.ID) || !protectedBranch.HasEnoughApprovals(pr), nil
 	}
 
 	return false, nil
@@ -538,8 +542,15 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 	deletedBranch.DeletedBy = user
 }
 
+// RemoveDeletedBranch removes all deleted branches
+func RemoveDeletedBranch(repoID int64, branch string) error {
+	_, err := x.Where("repo_id=? AND name=?", repoID, branch).Delete(new(DeletedBranch))
+	return err
+}
+
 // RemoveOldDeletedBranches removes old deleted branches
-func RemoveOldDeletedBranches() {
+func RemoveOldDeletedBranches(ctx context.Context) {
+	// Nothing to do for shutdown or terminate
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)

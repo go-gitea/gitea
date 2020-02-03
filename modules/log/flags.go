@@ -60,5 +60,8 @@ func FlagsFromString(from string) int {
 			flags |= f
 		}
 	}
+	if flags == 0 {
+		return -1
+	}
 	return flags
 }

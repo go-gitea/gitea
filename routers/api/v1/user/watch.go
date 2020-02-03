@@ -5,16 +5,19 @@
 package user
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // getWatchedRepos returns the repos that the user with the specified userID is
 // watching
-func getWatchedRepos(user *models.User, private bool) ([]*api.Repository, error) {
-	watchedRepos, err := models.GetWatchedRepos(user.ID, private)
+func getWatchedRepos(user *models.User, private bool, listOptions models.ListOptions) ([]*api.Repository, error) {
+	watchedRepos, err := models.GetWatchedRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -43,16 +46,25 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//   in: path
 	//   description: username of the user
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	user := GetUserByParams(ctx)
 	private := user.ID == ctx.User.ID
-	repos, err := getWatchedRepos(user, private)
+	repos, err := getWatchedRepos(user, private, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(500, "getWatchedRepos", err)
+		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
-	ctx.JSON(200, &repos)
+	ctx.JSON(http.StatusOK, &repos)
 }
 
 // GetMyWatchedRepos returns the repos that the authenticated user is watching
@@ -62,14 +74,24 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	// summary: List repositories watched by the authenticated user
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	repos, err := getWatchedRepos(ctx.User, true)
+
+	repos, err := getWatchedRepos(ctx.User, true, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(500, "getWatchedRepos", err)
+		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
-	ctx.JSON(200, &repos)
+	ctx.JSON(http.StatusOK, &repos)
 }
 
 // IsWatching returns whether the authenticated user is watching the repo
@@ -92,8 +114,9 @@ func IsWatching(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
+
 	if models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) {
-		ctx.JSON(200, api.WatchInfo{
+		ctx.JSON(http.StatusOK, api.WatchInfo{
 			Subscribed:    true,
 			Ignored:       false,
 			Reason:        nil,
@@ -125,12 +148,13 @@ func Watch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
+
 	err := models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
-		ctx.Error(500, "WatchRepo", err)
+		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
 	}
-	ctx.JSON(200, api.WatchInfo{
+	ctx.JSON(http.StatusOK, api.WatchInfo{
 		Subscribed:    true,
 		Ignored:       false,
 		Reason:        nil,
@@ -160,12 +184,13 @@ func Unwatch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	err := models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
-		ctx.Error(500, "UnwatchRepo", err)
+		ctx.Error(http.StatusInternalServerError, "UnwatchRepo", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // subscriptionURL returns the URL of the subscription API endpoint of a repo

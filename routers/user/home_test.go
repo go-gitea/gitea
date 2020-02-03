@@ -26,8 +26,47 @@ func TestIssues(t *testing.T) {
 	Issues(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
+	assert.EqualValues(t, map[int64]int64{1: 1, 2: 1}, ctx.Data["Counts"])
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.Len(t, ctx.Data["Issues"], 1)
+	assert.Len(t, ctx.Data["Repos"], 2)
+}
+
+func TestMilestones(t *testing.T) {
+	setting.UI.IssuePagingNum = 1
+	assert.NoError(t, models.LoadFixtures())
+
+	ctx := test.MockContext(t, "milestones")
+	test.LoadUser(t, ctx, 2)
+	ctx.SetParams("sort", "issues")
+	ctx.Req.Form.Set("state", "closed")
+	ctx.Req.Form.Set("sort", "furthestduedate")
+	Milestones(ctx)
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
+	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
+	assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])
+	assert.EqualValues(t, 1, ctx.Data["Total"])
+	assert.Len(t, ctx.Data["Milestones"], 1)
+	assert.Len(t, ctx.Data["Repos"], 1)
+}
+
+func TestMilestonesForSpecificRepo(t *testing.T) {
+	setting.UI.IssuePagingNum = 1
+	assert.NoError(t, models.LoadFixtures())
+
+	ctx := test.MockContext(t, "milestones")
+	test.LoadUser(t, ctx, 2)
+	ctx.SetParams("sort", "issues")
+	ctx.SetParams("repo", "1")
+	ctx.Req.Form.Set("state", "closed")
+	ctx.Req.Form.Set("sort", "furthestduedate")
+	Milestones(ctx)
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
+	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
+	assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])
+	assert.EqualValues(t, 1, ctx.Data["Total"])
+	assert.Len(t, ctx.Data["Milestones"], 1)
 	assert.Len(t, ctx.Data["Repos"], 1)
 }

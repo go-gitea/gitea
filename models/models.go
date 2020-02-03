@@ -6,6 +6,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -43,6 +44,8 @@ type Engine interface {
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
 	Asc(colNames ...string) *xorm.Session
+	Limit(limit int, start ...int) *xorm.Session
+	SumInt(bean interface{}, columnName string) (res int64, err error)
 }
 
 var (
@@ -127,7 +130,12 @@ func getEngine() (*xorm.Engine, error) {
 		return nil, err
 	}
 
-	return xorm.NewEngine(setting.Database.Type, connStr)
+	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
+	if err != nil {
+		return nil, err
+	}
+	engine.SetSchema(setting.Database.Schema)
+	return engine, nil
 }
 
 // NewTestEngine sets a new test xorm.Engine
@@ -164,10 +172,12 @@ func SetEngine() (err error) {
 }
 
 // NewEngine initializes a new xorm.Engine
-func NewEngine(migrateFunc func(*xorm.Engine) error) (err error) {
+func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
 	if err = SetEngine(); err != nil {
 		return err
 	}
+
+	x.SetDefaultContext(ctx)
 
 	if err = x.Ping(); err != nil {
 		return err
@@ -253,4 +263,29 @@ func MaxBatchInsertSize(bean interface{}) int {
 // Count returns records number according struct's fields as database query conditions
 func Count(bean interface{}) (int64, error) {
 	return x.Count(bean)
+}
+
+// IsTableNotEmpty returns true if table has at least one record
+func IsTableNotEmpty(tableName string) (bool, error) {
+	return x.Table(tableName).Exist()
+}
+
+// DeleteAllRecords will delete all the records of this table
+func DeleteAllRecords(tableName string) error {
+	_, err := x.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
+	return err
+}
+
+// GetMaxID will return max id of the table
+func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
+	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
+	return
+}
+
+// FindByMaxID filled results as the condition from database
+func FindByMaxID(maxID int64, limit int, results interface{}) error {
+	return x.Where("id <= ?", maxID).
+		OrderBy("id DESC").
+		Limit(limit).
+		Find(results)
 }
