@@ -229,7 +229,7 @@ func DeleteUser(ctx *context.APIContext) {
 	}
 
 	if u.IsOrganization() {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organisation not an user", u.Name))
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", u.Name))
 		return
 	}
 
