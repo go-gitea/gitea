@@ -308,11 +308,6 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 
 	for _, issue := range issues {
 		issue.PullRequest = pullRequestMaps[issue.ID]
-		if issue.PullRequest != nil {
-			if err := issue.PullRequest.LoadIssue(); err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }
