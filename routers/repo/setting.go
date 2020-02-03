@@ -376,16 +376,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-<<<<<<< HEAD
-		newOwner := ctx.Query("new_owner_name")
-		u, err := models.GetUserByName(newOwner)
-		_ = u
-		if models.IsErrUserNotExist(err) {
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
-			return
-		} else if err != nil {
-			ctx.ServerError("GetUserByName", err)
-=======
 		newOwner, err := models.GetUserByName(ctx.Query("new_owner_name"))
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
@@ -393,7 +383,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				return
 			}
 			ctx.ServerError("IsUserExist", err)
->>>>>>> origin
 			return
 		}
 
@@ -453,15 +442,9 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-<<<<<<< HEAD
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Flash.Success(ctx.Tr("repo.settings.abort_transfer_success", repoTransfer.Recipient.Name))
 		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
-=======
-		log.Trace("Repository transferred: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))
-		ctx.Redirect(setting.AppSubURL + "/" + newOwner.Name + "/" + repo.Name)
->>>>>>> origin
 
 	case "delete":
 		if !ctx.Repo.IsOwner() {
