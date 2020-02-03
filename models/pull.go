@@ -191,10 +191,10 @@ func (pr *PullRequest) RequiresApproval() bool {
 // GetReviewLabel returns the localization label for the review of this pull request
 func (pr *PullRequest) GetReviewLabel() string {
 	if pr.RequiresApproval() {
-		if pr.ProtectedBranch.GetRejectedReviewsCount(pr) > 0 {
+		if pr.GetRejectedReviewsCount() > 0 {
 			return "repo.pulls.review_rejected"
 		}
-		if pr.ProtectedBranch.GetGrantedApprovalsCount(pr) >= pr.ProtectedBranch.RequiredApprovals {
+		if pr.GetGrantedApprovalsCount() >= pr.ProtectedBranch.RequiredApprovals {
 			return "repo.pulls.review_approved"
 		}
 		return "repo.pulls.review_required"
@@ -205,17 +205,56 @@ func (pr *PullRequest) GetReviewLabel() string {
 // GetReviewLabel returns the counter for the review of this pull request
 func (pr *PullRequest) GetReviewCount() int64 {
 	if pr.RequiresApproval() {
-		rejections := pr.ProtectedBranch.GetRejectedReviewsCount(pr)
-		if pr.ProtectedBranch.GetRejectedReviewsCount(pr) > 0 {
+		rejections := pr.GetRejectedReviewsCount()
+		if rejections > 0 {
 			return rejections
 		}
-		approvals := pr.ProtectedBranch.GetGrantedApprovalsCount(pr)
+		approvals := pr.GetGrantedApprovalsCount()
 		if approvals >= pr.ProtectedBranch.RequiredApprovals {
 			return approvals
 		}
 		return pr.ProtectedBranch.RequiredApprovals - approvals
 	}
 	return 0 // by default
+}
+
+// GetRejectedReviewsCount returns the number of rejected reviews for pr.
+func (pr *PullRequest) GetRejectedReviewsCount() int64 {
+	rejects, err := x.Where("issue_id = ?", pr.IssueID).
+		And("type = ?", ReviewTypeReject).
+		And("official = ?", true).
+		Count(new(Review))
+	if err != nil {
+		log.Error("GetRejectedReviewsCount: %v", err)
+		return 0
+	}
+
+	return rejects
+}
+
+// HasEnoughApprovals returns true if pr has enough granted approvals.
+func (pr *PullRequest) HasEnoughApprovals() bool {
+	if pr.ProtectedBranch.RequiredApprovals == 0 {
+		return true
+	}
+	return pr.GetGrantedApprovalsCount() >= pr.ProtectedBranch.RequiredApprovals
+}
+
+// GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
+func (pr *PullRequest) GetGrantedApprovalsCount() int64 {
+	sess := x.Where("issue_id = ?", pr.IssueID).
+		And("type = ?", ReviewTypeApprove).
+		And("official = ?", true)
+	if pr.ProtectedBranch.DismissStaleApprovals {
+		sess = sess.And("stale = ?", false)
+	}
+	approvals, err := sess.Count(new(Review))
+	if err != nil {
+		log.Error("GetGrantedApprovalsCount: %v", err)
+		return 0
+	}
+
+	return approvals
 }
 
 // GetDefaultMergeMessage returns default message used when merging pull request

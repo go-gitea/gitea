@@ -539,7 +539,7 @@ func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
 		}
 	}
 
-	if enoughApprovals := pr.ProtectedBranch.HasEnoughApprovals(pr); !enoughApprovals {
+	if enoughApprovals := pr.HasEnoughApprovals(); !enoughApprovals {
 		return models.ErrNotAllowedToMerge{
 			Reason: "Does not have enough approvals",
 		}

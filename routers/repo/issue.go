@@ -971,8 +971,8 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		if pull.ProtectedBranch != nil {
-			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
-			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
+			cnt := pull.GetGrantedApprovalsCount()
+			ctx.Data["IsBlockedByApprovals"] = !pull.HasEnoughApprovals()
 			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
 			ctx.Data["GrantedApprovals"] = cnt
 			ctx.Data["RequireSigned"] = pull.ProtectedBranch.RequireSignedCommits

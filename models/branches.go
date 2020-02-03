@@ -148,45 +148,6 @@ func (protectBranch *ProtectedBranch) isUserOfficialReviewer(e Engine, user *Use
 	return inTeam, nil
 }
 
-// HasEnoughApprovals returns true if pr has enough granted approvals.
-func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
-	if protectBranch.RequiredApprovals == 0 {
-		return true
-	}
-	return protectBranch.GetGrantedApprovalsCount(pr) >= protectBranch.RequiredApprovals
-}
-
-// GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
-func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	sess := x.Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeApprove).
-		And("official = ?", true)
-	if protectBranch.DismissStaleApprovals {
-		sess = sess.And("stale = ?", false)
-	}
-	approvals, err := sess.Count(new(Review))
-	if err != nil {
-		log.Error("GetGrantedApprovalsCount: %v", err)
-		return 0
-	}
-
-	return approvals
-}
-
-// GetRejectedReviewsCount returns the number of rejected reviews for pr.
-func (protectBranch *ProtectedBranch) GetRejectedReviewsCount(pr *PullRequest) int64 {
-	rejects, err := x.Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeReject).
-		And("official = ?", true).
-		Count(new(Review))
-	if err != nil {
-		log.Error("GetRejectedReviewsCount: %v", err)
-		return 0
-	}
-
-	return rejects
-}
-
 // MergeBlockedByRejectedReview returns true if merge is blocked by rejected reviews
 func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullRequest) bool {
 	if !protectBranch.BlockOnRejectedReviews {

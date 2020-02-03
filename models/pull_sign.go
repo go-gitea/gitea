@@ -57,7 +57,7 @@ func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit st
 			if protectedBranch == nil {
 				return false, "", &ErrWontSign{approved}
 			}
-			if protectedBranch.GetGrantedApprovalsCount(pr) < 1 {
+			if pr.GetGrantedApprovalsCount() < 1 {
 				return false, "", &ErrWontSign{approved}
 			}
 		case baseSigned:
