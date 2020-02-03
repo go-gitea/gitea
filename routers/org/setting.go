@@ -115,7 +115,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(ctx.Org.OrgLink + "/settings")
 }
 
-// SettingsDelete response for delete repository
+// SettingsDelete response for deleting an organization
 func SettingsDelete(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsDelete"] = true
