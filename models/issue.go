@@ -178,10 +178,16 @@ func (issue *Issue) loadPullRequest(e Engine) (err error) {
 			}
 			return fmt.Errorf("getPullRequestByIssueID [%d]: %v", issue.ID, err)
 		}
-		issue.PullRequest.Issue = issue
+		err = issue.PullRequest.LoadIssue()
+		if err != nil {
+			return fmt.Errorf("LoadIssue: %v", err)
+		}
 	}
 	if issue.PullRequest != nil && issue.PullRequest.Issue == nil {
-		issue.PullRequest.Issue = issue
+		issue.PullRequest.LoadIssue()
+		if err != nil {
+			return fmt.Errorf("LoadIssue: %v", err)
+		}
 	}
 	return nil
 }

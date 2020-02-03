@@ -175,7 +175,7 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 
 // GetRejectedReviewsCount returns the number of rejected reviews for pr.
 func (protectBranch *ProtectedBranch) GetRejectedReviewsCount(pr *PullRequest) int64 {
-	rejects, err := x.Where("issue_id = ?", pr.Issue.ID).
+	rejects, err := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeReject).
 		And("official = ?", true).
 		Count(new(Review))
