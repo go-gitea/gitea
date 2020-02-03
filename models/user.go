@@ -1452,6 +1452,11 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(email string) (*User, error) {
+	return GetUserByEmailContext(DefaultDBContext(), email)
+}
+
+// GetUserByEmailContext returns the user object by given e-mail if exists with db context
+func GetUserByEmailContext(ctx DBContext, email string) (*User, error) {
 	if len(email) == 0 {
 		return nil, ErrUserNotExist{0, email, 0}
 	}
@@ -1459,7 +1464,7 @@ func GetUserByEmail(email string) (*User, error) {
 	email = strings.ToLower(email)
 	// First try to find the user by primary email
 	user := &User{Email: email}
-	has, err := x.Get(user)
+	has, err := ctx.e.Get(user)
 	if err != nil {
 		return nil, err
 	}
@@ -1469,19 +1474,19 @@ func GetUserByEmail(email string) (*User, error) {
 
 	// Otherwise, check in alternative list for activated email addresses
 	emailAddress := &EmailAddress{Email: email, IsActivated: true}
-	has, err = x.Get(emailAddress)
+	has, err = ctx.e.Get(emailAddress)
 	if err != nil {
 		return nil, err
 	}
 	if has {
-		return GetUserByID(emailAddress.UID)
+		return getUserByID(ctx.e, emailAddress.UID)
 	}
 
 	// Finally, if email address is the protected email address:
 	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
 		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
 		user := &User{LowerName: username}
-		has, err := x.Get(user)
+		has, err := ctx.e.Get(user)
 		if err != nil {
 			return nil, err
 		}

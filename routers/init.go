@@ -113,7 +113,9 @@ func GlobalInit(ctx context.Context) {
 		code_indexer.Init()
 		mirror_service.InitSyncMirrors()
 		webhook.InitDeliverHooks()
-		pull_service.Init()
+		if err := pull_service.Init(); err != nil {
+			log.Fatal("Failed to initialize test pull requests queue: %v", err)
+		}
 		if err := task.Init(); err != nil {
 			log.Fatal("Failed to initialize task scheduler: %v", err)
 		}
