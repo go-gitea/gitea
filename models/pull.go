@@ -514,8 +514,18 @@ func (pr *PullRequest) SetMerged() (err error) {
 		return err
 	}
 
+	if count, err := sess.Where("id = ? AND has_merged != ?", pr.ID, true).Count(new(PullRequest)); err != nil {
+		return err
+	} else if count < 1 {
+		return nil
+	}
+
 	if err = pr.loadIssue(sess); err != nil {
 		return err
+	}
+
+	if pr.Issue.IsClosed {
+		return nil
 	}
 
 	if err = pr.Issue.loadRepo(sess); err != nil {
@@ -704,6 +714,12 @@ func (pr *PullRequest) Update() error {
 // UpdateCols updates specific fields of pull request.
 func (pr *PullRequest) UpdateCols(cols ...string) error {
 	_, err := x.ID(pr.ID).Cols(cols...).Update(pr)
+	return err
+}
+
+// UpdateColsIfNotMerged updates specific fields of a pull request if it has not been merged
+func (pr *PullRequest) UpdateColsIfNotMerged(cols ...string) error {
+	_, err := x.ID(pr.ID).Where("has_merged = ?", false).Cols(cols...).Update(pr)
 	return err
 }
 
