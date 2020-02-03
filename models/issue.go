@@ -76,6 +76,7 @@ var (
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
 const issueMaxDupIndexAttempts = 3
+const maxIssueIDs = 1000
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -1158,6 +1159,9 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if len(opts.IssueIDs) > 0 {
+		if len(opts.IssueIDs) > maxIssueIDs {
+			opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
+		}
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
@@ -1379,6 +1383,9 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 			Where("issue.repo_id = ?", opts.RepoID)
 
 		if len(opts.IssueIDs) > 0 {
+			if len(opts.IssueIDs) > maxIssueIDs {
+				opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
+			}
 			sess.In("issue.id", opts.IssueIDs)
 		}
 
@@ -1462,6 +1469,9 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
 	}
 	if len(opts.IssueIDs) > 0 {
+		if len(opts.IssueIDs) > maxIssueIDs {
+			opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
+		}
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
 	}
 
