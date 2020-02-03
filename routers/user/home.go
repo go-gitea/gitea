@@ -475,7 +475,7 @@ func Issues(ctx *context.Context) {
 		}
 
 		if len(keyword) > 0 {
-			searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts)
+			searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
 			if err != nil {
 				ctx.ServerError("GetRepoIDsForIssuesOptions", err)
 				return

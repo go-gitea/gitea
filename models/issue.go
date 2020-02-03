@@ -1237,14 +1237,17 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 }
 
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
-func GetRepoIDsForIssuesOptions(opts *IssuesOptions) ([]int64, error) {
+func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 5)
 	sess := x.NewSession()
 	defer sess.Close()
 
 	opts.setupSession(sess)
 
-	if err := sess.GroupBy("issue.repo_id").
+	accessCond := accessibleRepositoryCondition(user)
+	if err := sess.Where(accessCond).
+		Join("INNER", "repository", "`issue`.repo_id = `repository`.id").
+		GroupBy("issue.repo_id").
 		Distinct("issue.repo_id").
 		Table("issue").
 		Find(&repoIDs); err != nil {
