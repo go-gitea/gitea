@@ -14,8 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"github.com/unknwon/i18n"
 )
 
 // PullRequestType defines pull request type
@@ -190,20 +188,34 @@ func (pr *PullRequest) RequiresApproval() bool {
 	return pr.requiredApprovals() > 0
 }
 
-// GetReviewLabel returns the formatted review label with counter for the review of this pull request
-func (pr *PullRequest) GetReviewLabel(lang string) string {
+// GetReviewLabel returns the localization label for the review of this pull request
+func (pr *PullRequest) GetReviewLabel() string {
+	if pr.RequiresApproval() {
+		if pr.ProtectedBranch.GetRejectedReviewsCount(pr) > 0 {
+			return "repo.pulls.review_rejected"
+		}
+		if pr.ProtectedBranch.GetGrantedApprovalsCount(pr) >= pr.ProtectedBranch.RequiredApprovals {
+			return "repo.pulls.review_approved"
+		}
+		return "repo.pulls.review_required"
+	}
+	return "repo.pulls.review_approved" // by default
+}
+
+// GetReviewLabel returns the counter for the review of this pull request
+func (pr *PullRequest) GetReviewCount() int64 {
 	if pr.RequiresApproval() {
 		rejections := pr.ProtectedBranch.GetRejectedReviewsCount(pr)
 		if pr.ProtectedBranch.GetRejectedReviewsCount(pr) > 0 {
-			return i18n.Tr(lang, "repo.pulls.review_rejected", rejections)
+			return rejections
 		}
 		approvals := pr.ProtectedBranch.GetGrantedApprovalsCount(pr)
 		if approvals >= pr.ProtectedBranch.RequiredApprovals {
-			return i18n.Tr(lang, "repo.pulls.review_approved", approvals)
+			return approvals
 		}
-		return i18n.Tr(lang, "repo.pulls.review_required", pr.ProtectedBranch.RequiredApprovals-approvals)
+		return pr.ProtectedBranch.RequiredApprovals - approvals
 	}
-	return i18n.Tr(lang, "repo.pulls.review_approved", 0) // by default
+	return 0 // by default
 }
 
 // GetDefaultMergeMessage returns default message used when merging pull request

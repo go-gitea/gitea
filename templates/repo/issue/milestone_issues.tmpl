@@ -207,7 +207,9 @@
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 						{{end}}
 						{{if .IsPull }}{{if .PullRequest.RequiresApproval }}
-							<a class="milestone" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.PullRequest.GetReviewLabel $.i18n.Lang | Safe}}</a>
+							<a class="milestone" href="{{$.RepoLink}}/pulls/{{.Index}}">
+								{{$.i18n.Tr .PullRequest.GetReviewLabel .PullRequest.GetReviewCount | Safe}}
+							</a>
 						{{end}}{{end}}
 						{{if .Ref}}
 							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">

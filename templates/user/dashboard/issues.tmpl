@@ -125,7 +125,9 @@
 									{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 								{{end}}
 								{{if .IsPull }}{{if .PullRequest.RequiresApproval }}
-									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/pulls/{{.Index}}">{{.PullRequest.GetReviewLabel $.i18n.Lang | Safe}}</a>
+									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/pulls/{{.Index}}">
+										{{$.i18n.Tr .PullRequest.GetReviewLabel .PullRequest.GetReviewCount | Safe}}
+									</a>
 								{{end}}{{end}}
 								{{if .Milestone}}
 									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
