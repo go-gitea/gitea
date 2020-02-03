@@ -252,6 +252,10 @@ relation to port exhaustion.
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
 - `CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Connection string for the redis queue type.
 - `QUEUE_NAME`: **_queue**: The suffix for default redis queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overriden in the specific `queue.name` section.
+- `SET_NAME`: **_unique**: The suffix that will added to the default redis
+set name for unique queues. Individual queues will default to
+**`name`**`QUEUE_NAME`_`SET_NAME`_ but can be overridden in the specific
+`queue.name` section.
 - `WRAP_IF_NECESSARY`: **true**: Will wrap queues with a timeoutable queue if the selected queue is not ready to be created - (Only relevant for the level queue.)
 - `MAX_ATTEMPTS`: **10**: Maximum number of attempts to create the wrapped queue
 - `TIMEOUT`: **GRACEFUL_HAMMER_TIME + 30s**: Timeout the creation of the wrapped queue if it takes longer than this to create.
