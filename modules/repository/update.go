@@ -72,9 +72,12 @@ func pushUpdateAddTags(ctx models.DBContext, repo *models.Repository, gitRepo *g
 			var ok bool
 			author, ok = emailToUser[sig.Email]
 			if !ok {
-				author, err = models.GetUserByEmail(sig.Email)
+				author, err = models.GetUserByEmailContext(ctx, sig.Email)
 				if err != nil && !models.IsErrUserNotExist(err) {
 					return fmt.Errorf("GetUserByEmail: %v", err)
+				}
+				if author != nil {
+					emailToUser[sig.Email] = author
 				}
 			}
 			createdAt = sig.When
