@@ -275,6 +275,9 @@ func TestDeleteOrganization(t *testing.T) {
 	nonOrg := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	assert.Error(t, DeleteOrganization(nonOrg))
 	CheckConsistencyFor(t, &User{}, &Team{})
+
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	assert.Error(t, DeleteOrganization(user))
 }
 
 func TestIsOrganizationOwner(t *testing.T) {
