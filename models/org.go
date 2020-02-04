@@ -279,10 +279,6 @@ func DeleteOrganization(org *User) (err error) {
 }
 
 func deleteOrg(e *xorm.Session, u *User) error {
-	if !u.IsOrganization() {
-		return fmt.Errorf("You can't delete none organization user: %s", u.Name)
-	}
-
 	// Check ownership of repository.
 	count, err := getRepositoryCount(e, u)
 	if err != nil {

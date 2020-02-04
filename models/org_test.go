@@ -272,12 +272,9 @@ func TestDeleteOrganization(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrUserOwnRepos(err))
 
-	nonOrg := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
-	assert.Error(t, DeleteOrganization(nonOrg))
-	CheckConsistencyFor(t, &User{}, &Team{})
-
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	assert.Error(t, DeleteOrganization(user))
+	CheckConsistencyFor(t, &User{}, &Team{})
 }
 
 func TestIsOrganizationOwner(t *testing.T) {
