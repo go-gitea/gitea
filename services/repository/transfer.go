@@ -72,3 +72,8 @@ func ChangeRepositoryName(doer *models.User, repo *models.Repository, newRepoNam
 
 	return nil
 }
+
+// StartRepositoryTransfer marks the repository transfer as "pending".
+func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repository) error {
+	return models.StartRepositoryTransfer(doer, newOwner, repo)
+}

@@ -391,7 +391,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Repo.GitRepo.Close()
 			ctx.Repo.GitRepo = nil
 		}
-		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo, nil); err != nil {
+
+		if err = repo_service.StartRepositoryTransfer(ctx.User, newOwner, repo); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
@@ -404,13 +405,11 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if setting.Service.EnableNotifyMail {
-			// models.SendRepoTransferNotifyMail(ctx.Context, u, ctx.Repo.Repository)
+			mailer.SendRepoTransferNotifyMail(ctx.Locale, ctx.Repo.Owner, ctx.Repo.Repository)
 		}
 
-		// notification.NotifyTransferRepo(ctx.Repo.Owner, u.Name, ctx.Repo.Repository)
-
 		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner))
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner.LowerName))
 		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
 
 	case "cancel_transfer":

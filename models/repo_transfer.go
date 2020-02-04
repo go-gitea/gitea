@@ -136,7 +136,7 @@ func CancelRepositoryTransfer(repoTransfer *RepoTransfer) error {
 
 // StartRepositoryTransfer marks the repository transfer as "pending". It
 // doesn't actually transfer the repository until the user acks the transfer.
-func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) error {
+func StartRepositoryTransfer(doer, newOwner *User, repo *Repository) error {
 	// Make sure the repo isn't being transferred to someone currently
 	// Only one transfer process can be initiated at a time.
 	// It has to be cancelled for a new one to occur
@@ -147,12 +147,7 @@ func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) 
 	}
 
 	if n > 0 {
-		return ErrRepoTransferInProgress{newOwnerName, repo.Name}
-	}
-
-	newOwner, err := GetUserByName(newOwnerName)
-	if err != nil {
-		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
+		return ErrRepoTransferInProgress{newOwner.LowerName, repo.Name}
 	}
 
 	// Check if new owner has repository with same name.
@@ -160,7 +155,7 @@ func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) 
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
-		return ErrRepoAlreadyExist{newOwnerName, repo.Name}
+		return ErrRepoAlreadyExist{newOwner.LowerName, repo.Name}
 	}
 
 	transfer := &RepoTransfer{
@@ -175,48 +170,6 @@ func StartRepositoryTransfer(doer *User, newOwnerName string, repo *Repository) 
 	_, err = x.Insert(transfer)
 	return err
 }
-
-// // SendRepoTransferNotifyMail triggers a notification e-mail when a repository
-// // transfer is initiated
-// func SendRepoTransferNotifyMail(c *macaron.Context, u *User, repo *Repository) {
-// 	data := map[string]interface{}{
-// 		"Subject":             c.Tr("mail.repo_transfer_notify"),
-// 		"RepoName":            repo.FullName(),
-// 		"Link":                repo.HTMLURL(),
-// 		"AcceptTransferLink":  repo.HTMLURL() + "/action/accept_transfer",
-// 		"DeclineTransferLink": repo.HTMLURL() + "/action/decline_transfer",
-// 	}
-
-// 	var content bytes.Buffer
-
-// 	if err := templates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
-// 		log.Error("Template: %v", err)
-// 		return
-// 	}
-
-// 	var email = u.Email
-
-// 	if u.IsOrganization() && u.Email == "" {
-// 		t, err := u.getOwnerTeam(x)
-// 		if err != nil {
-// 			log.Error("Could not retrieve owners team for organization", err)
-// 			return
-// 		}
-
-// 		if err := t.GetMembers(); err != nil {
-// 			log.Error("Could not retrieve members of the owners team", err)
-// 			return
-// 		}
-
-// 		// Just use the email address of the first user
-// 		email = t.Members[0].Email
-// 	}
-
-// 	msg := mailer.NewMessage([]string{email}, c.Tr("mail.repo_transfer_notify"), content.String())
-// 	msg.Info = fmt.Sprintf("UID: %d, repository transfer notification", u.ID)
-
-// 	mailer.SendAsync(msg)
-// }
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
 func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error {
