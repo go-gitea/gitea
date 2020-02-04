@@ -185,7 +185,12 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
 		return ""
 	}
-	return fmt.Sprintf("Merge pull request '%s' (#%d) from %s/%s into %s", pr.Issue.Title, pr.Issue.Index, pr.MustHeadUserName(), pr.HeadBranch, pr.BaseBranch)
+
+	if pr.BaseRepoID == pr.HeadRepoID {
+		return fmt.Sprintf("Merge pull request '%s' (#%d) from %s into %s", pr.Issue.Title, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch)
+	}
+
+	return fmt.Sprintf("Merge pull request '%s' (#%d) from %s:%s into %s", pr.Issue.Title, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch)
 }
 
 // GetCommitMessages returns the commit messages between head and merge base (if there is one)

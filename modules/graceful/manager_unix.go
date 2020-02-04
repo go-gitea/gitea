@@ -110,28 +110,19 @@ func (g *Manager) handleSignals(ctx context.Context) {
 		case sig := <-signalChannel:
 			switch sig {
 			case syscall.SIGHUP:
-				if setting.GracefulRestartable {
-					log.Info("PID: %d. Received SIGHUP. Forking...", pid)
-					err := g.doFork()
-					if err != nil && err.Error() != "another process already forked. Ignoring this one" {
-						log.Error("Error whilst forking from PID: %d : %v", pid, err)
-					}
-				} else {
-					log.Info("PID: %d. Received SIGHUP. Not set restartable. Shutting down...", pid)
-
-					g.doShutdown()
-				}
+				log.Info("PID: %d. Received SIGHUP. Attempting GracefulShutdown...", pid)
+				g.DoGracefulShutdown()
 			case syscall.SIGUSR1:
 				log.Info("PID %d. Received SIGUSR1.", pid)
 			case syscall.SIGUSR2:
 				log.Warn("PID %d. Received SIGUSR2. Hammering...", pid)
-				g.doHammerTime(0 * time.Second)
+				g.DoImmediateHammer()
 			case syscall.SIGINT:
 				log.Warn("PID %d. Received SIGINT. Shutting down...", pid)
-				g.doShutdown()
+				g.DoGracefulShutdown()
 			case syscall.SIGTERM:
 				log.Warn("PID %d. Received SIGTERM. Shutting down...", pid)
-				g.doShutdown()
+				g.DoGracefulShutdown()
 			case syscall.SIGTSTP:
 				log.Info("PID %d. Received SIGTSTP.", pid)
 			default:
@@ -139,7 +130,7 @@ func (g *Manager) handleSignals(ctx context.Context) {
 			}
 		case <-ctx.Done():
 			log.Warn("PID: %d. Background context for manager closed - %v - Shutting down...", pid, ctx.Err())
-			g.doShutdown()
+			g.DoGracefulShutdown()
 		}
 	}
 }
@@ -158,6 +149,31 @@ func (g *Manager) doFork() error {
 	_, err := RestartProcess()
 
 	return err
+}
+
+// DoGracefulRestart causes a graceful restart
+func (g *Manager) DoGracefulRestart() {
+	if setting.GracefulRestartable {
+		log.Info("PID: %d. Forking...", os.Getpid())
+		err := g.doFork()
+		if err != nil && err.Error() != "another process already forked. Ignoring this one" {
+			log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
+		}
+	} else {
+		log.Info("PID: %d. Not set restartable. Shutting down...", os.Getpid())
+
+		g.doShutdown()
+	}
+}
+
+// DoImmediateHammer causes an immediate hammer
+func (g *Manager) DoImmediateHammer() {
+	g.doHammerTime(0 * time.Second)
+}
+
+// DoGracefulShutdown causes a graceful shutdown
+func (g *Manager) DoGracefulShutdown() {
+	g.doShutdown()
 }
 
 // RegisterServer registers the running of a listening server, in the case of unix this means that the parent process can now die.
