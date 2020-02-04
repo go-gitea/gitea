@@ -14,18 +14,12 @@ type (
 	notificationService struct {
 		base.NullNotifier
 		issueQueue chan issueNotificationOpts
-		repoQueue  chan repoNotificationOpts
 	}
 
 	issueNotificationOpts struct {
 		issueID              int64
 		commentID            int64
 		notificationAuthorID int64
-	}
-
-	repoNotificationOpts struct {
-		repo                *models.Repository
-		recipientID, doerID int64
 	}
 )
 
@@ -37,7 +31,6 @@ var (
 func NewNotifier() base.Notifier {
 	return &notificationService{
 		issueQueue: make(chan issueNotificationOpts, 100),
-		repoQueue:  make(chan repoNotificationOpts, 100),
 	}
 }
 
@@ -98,12 +91,4 @@ func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r
 		opts.commentID = c.ID
 	}
 	ns.issueQueue <- opts
-}
-
-func (ns *notificationService) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
-	ns.repoQueue <- repoNotificationOpts{
-		repo: repo,
-		// recipientID: user.ID,
-		doerID: doer.ID,
-	}
 }

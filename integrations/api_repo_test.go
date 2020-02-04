@@ -434,7 +434,6 @@ func TestAPIRepoTransfer(t *testing.T) {
 		token = getTokenForLoggedInUser(t, session)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
 			NewOwner: testCase.newOwner,
-			TeamIDs:  testCase.teams,
 		})
 		session.MakeRequest(t, req, testCase.expectedStatus)
 	}

@@ -5,12 +5,10 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -60,31 +58,7 @@ func Transfer(ctx *context.APIContext, opts api.TransferRepoOption) {
 		return
 	}
 
-	var teams []*models.Team
-	if opts.TeamIDs != nil {
-		if !newOwner.IsOrganization() {
-			ctx.Error(http.StatusUnprocessableEntity, "repoTransfer", "Teams can only be added to organization-owned repositories")
-			return
-		}
-
-		org := convert.ToOrganization(newOwner)
-		for _, tID := range *opts.TeamIDs {
-			team, err := models.GetTeamByID(tID)
-			if err != nil {
-				ctx.Error(http.StatusUnprocessableEntity, "team", fmt.Errorf("team %d not found", tID))
-				return
-			}
-
-			if team.OrgID != org.ID {
-				ctx.Error(http.StatusForbidden, "team", fmt.Errorf("team %d belongs not to org %d", tID, org.ID))
-				return
-			}
-
-			teams = append(teams, team)
-		}
-	}
-
-	if err = repo_service.TransferOwnership(ctx.User, newOwner, ctx.Repo.Repository, teams); err != nil {
+	if err = repo_service.StartRepositoryTransfer(ctx.User, newOwner, ctx.Repo.Repository); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
