@@ -18,7 +18,8 @@ import (
 	"xorm.io/xorm"
 )
 
-var labelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+// LabelColorPattern is a regexp witch can validate LabelColor
+var LabelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 
 // Label represents a label of repository for issues.
 type Label struct {
@@ -69,7 +70,7 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 			return nil, fmt.Errorf("line is malformed: %s", line)
 		}
 
-		if !labelColorPattern.MatchString(fields[0]) {
+		if !LabelColorPattern.MatchString(fields[0]) {
 			return nil, fmt.Errorf("bad HTML color code in line: %s", line)
 		}
 
@@ -187,7 +188,7 @@ func newLabel(e Engine, label *Label) error {
 
 // NewLabel creates a new label for a repository
 func NewLabel(label *Label) error {
-	if !labelColorPattern.MatchString(label.Color) {
+	if !LabelColorPattern.MatchString(label.Color) {
 		return fmt.Errorf("bad color code: %s", label.Color)
 	}
 	return newLabel(x, label)
@@ -201,7 +202,7 @@ func NewLabels(labels ...*Label) error {
 		return err
 	}
 	for _, label := range labels {
-		if !labelColorPattern.MatchString(label.Color) {
+		if !LabelColorPattern.MatchString(label.Color) {
 			return fmt.Errorf("bad color code: %s", label.Color)
 		}
 		if err := newLabel(sess, label); err != nil {
@@ -365,7 +366,7 @@ func updateLabel(e Engine, l *Label) error {
 
 // UpdateLabel updates label information.
 func UpdateLabel(l *Label) error {
-	if !labelColorPattern.MatchString(l.Color) {
+	if !LabelColorPattern.MatchString(l.Color) {
 		return fmt.Errorf("bad color code: %s", l.Color)
 	}
 	return updateLabel(x, l)
