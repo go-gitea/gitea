@@ -18,7 +18,33 @@ import (
 	"xorm.io/xorm"
 )
 
-var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
+var labelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+
+// Label represents a label of repository for issues.
+type Label struct {
+	ID              int64 `xorm:"pk autoincr"`
+	RepoID          int64 `xorm:"INDEX"`
+	Name            string
+	Description     string
+	Color           string `xorm:"VARCHAR(7)"`
+	NumIssues       int
+	NumClosedIssues int
+	NumOpenIssues   int    `xorm:"-"`
+	IsChecked       bool   `xorm:"-"`
+	QueryString     string `xorm:"-"`
+	IsSelected      bool   `xorm:"-"`
+	IsExcluded      bool   `xorm:"-"`
+}
+
+// APIFormat converts a Label to the api.Label format
+func (label *Label) APIFormat() *api.Label {
+	return &api.Label{
+		ID:          label.ID,
+		Name:        label.Name,
+		Color:       strings.TrimLeft(label.Color, "#"),
+		Description: label.Description,
+	}
+}
 
 // GetLabelTemplateFile loads the label template file by given name,
 // then parses and returns a list of name-color pairs and optionally description.
@@ -58,32 +84,6 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 	}
 
 	return list, nil
-}
-
-// Label represents a label of repository for issues.
-type Label struct {
-	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"`
-	Name            string
-	Description     string
-	Color           string `xorm:"VARCHAR(7)"`
-	NumIssues       int
-	NumClosedIssues int
-	NumOpenIssues   int    `xorm:"-"`
-	IsChecked       bool   `xorm:"-"`
-	QueryString     string `xorm:"-"`
-	IsSelected      bool   `xorm:"-"`
-	IsExcluded      bool   `xorm:"-"`
-}
-
-// APIFormat converts a Label to the api.Label format
-func (label *Label) APIFormat() *api.Label {
-	return &api.Label{
-		ID:          label.ID,
-		Name:        label.Name,
-		Color:       strings.TrimLeft(label.Color, "#"),
-		Description: label.Description,
-	}
 }
 
 // CalOpenIssues calculates the open issues of label.
@@ -187,6 +187,9 @@ func newLabel(e Engine, label *Label) error {
 
 // NewLabel creates a new label for a repository
 func NewLabel(label *Label) error {
+	if !labelColorPattern.MatchString(label.Color) {
+		return fmt.Errorf("bad color code: %s", label.Color)
+	}
 	return newLabel(x, label)
 }
 
@@ -198,6 +201,9 @@ func NewLabels(labels ...*Label) error {
 		return err
 	}
 	for _, label := range labels {
+		if !labelColorPattern.MatchString(label.Color) {
+			return fmt.Errorf("bad color code: %s", label.Color)
+		}
 		if err := newLabel(sess, label); err != nil {
 			return err
 		}
@@ -359,6 +365,9 @@ func updateLabel(e Engine, l *Label) error {
 
 // UpdateLabel updates label information.
 func UpdateLabel(l *Label) error {
+	if !labelColorPattern.MatchString(l.Color) {
+		return fmt.Errorf("bad color code: %s", l.Color)
+	}
 	return updateLabel(x, l)
 }
 
