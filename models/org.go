@@ -256,6 +256,10 @@ func CountOrganizations() int64 {
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *User) (err error) {
+	if !org.IsOrganization() {
+		return fmt.Errorf("%s is an user not a organization", org.Name)
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
