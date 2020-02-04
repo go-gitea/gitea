@@ -517,7 +517,7 @@ func (pr *PullRequest) SetMerged() (err error) {
 	if count, err := sess.Where("id = ? AND has_merged != ?", pr.ID, true).Count(new(PullRequest)); err != nil {
 		return err
 	} else if count < 1 {
-		return nil
+		return fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
 
 	if err = pr.loadIssue(sess); err != nil {
