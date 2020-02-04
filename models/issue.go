@@ -398,6 +398,7 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 	apiIssue.Repo = &api.RepositoryMeta{
 		ID:       issue.Repo.ID,
 		Name:     issue.Repo.Name,
+		Owner:    issue.Repo.OwnerName,
 		FullName: issue.Repo.FullName(),
 	}
 
