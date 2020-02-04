@@ -226,7 +226,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	//   schema:
 	//     "$ref": "#/definitions/CreateBranchProtectionOption"
 	// responses:
-	//   "200":
+	//   "201":
 	//     "$ref": "#/responses/BranchProtection"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
@@ -355,7 +355,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToBranchProtection(bp))
+	ctx.JSON(http.StatusCreated, convert.ToBranchProtection(bp))
 
 }
 
