@@ -121,6 +121,8 @@ github.com/denisenkom/go-mssqldb/internal/decimal
 github.com/denisenkom/go-mssqldb/internal/querytext
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
+# github.com/dustin/go-humanize v1.0.0
+github.com/dustin/go-humanize
 # github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
 github.com/editorconfig/editorconfig-core-go/v2
 # github.com/edsrzf/mmap-go v1.0.0
