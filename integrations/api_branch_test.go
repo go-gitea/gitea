@@ -51,7 +51,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTP
 	})
 	resp := session.MakeRequest(t, req, expectedHTTPStatus)
 
-	if resp.Code == 200 {
+	if resp.Code == 201 {
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
 		assert.EqualValues(t, branchName, branchProtection.BranchName)
@@ -100,7 +100,7 @@ func TestAPIBranchProtection(t *testing.T) {
 	// Get branch protection on branch that exist but not branch protection
 	testAPIGetBranchProtection(t, "master", http.StatusNotFound)
 
-	testAPICreateBranchProtection(t, "master", http.StatusOK)
+	testAPICreateBranchProtection(t, "master", http.StatusCreated)
 	// Can only create once
 	testAPICreateBranchProtection(t, "master", http.StatusForbidden)
 
