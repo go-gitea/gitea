@@ -212,9 +212,9 @@
 					<div class="ui {{if .IsClosed}}{{if .IsPull}}{{if .PullRequest.HasMerged}}purple{{else}}red{{end}}{{else}}red{{end}}{{else}}{{if .IsRead}}white{{else}}green{{end}}{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
-                    {{if .IsPull }}
-                        {{if (index $.CommitStatus .PullRequest.ID)}}
-                            {{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
+					{{if .IsPull }}
+						{{if (index $.CommitStatus .PullRequest.ID)}}
+							{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
 						{{end}}
 					{{end}}
 
@@ -266,6 +266,11 @@
 							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-variation="inverted" data-position="left center">
 								<img class="ui avatar image" src="{{.RelAvatarLink}}">
 							</a>
+						{{end}}
+						{{if .IsPull}}
+							{{if (len .PullRequest.ConflictedFiles) gt 0}}
+								<span class="conflicting"><i class="octicon octicon-mirror"></i> {{$.i18n.Tr "repo.pulls.num_conflicting_files" (len .PullRequest.ConflictedFiles)}}</span>
+							{{end}}
 						{{end}}
 					</p>
 				</li>
