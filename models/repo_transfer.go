@@ -288,6 +288,10 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		}
 	}
 
+	if err := acceptRepositoryTransfer(sess, repo); err != nil {
+		return fmt.Errorf("accept repository transfer: %v", err)
+	}
+
 	// If there was previously a redirect at this location, remove it.
 	if err = deleteRepoRedirect(sess, newOwner.ID, repo.Name); err != nil {
 		return fmt.Errorf("delete repo redirect: %v", err)
