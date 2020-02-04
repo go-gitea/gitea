@@ -415,7 +415,7 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		if err := models.TransferOwnership(repoTransfer.User, repoTransfer.Recipient.LoginName, ctx.Repo.Repository); err != nil {
+		if err := repo_service.TransferOwnership(repoTransfer.User, repoTransfer.Recipient, ctx.Repo.Repository, nil); err != nil {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
 			return
 		}
