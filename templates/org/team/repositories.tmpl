@@ -38,7 +38,15 @@
 								<a class="ui red small button right" href="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/remove?repoid={{.ID}}">{{$.i18n.Tr "remove"}}</a>
 							{{end}}
 							<a class="member" href="{{AppSubUrl}}/{{$.Org.Name}}/{{.Name}}">
-								<i class="octicon octicon-{{if .IsPrivate}}lock{{else if .IsFork}}repo-forked{{else if .IsMirror}}repo-clone{{else}}repo{{end}}"></i>
+								{{if .IsPrivate}}
+									{{octicon false "lock"}}
+								{{else if .IsFork}}
+									{{octicon false "repo-forked"}}
+								{{else if .IsMirror}}
+									{{octicon false "repo-clone"}}
+								{{else}}
+									{{octicon false "repo"}}
+								{{end}}
 								<strong>{{$.Org.Name}}/{{.Name}}</strong>
 							</a>
 						</div>

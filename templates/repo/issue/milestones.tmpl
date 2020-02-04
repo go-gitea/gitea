@@ -14,11 +14,11 @@
 		{{template "base/alert" .}}
 		<div class="ui tiny basic buttons">
 			<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.RepoLink}}/milestones?state=open">
-				<i class="octicon octicon-milestone"></i>
+				{{octicon false "milestone"}}
 				{{.i18n.Tr "repo.milestones.open_tab" .OpenCount}}
 			</a>
 			<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.RepoLink}}/milestones?state=closed">
-				<i class="octicon octicon-milestone"></i>
+				{{octicon false "milestone"}}
 				{{.i18n.Tr "repo.milestones.close_tab" .ClosedCount}}
 			</a>
 		</div>
@@ -43,7 +43,7 @@
 		<div class="milestone list">
 			{{range .Milestones}}
 				<li class="item">
-					<i class="octicon octicon-milestone"></i> <a href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
+					{{octicon false "milestone"}} <a href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
 					<div class="ui right green progress" data-percent="{{.Completeness}}">
 						<div class="bar" {{if not .Completeness}}style="background-color: transparent"{{end}}>
 							<div class="progress"></div>
@@ -52,9 +52,9 @@
 					<div class="meta">
 						{{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.Lang }}
 						{{if .IsClosed}}
-							<span class="octicon octicon-clock"></span> {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+							{{octicon false "clock"}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
 						{{else}}
-							<span class="octicon octicon-calendar"></span>
+							{{octicon false "calendar"}}
 							{{if .DeadlineString}}
 								<span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
 							{{else}}
@@ -62,20 +62,20 @@
 							{{end}}
 						{{end}}
 						<span class="issue-stats">
-							<i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.issues.open_tab" .NumOpenIssues}}
-							<i class="octicon octicon-issue-closed"></i> {{$.i18n.Tr "repo.issues.close_tab" .NumClosedIssues}}
-							{{if .TotalTrackedTime}}<i class="octicon octicon-clock"></i> {{.TotalTrackedTime|Sec2Time}}{{end}}
+							{{octicon false "issue-opened"}} {{$.i18n.Tr "repo.issues.open_tab" .NumOpenIssues}}
+							{{octicon false "issue-closed"}} {{$.i18n.Tr "repo.issues.close_tab" .NumClosedIssues}}
+							{{if .TotalTrackedTime}}{{octicon false "clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
 						</span>
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
 						<div class="ui right operate">
-							<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}><i class="octicon octicon-pencil"></i> {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+							<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}>{{octicon false "pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 							{{if .IsClosed}}
-								<a href="{{$.Link}}/{{.ID}}/open" data-id={{.ID}} data-title={{.Name}}><i class="octicon octicon-check"></i> {{$.i18n.Tr "repo.milestones.open"}}</a>
+								<a href="{{$.Link}}/{{.ID}}/open" data-id={{.ID}} data-title={{.Name}}>{{octicon false "check"}} {{$.i18n.Tr "repo.milestones.open"}}</a>
 							{{else}}
-								<a href="{{$.Link}}/{{.ID}}/close" data-id={{.ID}} data-title={{.Name}}><i class="octicon octicon-x"></i> {{$.i18n.Tr "repo.milestones.close"}}</a>
+								<a href="{{$.Link}}/{{.ID}}/close" data-id={{.ID}} data-title={{.Name}}>{{octicon false "x"}} {{$.i18n.Tr "repo.milestones.close"}}</a>
 							{{end}}
-							<a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}"><i class="octicon octicon-trashcan"></i> {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+							<a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{octicon false "trashcan"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 						</div>
 					{{end}}
 					{{if .Content}}

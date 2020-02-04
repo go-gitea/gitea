@@ -285,6 +285,13 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
+		"octicon": func(mega bool, icon string) template.HTML {
+			size := ""
+			if mega {
+				size = "mega-"
+			}
+			return template.HTML(fmt.Sprintf(`<svg class="%socticon"><use xlink:href="%s/img/svg/octicons.svg#%s" /></svg>`, size, setting.StaticURLPrefix, icon))
+		},
 	}}
 }
 

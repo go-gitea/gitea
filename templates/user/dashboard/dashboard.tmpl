@@ -89,7 +89,7 @@
 											<strong class="text truncate item-name">${repo.full_name}</strong>
 											<i v-if="repo.archived" class="archive icon archived-icon"></i>
 											<span class="ui right text light grey">
-												${repo.stars_count} <i class="octicon octicon-star rear"></i>
+												${repo.stars_count} <span class="rear">{{octicon false "star"}}</span>
 											</span>
 										</a>
 									</li>
@@ -113,10 +113,10 @@
 								<ul class="repo-owner-name-list">
 									<li v-for="org in organizations">
 										<a :href="suburl + '/' + org.name">
-											<i class="octicon octicon-organization"></i>
+											{{octicon false "organization"}}
 											<strong class="text truncate item-name">${org.name}</strong>
 											<span class="ui right text light grey">
-												${org.num_repos} <i class="octicon octicon-repo rear"></i>
+												${org.num_repos} <span class="rear">{{octicon false "repo"}}</span>
 											</span>
 										</a>
 									</li>
