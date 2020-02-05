@@ -308,22 +308,22 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 
 func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	for _, test := range []struct {
 		Opts            IssuesOptions
 		ExpectedRepoIDs []int64
 	}{
 		{
 			IssuesOptions{
-				AssigneeID: 1,
+				AssigneeID: 2,
 			},
-			[]int64{1, 3},
+			[]int64{1, 2},
 		},
 		{
 			IssuesOptions{
-				RepoIDs: []int64{1, 3},
+				RepoIDs: []int64{1, 2},
 			},
-			[]int64{1, 3},
+			[]int64{1, 2},
 		},
 	} {
 		repoIDs, err := GetRepoIDsForIssuesOptions(&test.Opts, user)
