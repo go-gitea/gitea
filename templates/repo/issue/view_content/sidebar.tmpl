@@ -10,7 +10,7 @@
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 				{{range .Labels}}
-					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}">{{if .IsChecked}}{{octicon false "check"}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{octicon false "check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 				{{end}}
 			</div>
@@ -83,11 +83,13 @@
 						 checked
 						{{end}}
 					{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
+						{{$checked := false}}
 						{{range $.Issue.Assignees}}
 							{{if eq .ID $AssigneeID}}
-								{{octicon false "check"}}
+								{{$checked = true}}
 							{{end}}
 						{{end}}
+						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{octicon false "check"}}</span>
 						<span class="text">
 							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
 						</span>

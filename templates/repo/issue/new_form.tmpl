@@ -46,7 +46,7 @@
 				<div class="filter menu" data-id="#label_ids">
 					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 					{{range .Labels}}
-						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}">{{if .IsChecked}}{{octicon false "check"}}{{end}}"><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{octicon false "check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 					{{end}}
 				</div>
@@ -111,7 +111,7 @@
 						<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 						{{range .Assignees}}
 							<a class="item" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-								{{octicon false "person"}}
+								<span class="octicon-check invisible">{{octicon false "check"}}</span>
 								<span class="text">
 									<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
 								</span>
