@@ -317,7 +317,7 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 			IssuesOptions{
 				AssigneeID: 2,
 			},
-			[]int64{1, 2},
+			[]int64{3},
 		},
 		{
 			IssuesOptions{
