@@ -422,6 +422,9 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
 		assert.NoError(t, err)
 
+		_, err = git.NewCommand("clone", u.String()).RunInDir(tmpDir)
+		assert.Error(t, err)
+
 		err = git.InitRepository(tmpDir, false)
 		assert.NoError(t, err)
 
@@ -456,6 +459,14 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 
 		// Push to create enabled
 		setting.Repository.EnablePushCreateUser = true
+		// Invalid repo
+		ctx.Reponame = fmt.Sprintf("test/repo-tmp-push-create-%s", u.Scheme)
+		u.Path = ctx.GitPath()
+		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
+		assert.Error(t, err)
+		// Valid repo
+		ctx.Reponame = fmt.Sprintf("repo-tmp-push-create-%s", u.Scheme)
+		u.Path = ctx.GitPath()
 		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
 		assert.NoError(t, err)
 
