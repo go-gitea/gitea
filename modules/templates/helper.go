@@ -285,7 +285,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"octicon": func(mega bool, icon string) template.HTML {
+		"octicon": func(icon string, mega bool) template.HTML {
 			size := ""
 			if mega {
 				size = "mega-"

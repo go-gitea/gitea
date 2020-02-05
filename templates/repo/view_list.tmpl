@@ -42,7 +42,7 @@
 	<tbody>
 		{{if .HasParentPath}}
 			<tr class="has-parent">
-				<td colspan="3">{{octicon false "mail-reply"}}<a href="{{EscapePound .BranchLink}}{{.ParentPath}}">..</a></td>
+				<td colspan="3">{{octicon "mail-reply" false}}<a href="{{EscapePound .BranchLink}}{{.ParentPath}}">..</a></td>
 			</tr>
 		{{end}}
 		{{range $item := .Files}}
@@ -52,7 +52,7 @@
 				{{if $entry.IsSubModule}}
 					<td>
 						<span class="truncate">
-							{{octicon false "file-submodule"}}
+							{{octicon "file-submodule" false}}
 							{{$refURL := $commit.RefURL AppUrl $.BranchLink}}
 							{{if $refURL}}
 								<a href="{{$refURL}}">{{$entry.Name}}</a> @ <a href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
@@ -67,7 +67,7 @@
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
-								{{octicon false "file-directory"}}
+								{{octicon "file-directory" false}}
 								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 									{{if eq (len $subJumpablePath) 2}}
 										<span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}

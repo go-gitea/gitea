@@ -44,7 +44,7 @@
 		<div class="right stackable menu">
 			<a href="{{AppSubUrl}}/notifications" class="item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
 				<span class="text">
-					<span class="fitted">{{octicon false "bell"}}</span>
+					<span class="fitted">{{octicon "bell" false}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "notifications"}}</span>
 
 					{{if .NotificationUnreadCount}}
@@ -57,20 +57,20 @@
 
 			<div class="ui dropdown jump item poping up" data-content="{{.i18n.Tr "create_new"}}" data-variation="tiny inverted">
 				<span class="text">
-					<span class="fitted">{{octicon false "plus"}}</span>
+					<span class="fitted">{{octicon "plus" false}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "create_new"}}</span>
-					<span class="fitted not-mobile">{{octicon false "triangle-down"}}</span>
+					<span class="fitted not-mobile">{{octicon "triangle-down" false}}</span>
 				</span>
 				<div class="menu">
 					<a class="item" href="{{AppSubUrl}}/repo/create">
-						<span class="fitted">{{octicon false "plus"}}</span> {{.i18n.Tr "new_repo"}}
+						<span class="fitted">{{octicon "plus" false}}</span> {{.i18n.Tr "new_repo"}}
 					</a>
 					<a class="item" href="{{AppSubUrl}}/repo/migrate">
-						<span class="fitted">{{octicon false "repo-clone"}}</span> {{.i18n.Tr "new_migrate"}}
+						<span class="fitted">{{octicon "repo-clone" false}}</span> {{.i18n.Tr "new_migrate"}}
 					</a>
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
-						<span class="fitted">{{octicon false "organization"}}</span> {{.i18n.Tr "new_org"}}
+						<span class="fitted">{{octicon "organization" false}}</span> {{.i18n.Tr "new_org"}}
 					</a>
 					{{end}}
 				</div><!-- end content create new menu -->
@@ -81,7 +81,7 @@
 					<img class="ui tiny avatar image" width="24" height="24" src="{{.SignedUser.RelAvatarLink}}">
 					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
-					<span class="fitted not-mobile" tabindex="-1">{{octicon false "triangle-down"}}</span>
+					<span class="fitted not-mobile" tabindex="-1">{{octicon "triangle-down" false}}</span>
 				</span>
 				<div class="menu user-menu" tabindex="-1">
 					<div class="ui header">
@@ -90,19 +90,19 @@
 
 					<div class="divider"></div>
 					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}">
-						{{octicon false "person"}}
+						{{octicon "person" false}}
 						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
 					</a>
 					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
-						{{octicon false "star"}}
+						{{octicon "star" false}}
 						{{.i18n.Tr "your_starred"}}
 					</a>
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
-						{{octicon false "settings"}}
+						{{octicon "settings" false}}
 						{{.i18n.Tr "your_settings"}}<!-- Your settings -->
 					</a>
 					<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">
-						{{octicon false "question"}}
+						{{octicon "question" false}}
 						{{.i18n.Tr "help"}}<!-- Help -->
 					</a>
 					{{if .IsAdmin}}
@@ -116,7 +116,7 @@
 
 					<div class="divider"></div>
 					<a class="item" href="{{AppSubUrl}}/user/logout">
-						{{octicon false "sign-out"}}
+						{{octicon "sign-out" false}}
 						{{.i18n.Tr "sign_out"}}<!-- Sign Out -->
 					</a>
 				</div><!-- end content avatar menu -->
@@ -129,11 +129,11 @@
 		<div class="right stackable menu">
 			{{if .ShowRegistrationButton}}
 				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
-					{{octicon false "person"}} {{.i18n.Tr "register"}}
+					{{octicon "person" false}} {{.i18n.Tr "register"}}
 				</a>
 			{{end}}
 			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{.Link}}">
-				{{octicon false "sign-in"}} {{.i18n.Tr "sign_in"}}
+				{{octicon "sign-in" false}} {{.i18n.Tr "sign_in"}}
 			</a>
 		</div><!-- end anonymous right menu -->
 

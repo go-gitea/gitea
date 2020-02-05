@@ -12,11 +12,11 @@
 
 				<div class="meta">
 					{{if .Website}}
-						{{octicon false "link"}} <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
+						{{octicon "link" false}} <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
 					{{else if .Location}}
-						{{octicon false "location"}} {{.Location}}
+						{{octicon "location" false}} {{.Location}}
 					{{else}}
-						{{octicon false "clock"}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+						{{octicon "clock" false}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 					{{end}}
 				</div>
 			</li>

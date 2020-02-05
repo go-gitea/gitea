@@ -30,11 +30,11 @@
 			<div class="six wide column">
 				<div class="ui tiny basic status buttons">
 					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
-						{{octicon false "issue-opened"}}
+						{{octicon "issue-opened" false}}
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
-						{{octicon false "issue-closed"}}
+						{{octicon "issue-closed" false}}
 						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 					</a>
 				</div>
@@ -51,7 +51,7 @@
 							<span class="info">{{.i18n.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item has-emoji label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{octicon false "circle-slash"}}{{else if .IsSelected}}{{octicon false "check"}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item has-emoji label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{octicon "circle-slash" false}}{{else if .IsSelected}}{{octicon "check" false}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -124,11 +124,11 @@
 			<div class="six wide column">
 				<div class="ui tiny basic status buttons">
 					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
-						{{octicon false "issue-opened"}}
+						{{octicon "issue-opened" false}}
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
-						{{octicon false "issue-closed"}}
+						{{octicon "issue-closed" false}}
 						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 					</a>
 				</div>
@@ -155,7 +155,7 @@
 						<div class="menu">
 							{{range .Labels}}
 								<div class="item issue-action has-emoji" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if contain $.SelLabelIDs .ID}}{{octicon false "check"}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+									{{if contain $.SelLabelIDs .ID}}{{octicon "check" false}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 								</div>
 							{{end}}
 						</div>
@@ -223,11 +223,11 @@
 					{{end}}
 
 					{{if .NumComments}}
-						<span class="comment ui right">{{octicon false "comment"}} {{.NumComments}}</span>
+						<span class="comment ui right">{{octicon "comment" false}} {{.NumComments}}</span>
 					{{end}}
 
 					{{if .TotalTrackedTime}}
-						<span class="comment ui right">{{octicon false "clock"}} {{.TotalTrackedTime | Sec2Time}}</span>
+						<span class="comment ui right">{{octicon "clock" false}} {{.TotalTrackedTime | Sec2Time}}</span>
 					{{end}}
 
 					<p class="desc">
@@ -242,24 +242,24 @@
 
 						{{if .Milestone}}
 							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
-								{{octicon false "milestone"}} {{.Milestone.Name}}
+								{{octicon "milestone" false}} {{.Milestone.Name}}
 							</a>
 						{{end}}
 						{{if .Ref}}
 							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref | PathEscapeSegments}}">
-								{{octicon false "git-branch"}} {{.Ref}}
+								{{octicon "git-branch" false}} {{.Ref}}
 							</a>
 						{{end}}
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
 							{{$tasksDone := .GetTasksDone}}
 							<span class="checklist">
-								{{octicon false "checklist"}} {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+								{{octicon "checklist" false}} {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 							</span>
 						{{end}}
 						{{if ne .DeadlineUnix 0}}
 							<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
-								{{octicon false "calendar"}}<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+								{{octicon "calendar" false}}<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 							</span>
 						{{end}}
 						{{range .Assignees}}

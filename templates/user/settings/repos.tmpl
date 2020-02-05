@@ -13,13 +13,13 @@
 					<div class="item">
 						<div class="content">
 							{{if .IsPrivate}}
-								<span class="text gold iconFloat">{{octicon false "lock"}}</span>
+								<span class="text gold iconFloat">{{octicon "lock" false}}</span>
 							{{else if .IsFork}}
-								<span class="iconFloat">{{octicon false "repo-forked"}}</span>
+								<span class="iconFloat">{{octicon "repo-forked" false}}</span>
 							{{else if .IsMirror}}
-								<span class="iconFloat">{{octicon false "repo-clone"}}</span>
+								<span class="iconFloat">{{octicon "repo-clone" false}}</span>
 							{{else}}
-								<span class="iconFloat">{{octicon false "repo"}}</span>
+								<span class="iconFloat">{{octicon "repo" false}}</span>
 							{{end}}
 							<a class="name" href="{{AppSubUrl}}/{{$.Owner.Name}}/{{.Name}}">{{$.Owner.Name}}/{{.Name}}</a>
 							<span>{{SizeFmt .Size}}</span>

@@ -10,19 +10,19 @@
 					{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
 				</a>
 				{{if .IsPrivate}}
-					<span class="middle text gold">{{octicon false "lock"}}</span>
+					<span class="middle text gold">{{octicon "lock" false}}</span>
 				{{else if .IsFork}}
-					<span class="middle">{{octicon false "repo-forked"}}</span>
+					<span class="middle">{{octicon "repo-forked" false}}</span>
 				{{else if .IsMirror}}
-					<span class="middle">{{octicon false "repo-clone"}}</span>
+					<span class="middle">{{octicon "repo-clone" false}}</span>
 				{{else if .Owner}}
 					{{if .Owner.Visibility.IsPrivate}}
-					<span class="text gold">{{octicon false "lock"}}</span>
+					<span class="text gold">{{octicon "lock" false}}</span>
 					{{end}}
 				{{end}}
 				<div class="ui right metas">
-					<span class="text grey">{{octicon false "repo"}} {{.NumStars}}</span>
-					<span class="text grey">{{octicon false "git-branch"}} {{.NumForks}}</span>
+					<span class="text grey">{{octicon "repo" false}} {{.NumStars}}</span>
+					<span class="text grey">{{octicon "git-branch" false}} {{.NumForks}}</span>
 				</div>
 			</div>
 			<div class="description">

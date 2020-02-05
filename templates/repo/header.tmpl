@@ -7,19 +7,19 @@
 					<img class="ui avatar image" src="{{.RelAvatarLink}}">
 				{{else if .IsTemplate}}
 					{{if .IsPrivate}}
-						{{octicon true "repo-template-private"}}
+						{{octicon "repo-template-private" true}}
 					{{else}}
-						{{octicon true "repo-template"}}
+						{{octicon "repo-template" true}}
 					{{end}}
 				{{else}}
 					{{if .IsPrivate}}
-						{{octicon true "lock"}}
+						{{octicon "lock" true}}
 					{{else if .IsMirror}}
-						{{octicon true "repo-clone"}}
+						{{octicon "repo-clone" true}}
 					{{else if .IsFork}}
-						{{octicon true "repo-fork"}}
+						{{octicon "repo-fork" true}}
 					{{else}}
-						{{octicon true "repo"}}
+						{{octicon "repo" true}}
 					{{end}}
 				{{end}}
 				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
@@ -28,19 +28,19 @@
 				{{if .RelAvatarLink}}
 					{{if .IsTemplate}}
 						{{if .IsPrivate}}
-							{{octicon true "repo-template-private"}}
+							{{octicon "repo-template-private" true}}
 						{{else}}
-							{{octicon true "repo-template"}}
+							{{octicon "repo-template" true}}
 						{{end}}
 					{{else}}
 						{{if .IsPrivate}}
-							{{octicon true "lock"}}
+							{{octicon "lock" true}}
 						{{else if .IsMirror}}
-							{{octicon true "repo-clone"}}
+							{{octicon "repo-clone" true}}
 						{{else if .IsFork}}
-							{{octicon true "repo-fork"}}
+							{{octicon "repo-fork" true}}
 						{{else}}
-							{{octicon true "repo"}}
+							{{octicon "repo" true}}
 						{{end}}
 					{{end}}
 				{{end}}
@@ -70,7 +70,7 @@
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button {{if and ($.IsSigned) (not $.CanSignedUserFork)}}disabled-repo-button{{end}}" tabindex="0">
 							<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
-								{{octicon false "repo-forked"}}{{$.i18n.Tr "repo.fork"}}
+								{{octicon "repo-forked" false}}{{$.i18n.Tr "repo.fork"}}
 							</a>
 							<a class="ui basic label" href="{{.Link}}/forks">
 								{{.NumForks}}
@@ -87,43 +87,43 @@
 			<div class="ui tabular stackable menu navbar">
 				{{if .Permission.CanRead $.UnitTypeCode}}
 				<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL | EscapePound}}{{end}}">
-					{{octicon false "code"}} {{.i18n.Tr "repo.code"}}
+					{{octicon "code" false}} {{.i18n.Tr "repo.code"}}
 				</a>
 				{{end}}
 
 				{{if .Permission.CanRead $.UnitTypeIssues}}
 					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
-						{{octicon false "issue-opened"}} {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
+						{{octicon "issue-opened" false}} {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
 					</a>
 				{{end}}
 
 				{{if .Permission.CanRead $.UnitTypeExternalTracker}}
 					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
-						{{octicon false "link-external"}} {{.i18n.Tr "repo.issues"}} </span>
+						{{octicon "link-external" false}} {{.i18n.Tr "repo.issues"}} </span>
 					</a>
 				{{end}}
 
 				{{if and .Repository.CanEnablePulls (.Permission.CanRead $.UnitTypePullRequests)}}
 					<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls">
-						{{octicon false "git-pull-request"}} {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
+						{{octicon "git-pull-request" false}} {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
 					</a>
 				{{end}}
 
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo) }}
 				<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
-					{{octicon false "tag"}} {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .Repository.NumReleases}}gray{{else}}blue{{end}} small label">{{.Repository.NumReleases}}</span>
+					{{octicon "tag" false}} {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .Repository.NumReleases}}gray{{else}}blue{{end}} small label">{{.Repository.NumReleases}}</span>
 				</a>
 				{{end}}
 
 				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
 					<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Permission.CanRead $.UnitTypeExternalWiki)}} target="_blank" rel="noopener noreferrer" {{end}}>
-						{{octicon false "book"}} {{.i18n.Tr "repo.wiki"}}
+						{{octicon "book" false}} {{.i18n.Tr "repo.wiki"}}
 					</a>
 				{{end}}
 
 				{{if and (.Permission.CanReadAny $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsEmptyRepo)}}
 					<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
-						{{octicon false "pulse"}} {{.i18n.Tr "repo.activity"}}
+						{{octicon "pulse" false}} {{.i18n.Tr "repo.activity"}}
 					</a>
 				{{end}}
 
@@ -132,7 +132,7 @@
 				{{if .Permission.IsAdmin}}
 					<div class="right menu">
 						<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
-							{{octicon false "tools"}} {{.i18n.Tr "repo.settings"}}
+							{{octicon "tools" false}} {{.i18n.Tr "repo.settings"}}
 						</a>
 					</div>
 				{{end}}

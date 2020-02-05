@@ -18,7 +18,7 @@
 				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
 					{{$.CsrfTokenHtml}}
 					<button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
-						{{octicon false "checklist"}}
+						{{octicon "checklist" false}}
 					</button>
 				</form>
 			{{end}}
@@ -41,22 +41,22 @@
 							<tr data-href="{{$notification.HTMLURL}}">
 								<td class="collapsing">
 									{{if eq $notification.Status 3}}
-										<span class="blue">{{octicon false "pin"}}</span>
+										<span class="blue">{{octicon "pin" false}}</span>
 									{{else if $issue.IsPull}}
 										{{if $issue.IsClosed}}
 											{{if $issue.GetPullRequest.HasMerged}}
-												<span class="purple">{{octicon false "git-merge"}}</span>
+												<span class="purple">{{octicon "git-merge" false}}</span>
 											{{else}}
-												<span class="red">{{octicon false "git-pull-request"}}</span>
+												<span class="red">{{octicon "git-pull-request" false}}</span>
 											{{end}}
 										{{else}}
-											<span class="green">{{octicon false "git-pull-request"}}</span>
+											<span class="green">{{octicon "git-pull-request" false}}</span>
 										{{end}}
 									{{else}}
 										{{if $issue.IsClosed}}
-											<span class="red">{{octicon false "issue-closed"}}</span>
+											<span class="red">{{octicon "issue-closed" false}}</span>
 										{{else}}
-											<span class="green">{{octicon false "issue-opened"}}</span>
+											<span class="green">{{octicon "issue-opened" false}}</span>
 										{{end}}
 									{{end}}
 								</td>
@@ -77,7 +77,7 @@
 											<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 											<input type="hidden" name="status" value="pinned" />
 											<button class="ui mini button" title='{{$.i18n.Tr "notification.pin"}}'>
-												{{octicon false "pin"}}
+												{{octicon "pin" false}}
 											</button>
 										</form>
 									{{end}}
@@ -90,7 +90,7 @@
 											<input type="hidden" name="status" value="read" />
 											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
 											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_read"}}'>
-												{{octicon false "check"}}
+												{{octicon "check" false}}
 											</button>
 										</form>
 									{{else if eq $notification.Status 2}}
@@ -100,7 +100,7 @@
 											<input type="hidden" name="status" value="unread" />
 											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
 											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_unread"}}'>
-												{{octicon false "bell"}}
+												{{octicon "bell" false}}
 											</button>
 										</form>
 									{{end}}

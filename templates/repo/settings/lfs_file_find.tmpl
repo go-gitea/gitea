@@ -13,7 +13,7 @@
 					{{range .Results}}
 						<tr>
 							<td>
-								{{octicon false "file"}}
+								{{octicon "file" false}}
 								<a href="{{EscapePound $.RepoLink}}/src/commit/{{.SHA}}/{{EscapePound .Name}}" title="{{.Name}}">{{.Name}}</a>
 							</td>
 							<td class="message has-emoji">
@@ -24,7 +24,7 @@
 								</span>
 							</td>
 							<td>
-								<span class="text grey">{{octicon false "git-branch"}}{{.BranchName}}</span>
+								<span class="text grey">{{octicon "git-branch" false}}{{.BranchName}}</span>
 							</td>
 							<td>
 								{{if .ParentHashes}}

@@ -36,11 +36,11 @@
 			<div class="twelve wide column content">
 				<div class="ui tiny basic status buttons">
 					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open">
-						{{octicon false "issue-opened"}}
+						{{octicon "issue-opened" false}}
 						{{.i18n.Tr "repo.milestones.open_tab" .MilestoneStats.OpenCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed">
-						{{octicon false "issue-closed"}}
+						{{octicon "issue-closed" false}}
 						{{.i18n.Tr "repo.milestones.close_tab" .MilestoneStats.ClosedCount}}
 					</a>
 				</div>
@@ -66,7 +66,7 @@
                     {{range .Milestones}}
                         <li class="item">
                             <div class="ui label">{{.Repo.FullName}}</div>
-							{{octicon false "milestone"}} <a href="{{.Repo.Link }}/milestone/{{.ID}}">{{.Name}}</a>
+							{{octicon "milestone" false}} <a href="{{.Repo.Link }}/milestone/{{.ID}}">{{.Name}}</a>
                             <div class="ui right green progress" data-percent="{{.Completeness}}">
                                 <div class="bar" {{if not .Completeness}}style="background-color: transparent"{{end}}>
                                     <div class="progress"></div>
@@ -75,9 +75,9 @@
                             <div class="meta">
                                 {{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.Lang }}
                                 {{if .IsClosed}}
-									{{octicon false "clock"}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+									{{octicon "clock" false}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
                                 {{else}}
-									{{octicon false "calendar"}}
+									{{octicon "calendar" false}}
                                     {{if .DeadlineString}}
                                         <span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
                                     {{else}}
@@ -85,20 +85,20 @@
                                     {{end}}
                                 {{end}}
                                 <span class="issue-stats">
-                                    {{octicon false "issue-opened"}} {{$.i18n.Tr "repo.milestones.open_tab" .NumOpenIssues}}
-									{{octicon false "issue-closed"}} {{$.i18n.Tr "repo.milestones.close_tab" .NumClosedIssues}}
-                                    {{if .TotalTrackedTime}}{{octicon false "clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
+                                    {{octicon "issue-opened" false}} {{$.i18n.Tr "repo.milestones.open_tab" .NumOpenIssues}}
+									{{octicon "issue-closed" false}} {{$.i18n.Tr "repo.milestones.close_tab" .NumClosedIssues}}
+                                    {{if .TotalTrackedTime}}{{octicon "clock" false}} {{.TotalTrackedTime|Sec2Time}}{{end}}
                                 </span>
                             </div>
                             {{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
                                 <div class="ui right operate">
-                                    <a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}>{{octicon false "pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+                                    <a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}>{{octicon "pencil" false}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
                                     {{if .IsClosed}}
-                                        <a href="{{$.Link}}/{{.ID}}/open" data-id={{.ID}} data-title={{.Name}}>{{octicon false "check"}} {{$.i18n.Tr "repo.milestones.open"}}</a>
+                                        <a href="{{$.Link}}/{{.ID}}/open" data-id={{.ID}} data-title={{.Name}}>{{octicon "check" false}} {{$.i18n.Tr "repo.milestones.open"}}</a>
                                     {{else}}
-                                        <a href="{{$.Link}}/{{.ID}}/close" data-id={{.ID}} data-title={{.Name}}>{{octicon false "x"}} {{$.i18n.Tr "repo.milestones.close"}}</a>
+                                        <a href="{{$.Link}}/{{.ID}}/close" data-id={{.ID}} data-title={{.Name}}>{{octicon "x" false}} {{$.i18n.Tr "repo.milestones.close"}}</a>
                                     {{end}}
-                                    <a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{octicon false "trashcan"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+                                    <a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{octicon "trashcan" false}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
                                 </div>
                             {{end}}
                             {{if .Content}}
