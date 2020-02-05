@@ -452,6 +452,13 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		_, err = git.NewCommand("remote", "add", "origin", u.String()).RunInDir(tmpDir)
 		assert.NoError(t, err)
 
+		invalidCtx := ctx
+		invalidCtx.Reponame = fmt.Sprintf("invalid/repo-tmp-push-create-%s", u.Scheme)
+		u.Path = invalidCtx.GitPath()
+
+		_, err = git.NewCommand("remote", "add", "invalid", u.String()).RunInDir(tmpDir)
+		assert.NoError(t, err)
+
 		// Push to create disabled
 		setting.Repository.EnablePushCreateUser = false
 		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
@@ -459,14 +466,12 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 
 		// Push to create enabled
 		setting.Repository.EnablePushCreateUser = true
+
 		// Invalid repo
-		ctx.Reponame = fmt.Sprintf("test/repo-tmp-push-create-%s", u.Scheme)
-		u.Path = ctx.GitPath()
-		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
+		_, err = git.NewCommand("push", "invalid", "master").RunInDir(tmpDir)
 		assert.Error(t, err)
+
 		// Valid repo
-		ctx.Reponame = fmt.Sprintf("repo-tmp-push-create-%s", u.Scheme)
-		u.Path = ctx.GitPath()
 		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
 		assert.NoError(t, err)
 
