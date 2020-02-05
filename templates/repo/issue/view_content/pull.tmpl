@@ -11,7 +11,7 @@
 							{{else if eq .Type 2}}grey
 							{{else if eq .Type 3}}red
 							{{else}}grey{{end}}">
-							{{octicon false .Type.Icon}}
+							{{octicon .Type.Icon false}}
 						</span>
 						{{if .Stale}}
 						<span class="type-icon text grey">

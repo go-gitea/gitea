@@ -318,7 +318,7 @@
 		</div>
 	{{else if eq .Type 22}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="issue-symbol">{{octicon false .Review.Type.Icon}}</span>
+			<span class="issue-symbol">{{octicon .Review.Type.Icon false}}</span>
 			{{if .OriginalAuthor }}
 			{{else}}
 				<a class="ui avatar image"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>

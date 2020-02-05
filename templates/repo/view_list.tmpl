@@ -76,7 +76,7 @@
 									{{end}}
 								</a>
 							{{else}}
-								{{octicon false (EntryIcon $entry)}}
+								{{octicon (EntryIcon $entry) false}}
 								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 							{{end}}
 						</span>
