@@ -68,7 +68,6 @@ func ServNoCommand(ctx *macaron.Context) {
 
 // ServCommand returns information about the provided keyid
 func ServCommand(ctx *macaron.Context) {
-	// Although we provide the verbs we don't need them at present they're just for logging purposes
 	keyID := ctx.ParamsInt64(":keyid")
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
@@ -105,6 +104,17 @@ func ServCommand(ctx *macaron.Context) {
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			repoExist = false
+			for _, verb := range ctx.QueryStrings("verb") {
+				if "git-upload-pack" == verb {
+					// User is fetching/cloning a non-existent repository
+					ctx.JSON(http.StatusNotFound, map[string]interface{}{
+						"results": results,
+						"type":    "ErrRepoNotExist",
+						"err":     fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
+					})
+					return
+				}
+			}
 		} else {
 			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
