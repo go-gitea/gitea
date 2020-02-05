@@ -149,7 +149,7 @@ func runServ(c *cli.Context) error {
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
-	if !alphaDashDotPattern.MatchString(reponame) {
+	if alphaDashDotPattern.MatchString(reponame) {
 		fail("Invalid repo name", "Invalid repo name: %s", reponame)
 	}
 
