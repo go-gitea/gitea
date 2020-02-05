@@ -102,7 +102,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	if err = models.UpdateRelease(rel); err != nil {
+	if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
 		return err
 	}
 
@@ -145,7 +145,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 		rel.Title = ""
 		rel.Note = ""
 
-		if err = models.UpdateRelease(rel); err != nil {
+		if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}

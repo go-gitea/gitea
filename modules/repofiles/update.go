@@ -732,7 +732,7 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 			Commits:           commits,
 		})
 	}
-	if err := models.PushUpdateAddDeleteTags(repo, gitRepo, addTags, delTags); err != nil {
+	if err := repo_module.PushUpdateAddDeleteTags(repo, gitRepo, addTags, delTags); err != nil {
 		return nil, fmt.Errorf("PushUpdateAddDeleteTags: %v", err)
 	}
 	return actions, nil
