@@ -498,7 +498,7 @@ const (
 )
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
-func (pr *PullRequest) SetMerged() (bool, err error) {
+func (pr *PullRequest) SetMerged() (bool, error) {
 	if pr.HasMerged {
 		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
@@ -510,7 +510,7 @@ func (pr *PullRequest) SetMerged() (bool, err error) {
 
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return false, err
 	}
 
@@ -535,22 +535,22 @@ func (pr *PullRequest) SetMerged() (bool, err error) {
 		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
 
-	if err = pr.loadIssue(sess); err != nil {
+	if err := pr.loadIssue(sess); err != nil {
 		return false, err
 	}
 
-	if err = pr.Issue.loadRepo(sess); err != nil {
+	if err := pr.Issue.loadRepo(sess); err != nil {
 		return false, err
 	}
-	if err = pr.Issue.Repo.getOwner(sess); err != nil {
+	if err := pr.Issue.Repo.getOwner(sess); err != nil {
 		return false, err
 	}
 
-	if _, err = pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
+	if _, err := pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
 		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err := sess.Commit(); err != nil {
 		return false, fmt.Errorf("Commit: %v", err)
 	}
 	return true, nil
