@@ -375,10 +375,10 @@ function initCommentForm() {
         // adding/removing labels
         if ($(this).hasClass('checked')) {
           $(this).removeClass('checked');
-          $(this).find('.octicon-check').addClass('invisible');
+          $(this).find('.octicon-check').addClass('hidden');
         } else {
           $(this).addClass('checked');
-          $(this).find('.octicon-check').removeClass('invisible');
+          $(this).find('.octicon-check').removeClass('hidden');
         }
 
         updateIssuesMeta(
@@ -393,7 +393,7 @@ function initCommentForm() {
 
       if ($(this).hasClass('checked')) {
         $(this).removeClass('checked');
-        $(this).find('.octicon-check').addClass('invisible');
+        $(this).find('.octicon-check').addClass('hidden');
         if (hasLabelUpdateAction) {
           if (!($(this).data('id') in labels)) {
             labels[$(this).data('id')] = {
@@ -407,7 +407,7 @@ function initCommentForm() {
         }
       } else {
         $(this).addClass('checked');
-        $(this).find('.octicon-check').removeClass('invisible');
+        $(this).find('.octicon-check').removeClass('hidden');
         if (hasLabelUpdateAction) {
           if (!($(this).data('id') in labels)) {
             labels[$(this).data('id')] = {
@@ -450,7 +450,7 @@ function initCommentForm() {
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
-        $(this).find('.octicon').addClass('invisible');
+        $(this).find('.octicon').addClass('hidden');
       });
 
       $list.find('.item').each(function () {
