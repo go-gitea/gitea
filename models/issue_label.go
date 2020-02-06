@@ -157,7 +157,7 @@ func LoadLabelsFormatted(labelTemplate string) (string, error) {
 	return strings.Join(labels, ", "), err
 }
 
-func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
+func initializeLabels(e Engine, repoID int64, labelTemplate string) error {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
 		return ErrIssueLabelTemplateLoad{labelTemplate, err}
@@ -182,7 +182,7 @@ func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
 
 // InitalizeLabels adds a label set to a repository using a template
 func InitalizeLabels(ctx DBContext, repoID int64, labelTemplate string) error {
-	return initalizeLabels(ctx.e, repoID, labelTemplate)
+	return initializeLabels(ctx.e, repoID, labelTemplate)
 }
 
 func newLabel(e Engine, label *Label) error {
