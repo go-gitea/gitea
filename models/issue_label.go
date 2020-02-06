@@ -180,8 +180,8 @@ func initializeLabels(e Engine, repoID int64, labelTemplate string) error {
 	return nil
 }
 
-// InitalizeLabels adds a label set to a repository using a template
-func InitalizeLabels(ctx DBContext, repoID int64, labelTemplate string) error {
+// InitializeLabels adds a label set to a repository using a template
+func InitializeLabels(ctx DBContext, repoID int64, labelTemplate string) error {
 	return initializeLabels(ctx.e, repoID, labelTemplate)
 }
 
