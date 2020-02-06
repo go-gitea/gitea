@@ -70,7 +70,11 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 			return nil, fmt.Errorf("line is malformed: %s", line)
 		}
 
-		if !LabelColorPattern.MatchString(fields[0]) {
+		color := strings.Trim(fields[0], " ")
+		if len(color) == 6 {
+			color = "#" + color
+		}
+		if !LabelColorPattern.MatchString(color) {
 			return nil, fmt.Errorf("bad HTML color code in line: %s", line)
 		}
 
@@ -81,7 +85,7 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 		}
 
 		fields[1] = strings.TrimSpace(fields[1])
-		list = append(list, [3]string{fields[1], fields[0], description})
+		list = append(list, [3]string{fields[1], color, description})
 	}
 
 	return list, nil
