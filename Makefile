@@ -505,10 +505,6 @@ css:
 	@echo "'make css' is deprecated, please use 'make webpack'"
 	$(MAKE) webpack
 
-.PHONY: svg
-svg:
-	$(MAKE) webpack
-
 .PHONY: fomantic
 fomantic: node-check $(FOMANTIC_EVIDENCE)
 
