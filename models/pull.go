@@ -498,12 +498,12 @@ const (
 )
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
-func (pr *PullRequest) SetMerged() (err error) {
+func (pr *PullRequest) SetMerged() (bool, err error) {
 	if pr.HasMerged {
-		return fmt.Errorf("PullRequest[%d] already merged", pr.Index)
+		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
 	if pr.MergedCommitID == "" || pr.MergedUnix == 0 || pr.Merger == nil {
-		return fmt.Errorf("Unable to merge PullRequest[%d], some required fields are empty", pr.Index)
+		return false, fmt.Errorf("Unable to merge PullRequest[%d], some required fields are empty", pr.Index)
 	}
 
 	pr.HasMerged = true
@@ -511,7 +511,7 @@ func (pr *PullRequest) SetMerged() (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
-		return err
+		return false, err
 	}
 
 	closed := false
@@ -519,41 +519,41 @@ func (pr *PullRequest) SetMerged() (err error) {
 		ID:       pr.IssueID,
 		IsClosed: false,
 	}); err != nil {
-		return err
+		return false, err
 	} else if count < 1 {
 		closed = true
 	}
 
 	if count, err := sess.Where("id = ? AND has_merged = ? ", pr.ID, false).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
-		return err
+		return false, err
 	} else if count < 1 {
 		if closed {
-			return nil
+			return false, nil
 		}
-		return fmt.Errorf("PullRequest[%d] already merged", pr.Index)
+		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	} else if closed {
-		return fmt.Errorf("PullRequest[%d] already closed", pr.Index)
+		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
 
 	if err = pr.loadIssue(sess); err != nil {
-		return err
+		return false, err
 	}
 
 	if err = pr.Issue.loadRepo(sess); err != nil {
-		return err
+		return false, err
 	}
 	if err = pr.Issue.Repo.getOwner(sess); err != nil {
-		return err
+		return false, err
 	}
 
 	if _, err = pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
-		return fmt.Errorf("Issue.changeStatus: %v", err)
+		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
 	if err = sess.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
+		return false, fmt.Errorf("Commit: %v", err)
 	}
-	return nil
+	return true, nil
 }
 
 // NewPullRequest creates new pull request with labels for repository.
