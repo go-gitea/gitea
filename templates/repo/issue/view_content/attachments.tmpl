@@ -3,7 +3,7 @@
     {{if FilenameIsImage .Name}}
       <img class="ui image" src="{{.DownloadURL}}" title='{{$.ctx.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
     {{else}}
-      <span class="ui image" title='{{$.ctx.i18n.Tr "repo.issues.attachment.download" .Name}}'>{{octicon "desktop-download" false}}</span>
+      <span class="ui image" title='{{$.ctx.i18n.Tr "repo.issues.attachment.download" .Name}}'>{{svg "octicon-desktop-download" 16}}</span>
     {{end}}
   </a>
 {{end}}

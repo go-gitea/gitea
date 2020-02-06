@@ -285,12 +285,8 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"octicon": func(icon string, mega bool) template.HTML {
-			size := ""
-			if mega {
-				size = "mega-"
-			}
-			return template.HTML(fmt.Sprintf(`<svg class="%socticon"><use xlink:href="%s/img/svg/octicons.svg#%s" /></svg>`, size, setting.StaticURLPrefix, icon))
+		"svg": func(icon string, size int) template.HTML {
+			return template.HTML(fmt.Sprintf(`<svg class="svg" width="%d" height="%d"><use xlink:href="%s/img/svg/icons.svg#%s" /></svg>`, size, size, setting.StaticURLPrefix, icon))
 		},
 	}}
 }

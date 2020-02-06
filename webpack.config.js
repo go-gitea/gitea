@@ -5,6 +5,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
 const PostCSSSafeParser = require('postcss-safe-parser');
+const SpriteLoaderPlugin = require('svg-sprite-loader/plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const { statSync } = require('fs');
@@ -29,6 +30,7 @@ module.exports = {
     jquery: [
       resolve(__dirname, 'web_src/js/jquery.js'),
     ],
+    icons: fastGlob.sync(resolve(__dirname, 'node_modules/@primer/octicons/build/svg/**/*.svg')),
     ...themes,
   },
   devtool: false,
@@ -140,12 +142,35 @@ module.exports = {
           },
         ],
       },
+      {
+        test: /\.svg$/,
+        use: [
+          {
+            loader: 'svg-sprite-loader',
+            options: {
+              extract: true,
+              spriteFilename: 'img/svg/icons.svg',
+              symbolId: (path) => {
+                const { name } = parse(path);
+                if (/@primer[/\\]octicons/.test(path)) {
+                  return `octicon-${name}`;
+                }
+                return name;
+              },
+            },
+          },
+          {
+            loader: 'svgo-loader',
+          },
+        ],
+      },
     ],
   },
   plugins: [
     new VueLoaderPlugin(),
-    // needed so themes don't generate useless js files
+    // avoid generating useless js output files for css- and svg-only chunks
     new FixStyleOnlyEntriesPlugin({
+      extensions: ['less', 'scss', 'css', 'svg'],
       silent: true,
     }),
     new MiniCssExtractPlugin({
@@ -157,6 +182,9 @@ module.exports = {
       include: [
         'js/index.js',
       ],
+    }),
+    new SpriteLoaderPlugin({
+      plainSprite: true,
     }),
   ],
   performance: {

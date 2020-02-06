@@ -12,13 +12,13 @@
 					<span class="header"><a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}</span>
 					<div class="description">
 						{{if .Location}}
-							{{octicon "location" false}} {{.Location}}
+							{{svg "octicon-location" 16}} {{.Location}}
 						{{end}}
 						{{if and $.ShowUserEmail .Email $.IsSigned (not .KeepEmailPrivate)}}
-							{{octicon "mail" false}}
+							{{svg "octicon-mail" 16}}
 							<a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
 						{{end}}
-						{{octicon "clock" false}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+						{{svg "octicon-clock" 16}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 					</div>
 				  </div>
 				</div>

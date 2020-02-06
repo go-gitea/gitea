@@ -20,23 +20,23 @@
 					<div class="extra content wrap">
 						<ul class="text black">
 							{{if .Owner.Location}}
-								<li>{{octicon "location" false}} {{.Owner.Location}}</li>
+								<li>{{svg "octicon-location" 16}} {{.Owner.Location}}</li>
 							{{end}}
 							{{if .ShowUserEmail }}
 								<li>
-									{{octicon "mail" false}}
+									{{svg "octicon-mail" 16}}
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
 								</li>
 							{{end}}
 							{{if .Owner.Website}}
 								<li>
-									{{octicon "link" false}}
+									{{svg "octicon-link" 16}}
 									<a target="_blank" rel="noopener noreferrer me" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
 								</li>
 							{{end}}
 							{{if .Owner.Description}}
 								<li>
-									{{octicon "info" false}}
+									{{svg "octicon-info" 16}}
 									<span>{{.Owner.Description}}</span>
 								</li>
 							{{end}}
@@ -48,9 +48,9 @@
 									</li>
 								{{end}}
 							{{end}}
-							<li>{{octicon "clock" false}} {{.i18n.Tr "user.join_on"}} {{.Owner.CreatedUnix.FormatShort}}</li>
+							<li>{{svg "octicon-clock" 16}} {{.i18n.Tr "user.join_on"}} {{.Owner.CreatedUnix.FormatShort}}</li>
 							<li>
-								{{octicon "person" false}}
+								{{svg "octicon-person" 16}}
 								<a href="{{.Owner.HomeLink}}/followers">
 									{{.Owner.NumFollowers}} {{.i18n.Tr "user.followers"}}
 								</a>
@@ -83,9 +83,9 @@
 							{{if and .IsSigned (ne .SignedUserName .Owner.Name)}}
 							<li class="follow">
 								{{if .SignedUser.IsFollowing .Owner.ID}}
-								<a class="ui basic red button" href="{{.Link}}/action/unfollow?redirect_to={{$.Link}}">{{octicon "person" false}} {{.i18n.Tr "user.unfollow"}}</a>
+								<a class="ui basic red button" href="{{.Link}}/action/unfollow?redirect_to={{$.Link}}">{{svg "octicon-person" 16}} {{.i18n.Tr "user.unfollow"}}</a>
 								{{else}}
-								<a class="ui basic green button" href="{{.Link}}/action/follow?redirect_to={{$.Link}}">{{octicon "person" false}} {{.i18n.Tr "user.follow"}}</a>
+								<a class="ui basic green button" href="{{.Link}}/action/follow?redirect_to={{$.Link}}">{{svg "octicon-person" 16}} {{.i18n.Tr "user.follow"}}</a>
 								{{end}}
 							</li>
 							{{end}}
@@ -96,13 +96,13 @@
 			<div class="ui eleven wide column">
 				<div class="ui secondary stackable pointing menu">
 					<a class='{{if and (ne .TabName "activity") (ne .TabName "stars")}}active{{end}} item' href="{{.Owner.HomeLink}}">
-						{{octicon "repo" false}} {{.i18n.Tr "user.repositories"}}
+						{{svg "octicon-repo" 16}} {{.i18n.Tr "user.repositories"}}
 					</a>
 					<a class='{{if eq .TabName "activity"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=activity">
-						{{octicon "rss" false}} {{.i18n.Tr "user.activity"}}
+						{{svg "octicon-rss" 16}} {{.i18n.Tr "user.activity"}}
 					</a>
 					<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
-						{{octicon "star" false}} {{.i18n.Tr "user.starred"}}
+						{{svg "octicon-star" 16}} {{.i18n.Tr "user.starred"}}
 					</a>
 				</div>
 

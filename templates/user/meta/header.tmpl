@@ -11,9 +11,9 @@
 			{{if and $.IsSigned (ne $.SignedUserName .Name)}}
 				<div class="follow">
 					{{if $.SignedUser.IsFollowing .ID}}
-					<a class="ui small basic red button" href="{{.HomeLink}}/action/unfollow?redirect_to={{$.Link}}">{{octicon "person" false}} {{$.i18n.Tr "user.unfollow"}}</a>
+					<a class="ui small basic red button" href="{{.HomeLink}}/action/unfollow?redirect_to={{$.Link}}">{{svg "octicon-person" 16}} {{$.i18n.Tr "user.unfollow"}}</a>
 					{{else}}
-					<a class="ui small basic green button" href="{{.HomeLink}}/action/follow?redirect_to={{$.Link}}">{{octicon "person" false}} {{$.i18n.Tr "user.follow"}}</a>
+					<a class="ui small basic green button" href="{{.HomeLink}}/action/follow?redirect_to={{$.Link}}">{{svg "octicon-person" 16}} {{$.i18n.Tr "user.follow"}}</a>
 					{{end}}
 				</div>
 			{{end}}

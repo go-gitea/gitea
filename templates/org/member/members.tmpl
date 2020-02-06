@@ -34,7 +34,7 @@
 							{{$.i18n.Tr "org.members.member_role"}}
 						</div>
 						<div class="meta">
-							<strong>{{if index $.MembersIsUserOrgOwner .ID}}{{octicon "shield-lock" false}} {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
+							<strong>{{if index $.MembersIsUserOrgOwner .ID}}{{svg "octicon-shield-lock" 16}} {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
 						</div>
 					</div>
 					<div class="ui one wide column center">
@@ -44,9 +44,9 @@
 						<div class="meta">
 							<strong>
 								{{if index $.MembersTwoFaStatus .ID}}
-									<span class="text green">{{octicon "check" false}}</span>
+									<span class="text green">{{svg "octicon-check" 16}}</span>
 								{{else}}
-									{{octicon "x" false}}
+									{{svg "octicon-x" 16}}
 								{{end}}
 							</strong>
 						</div>
