@@ -514,18 +514,29 @@ func (pr *PullRequest) SetMerged() (err error) {
 		return err
 	}
 
-	if count, err := sess.Where("id = ? AND has_merged != ?", pr.ID, true).Count(new(PullRequest)); err != nil {
+	closed := false
+	if count, err := sess.Where("id = ? AND is_closed = ?", pr.IssueID, false).Cols("is_closed").Update(&Issue{
+		ID:       pr.IssueID,
+		IsClosed: false,
+	}); err != nil {
 		return err
 	} else if count < 1 {
+		closed = true
+	}
+
+	if count, err := sess.Where("id = ? AND has_merged = ? ", pr.ID, false).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
+		return err
+	} else if count < 1 {
+		if closed {
+			return nil
+		}
 		return fmt.Errorf("PullRequest[%d] already merged", pr.Index)
+	} else if closed {
+		return fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
 
 	if err = pr.loadIssue(sess); err != nil {
 		return err
-	}
-
-	if pr.Issue.IsClosed {
-		return nil
 	}
 
 	if err = pr.Issue.loadRepo(sess); err != nil {
@@ -537,9 +548,6 @@ func (pr *PullRequest) SetMerged() (err error) {
 
 	if _, err = pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
 		return fmt.Errorf("Issue.changeStatus: %v", err)
-	}
-	if _, err = sess.ID(pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
-		return fmt.Errorf("update pull request: %v", err)
 	}
 
 	if err = sess.Commit(); err != nil {
