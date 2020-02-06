@@ -12,9 +12,11 @@ const { statSync } = require('fs');
 const { resolve, parse } = require('path');
 const { SourceMapDevToolPlugin } = require('webpack');
 
+const glob = (pattern) => fastGlob.sync(pattern, { cwd: __dirname, absolute: true });
+
 const themes = {};
-for (const path of fastGlob.sync(resolve(__dirname, 'web_src/less/themes/*.less'))) {
-  themes[parse(path).name] = [path];
+for (const path of glob('web_src/less/themes/*.less')) {
+  themes[parse(path).name] = [resolve(__dirname, path)];
 }
 
 module.exports = {
@@ -30,7 +32,7 @@ module.exports = {
     jquery: [
       resolve(__dirname, 'web_src/js/jquery.js'),
     ],
-    icons: fastGlob.sync(resolve(__dirname, 'node_modules/@primer/octicons/build/svg/**/*.svg')),
+    icons: glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
     ...themes,
   },
   devtool: false,
