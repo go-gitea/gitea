@@ -199,6 +199,9 @@ func TestDeleteUser(t *testing.T) {
 	test(4)
 	test(8)
 	test(11)
+
+	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	assert.Error(t, DeleteUser(org))
 }
 
 func TestEmailNotificationPreferences(t *testing.T) {

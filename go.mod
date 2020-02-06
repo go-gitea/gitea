@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.45.0 // indirect
-	gitea.com/lunny/levelqueue v0.1.0
+	gitea.com/lunny/levelqueue v0.2.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
 	gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
@@ -32,6 +32,7 @@ require (
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20191128021309-1d7a30a10f73
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
 	github.com/emirpasic/gods v1.12.0
 	github.com/etcd-io/bbolt v1.3.3 // indirect

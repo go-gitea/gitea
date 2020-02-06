@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -151,12 +150,9 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 
 // CommitRepoActionOptions represent options of a new commit action.
 type CommitRepoActionOptions struct {
-	PusherName  string
+	PushUpdateOptions
+
 	RepoOwnerID int64
-	RepoName    string
-	RefFullName string
-	OldCommitID string
-	NewCommitID string
 	Commits     *repository.PushCommits
 }
 
@@ -192,7 +188,7 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 		refName := git.RefEndName(opts.RefFullName)
 
 		// Change default branch and empty status only if pushed ref is non-empty branch.
-		if repo.IsEmpty && opts.NewCommitID != git.EmptySHA && strings.HasPrefix(opts.RefFullName, git.BranchPrefix) {
+		if repo.IsEmpty && opts.IsBranch() && !opts.IsDelRef() {
 			repo.DefaultBranch = refName
 			repo.IsEmpty = false
 			if refName != "master" {
@@ -210,24 +206,21 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 			}
 		}
 
-		isNewBranch := false
 		opType := models.ActionCommitRepo
 
 		// Check it's tag push or branch.
-		if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
+		if opts.IsTag() {
 			opType = models.ActionPushTag
-			if opts.NewCommitID == git.EmptySHA {
+			if opts.IsDelRef() {
 				opType = models.ActionDeleteTag
 			}
 			opts.Commits = &repository.PushCommits{}
-		} else if opts.NewCommitID == git.EmptySHA {
+		} else if opts.IsDelRef() {
 			opType = models.ActionDeleteBranch
 			opts.Commits = &repository.PushCommits{}
 		} else {
 			// if not the first commit, set the compare URL.
-			if opts.OldCommitID == git.EmptySHA {
-				isNewBranch = true
-			} else {
+			if !opts.IsNewRef() {
 				opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 			}
 
@@ -259,7 +252,7 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 		var isHookEventPush = true
 		switch opType {
 		case models.ActionCommitRepo: // Push
-			if isNewBranch {
+			if opts.IsNewBranch() {
 				notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
 			}
 		case models.ActionDeleteBranch: // Delete Branch

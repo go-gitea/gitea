@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -17,24 +18,32 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/unknwon/com"
 )
 
-// pullRequestQueue represents a queue to handle update pull request tests
-var pullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
+// prQueue represents a queue to handle update pull request tests
+var prQueue queue.UniqueQueue
 
 // AddToTaskQueue adds itself to pull request test task queue.
 func AddToTaskQueue(pr *models.PullRequest) {
-	go pullRequestQueue.AddFunc(pr.ID, func() {
-		pr.Status = models.PullRequestStatusChecking
-		if err := pr.UpdateCols("status"); err != nil {
-			log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
+	go func() {
+		err := prQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
+			pr.Status = models.PullRequestStatusChecking
+			err := pr.UpdateCols("status")
+			if err != nil {
+				log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
+			} else {
+				log.Trace("Adding PR ID: %d to the test pull requests queue", pr.ID)
+			}
+			return err
+		})
+		if err != nil && err != queue.ErrAlreadyInQueue {
+			log.Error("Error adding prID %d to the test pull requests queue: %v", pr.ID, err)
 		}
-	})
+	}()
 }
 
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
@@ -46,7 +55,12 @@ func checkAndUpdateStatus(pr *models.PullRequest) {
 	}
 
 	// Make sure there is no waiting test to process before leaving the checking status.
-	if !pullRequestQueue.Exist(pr.ID) {
+	has, err := prQueue.Has(strconv.FormatInt(pr.ID, 10))
+	if err != nil {
+		log.Error("Unable to check if the queue is waiting to reprocess pr.ID %d. Error: %v", pr.ID, err)
+	}
+
+	if !has {
 		if err := pr.UpdateCols("status, conflicted_files"); err != nil {
 			log.Error("Update[%d]: %v", pr.ID, err)
 		}
@@ -73,7 +87,8 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 	headFile := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
-	_, err = git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	_, err = git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).
+		RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
 		if strings.Contains(err.Error(), "exit status 1") {
@@ -93,7 +108,8 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 	cmd := commitID[:40] + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, err := git.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse", cmd).RunInDirWithEnv("", []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	mergeCommit, err := git.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse", cmd).
+		RunInDirWithEnv("", []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v", err)
 	} else if len(mergeCommit) < 40 {
@@ -155,61 +171,65 @@ func manuallyMerged(pr *models.PullRequest) bool {
 	return false
 }
 
-// TestPullRequests checks and tests untested patches of pull requests.
-// TODO: test more pull requests at same time.
-func TestPullRequests(ctx context.Context) {
-
-	go func() {
-		prs, err := models.GetPullRequestIDsByCheckStatus(models.PullRequestStatusChecking)
-		if err != nil {
-			log.Error("Find Checking PRs: %v", err)
-			return
-		}
-		for _, prID := range prs {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				pullRequestQueue.Add(prID)
-			}
-		}
-	}()
-
-	// Start listening on new test requests.
-	for {
+// InitializePullRequests checks and tests untested patches of pull requests.
+func InitializePullRequests(ctx context.Context) {
+	prs, err := models.GetPullRequestIDsByCheckStatus(models.PullRequestStatusChecking)
+	if err != nil {
+		log.Error("Find Checking PRs: %v", err)
+		return
+	}
+	for _, prID := range prs {
 		select {
-		case prID := <-pullRequestQueue.Queue():
-			log.Trace("TestPullRequests[%v]: processing test task", prID)
-			pullRequestQueue.Remove(prID)
-
-			id := com.StrTo(prID).MustInt64()
-
-			pr, err := models.GetPullRequestByID(id)
-			if err != nil {
-				log.Error("GetPullRequestByID[%s]: %v", prID, err)
-				continue
-			} else if pr.Status != models.PullRequestStatusChecking {
-				continue
-			} else if manuallyMerged(pr) {
-				continue
-			} else if err = TestPatch(pr); err != nil {
-				log.Error("testPatch[%d]: %v", pr.ID, err)
-				pr.Status = models.PullRequestStatusError
-				if err := pr.UpdateCols("status"); err != nil {
-					log.Error("update pr [%d] status to PullRequestStatusError failed: %v", pr.ID, err)
-				}
-				continue
-			}
-			checkAndUpdateStatus(pr)
 		case <-ctx.Done():
-			pullRequestQueue.Close()
-			log.Info("PID: %d Pull Request testing shutdown", os.Getpid())
 			return
+		default:
+			if err := prQueue.PushFunc(strconv.FormatInt(prID, 10), func() error {
+				log.Trace("Adding PR ID: %d to the pull requests patch checking queue", prID)
+				return nil
+			}); err != nil {
+				log.Error("Error adding prID: %s to the pull requests patch checking queue %v", prID, err)
+			}
 		}
 	}
 }
 
+// handle passed PR IDs and test the PRs
+func handle(data ...queue.Data) {
+	for _, datum := range data {
+		prID := datum.(string)
+		id := com.StrTo(prID).MustInt64()
+
+		log.Trace("Testing PR ID %d from the pull requests patch checking queue", id)
+
+		pr, err := models.GetPullRequestByID(id)
+		if err != nil {
+			log.Error("GetPullRequestByID[%s]: %v", prID, err)
+			continue
+		} else if pr.Status != models.PullRequestStatusChecking {
+			continue
+		} else if manuallyMerged(pr) {
+			continue
+		} else if err = TestPatch(pr); err != nil {
+			log.Error("testPatch[%d]: %v", pr.ID, err)
+			pr.Status = models.PullRequestStatusError
+			if err := pr.UpdateCols("status"); err != nil {
+				log.Error("update pr [%d] status to PullRequestStatusError failed: %v", pr.ID, err)
+			}
+			continue
+		}
+		checkAndUpdateStatus(pr)
+	}
+}
+
 // Init runs the task queue to test all the checking status pull requests
-func Init() {
-	go graceful.GetManager().RunWithShutdownContext(TestPullRequests)
+func Init() error {
+	prQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "").(queue.UniqueQueue)
+
+	if prQueue == nil {
+		return fmt.Errorf("Unable to create pr_patch_checker Queue")
+	}
+
+	go graceful.GetManager().RunWithShutdownFns(prQueue.Run)
+	go graceful.GetManager().RunWithShutdownContext(InitializePullRequests)
+	return nil
 }

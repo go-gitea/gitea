@@ -7,6 +7,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -224,6 +225,11 @@ func DeleteUser(ctx *context.APIContext) {
 
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
+		return
+	}
+
+	if u.IsOrganization() {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", u.Name))
 		return
 	}
 

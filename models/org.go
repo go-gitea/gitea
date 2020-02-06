@@ -256,6 +256,10 @@ func CountOrganizations() int64 {
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *User) (err error) {
+	if !org.IsOrganization() {
+		return fmt.Errorf("%s is a user not an organization", org.Name)
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -275,10 +279,6 @@ func DeleteOrganization(org *User) (err error) {
 }
 
 func deleteOrg(e *xorm.Session, u *User) error {
-	if !u.IsOrganization() {
-		return fmt.Errorf("You can't delete none organization user: %s", u.Name)
-	}
-
 	// Check ownership of repository.
 	count, err := getRepositoryCount(e, u)
 	if err != nil {
