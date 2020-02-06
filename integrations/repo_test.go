@@ -149,7 +149,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name > SPAN")
 	items := files.Map(func(i int, s *goquery.Selection) string {
-		cls, _ := s.Find("SVG > USE").Attr("xlink:href")
+		cls, _ := s.Find("SVG USE").Attr("xlink:href")
 		file := strings.Trim(s.Find("A").Text(), " \t\n")
 		return fmt.Sprintf("%s: %s", file, strings.Split(cls, "#")[1])
 	})
