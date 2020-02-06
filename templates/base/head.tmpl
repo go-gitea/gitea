@@ -37,6 +37,7 @@
 	<meta name="referrer" content="no-referrer" />
 	<meta name="_csrf" content="{{.CsrfToken}}" />
 	<meta name="_suburl" content="{{AppSubUrl}}" />
+	<meta name="_staticprefix" content="{{StaticUrlPrefix}}" />
 	{{if .IsSigned}}
 		<meta name="_uid" content="{{.SignedUser.ID}}" />
 	{{end}}

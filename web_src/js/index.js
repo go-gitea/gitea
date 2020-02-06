@@ -18,6 +18,7 @@ function htmlEncode(text) {
 
 let csrf;
 let suburl;
+let staticPrefix;
 let previewFileModes;
 let simpleMDEditor;
 const commentMDEditors = {};
@@ -2351,6 +2352,7 @@ function initTemplateSearch() {
 $(document).ready(async () => {
   csrf = $('meta[name=_csrf]').attr('content');
   suburl = $('meta[name=_suburl]').attr('content');
+  staticPrefix = $('meta[name=_staticprefix]').attr('content');
 
   // Show exact time
   $('.time-since').each(function () {
@@ -2505,7 +2507,7 @@ $(document).ready(async () => {
     $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
       let node = $(this);
       node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}"><span class="octicon octicon-link"></span></a>`);
+      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}"><svg class="svg octicon-link" width="16" height="16" aria-hidden="true"><use xlink:href="${staticPrefix}/img/svg/icons.svg#octicon-link" /></svg></a>`);
     });
   });
 
@@ -2784,6 +2786,7 @@ function initVueComponents() {
         reposFilter: 'all',
         searchQuery: '',
         isLoading: false,
+        staticPrefix,
         repoTypes: {
           all: {
             count: 0,
@@ -2886,13 +2889,13 @@ function initVueComponents() {
 
       repoClass(repo) {
         if (repo.fork) {
-          return 'octicon octicon-repo-forked';
+          return 'octicon-repo-forked';
         } if (repo.mirror) {
-          return 'octicon octicon-repo-clone';
+          return 'octicon-repo-clone';
         } if (repo.private) {
-          return 'octicon octicon-lock';
+          return 'octicon-lock';
         }
-        return 'octicon octicon-repo';
+        return 'octicon-repo';
       }
     }
   });
