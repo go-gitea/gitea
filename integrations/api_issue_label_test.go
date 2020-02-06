@@ -58,8 +58,8 @@ func TestAPIModifyLabels(t *testing.T) {
 	assert.Len(t, apiLabels, 2)
 
 	//GetLabel
-	singleUrlStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels/%d?token=%s", owner.Name, repo.Name, dbLabel.ID, token)
-	req = NewRequest(t, "GET", singleUrlStr)
+	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels/%d?token=%s", owner.Name, repo.Name, dbLabel.ID, token)
+	req = NewRequest(t, "GET", singleURLStr)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiLabel)
 	assert.EqualValues(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
@@ -68,20 +68,20 @@ func TestAPIModifyLabels(t *testing.T) {
 	newName := "LabelNewName"
 	newColor := "09876a"
 	newColorWrong := "09g76a"
-	req = NewRequestWithJSON(t, "PATCH", singleUrlStr, &api.EditLabelOption{
+	req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
 		Name:  &newName,
 		Color: &newColor,
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiLabel)
 	assert.EqualValues(t, newColor, apiLabel.Color)
-	req = NewRequestWithJSON(t, "PATCH", singleUrlStr, &api.EditLabelOption{
+	req = NewRequestWithJSON(t, "PATCH", singleURLStr, &api.EditLabelOption{
 		Color: &newColorWrong,
 	})
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	//DeleteLabel
-	req = NewRequest(t, "DELETE", singleUrlStr)
+	req = NewRequest(t, "DELETE", singleURLStr)
 	resp = session.MakeRequest(t, req, http.StatusNoContent)
 
 }
