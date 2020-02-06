@@ -16,7 +16,7 @@ const glob = (pattern) => fastGlob.sync(pattern, { cwd: __dirname, absolute: tru
 
 const themes = {};
 for (const path of glob('web_src/less/themes/*.less')) {
-  themes[parse(path).name] = [resolve(__dirname, path)];
+  themes[parse(path).name] = [path];
 }
 
 module.exports = {
