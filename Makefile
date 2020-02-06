@@ -507,7 +507,7 @@ css:
 
 .PHONY: svg
 svg:
-	npx svg-sprite --symbol --symbol-dest=public/img/svg --symbol-sprite=octicons.svg node_modules/@primer/octicons/build/svg/*.svg
+	$(MAKE) webpack
 
 .PHONY: fomantic
 fomantic: node-check $(FOMANTIC_EVIDENCE)
