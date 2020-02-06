@@ -74,6 +74,18 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	if _, err = pr.SetMerged(); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
+
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("loadIssue [%d]: %v", pr.ID, err)
+	}
+
+	if err := pr.Issue.LoadRepo(); err != nil {
+		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
+	}
+	if err := pr.Issue.Repo.GetOwner(); err != nil {
+		log.Error("GetOwneer for issue repo [%d]: %v", pr.ID, err)
+	}
+
 	notification.NotifyMergePullRequest(pr, doer)
 
 	// Reset cached commit count
