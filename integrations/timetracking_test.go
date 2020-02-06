@@ -73,7 +73,7 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 
 		events = htmlDoc.doc.Find(".event > span.text")
 		assert.Contains(t, events.Last().Text(), "stopped working")
-		htmlDoc.AssertElement(t, ".event .detail .octicon-clock", true)
+		htmlDoc.AssertElement(t, ".event .detail .svg", true)
 	} else {
 		session.MakeRequest(t, req, http.StatusNotFound)
 	}
