@@ -216,9 +216,12 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 		}
 	}
 
+	closed := int32(0)
+
 	c = wrappedConn{
 		Conn:   c,
 		server: wl.server,
+		closed: &closed,
 	}
 
 	wl.server.wg.Add(1)
@@ -242,11 +245,11 @@ func (wl *wrappedListener) File() (*os.File, error) {
 type wrappedConn struct {
 	net.Conn
 	server *Server
-	closed int32
+	closed *int32
 }
 
 func (w *wrappedConn) Close() error {
-	if atomic.CompareAndSwapInt32(&w.closed, 0, 1) {
+	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
 		w.server.wg.Done()
 	}
 	return w.Conn.Close()
