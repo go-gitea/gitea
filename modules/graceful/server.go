@@ -245,7 +245,7 @@ type wrappedConn struct {
 	closed int32
 }
 
-func (w wrappedConn) Close() error {
+func (w *wrappedConn) Close() error {
 	if atomic.CompareAndSwapInt32(&w.closed, 0, 1) {
 		w.server.wg.Done()
 	}
