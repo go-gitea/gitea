@@ -1353,7 +1353,7 @@ type IssueStatsOptions struct {
 // GetIssueStats returns issue statistic information by given conditions.
 func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	const maxIDListChunk = 200
-	if len(opts.IssueIDs) == 0 {
+	if len(opts.IssueIDs) <= maxIDListChunk {
 		return getIssueStatsChunk(opts, opts.IssueIDs)
 	}
 
