@@ -5,6 +5,7 @@
     "node": ">=10"
   },
   "dependencies": {
+    "clipboard": "2.0.4",
     "fomantic-ui": "2.8.3",
     "highlight.js": "9.18.1",
     "jquery": "3.4.1",
