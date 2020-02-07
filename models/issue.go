@@ -1352,8 +1352,7 @@ type IssueStatsOptions struct {
 
 // GetIssueStats returns issue statistic information by given conditions.
 func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
-	const maxIDListChunk = 200
-	if len(opts.IssueIDs) <= maxIDListChunk {
+	if len(opts.IssueIDs) <= maxQueryParameters {
 		return getIssueStatsChunk(opts, opts.IssueIDs)
 	}
 
@@ -1363,7 +1362,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	// ids in a temporary table and join from them.
 	accum := &IssueStats{}
 	for i := 0; i < len(opts.IssueIDs); {
-		chunk := i + maxIDListChunk
+		chunk := i + maxQueryParameters
 		if chunk > len(opts.IssueIDs) {
 			chunk = len(opts.IssueIDs)
 		}
