@@ -222,6 +222,8 @@ func newRepository() {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
+	Repository.Upload.AllowedTypes = expandCommonMimeTypes(Repository.Upload.AllowedTypes)
+
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}

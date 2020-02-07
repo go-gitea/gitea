@@ -55,11 +55,14 @@ var commonMimeTypes = []struct {
 	}},
 }
 
-func expandCommonMimeTypes(typeList string) string {
-	individual := strings.Split(typeList, ",")
-	list := make([]string, 0, len(individual))
+func expandCommonMimeTypesString(typeList string) string {
+	return strings.Join(expandCommonMimeTypes(strings.Split(typeList, ",")), ",")
+}
+
+func expandCommonMimeTypes(types []string) []string {
+	list := make([]string, 0, len(types))
 individuals:
-	for _, name := range individual {
+	for _, name := range types {
 		if !strings.Contains(name, "/") {
 			normalized := strings.TrimSpace(strings.ToLower(name))
 			for _, candidate := range commonMimeTypes {
@@ -70,7 +73,7 @@ individuals:
 			}
 		}
 	}
-	return strings.Join(list, ",")
+	return list
 }
 
 // Can't import 'util' because it's a circular reference
