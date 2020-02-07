@@ -120,7 +120,7 @@ help:
 	@echo " - vet               examines Go source code and reports suspicious constructs"
 	@echo " - test              run unit test"
 	@echo " - test-sqlite       run integration test for sqlite"
-	@echo " - pr#PRID           build and start gitea from a PR with integration test data loaded"
+	@echo " - pr#<index>        build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
