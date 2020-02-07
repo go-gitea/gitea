@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
@@ -16,44 +17,69 @@ import (
 
 const (
 
-	// UserRepoUnitLoggedInUser is a special user ID used in the UserRepoUnit table
-	// for permissions that apply to all logged in users when no specific record
-	// (userid + repoid) is present. It's intended for public repositories.
-	UserRepoUnitLoggedInUser = int64(-1)
+	// This special constants represent special user cases:
 
 	// UserRepoUnitAnyUser is a special user ID used in the UserRepoUnit table
-	// for permissions that apply to all users when no specific record
-	// (userid + repoid) is present. It's intended for public repositories.
-	UserRepoUnitAnyUser = int64(-2)
+	// for permissions that apply to all users (even anonymous).
+	// It's intended for public repositories.
+	UserRepoUnitAnyUser = int64(-1)
+
+	// UserRepoUnitLoggedInUser is a special user ID used in the UserRepoUnit table
+	// for permissions that apply to all identified (logged in).
+	// It's intended for public and limited repositories.
+	UserRepoUnitLoggedInUser = int64(-2)
+
+	// UserRepoUnitAdminUser is a special user ID used in the UserRepoUnit table
+	// for permissions that apply to all site administrators.
+	UserRepoUnitAdminUser = int64(-3)
 )
 
 // UserRepoUnit is an explosion (cartesian product) of all user permissions
-// on all repositories, with one record for each combination of user+repo+unittype,
-// except unspecific permissions on public repos. General permissions for public
-// repos shared among all users (e.g. UnitTypeCode:AccessModeRead) are set for
-// UserID == UserRepoUnitLoggedInUser and UserID == UserRepoUnitAnyUser
-// in order to reduce the number of records on the table. Special permissions on public
-// repos (e.g. writers, owners) are exploded to specific users accordingly.
-// This means that to check whether a given user has any permissions on a
-// particular repository, both UserID == user's and UserID == UserRepoUnitLoggedInUser
-// must be checked (the highest permission must prevail). When a UserID is available,
-// checking UserID == UserRepoUnitAnyUser on top of that is redundant.
-// Anonymous user permissions (i.e. for users not logged in) must be checked
-// with UserID == UserRepoUnitAnyUser.
+// on all repositories, with one record for each explicit combination of
+// user + repo + unittype. General permissions for user classes (anonymous,
+// identified, site administrator) are set with one of the special user IDs
+// listed above.
 
-// Except for the special users UserRepoUnitLoggedInUser and UserRepoUnitAnyUser,
-// only real users have records in the table (i.e. organizations don't have their
-// own records).
+// To check whether a given user has any permissions on a particular repository,
+// a BEST_PERMISSION(set) operation must be performed (the highest permission
+// must prevail):
+//
+//		SELECT MAX(mode) FROM user_repo_unit WHERE type = ? AND ...
+//			Anonymous users:		user_repo_unit.user_id IN (UserRepoUnitAnyUser)
+//			Restricted users:		user_repo_unit.user_id IN (user.id)
+//			Regular users:			user_repo_unit.user_id IN (user.id, UserRepoUnitLoggedInUser)
+//			Site administrators:	user_repo_unit.user_id IN (user.id, UserRepoUnitAdminUser)
+
+// But the most common operation would be an INNER JOIN of type EXISTS;
+// for example, to get a list of issues from repositories the user 99
+// has UnitTypeCode access with AccessModeWrite permission or better:
+//
+//		SELECT issue.*
+//		FROM issue
+//		WHERE issue.repo_id IN
+//			( SELECT user_repo_unit.repo_id
+//			    FROM user_repo_unit
+//			   WHERE user_repo_unit.user_id IN (99, UserRepoUnitLoggedInUser)
+//				 AND user_repo_unit.type = UnitTypeCode
+//				 AND user_repo_unit.mode >= AccessModeWrite )
+
+// Except for the special user classes (anonymous, identified, admin),
+// only real users have records in the table; i.e. organizations don't
+// have records of their own.
 
 // Users that are not active yet or have prohibited login do not have any records.
 
 // Restricted users are users that require explicit permissions to access a repository;
 // these users are solved by checking records that match their UserID but _ignoring_
-// records for UserRepoUnitLoggedInUser and UserRepoUnitAnyUser.
+// records for user classes (anonymous, identified, admin).
 
-// If all permissions result in AccessModeNone, the whole record is omitted,
-// so checking against the UserRepoUnit table will result in a quick check for
+// Permission sets that result in AccessModeNone are omitted,
+// so checking against the user_repo_unit table provides  a quick check for
 // whether the user can see the repository at all (e.g. at the explore page).
+
+// Finally, permissions for units the repository does not have are also omitted.
+// This means that checking for existing records with UnitTypeWiki will only
+// return reposotories with wiki enabled.
 
 // Input considered for calculating the records includes:
 //
@@ -66,7 +92,7 @@ const (
 // * user site admin status
 // * which repository units are enabled (e.g. issues, PRs, etc.)
 
-// UserRepoUnit is an explosion (cartesian product) of all user permissions
+// UserRepoUnit is an explosion (cartesian product) of all explicit user permissions
 // on all repositories, and all types of relevant unit types.
 type UserRepoUnit struct {
 	UserID int64      `xorm:"pk"`
@@ -77,24 +103,13 @@ type UserRepoUnit struct {
 
 // UserRepoUnitWork is a table used for temporarily accumulate all the work performed
 // while processing a batch. Ideally, this would be a temporary (no storage) table.
-// Records are grouped by BatchID in order to prevent any kind of collision.
 // Lack of primary key is intentional; this table is not intended for replication
 // as it should never contain rows after the transaction is completed.
 type UserRepoUnitWork struct {
-	BatchID int64      `xorm:"NOT NULL INDEX"`
-	UserID  int64      `xorm:"NOT NULL"`
-	RepoID  int64      `xorm:"NOT NULL"`
-	Type    UnitType   `xorm:"NOT NULL"`
-	Mode    AccessMode `xorm:"NOT NULL"`
-}
-
-// UserRepoUnitBatchNumber provides in a safe way unique ID values
-// for the batch number in case we are in a multi-server environment.
-// It's a 63-bit number, so good luck reaching the maximum value
-// (300 million years at 1000 requests per second, if you want to know).
-// It's a makeshift replacement for an actual database sequence.
-type UserRepoUnitBatchNumber struct {
-	ID int64 `xorm:"pk autoincr"`
+	UserID int64      `xorm:"NOT NULL"`
+	RepoID int64      `xorm:"NOT NULL"`
+	Type   UnitType   `xorm:"NOT NULL"`
+	Mode   AccessMode `xorm:"NOT NULL"`
 }
 
 var (
@@ -112,6 +127,10 @@ var (
 	// Pre-built SQL condition to filter-out unsupported unit types
 	// "repo_unit.`type` IN (UnitTypeCode, UnitTypeIssues, etc.)"
 	userRepoUnitIsSelectable string
+
+	// nextBatchID is a number used for easy correlation of operations
+	// in the logs.
+	nextBatchID int64
 )
 
 func init() {
@@ -1124,29 +1143,17 @@ func addTeamRepoUnits(e Engine, batchID int64, team *Team, repo *Repository) err
 
 // userRepoUnitStartBatch will return a unique ID for the batch transaction
 func userRepoUnitStartBatch(e Engine) (int64, error) {
-	var batchnum UserRepoUnitBatchNumber
-	// e.Insert() will return a new ID for the batch that is unique even among
-	// concurrent transactions.
-	if _, err := e.Insert(&batchnum); err != nil {
-		return 0, err
-	}
-	if batchnum.ID == 0 {
-		return 0, fmt.Errorf("userRepoUnitStartBatch: unable to obtain a proper batch ID")
-	}
-	return batchnum.ID, nil
+	// TODO: Create a temporary table for 'UserRepoUnitWork' here
+	return atomic.AddInt64(&nextBatchID, 1), nil
 }
 
-// userRepoUnitStartBatch will remove temporary data used for a batch update
+// userRepoUnitsFinishBatch will remove temporary data used for a batch update
 func userRepoUnitsFinishBatch(e Engine, batchID int64) error {
-	_, err := e.Delete(&UserRepoUnitWork{BatchID: batchID})
-	if err != nil {
-		return err
-	}
-	_, err = e.Delete(&UserRepoUnitBatchNumber{ID: batchID})
+	_, err := e.Delete(&UserRepoUnitWork{})
 	return err
 }
 
-// userRepoUnitStartBatch dumps a user_repo_unit_work batch into user_repo_unit
+// batchConsolidateWorkData dumps a user_repo_unit_work batch into user_repo_unit
 func batchConsolidateWorkData(e Engine, batchID int64) error {
 	// This function will combine all records into the best set of permissions
 	// for each user and insert them into user_repo_unit.

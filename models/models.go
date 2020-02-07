@@ -118,7 +118,6 @@ func init() {
 		new(Task),
 		new(UserRepoUnit),
 		new(UserRepoUnitWork),
-		new(UserRepoUnitBatchNumber),
 		new(LockedResource),
 	)
 
