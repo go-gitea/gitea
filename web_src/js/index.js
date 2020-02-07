@@ -5,10 +5,11 @@
 import 'jquery.are-you-sure';
 import './publicPath.js';
 import './polyfills.js';
-import './gitGraphLoader.js';
-import './semanticDropdown.js';
+import './vendor/semanticDropdown.js';
+
 import initContextPopups from './features/contextPopup.js';
 import initHighlight from './features/highlight.js';
+import initGitGraph from './features/gitGraph.js';
 
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
@@ -2584,6 +2585,7 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups(suburl);
+  initGitGraph();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
