@@ -24,7 +24,7 @@ module.exports = {
       resolve(__dirname, 'web_src/less/index.less'),
     ],
     swagger: [
-      resolve(__dirname, 'web_src/js/swagger.js'),
+      resolve(__dirname, 'web_src/js/standalone/swagger.js'),
     ],
     jquery: [
       resolve(__dirname, 'web_src/js/jquery.js'),
