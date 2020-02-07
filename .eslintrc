@@ -4,6 +4,9 @@ extends:
   - eslint-config-airbnb-base
   - eslint:recommended
 
+ignorePatterns:
+ - /web_src/js/vendor
+
 parserOptions:
   ecmaVersion: 2020
 
