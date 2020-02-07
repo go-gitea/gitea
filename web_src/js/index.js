@@ -16,6 +16,10 @@ function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
 
+function svg(name, size) {
+  return `<svg class="svg ${name}" width="${size}" height="${size}" aria-hidden="true"><use xlink:href="${staticPrefix}/img/svg/icons.svg#${name}"/></svg>`;
+}
+
 let csrf;
 let suburl;
 let staticPrefix;
@@ -2507,7 +2511,7 @@ $(document).ready(async () => {
     $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
       let node = $(this);
       node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}"><svg class="svg octicon-link" width="16" height="16" aria-hidden="true"><use xlink:href="${staticPrefix}/img/svg/icons.svg#octicon-link" /></svg></a>`);
+      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
     });
   });
 
