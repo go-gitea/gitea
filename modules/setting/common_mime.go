@@ -17,6 +17,8 @@ var commonMimeTypes = []struct {
 	{[]string{
 		"zipped",
 		"zip",
+		"compressed",
+		"packed",
 	}, []string{
 		"application/zip",
 		"application/x-zip-compressed",
@@ -41,6 +43,7 @@ var commonMimeTypes = []struct {
 		"image/png",
 		"image/apng",
 		"image/bmp",
+		"image/gif",
 	}},
 	{[]string{
 		"txt",
