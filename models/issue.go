@@ -1371,12 +1371,12 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 		if err != nil {
 			return nil, err
 		}
-		accum.OpenCount = accum.OpenCount + stats.OpenCount
-		accum.ClosedCount = accum.ClosedCount + stats.ClosedCount
-		accum.YourRepositoriesCount = accum.YourRepositoriesCount + stats.YourRepositoriesCount
-		accum.AssignCount = accum.AssignCount + stats.AssignCount
-		accum.CreateCount = accum.CreateCount + stats.CreateCount
-		accum.OpenCount = accum.MentionCount + stats.MentionCount
+		accum.OpenCount += stats.OpenCount
+		accum.ClosedCount += stats.ClosedCount
+		accum.YourRepositoriesCount += stats.YourRepositoriesCount
+		accum.AssignCount += stats.AssignCount
+		accum.CreateCount += stats.CreateCount
+		accum.OpenCount += stats.MentionCount
 		i = chunk
 	}
 	return accum, nil
