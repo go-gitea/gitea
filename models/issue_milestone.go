@@ -527,32 +527,71 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 
 // CountMilestonesByRepoIDs map from repoIDs to number of milestones matching the options`
 func CountMilestonesByRepoIDs(repoIDs []int64, isClosed bool) (map[int64]int64, error) {
-	sess := x.Where("is_closed = ?", isClosed)
-	sess.In("repo_id", repoIDs)
 
-	countsSlice := make([]*struct {
-		RepoID int64
-		Count  int64
-	}, 0, 10)
-	if err := sess.GroupBy("repo_id").
-		Select("repo_id AS repo_id, COUNT(*) AS count").
-		Table("milestone").
-		Find(&countsSlice); err != nil {
-		return nil, err
+	const chunkSize = 1 // GAP
+
+	countMap := make(map[int64]int64, 50)
+
+	for i := 0; i < len(repoIDs); {
+		chunk := i + chunkSize
+		if chunk > len(repoIDs) {
+			chunk = len(repoIDs)
+		}
+		sess := x.Where("is_closed = ?", isClosed)
+		sess.In("repo_id", repoIDs[i:chunk])
+
+		countsSlice := make([]*struct {
+			RepoID int64
+			Count  int64
+		}, 0, chunk-i)
+		if err := sess.GroupBy("repo_id").
+			Select("repo_id AS repo_id, COUNT(*) AS count").
+			Table("milestone").
+			Find(&countsSlice); err != nil {
+			return nil, err
+		}
+		for _, c := range countsSlice {
+			countMap[c.RepoID] = c.Count
+		}
+		i = chunk
 	}
 
-	countMap := make(map[int64]int64, len(countsSlice))
-	for _, c := range countsSlice {
-		countMap[c.RepoID] = c.Count
-	}
 	return countMap, nil
 }
 
 // GetMilestonesByRepoIDs returns a list of milestones of given repositories and status.
 func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
+	if len(repoIDs) <= 1 { // GAP
+		return getMilestonesByRepoIDs(x.In("repo_id", repoIDs), page, isClosed, sortType)
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+	temp, _, err := createSimpleTemporaryTable(sess, "id BIGINT")
+	if err != nil {
+		return nil, fmt.Errorf("createSimpleTemporaryTable: %v", err)
+	}
+	idRows := make([]struct{ ID int64 }, len(repoIDs))
+	for i := range repoIDs {
+		idRows[i].ID = repoIDs[i]
+	}
+	if _, err := sess.Table(temp).Insert(&idRows); err != nil {
+		return nil, fmt.Errorf("insert (%s): %v", temp, err)
+	}
+
+	list, err := getMilestonesByRepoIDs(sess.Join("INNER", temp, fmt.Sprintf("%s.id = milestone.repo_id", temp)), page, isClosed, sortType)
+	if err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func getMilestonesByRepoIDs(sess *xorm.Session, page int, isClosed bool, sortType string) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
-	sess := x.Where("is_closed = ?", isClosed)
-	sess.In("repo_id", repoIDs)
+	sess = sess.Where("is_closed = ?", isClosed)
 	if page > 0 {
 		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
 	}
@@ -581,21 +620,30 @@ type MilestonesStats struct {
 
 // GetMilestonesStats returns milestone statistic information for dashboard by given conditions.
 func GetMilestonesStats(userRepoIDs []int64) (*MilestonesStats, error) {
-	var err error
+	const chunkSize = 1 // GAP
+
 	stats := &MilestonesStats{}
 
-	stats.OpenCount, err = x.Where("is_closed = ?", false).
-		And(builder.In("repo_id", userRepoIDs)).
-		Count(new(Milestone))
-	if err != nil {
-		return nil, err
+	for i := 0; i < len(userRepoIDs); {
+		chunk := i + chunkSize
+		if chunk > len(userRepoIDs) {
+			chunk = len(userRepoIDs)
+		}
+		count, err := x.Where("is_closed = ?", false).
+			And(builder.In("repo_id", userRepoIDs[i:chunk])).
+			Count(new(Milestone))
+		if err != nil {
+			return nil, err
+		}
+		stats.OpenCount += count
+		count, err = x.Where("is_closed = ?", true).
+			And(builder.In("repo_id", userRepoIDs[i:chunk])).
+			Count(new(Milestone))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount += count
+		i = chunk
 	}
-	stats.ClosedCount, err = x.Where("is_closed = ?", true).
-		And(builder.In("repo_id", userRepoIDs)).
-		Count(new(Milestone))
-	if err != nil {
-		return nil, err
-	}
-
 	return stats, nil
 }
