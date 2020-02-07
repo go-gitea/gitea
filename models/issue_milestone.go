@@ -528,12 +528,10 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 // CountMilestonesByRepoIDs map from repoIDs to number of milestones matching the options`
 func CountMilestonesByRepoIDs(repoIDs []int64, isClosed bool) (map[int64]int64, error) {
 
-	const chunkSize = 200
-
 	countMap := make(map[int64]int64, 50)
 
 	for i := 0; i < len(repoIDs); {
-		chunk := i + chunkSize
+		chunk := i + maxQueryParameters
 		if chunk > len(repoIDs) {
 			chunk = len(repoIDs)
 		}
@@ -561,7 +559,7 @@ func CountMilestonesByRepoIDs(repoIDs []int64, isClosed bool) (map[int64]int64, 
 
 // GetMilestonesByRepoIDs returns a list of milestones of given repositories and status.
 func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
-	if len(repoIDs) <= 200 {
+	if len(repoIDs) <= maxQueryParameters {
 		return getMilestonesByRepoIDs(x.In("repo_id", repoIDs), page, isClosed, sortType)
 	}
 
@@ -620,12 +618,10 @@ type MilestonesStats struct {
 
 // GetMilestonesStats returns milestone statistic information for dashboard by given conditions.
 func GetMilestonesStats(userRepoIDs []int64) (*MilestonesStats, error) {
-	const chunkSize = 200
-
 	stats := &MilestonesStats{}
 
 	for i := 0; i < len(userRepoIDs); {
-		chunk := i + chunkSize
+		chunk := i + maxQueryParameters
 		if chunk > len(userRepoIDs) {
 			chunk = len(userRepoIDs)
 		}
