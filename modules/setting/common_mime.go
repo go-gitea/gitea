@@ -74,6 +74,8 @@ individuals:
 					continue individuals
 				}
 			}
+		} else {
+			list = append(list, name)
 		}
 	}
 	return list
