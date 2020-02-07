@@ -49,10 +49,6 @@ type Engine interface {
 }
 
 const (
-
-	// In functions that generate a dynamic list of SQL parameters,
-	// neve generate more than this amount
-	absMaxQueryParameters = 999
 	// When queries are broken down in parts because of the number
 	// of parameters, attempt to break by this amount
 	maxQueryParameters = 300
