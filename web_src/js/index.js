@@ -10,6 +10,7 @@ import './vendor/semanticDropdown.js';
 import initContextPopups from './features/contextPopup.js';
 import initHighlight from './features/highlight.js';
 import initGitGraph from './features/gitGraph.js';
+import initClipboard from './features/clipboard.js';
 
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
@@ -2453,24 +2454,6 @@ $(document).ready(async () => {
     }
   }
 
-  // Clipboard JS
-  const clipboard = new Clipboard('.clipboard');
-  clipboard.on('success', (e) => {
-    e.clearSelection();
-
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-success'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
-  clipboard.on('error', (e) => {
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-error'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
   // Helpers.
   $('.delete-button').click(showDeletePopup);
   $('.add-all-button').click(showAddAllPopup);
@@ -2579,7 +2562,6 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups(suburl);
-  initGitGraph();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2616,8 +2598,11 @@ $(document).ready(async () => {
     }
   });
 
+  // parallel init of lazy-loaded features
   [hljs] = await Promise.all([
     initHighlight(),
+    initGitGraph(),
+    initClipboard(),
   ]);
 });
 
