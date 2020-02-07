@@ -153,7 +153,7 @@
 								{{end}}
 								{{if .IsPull}}
 									{{if (len .PullRequest.ConflictedFiles) gt 0}}
-										<span class="conflicting"><i class="octicon octicon-mirror"></i> {{$.i18n.Tr "repo.pulls.num_conflicting_files" (len .PullRequest.ConflictedFiles)}}</span>
+										<span class="conflicting"><i class="octicon octicon-mirror"></i> {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
 									{{end}}
 								{{end}}
 							</p>
