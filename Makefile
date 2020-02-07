@@ -563,9 +563,9 @@ generate-images:
 	rm -rf $(TMPDIR)/images
 	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
 
-.PHONY: pr
-pr:
-	$(GO) run contrib/pr/checkout.go $(PR)
+.PHONY: pr\#%
+pr\#%:
+	$(GO) run contrib/pr/checkout.go $*
 
 .PHONY: golangci-lint
 golangci-lint:
