@@ -93,6 +93,8 @@
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
 			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
 			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
+			Heatmap: {{if .EnableHeatmap}}true{{else}}false{{end}},
+			heatmapUser: {{if .HeatmapUser}}'{{.HeatmapUser}}'{{else}}null{{end}},
 		};
 	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">
@@ -124,9 +126,6 @@
 {{end}}
 {{if .RequireDropzone}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/dropzone/dropzone.css">
-{{end}}
-{{if .EnableHeatmap}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.css">
 {{end}}
 	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}

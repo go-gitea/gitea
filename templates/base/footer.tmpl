@@ -108,16 +108,8 @@
 	</script>
 {{end}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/emojify/emojify.custom.js"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/vue/vue.min.js"></script>
 	<script src="{{StaticUrlPrefix}}/fomantic/semantic.min.js?v={{MD5 AppVer}}"></script>
 	<script src="{{StaticUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>
-{{if .EnableHeatmap}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/moment/moment.min.js" charset="utf-8"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.browser.js" charset="utf-8"></script>
-	<script type="text/javascript">
-		window.initHeatmap('user-heatmap', '{{.HeatmapUser}}');
-	</script>
-{{end}}
 {{template "custom/footer" .}}
 </body>
 </html>
