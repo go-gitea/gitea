@@ -15,9 +15,9 @@ import (
 
 var tempTableSequence uint64
 
-// createSimpleTemporaryTable will create a temporary table with the given
-// name template and column definitions; it returns the actual name used
-// and a cleanup function.
+// createSimpleTemporaryTable creates a temporary table with the given
+// column definitions and a random name; it returns the generated name
+// and a cleanup function (which is of optional execution).
 func createSimpleTemporaryTable(sess *xorm.Session, columns string) (string, func() error, error) {
 
 	var name, create, drop string
@@ -47,7 +47,10 @@ func createSimpleTemporaryTable(sess *xorm.Session, columns string) (string, fun
 	return name, func() (err error) {
 		// Note: calling the cleanup function is optional
 		// as the temporary table will be dropped when the connection
-		// is reset for the next request.
+		// is reset for the next request. Calling this function
+		// is justified if many big temporary tables are expected
+		// to be generated within the same connection to free up
+		// space earlier.
 		_, err = sess.Exec(drop)
 		return
 	}, nil
