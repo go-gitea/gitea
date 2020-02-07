@@ -1352,6 +1352,37 @@ type IssueStatsOptions struct {
 
 // GetIssueStats returns issue statistic information by given conditions.
 func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
+	const maxIDListChunk = 200
+	if len(opts.IssueIDs) == 0 {
+		return getIssueStatsChunk(opts, opts.IssueIDs)
+	}
+
+	// If too long a list of IDs is provided, we get the statistics in
+	// smaller chunks and get accumulates. Note: this could potentially
+	// get us invalid results. The alternative is to insert the list of
+	// ids in a temporary table and join from them.
+	accum := &IssueStats{}
+	for i := 0; i < len(opts.IssueIDs); {
+		chunk := i + maxIDListChunk
+		if chunk > len(opts.IssueIDs) {
+			chunk = len(opts.IssueIDs)
+		}
+		stats, err := getIssueStatsChunk(opts, opts.IssueIDs[i:chunk])
+		if err != nil {
+			return nil, err
+		}
+		accum.OpenCount = accum.OpenCount + stats.OpenCount
+		accum.ClosedCount = accum.ClosedCount + stats.ClosedCount
+		accum.YourRepositoriesCount = accum.YourRepositoriesCount + stats.YourRepositoriesCount
+		accum.AssignCount = accum.AssignCount + stats.AssignCount
+		accum.CreateCount = accum.CreateCount + stats.CreateCount
+		accum.OpenCount = accum.MentionCount + stats.MentionCount
+		i = chunk
+	}
+	return accum, nil
+}
+
+func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats, error) {
 	stats := &IssueStats{}
 
 	countSession := func(opts *IssueStatsOptions) *xorm.Session {
