@@ -672,7 +672,6 @@ func getBranchData(ctx *context.Context, issue *models.Issue) {
 		ctx.Data["BaseBranch"] = pull.BaseBranch
 		ctx.Data["HeadBranch"] = pull.HeadBranch
 		ctx.Data["HeadUserName"] = pull.MustHeadUserName()
-		ctx.Data["RequireSimpleMDE"] = true
 	}
 }
 
@@ -731,6 +730,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
 	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["IsProjectsEnabled"] = setting.Repository.EnableKanbanBoard
 
 	renderAttachmentSettings(ctx)

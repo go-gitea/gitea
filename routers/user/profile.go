@@ -192,10 +192,9 @@ func Profile(ctx *context.Context) {
 	case "projects":
 
 		ctx.Data["OpenProjects"], err = models.GetProjects(models.ProjectSearchOptions{
-			// RepoID: repo.ID,
-			Page: -1,
-			// IsClosed: uti,
-			Type: models.IndividualType,
+			Page:     -1,
+			IsClosed: util.OptionalBoolFalse,
+			Type:     models.IndividualType,
 		})
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{

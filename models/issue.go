@@ -43,18 +43,17 @@ type Issue struct {
 	MilestoneID      int64      `xorm:"INDEX"`
 	Milestone        *Milestone `xorm:"-"`
 	ProjectID        int64      `xorm:"INDEX"`
-	// If 0, then it has not been added to a specific board in the project
-	ProjectBoardID int64    `xorm:"INDEX"`
-	Project        *Project `xorm:"-"`
-	Priority       int
-	AssigneeID     int64        `xorm:"-"`
-	Assignee       *User        `xorm:"-"`
-	IsClosed       bool         `xorm:"INDEX"`
-	IsRead         bool         `xorm:"-"`
-	IsPull         bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest    *PullRequest `xorm:"-"`
-	NumComments    int
-	Ref            string
+	ProjectBoardID   int64      `xorm:"INDEX"` // If 0, then it has not been added to a specific board in the project
+	Project          *Project   `xorm:"-"`
+	Priority         int
+	AssigneeID       int64        `xorm:"-"`
+	Assignee         *User        `xorm:"-"`
+	IsClosed         bool         `xorm:"INDEX"`
+	IsRead           bool         `xorm:"-"`
+	IsPull           bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest      *PullRequest `xorm:"-"`
+	NumComments      int
+	Ref              string
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
