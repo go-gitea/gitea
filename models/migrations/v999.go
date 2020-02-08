@@ -24,36 +24,10 @@ func addUserRepoUnit(x *xorm.Engine) error {
 		Mode   AccessMode `xorm:"NOT NULL"`
 	}
 
-	type UserRepoUnitWork struct {
-		BatchID int64      `xorm:"NOT NULL INDEX"`
-		UserID  int64      `xorm:"NOT NULL"`
-		RepoID  int64      `xorm:"NOT NULL"`
-		Type    UnitType   `xorm:"NOT NULL"`
-		Mode    AccessMode `xorm:"NOT NULL"`
-	}
-
-	type UserRepoUnitBatchNumber struct {
-		ID int64 `xorm:"pk autoincr"`
-	}
-
 	type LockedResource struct {
-		Type	string      `xorm:"pk"`
-		Key		int64		`xorm:"pk"`
-		Counter	int64		`xorm:"NOT NULL DEFAULT 0"`
-	}
-	
-	// FIXME: GAP: This needs its own migration
-	type Repository struct {
-		IsArchived          bool         `xorm:"INDEX"`
-		Topics              []string     `xorm:"TEXT JSON"`
-	}
-	type VisibleType int
-	type User struct {
-		PasswdHashAlgo      string       `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
-		Visibility          VisibleType  `xorm:"NOT NULL DEFAULT 0"`
-	}
-	if err := x.Sync2(new(Repository), new(User)); err != nil {
-		return err
+		Type    string `xorm:"pk"`
+		Key     int64  `xorm:"pk"`
+		Counter int64  `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	// Rebuilding the permissions cache must be performed after all migrations were done
@@ -64,7 +38,5 @@ func addUserRepoUnit(x *xorm.Engine) error {
 
 	return x.Sync2(
 		new(UserRepoUnit),
-		new(UserRepoUnitWork),
-		new(UserRepoUnitBatchNumber),
 		new(LockedResource))
 }

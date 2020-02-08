@@ -51,46 +51,46 @@ func UserRepoUnitTestDo(x *xorm.Engine) error {
 
 	dumpUserOrRepo(x, "RebuildAllUserRepoUnits", duser, drepo)
 
-	if err = batchBuildByUsers(x); err != nil {
-		return fmt.Errorf("batchBuildByUsers: %v", err)
+	if err = batchBuildByUsersTest(x); err != nil {
+		return fmt.Errorf("batchBuildByUsersTest: %v", err)
 	}
 
-	shaother, usercntother, repocntother, err := getUserRepoUnitsSha(x, "batchBuildByUsers")
+	shaother, usercntother, repocntother, err := getUserRepoUnitsSha(x, "batchBuildByUsersTest")
 	if err != nil {
 		return fmt.Errorf("getUserRepoUnitsSha: %v", err)
 	}
 
-	dumpUserOrRepo(x, "batchBuildByUsers", duser, drepo)
+	dumpUserOrRepo(x, "batchBuildByUsersTest", duser, drepo)
 
 	if err = compareShas(sharepo, shaother, "BuildByUsers", usercntrepo, repocntrepo, usercntother, repocntother); err != nil {
 		return err
 	}
 
-	if err = batchBuildByReposUsers(x); err != nil {
-		return fmt.Errorf("batchBuildByReposUsers: %v", err)
+	if err = batchBuildByReposUsersTest(x); err != nil {
+		return fmt.Errorf("batchBuildByReposUsersTest: %v", err)
 	}
 
-	shaother, usercntother, repocntother, err = getUserRepoUnitsSha(x, "batchBuildByReposUsers")
+	shaother, usercntother, repocntother, err = getUserRepoUnitsSha(x, "batchBuildByReposUsersTest")
 	if err != nil {
 		return fmt.Errorf("getUserRepoUnitsSha: %v", err)
 	}
 
-	dumpUserOrRepo(x, "batchBuildByReposUsers", duser, drepo)
+	dumpUserOrRepo(x, "batchBuildByReposUsersTest", duser, drepo)
 
 	if err = compareShas(sharepo, shaother, "BuildByRepoUsers", usercntrepo, repocntrepo, usercntother, repocntother); err != nil {
 		return err
 	}
 
-	if err = batchRebuildByTeams(x, sharepo, usercntrepo, repocntrepo); err != nil {
+	if err = batchRebuildByTeamsTest(x, sharepo, usercntrepo, repocntrepo); err != nil {
 		return fmt.Errorf("batchRebuildByTeams: %v", err)
 	}
 
-	shaother, usercntother, repocntother, err = getUserRepoUnitsSha(x, "batchRebuildByTeams")
+	shaother, usercntother, repocntother, err = getUserRepoUnitsSha(x, "batchRebuildByTeamsTest")
 	if err != nil {
 		return fmt.Errorf("getUserRepoUnitsSha: %v", err)
 	}
 
-	dumpUserOrRepo(x, "batchRebuildByTeams", duser, drepo)
+	dumpUserOrRepo(x, "batchRebuildByTeamsTest", duser, drepo)
 
 	return compareShas(sharepo, shaother, "RebuildByTeams", usercntrepo, repocntrepo, usercntother, repocntother)
 }
@@ -157,7 +157,7 @@ func compareShas(sharepo, shaother, othername string,
 	return fmt.Errorf("build by repo and by %s don't yield the same results", othername)
 }
 
-func batchBuildByUsers(x *xorm.Engine) error {
+func batchBuildByUsersTest(x *xorm.Engine) error {
 
 	// Don't get too greedy on the batches
 	const userBatchCount = 20
@@ -173,8 +173,8 @@ func batchBuildByUsers(x *xorm.Engine) error {
 
 	// Create access data for the first time
 	for i := int64(1); i <= maxid; i += userBatchCount {
-		if err := batchBuildUserUnits(x, i, userBatchCount); err != nil {
-			return fmt.Errorf("batchBuildUserUnits(%d,%d): %v", i, userBatchCount, err)
+		if err := rangeBuildUserUnitsTest(x, i, userBatchCount); err != nil {
+			return fmt.Errorf("rangeBuildUserUnitsTest(%d,%d): %v", i, userBatchCount, err)
 		}
 	}
 
@@ -183,6 +183,10 @@ func batchBuildByUsers(x *xorm.Engine) error {
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
+	}
+
+	if err := RebuildAdminUnits(sess); err != nil {
+		return fmt.Errorf("RebuildAdminUnits: %v", err)
 	}
 
 	if err := RebuildLoggedInUnits(sess); err != nil {
@@ -196,27 +200,27 @@ func batchBuildByUsers(x *xorm.Engine) error {
 	return sess.Commit()
 }
 
-func batchBuildByReposUsers(x *xorm.Engine) error {
+func batchBuildByReposUsersTest(x *xorm.Engine) error {
 
 	if _, err := x.Exec("DELETE FROM user_repo_unit"); err != nil {
-		return fmt.Errorf("batchBuildByReposUsers: DELETE old data: %v", err)
+		return fmt.Errorf("batchBuildByReposUsersTest: DELETE old data: %v", err)
 	}
 
 	var maxuserid int64
 	if _, err := x.Table("user").Select("MAX(id)").Get(&maxuserid); err != nil {
-		return fmt.Errorf("batchBuildByReposUsers: get MAX(user_id): %v", err)
+		return fmt.Errorf("batchBuildByReposUsersTest: get MAX(user_id): %v", err)
 	}
 
 	var maxrepoid int64
 	if _, err := x.Table("repository").Select("MAX(id)").Get(&maxrepoid); err != nil {
-		return fmt.Errorf("batchBuildByReposUsers: get MAX(repo_id): %v", err)
+		return fmt.Errorf("batchBuildByReposUsersTest: get MAX(repo_id): %v", err)
 	}
 
 	// Create access data for the first time
 	for u := int64(1); u <= maxuserid; u++ {
 		for r := int64(1); r <= maxrepoid; r++ {
-			if err := batchBuildUserRepoUnits(x, u, r); err != nil {
-				return fmt.Errorf("batchBuildUserRepoUnits(%d,%d): %v", u, r, err)
+			if err := batchBuildUserRepoUnitsTest(x, u, r); err != nil {
+				return fmt.Errorf("batchBuildUserRepoUnitsTest(%d,%d): %v", u, r, err)
 			}
 		}
 	}
@@ -228,6 +232,10 @@ func batchBuildByReposUsers(x *xorm.Engine) error {
 		return err
 	}
 
+	if err := RebuildAdminUnits(sess); err != nil {
+		return fmt.Errorf("RebuildAdminUnits: %v", err)
+	}
+
 	if err := RebuildLoggedInUnits(sess); err != nil {
 		return fmt.Errorf("RebuildLoggedInUnits: %v", err)
 	}
@@ -239,19 +247,19 @@ func batchBuildByReposUsers(x *xorm.Engine) error {
 	return sess.Commit()
 }
 
-func batchRebuildByTeams(x *xorm.Engine, sharepo string, usercntrepo, repocntrepo map[int64]*sumdata) error {
+func batchRebuildByTeamsTest(x *xorm.Engine, sharepo string, usercntrepo, repocntrepo map[int64]*sumdata) error {
 
 	var maxteamid int64
 	if _, err := x.Table("team").Select("MAX(id)").Get(&maxteamid); err != nil {
-		return fmt.Errorf("batchRebuildByTeams: get MAX(team_id): %v", err)
+		return fmt.Errorf("batchRebuildByTeamsTest: get MAX(team_id): %v", err)
 	}
 
-	// dumpUserOrRepo(x, "batchRebuildByTeams(before)", -2, 0)
+	// dumpUserOrRepo(x, "batchRebuildByTeamsTest(before)", -2, 0)
 
 	for id := int64(1); id <= maxteamid; id++ {
 		log.Info("Rebuilding team %d", id)
-		if err := batchRebuildTeam(x, id); err != nil {
-			return fmt.Errorf("batchRebuildTeam(%d): %v", id, err)
+		if err := batchRebuildTeamTest(x, id); err != nil {
+			return fmt.Errorf("batchRebuildTeamTest(%d): %v", id, err)
 		}
 
 		desc := fmt.Sprintf("RebuildTeam(%d)", id)
@@ -269,7 +277,7 @@ func batchRebuildByTeams(x *xorm.Engine, sharepo string, usercntrepo, repocntrep
 	return nil
 }
 
-func batchBuildUserUnits(x *xorm.Engine, fromID int64, count int) error {
+func rangeBuildUserUnitsTest(x *xorm.Engine, fromID int64, count int) error {
 	// Use a single transaction for the batch
 	sess := x.NewSession()
 	defer sess.Close()
@@ -296,7 +304,7 @@ func batchBuildUserUnits(x *xorm.Engine, fromID int64, count int) error {
 	return sess.Commit()
 }
 
-func batchBuildUserRepoUnits(x *xorm.Engine, userID, repoID int64) error {
+func batchBuildUserRepoUnitsTest(x *xorm.Engine, userID, repoID int64) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -321,7 +329,7 @@ func batchBuildUserRepoUnits(x *xorm.Engine, userID, repoID int64) error {
 	return sess.Commit()
 }
 
-func batchRebuildTeam(x *xorm.Engine, teamID int64) error {
+func batchRebuildTeamTest(x *xorm.Engine, teamID int64) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
