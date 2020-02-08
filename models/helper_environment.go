@@ -10,6 +10,19 @@ import (
 	"strings"
 )
 
+// env keys for git hooks need
+const (
+	EnvRepoName     = "GITEA_REPO_NAME"
+	EnvRepoUsername = "GITEA_REPO_USER_NAME"
+	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
+	EnvPusherName   = "GITEA_PUSHER_NAME"
+	EnvPusherEmail  = "GITEA_PUSHER_EMAIL"
+	EnvPusherID     = "GITEA_PUSHER_ID"
+	EnvKeyID        = "GITEA_KEY_ID"
+	EnvIsDeployKey  = "GITEA_IS_DEPLOY_KEY"
+	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
+)
+
 // InternalPushingEnvironment returns an os environment to switch off hooks on push
 // It is recommended to avoid using this unless you are pushing within a transaction
 // or if you absolutely are sure that post-receive and pre-receive will do nothing

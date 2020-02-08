@@ -277,10 +277,20 @@
 			<span class="text grey">
 				{{$.i18n.Tr "repo.issues.dependency.added_dependency" .Poster.HomeLink (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
 			</span>
-			<div class="detail">
-				<span class="octicon octicon-plus"></span>
-				<span class="text grey"><a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.DependentIssue.Title}}</a></span>
-			</div>
+			{{if .DependentIssue}}
+				<div class="detail">
+					<span class="octicon octicon-plus"></span>
+					<span class="text grey">
+						<a href="{{.DependentIssue.HTMLURL}}">
+							{{if eq .DependentIssue.RepoID .Issue.RepoID}}
+								#{{.DependentIssue.Index}} {{.DependentIssue.Title}}
+							{{else}}
+								{{.DependentIssue.Repo.FullName}}#{{.DependentIssue.Index}} - {{.DependentIssue.Title}}
+							{{end}}
+						</a>
+					</span>
+				</div>
+			{{end}}
 		</div>
 	{{else if eq .Type 20}}
 		<div class="event" id="{{.HashTag}}">
@@ -291,18 +301,37 @@
 			<span class="text grey">
 				{{$.i18n.Tr "repo.issues.dependency.removed_dependency" .Poster.HomeLink (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
 			</span>
-			<div class="detail">
-				<span class="text grey octicon octicon-trashcan"></span>
-				<span class="text grey"><a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.DependentIssue.Title}}</a></span>
-			</div>
+			{{if .DependentIssue}}
+				<div class="detail">
+					<span class="text grey octicon octicon-trashcan"></span>
+					<span class="text grey">
+						<a href="{{.DependentIssue.HTMLURL}}">
+							{{if eq .DependentIssue.RepoID .Issue.RepoID}}
+								#{{.DependentIssue.Index}} {{.DependentIssue.Title}}
+							{{else}}
+								{{.DependentIssue.Repo.FullName}}#{{.DependentIssue.Index}} - {{.DependentIssue.Title}}
+							{{end}}
+						</a>
+					</span>
+				</div>
+			{{end}}
 		</div>
 	{{else if eq .Type 22}}
 		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-{{.Review.Type.Icon}} issue-symbol"></span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
-			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+			{{if .OriginalAuthor }}
+			{{else}}
+				<a class="ui avatar image"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+					<img src="{{.Poster.RelAvatarLink}}">
+				</a>
+			{{end}}
+			<span class="text grey">
+				{{if .OriginalAuthor }}
+					<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+				{{else}}
+					<a{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+				{{end}}
+
 				{{if eq .Review.Type 1}}
 					{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
 				{{else if eq .Review.Type 2}}
@@ -316,7 +345,7 @@
 			{{if .Content}}
 				<div class="detail">
 					<span class="octicon octicon-quote"></span>
-					<span class="text grey">{{.Content}}</span>
+					<span class="text grey has-emoji">{{.Content}}</span>
 				</div>
 			{{end}}
 			{{ range $filename, $lines := .Review.CodeComments}}

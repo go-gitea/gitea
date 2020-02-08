@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -7,11 +8,11 @@ package repo
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	comment_service "code.gitea.io/gitea/services/comments"
 )
 
@@ -43,16 +44,21 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   in: query
 	//   description: if provided, only comments updated since the specified time are returned.
 	//   type: string
+	//   format: date-time
+	// - name: before
+	//   in: query
+	//   description: if provided, only comments updated before the provided time are returned.
+	//   type: string
+	//   format: date-time
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
 
-	var since time.Time
-	if len(ctx.Query("since")) > 0 {
-		since, _ = time.Parse(time.RFC3339, ctx.Query("since"))
+	before, since, err := utils.GetQueryBeforeSince(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetQueryBeforeSince", err)
+		return
 	}
-
-	// comments,err:=models.GetCommentsByIssueIDSince(, since)
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
@@ -62,7 +68,8 @@ func ListIssueComments(ctx *context.APIContext) {
 
 	comments, err := models.FindComments(models.FindCommentsOptions{
 		IssueID: issue.ID,
-		Since:   since.Unix(),
+		Since:   since,
+		Before:  before,
 		Type:    models.CommentTypeComment,
 	})
 	if err != nil {
@@ -105,19 +112,36 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   in: query
 	//   description: if provided, only comments updated since the provided time are returned.
 	//   type: string
+	//   format: date-time
+	// - name: before
+	//   in: query
+	//   description: if provided, only comments updated before the provided time are returned.
+	//   type: string
+	//   format: date-time
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
 
-	var since time.Time
-	if len(ctx.Query("since")) > 0 {
-		since, _ = time.Parse(time.RFC3339, ctx.Query("since"))
+	before, since, err := utils.GetQueryBeforeSince(ctx)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetQueryBeforeSince", err)
+		return
 	}
 
 	comments, err := models.FindComments(models.FindCommentsOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		Since:  since.Unix(),
-		Type:   models.CommentTypeComment,
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+		Type:        models.CommentTypeComment,
+		Since:       since,
+		Before:      before,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
@@ -190,7 +214,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.User.IsAdmin {
 		ctx.Error(http.StatusForbidden, "CreateIssueComment", errors.New(ctx.Tr("repo.issues.comment_on_locked")))
 		return
 	}

@@ -4,8 +4,10 @@
 
 package git
 
+import "gopkg.in/src-d/go-git.v4/plumbing/object"
+
 // LastCommitCache cache
 type LastCommitCache interface {
-	Get(repoPath, ref, entryPath string) (*Commit, error)
-	Put(repoPath, ref, entryPath string, commit *Commit) error
+	Get(ref, entryPath string) (*object.Commit, error)
+	Put(ref, entryPath, commitID string) error
 }

@@ -652,6 +652,16 @@
                     margin-left: 10px;
                     margin-top: 10px;
                 }
+                .icon-octicon {
+                    padding-left: 2px;
+                }
+                .branch-update.grid {
+                    margin-bottom: -1.5rem;
+                    margin-top: -0.5rem;
+                    .row {
+                        padding-bottom: 0;
+                    }
+                }
             }
 
             .review-item {
@@ -1621,6 +1631,10 @@
                                 padding-top: 8px;
                                 padding-bottom: 8px;
                                 border-bottom: 1px solid #eeeeee;
+
+                                a > .text.right {
+                                    margin-right: 5px;
+                                }
                             }
                         }
                     }
@@ -2115,6 +2129,10 @@
                 }
             }
 
+            .conflicting {
+                padding-left: 5px;
+            }
+
             .due-date {
                 padding-left: 5px;
             }
@@ -2575,4 +2593,12 @@ td.blob-excerpt {
 
 .title_wip_desc {
     margin-top: 1em;
+}
+
+.diff-file-box[data-folded="true"] .diff-file-body {
+    display: none;
+}
+
+.diff-file-box[data-folded="true"] .diff-file-header {
+    border-radius: 0.28571429rem !important;
 }

@@ -170,5 +170,16 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 }
 
 func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
-	return units, e.Where("repo_id = ?", repoID).Find(&units)
+	var tmpUnits []*RepoUnit
+	if err := e.Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
+		return nil, err
+	}
+
+	for _, u := range tmpUnits {
+		if !u.Type.UnitGlobalDisabled() {
+			units = append(units, u)
+		}
+	}
+
+	return units, nil
 }

@@ -130,7 +130,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User) (er
 	}
 
 	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := models.SignInitialCommit(tmpPath, u)
+		sign, keyID, _ := models.SignInitialCommit(tmpPath, u)
 		if sign {
 			args = append(args, "-S"+keyID)
 		} else if version.Compare(binVersion, "2.0.0", ">=") {
@@ -164,7 +164,7 @@ func checkInitRepository(repoPath string) (err error) {
 	// Init git bare new repository.
 	if err = git.InitRepository(repoPath, true); err != nil {
 		return fmt.Errorf("git.InitRepository: %v", err)
-	} else if err = models.CreateDelegateHooks(repoPath); err != nil {
+	} else if err = createDelegateHooks(repoPath); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
 	}
 	return nil

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -67,6 +68,7 @@ type Notification struct {
 
 // FindNotificationOptions represent the filters for notifications. If an ID is 0 it will be ignored.
 type FindNotificationOptions struct {
+	ListOptions
 	UserID            int64
 	RepoID            int64
 	IssueID           int64
@@ -101,7 +103,7 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
 func (opts *FindNotificationOptions) ToSession(e Engine) *xorm.Session {
-	return e.Where(opts.ToCond())
+	return opts.setSessionPagination(e.Where(opts.ToCond()))
 }
 
 func getNotifications(e Engine, options FindNotificationOptions) (nl NotificationList, err error) {
@@ -131,7 +133,7 @@ func CreateOrUpdateIssueNotifications(issueID, commentID int64, notificationAuth
 }
 
 func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notificationAuthorID int64) error {
-	issueWatches, err := getIssueWatchers(e, issueID)
+	issueWatches, err := getIssueWatchers(e, issueID, ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -294,6 +296,20 @@ func notificationsForUser(e Engine, user *User, statuses []NotificationStatus, p
 	return
 }
 
+// CountUnread count unread notifications for a user
+func CountUnread(user *User) int64 {
+	return countUnread(x, user.ID)
+}
+
+func countUnread(e Engine, userID int64) int64 {
+	exist, err := e.Where("user_id = ?", userID).And("status = ?", NotificationStatusUnread).Count(new(Notification))
+	if err != nil {
+		log.Error("countUnread", err)
+		return 0
+	}
+	return exist
+}
+
 // APIFormat converts a Notification to api.NotificationThread
 func (n *Notification) APIFormat() *api.NotificationThread {
 	result := &api.NotificationThread{
@@ -388,7 +404,7 @@ func (n *Notification) loadComment(e Engine) (err error) {
 	if n.Comment == nil && n.CommentID > 0 {
 		n.Comment, err = GetCommentByID(n.CommentID)
 		if err != nil {
-			return fmt.Errorf("GetCommentByID [%d]: %v", n.CommentID, err)
+			return fmt.Errorf("GetCommentByID [%d] for issue ID [%d]: %v", n.CommentID, n.IssueID, err)
 		}
 	}
 	return nil

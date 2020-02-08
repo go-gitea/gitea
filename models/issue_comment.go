@@ -8,7 +8,6 @@ package models
 
 import (
 	"fmt"
-	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -257,7 +256,7 @@ func (c *Comment) APIURL() string {
 		return ""
 	}
 
-	return c.Issue.Repo.APIURL() + "/" + path.Join("issues/comments", fmt.Sprint(c.ID))
+	return fmt.Sprintf("%s/issues/comments/%d", c.Issue.Repo.APIURL(), c.ID)
 }
 
 // IssueURL formats a URL-string to the issue
@@ -460,7 +459,7 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	return err
 }
 
-func (c *Comment) loadReactions(e Engine) (err error) {
+func (c *Comment) loadReactions(e Engine, repo *Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
@@ -472,15 +471,15 @@ func (c *Comment) loadReactions(e Engine) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := c.Reactions.LoadUsers(); err != nil {
+	if _, err := c.Reactions.loadUsers(e, repo); err != nil {
 		return err
 	}
 	return nil
 }
 
 // LoadReactions loads comment reactions
-func (c *Comment) LoadReactions() error {
-	return c.loadReactions(x)
+func (c *Comment) LoadReactions(repo *Repository) error {
+	return c.loadReactions(x, repo)
 }
 
 func (c *Comment) loadReview(e Engine) (err error) {
@@ -915,10 +914,12 @@ func GetCommentByID(id int64) (*Comment, error) {
 
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
+	ListOptions
 	RepoID   int64
 	IssueID  int64
 	ReviewID int64
 	Since    int64
+	Before   int64
 	Type     CommentType
 }
 
@@ -936,6 +937,9 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	if opts.Since > 0 {
 		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
 	}
+	if opts.Before > 0 {
+		cond = cond.And(builder.Lte{"comment.updated_unix": opts.Before})
+	}
 	if opts.Type != CommentTypeUnknown {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})
 	}
@@ -948,6 +952,11 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
+
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
+
 	return comments, sess.
 		Asc("comment.created_unix").
 		Asc("comment.id").

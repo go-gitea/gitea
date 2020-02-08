@@ -518,6 +518,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Combo("").
 				Get(notify.ListNotifications).
 				Put(notify.ReadNotifications)
+			m.Get("/new", notify.NewAvailable)
 			m.Combo("/threads/:id").
 				Get(notify.GetThread).
 				Patch(notify.ReadThread)
@@ -619,6 +620,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), context.RepoRef(), repo.Edit)
+				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
 					Put(reqToken(), notify.ReadRepoNotifications)
@@ -821,6 +823,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)
 		m.Get("/users/:username/orgs", org.ListUserOrgs)
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
+		m.Get("/orgs", org.GetAll)
 		m.Group("/orgs/:orgname", func() {
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).

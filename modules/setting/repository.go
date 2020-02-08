@@ -40,6 +40,9 @@ var (
 		EnableKanbanBoard                       bool
 		ProjectBoardBasicKanbanType             []string
 		ProjectBoardBugTriageType               []string
+		DisabledRepoUnits                       []string
+		DefaultRepoUnits                        []string
+		PrefixArchiveFiles                      bool
 
 		// Repository editor settings
 		Editor struct {
@@ -104,6 +107,9 @@ var (
 		EnableKanbanBoard:                       true,
 		ProjectBoardBasicKanbanType:             strings.Split("Todo, In progress, Done", ","),
 		ProjectBoardBugTriageType:               strings.Split("Needs Triage, High priority, Low priority, Closed", ","),
+		DisabledRepoUnits:                       []string{},
+		DefaultRepoUnits:                        []string{},
+		PrefixArchiveFiles:                      true,
 
 		// Repository editor settings
 		Editor: struct {
