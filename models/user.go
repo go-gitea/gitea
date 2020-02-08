@@ -1044,13 +1044,23 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	} else if isExist {
 		return ErrUserAlreadyExist{newUserName}
 	}
+	
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+		return fmt.Errorf("Change repo owner name: %v", err)
+	}
 
 	// Do not fail if directory does not exist
 	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	return nil
+	return sess.Commit()
 }
 
 // checkDupEmail checks whether there are the same email with the user
