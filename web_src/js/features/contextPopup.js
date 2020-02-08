@@ -28,7 +28,7 @@ function issuePopup(suburl, owner, repo, index, $element) {
       if ((red * 0.299 + green * 0.587 + blue * 0.114) > 125) {
         color = '#000000';
       }
-      labels += `<div class="ui label has-emoji" style="color: ${color}; background-color:#${label.color};">${labelName}</div>`;
+      labels += `<div class="ui label" style="color: ${color}; background-color:#${label.color};">${labelName}</div>`;
     }
     if (labels.length > 0) {
       labels = `<p>${labels}</p>`;
