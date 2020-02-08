@@ -3,11 +3,6 @@
 # Pre-receive hook that will reject all pushes where author or committer are not current user.
 # ref: https://github.com/github/platform-samples/blob/master/pre-receive-hooks/commit-current-user-check.sh
 
-# If we are on Gitea web interface then we don't need to bother to validate the commit user
-if [[ $SSH_ORIGINAL_COMMAND == "gitea-internal" ]]; then
-  exit $retval
-fi
-
 # the return value (bit-coded error information)
 retval=0
 
@@ -40,24 +35,27 @@ while read oldrev newrev refname; do
       COMMIT_USER=`git log --format=%cn -n 1 ${COMMIT}`
       COMMIT_EMAIL=`git log --format=%ce -n 1 ${COMMIT}`
 
-      if [[ ${AUTHOR_USER} != ${GITEA_PUSHER_NAME} ]]; then
-        echo -e "ERROR: Commit author (${AUTHOR_USER}) does not match current user (${GITEA_PUSHER_NAME})"
-        retval=$((retval + 1))
-      fi
+      # process checks if the commit is not associated with Gitea itself
+      if ! [[ ${COMMIT_USER} == "Gitea" ]] && [[ ${COMMIT_EMAIL} == "gitea@fake.local" ]]; then
+        if [[ ${AUTHOR_USER} != ${GITEA_PUSHER_NAME} ]]; then
+          echo -e "ERROR: Commit author (${AUTHOR_USER}) does not match current user (${GITEA_PUSHER_NAME})"
+          retval=$((retval + 1))
+        fi
 
-      if [[ ${COMMIT_USER} != ${GITEA_PUSHER_NAME} ]]; then
-        echo -e "ERROR: Commit User (${COMMIT_USER}) does not match current user (${GITEA_PUSHER_NAME})"
-        retval=$((retval + 2))
-      fi
+        if [[ ${COMMIT_USER} != ${GITEA_PUSHER_NAME} ]]; then
+          echo -e "ERROR: Commit User (${COMMIT_USER}) does not match current user (${GITEA_PUSHER_NAME})"
+          retval=$((retval + 2))
+        fi
 
-      if [[ ${AUTHOR_EMAIL} != ${GITEA_PUSHER_EMAIL} ]]; then
-        echo -e "ERROR: Commit author's email (${AUTHOR_EMAIL}) does not match current user's email (${GITEA_PUSHER_EMAIL})"
-        retval=$((retval + 4))
-      fi
+        if [[ ${AUTHOR_EMAIL} != ${GITEA_PUSHER_EMAIL} ]]; then
+          echo -e "ERROR: Commit author's email (${AUTHOR_EMAIL}) does not match current user's email (${GITEA_PUSHER_EMAIL})"
+          retval=$((retval + 4))
+        fi
 
-      if [[ ${COMMIT_EMAIL} != ${GITEA_PUSHER_EMAIL} ]]; then
-        echo -e "ERROR: Commit user's email (${COMMIT_EMAIL}) does not match current user's email (${GITEA_PUSHER_EMAIL})"
-        retval=$((retval + 8))
+        if [[ ${COMMIT_EMAIL} != ${GITEA_PUSHER_EMAIL} ]]; then
+          echo -e "ERROR: Commit user's email (${COMMIT_EMAIL}) does not match current user's email (${GITEA_PUSHER_EMAIL})"
+          retval=$((retval + 8))
+        fi
       fi
   done
 done
