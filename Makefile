@@ -121,6 +121,7 @@ help:
 	@echo " - vet               examines Go source code and reports suspicious constructs"
 	@echo " - test              run unit test"
 	@echo " - test-sqlite       run integration test for sqlite"
+	@echo " - pr#<index>        build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
@@ -565,7 +566,7 @@ generate-images:
 	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
 
 .PHONY: pr\#%
-pr\#%:
+pr\#%: clean-all
 	$(GO) run contrib/pr/checkout.go $*
 
 .PHONY: golangci-lint
