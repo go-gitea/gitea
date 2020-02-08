@@ -607,7 +607,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/create", bindIgnErr(auth.UserCreateProjectForm{}), repo.CreateProjectPost)
 	}, repo.MustEnableProjects, func(ctx *context.Context) {
 
-		if err := ctx.User.GetOrganizations(true); err != nil {
+		if err := ctx.User.GetOrganizations(&models.SearchOrganizationsOptions{All: true}); err != nil {
 			ctx.ServerError("GetOrganizations", err)
 			return
 		}
