@@ -31,7 +31,7 @@ var pullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLe
 func AddToTaskQueue(pr *models.PullRequest) {
 	go pullRequestQueue.AddFunc(pr.ID, func() {
 		pr.Status = models.PullRequestStatusChecking
-		if err := pr.UpdateCols("status"); err != nil {
+		if err := pr.UpdateColsIfNotMerged("status"); err != nil {
 			log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
 		}
 	})
@@ -142,8 +142,10 @@ func manuallyMerged(pr *models.PullRequest) bool {
 		pr.Merger = merger
 		pr.MergerID = merger.ID
 
-		if err = pr.SetMerged(); err != nil {
+		if merged, err := pr.SetMerged(); err != nil {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
+			return false
+		} else if !merged {
 			return false
 		}
 
@@ -194,7 +196,7 @@ func TestPullRequests(ctx context.Context) {
 			if err != nil {
 				log.Error("GetPullRequestByID[%s]: %v", prID, err)
 				continue
-			} else if pr.Status != models.PullRequestStatusChecking {
+			} else if pr.HasMerged {
 				continue
 			} else if manuallyMerged(pr) {
 				continue

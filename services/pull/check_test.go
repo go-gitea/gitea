@@ -18,7 +18,7 @@ import (
 func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
 
-	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 1}).(*models.PullRequest)
+	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
 	AddToTaskQueue(pr)
 
 	select {
@@ -29,6 +29,6 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	}
 
 	assert.True(t, pullRequestQueue.Exist(pr.ID))
-	pr = models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 1}).(*models.PullRequest)
+	pr = models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
 	assert.Equal(t, models.PullRequestStatusChecking, pr.Status)
 }

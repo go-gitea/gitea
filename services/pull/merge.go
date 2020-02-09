@@ -295,6 +295,10 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	if err != nil {
 		return fmt.Errorf("Failed to get full commit id for origin/%s: %v", pr.BaseBranch, err)
 	}
+	mergeCommitID, err := git.GetFullCommitID(tmpBasePath, baseBranch)
+	if err != nil {
+		return fmt.Errorf("Failed to get full commit id for the new merge: %v", err)
+	}
 
 	// Now it's questionable about where this should go - either after or before the push
 	// I think in the interests of data safety - failures to push to the lfs should prevent
@@ -341,17 +345,25 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	outbuf.Reset()
 	errbuf.Reset()
 
-	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
-	if err != nil {
-		return fmt.Errorf("GetBranchCommit: %v", err)
-	}
+	pr.MergedCommitID = mergeCommitID
 
 	pr.MergedUnix = timeutil.TimeStampNow()
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if err = pr.SetMerged(); err != nil {
+	if _, err = pr.SetMerged(); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
+	}
+
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("loadIssue [%d]: %v", pr.ID, err)
+	}
+
+	if err := pr.Issue.LoadRepo(); err != nil {
+		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
+	}
+	if err := pr.Issue.Repo.GetOwner(); err != nil {
+		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
 	}
 
 	notification.NotifyMergePullRequest(pr, doer, baseGitRepo)
