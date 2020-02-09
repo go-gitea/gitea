@@ -1121,8 +1121,6 @@ type IssuesOptions struct {
 	MentionedID int64
 	MilestoneID int64
 	ProjectID   int64
-	Page        int
-	PageSize    int
 	IsClosed    util.OptionalBool
 	IsPull      util.OptionalBool
 	LabelIDs    []int64

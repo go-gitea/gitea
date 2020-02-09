@@ -1525,6 +1525,7 @@ func (err ErrProjectNotExist) Error() string {
 	return fmt.Sprintf("projects does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
 }
 
+// ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
 type ErrProjectBoardNotExist struct {
 	BoardID   int64
 	RepoID    int64

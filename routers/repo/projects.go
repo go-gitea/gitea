@@ -26,6 +26,7 @@ const (
 	projectTemplateKey = "ProjectTemplate"
 )
 
+// MustEnableProjects check if projects are enabled in settings
 func MustEnableProjects(ctx *context.Context) {
 
 	if !setting.Repository.EnableKanbanBoard {

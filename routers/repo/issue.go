@@ -205,8 +205,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
 			ProjectID:   projectID,
-			Page:        pager.Paginater.Current(),
-			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      isPullOption,
 			LabelIDs:    labelIDs,

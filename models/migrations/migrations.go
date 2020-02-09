@@ -174,19 +174,19 @@ var migrations = []Migration{
 	NewMigration("Fix migrated repositories' git service type", fixMigratedRepositoryServiceType),
 	// v120 -> v121
 	NewMigration("Add owner_name on table repository", addOwnerNameOnRepository),
-	// v120 -> v121
-	NewMigration("add is_restricted column for users table", addIsRestricted),
 	// v121 -> v122
-	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
+	NewMigration("add is_restricted column for users table", addIsRestricted),
 	// v122 -> v123
-	NewMigration("Add original informations for reactions", addReactionOriginals),
+	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
 	// v123 -> v124
-	NewMigration("Add columns to user and repository", addUserRepoMissingColumns),
+	NewMigration("Add original informations for reactions", addReactionOriginals),
 	// v124 -> v125
-	NewMigration("Add some columns on review for migration", addReviewMigrateInfo),
+	NewMigration("Add columns to user and repository", addUserRepoMissingColumns),
 	// v125 -> v126
-	NewMigration("Fix topic repository count", fixTopicRepositoryCount),
+	NewMigration("Add some columns on review for migration", addReviewMigrateInfo),
 	// v126 -> v127
+	NewMigration("Fix topic repository count", fixTopicRepositoryCount),
+	// v127 -> v128
 	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 

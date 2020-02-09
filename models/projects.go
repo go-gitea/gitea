@@ -120,12 +120,12 @@ type Project struct {
 	ClosedDateUnix timeutil.TimeStamp
 }
 
-// AfterLoad is invoked from XORM after setting the value of a field of
-// this object.
+// AfterLoad is invoked from XORM after setting the value of a field of this object.
 func (p *Project) AfterLoad() {
 	p.NumOpenIssues = p.NumIssues - p.NumClosedIssues
 }
 
+// ProjectSearchOptions are options for GetProjects
 type ProjectSearchOptions struct {
 	RepoID   int64
 	Page     int
@@ -134,8 +134,7 @@ type ProjectSearchOptions struct {
 	Type     ProjectType
 }
 
-// GetProjects returns a list of all projects that have been created in the
-// repository
+// GetProjects returns a list of all projects that have been created in the repository
 func GetProjects(opts ProjectSearchOptions) ([]*Project, error) {
 
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
@@ -286,7 +285,7 @@ func countRepoClosedProjects(e Engine, repoID int64) (int64, error) {
 		Count(new(Project))
 }
 
-// ChangeProjectStatus togggles a project between opened and closed
+// ChangeProjectStatus toggle a project between opened and closed
 func ChangeProjectStatus(p *Project, isClosed bool) error {
 
 	repo, err := GetRepositoryByID(p.RepoID)
@@ -443,7 +442,7 @@ func changeProjectAssign(sess *xorm.Session, doer *User, issue *Issue, oldProjec
 	return updateIssueCols(sess, issue, "project_id")
 }
 
-// MoveIsssueAcrossProjectBoards move a card from one board to another
+// MoveIssueAcrossProjectBoards move a card from one board to another
 func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 
 	sess := x.NewSession()

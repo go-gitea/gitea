@@ -51,6 +51,11 @@ DISABLED_REPO_UNITS =
 DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
 ; Prefix archive files by placing them in a directory named after the repository
 PREFIX_ARCHIVE_FILES = true
+; Enable the kanban board feature system wide.
+ENABLE_KANBAN_BOARD = true
+; Default templates for kanban borards
+PROJECT_BOARD_BASIC_KANBAN_TYPE = Todo, In progress, Done
+PROJECT_BOARD_BUG_TRIAGE_TYPE = Needs Triage, High priority, Low priority, Closed
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor
@@ -432,8 +437,6 @@ BOOST_WORKERS = 5
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
 DISABLE_REGULAR_ORG_CREATION = false
-; Enable the kanban board feature system wide.
-ENABLE_KANBAN_BOARD = true
 ; Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
 DEFAULT_EMAIL_NOTIFICATIONS = enabled
 
