@@ -499,6 +499,7 @@ const (
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
 func (pr *PullRequest) SetMerged() (bool, error) {
+	log.Info("Merging pr[%d] index %d", pr.ID, pr.Index)
 	if pr.HasMerged {
 		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
