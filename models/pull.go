@@ -534,7 +534,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		if pr.Issue.IsClosed {
 			return false, nil
 		}
-		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
+		return false, fmt.Errorf("PullRequest[%d] already merged but it's associated issue [%d] is not closed", pr.Index, pr.IssueID)
 	} else if pr.Issue.IsClosed {
 		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
