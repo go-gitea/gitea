@@ -39,11 +39,11 @@ func Update(pull *models.PullRequest, doer *models.User, message string) error {
 		return fmt.Errorf("HeadBranch of PR %d is up to date", pull.Index)
 	}
 
+	_, err = rawMerge(pr, doer, models.MergeStyleMerge, message)
+
 	defer func() {
 		go AddTestPullRequestTask(doer, pr.HeadRepo.ID, pr.HeadBranch, false, "", "")
 	}()
-
-	_, err = rawMerge(pr, doer, models.MergeStyleMerge, message)
 	return err
 }
 
