@@ -35,14 +35,14 @@ func InitializeLabels(ctx *context.Context, form auth.InitializeLabelsForm) {
 		return
 	}
 
-	if err := models.InitalizeLabels(models.DefaultDBContext(), ctx.Repo.Repository.ID, form.TemplateName); err != nil {
+	if err := models.InitializeLabels(models.DefaultDBContext(), ctx.Repo.Repository.ID, form.TemplateName); err != nil {
 		if models.IsErrIssueLabelTemplateLoad(err) {
 			originalErr := err.(models.ErrIssueLabelTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
 			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 			return
 		}
-		ctx.ServerError("InitalizeLabels", err)
+		ctx.ServerError("InitializeLabels", err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
