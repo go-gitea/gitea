@@ -524,6 +524,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, err
 	}
 
+	pr.Issue = nil
 	if err := pr.loadIssue(sess); err != nil {
 		return false, err
 	}
