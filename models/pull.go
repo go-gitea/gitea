@@ -515,7 +515,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 	}
 
 	closed := false
-	if count, err := sess.Where("id = ? AND is_closed = ?", pr.IssueID, false).Cols("is_closed").Update(&Issue{
+	if count, err := sess.Where("id = ? AND (is_closed = ? OR is_closed IS NULL)", pr.IssueID, false).Cols("is_closed").Update(&Issue{
 		ID:       pr.IssueID,
 		IsClosed: true,
 	}); err != nil {
