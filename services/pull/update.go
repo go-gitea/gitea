@@ -44,6 +44,7 @@ func Update(pull *models.PullRequest, doer *models.User, message string) error {
 	defer func() {
 		go AddTestPullRequestTask(doer, pr.HeadRepo.ID, pr.HeadBranch, false, "", "")
 	}()
+
 	return err
 }
 
