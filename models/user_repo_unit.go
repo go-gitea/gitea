@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -121,10 +120,6 @@ var (
 	// "repo_unit.`type` IN (UnitTypeCode, UnitTypeIssues, etc.)"
 	userRepoUnitIsSelectable string
 
-	// nextBatchID is a number used for easy correlation of operations
-	// in the logs.
-	nextBatchID int64
-
 	// The temporary working table has different names according to the DB engine
 	workTable string
 
@@ -146,18 +141,18 @@ func init() {
 
 // RebuildRepoUnits will rebuild all permissions to a given repository for all users
 // excluding a specific team (use excludeTeamID == -1 to exclude no teams)
-func RebuildRepoUnits(e Engine, repo *Repository, excludeTeamID int64) (err error) {
+func RebuildRepoUnits(e Engine, repo *Repository, excludeTeamID int64) error {
 
-	batchID, err := userRepoUnitStartBatch(e)
+	err := userRepoUnitStartBatch(e)
 	if err != nil {
 		return fmt.Errorf("userRepoUnitStartBatch: %v", err)
 	}
 
-	log.Trace("RebuildRepoUnits[%d]: rebuilding permissions for repository %d (excluding team %d)",
-		batchID, repo.ID, excludeTeamID)
+	log.Trace("RebuildRepoUnits: rebuilding permissions for repository %d (excluding team %d)",
+		repo.ID, excludeTeamID)
 
 	if err = batchBuildRepoUnits(e, repo, excludeTeamID); err != nil {
-		return fmt.Errorf("batchBuildRepoUnits[%d]: %v", batchID, err)
+		return fmt.Errorf("batchBuildRepoUnits: %v", err)
 	}
 
 	// ***********************************************************************************
@@ -165,33 +160,32 @@ func RebuildRepoUnits(e Engine, repo *Repository, excludeTeamID int64) (err erro
 	// ***********************************************************************************
 
 	// Delete current data; we intend to replace all pairs
-	_, err = e.Delete(&UserRepoUnit{RepoID: repo.ID})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit [%d]: %v", batchID, err)
+	if _, err = e.Delete(&UserRepoUnit{RepoID: repo.ID}); err != nil {
+		return fmt.Errorf("DELETE user_repo_unit: %v", err)
 	}
 
 	if err = userRepoUnitsFinishBatch(e); err != nil {
-		return fmt.Errorf("userRepoUnitsFinishBatch[%d]: %v", batchID, err)
+		return fmt.Errorf("userRepoUnitsFinishBatch: %v", err)
 	}
 
-	log.Trace("RebuildRepoUnits[%d]: permissions for repository %d (excluding team %d) rebuilt.",
-		batchID, repo.ID, excludeTeamID)
+	log.Trace("RebuildRepoUnits: permissions for repository %d (excluding team %d) rebuilt.",
+		repo.ID, excludeTeamID)
 
 	return nil
 }
 
 // RebuildUserUnits will rebuild all permissions for a given (real) user
-func RebuildUserUnits(e Engine, user *User) (err error) {
+func RebuildUserUnits(e Engine, user *User) error {
 
-	batchID, err := userRepoUnitStartBatch(e)
+	err := userRepoUnitStartBatch(e)
 	if err != nil {
 		return fmt.Errorf("userRepoUnitStartBatch: %v", err)
 	}
 
-	log.Trace("RebuildUserUnits[%d]: rebuilding permissions for user %d", batchID, user.ID)
+	log.Trace("RebuildUserUnits: rebuilding permissions for user %d", user.ID)
 
 	if err = batchBuildUserUnits(e, user); err != nil {
-		return fmt.Errorf("batchBuildUserUnits[%d]: %v", batchID, err)
+		return fmt.Errorf("batchBuildUserUnits: %v", err)
 	}
 
 	// ***********************************************************************************
@@ -199,22 +193,21 @@ func RebuildUserUnits(e Engine, user *User) (err error) {
 	// ***********************************************************************************
 
 	// Delete current data; we intend to replace all pairs
-	_, err = e.Delete(&UserRepoUnit{UserID: user.ID})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit [%d]: %v", batchID, err)
+	if _, err = e.Delete(&UserRepoUnit{UserID: user.ID}); err != nil {
+		return fmt.Errorf("DELETE user_repo_unit: %v", err)
 	}
 
 	if err = userRepoUnitsFinishBatch(e); err != nil {
-		return fmt.Errorf("userRepoUnitsFinishBatch[%d]: %v", batchID, err)
+		return fmt.Errorf("userRepoUnitsFinishBatch: %v", err)
 	}
 
-	log.Trace("RebuildUserUnits[%d]: permissions for user %d rebuilt.", batchID, user.ID)
+	log.Trace("RebuildUserUnits: permissions for user %d rebuilt.", user.ID)
 
 	return nil
 }
 
 // RebuildUserIDUnits will rebuild all permissions for a given (real) user
-func RebuildUserIDUnits(e Engine, userID int64) (err error) {
+func RebuildUserIDUnits(e Engine, userID int64) error {
 	if user, err := getUserByID(e, userID); err != nil {
 		return err
 	} else {
@@ -223,17 +216,17 @@ func RebuildUserIDUnits(e Engine, userID int64) (err error) {
 }
 
 // RebuildAdminUnits will rebuild all permissions for the site admin user class
-func RebuildAdminUnits(e Engine) (err error) {
+func RebuildAdminUnits(e Engine) error {
 
-	batchID, err := userRepoUnitStartBatch(e)
+	err := userRepoUnitStartBatch(e)
 	if err != nil {
 		return fmt.Errorf("userRepoUnitStartBatch: %v", err)
 	}
 
-	log.Trace("RebuildAdminUnits[%d]: rebuilding permissions for site administrators", batchID)
+	log.Trace("RebuildAdminUnits: rebuilding permissions for site administrators")
 
 	if err = batchBuildAdminUnits(e); err != nil {
-		return fmt.Errorf("batchBuildAdminUnits[%d]: %v", batchID, err)
+		return fmt.Errorf("batchBuildAdminUnits: %v", err)
 	}
 
 	// ***********************************************************************************
@@ -241,32 +234,31 @@ func RebuildAdminUnits(e Engine) (err error) {
 	// ***********************************************************************************
 
 	// Delete current data; we intend to replace all pairs
-	_, err = e.Delete(&UserRepoUnit{UserID: UserRepoUnitAdminUser})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit [%d]: %v", batchID, err)
+	if _, err = e.Delete(&UserRepoUnit{UserID: UserRepoUnitAdminUser}); err != nil {
+		return fmt.Errorf("DELETE user_repo_unit: %v", err)
 	}
 
 	if err = userRepoUnitsFinishBatch(e); err != nil {
-		return fmt.Errorf("userRepoUnitsFinishBatch[%d]: %v", batchID, err)
+		return fmt.Errorf("userRepoUnitsFinishBatch: %v", err)
 	}
 
-	log.Trace("RebuildAdminUnits[%d]: permissions for site administrators rebuilt.", batchID)
+	log.Trace("RebuildAdminUnits: permissions for site administrators rebuilt.")
 
 	return nil
 }
 
 // RebuildLoggedInUnits will rebuild all permissions for generic logged in users
-func RebuildLoggedInUnits(e Engine) (err error) {
+func RebuildLoggedInUnits(e Engine) error {
 
-	batchID, err := userRepoUnitStartBatch(e)
+	err := userRepoUnitStartBatch(e)
 	if err != nil {
 		return fmt.Errorf("userRepoUnitStartBatch: %v", err)
 	}
 
-	log.Trace("RebuildLoggedInUnits[%d]: rebuilding permissions for logged in users", batchID)
+	log.Trace("RebuildLoggedInUnits: rebuilding permissions for logged in users")
 
 	if err = batchBuildLoggedInUnits(e); err != nil {
-		return fmt.Errorf("batchBuildLoggedInUnits[%d]: %v", batchID, err)
+		return fmt.Errorf("batchBuildLoggedInUnits: %v", err)
 	}
 
 	// ***********************************************************************************
@@ -274,32 +266,31 @@ func RebuildLoggedInUnits(e Engine) (err error) {
 	// ***********************************************************************************
 
 	// Delete current data; we intend to replace all pairs
-	_, err = e.Delete(&UserRepoUnit{UserID: UserRepoUnitLoggedInUser})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit [%d]: %v", batchID, err)
+	if _, err = e.Delete(&UserRepoUnit{UserID: UserRepoUnitLoggedInUser}); err != nil {
+		return fmt.Errorf("DELETE user_repo_unit: %v", err)
 	}
 
 	if err = userRepoUnitsFinishBatch(e); err != nil {
-		return fmt.Errorf("userRepoUnitsFinishBatch[%d]: %v", batchID, err)
+		return fmt.Errorf("userRepoUnitsFinishBatch: %v", err)
 	}
 
-	log.Trace("RebuildLoggedInUnits[%d]: permissions for logged in users rebuilt.", batchID)
+	log.Trace("RebuildLoggedInUnits: permissions for logged in users rebuilt.")
 
 	return nil
 }
 
 // RebuildAnonymousUnits will rebuild all permissions for unidentified users
-func RebuildAnonymousUnits(e Engine) (err error) {
+func RebuildAnonymousUnits(e Engine) error {
 
-	batchID, err := userRepoUnitStartBatch(e)
+	err := userRepoUnitStartBatch(e)
 	if err != nil {
 		return fmt.Errorf("userRepoUnitStartBatch: %v", err)
 	}
 
-	log.Trace("RebuildAnonymousUnits[%d]: rebuilding permissions for unidentified users", batchID)
+	log.Trace("RebuildAnonymousUnits: rebuilding permissions for unidentified users")
 
 	if err = batchBuildAnonymousUnits(e); err != nil {
-		return fmt.Errorf("batchBuildAnonymousUnits[%d]: %v", batchID, err)
+		return fmt.Errorf("batchBuildAnonymousUnits: %v", err)
 	}
 
 	// ***********************************************************************************
@@ -307,32 +298,31 @@ func RebuildAnonymousUnits(e Engine) (err error) {
 	// ***********************************************************************************
 
 	// Delete current data; we intend to replace all pairs
-	_, err = e.Delete(&UserRepoUnit{UserID: UserRepoUnitAnyUser})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit [%d]: %v", batchID, err)
+	if _, err = e.Delete(&UserRepoUnit{UserID: UserRepoUnitAnyUser}); err != nil {
+		return fmt.Errorf("DELETE user_repo_unit: %v", err)
 	}
 
 	if err = userRepoUnitsFinishBatch(e); err != nil {
-		return fmt.Errorf("userRepoUnitsFinishBatch[%d]: %v", batchID, err)
+		return fmt.Errorf("userRepoUnitsFinishBatch: %v", err)
 	}
 
-	log.Trace("RebuildAnonymousUnits[%d]: permissions for unidentified users rebuilt.", batchID)
+	log.Trace("RebuildAnonymousUnits: permissions for unidentified users rebuilt.")
 
 	return nil
 }
 
 // RebuildUserRepoUnits will rebuild permissions for a given (real) user on a given repository
-func RebuildUserRepoUnits(e Engine, user *User, repo *Repository) (err error) {
+func RebuildUserRepoUnits(e Engine, user *User, repo *Repository) error {
 
-	batchID, err := userRepoUnitStartBatch(e)
+	err := userRepoUnitStartBatch(e)
 	if err != nil {
 		return fmt.Errorf("userRepoUnitStartBatch: %v", err)
 	}
 
-	log.Trace("RebuildUserUnits[%d]: rebuilding permissions for user %d, repo %d", batchID, user.ID, repo.ID)
+	log.Trace("RebuildUserUnits: rebuilding permissions for user %d, repo %d", user.ID, repo.ID)
 
 	if err = batchBuildUserRepoUnits(e, user, repo); err != nil {
-		return fmt.Errorf("batchBuildUserRepoUnits[%d]: %v", batchID, err)
+		return fmt.Errorf("batchBuildUserRepoUnits: %v", err)
 	}
 
 	// ***********************************************************************************
@@ -340,22 +330,21 @@ func RebuildUserRepoUnits(e Engine, user *User, repo *Repository) (err error) {
 	// ***********************************************************************************
 
 	// Delete current data; we intend to replace all pairs
-	_, err = e.Delete(&UserRepoUnit{UserID: user.ID, RepoID: repo.ID})
-	if err != nil {
-		return fmt.Errorf("DELETE user_repo_unit [%d]: %v", batchID, err)
+	if _, err = e.Delete(&UserRepoUnit{UserID: user.ID, RepoID: repo.ID}); err != nil {
+		return fmt.Errorf("DELETE user_repo_unit: %v", err)
 	}
 
 	if err = userRepoUnitsFinishBatch(e); err != nil {
-		return fmt.Errorf("userRepoUnitsFinishBatch[%d]: %v", batchID, err)
+		return fmt.Errorf("userRepoUnitsFinishBatch: %v", err)
 	}
 
-	log.Trace("RebuildUserUnits[%d]: permissions for user %d, repo %d rebuilt.", batchID, user.ID, repo.ID)
+	log.Trace("RebuildUserUnits: permissions for user %d, repo %d rebuilt.", user.ID, repo.ID)
 
 	return nil
 }
 
 // RebuildUserIDRepoUnits will rebuild permissions for a given (real) user on a given repository
-func RebuildUserIDRepoUnits(e Engine, userID int64, repo *Repository) (err error) {
+func RebuildUserIDRepoUnits(e Engine, userID int64, repo *Repository) error {
 	if user, err := getUserByID(e, userID); err != nil {
 		return err
 	} else {
@@ -365,14 +354,14 @@ func RebuildUserIDRepoUnits(e Engine, userID int64, repo *Repository) (err error
 
 // RebuildTeamUnits will rebuild all the user/repo permission pairs known by a team
 // while optionally removing the permissions provided by the team itself.
-func RebuildTeamUnits(e Engine, team *Team, exclude bool) (err error) {
+func RebuildTeamUnits(e Engine, team *Team, exclude bool) error {
 
-	batchID, err := userRepoUnitStartBatch(e)
+	err := userRepoUnitStartBatch(e)
 	if err != nil {
 		return fmt.Errorf("userRepoUnitStartBatch: %v", err)
 	}
 
-	log.Trace("RebuildTeamUnits[%d]: rebuilding permissions for team %d (exclude:%v)", batchID, team.ID, exclude)
+	log.Trace("RebuildTeamUnits: rebuilding permissions for team %d (exclude:%v)", team.ID, exclude)
 
 	excludeID := int64(0)
 	if exclude {
@@ -401,37 +390,35 @@ func RebuildTeamUnits(e Engine, team *Team, exclude bool) (err error) {
 			}
 			for _, repo := range repos {
 				// Make sure we start from scratch; we intend to recreate all pairs
-				log.Trace("RebuildTeamUnits[%d]: rebuilding permissions for repository %d", batchID, repo.ID)
-				_, err = e.Delete(&UserRepoUnit{RepoID: repo.ID})
-				if err != nil {
-					return fmt.Errorf("DELETE user_repo_unit [%d]: %v", batchID, err)
+				log.Trace("RebuildTeamUnits: rebuilding permissions for repository %d", repo.ID)
+				if _, err = e.Delete(&UserRepoUnit{RepoID: repo.ID}); err != nil {
+					return fmt.Errorf("DELETE user_repo_unit: %v", err)
 				}
 				// batchBuildRepoUnits will exclude team.ID from the generated records if exclude == true
 				if err = batchBuildRepoUnits(e, repo, excludeID); err != nil {
-					return fmt.Errorf("batchBuildRepoUnits[%d]: %v", batchID, err)
+					return fmt.Errorf("batchBuildRepoUnits: %v", err)
 				}
-				log.Trace("RebuildTeamUnits[%d]: permissions for repository %d rebuilt", batchID, repo.ID)
+				log.Trace("RebuildTeamUnits: permissions for repository %d rebuilt", repo.ID)
 			}
 		}
 
 	} else {
 
 		if err = team.getRepositories(e); err != nil {
-			return fmt.Errorf("team.getRepositories[%d]: %v", batchID, err)
+			return fmt.Errorf("team.getRepositories: %v", err)
 		}
 
 		for _, repo := range team.Repos {
 			// Make sure we start from scratch; we intend to recreate all pairs
-			log.Trace("RebuildTeamUnits[%d]: rebuilding permissions for repository %d", batchID, repo.ID)
-			_, err = e.Delete(&UserRepoUnit{RepoID: repo.ID})
-			if err != nil {
-				return fmt.Errorf("DELETE user_repo_unit [%d]: %v", batchID, err)
+			log.Trace("RebuildTeamUnits: rebuilding permissions for repository %d", repo.ID)
+			if _, err = e.Delete(&UserRepoUnit{RepoID: repo.ID}); err != nil {
+				return fmt.Errorf("DELETE user_repo_unit: %v", err)
 			}
 			// batchBuildRepoUnits will exclude team.ID from the generated records if exclude == true
 			if err = batchBuildRepoUnits(e, repo, excludeID); err != nil {
-				return fmt.Errorf("batchBuildRepoUnits[%d]: %v", batchID, err)
+				return fmt.Errorf("batchBuildRepoUnits: %v", err)
 			}
-			log.Trace("RebuildTeamUnits[%d]: permissions for repository %d rebuilt", batchID, repo.ID)
+			log.Trace("RebuildTeamUnits: permissions for repository %d rebuilt", repo.ID)
 		}
 	}
 
@@ -440,22 +427,22 @@ func RebuildTeamUnits(e Engine, team *Team, exclude bool) (err error) {
 	// ***********************************************************************************
 
 	if err = userRepoUnitsFinishBatch(e); err != nil {
-		return fmt.Errorf("userRepoUnitsFinishBatch[%d]: %v", batchID, err)
+		return fmt.Errorf("userRepoUnitsFinishBatch: %v", err)
 	}
 
-	log.Trace("RebuildTeamUnits[%d]: permissions for team %d (exclude:%v) rebuilt.", batchID, team.ID, exclude)
+	log.Trace("RebuildTeamUnits: permissions for team %d (exclude:%v) rebuilt.", team.ID, exclude)
 
 	return nil
 }
 
-func AddTeamRepoUnits(e Engine, team *Team, repo *Repository) (err error) {
+func AddTeamRepoUnits(e Engine, team *Team, repo *Repository) error {
 
-	batchID, err := userRepoUnitStartBatch(e)
+	err := userRepoUnitStartBatch(e)
 	if err != nil {
 		return fmt.Errorf("userRepoUnitStartBatch: %v", err)
 	}
 
-	log.Trace("AddTeamRepoUnits[%d]: adding permissions on repo %d for team %d", batchID, repo.ID, team.ID)
+	log.Trace("AddTeamRepoUnits: adding permissions on repo %d for team %d", repo.ID, team.ID)
 
 	// Adding permissions is easier than removing; we just need to honor the previous
 	// set of permissions.
@@ -479,7 +466,7 @@ func AddTeamRepoUnits(e Engine, team *Team, repo *Repository) (err error) {
 	// ***********************************************************************************
 
 	if err = batchAddTeamRepoUnits(e, team, repo); err != nil {
-		return fmt.Errorf("batchAddTeamRepoUnits[%d]: %v", batchID, err)
+		return fmt.Errorf("batchAddTeamRepoUnits: %v", err)
 	}
 
 	// ***********************************************************************************
@@ -490,7 +477,7 @@ func AddTeamRepoUnits(e Engine, team *Team, repo *Repository) (err error) {
 	// we must remove any records from user_repo_unit first. Otherwise we will
 	// get collisions.
 	if err = userRepoUnitRemoveWorking(e); err != nil {
-		return fmt.Errorf("userRepoUnitRemoveWorking[%d]: %v", batchID, err)
+		return fmt.Errorf("userRepoUnitRemoveWorking: %v", err)
 	}
 
 	// ***********************************************************************************
@@ -498,16 +485,16 @@ func AddTeamRepoUnits(e Engine, team *Team, repo *Repository) (err error) {
 	// ***********************************************************************************
 
 	if err = userRepoUnitsFinishBatch(e); err != nil {
-		return fmt.Errorf("userRepoUnitsFinishBatch[%d]: %v", batchID, err)
+		return fmt.Errorf("userRepoUnitsFinishBatch: %v", err)
 	}
 
-	log.Trace("AddTeamRepoUnits[%d]: permissions on repo %d for team %d added.", batchID, repo.ID, team.ID)
+	log.Trace("AddTeamRepoUnits: permissions on repo %d for team %d added.", repo.ID, team.ID)
 
 	return nil
 }
 
 // batchBuildRepoUnits will build batch data for all users on a given repository, excluding one team
-func batchBuildRepoUnits(e Engine, repo *Repository, excludeTeamID int64) (err error) {
+func batchBuildRepoUnits(e Engine, repo *Repository, excludeTeamID int64) error {
 
 	// user_repo_unit_work is expected to contain no records related to this repository
 	// for the current batch (i.e. this function will only _add_ permissions).
@@ -534,7 +521,7 @@ func batchBuildRepoUnits(e Engine, repo *Repository, excludeTeamID int64) (err e
 	// Important: these admin permissions are unspecific; "prohibit_login" and "active"
 	// need to be handled separately for admins where the context is appropriate.
 
-	err = batchInsertWork(e,
+	err := batchInsertWork(e,
 		"SELECT ?, repo_unit.repo_id, repo_unit.`type`, ? "+
 			"FROM repo_unit "+
 			"WHERE repo_unit.repo_id = ? AND "+userRepoUnitIsSelectable,
@@ -734,7 +721,7 @@ func batchBuildRepoUnits(e Engine, repo *Repository, excludeTeamID int64) (err e
 }
 
 // batchBuildUserUnits will build batch data for a given user on any explicitly
-func batchBuildUserUnits(e Engine, user *User) (err error) {
+func batchBuildUserUnits(e Engine, user *User) error {
 
 	// user_repo_unit is expected to contain no records related to this user
 	// for the current batch (i.e. this function will only _add_ permissions).
@@ -750,6 +737,8 @@ func batchBuildUserUnits(e Engine, user *User) (err error) {
 	//	- A user is added/removed from a team (*)
 	//
 	//	(*) For adding a user to a team, batchAddTeamUserUnits is more efficient
+
+	var err error
 
 	if !user.IsActive || user.ProhibitLogin || user.IsOrganization() {
 		// No specific permissions for inactive users.
@@ -833,7 +822,7 @@ func batchBuildUserUnits(e Engine, user *User) (err error) {
 
 // batchBuildAdminUnits will build batch data for the site administrator user class
 // on all repositories
-func batchBuildAdminUnits(e Engine) (err error) {
+func batchBuildAdminUnits(e Engine) error {
 
 	// ****************************************************************************
 	// Process all repositories
@@ -844,7 +833,7 @@ func batchBuildAdminUnits(e Engine) (err error) {
 	//	- TBD
 
 	// "Find all relevant units for all repositories"
-	err = batchInsertWork(e,
+	err := batchInsertWork(e,
 		"SELECT ?, repo_unit.repo_id, repo_unit.`type`, ? "+
 			"FROM repo_unit "+
 			"WHERE "+userRepoUnitIsSelectable,
@@ -858,7 +847,7 @@ func batchBuildAdminUnits(e Engine) (err error) {
 
 // batchBuildLoggedInUnits will build batch data for the generic logged in user
 // on all non-private repositories
-func batchBuildLoggedInUnits(e Engine) (err error) {
+func batchBuildLoggedInUnits(e Engine) error {
 
 	// ****************************************************************************
 	// Process repositories not marked as 'private'
@@ -873,7 +862,7 @@ func batchBuildLoggedInUnits(e Engine) (err error) {
 
 	// "Find all relevant units for all repositories that are not marked as private
 	//  and whos owner's visibility is public or limited"
-	err = batchInsertWork(e,
+	err := batchInsertWork(e,
 		"SELECT ?, repo_unit.repo_id, repo_unit.`type`, ? "+
 			"FROM repository "+
 			"INNER JOIN `user` ON `user`.id = repository.owner_id "+
@@ -891,7 +880,7 @@ func batchBuildLoggedInUnits(e Engine) (err error) {
 
 // batchBuildAnonymousUnits will build batch data for users that have not identified
 // themselves on all public repositories
-func batchBuildAnonymousUnits(e Engine) (err error) {
+func batchBuildAnonymousUnits(e Engine) error {
 
 	// ****************************************************************************
 	// Process repositories marked as 'public'
@@ -907,7 +896,7 @@ func batchBuildAnonymousUnits(e Engine) (err error) {
 
 	// "Find all relevant units for all repositories that are not marked as private
 	//  and whos owner's visibility is public"
-	err = batchInsertWork(e,
+	err := batchInsertWork(e,
 		"SELECT ?, repo_unit.repo_id, repo_unit.`type`, ? "+
 			"FROM repository "+
 			"INNER JOIN `user` ON `user`.id = repository.owner_id "+
@@ -925,7 +914,7 @@ func batchBuildAnonymousUnits(e Engine) (err error) {
 
 // batchBuildUserRepoUnits will build batch data for a given user on a specific repository
 // (e.g. if added/removed as a collaborator, from a team, etc.)
-func batchBuildUserRepoUnits(e Engine, user *User, repo *Repository) (err error) {
+func batchBuildUserRepoUnits(e Engine, user *User, repo *Repository) error {
 
 	// user_repo_unit is expected to contain no records related to this user
 	// for the current batch (i.e. this function will only _add_ permissions).
@@ -945,7 +934,8 @@ func batchBuildUserRepoUnits(e Engine, user *User, repo *Repository) (err error)
 		return nil
 	}
 
-	if err = repo.getOwner(e); err != nil {
+	err := repo.getOwner(e)
+	if err != nil {
 		return fmt.Errorf("getOwner: %v", err)
 	}
 
@@ -1030,7 +1020,7 @@ func batchBuildUserRepoUnits(e Engine, user *User, repo *Repository) (err error)
 }
 
 // batchAddTeamUserUnits will add batch data for a given user on a team's repositories
-func batchAddTeamUserUnits(e Engine, user *User, team *Team) (err error) {
+func batchAddTeamUserUnits(e Engine, user *User, team *Team) error {
 
 	// This function will add permissions given to a user by a team membership
 
@@ -1042,7 +1032,7 @@ func batchAddTeamUserUnits(e Engine, user *User, team *Team) (err error) {
 		// This query will give the user access to all repositories in the organization.
 		// "Find all repositories belonging to this team's organization.
 		//  Assign access specified by the team to the user."
-		err = batchInsertWork(e,
+		err := batchInsertWork(e,
 			"SELECT ?, repository.id, repo_unit.`type`, ? "+
 				"FROM repository "+
 				"INNER JOIN repo_unit ON repo_unit.repo_id = repository.id "+
@@ -1057,7 +1047,7 @@ func batchAddTeamUserUnits(e Engine, user *User, team *Team) (err error) {
 		// This query will give the user access to the repos assigned to the team.
 		// "Find all repos assigned to this team. Assign access specified by the
 		//  team to the user."
-		err = batchInsertWork(e,
+		err := batchInsertWork(e,
 			"SELECT ?, team_repo.repo_id, team_unit.`type`, team.authorize "+
 				"FROM team_repo "+
 				"INNER JOIN team_unit ON team_unit.team_id = team_repo.team_id "+
@@ -1074,7 +1064,7 @@ func batchAddTeamUserUnits(e Engine, user *User, team *Team) (err error) {
 }
 
 // batchAddTeamRepoUnits will add batch data for a team's users on a given repository
-func batchAddTeamRepoUnits(e Engine, team *Team, repo *Repository) (err error) {
+func batchAddTeamRepoUnits(e Engine, team *Team, repo *Repository) error {
 
 	// This function will add permissions on a repository to users on the specified team
 
@@ -1091,7 +1081,7 @@ func batchAddTeamRepoUnits(e Engine, team *Team, repo *Repository) (err error) {
 	// This query will give the team members access to the repository.
 	// "Find all users that are members of the team. Assign access specified by the
 	//  team to the repository."
-	err = batchInsertWork(e,
+	err := batchInsertWork(e,
 		"SELECT team_user.uid, ?, team_unit.`type`, team.authorize "+
 			"FROM team_repo "+
 			"INNER JOIN team_user ON team_user.team_id = team_repo.team_id "+
@@ -1108,22 +1098,22 @@ func batchAddTeamRepoUnits(e Engine, team *Team, repo *Repository) (err error) {
 }
 
 // RebuildAllUserRepoUnits will rebuild the whole user_repo_unit table from scratch
-func RebuildAllUserRepoUnits(xe *xorm.Engine) (err error) {
+func RebuildAllUserRepoUnits(xe *xorm.Engine) error {
 	// Don't get too greedy on the batches
 	const repoBatchCount = 20
 
-	if _, err = xe.Exec("DELETE FROM user_repo_unit"); err != nil {
+	if _, err := xe.Exec("DELETE FROM user_repo_unit"); err != nil {
 		return fmt.Errorf("addUserRepoUnit: DELETE old data: %v", err)
 	}
 
 	var maxid int64
-	if _, err = xe.Table("repository").Select("MAX(id)").Get(&maxid); err != nil {
+	if _, err := xe.Table("repository").Select("MAX(id)").Get(&maxid); err != nil {
 		return fmt.Errorf("addUserRepoUnit: get MAX(repo_id): %v", err)
 	}
 
 	// Create access data for the first time
 	for i := int64(1); i <= maxid; i += repoBatchCount {
-		if err = rangeBuildRepoUnits(xe, i, repoBatchCount); err != nil {
+		if err := rangeBuildRepoUnits(xe, i, repoBatchCount); err != nil {
 			return fmt.Errorf("rangeBuildRepoUnits(%d,%d): %v", i, repoBatchCount, err)
 		}
 	}
@@ -1132,16 +1122,16 @@ func RebuildAllUserRepoUnits(xe *xorm.Engine) (err error) {
 }
 
 // rangeBuildRepoUnits will rebuild permissions for a range of repository IDs
-func rangeBuildRepoUnits(xe *xorm.Engine, fromID int64, count int) (err error) {
+func rangeBuildRepoUnits(xe *xorm.Engine, fromID int64, count int) error {
 	// Use a single transaction for the batch
 	sess := xe.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
 	repos := make([]*Repository, 0, count)
-	if err = sess.Where("id BETWEEN ? AND ?", fromID, fromID+int64(count-1)).Find(&repos); err != nil {
+	if err := sess.Where("id BETWEEN ? AND ?", fromID, fromID+int64(count-1)).Find(&repos); err != nil {
 		return fmt.Errorf("Find repositories: %v", err)
 	}
 
@@ -1151,7 +1141,7 @@ func rangeBuildRepoUnits(xe *xorm.Engine, fromID int64, count int) (err error) {
 	}
 
 	for _, repo := range repos {
-		if err = RebuildRepoUnits(sess, repo, -1); err != nil {
+		if err := RebuildRepoUnits(sess, repo, -1); err != nil {
 			return fmt.Errorf("RebuildRepoUnits(%d): %v", repo.ID, err)
 		}
 	}
@@ -1161,7 +1151,7 @@ func rangeBuildRepoUnits(xe *xorm.Engine, fromID int64, count int) (err error) {
 
 // userRepoUnitStartBatch will create the temporary work table
 // and return a unique ID for the batch transaction
-func userRepoUnitStartBatch(e Engine) (int64, error) {
+func userRepoUnitStartBatch(e Engine) error {
 
 	// user_repo_unit_work is a table used for temporarily accumulate all the work performed
 	// while processing a batch. It's created for each batch operation as a temporary table.
@@ -1170,7 +1160,7 @@ func userRepoUnitStartBatch(e Engine) (int64, error) {
 	// They're also usually only kept in memory.
 
 	repoUnitOnce.Do(func() {
-		// Build create/drop statements for the temporary work table
+		// Pre-build create/drop statements for the temporary work table.
 		// We can do this only after setting.Database has been set.
 		switch {
 		case setting.Database.UseMSSQL:
@@ -1192,18 +1182,16 @@ func userRepoUnitStartBatch(e Engine) (int64, error) {
 		}
 	})
 
-	if _, err := e.Exec(workTableCreate); err != nil {
-		return 0, err
-	}
-	return atomic.AddInt64(&nextBatchID, 1), nil
+	_, err := e.Exec(workTableCreate)
+	return err
 }
 
 // userRepoUnitsFinishBatch dumps the batch data into user_repo_unit and
 // removes the temporary work table used for the batch.
-func userRepoUnitsFinishBatch(e Engine) (err error) {
+func userRepoUnitsFinishBatch(e Engine) error {
 	// Combine all records into the best set of permissions
 	// for each user and insert them into user_repo_unit.
-	if _, err = e.Exec(fmt.Sprintf("INSERT INTO user_repo_unit (user_id, repo_id, `type`, `mode`) "+
+	if _, err := e.Exec(fmt.Sprintf("INSERT INTO user_repo_unit (user_id, repo_id, `type`, `mode`) "+
 		"SELECT user_id, repo_id, `type`, MAX(`mode`) "+
 		"FROM %s WHERE `mode` > %d "+
 		"GROUP BY user_id, repo_id, `type`",
@@ -1215,28 +1203,28 @@ func userRepoUnitsFinishBatch(e Engine) (err error) {
 	// is freed, it's quite possible that it's needed again within this particular
 	// session (e.g. from RebuildAllUserRepoUnits()). We need to drop the table
 	// to cover that case.
-	_, err = e.Exec(workTableDrop)
+	_, err := e.Exec(workTableDrop)
 	return err
 }
 
 // batchInsertWork will add records to the temporary work table
 // according to the given query statement.
-func batchInsertWork(e Engine, stmt string, args ...interface{}) (err error) {
+func batchInsertWork(e Engine, stmt string, args ...interface{}) error {
 	eargs := []interface{}{fmt.Sprintf("INSERT INTO %s (user_id, repo_id, `type`, `mode`) ", workTable) + stmt}
 	eargs = append(eargs, args...)
-	_, err = e.Exec(eargs...)
+	_, err := e.Exec(eargs...)
 	return err
 }
 
 // userRepoUnitRemoveWorking will remove any actual user_repo_unit records that have
 // a matching record in the temporary work table, so they can be replaced with the new values.
-func userRepoUnitRemoveWorking(e Engine) (err error) {
+func userRepoUnitRemoveWorking(e Engine) error {
 	// An IN clause would be better, but it's not supported by SQLite3
 	// when a multicolumn key is required.
 	// NOTE: we're leaving out any match for `type` because the current
 	// logic doesn't require that (so the statement runs faster).
 	// TODO: Replace with an UPSERT statement.
-	_, err = e.Exec(fmt.Sprintf("DELETE FROM user_repo_unit WHERE EXISTS "+
+	_, err := e.Exec(fmt.Sprintf("DELETE FROM user_repo_unit WHERE EXISTS "+
 		"(SELECT 1 FROM %s WHERE "+
 		"%s.user_id = user_repo_unit.user_id AND "+
 		"%s.repo_id = user_repo_unit.repo_id AND "+
