@@ -524,7 +524,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, err
 	}
 
-	if err := pr.Issue.loadRepo(sess); err != nil {
+	if err := pr.loadIssue(sess); err != nil {
 		return false, err
 	}
 
@@ -537,6 +537,10 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	} else if pr.Issue.IsClosed {
 		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
+	}
+
+	if err := pr.Issue.loadRepo(sess); err != nil {
+		return false, err
 	}
 
 	if err := pr.Issue.Repo.getOwner(sess); err != nil {
