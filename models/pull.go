@@ -499,7 +499,6 @@ const (
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
 func (pr *PullRequest) SetMerged() (bool, error) {
-	log.Info("Merging pr[%d] index %d", pr.ID, pr.Index)
 	if pr.HasMerged {
 		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
@@ -516,7 +515,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 	}
 
 	closed := false
-	if count, err := sess.Where("id = ? AND is_closed = ?", pr.IssueID, false).Cols("is_closed").Update(&Issue{
+	if count, err := sess.Where("id = ? AND (is_closed = ? OR is_closed IS NULL)", pr.IssueID, false).Cols("is_closed").Update(&Issue{
 		ID:       pr.IssueID,
 		IsClosed: false,
 	}); err != nil {
