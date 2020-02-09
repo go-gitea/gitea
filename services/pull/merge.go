@@ -56,6 +56,9 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 	pr.MergedCommitID, err = rawMerge(pr, doer, mergeStyle, message)
 	if err != nil {
+		defer func() {
+			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
+		}()
 		return err
 	}
 
