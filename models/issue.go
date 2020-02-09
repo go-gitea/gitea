@@ -619,6 +619,7 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 }
 
 func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*Comment, error) {
+	log.Info("ChangeStatus: issue.ID[%d] to %t", issue.ID, isClosed)
 	// Reload the issue
 	currentIssue, err := getIssueByID(e, issue.ID)
 	if err != nil {
