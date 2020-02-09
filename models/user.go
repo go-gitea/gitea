@@ -1044,7 +1044,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	} else if isExist {
 		return ErrUserAlreadyExist{newUserName}
 	}
-	
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
