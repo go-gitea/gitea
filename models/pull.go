@@ -514,13 +514,13 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, err
 	}
 
-	if count, err := sess.Where("id = ?", pr.IssueID).Cols("id").Update(&Issue{
+	if _, err := sess.Where("id = ?", pr.IssueID).Cols("id").Update(&Issue{
 		ID: pr.IssueID,
-	}); err != nil || count < 1 {
+	}); err != nil {
 		return false, err
 	}
 
-	if count, err := sess.Where("id = ?", pr.ID).Cols("id").Update(pr); err != nil || count < 1 {
+	if _, err := sess.Where("id = ?", pr.ID).Cols("id").Update(pr); err != nil {
 		return false, err
 	}
 
