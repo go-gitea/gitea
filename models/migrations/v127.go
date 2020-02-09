@@ -7,6 +7,7 @@ package migrations
 import (
 	"code.gitea.io/gitea/modules/timeutil"
 
+	"xorm.io/core"
 	"xorm.io/xorm"
 )
 
@@ -14,6 +15,10 @@ func addProjectsInfo(x *xorm.Engine) error {
 
 	sess := x.NewSession()
 	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
 
 	type (
 		ProjectType      uint8
@@ -52,6 +57,7 @@ func addProjectsInfo(x *xorm.Engine) error {
 	}
 
 	type Repository struct {
+		ID                int64
 		NumProjects       int `xorm:"NOT NULL DEFAULT 0"`
 		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
 		NumOpenProjects   int `xorm:"-"`
@@ -85,6 +91,40 @@ func addProjectsInfo(x *xorm.Engine) error {
 
 	if err := sess.Sync2(new(ProjectBoard)); err != nil {
 		return err
+	}
+
+	type RepoUnit struct {
+		ID          int64
+		RepoID      int64              `xorm:"INDEX(s)"`
+		Type        int                `xorm:"INDEX(s)"`
+		Config      core.Conversion    `xorm:"TEXT"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
+	}
+
+	const batchSize = 100
+
+	const unitTypeProject int = 8 // see UnitTypeProjects in models/units.go
+
+	for start := 0; ; start += batchSize {
+		repos := make([]*Repository, 0, batchSize)
+
+		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
+			return err
+		}
+
+		if len(repos) == 0 {
+			break
+		}
+
+		for _, r := range repos {
+			if _, err := sess.ID(r.ID).Insert(&RepoUnit{
+				RepoID:      r.ID,
+				Type:        unitTypeProject,
+				CreatedUnix: timeutil.TimeStampNow(),
+			}); err != nil {
+				return err
+			}
+		}
 	}
 
 	return sess.Commit()

@@ -24,7 +24,7 @@ const (
 	UnitTypeWiki                                // 5 Wiki
 	UnitTypeExternalWiki                        // 6 ExternalWiki
 	UnitTypeExternalTracker                     // 7 ExternalTracker
-	UnitTypeProjects
+	UnitTypeProjects                            // 8 Kanban board
 )
 
 // Value returns integer value for unit type
