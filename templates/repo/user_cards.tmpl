@@ -1,7 +1,9 @@
 <div class="ui container user-cards">
+	{{if .CardsTitle}}
 	<h2 class="ui dividing header">
 		{{.CardsTitle}}
 	</h2>
+	{{end}}
 	<ul class="list">
 		{{range .Cards}}
 			<li class="item ui segment">
