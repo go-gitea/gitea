@@ -54,11 +54,12 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
+	defer func() {
+		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
+	}()
+
 	pr.MergedCommitID, err = rawMerge(pr, doer, mergeStyle, message)
 	if err != nil {
-		defer func() {
-			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
-		}()
 		return err
 	}
 
@@ -85,10 +86,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
-
-	defer func() {
-		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
-	}()
 
 	// Resolve cross references
 	refs, err := pr.ResolveCrossReferences()
