@@ -151,7 +151,7 @@
 										<span class="octicon octicon-calendar"></span><span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 									</span>
 								{{end}}
-								{{if .IsPull}}
+								{{if and .IsPull (not .PullRequest.HasMerged)}}
 									{{if (len .PullRequest.ConflictedFiles) gt 0}}
 										<span class="conflicting"><i class="octicon octicon-mirror"></i> {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
 									{{end}}
