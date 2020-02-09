@@ -49,24 +49,6 @@
 								{{end}}
 							{{end}}
 							<li><i class="octicon octicon-clock"></i> {{.i18n.Tr "user.join_on"}} {{.Owner.CreatedUnix.FormatShort}}</li>
-							<li>
-								<i class="octicon octicon-person"></i>
-								<a href="{{.Owner.HomeLink}}/followers">
-									{{.Owner.NumFollowers}} {{.i18n.Tr "user.followers"}}
-								</a>
-								-
-								<a href="{{.Owner.HomeLink}}/following">
-									{{.Owner.NumFollowing}} {{.i18n.Tr "user.following"}}
-								</a>
-							</li>
-							{{/*
-							<li>
-								<i class="octicon octicon-star"></i>
-								<a href="{{.Owner.HomeLink}}/stars">
-									{{.Owner.NumStars}} {{.i18n.Tr "user.starred"}}
-								</a>
-							</li>
-							*/}}
 							{{if and .Orgs .HasOrgsVisible}}
 							<li>
 								<ul class="user-orgs">
@@ -95,7 +77,7 @@
 			</div>
 			<div class="ui eleven wide column">
 				<div class="ui secondary stackable pointing menu">
-					<a class='{{if and (ne .TabName "activity") (ne .TabName "stars")}}active{{end}} item' href="{{.Owner.HomeLink}}">
+					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars")}}active{{end}} item' href="{{.Owner.HomeLink}}">
 						<i class="octicon octicon-repo"></i> {{.i18n.Tr "user.repositories"}}
 					</a>
 					<a class='{{if eq .TabName "activity"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=activity">
@@ -103,6 +85,15 @@
 					</a>
 					<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
 						<i class="octicon octicon-star"></i> {{.i18n.Tr "user.starred"}}
+						<div class="ui label">{{.Owner.NumStars}}</div>
+					</a>
+					<a class='{{if eq .TabName "following"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=following">
+						<i class="octicon octicon-person"></i> {{.i18n.Tr "user.following"}}
+						<div class="ui label">{{.Owner.NumFollowing}}</div>
+					</a>
+					<a class='{{if eq .TabName "followers"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=followers">
+						<i class="octicon octicon-person"></i> {{.i18n.Tr "user.followers"}}
+						<div class="ui label">{{.Owner.NumFollowers}}</div>
 					</a>
 				</div>
 
@@ -126,6 +117,10 @@
 						{{template "explore/repo_list" .}}
 						{{template "base/paginate" .}}
 					</div>
+				{{else if eq .TabName "following"}}
+					{{template "repo/user_cards" .}}
+				{{else if eq .TabName "followers"}}
+					{{template "repo/user_cards" .}}
 				{{else}}
 					{{template "explore/repo_search" .}}
 					{{template "explore/repo_list" .}}
