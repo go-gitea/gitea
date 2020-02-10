@@ -20,7 +20,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add "search" to reserved usernames (#9063)
   * Switch to fomantic-ui (#9374)
   * Only serve attachments when linked to issue/release and if accessible by user (#9340)
-  * Hide credentials when submitting migration through API (#9102)
 * FEATURES
   * Webhooks should only show sender if it makes sense (#9601)
   * Provide Default messages for merges (#9393)
