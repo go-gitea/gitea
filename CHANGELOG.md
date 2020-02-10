@@ -11,7 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Remove unused endpoints (#9538)
   * Prefix all user-generated IDs in markup (#9477)
   * Enforce Gitea environment for pushes (#8982)
-  * Hide some user information via API if user have no enough permission (#8655)
+  * Hide some user information via API if user have not enough permissions (#8655)
   * Move startpage/homepage translation to crowdin (#8596)
 * SECURITY
   * Never allow an empty password to validate (#9682) (#9683)
