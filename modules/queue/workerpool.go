@@ -275,7 +275,7 @@ func (p *WorkerPool) CleanUp(ctx context.Context) {
 	log.Trace("WorkerPool: %d CleanUp", p.qid)
 	close(p.dataChan)
 	for data := range p.dataChan {
-		p.handle(data)
+		p.handle(ctx, data)
 		atomic.AddInt64(&p.numInQueue, -1)
 		select {
 		case <-ctx.Done():
@@ -306,7 +306,7 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 	for {
 		select {
 		case data := <-p.dataChan:
-			p.handle(data)
+			p.handle(ctx, data)
 			atomic.AddInt64(&p.numInQueue, -1)
 		case <-p.baseCtx.Done():
 			return p.baseCtx.Err()
@@ -326,7 +326,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 		case <-ctx.Done():
 			if len(data) > 0 {
 				log.Trace("Handling: %d data, %v", len(data), data)
-				p.handle(data...)
+				p.handle(ctx, data...)
 				atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 			}
 			log.Trace("Worker shutting down")
@@ -336,7 +336,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				// the dataChan has been closed - we should finish up:
 				if len(data) > 0 {
 					log.Trace("Handling: %d data, %v", len(data), data)
-					p.handle(data...)
+					p.handle(ctx, data...)
 					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 				}
 				log.Trace("Worker shutting down")
@@ -345,7 +345,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 			data = append(data, datum)
 			if len(data) >= p.batchLength {
 				log.Trace("Handling: %d data, %v", len(data), data)
-				p.handle(data...)
+				p.handle(ctx, data...)
 				atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 				data = make([]Data, 0, p.batchLength)
 			}
@@ -361,7 +361,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				}
 				if len(data) > 0 {
 					log.Trace("Handling: %d data, %v", len(data), data)
-					p.handle(data...)
+					p.handle(ctx, data...)
 					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 				}
 				log.Trace("Worker shutting down")
@@ -377,7 +377,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 					// the dataChan has been closed - we should finish up:
 					if len(data) > 0 {
 						log.Trace("Handling: %d data, %v", len(data), data)
-						p.handle(data...)
+						p.handle(ctx, data...)
 						atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 					}
 					log.Trace("Worker shutting down")
@@ -386,7 +386,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				data = append(data, datum)
 				if len(data) >= p.batchLength {
 					log.Trace("Handling: %d data, %v", len(data), data)
-					p.handle(data...)
+					p.handle(ctx, data...)
 					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 					data = make([]Data, 0, p.batchLength)
 				}
@@ -394,7 +394,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				delay = time.Millisecond * 100
 				if len(data) > 0 {
 					log.Trace("Handling: %d data, %v", len(data), data)
-					p.handle(data...)
+					p.handle(ctx, data...)
 					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 					data = make([]Data, 0, p.batchLength)
 				}

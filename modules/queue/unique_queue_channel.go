@@ -51,12 +51,12 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 		workers:  config.Workers,
 		name:     config.Name,
 	}
-	queue.WorkerPool = NewWorkerPool(func(data ...Data) {
+	queue.WorkerPool = NewWorkerPool(func(ctx context.Context, data ...Data) {
 		for _, datum := range data {
 			queue.lock.Lock()
 			delete(queue.table, datum)
 			queue.lock.Unlock()
-			handle(datum)
+			handle(ctx, datum)
 		}
 	}, config.WorkerPoolConfiguration)
 

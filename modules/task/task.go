@@ -5,6 +5,7 @@
 package task
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -44,7 +45,7 @@ func Init() error {
 	return nil
 }
 
-func handle(data ...queue.Data) {
+func handle(ctx context.Context, data ...queue.Data) {
 	for _, datum := range data {
 		task := datum.(*models.Task)
 		if err := Run(task); err != nil {

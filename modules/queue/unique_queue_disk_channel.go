@@ -89,7 +89,7 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 		closed:             make(chan struct{}),
 	}
 
-	levelQueue, err := NewLevelUniqueQueue(func(data ...Data) {
+	levelQueue, err := NewLevelUniqueQueue(func(ctx context.Context, data ...Data) {
 		for _, datum := range data {
 			err := queue.Push(datum)
 			if err != nil && err != ErrAlreadyInQueue {
@@ -158,7 +158,7 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(context
 
 	q.lock.Lock()
 	if q.internal == nil {
-		err := q.setInternal(atShutdown, func(data ...Data) {
+		err := q.setInternal(atShutdown, func(ctx context.Context, data ...Data) {
 			for _, datum := range data {
 				err := q.Push(datum)
 				if err != nil && err != ErrAlreadyInQueue {

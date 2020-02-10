@@ -7,6 +7,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -307,7 +308,7 @@ func NewContext() {
 		Sender = &dummySender{}
 	}
 
-	mailQueue = queue.CreateQueue("mail", func(data ...queue.Data) {
+	mailQueue = queue.CreateQueue("mail", func(ctx context.Context, data ...queue.Data) {
 		for _, datum := range data {
 			msg := datum.(*Message)
 			gomailMsg := msg.ToMessage()

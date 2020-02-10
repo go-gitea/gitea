@@ -23,7 +23,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 
 	idChan := make(chan int64, 10)
 
-	q, err := queue.NewChannelUniqueQueue(func(data ...queue.Data) {
+	q, err := queue.NewChannelUniqueQueue(func(ctx context.Context, data ...queue.Data) {
 		for _, datum := range data {
 			prID := datum.(string)
 			id := com.StrTo(prID).MustInt64()

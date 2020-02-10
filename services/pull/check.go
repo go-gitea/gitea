@@ -196,7 +196,7 @@ func InitializePullRequests(ctx context.Context) {
 }
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) {
+func handle(ctx context.Context, data ...queue.Data) {
 	for _, datum := range data {
 		prID := datum.(string)
 		id := com.StrTo(prID).MustInt64()

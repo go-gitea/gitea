@@ -5,6 +5,7 @@
 package queue
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -73,7 +74,7 @@ func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 
 	// wrapped.handle is passed to the delayedStarting internal queue and is run to handle
 	// data passed to
-	wrapped.handle = func(data ...Data) {
+	wrapped.handle = func(ctx context.Context, data ...Data) {
 		for _, datum := range data {
 			wrapped.tlock.Lock()
 			if !wrapped.ready {
@@ -87,7 +88,7 @@ func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 				}
 			}
 			wrapped.tlock.Unlock()
-			handle(datum)
+			handle(ctx, datum)
 		}
 	}
 	_ = GetManager().Add(queue, WrappedUniqueQueueType, config, exemplar)

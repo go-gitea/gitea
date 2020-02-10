@@ -101,7 +101,7 @@ func InitIssueIndexer(syncReindex bool) {
 	// Create the Queue
 	switch setting.Indexer.IssueType {
 	case "bleve":
-		handler := func(data ...queue.Data) {
+		handler := func(ctx context.Context, data ...queue.Data) {
 			indexer := holder.get()
 			if indexer == nil {
 				log.Error("Issue indexer handler: unable to get indexer!")
