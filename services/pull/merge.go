@@ -341,17 +341,28 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	outbuf.Reset()
 	errbuf.Reset()
 
-	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
+	pr.MergedCommitID, err = git.GetFullCommitID(tmpBasePath, baseBranch)
 	if err != nil {
-		return fmt.Errorf("GetBranchCommit: %v", err)
+		return fmt.Errorf("Failed to get full commit id for the new merge: %v", err)
 	}
 
 	pr.MergedUnix = timeutil.TimeStampNow()
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if err = pr.SetMerged(); err != nil {
+	if _, err = pr.SetMerged(); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
+	}
+
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("loadIssue [%d]: %v", pr.ID, err)
+	}
+
+	if err := pr.Issue.LoadRepo(); err != nil {
+		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
+	}
+	if err := pr.Issue.Repo.GetOwner(); err != nil {
+		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
 	}
 
 	notification.NotifyMergePullRequest(pr, doer, baseGitRepo)
