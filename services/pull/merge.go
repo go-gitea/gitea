@@ -295,10 +295,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	if err != nil {
 		return fmt.Errorf("Failed to get full commit id for origin/%s: %v", pr.BaseBranch, err)
 	}
-	mergeCommitID, err := git.GetFullCommitID(tmpBasePath, baseBranch)
-	if err != nil {
-		return fmt.Errorf("Failed to get full commit id for the new merge: %v", err)
-	}
 
 	// Now it's questionable about where this should go - either after or before the push
 	// I think in the interests of data safety - failures to push to the lfs should prevent
@@ -345,7 +341,10 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	outbuf.Reset()
 	errbuf.Reset()
 
-	pr.MergedCommitID = mergeCommitID
+	pr.MergedCommitID, err = git.GetFullCommitID(tmpBasePath, baseBranch)
+	if err != nil {
+		return fmt.Errorf("Failed to get full commit id for the new merge: %v", err)
+	}
 
 	pr.MergedUnix = timeutil.TimeStampNow()
 	pr.Merger = doer
