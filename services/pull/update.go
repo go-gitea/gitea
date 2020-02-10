@@ -39,11 +39,13 @@ func Update(pull *models.PullRequest, doer *models.User, message string) error {
 		return fmt.Errorf("HeadBranch of PR %d is up to date", pull.Index)
 	}
 
+	_, err = rawMerge(pr, doer, models.MergeStyleMerge, message)
+
 	defer func() {
 		go AddTestPullRequestTask(doer, pr.HeadRepo.ID, pr.HeadBranch, false, "", "")
 	}()
 
-	return rawMerge(pr, doer, models.MergeStyleMerge, message)
+	return err
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
