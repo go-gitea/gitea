@@ -494,6 +494,12 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
+	approvalCounts, err := models.IssueList(issues).GetApprovalCounts()
+	if err != nil {
+		ctx.ServerError("ApprovalCounts", err)
+		return
+	}
+
 	showReposMap := make(map[int64]*models.Repository, len(counts))
 	for repoID := range counts {
 		if repoID > 0 {
@@ -577,6 +583,22 @@ func Issues(ctx *context.Context) {
 	}
 
 	ctx.Data["Issues"] = issues
+	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string, official bool) int64 {
+		counts, ok := approvalCounts[issueID]
+		if !ok || len(counts) == 0 {
+			return 0
+		}
+		reviewTyp := models.ReviewTypeApprove
+		if typ == "reject" {
+			reviewTyp = models.ReviewTypeReject
+		}
+		for _, count := range counts {
+			if count.Type == reviewTyp && count.Official == official {
+				return count.Count
+			}
+		}
+		return 0
+	}
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts

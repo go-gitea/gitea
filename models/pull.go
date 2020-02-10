@@ -330,6 +330,25 @@ func (pr *PullRequest) GetCommitMessages() string {
 	return stringBuilder.String()
 }
 
+// ReviewCount represents a count of Reviews
+type ReviewCount struct {
+	IssueID  int64
+	Type     ReviewType
+	Official bool
+	Count    int64
+}
+
+// GetApprovalCounts returns the approval counts by type
+func (pr *PullRequest) GetApprovalCounts() ([]*ReviewCount, error) {
+	return pr.getApprovalCounts(x)
+}
+
+func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
+	rCounts := make([]*ReviewCount, 0, 6)
+	sess := e.Where("issue_id = ?", pr.IssueID)
+	return rCounts, sess.Select("issue_id, type, official, count(id) as `count`").GroupBy("issue_id, type, official").Table("review").Find(&rCounts)
+}
+
 // GetApprovers returns the approvers of the pull request
 func (pr *PullRequest) GetApprovers() string {
 
