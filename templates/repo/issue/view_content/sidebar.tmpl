@@ -7,7 +7,7 @@
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
 				<span class="octicon octicon-gear"></span>
 			</span>
-			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
+			<div class="filter menu labels" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 				{{range .Labels}}
 					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon {{if .IsChecked}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
