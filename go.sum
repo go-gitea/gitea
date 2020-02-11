@@ -9,8 +9,6 @@ cloud.google.com/go v0.45.0 h1:bALuGBSgE+BD4rxsopAYlqjcwqcQtye6pWG4bC3N/k0=
 cloud.google.com/go v0.45.0/go.mod h1:452BcPOeI9AZfbvDw0Tbo7D32wA+WX9WME8AZwMEDZU=
 cloud.google.com/go/bigquery v1.0.1/go.mod h1:i/xbL2UlR5RvWAURpBYZTtm/cXjCha9lbfbpx4poX+o=
 cloud.google.com/go/datastore v1.0.0/go.mod h1:LXYbyblFSglQ5pkeyhO+Qmw7ukd3C+pD7TKLgZqpHYE=
-gitea.com/lunny/levelqueue v0.1.0 h1:7wMk0VH6mvKN6vZEZCy9nUDgRmdPLgeNrm1NkW8EHNk=
-gitea.com/lunny/levelqueue v0.1.0/go.mod h1:G7hVb908t0Bl0uk7zGSg14fyzNtxgtD9Shf04wkMK7s=
 gitea.com/lunny/levelqueue v0.2.0 h1:lR/5EAwQtFcn5YvPEkNMw0p9pAy2/O2nSP5ImECLA2E=
 gitea.com/lunny/levelqueue v0.2.0/go.mod h1:G7hVb908t0Bl0uk7zGSg14fyzNtxgtD9Shf04wkMK7s=
 gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b h1:vXt85uYV17KURaUlhU7v4GbCShkqRZDSfo0TkC0YCjQ=
@@ -340,8 +338,8 @@ github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657 h1:vE7J1m7c
 github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657/go.mod h1:CzGEWj7cYgsdH8dAjBGEr58BoE7ScuLd+fwFZ44+/x8=
 github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd h1:Coekwdh0v2wtGp9Gmz1Ze3eVRAWJMLokvN3QjdzCHLY=
 github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd/go.mod h1:CT57kijsi8u/K/BOFA39wgDQJ9CxiF4nAY/ojJ6r6mM=
-github.com/keybase/go-crypto v0.0.0-20170605145657-00ac4db533f6 h1:9mszGwKDxHEY2cy+9XxCQKWIfkGPSAEFrcN8ghzyAKg=
-github.com/keybase/go-crypto v0.0.0-20170605145657-00ac4db533f6/go.mod h1:ghbZscTyKdM07+Fw3KSi0hcJm+AlEUWj8QLlPtijN/M=
+github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4 h1:cTxwSmnaqLoo+4tLukHoB9iqHOu3LmLhRmgUxZo6Vp4=
+github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4/go.mod h1:ghbZscTyKdM07+Fw3KSi0hcJm+AlEUWj8QLlPtijN/M=
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/klauspost/compress v1.9.2 h1:LfVyl+ZlLlLDeQ/d2AqfGIIH4qEDu0Ed2S5GyhCWIWY=
@@ -508,7 +506,6 @@ github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnIn
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/spf13/viper v1.4.0 h1:yXHLWeravcrgGyFSyCgdYpXQ9dR9c/WED3pg1RhxqEU=
 github.com/spf13/viper v1.4.0/go.mod h1:PTJ7Z/lr49W6bUbkmS1V3by4uWynFiR9p7+dSq/yZzE=
-github.com/src-d/enry v1.7.3 h1:jG2fmEaQaURh0qqU/sn82BRzVa6d4EVHJIw6gc98bak=
 github.com/src-d/enry/v2 v2.1.0 h1:z1L8t+B8bh3mmjPkJrgOTnVRpFGmTPJsplHX9wAn6BI=
 github.com/src-d/enry/v2 v2.1.0/go.mod h1:qQeCMRwzMF3ckeGr+h0tJLdxXnq+NVZsIDMELj0t028=
 github.com/src-d/gcfg v1.4.0 h1:xXbNR5AlLSA315x2UO+fTSSAXCDf+Ar38/6oyGbDKQ4=
