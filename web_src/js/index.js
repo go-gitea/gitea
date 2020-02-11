@@ -5,10 +5,12 @@
 import 'jquery.are-you-sure';
 import './publicPath.js';
 import './polyfills.js';
-import './gitGraphLoader.js';
-import './semanticDropdown.js';
+import './vendor/semanticDropdown.js';
+
 import initContextPopups from './features/contextPopup.js';
 import initHighlight from './features/highlight.js';
+import initGitGraph from './features/gitGraph.js';
+import initClipboard from './features/clipboard.js';
 
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
@@ -1128,6 +1130,14 @@ function initRepository() {
       if (this.checked) {
         $($(this).data('target')).addClass('disabled');
       }
+    });
+  }
+
+  // Language stats
+  if ($('.language-stats').length > 0) {
+    $('.language-stats').on('click', (e) => {
+      e.preventDefault();
+      $('.language-stats-details, .repository-menu').slideToggle();
     });
   }
 }
@@ -2458,24 +2468,6 @@ $(document).ready(async () => {
     }
   }
 
-  // Clipboard JS
-  const clipboard = new Clipboard('.clipboard');
-  clipboard.on('success', (e) => {
-    e.clearSelection();
-
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-success'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
-  clipboard.on('error', (e) => {
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-error'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
   // Helpers.
   $('.delete-button').click(showDeletePopup);
   $('.add-all-button').click(showAddAllPopup);
@@ -2620,8 +2612,11 @@ $(document).ready(async () => {
     }
   });
 
+  // parallel init of lazy-loaded features
   [hljs] = await Promise.all([
     initHighlight(),
+    initGitGraph(),
+    initClipboard(),
   ]);
 });
 
@@ -3336,7 +3331,7 @@ function initTopicbar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${suburl}/api/v1/topics/search?q={encodeURIComponent(query)}`,
+      url: `${suburl}/api/v1/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {

@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/highlight"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -111,6 +112,9 @@ func GlobalInit(ctx context.Context) {
 		cron.NewContext()
 		issue_indexer.InitIssueIndexer(false)
 		code_indexer.Init()
+		if err := stats_indexer.Init(); err != nil {
+			log.Fatal("Failed to initialize repository stats indexer queue: %v", err)
+		}
 		mirror_service.InitSyncMirrors()
 		webhook.InitDeliverHooks()
 		if err := pull_service.Init(); err != nil {
