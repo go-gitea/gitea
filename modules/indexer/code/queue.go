@@ -109,7 +109,7 @@ func populateRepoIndexer() {
 			return
 		default:
 		}
-		ids, err := models.GetUnindexedRepos(maxRepoID, 0, 50)
+		ids, err := models.GetUnindexedRepos(models.RepoIndexerTypeCode, maxRepoID, 0, 50)
 		if err != nil {
 			log.Error("populateRepoIndexer: %v", err)
 			return

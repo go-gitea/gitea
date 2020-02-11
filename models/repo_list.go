@@ -46,11 +46,14 @@ func (repos RepositoryList) loadAttributes(e Engine) error {
 		return nil
 	}
 
-	// Load owners.
 	set := make(map[int64]struct{})
+	repoIDs := make([]int64, len(repos))
 	for i := range repos {
 		set[repos[i].OwnerID] = struct{}{}
+		repoIDs[i] = repos[i].ID
 	}
+
+	// Load owners.
 	users := make(map[int64]*User, len(set))
 	if err := e.
 		Where("id > 0").
@@ -61,6 +64,25 @@ func (repos RepositoryList) loadAttributes(e Engine) error {
 	for i := range repos {
 		repos[i].Owner = users[repos[i].OwnerID]
 	}
+
+	// Load primary language.
+	stats := make(LanguageStatList, 0, len(repos))
+	if err := e.
+		Where("`is_primary` = ? AND `language` != ?", true, "other").
+		In("`repo_id`", repoIDs).
+		Find(&stats); err != nil {
+		return fmt.Errorf("find primary languages: %v", err)
+	}
+	stats.loadAttributes()
+	for i := range repos {
+		for _, st := range stats {
+			if st.RepoID == repos[i].ID {
+				repos[i].PrimaryLanguage = st
+				break
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -119,7 +141,6 @@ type SearchRepoOptions struct {
 	OrderBy         SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
-	IsProfile       bool
 	AllPublic       bool // Include also all public repositories of users and public organisations
 	AllLimited      bool // Include also all public repositories of limited organisations
 	// None -> include collaborative AND non-collaborative
@@ -306,10 +327,8 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
-	if !opts.IsProfile {
-		if err = repos.loadAttributes(sess); err != nil {
-			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
-		}
+	if err = repos.loadAttributes(sess); err != nil {
+		return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
 	return repos, count, nil
