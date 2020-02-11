@@ -14,7 +14,7 @@
 				</div>
 				{{range .Hooks}}
 					<div class="item">
-						<span class="text {{if .IsActive}}green{{else}}grey{{end}}"><i class="octicon octicon-primitive-dot"></i></span>
+						<span class="text {{if .IsActive}}green{{else}}grey{{end}}">{{svg "octicon-primitive-dot" 16}}</span>
 						<span>{{.Name}}</span>
 						<a class="text blue ui right" href="{{$.RepoLink}}/settings/hooks/git/{{.Name}}"><i class="fa fa-pencil"></i></a>
 					</div>

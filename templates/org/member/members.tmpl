@@ -34,7 +34,7 @@
 							{{$.i18n.Tr "org.members.member_role"}}
 						</div>
 						<div class="meta">
-							<strong>{{if index $.MembersIsUserOrgOwner .ID}}<span class="octicon octicon-shield"></span> {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
+							<strong>{{if index $.MembersIsUserOrgOwner .ID}}{{svg "octicon-shield-lock" 16}} {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
 						</div>
 					</div>
 					<div class="ui one wide column center">
@@ -42,7 +42,13 @@
 							2FA
 						</div>
 						<div class="meta">
-							<strong><span class="octicon {{if index $.MembersTwoFaStatus .ID}}octicon-check text green{{else}}octicon-x{{end}}"></span></strong>
+							<strong>
+								{{if index $.MembersTwoFaStatus .ID}}
+									<span class="text green">{{svg "octicon-check" 16}}</span>
+								{{else}}
+									{{svg "octicon-x" 16}}
+								{{end}}
+							</strong>
 						</div>
 					</div>
 					<div class="ui four wide column">
