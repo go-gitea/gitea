@@ -38,11 +38,11 @@
 		{{range .Webhooks}}
 			<div class="item">
 				{{if eq .LastStatus 1}}
-					<span class="text green"><i class="octicon octicon-check"></i></span>
+					<span class="text green">{{svg "octicon-check" 16}}</span>
 				{{else if eq .LastStatus 2}}
-					<span class="text red"><i class="octicon octicon-alert"></i></span>
+					<span class="text red">{{svg "octicon-alert" 16}}</span>
 				{{else}}
-					<span class="text grey"><i class="octicon octicon-primitive-dot"></i></span>
+					<span class="text grey">{{svg "octicon-primitive-dot" 16}}</span>
 				{{end}}
 				<a class="dont-break-out" href="{{$.BaseLink}}/{{.ID}}">{{.URL}}</a>
 				<div class="ui right">

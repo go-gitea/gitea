@@ -58,7 +58,7 @@ require (
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
-	github.com/keybase/go-crypto v0.0.0-20170605145657-00ac4db533f6
+	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/klauspost/compress v1.9.2
 	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.2.0
@@ -99,7 +99,7 @@ require (
 	github.com/yuin/goldmark v1.1.19
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
-	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
+	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 	golang.org/x/text v0.3.2

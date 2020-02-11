@@ -5,12 +5,12 @@
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
-				<span class="octicon octicon-gear"></span>
+				{{svg "octicon-gear" 16}}
 			</span>
 			<div class="filter menu labels" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 				{{range .Labels}}
-					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon {{if .IsChecked}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 				{{end}}
 			</div>
@@ -30,14 +30,14 @@
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
-				<span class="octicon octicon-gear"></span>
+				{{svg "octicon-gear" 16}}
 			</span>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_milestone"}}</div>
 				{{if .OpenMilestones}}
 					<div class="divider"></div>
 					<div class="header">
-						<i class="octicon octicon-milestone"></i>
+						{{svg "octicon-milestone" 16}}
 						{{.i18n.Tr "repo.issues.new.open_milestone"}}
 					</div>
 					{{range .OpenMilestones}}
@@ -47,7 +47,7 @@
 				{{if .ClosedMilestones}}
 					<div class="divider"></div>
 					<div class="header">
-						<i class="octicon octicon-milestone"></i>
+						{{svg "octicon-milestone" 16}}
 						{{.i18n.Tr "repo.issues.new.closed_milestone"}}
 					</div>
 					{{range .ClosedMilestones}}
@@ -71,7 +71,7 @@
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
-				<span class="octicon octicon-gear"></span>
+				{{svg "octicon-gear" 16}}
 			</span>
 			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
@@ -83,11 +83,13 @@
 						 checked
 						{{end}}
 					{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-						<span class="octicon{{range $.Issue.Assignees}}
-						{{if eq .ID $AssigneeID}}
-						 octicon-check
+						{{$checked := false}}
+						{{range $.Issue.Assignees}}
+							{{if eq .ID $AssigneeID}}
+								{{$checked = true}}
+							{{end}}
 						{{end}}
-					{{end}}"></span>
+						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
 						<span class="text">
 							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
 						</span>
@@ -130,10 +132,10 @@
 						{{$.CsrfTokenHtml}}
 						<button class="fluid ui button">
 							{{if $.IssueWatch.IsWatching}}
-								<i class="octicon octicon-mute"></i>
+								{{svg "octicon-mute" 16}}
 								{{.i18n.Tr "repo.issues.unsubscribe"}}
 							{{else}}
-								<i class="octicon octicon-unmute"></i>
+								{{svg "octicon-unmute" 16}}
 								{{.i18n.Tr "repo.issues.subscribe"}}
 							{{end}}
 						</button>
@@ -218,7 +220,7 @@
 			</div>
 			{{if ne .Issue.DeadlineUnix 0}}
 				<p>
-					<span class="octicon octicon-calendar"></span>
+					{{svg "octicon-calendar" 16}}
 					{{.Issue.DeadlineUnix.FormatShort}}
 					{{if .Issue.IsOverdue}}
 						<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
@@ -344,10 +346,10 @@
 				<div>
 					<button class="fluid ui  show-modal button {{if .Issue.IsLocked }} negative {{ end }}" data-modal="#lock">
 							{{if .Issue.IsLocked}}
-								<i class="octicon octicon-key"></i>
+								{{svg "octicon-key" 16}}
 								{{.i18n.Tr "repo.issues.unlock"}}
 							{{else}}
-								<i class="octicon octicon-lock"></i>
+								{{svg "octicon-lock" 16}}
 								{{.i18n.Tr "repo.issues.lock"}}
 							{{end}}
 						</button>

@@ -23,7 +23,7 @@
 						<span class="at">@</span>
 						<div class="ui selection dropdown">
 							<input type="hidden" name="tag_target" value="{{.tag_target}}"/>
-							<i class="octicon octicon-git-branch"></i>
+							{{svg "octicon-git-branch" 16}}
 							<div class="text">
 								{{.i18n.Tr "repo.release.target"}} :
 								<strong id="repo-branch-current">{{.Repository.DefaultBranch}}</strong>

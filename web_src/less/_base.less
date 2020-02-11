@@ -261,11 +261,11 @@ code,
         z-index: 900;
     }
 
-    .octicon {
-        &.fitted {
-            margin-right: 0;
-        }
+    .fitted .svg {
+        margin-right: 0;
+    }
 
+    .svg {
         margin-right: 0.75em;
     }
 
@@ -277,7 +277,7 @@ code,
         }
     }
 
-    .text .octicon {
+    .text .svg {
         width: 16px;
         text-align: center;
     }
@@ -597,7 +597,7 @@ code,
     }
 
     &.status.buttons {
-        .octicon {
+        .svg {
             margin-right: 4px;
         }
     }
@@ -1136,7 +1136,7 @@ i.icon.centerlock {
         overflow-y: visible;
     }
 
-    *:not(.fa):not(.octicon):not(.icon) {
+    *:not(.fa):not(.svg):not(.icon) {
         font-size: 12px;
         font-family: @monospaced-fonts, monospace;
         line-height: 20px;
@@ -1167,7 +1167,7 @@ i.icon.centerlock {
     height: 2.1666em !important;
 }
 
-.octicon {
+.svg {
     &.green {
         color: #21ba45;
     }
@@ -1191,4 +1191,8 @@ i.icon.centerlock {
     display: inline;
     border: 1px solid #ccc;
     border-radius: 500em;
+}
+
+.invisible {
+    visibility: hidden;
 }
