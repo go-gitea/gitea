@@ -1,17 +1,17 @@
 import { svg } from '../utils.js';
 
-export default function initContextPopups(suburl, staticPrefix) {
+export default function initContextPopups() {
   const refIssues = $('.ref-issue');
   if (!refIssues.length) return;
 
   refIssues.each(function () {
     const [index, _issues, repo, owner] = $(this).attr('href').replace(/[#?].*$/, '').split('/').reverse();
-    issuePopup(suburl, staticPrefix, owner, repo, index, $(this));
+    issuePopup(owner, repo, index, $(this));
   });
 }
 
-function issuePopup(suburl, staticPrefix, owner, repo, index, $element) {
-  $.get(`${suburl}/api/v1/repos/${owner}/${repo}/issues/${index}`, (issue) => {
+function issuePopup(owner, repo, index, $element) {
+  $.get(`${window.config.SubURL}/api/v1/repos/${owner}/${repo}/issues/${index}`, (issue) => {
     const createdAt = new Date(issue.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
     let body = issue.body.replace(/\n+/g, ' ');
@@ -64,7 +64,7 @@ function issuePopup(suburl, staticPrefix, owner, repo, index, $element) {
       html: `
 <div>
   <p><small>${issue.repository.full_name} on ${createdAt}</small></p>
-  <p><span class="${color}">${svg(octicon, 16, staticPrefix)}</span> <strong>${issue.title}</strong> #${index}</p>
+  <p><span class="${color}">${svg(octicon, 16)}</span> <strong>${issue.title}</strong> #${index}</p>
   <p>${body}</p>
   ${labels}
 </div>

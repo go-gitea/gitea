@@ -20,8 +20,6 @@ function htmlEncode(text) {
 }
 
 let csrf;
-let suburl;
-let staticPrefix;
 let previewFileModes;
 let simpleMDEditor;
 const commentMDEditors = {};
@@ -154,7 +152,7 @@ function initRepoStatusChecker() {
     }
     $.ajax({
       type: 'GET',
-      url: `${suburl}/${repo_name}/status`,
+      url: `${window.config.SubURL}/${repo_name}/status`,
       data: {
         _csrf: csrf,
       },
@@ -290,7 +288,7 @@ function uploadFile(file, callback) {
     }
   };
 
-  xhr.open('post', `${suburl}/attachments`, true);
+  xhr.open('post', `${window.config.SubURL}/attachments`, true);
   xhr.setRequestHeader('X-Csrf-Token', csrf);
   const formData = new FormData();
   formData.append('file', file, file.name);
@@ -310,7 +308,7 @@ function initImagePaste(target) {
         insertAtCursor(field, `![${name}]()`);
         uploadFile(img, (res) => {
           const data = JSON.parse(res);
-          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${suburl}/attachments/${data.uuid})`);
+          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${window.config.SubURL}/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $('.files').append(input);
         });
@@ -326,7 +324,7 @@ function initSimpleMDEImagePaste(simplemde, files) {
       uploadFile(img, (res) => {
         const data = JSON.parse(res);
         const pos = simplemde.codemirror.getCursor();
-        simplemde.codemirror.replaceRange(`![${name}](${suburl}/attachments/${data.uuid})`, pos);
+        simplemde.codemirror.replaceRange(`![${name}](${window.config.SubURL}/attachments/${data.uuid})`, pos);
         const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
         files.append(input);
       });
@@ -2056,7 +2054,7 @@ function searchUsers() {
   $searchUserBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/users/search?q={query}`,
+      url: `${window.config.SubURL}/api/v1/users/search?q={query}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2083,7 +2081,7 @@ function searchTeams() {
   $searchTeamBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
+      url: `${window.config.SubURL}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
       headers: { 'X-Csrf-Token': csrf },
       onResponse(response) {
         const items = [];
@@ -2107,7 +2105,7 @@ function searchRepositories() {
   $searchRepoBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
+      url: `${window.config.SubURL}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2177,7 +2175,7 @@ function initU2FAuth() {
   }
   u2fApi.ensureSupport()
     .then(() => {
-      $.getJSON(`${suburl}/user/u2f/challenge`).success((req) => {
+      $.getJSON(`${window.config.SubURL}/user/u2f/challenge`).success((req) => {
         u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
           .then(u2fSigned)
           .catch((err) => {
@@ -2190,12 +2188,12 @@ function initU2FAuth() {
       });
     }).catch(() => {
       // Fallback in case browser do not support U2F
-      window.location.href = `${suburl}/user/two_factor`;
+      window.location.href = `${window.config.SubURL}/user/two_factor`;
     });
 }
 function u2fSigned(resp) {
   $.ajax({
-    url: `${suburl}/user/u2f/sign`,
+    url: `${window.config.SubURL}/user/u2f/sign`,
     type: 'POST',
     headers: { 'X-Csrf-Token': csrf },
     data: JSON.stringify(resp),
@@ -2212,7 +2210,7 @@ function u2fRegistered(resp) {
     return;
   }
   $.ajax({
-    url: `${suburl}/user/settings/security/u2f/register`,
+    url: `${window.config.SubURL}/user/settings/security/u2f/register`,
     type: 'POST',
     headers: { 'X-Csrf-Token': csrf },
     data: JSON.stringify(resp),
@@ -2271,7 +2269,7 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-  $.post(`${suburl}/user/settings/security/u2f/request_register`, {
+  $.post(`${window.config.SubURL}/user/settings/security/u2f/request_register`, {
     _csrf: csrf,
     name: $('#nickname').val()
   }).success((req) => {
@@ -2334,7 +2332,7 @@ function initTemplateSearch() {
     $('#repo_template_search')
       .dropdown({
         apiSettings: {
-          url: `${suburl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
+          url: `${window.config.SubURL}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
           onResponse(response) {
             const filteredResponse = { success: true, results: [] };
             filteredResponse.results.push({
@@ -2362,8 +2360,6 @@ function initTemplateSearch() {
 
 $(document).ready(async () => {
   csrf = $('meta[name=_csrf]').attr('content');
-  suburl = $('meta[name=_suburl]').attr('content');
-  staticPrefix = $('meta[name=_staticprefix]').attr('content');
 
   // Show exact time
   $('.time-since').each(function () {
@@ -2452,7 +2448,7 @@ $(document).ready(async () => {
 
   // Emojify
   emojify.setConfig({
-    img_dir: `${suburl}/vendor/plugins/emojify/images`,
+    img_dir: `${window.config.SubURL}/vendor/plugins/emojify/images`,
     ignore_emoticons: true
   });
   const hasEmoji = document.getElementsByClassName('has-emoji');
@@ -2500,7 +2496,7 @@ $(document).ready(async () => {
     $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
       let node = $(this);
       node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16, staticPrefix)}</a>`);
+      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
     });
   });
 
@@ -2572,7 +2568,7 @@ $(document).ready(async () => {
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
-  initContextPopups(suburl, staticPrefix);
+  initContextPopups();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2782,7 +2778,7 @@ function initVueComponents() {
         reposFilter: 'all',
         searchQuery: '',
         isLoading: false,
-        staticPrefix,
+        staticPrefix: window.config.StaticPrefix,
         repoTypes: {
           all: {
             count: 0,
@@ -2920,7 +2916,7 @@ function initVueApp() {
     el,
     data: {
       searchLimit: (document.querySelector('meta[name=_search_limit]') || {}).content,
-      suburl: document.querySelector('meta[name=_suburl]').content,
+      suburl: window.config.SubURL,
       uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
       activityTopAuthors: window.ActivityTopAuthors || [],
     },
@@ -3036,7 +3032,7 @@ window.initHeatmap = function (appElementId, heatmapUser, locale) {
     el,
 
     data: {
-      suburl: document.querySelector('meta[name=_suburl]').content,
+      suburl: window.config.SubURL,
       heatmapUser,
       locale
     },
@@ -3282,7 +3278,7 @@ function initTopicbar() {
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
             const link = $('<a class="ui repo-topic small label topic"></a>');
-            link.attr('href', `${suburl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
+            link.attr('href', `${window.config.SubURL}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
             link.insertBefore(last);
           }
@@ -3330,7 +3326,7 @@ function initTopicbar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${suburl}/api/v1/topics/search?q={query}`,
+      url: `${window.config.SubURL}/api/v1/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {
@@ -3487,9 +3483,9 @@ function initIssueList() {
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
   const tp = $('#type').val();
-  let issueSearchUrl = `${suburl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
+  let issueSearchUrl = `${window.config.SubURL}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${suburl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${window.config.SubURL}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
