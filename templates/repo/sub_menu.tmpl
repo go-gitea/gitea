@@ -1,17 +1,42 @@
-<div class="ui segment sub-menu">
-	<div class="ui two horizontal center link list">
-		{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
-			<div class="item{{if .PageIsCommits}} active{{end}}">
-				<a class="ui" href="{{.RepoLink}}/commits{{if .IsViewBranch}}/branch{{else if .IsViewTag}}/tag{{else if .IsViewCommit}}/commit{{end}}/{{EscapePound .BranchName}}"><i class="octicon octicon-history"></i> <b>{{.CommitsCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .CommitsCount "repo.commit" "repo.commits") }}</a>
-			</div>
-		{{end}}
-		{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) }}
-			<div class="item{{if .PageIsBranches}} active{{end}}">
-				<a class="ui" href="{{.RepoLink}}/branches/"><i class="octicon octicon-git-branch"></i> <b>{{.BranchesCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .BranchesCount "repo.branch" "repo.branches") }}</a>
-			</div>
-			<div class="item">
-				<a class="ui" href="#"><i class="octicon octicon-database"></i> <b>{{SizeFmt .Repository.Size}}</b></a>
-			</div>
-		{{end}}
+<div class="ui segments">
+	<div class="ui segment sub-menu repository-menu">
+		<div class="ui two horizontal center link list">
+			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
+				<div class="item{{if .PageIsCommits}} active{{end}}">
+					<a class="ui" href="{{.RepoLink}}/commits{{if .IsViewBranch}}/branch{{else if .IsViewTag}}/tag{{else if .IsViewCommit}}/commit{{end}}/{{EscapePound .BranchName}}"><i class="octicon octicon-history"></i> <b>{{.CommitsCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .CommitsCount "repo.commit" "repo.commits") }}</a>
+				</div>
+			{{end}}
+			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) }}
+				<div class="item{{if .PageIsBranches}} active{{end}}">
+					<a class="ui" href="{{.RepoLink}}/branches/"><i class="octicon octicon-git-branch"></i> <b>{{.BranchesCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .BranchesCount "repo.branch" "repo.branches") }}</a>
+				</div>
+				<div class="item">
+					<a class="ui" href="#"><i class="octicon octicon-database"></i> <b>{{SizeFmt .Repository.Size}}</b></a>
+				</div>
+			{{end}}
+		</div>
 	</div>
+	{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats }}
+	<div class="ui segment sub-menu language-stats-details" style="display: none">
+		<div class="ui horizontal center link list">
+			{{range .LanguageStats}}
+			<div class="item">
+				<i class="color-icon" style="background-color: {{ .Color }}"></i>
+				<span class="ui"><b>
+				{{if eq .Language "other" }}
+					{{ $.i18n.Tr "repo.language_other" }}
+				{{else}}
+					{{ .Language }}
+				{{end}}
+				</b> {{ .Percentage }}%</span>
+			</div>
+			{{end}}
+		</div>
+	</div>
+	<a class="ui segment language-stats">
+		{{range .LanguageStats}}
+		<div class="bar" style="width: {{ .Percentage }}%; background-color: {{ .Color }}">&nbsp;</div>
+		{{end}}
+	</a>
+	{{end}}
 </div>

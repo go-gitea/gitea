@@ -1922,6 +1922,10 @@
                     }
                 }
 
+                span.ui {
+                    color: black;
+                }
+
                 &.active {
                     background: rgba(0, 0, 0, 0.05);
                 }
@@ -1998,6 +2002,22 @@
     .ui.fluid.action.input {
         .ui.search.action.input {
             flex: auto;
+        }
+    }
+
+    .segment.language-stats {
+        padding: 0;
+        height: 0.6em;
+        display: flex;
+        white-space: nowrap;
+        width: 100%;
+
+        .bar {
+            white-space: nowrap;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            height: 0.6em;
         }
     }
 }

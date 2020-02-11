@@ -386,11 +386,20 @@ github.com/spf13/jwalterweatherman
 github.com/spf13/pflag
 # github.com/spf13/viper v1.4.0
 github.com/spf13/viper
+# github.com/src-d/enry/v2 v2.1.0
+github.com/src-d/enry/v2
+github.com/src-d/enry/v2/data
+github.com/src-d/enry/v2/data/rule
+github.com/src-d/enry/v2/internal/tokenizer
+github.com/src-d/enry/v2/internal/tokenizer/flex
+github.com/src-d/enry/v2/regex
 # github.com/src-d/gcfg v1.4.0
 github.com/src-d/gcfg
 github.com/src-d/gcfg/scanner
 github.com/src-d/gcfg/token
 github.com/src-d/gcfg/types
+# github.com/src-d/go-oniguruma v1.1.0
+github.com/src-d/go-oniguruma
 # github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2
 github.com/steveyen/gtreap
 # github.com/stretchr/testify v1.4.0
@@ -411,6 +420,8 @@ github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/tinylib/msgp v1.1.0
 github.com/tinylib/msgp/msgp
+# github.com/toqueteos/trie v1.0.0
+github.com/toqueteos/trie
 # github.com/toqueteos/webbrowser v1.2.0
 github.com/toqueteos/webbrowser
 # github.com/tstranex/u2f v1.0.0
@@ -607,6 +618,8 @@ gopkg.in/src-d/go-git.v4/utils/merkletrie/internal/frame
 gopkg.in/src-d/go-git.v4/utils/merkletrie/noder
 # gopkg.in/testfixtures.v2 v2.5.0
 gopkg.in/testfixtures.v2
+# gopkg.in/toqueteos/substring.v1 v1.0.2
+gopkg.in/toqueteos/substring.v1
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
 # gopkg.in/yaml.v2 v2.2.2
