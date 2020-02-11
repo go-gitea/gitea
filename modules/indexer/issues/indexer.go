@@ -143,25 +143,23 @@ func InitIssueIndexer(syncReindex bool) {
 		var populate bool
 		switch setting.Indexer.IssueType {
 		case "bleve":
-			graceful.GetManager().RunWithShutdownFns(func(_, atTerminate func(context.Context, func())) {
-				issueIndexer := NewBleveIndexer(setting.Indexer.IssuePath)
-				exist, err := issueIndexer.Init()
-				if err != nil {
-					holder.cancel()
-					log.Fatal("Unable to initialize Bleve Issue Indexer: %v", err)
+			issueIndexer := NewBleveIndexer(setting.Indexer.IssuePath)
+			exist, err := issueIndexer.Init()
+			if err != nil {
+				holder.cancel()
+				log.Fatal("Unable to initialize Bleve Issue Indexer: %v", err)
+			}
+			populate = !exist
+			holder.set(issueIndexer)
+			graceful.GetManager().RunAtTerminate(context.Background(), func() {
+				log.Debug("Closing issue indexer")
+				issueIndexer := holder.get()
+				if issueIndexer != nil {
+					issueIndexer.Close()
 				}
-				populate = !exist
-				holder.set(issueIndexer)
-				atTerminate(context.Background(), func() {
-					log.Debug("Closing issue indexer")
-					issueIndexer := holder.get()
-					if issueIndexer != nil {
-						issueIndexer.Close()
-					}
-					log.Info("PID: %d Issue Indexer closed", os.Getpid())
-				})
-				log.Debug("Created Bleve Indexer")
+				log.Info("PID: %d Issue Indexer closed", os.Getpid())
 			})
+			log.Debug("Created Bleve Indexer")
 		case "db":
 			issueIndexer := &DBIndexer{}
 			holder.set(issueIndexer)
