@@ -85,7 +85,6 @@ func Home(ctx *context.Context) {
 		OrderBy:            orderBy,
 		Private:            ctx.IsSigned,
 		Actor:              ctx.User,
-		IsProfile:          true,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
 	if err != nil {

@@ -457,6 +457,16 @@ func Home(ctx *context.Context) {
 	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
 }
 
+func renderLanguageStats(ctx *context.Context) {
+	langs, err := ctx.Repo.Repository.GetTopLanguageStats(5)
+	if err != nil {
+		ctx.ServerError("Repo.GetTopLanguageStats", err)
+		return
+	}
+
+	ctx.Data["LanguageStats"] = langs
+}
+
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
@@ -494,6 +504,11 @@ func renderCode(ctx *context.Context) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		return
+	}
+
+	renderLanguageStats(ctx)
+	if ctx.Written() {
 		return
 	}
 
