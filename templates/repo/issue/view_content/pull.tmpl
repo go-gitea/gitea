@@ -11,7 +11,7 @@
 							{{else if eq .Type 2}}grey
 							{{else if eq .Type 3}}red
 							{{else}}grey{{end}}">
-							<span class="octicon octicon-{{.Type.Icon}}"></span>
+							{{svg (printf "octicon-%s" .Type.Icon) 16}}
 						</span>
 						{{if .Stale}}
 						<span class="type-icon text grey">
@@ -52,7 +52,7 @@
 	{{else if and .RequireSigned (not .WillSign)}}}red
 	{{else if .Issue.PullRequest.IsChecking}}yellow
 	{{else if .Issue.PullRequest.CanAutoMerge}}green
-	{{else}}red{{end}}"><span class="mega-octicon octicon-git-merge"></span></a>
+	{{else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
 	<div class="content">
 		{{template "repo/pulls/status" .}}
 		<div class="ui {{if not $.LatestCommitStatus}}top attached header{{else}}attached merge-section segment{{end}}">
@@ -87,7 +87,7 @@
 				{{end}}
 			{{else if .IsPullFilesConflicted}}
 				<div class="item text grey">
-					<span class="octicon octicon-x"></span>
+					{{svg "octicon-x" 16}}
 					{{$.i18n.Tr "repo.pulls.files_conflicted"}}
 					{{range .ConflictedFiles}}
 						<div>{{.}}</div>
@@ -95,38 +95,38 @@
 				</div>
 			{{else if .IsPullRequestBroken}}
 				<div class="item text red">
-					<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
+					<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 					{{$.i18n.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
 				<div class="item text grey">
-					<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
+					<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">
-					<i class="icon icon-octicon"><span class="octicon octicon-sync"></span></i>
+					<i class="icon icon-octicon">{{svg "octicon-sync" 16}}</i>
 					{{$.i18n.Tr "repo.pulls.is_checking"}}
 				</div>
 			{{else if .Issue.PullRequest.CanAutoMerge}}
 				{{if .IsBlockedByApprovals}}
 					<div class="item text red">
-						<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
+						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item text red">
-						<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
+						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
 					</div>
 				{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsError .RequiredStatusCheckState.IsFailure)}}
 					<div class="item text red">
-						<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
+						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
 					</div>
 				{{else if and .RequireSigned (not .WillSign)}}
 					<div class="item text red">
-						<i class="icon icon-octicon"><span class="octicon octicon-x"></span></i>
+						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 					<div class="item text yellow">
@@ -138,12 +138,12 @@
 				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item text yellow">
-							<i class="icon icon-octicon"><span class="octicon octicon-primitive-dot"></span></i>
+							<i class="icon icon-octicon">{{svg "octicon-primitive-dot" 16}}</i>
 							{{$.i18n.Tr "repo.pulls.required_status_check_administrator"}}
 						</div>
 					{{else}}
 						<div class="item text green">
-							<i class="icon icon-octicon"><span class="octicon octicon-check"></span></i>
+							<i class="icon icon-octicon">{{svg "octicon-check" 16}}</i>
 							{{$.i18n.Tr "repo.pulls.can_auto_merge_desc"}}
 						</div>
 					{{end}}
@@ -162,7 +162,7 @@
 					<div class="ui very compact branch-update grid">
   						<div class="row">
 							<div class="item text gray eleven wide left floated column">
-								<i class="icon icon-octicon"><span class="octicon octicon-alert"></span></i>
+								<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
 								{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
 							</div>
 							{{if .UpdateAllowed}}
@@ -256,7 +256,7 @@
 							{{end}}
 							<div class="ui {{if $notAllOverridableChecksOk}}red{{else}}green{{end}} buttons merge-button">
 								<button class="ui button" data-do="{{.MergeStyle}}">
-									<span class="octicon octicon-git-merge"></span>
+									{{svg "octicon-git-merge" 16}}
 									<span class="button-text">
 									{{if eq .MergeStyle "merge"}}
 										{{$.i18n.Tr "repo.pulls.merge_pull_request"}}
@@ -292,17 +292,17 @@
 							</div>
 						{{else}}
 							<div class="item text red">
-								<span class="octicon octicon-x"></span>
+								{{svg "octicon-x" 16}}
 								{{$.i18n.Tr "repo.pulls.no_merge_desc"}}
 							</div>
 							<div class="item text grey">
-								<span class="octicon octicon-info"></span>
+								{{svg "octicon-info" 16}}
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
 						{{end}}
 					{{else}}
 						<div class="item text grey">
-							<span class="octicon octicon-info"></span>
+							{{svg "octicon-info" 16}}
 							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
 						</div>
 					{{end}}
@@ -311,31 +311,31 @@
 				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
 				{{if .IsBlockedByApprovals}}
 					<div class="item text red">
-						<span class="octicon octicon-x"></span>
+						{{svg "octicon-x" 16}}
 					{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
 					</div>
 				{{else if .IsBlockedByRejection}}
 					<div class="item text red">
-						<span class="octicon octicon-x"></span>
+						{{svg "octicon-x" 16}}
 					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
 					</div>
 				{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
 					<div class="item text red">
-						<span class="octicon octicon-x"></span>
+						{{svg "octicon-x" 16}}
 						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
 					</div>
 				{{else if and .RequireSigned (not .WillSign)}}
 					<div class="item text red">
-						<span class="octicon octicon-x"></span>
+						{{svg "octicon-x" 16}}
 						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 				{{else}}
 					<div class="item text red">
-						<span class="octicon octicon-x"></span>
+						{{svg "octicon-x" 16}}
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_desc"}}
 					</div>
 					<div class="item text grey">
-						<span class="octicon octicon-info"></span>
+						{{svg "octicon-info" 16}}
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
 					</div>
 				{{end}}

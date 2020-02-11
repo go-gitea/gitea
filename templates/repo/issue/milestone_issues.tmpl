@@ -7,7 +7,7 @@
 				<h3>{{.Milestone.Name}}</h3>
 			</div>
 			<div class="column center aligned">
-				
+
 			</div>
 			{{if not .Repository.IsArchived}}
 				<div class="column right aligned">
@@ -22,16 +22,16 @@
             <div class="column">
                 {{ $closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.Lang }}
                 {{if .IsClosed}}
-                    <span class="octicon octicon-clock"></span> {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+					{{svg "octicon-clock" 16}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
                 {{else}}
-                    <span class="octicon octicon-calendar"></span>
+					{{svg "octicon-calendar" 16}}
                     {{if .Milestone.DeadlineString}}
                         <span {{if .IsOverdue}}class="overdue"{{end}}>{{.Milestone.DeadlineString}}</span>
                     {{else}}
                         {{$.i18n.Tr "repo.milestones.no_due_date"}}
                     {{end}}
                 {{end}}
-                &nbsp; 
+                &nbsp;
                 <b>{{.i18n.Tr "repo.milestones.completeness" .Milestone.Completeness}}</b>
             </div>
         </div>
@@ -40,11 +40,11 @@
 			<div class="six wide column">
 				<div class="ui tiny basic status buttons">
 					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						<i class="octicon octicon-issue-opened"></i>
+						{{svg "octicon-issue-opened" 16}}
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						<i class="octicon octicon-issue-closed"></i>
+						{{svg "octicon-issue-closed" 16}}
 						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 					</a>
 				</div>
@@ -61,7 +61,7 @@
 							<span class="info">{{.i18n.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item has-emoji label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}"><span class="octicon {{if .IsExcluded}}octicon-circle-slash{{else if contain $.SelLabelIDs .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item has-emoji label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash" 16}}{{else if contain $.SelLabelIDs .ID}}{{svg "octicon-check" 16}}{{end}}"><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -118,11 +118,11 @@
 			<div class="six wide column">
 				<div class="ui tiny basic status buttons">
 					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						<i class="octicon octicon-issue-opened"></i>
+						{{svg "octicon-issue-opened" 16}}
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						<i class="octicon octicon-issue-closed"></i>
+						{{svg "octicon-issue-closed" 16}}
 						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 					</a>
 				</div>
@@ -149,7 +149,7 @@
 						<div class="menu">
 							{{range .Labels}}
 								<div class="item issue-action has-emoji" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									<span class="octicon {{if contain $.SelLabelIDs .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check" 16}}{{end}}"><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 								</div>
 							{{end}}
 						</div>
@@ -193,11 +193,11 @@
 					{{end}}
 
 					{{if .NumComments}}
-						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
+						<span class="comment ui right">{{svg "octicon-comment" 16}} {{.NumComments}}</span>
 					{{end}}
 
 					{{if .TotalTrackedTime}}
-						<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
+						<span class="comment ui right">{{svg "octicon-clock" 16}} {{.TotalTrackedTime | Sec2Time}}</span>
 					{{end}}
 
 					<p class="desc">
@@ -208,18 +208,18 @@
 						{{end}}
 						{{if .Ref}}
 							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
-								<span class="octicon octicon-git-branch"></span> {{.Ref}}
+								{{svg "octicon-git-branch" 16}} {{.Ref}}
 							</a>
 						{{end}}
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
 							{{$tasksDone := .GetTasksDone}}
 							<span class="checklist">
-								<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+								{{svg "octicon-checklist" 16}} {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 							</span>
 						{{end}}
 						{{if ne .DeadlineUnix 0}}
-							<span class="octicon octicon-calendar"></span>
+							{{svg "octicon-calendar" 16}}
 							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 						{{end}}
 						{{range .Assignees}}

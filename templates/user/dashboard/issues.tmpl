@@ -54,11 +54,11 @@
 			<div class="twelve wide column content">
 				<div class="ui tiny basic status buttons">
 					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open">
-						<i class="octicon octicon-issue-opened"></i>
+						{{svg "octicon-issue-opened" 16}}
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed">
-						<i class="octicon octicon-issue-closed"></i>
+						{{svg "octicon-issue-closed" 16}}
 						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 					</a>
 				</div>
@@ -110,10 +110,10 @@
 							{{end}}
 
 							{{if .NumComments}}
-								<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
+								<span class="comment ui right">{{svg "octicon-comment" 16}} {{.NumComments}}</span>
 							{{end}}
 							{{if .TotalTrackedTime}}
-								<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
+								<span class="comment ui right">{{svg "octicon-clock" 16}} {{.TotalTrackedTime | Sec2Time}}</span>
 							{{end}}
 
 							<p class="desc">
@@ -126,12 +126,12 @@
 								{{end}}
 								{{if .Milestone}}
 									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
-										<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
+										{{svg "octicon-milestone" 16}} {{.Milestone.Name}}
 									</a>
 								{{end}}
 								{{if .Ref}}
 									<a class="ref" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/src/branch/{{.Ref}}">
-										<span class="octicon octicon-git-branch"></span> {{.Ref}}
+										{{svg "octicon-git-branch" 16}} {{.Ref}}
 									</a>
 								{{end}}
 								{{range .Assignees}}
@@ -143,17 +143,17 @@
 								{{if gt $tasks 0}}
 									{{$tasksDone := .GetTasksDone}}
 									<span class="checklist">
-										<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+										{{svg "octicon-checklist" 16}} {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 									</span>
 								{{end}}
 								{{if ne .DeadlineUnix 0}}
 									<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
-										<span class="octicon octicon-calendar"></span><span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+										{{svg "octicon-calendar" 16}}<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 									</span>
 								{{end}}
 								{{if .IsPull}}
 									{{if and (not .PullRequest.HasMerged) ((len .PullRequest.ConflictedFiles) gt 0)}}
-										<span class="conflicting"><i class="octicon octicon-mirror"></i> {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
+										<span class="conflicting">{{svg "octicon-mirror" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
 									{{end}}
 								{{end}}
 							</p>
