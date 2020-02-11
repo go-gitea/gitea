@@ -71,18 +71,6 @@ func getFeishuPushPayload(p *api.PushPayload) (*FeishuPayload, error) {
 		commitDesc string
 	)
 
-	var titleLink string
-	if len(p.Commits) == 1 {
-		commitDesc = "1 new commit"
-		titleLink = p.Commits[0].URL
-	} else {
-		commitDesc = fmt.Sprintf("%d new commits", len(p.Commits))
-		titleLink = p.CompareURL
-	}
-	if titleLink == "" {
-		titleLink = p.Repo.HTMLURL + "/src/" + branchName
-	}
-
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
 
 	var text string
