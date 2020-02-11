@@ -253,7 +253,7 @@ github.com/jessevdk/go-flags
 github.com/kballard/go-shellquote
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
-# github.com/keybase/go-crypto v0.0.0-20170605145657-00ac4db533f6
+# github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 github.com/keybase/go-crypto/brainpool
 github.com/keybase/go-crypto/cast5
 github.com/keybase/go-crypto/curve25519
