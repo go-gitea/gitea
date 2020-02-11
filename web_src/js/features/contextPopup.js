@@ -1,14 +1,16 @@
-export default function initContextPopups(suburl) {
+import svg from '../utils.js';
+
+export default function initContextPopups(suburl, staticPrefix) {
   const refIssues = $('.ref-issue');
   if (!refIssues.length) return;
 
   refIssues.each(function () {
     const [index, _issues, repo, owner] = $(this).attr('href').replace(/[#?].*$/, '').split('/').reverse();
-    issuePopup(suburl, owner, repo, index, $(this));
+    issuePopup(suburl, staticPrefix, owner, repo, index, $(this));
   });
 }
 
-function issuePopup(suburl, owner, repo, index, $element) {
+function issuePopup(suburl, staticPrefix, owner, repo, index, $element) {
   $.get(`${suburl}/api/v1/repos/${owner}/${repo}/issues/${index}`, (issue) => {
     const createdAt = new Date(issue.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
@@ -34,19 +36,24 @@ function issuePopup(suburl, owner, repo, index, $element) {
       labels = `<p>${labels}</p>`;
     }
 
-    let octicon;
+    let octicon, color;
     if (issue.pull_request !== null) {
       if (issue.state === 'open') {
-        octicon = 'green octicon-git-pull-request'; // Open PR
+        color = 'green';
+        octicon = 'octicon-git-pull-request'; // Open PR
       } else if (issue.pull_request.merged === true) {
-        octicon = 'purple octicon-git-merge'; // Merged PR
+        color = 'purple';
+        octicon = 'octicon-git-merge'; // Merged PR
       } else {
-        octicon = 'red octicon-git-pull-request'; // Closed PR
+        color = 'red';
+        octicon = 'octicon-git-pull-request'; // Closed PR
       }
     } else if (issue.state === 'open') {
-      octicon = 'green octicon-issue-opened'; // Open Issue
+      color = 'green';
+      octicon = 'octicon-issue-opened'; // Open Issue
     } else {
-      octicon = 'red octicon-issue-closed'; // Closed Issue
+      color = 'red';
+      octicon = 'octicon-issue-closed'; // Closed Issue
     }
 
     $element.popup({
@@ -57,7 +64,7 @@ function issuePopup(suburl, owner, repo, index, $element) {
       html: `
 <div>
   <p><small>${issue.repository.full_name} on ${createdAt}</small></p>
-  <p><i class="octicon ${octicon}"></i> <strong>${issue.title}</strong> #${index}</p>
+  <p><span class="${color}">${svg(octicon, 16, staticPrefix)}</span> <strong>${issue.title}</strong> #${index}</p>
   <p>${body}</p>
   ${labels}
 </div>

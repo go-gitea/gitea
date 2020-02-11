@@ -6,6 +6,7 @@ import 'jquery.are-you-sure';
 import './publicPath.js';
 import './polyfills.js';
 import './vendor/semanticDropdown.js';
+import svg from './utils.js';
 
 import initContextPopups from './features/contextPopup.js';
 import initHighlight from './features/highlight.js';
@@ -16,10 +17,6 @@ import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
-}
-
-function svg(name, size) {
-  return `<svg class="svg ${name}" width="${size}" height="${size}" aria-hidden="true"><use xlink:href="${staticPrefix}/img/svg/icons.svg#${name}"/></svg>`;
 }
 
 let csrf;
@@ -2503,7 +2500,7 @@ $(document).ready(async () => {
     $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
       let node = $(this);
       node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
+      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16, staticPrefix)}</a>`);
     });
   });
 
@@ -2575,7 +2572,7 @@ $(document).ready(async () => {
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
-  initContextPopups(suburl);
+  initContextPopups(suburl, staticPrefix);
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2891,6 +2888,12 @@ function initVueComponents() {
           return 'octicon-repo-forked';
         } if (repo.mirror) {
           return 'octicon-repo-clone';
+        } if (repo.template) {
+          let octicon = 'octicon-repo-template';
+          if (repo.private) {
+            octicon = `${octicon}-private`;
+          }
+          return octicon;
         } if (repo.private) {
           return 'octicon-lock';
         }
