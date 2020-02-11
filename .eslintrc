@@ -52,3 +52,4 @@ rules:
   prefer-const: [2, {destructuring: all}]
   prefer-destructuring: [0]
   radix: [2, as-needed]
+  import/prefer-default-export: [0]

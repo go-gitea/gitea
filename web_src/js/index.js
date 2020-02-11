@@ -6,7 +6,7 @@ import 'jquery.are-you-sure';
 import './publicPath.js';
 import './polyfills.js';
 import './vendor/semanticDropdown.js';
-import svg from './utils.js';
+import { svg } from './utils.js';
 
 import initContextPopups from './features/contextPopup.js';
 import initHighlight from './features/highlight.js';
@@ -2889,11 +2889,7 @@ function initVueComponents() {
         } if (repo.mirror) {
           return 'octicon-repo-clone';
         } if (repo.template) {
-          let octicon = 'octicon-repo-template';
-          if (repo.private) {
-            octicon = `${octicon}-private`;
-          }
-          return octicon;
+          return `octicon-repo-template${repo.private ? '-private' : ''}`;
         } if (repo.private) {
           return 'octicon-lock';
         }

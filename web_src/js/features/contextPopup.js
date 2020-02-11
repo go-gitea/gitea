@@ -1,4 +1,4 @@
-import svg from '../utils.js';
+import { svg } from '../utils.js';
 
 export default function initContextPopups(suburl, staticPrefix) {
   const refIssues = $('.ref-issue');
