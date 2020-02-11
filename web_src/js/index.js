@@ -15,6 +15,8 @@ import initClipboard from './features/clipboard.js';
 
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
+const { AppSubUrl, StaticUrlPrefix } = window.config;
+
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
@@ -152,7 +154,7 @@ function initRepoStatusChecker() {
     }
     $.ajax({
       type: 'GET',
-      url: `${window.config.SubURL}/${repo_name}/status`,
+      url: `${AppSubUrl}/${repo_name}/status`,
       data: {
         _csrf: csrf,
       },
@@ -288,7 +290,7 @@ function uploadFile(file, callback) {
     }
   };
 
-  xhr.open('post', `${window.config.SubURL}/attachments`, true);
+  xhr.open('post', `${AppSubUrl}/attachments`, true);
   xhr.setRequestHeader('X-Csrf-Token', csrf);
   const formData = new FormData();
   formData.append('file', file, file.name);
@@ -308,7 +310,7 @@ function initImagePaste(target) {
         insertAtCursor(field, `![${name}]()`);
         uploadFile(img, (res) => {
           const data = JSON.parse(res);
-          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${window.config.SubURL}/attachments/${data.uuid})`);
+          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $('.files').append(input);
         });
@@ -324,7 +326,7 @@ function initSimpleMDEImagePaste(simplemde, files) {
       uploadFile(img, (res) => {
         const data = JSON.parse(res);
         const pos = simplemde.codemirror.getCursor();
-        simplemde.codemirror.replaceRange(`![${name}](${window.config.SubURL}/attachments/${data.uuid})`, pos);
+        simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
         const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
         files.append(input);
       });
@@ -2054,7 +2056,7 @@ function searchUsers() {
   $searchUserBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${window.config.SubURL}/api/v1/users/search?q={query}`,
+      url: `${AppSubUrl}/api/v1/users/search?q={query}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2081,7 +2083,7 @@ function searchTeams() {
   $searchTeamBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${window.config.SubURL}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
+      url: `${AppSubUrl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
       headers: { 'X-Csrf-Token': csrf },
       onResponse(response) {
         const items = [];
@@ -2105,7 +2107,7 @@ function searchRepositories() {
   $searchRepoBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${window.config.SubURL}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
+      url: `${AppSubUrl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2175,7 +2177,7 @@ function initU2FAuth() {
   }
   u2fApi.ensureSupport()
     .then(() => {
-      $.getJSON(`${window.config.SubURL}/user/u2f/challenge`).success((req) => {
+      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).success((req) => {
         u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
           .then(u2fSigned)
           .catch((err) => {
@@ -2188,12 +2190,12 @@ function initU2FAuth() {
       });
     }).catch(() => {
       // Fallback in case browser do not support U2F
-      window.location.href = `${window.config.SubURL}/user/two_factor`;
+      window.location.href = `${AppSubUrl}/user/two_factor`;
     });
 }
 function u2fSigned(resp) {
   $.ajax({
-    url: `${window.config.SubURL}/user/u2f/sign`,
+    url: `${AppSubUrl}/user/u2f/sign`,
     type: 'POST',
     headers: { 'X-Csrf-Token': csrf },
     data: JSON.stringify(resp),
@@ -2210,7 +2212,7 @@ function u2fRegistered(resp) {
     return;
   }
   $.ajax({
-    url: `${window.config.SubURL}/user/settings/security/u2f/register`,
+    url: `${AppSubUrl}/user/settings/security/u2f/register`,
     type: 'POST',
     headers: { 'X-Csrf-Token': csrf },
     data: JSON.stringify(resp),
@@ -2269,7 +2271,7 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-  $.post(`${window.config.SubURL}/user/settings/security/u2f/request_register`, {
+  $.post(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
     _csrf: csrf,
     name: $('#nickname').val()
   }).success((req) => {
@@ -2332,7 +2334,7 @@ function initTemplateSearch() {
     $('#repo_template_search')
       .dropdown({
         apiSettings: {
-          url: `${window.config.SubURL}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
+          url: `${AppSubUrl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
           onResponse(response) {
             const filteredResponse = { success: true, results: [] };
             filteredResponse.results.push({
@@ -2448,7 +2450,7 @@ $(document).ready(async () => {
 
   // Emojify
   emojify.setConfig({
-    img_dir: `${window.config.SubURL}/vendor/plugins/emojify/images`,
+    img_dir: `${AppSubUrl}/vendor/plugins/emojify/images`,
     ignore_emoticons: true
   });
   const hasEmoji = document.getElementsByClassName('has-emoji');
@@ -2778,7 +2780,7 @@ function initVueComponents() {
         reposFilter: 'all',
         searchQuery: '',
         isLoading: false,
-        staticPrefix: window.config.StaticPrefix,
+        staticPrefix: StaticUrlPrefix,
         repoTypes: {
           all: {
             count: 0,
@@ -2916,7 +2918,7 @@ function initVueApp() {
     el,
     data: {
       searchLimit: (document.querySelector('meta[name=_search_limit]') || {}).content,
-      suburl: window.config.SubURL,
+      suburl: AppSubUrl,
       uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
       activityTopAuthors: window.ActivityTopAuthors || [],
     },
@@ -3032,7 +3034,7 @@ window.initHeatmap = function (appElementId, heatmapUser, locale) {
     el,
 
     data: {
-      suburl: window.config.SubURL,
+      suburl: AppSubUrl,
       heatmapUser,
       locale
     },
@@ -3278,7 +3280,7 @@ function initTopicbar() {
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
             const link = $('<a class="ui repo-topic small label topic"></a>');
-            link.attr('href', `${window.config.SubURL}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
+            link.attr('href', `${AppSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
             link.insertBefore(last);
           }
@@ -3326,7 +3328,7 @@ function initTopicbar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${window.config.SubURL}/api/v1/topics/search?q={query}`,
+      url: `${AppSubUrl}/api/v1/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {
@@ -3483,9 +3485,9 @@ function initIssueList() {
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
   const tp = $('#type').val();
-  let issueSearchUrl = `${window.config.SubURL}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
+  let issueSearchUrl = `${AppSubUrl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${window.config.SubURL}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${AppSubUrl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
