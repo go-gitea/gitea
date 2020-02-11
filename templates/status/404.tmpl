@@ -4,6 +4,7 @@
 	<p style="margin-top: 100px"><img src="{{StaticUrlPrefix}}/img/404.png" alt="404"/></p>
 	<div class="ui divider"></div>
 	<br>
+	<p>{{.i18n.Tr "error404" | Safe}}
 	{{if .ShowFooterVersion}}<p>Application Version: {{AppVer}}</p>{{end}}
 </div>
 {{template "base/footer" .}}
