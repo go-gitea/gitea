@@ -10,17 +10,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-/**func TestCreateOrUpdateIssueWatch(t *testing.T) {
+func TestCreateOrUpdateIssueWatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	assert.NoError(t, CreateOrUpdateIssueWatch(3, 1, true))
+	assert.NoError(t, CreateOrUpdateIssueWatchMode(3, 1, IssueWatchModeNormal))
 	iw := AssertExistsAndLoadBean(t, &IssueWatch{UserID: 3, IssueID: 1}).(*IssueWatch)
-	assert.True(t, iw.IsWatching)
+	assert.EqualValues(t, IssueWatchModeNormal, iw.Mode)
 
-	assert.NoError(t, CreateOrUpdateIssueWatch(1, 1, false))
+	assert.NoError(t, CreateOrUpdateIssueWatchMode(1, 1, IssueWatchModeDont))
 	iw = AssertExistsAndLoadBean(t, &IssueWatch{UserID: 1, IssueID: 1}).(*IssueWatch)
-	assert.False(t, iw.IsWatching)
-}**/
+	assert.EqualValues(t, IssueWatchModeDont, iw.Mode)
+}
 
 func TestGetIssueWatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
