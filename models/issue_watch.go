@@ -62,7 +62,7 @@ func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWat
 			return err
 		}
 	} else {
-		if _, err = e.ID(iw.ID).Cols("is_watching", "updated_unix", "mode").Update(iw); err != nil {
+		if _, err = e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
 			return err
 		}
 	}
@@ -139,7 +139,7 @@ func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
 	}
 	_, err := e.
 		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
-		Cols("is_watching", "updated_unix").
+		Cols("mode", "updated_unix").
 		Where("`issue_watch`.user_id = ?", userID).
 		Update(iw)
 	return err
