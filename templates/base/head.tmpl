@@ -36,8 +36,6 @@
 	<meta name="keywords" content="{{MetaKeywords}}">
 	<meta name="referrer" content="no-referrer" />
 	<meta name="_csrf" content="{{.CsrfToken}}" />
-	<meta name="_suburl" content="{{AppSubUrl}}" />
-	<meta name="_staticprefix" content="{{StaticUrlPrefix}}" />
 	{{if .IsSigned}}
 		<meta name="_uid" content="{{.SignedUser.ID}}" />
 	{{end}}
@@ -86,6 +84,8 @@
 	</script>
 	<script>
 		window.config = {
+			AppSubUrl: '{{AppSubUrl}}',
+			StaticUrlPrefix: '{{StaticUrlPrefix}}',
 			Datetimepicker: {{if .RequireDatetimepicker}}true{{else}}false{{end}},
 			Dropzone: {{if .RequireDropzone}}true{{else}}false{{end}},
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
