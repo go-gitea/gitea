@@ -36,6 +36,20 @@ type swaggerResponseBranchList struct {
 	Body []api.Branch `json:"body"`
 }
 
+// BranchProtection
+// swagger:response BranchProtection
+type swaggerResponseBranchProtection struct {
+	// in:body
+	Body api.BranchProtection `json:"body"`
+}
+
+// BranchProtectionList
+// swagger:response BranchProtectionList
+type swaggerResponseBranchProtectionList struct {
+	// in:body
+	Body []api.BranchProtection `json:"body"`
+}
+
 // TagList
 // swagger:response TagList
 type swaggerResponseTagList struct {
