@@ -30,7 +30,7 @@ type IssueWatch struct {
 	ID          int64              `xorm:"pk autoincr"`
 	UserID      int64              `xorm:"UNIQUE(watch) NOT NULL"`
 	IssueID     int64              `xorm:"UNIQUE(watch) NOT NULL"`
-	Mode        IssueWatchMode     `xorm:"SMALLINT NOT NULL DEFAULT 1"`
+	Mode        IssueWatchMode     `xorm:"NOT NULL DEFAULT 1"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }

@@ -19,7 +19,7 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		ID          int64                 `xorm:"pk autoincr"`
 		UserID      int64                 `xorm:"UNIQUE(watch) NOT NULL"`
 		IssueID     int64                 `xorm:"UNIQUE(watch) NOT NULL"`
-		Mode        models.IssueWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
+		Mode        models.IssueWatchMode `xorm:"NOT NULL DEFAULT 1"`
 		CreatedUnix timeutil.TimeStamp    `xorm:"created NOT NULL"`
 		UpdatedUnix timeutil.TimeStamp    `xorm:"updated NOT NULL"`
 		//since it it is not used anymore and has NOT NULL constrain
