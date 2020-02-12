@@ -41,6 +41,7 @@ var (
 		MaxIndexerFileSize int64
 		IncludePatterns    []glob.Glob
 		ExcludePatterns    []glob.Glob
+		ExcludeVendored    bool
 	}{
 		IssueType:             "bleve",
 		IssuePath:             "indexers/issues.bleve",
@@ -52,6 +53,7 @@ var (
 		IssueQueueBatchNumber: 20,
 
 		MaxIndexerFileSize: 1024 * 1024,
+		ExcludeVendored:    true,
 	}
 )
 
@@ -77,6 +79,7 @@ func newIndexerService() {
 	}
 	Indexer.IncludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_INCLUDE").MustString(""))
 	Indexer.ExcludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_EXCLUDE").MustString(""))
+	Indexer.ExcludeVendored = sec.Key("REPO_INDEXER_EXCLUDE_VENDORED").MustBool(true)
 	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 	Indexer.StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(30 * time.Second)
