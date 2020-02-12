@@ -145,13 +145,13 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 	}
 
 	// explicit unwatch on issue
-	if issueUnWatches, err := getIssueWatchersIDs(e, issueID, IssueWatchModeDont); err != nil {
+	issueUnWatches, err := getIssueWatchersIDs(e, issueID, IssueWatchModeDont)
+	if err != nil {
 		return err
-	} else {
-		fmt.Println("DEBUG: issueUnWatches: ", issueUnWatches)
-		for _, id := range issueUnWatches {
-			alreadyNotified[id] = struct{}{}
-		}
+	}
+	fmt.Println("DEBUG: issueUnWatches: ", issueUnWatches)
+	for _, id := range issueUnWatches {
+		alreadyNotified[id] = struct{}{}
 	}
 
 	issueWatches, err := getIssueWatchersIDs(e, issueID, IssueWatchModeNormal, IssueWatchModeAuto)
