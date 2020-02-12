@@ -73,12 +73,10 @@ func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWat
 }
 
 // GetIssueWatch returns all IssueWatch objects from db by user and issue
-// the current Web-UI need iw object for watchers AND explicit non-watchers
 func GetIssueWatch(userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
 	return getIssueWatch(x, userID, issueID)
 }
 
-// Return watcher AND explicit non-watcher if entry in db exist
 func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
 	iw = new(IssueWatch)
 	exists, err = e.
