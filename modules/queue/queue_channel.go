@@ -53,31 +53,31 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 }
 
 // Run starts to run the queue
-func (c *ChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
+func (q *ChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
 	atShutdown(context.Background(), func() {
-		log.Warn("ChannelQueue: %s is not shutdownable!", c.name)
+		log.Warn("ChannelQueue: %s is not shutdownable!", q.name)
 	})
 	atTerminate(context.Background(), func() {
-		log.Warn("ChannelQueue: %s is not terminatable!", c.name)
+		log.Warn("ChannelQueue: %s is not terminatable!", q.name)
 	})
-	log.Debug("ChannelQueue: %s Starting", c.name)
+	log.Debug("ChannelQueue: %s Starting", q.name)
 	go func() {
-		_ = c.AddWorkers(c.workers, 0)
+		_ = q.AddWorkers(q.workers, 0)
 	}()
 }
 
 // Push will push data into the queue
-func (c *ChannelQueue) Push(data Data) error {
-	if !assignableTo(data, c.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in queue: %s", data, c.exemplar, c.name)
+func (q *ChannelQueue) Push(data Data) error {
+	if !assignableTo(data, q.exemplar) {
+		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in queue: %s", data, q.exemplar, q.name)
 	}
-	c.WorkerPool.Push(data)
+	q.WorkerPool.Push(data)
 	return nil
 }
 
 // Name returns the name of this queue
-func (c *ChannelQueue) Name() string {
-	return c.name
+func (q *ChannelQueue) Name() string {
+	return q.name
 }
 
 func init() {

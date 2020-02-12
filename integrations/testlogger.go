@@ -13,7 +13,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -101,7 +100,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	}
 	writerCloser.setT(&t)
 	return func() {
-		if err := queue.GetManager().FlushAll(context.Background(), 20*time.Second); err != nil {
+		if err := queue.GetManager().FlushAll(context.Background(), -1); err != nil {
 			t.Errorf("Flushing queues failed with error %v", err)
 		}
 		_ = writerCloser.Close()

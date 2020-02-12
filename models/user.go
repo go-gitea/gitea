@@ -1045,12 +1045,22 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return ErrUserAlreadyExist{newUserName}
 	}
 
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+		return fmt.Errorf("Change repo owner name: %v", err)
+	}
+
 	// Do not fail if directory does not exist
 	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	return nil
+	return sess.Commit()
 }
 
 // checkDupEmail checks whether there are the same email with the user
@@ -1244,6 +1254,10 @@ func deleteUser(e *xorm.Session, u *User) error {
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted.
 func DeleteUser(u *User) (err error) {
+	if u.IsOrganization() {
+		return fmt.Errorf("%s is an organization not a user", u.Name)
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1452,6 +1466,11 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(email string) (*User, error) {
+	return GetUserByEmailContext(DefaultDBContext(), email)
+}
+
+// GetUserByEmailContext returns the user object by given e-mail if exists with db context
+func GetUserByEmailContext(ctx DBContext, email string) (*User, error) {
 	if len(email) == 0 {
 		return nil, ErrUserNotExist{0, email, 0}
 	}
@@ -1459,7 +1478,7 @@ func GetUserByEmail(email string) (*User, error) {
 	email = strings.ToLower(email)
 	// First try to find the user by primary email
 	user := &User{Email: email}
-	has, err := x.Get(user)
+	has, err := ctx.e.Get(user)
 	if err != nil {
 		return nil, err
 	}
@@ -1469,19 +1488,19 @@ func GetUserByEmail(email string) (*User, error) {
 
 	// Otherwise, check in alternative list for activated email addresses
 	emailAddress := &EmailAddress{Email: email, IsActivated: true}
-	has, err = x.Get(emailAddress)
+	has, err = ctx.e.Get(emailAddress)
 	if err != nil {
 		return nil, err
 	}
 	if has {
-		return GetUserByID(emailAddress.UID)
+		return getUserByID(ctx.e, emailAddress.UID)
 	}
 
 	// Finally, if email address is the protected email address:
 	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
 		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
 		user := &User{LowerName: username}
-		has, err := x.Get(user)
+		has, err := ctx.e.Get(user)
 		if err != nil {
 			return nil, err
 		}

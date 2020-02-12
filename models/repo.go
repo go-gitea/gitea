@@ -175,8 +175,9 @@ type Repository struct {
 	*Mirror    `xorm:"-"`
 	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
-	RenderingMetas map[string]string `xorm:"-"`
-	Units          []*RepoUnit       `xorm:"-"`
+	RenderingMetas  map[string]string `xorm:"-"`
+	Units           []*RepoUnit       `xorm:"-"`
+	PrimaryLanguage *LanguageStat     `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -185,7 +186,8 @@ type Repository struct {
 	TemplateID                      int64              `xorm:"INDEX"`
 	TemplateRepo                    *Repository        `xorm:"-"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
-	IndexerStatus                   *RepoIndexerStatus `xorm:"-"`
+	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
+	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
@@ -1504,6 +1506,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Notification{RepoID: repoID},
 		&CommitStatus{RepoID: repoID},
 		&RepoIndexerStatus{RepoID: repoID},
+		&LanguageStat{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
 		&Task{RepoID: repoID},
 	); err != nil {
