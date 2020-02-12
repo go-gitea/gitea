@@ -389,7 +389,7 @@ func EntryIcon(entry *git.TreeEntry) string {
 		return "file-submodule"
 	}
 
-	return "file-text"
+	return "file"
 }
 
 // SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value

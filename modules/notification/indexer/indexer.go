@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
@@ -117,11 +118,17 @@ func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.U
 	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
+	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+	}
 }
 
 func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
 	if setting.Indexer.RepoIndexerEnabled && refName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
+	}
+	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
 	}
 }
 

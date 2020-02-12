@@ -1,0 +1,20 @@
+dist: trusty
+language: go
+go:
+  - '1.11.x'
+  - '1.12.x'
+
+env:
+  global:
+    - LD_LIBRARY_PATH="/usr/local/lib":${LD_LIBRARY_PATH}
+    - GO111MODULE=on
+    - ONIGURUMA_VERSION='6.9.1'
+
+before_install: # install oniguruma manually as trusty has only ancient 5.x
+  - sudo apt-get install -y dpkg # dpkg >= 1.17.5ubuntu5.8 fixes https://bugs.launchpad.net/ubuntu/+source/dpkg/+bug/1730627
+  - wget "http://archive.ubuntu.com/ubuntu/pool/universe/libo/libonig/libonig5_${ONIGURUMA_VERSION}-1_amd64.deb"
+  - sudo dpkg -i "libonig5_${ONIGURUMA_VERSION}-1_amd64.deb"
+  - wget "http://archive.ubuntu.com/ubuntu/pool/universe/libo/libonig/libonig-dev_${ONIGURUMA_VERSION}-1_amd64.deb"
+  - sudo dpkg -i "libonig-dev_${ONIGURUMA_VERSION}-1_amd64.deb"
+script:
+  - go test -v --cover -race

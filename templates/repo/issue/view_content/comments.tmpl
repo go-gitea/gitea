@@ -70,7 +70,7 @@
 		</div>
 	{{else if eq .Type 1}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -78,7 +78,7 @@
 		</div>
 	{{else if eq .Type 2}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-circle-slash issue-symbol"></span>
+			<span class="issue-symbol">{{svg "octicon-circle-slash" 16}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -99,7 +99,7 @@
 		{{end}}
 		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-bookmark"></span>
+			{{svg "octicon-bookmark" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -115,21 +115,21 @@
 		</div>
 	{{else if eq .Type 4}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-bookmark"></span>
+			{{svg "octicon-bookmark" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.commit_ref_at" .EventTag $createdStr | Safe}}</span>
 
 			<div class="detail">
-				<span class="octicon octicon-git-commit"></span>
+				{{svg "octicon-git-commit" 16}}
 				<span class="text grey">{{.Content | Str2html}}</span>
 			</div>
 		</div>
 	{{else if eq .Type 7}}
 		{{if .Label}}
 			<div class="event" id="{{.HashTag}}">
-				<span class="octicon octicon-primitive-dot"></span>
+				{{svg "octicon-primitive-dot" 16}}
 				<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 					<img src="{{.Poster.RelAvatarLink}}">
 				</a>
@@ -139,7 +139,7 @@
 		{{end}}
 	{{else if eq .Type 8}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -148,7 +148,7 @@
 		</div>
 	{{else if eq .Type 9}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			{{if gt .AssigneeID 0}}
 				{{if .RemovedAssignee}}
 					<a class="ui avatar image" href="{{.Assignee.HomeLink}}">
@@ -179,7 +179,7 @@
 		</div>
 	{{else if eq .Type 10}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -189,7 +189,7 @@
 		</div>
 	{{else if eq .Type 11}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -199,7 +199,7 @@
 		</div>
 	{{else if eq .Type 12}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -207,32 +207,32 @@
 		</div>
 	{{else if eq .Type 13}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}</span>
 
 			<div class="detail">
-				<span class="octicon octicon-clock"></span>
+				{{svg "octicon-clock" 16}}
 				<span class="text grey">{{.Content}}</span>
 			</div>
 		</div>
 	{{else if eq .Type 14}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.add_time_history"  $createdStr | Safe}}</span>
 			<div class="detail">
-				<span class="octicon octicon-clock"></span>
+				{{svg "octicon-clock" 16}}
 				<span class="text grey">{{.Content}}</span>
 			</div>
 		</div>
 	{{else if eq .Type 15}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -240,7 +240,7 @@
 		</div>
 	{{else if eq .Type 16}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -250,7 +250,7 @@
 		</div>
 	{{else if eq .Type 17}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -260,7 +260,7 @@
 		</div>
 	{{else if eq .Type 18}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -270,7 +270,7 @@
 		</div>
 	{{else if eq .Type 19}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -279,7 +279,7 @@
 			</span>
 			{{if .DependentIssue}}
 				<div class="detail">
-					<span class="octicon octicon-plus"></span>
+					{{svg "octicon-plus" 16}}
 					<span class="text grey">
 						<a href="{{.DependentIssue.HTMLURL}}">
 							{{if eq .DependentIssue.RepoID .Issue.RepoID}}
@@ -294,7 +294,7 @@
 		</div>
 	{{else if eq .Type 20}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -303,7 +303,7 @@
 			</span>
 			{{if .DependentIssue}}
 				<div class="detail">
-					<span class="text grey octicon octicon-trashcan"></span>
+					<span class="text grey">{{svg "octicon-trashcan" 16}}</span>
 					<span class="text grey">
 						<a href="{{.DependentIssue.HTMLURL}}">
 							{{if eq .DependentIssue.RepoID .Issue.RepoID}}
@@ -318,7 +318,7 @@
 		</div>
 	{{else if eq .Type 22}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-{{.Review.Type.Icon}} issue-symbol"></span>
+			<span class="issue-symbol">{{svg (printf "octicon-%s" .Review.Type.Icon) 16}}</span>
 			{{if .OriginalAuthor }}
 			{{else}}
 				<a class="ui avatar image"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
@@ -344,7 +344,7 @@
 			</span>
 			{{if .Content}}
 				<div class="detail">
-					<span class="octicon octicon-quote"></span>
+					{{svg "octicon-quote" 16}}
 					<span class="text grey has-emoji">{{.Content}}</span>
 				</div>
 			{{end}}
@@ -355,11 +355,11 @@
 								{{$invalid := (index $comms 0).Invalidated}}
 							{{if $invalid}}
 								<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="ui compact right labeled button show-outdated">
-									<i class="octicon octicon-fold"></i>
+									{{svg "octicon-fold" 16}}
 									{{$.i18n.Tr "repo.issues.review.show_outdated"}}
 								</button>
 								<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="hide ui compact right labeled button hide-outdated">
-									<i class="octicon octicon-fold"></i>
+									{{svg "octicon-fold" 16}}
 									{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
 								</button>
 							{{end}}
@@ -417,7 +417,7 @@
 		</div>
 	{{else if eq .Type 23}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-lock issue-symbol"></span>
+			<span class="issue-symbol">{{svg "octicon-lock" 16}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -434,7 +434,7 @@
 		</div>
 	{{else if eq .Type 24}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-key issue-symbol"></span>
+			<span class="issue-symbol">{{svg "octicon-key" 16}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -445,7 +445,7 @@
 		</div>
 	{{else if eq .Type 25}}
 		<div class="event">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -455,13 +455,13 @@
 		</div>
 	{{else if eq .Type 26}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="octicon octicon-primitive-dot"></span>
+			{{svg "octicon-primitive-dot" 16}}
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.del_time_history"  $createdStr | Safe}}</span>
 			<div class="detail">
-				<span class="octicon octicon-clock"></span>
+				{{svg "octicon-clock" 16}}
 				<span class="text grey">{{.Content}}</span>
 			</div>
 		</div>

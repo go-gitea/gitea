@@ -13,13 +13,13 @@
 					<div class="item">
 						<div class="content">
 							{{if .IsPrivate}}
-								<span class="text gold iconFloat"><i class="octicon octicon-lock"></i></span>
+								<span class="text gold iconFloat">{{svg "octicon-lock" 16}}</span>
 							{{else if .IsFork}}
-								<span class="iconFloat"><i class="octicon octicon-repo-forked"></i></span>
+								<span class="iconFloat">{{svg "octicon-repo-forked" 16}}</span>
 							{{else if .IsMirror}}
-								<span class="iconFloat"><i class="octicon octicon-repo-clone"></i></span>
+								<span class="iconFloat">{{svg "octicon-repo-clone" 16}}</span>
 							{{else}}
-								<span class="iconFloat"><i class="octicon octicon-repo"></i></span>
+								<span class="iconFloat">{{svg "octicon-repo" 16}}</span>
 							{{end}}
 							<a class="name" href="{{AppSubUrl}}/{{$.Owner.Name}}/{{.Name}}">{{$.Owner.Name}}/{{.Name}}</a>
 							<span>{{SizeFmt .Size}}</span>

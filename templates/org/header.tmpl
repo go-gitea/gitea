@@ -9,11 +9,11 @@
 					<div class="ui right">
 						<div class="ui menu">
 							<a class="{{if $.PageIsOrgMembers}}active{{end}} item" href="{{$.OrgLink}}/members">
-								<i class="octicon octicon-organization"></i>&nbsp;{{$.i18n.Tr "org.people"}}
+								{{svg "octicon-organization" 16}}&nbsp;{{$.i18n.Tr "org.people"}}
 								<div class="floating ui black label">{{.NumMembers}}</div>
 							</a>
 							<a class="{{if $.PageIsOrgTeams}}active{{end}} item" href="{{$.OrgLink}}/teams">
-								<i class="octicon octicon-jersey"></i>&nbsp;{{$.i18n.Tr "org.teams"}}
+								{{svg "octicon-jersey" 16}}&nbsp;{{$.i18n.Tr "org.teams"}}
 								<div class="floating ui black label">{{.NumTeams}}</div>
 							</a>
 						</div>

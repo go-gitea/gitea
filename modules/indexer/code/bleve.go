@@ -267,7 +267,7 @@ func (b *BleveIndexer) Index(repoID int64) error {
 	if err = batch.Flush(); err != nil {
 		return err
 	}
-	return repo.UpdateIndexerStatus(sha)
+	return repo.UpdateIndexerStatus(models.RepoIndexerTypeCode, sha)
 }
 
 // Delete deletes indexes by ids
