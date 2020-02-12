@@ -207,8 +207,15 @@
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 						{{end}}
 						{{if .IsPull }}{{if .PullRequest.RequiresApproval }}
+							{{ $reviewStatus := .PullRequest.GetReviewStatus }}
 							<a class="milestone" href="{{$.RepoLink}}/pulls/{{.Index}}">
-								{{$.i18n.Tr .PullRequest.GetReviewLabel .PullRequest.GetReviewCount | Safe}}
+								{{if eq $reviewStatus.Status "rejected"}}
+									{{$.i18n.Tr "repo.pulls.review_rejected" $reviewStatus.Count | Safe}}
+								{{else if eq $reviewStatus.Status "required"}}
+									{{$.i18n.Tr "repo.pulls.review_required" $reviewStatus.Count | Safe}}
+								{{else}}
+									{{$.i18n.Tr "repo.pulls.review_approved" $reviewStatus.Count | Safe}}
+								{{end}}
 							</a>
 						{{end}}{{end}}
 						{{if .Ref}}

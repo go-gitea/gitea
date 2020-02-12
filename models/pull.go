@@ -188,34 +188,26 @@ func (pr *PullRequest) RequiresApproval() bool {
 	return pr.requiredApprovals() > 0
 }
 
-// GetReviewLabel returns the localization label for the review of this pull request
-func (pr *PullRequest) GetReviewLabel() string {
-	if pr.RequiresApproval() {
-		if pr.GetRejectedReviewsCount() > 0 {
-			return "repo.pulls.review_rejected"
-		}
-		if pr.GetGrantedApprovalsCount() >= pr.ProtectedBranch.RequiredApprovals {
-			return "repo.pulls.review_approved"
-		}
-		return "repo.pulls.review_required"
-	}
-	return "repo.pulls.review_approved" // by default
+// ReviewStatusCount holds the Status and Count of a Review
+type ReviewStatusCount struct {
+	Status string
+	Count  int64
 }
 
-// GetReviewCount returns the counter for the review of this pull request
-func (pr *PullRequest) GetReviewCount() int64 {
+// GetReviewStatus returns a ReviewStatusCount of this pull request
+func (pr *PullRequest) GetReviewStatus() ReviewStatusCount {
 	if pr.RequiresApproval() {
 		rejections := pr.GetRejectedReviewsCount()
 		if rejections > 0 {
-			return rejections
+			return ReviewStatusCount{Status: "rejected", Count: rejections}
 		}
 		approvals := pr.GetGrantedApprovalsCount()
 		if approvals >= pr.ProtectedBranch.RequiredApprovals {
-			return approvals
+			return ReviewStatusCount{Status: "approved", Count: approvals}
 		}
-		return pr.ProtectedBranch.RequiredApprovals - approvals
+		return ReviewStatusCount{Status: "required", Count: pr.ProtectedBranch.RequiredApprovals - approvals}
 	}
-	return 0 // by default
+	return ReviewStatusCount{Status: "approved", Count: 0} // by default
 }
 
 // GetRejectedReviewsCount returns the number of rejected reviews for pr.
