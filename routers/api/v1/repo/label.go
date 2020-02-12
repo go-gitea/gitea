@@ -6,8 +6,10 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -135,6 +137,17 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Label"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	form.Color = strings.Trim(form.Color, " ")
+	if len(form.Color) == 6 {
+		form.Color = "#" + form.Color
+	}
+	if !models.LabelColorPattern.MatchString(form.Color) {
+		ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", form.Color))
+		return
+	}
 
 	label := &models.Label{
 		Name:        form.Name,
@@ -182,6 +195,8 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -197,7 +212,14 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 		label.Name = *form.Name
 	}
 	if form.Color != nil {
-		label.Color = *form.Color
+		label.Color = strings.Trim(*form.Color, " ")
+		if len(label.Color) == 6 {
+			label.Color = "#" + label.Color
+		}
+		if !models.LabelColorPattern.MatchString(label.Color) {
+			ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", label.Color))
+			return
+		}
 	}
 	if form.Description != nil {
 		label.Description = *form.Description

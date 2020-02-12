@@ -10,7 +10,7 @@
       <i class="ui blob-excerpt fa fa-caret-up" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up" data-anchor="{{$.Anchor}}"></i>
       {{end}}
       {{if or (eq $line.GetExpandDirection 2)}}
-      <i class="ui blob-excerpt octicon octicon-fold" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="{{$.Anchor}}"></i>
+      <span class="ui blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="{{$.Anchor}}">{{svg "octicon-fold" 16}}</span>
       {{end}}
     </td>
     <td colspan="5" class="lines-code lines-code-old "><span class="mono wrap{{if $.highlightClass}} language-{{$.highlightClass}}{{else}} nohighlight{{end}}">{{$.section.GetComputedInlineDiffFor $line}}</span></td>
@@ -36,7 +36,7 @@
       <i class="ui blob-excerpt fa fa-caret-down" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="{{$.Anchor}}"></i>
       {{end}}
       {{if or (eq $line.GetExpandDirection 2)}}
-      <i class="ui blob-excerpt octicon octicon-fold" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="{{$.Anchor}}"></i>
+      <span class="ui blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="{{$.Anchor}}">{{svg "octicon-fold" 16}}</span>
       {{end}}
     </td>
     {{else}}

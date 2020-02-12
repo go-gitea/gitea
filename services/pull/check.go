@@ -32,7 +32,7 @@ func AddToTaskQueue(pr *models.PullRequest) {
 	go func() {
 		err := prQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
 			pr.Status = models.PullRequestStatusChecking
-			err := pr.UpdateCols("status")
+			err := pr.UpdateColsIfNotMerged("status")
 			if err != nil {
 				log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
 			} else {
@@ -158,8 +158,10 @@ func manuallyMerged(pr *models.PullRequest) bool {
 		pr.Merger = merger
 		pr.MergerID = merger.ID
 
-		if err = pr.SetMerged(); err != nil {
+		if merged, err := pr.SetMerged(); err != nil {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
+			return false
+		} else if !merged {
 			return false
 		}
 
@@ -205,7 +207,7 @@ func handle(data ...queue.Data) {
 		if err != nil {
 			log.Error("GetPullRequestByID[%s]: %v", prID, err)
 			continue
-		} else if pr.Status != models.PullRequestStatusChecking {
+		} else if pr.HasMerged {
 			continue
 		} else if manuallyMerged(pr) {
 			continue
