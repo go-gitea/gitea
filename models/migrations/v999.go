@@ -66,7 +66,7 @@ func addIssueWatchModes(x *xorm.Engine) error {
 			return err
 		}
 	case core.MSSQL:
-		if _, err := sess.Exec("ALTER TABLE `issue_watch` ADD CONSTRAINT df_is_watching DEFAULT 1 FOR `is_watching`;"); err != nil {
+		if _, err := sess.Exec("ALTER TABLE `issue_watch` ALTER COLUMN `is_watching` DEFAULT 1;"); err != nil {
 			return err
 		}
 	case core.ORACLE:

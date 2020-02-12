@@ -77,7 +77,6 @@ func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWat
 		if _, err = e.ID(iw.ID).Delete(iw); err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
