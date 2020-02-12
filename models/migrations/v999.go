@@ -38,10 +38,15 @@ func addIssueWatchModes(x *xorm.Engine) error {
 			return err
 		}
 	}
+	if x.Dialect().DBType() == core.MSSQL {
+		if _, err := sess.Exec("sp_rename `issue_watch` `issue_watch_old`;"); err != nil {
+			return err
+		}
+	}
 	if err := x.Sync2(new(IssueWatch)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
-	if x.Dialect().DBType() == core.SQLITE {
+	if x.Dialect().DBType() == core.SQLITE || x.Dialect().DBType() == core.MSSQL{
 		if _, err := sess.Exec("INSERT INTO `issue_watch` SELECT * FROM `issue_watch_old`;"); err != nil {
 			return err
 		}
@@ -60,16 +65,9 @@ func addIssueWatchModes(x *xorm.Engine) error {
 	//sqlite is done from L36-50 (you cant alter a column)
 	switch x.Dialect().DBType() {
 	case core.POSTGRES:
+	case core.ORACLE:
 	case core.MYSQL:
 		if _, err := sess.Exec("ALTER TABLE `issue_watch` MODIFY `is_watching` tinyint(1) NULL;"); err != nil {
-			return err
-		}
-	case core.MSSQL:
-		if _, err := sess.Exec("ALTER TABLE `issue_watch` ALTER COLUMN `is_watching` NULL;"); err != nil {
-			return err
-		}
-	case core.ORACLE:
-		if _, err := sess.Exec("ALTER TABLE issue_watch MODIFY is_watching NULL;"); err != nil {
 			return err
 		}
 	}
