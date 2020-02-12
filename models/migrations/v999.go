@@ -24,7 +24,7 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp    `xorm:"updated NOT NULL"`
 		//since it it is not used anymore and has NOT NULL constrain
 		//it is altered to have a default value - we can drop it later ...
-		IsWatching bool `xorm:"NOT NULL DEFAULT 1"`
+		IsWatching bool `xorm:"DEFAULT NULL"`
 	}
 
 	sess := x.NewSession()
@@ -62,15 +62,15 @@ func addIssueWatchModes(x *xorm.Engine) error {
 	switch x.Dialect().DBType() {
 	case core.POSTGRES:
 	case core.MYSQL:
-		if _, err := sess.Exec("ALTER TABLE `issue_watch` ALTER `is_watching` SET DEFAULT 1;"); err != nil {
+		if _, err := sess.Exec("ALTER TABLE `issue_watch` MODIFY `is_watching` tinyint(1) NULL;"); err != nil {
 			return err
 		}
 	case core.MSSQL:
-		if _, err := sess.Exec("ALTER TABLE `issue_watch` ALTER COLUMN `is_watching` DEFAULT 1;"); err != nil {
+		if _, err := sess.Exec("ALTER TABLE `issue_watch` ALTER COLUMN `is_watching` NULL;"); err != nil {
 			return err
 		}
 	case core.ORACLE:
-		if _, err := sess.Exec("ALTER TABLE issue_watch MODIFY is_watching DEFAULT 1;"); err != nil {
+		if _, err := sess.Exec("ALTER TABLE issue_watch MODIFY is_watching NULL;"); err != nil {
 			return err
 		}
 	}
