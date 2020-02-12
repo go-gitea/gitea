@@ -186,7 +186,7 @@ var migrations = []Migration{
 	NewMigration("Add some columns on review for migration", addReviewMigrateInfo),
 	// v126 -> v127
 	NewMigration("Fix topic repository count", fixTopicRepositoryCount),
-	// v127 -> v128
+	// v128 -> v129
 	NewMigration("Add locked_resource table", addLockedResourceTable),
 }
 
