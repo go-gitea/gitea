@@ -19,6 +19,10 @@ func (db *DBIndexer) Index(id int64) error {
 	if err != nil {
 		return err
 	}
+	if repo.IsEmpty {
+		return nil
+	}
+
 	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeStats)
 	if err != nil {
 		return err
