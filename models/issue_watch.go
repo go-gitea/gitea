@@ -40,7 +40,16 @@ type IssueWatchList []*IssueWatch
 
 // CreateOrUpdateIssueWatchMode set IssueWatchMode for a user and issue
 func CreateOrUpdateIssueWatchMode(userID, issueID int64, mode IssueWatchMode) error {
-	return createOrUpdateIssueWatchMode(x, userID, issueID, mode)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	err := createOrUpdateIssueWatchMode(sess, userID, issueID, mode)
+	if err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWatchMode) error {
@@ -48,23 +57,24 @@ func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWat
 	if err != nil {
 		return err
 	}
-	iw.Mode = mode
 
 	if !exists && mode != IssueWatchModeNone {
 		iw = &IssueWatch{
 			UserID:  userID,
 			IssueID: issueID,
+			Mode:    mode,
 		}
 		if _, err = e.Insert(iw); err != nil {
 			return err
 		}
 	} else {
 		if mode != IssueWatchModeNone {
+			iw.Mode = mode
 			if _, err = e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
 				return err
 			}
 		} else {
-			if _, err = e.ID(iw.ID).Cols("updated_unix", "mode").Delete(iw); err != nil {
+			if _, err = e.ID(iw.ID).Delete(iw); err != nil {
 				return err
 			}
 		}
