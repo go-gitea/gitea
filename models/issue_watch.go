@@ -117,7 +117,7 @@ func getIssueWatchersIDs(e Engine, issueID int64, modes ...IssueWatchMode) ([]in
 		Find(&ids)
 }
 
-// GetIssueWatchers returns watchers/unwatchers of a given issue
+// GetIssueWatchers returns IssueWatch entry's based on modes of a given issue
 func GetIssueWatchers(issueID int64, listOptions ListOptions, modes ...IssueWatchMode) (IssueWatchList, error) {
 	if len(modes) == 0 {
 		modes = []IssueWatchMode{IssueWatchModeNormal, IssueWatchModeAuto}
@@ -163,7 +163,7 @@ func (iw IssueWatch) IsWatching() bool {
 		log.Error("IssueWatch.IsWatching: GetIssueByID: ", err)
 		return false
 	}
-	// if repowatch is ture ...
+	// if RepoWatch is true ...
 	if IsWatching(iw.UserID, issue.RepoID) && iw.Mode != IssueWatchModeDont {
 		return true
 	}
@@ -171,25 +171,19 @@ func (iw IssueWatch) IsWatching() bool {
 	return iw.Mode == IssueWatchModeNormal || iw.Mode == IssueWatchModeAuto
 }
 
-// LoadWatchUsers return watching users
-func (iwl IssueWatchList) LoadWatchUsers() (users UserList, err error) {
-	return iwl.loadWatchUsers(x)
+// GetWatchUsers return watching users based on an issue watch list
+func (iwl IssueWatchList) GetWatchUsers() (users UserList, err error) {
+	return iwl.getWatchUsers(x)
 }
 
-func (iwl IssueWatchList) loadWatchUsers(e Engine) (users UserList, err error) {
+func (iwl IssueWatchList) getWatchUsers(e Engine) (users UserList, err error) {
 	if len(iwl) == 0 {
 		return []*User{}, nil
 	}
 
 	var userIDs = make([]int64, 0, len(iwl))
 	for _, iw := range iwl {
-		if iw.Mode == IssueWatchModeNormal || iw.Mode == IssueWatchModeAuto {
-			userIDs = append(userIDs, iw.UserID)
-		}
-	}
-
-	if len(userIDs) == 0 {
-		return []*User{}, nil
+		userIDs = append(userIDs, iw.UserID)
 	}
 
 	err = e.In("id", userIDs).Find(&users)

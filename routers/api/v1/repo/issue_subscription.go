@@ -125,6 +125,12 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
+	// get Repowatch
+	// if repowatch true + unwatch -> set explisitNOWatch
+	// if repowatch true + watch -> set explisitwatch
+	// if no repowatch + watch -> set explisit watch
+	// if no repowatch + unwatch  -> is watch already set? Y: delete watch else do nothing
+
 	mode := models.IssueWatchModeNormal
 	if !watch {
 		mode = models.IssueWatchModeDont
@@ -189,13 +195,13 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	iwl, err := models.GetIssueWatchers(issue.ID, utils.GetListOptions(ctx))
+	iwl, err := models.GetIssueWatchers(issue.ID, utils.GetListOptions(ctx), models.IssueWatchModeNormal, models.IssueWatchModeAuto)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueWatchers", err)
 		return
 	}
 
-	users, err := iwl.LoadWatchUsers()
+	users, err := iwl.GetWatchUsers()
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadWatchUsers", err)
 		return
