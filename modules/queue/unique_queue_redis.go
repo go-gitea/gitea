@@ -104,7 +104,11 @@ func (fifo *RedisUniqueByteFIFO) PushFunc(data []byte, fn func() error) error {
 // Pop pops data from the start of the fifo
 func (fifo *RedisUniqueByteFIFO) Pop() ([]byte, error) {
 	data, err := fifo.client.LPop(fifo.queueName).Bytes()
-	if err == nil || err == redis.Nil {
+	if err != nil && err != redis.Nil {
+		return data, err
+	}
+
+	if len(data) == 0 {
 		return data, nil
 	}
 
