@@ -73,11 +73,11 @@ func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWat
 			if _, err = e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
 				return err
 			}
-		} else {
-			if _, err = e.ID(iw.ID).Delete(iw); err != nil {
-				return err
-			}
 		}
+		if _, err = e.ID(iw.ID).Delete(iw); err != nil {
+			return err
+		}
+
 	}
 	return nil
 }
