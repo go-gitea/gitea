@@ -48,4 +48,5 @@ func TestBuildAccessFixturesYaml(t *testing.T) {
 	}
 
 	w.Flush()
+	f.Close()
 }
