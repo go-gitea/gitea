@@ -313,7 +313,7 @@ func (f *NewMSTeamsHookForm) Validate(ctx *macaron.Context, errs binding.Errors)
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// NewFeishuHookForm form for creating dingtalk hook
+// NewFeishuHookForm form for creating feishu hook
 type NewFeishuHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
 	WebhookForm

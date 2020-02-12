@@ -485,7 +485,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	ctx.Redirect(orCtx.Link)
 }
 
-// FeishuHooksNewPost response for creating slack hook
+// FeishuHooksNewPost response for creating feishu hook
 func FeishuHooksNewPost(ctx *context.Context, form auth.NewFeishuHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -859,7 +859,7 @@ func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
-// FeishuHooksEditPost response for editing MS Teams hook
+// FeishuHooksEditPost response for editing feishu hook
 func FeishuHooksEditPost(ctx *context.Context, form auth.NewFeishuHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
