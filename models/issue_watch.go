@@ -48,22 +48,25 @@ func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWat
 	if err != nil {
 		return err
 	}
-	if !exists {
+	iw.Mode = mode
+
+	if !exists && mode != IssueWatchModeNone {
 		iw = &IssueWatch{
 			UserID:  userID,
 			IssueID: issueID,
 		}
-	}
-
-	iw.Mode = mode
-
-	if !exists {
 		if _, err = e.Insert(iw); err != nil {
 			return err
 		}
 	} else {
-		if _, err = e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
-			return err
+		if mode != IssueWatchModeNone {
+			if _, err = e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
+				return err
+			}
+		} else {
+			if _, err = e.ID(iw.ID).Cols("updated_unix", "mode").Delete(iw); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
