@@ -57,7 +57,6 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		return err
 	}
 
-	//add default value as suggested in: https://www.w3schools.com/sql/sql_default.asp
 	//sqlite is done from L36-50 (you cant alter a column)
 	switch x.Dialect().DBType() {
 	case core.POSTGRES:

@@ -156,9 +156,8 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		if repoWatch {
 			ctx.Status(http.StatusOK)
 			return
-		} else {
-			mode = models.IssueWatchModeNormal
 		}
+		mode = models.IssueWatchModeNormal
 	}
 
 	if err := models.CreateOrUpdateIssueWatchMode(user.ID, issue.ID, mode); err != nil {
