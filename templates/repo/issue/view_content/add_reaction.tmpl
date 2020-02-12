@@ -1,8 +1,8 @@
 {{if .ctx.IsSigned}}
 <div class="item action ui pointing top right select-reaction dropdown" data-action-url="{{ .ActionURL }}">
 	<a class="add-reaction">
-		<i class="octicon octicon-plus-small" style="width: 10px"></i>
-		<i class="octicon octicon-smiley"></i>
+		{{svg "octicon-plus-small" 16}}
+		{{svg "octicon-smiley" 16}}
 	</a>
 	<div class="menu has-emoji">
 		<div class="header">{{ .ctx.i18n.Tr "repo.pick_reaction"}}</div>

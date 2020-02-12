@@ -220,7 +220,6 @@ func Profile(ctx *context.Context) {
 			OwnerID:            ctxUser.ID,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			IsProfile:          true,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
 			IncludeDescription: setting.UI.SearchRepoDescription,

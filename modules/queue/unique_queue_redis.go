@@ -4,6 +4,8 @@
 
 package queue
 
+import "github.com/go-redis/redis"
+
 // RedisUniqueQueueType is the type for redis queue
 const RedisUniqueQueueType Type = "unique-redis"
 
@@ -102,7 +104,7 @@ func (fifo *RedisUniqueByteFIFO) PushFunc(data []byte, fn func() error) error {
 // Pop pops data from the start of the fifo
 func (fifo *RedisUniqueByteFIFO) Pop() ([]byte, error) {
 	data, err := fifo.client.LPop(fifo.queueName).Bytes()
-	if err != nil {
+	if err != nil && err != redis.Nil {
 		return data, err
 	}
 

@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		{{if .IsOrganizationOwner}}
 			<div class="text right">
-				<a class="ui green button" href="{{.OrgLink}}/teams/new"><i class="octicon octicon-repo-create"></i> {{.i18n.Tr "org.create_new_team"}}</a>
+				<a class="ui green button" href="{{.OrgLink}}/teams/new">{{svg "octicon-plus" 16}} {{.i18n.Tr "org.create_new_team"}}</a>
 			</div>
 			<div class="ui divider"></div>
 		{{end}}
