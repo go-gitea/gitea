@@ -12,11 +12,11 @@ import (
 
 // Permission contains all the permissions related variables to a repository for a user
 type Permission struct {
-	MinAccessMode  AccessMode 				// Name change to ensure that this name is only used in repo_permission.go
-	Units          []*RepoUnit
-	UnitsMode      map[UnitType]AccessMode
-	isOwner        bool
-	isAdmin        bool
+	MinAccessMode AccessMode // Name change to ensure that this name is only used in repo_permission.go
+	Units         []*RepoUnit
+	UnitsMode     map[UnitType]AccessMode
+	isOwner       bool
+	isAdmin       bool
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -161,15 +161,17 @@ func getUserRepoPermissionNew(e Engine, repo *Repository, user *User) (perm Perm
 	}
 
 	type unitModePair struct {
-		Type	UnitType
-		Mode	AccessMode
+		Type UnitType
+		Mode AccessMode
 	}
-	pairs := make([]*unitModePair,0,10)
+	pairs := make([]*unitModePair, 0, 10)
 	sess := e.Table(&UserRepoUnit{}).Where("repo_id = ?", repo.ID)
 	if user == nil || user.ID == 0 {
 		sess = sess.And("user_id = ?", UserRepoUnitAnyUser)
 	} else if user.IsRestricted {
 		sess = sess.And("user_id = ?", user.ID)
+	} else if user.IsAdmin {
+		sess = sess.And(sess.In("user_id", UserRepoUnitAdminUser, user.ID))
 	} else {
 		sess = sess.And(sess.In("user_id", UserRepoUnitLoggedInUser, user.ID))
 	}
@@ -201,9 +203,9 @@ func getUserRepoPermissionNew(e Engine, repo *Repository, user *User) (perm Perm
 	// FIXME: all IsAdmin() and IsOwner() calls should specify what unit is intended
 
 	perm.Units = make([]*RepoUnit, 0, len(repo.Units))
-	perm.UnitsMode = make(map[UnitType]AccessMode,len(repo.Units))
-	perm.isOwner = true		// As long as no unit contradicts this
-	perm.isAdmin = true		// As long as no unit contradicts this
+	perm.UnitsMode = make(map[UnitType]AccessMode, len(repo.Units))
+	perm.isOwner = true // As long as no unit contradicts this
+	perm.isAdmin = true // As long as no unit contradicts this
 	firstUnit := true
 
 	// FIXME: GAP: What are the units that are effectively required here?

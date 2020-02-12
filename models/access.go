@@ -140,8 +140,8 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 	rows.Close()
 
 	type bestAccessMode struct {
-		RepoID		int64
-		Mode		AccessMode
+		RepoID int64
+		Mode   AccessMode
 	}
 
 	rows, err = x.Table("user_repo_unit").
@@ -155,7 +155,7 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	for rows.Next() {
 		var bestMode bestAccessMode
 		err = rows.Scan(&bestMode)
@@ -184,7 +184,7 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ error) {
 	// FIXME: GAP: Test this query
 	sess := x.Table(&Repository{}).
-		Where(accessibleRepositoryCondition(user)).
+		Where(accessibleRepositoryConditionExplicit(user, true)).
 		And("repository.owner_id <> ?", user.ID).
 		Desc("updated_unix")
 	if limit > 0 {
@@ -193,7 +193,7 @@ func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ e
 	} else {
 		repos = make([]*Repository, 0, 10)
 	}
-	
+
 	return repos, sess.Find(&repos)
 }
 
@@ -207,16 +207,17 @@ func maxAccessMode(modes ...AccessMode) AccessMode {
 	return max
 }
 
-// recalculateUserAccess recalculates repository access for a single user
+// recalculateUserAccess recalculates repository access for a specific user
 func (repo *Repository) recalculateUserAccess(e Engine, uid int64) (err error) {
 	return RebuildUserIDRepoUnits(e, uid, repo)
 }
 
+// recalculateAccesses recalculates repository access for all users
 func (repo *Repository) recalculateAccesses(e Engine) error {
 	return RebuildRepoUnits(e, repo, -1)
 }
 
-// RecalculateAccesses recalculates all accesses for repository.
+// RecalculateAccesses recalculates repository access for all users
 func (repo *Repository) RecalculateAccesses() error {
 	return repo.recalculateAccesses(x)
 }
@@ -228,5 +229,7 @@ func (repo *Repository) addTeamAccesses(e Engine, team *Team) error {
 
 // addTeamAccesses adds accesses for a team on the repository.
 func (repo *Repository) removeTeamAccesses(e Engine, teamID int64) error {
+	// There's no RemoveTeamRepoUnits() function due to how UserRepoUnit
+	// is built. We need to recalculate all accesses to this repository.
 	return RebuildRepoUnits(e, repo, teamID)
 }
