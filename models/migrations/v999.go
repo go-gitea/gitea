@@ -46,7 +46,7 @@ func addIssueWatchModes(x *xorm.Engine) error {
 	if err := x.Sync2(new(IssueWatch)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
-	if x.Dialect().DBType() == core.SQLITE || x.Dialect().DBType() == core.MSSQL{
+	if x.Dialect().DBType() == core.SQLITE || x.Dialect().DBType() == core.MSSQL {
 		if _, err := sess.Exec("INSERT INTO `issue_watch` SELECT * FROM `issue_watch_old`;"); err != nil {
 			return err
 		}

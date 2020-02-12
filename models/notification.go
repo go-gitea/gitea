@@ -149,7 +149,6 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 	if err != nil {
 		return err
 	}
-	fmt.Println("DEBUG: issueUnWatches: ", issueUnWatches)
 	for _, id := range issueUnWatches {
 		alreadyNotified[id] = struct{}{}
 	}
@@ -176,11 +175,6 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 			return err
 		}
 	}
-
-	// ToDo get Mentioned Users!!!
-	fmt.Println("DEBUG: alreadyNotified: ", alreadyNotified)
-	fmt.Println("DEBUG: repoWatches: ", repoWatches)
-	fmt.Println("DEBUG: issueWatches: ", issueWatches)
 
 	// notify
 	for _, userID := range append(repoWatches, issueWatches...) {
