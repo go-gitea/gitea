@@ -86,6 +86,8 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
+	//   "200":
+	//     "$ref": "#/responses/empty"
 	//   "201":
 	//     "$ref": "#/responses/empty"
 	//   "304":
@@ -125,15 +127,38 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	// get Repowatch
-	// if repowatch true + unwatch -> set explisitNOWatch
-	// if repowatch true + watch -> set explisitwatch
-	// if no repowatch + watch -> set explisit watch
-	// if no repowatch + unwatch  -> is watch already set? Y: delete watch else do nothing
+	// if watch   +    RepoWatch -> return OK
+	// if watch   + no RepoWatch -> set IssueWatchModeNormal
+	// if unwatch +    RepoWatch -> set IssueWatchModeDont
+	// if unwatch + no RepoWatch -> IssueWatch entry exist?
+	//                                yes -> delete
+	//                                no  -> return OK
+
+	repoWatch := models.IsWatching(user.ID, ctx.Repo.Repository.ID)
 
 	mode := models.IssueWatchModeNormal
 	if !watch {
-		mode = models.IssueWatchModeDont
+		if repoWatch {
+			mode = models.IssueWatchModeDont
+		} else {
+			_, exist, err := models.GetIssueWatch(user.ID, issue.ID)
+			if err != nil {
+				ctx.InternalServerError(err)
+				return
+			}
+			if !exist {
+				ctx.Status(http.StatusOK)
+				return
+			}
+			mode = models.IssueWatchModeNone
+		}
+	} else {
+		if repoWatch {
+			ctx.Status(http.StatusOK)
+			return
+		} else {
+			mode = models.IssueWatchModeNormal
+		}
 	}
 
 	if err := models.CreateOrUpdateIssueWatchMode(user.ID, issue.ID, mode); err != nil {
