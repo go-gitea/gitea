@@ -6,6 +6,7 @@ package models
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,6 +18,18 @@ func TestCreateOrUpdateIssueWatch(t *testing.T) {
 	iw := AssertExistsAndLoadBean(t, &IssueWatch{UserID: 3, IssueID: 1}).(*IssueWatch)
 	assert.EqualValues(t, IssueWatchModeNormal, iw.Mode)
 
+	assert.NoError(t, CreateOrUpdateIssueWatchMode(3, 1, IssueWatchModeNone))
+	AssertNotExistsBean(t, &IssueWatch{UserID: 3, IssueID: 1})
+
+	assert.NoError(t, CreateOrUpdateIssueWatchMode(3, 1, IssueWatchModeAuto))
+	iw = AssertExistsAndLoadBean(t, &IssueWatch{UserID: 3, IssueID: 1}).(*IssueWatch)
+	assert.EqualValues(t, IssueWatchModeAuto, iw.Mode)
+
+	assert.NoError(t, CreateOrUpdateIssueWatchMode(1, 1, IssueWatchModeAuto))
+	iw = AssertExistsAndLoadBean(t, &IssueWatch{UserID: 1, IssueID: 1}).(*IssueWatch)
+	assert.EqualValues(t, IssueWatchModeAuto, iw.Mode)
+
+	time.Sleep(1 * time.Second)
 	assert.NoError(t, CreateOrUpdateIssueWatchMode(1, 1, IssueWatchModeDont))
 	iw = AssertExistsAndLoadBean(t, &IssueWatch{UserID: 1, IssueID: 1}).(*IssueWatch)
 	assert.EqualValues(t, IssueWatchModeDont, iw.Mode)
