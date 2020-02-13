@@ -3559,6 +3559,14 @@ window.cancelCodeComment = function (btn) {
     form.closest('.comment-code-cloud').remove();
   }
 };
+
+window.submitReply = function (btn) {
+  const form = $(btn).closest('form');
+  if (form.length > 0 && form.hasClass('comment-form')) {
+    form.submit();
+  }
+};
+
 window.onOAuthLoginClick = function () {
   const oauthLoader = $('#oauth2-login-loader');
   const oauthNav = $('#oauth2-login-navigator');
