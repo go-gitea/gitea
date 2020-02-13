@@ -101,11 +101,14 @@ func accessLevel(e Engine, user *User, repo *Repository) (AccessMode, error) {
 }
 
 // GetRepositoryAccesses finds all repositories with their access mode
-// where a user has any kind of **explicit** access but does not own.
+// where a user has any kind of **explicit** access but does not directly own.
 func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
-	// Xorm doesn't currently support such complex queries, so we first
-	// retrieve the list of repositories; later we will retrieve the best
-	// set of permissions for each and relate each other.
+	// A query that retrieves all repositories with their max
+	// access mode can be made, but unfortunately Xorm doesn't seem to
+	// support such complex queries (one that gets us both the repository
+	// and the mode from a sub-query).
+	// So, we first query for the list of repositories; later we will retrieve
+	// the best set of permissions for each one and relate each other.
 	rows, err := x.
 		Where(accessibleRepositoryConditionExplicit(user, true)).
 		And("repository.owner_id <> ?", user.ID).
