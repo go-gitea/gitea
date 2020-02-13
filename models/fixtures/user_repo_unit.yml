@@ -114,6 +114,36 @@
 
 -
   user_id: -3
+  repo_id: 5
+  type: 1
+  mode: 3
+
+-
+  user_id: -3
+  repo_id: 5
+  type: 2
+  mode: 3
+
+-
+  user_id: -3
+  repo_id: 5
+  type: 3
+  mode: 3
+
+-
+  user_id: -3
+  repo_id: 5
+  type: 4
+  mode: 3
+
+-
+  user_id: -3
+  repo_id: 5
+  type: 5
+  mode: 3
+
+-
+  user_id: -3
   repo_id: 10
   type: 1
   mode: 3
@@ -973,6 +1003,36 @@
 -
   user_id: 2
   repo_id: 3
+  type: 5
+  mode: 4
+
+-
+  user_id: 2
+  repo_id: 5
+  type: 1
+  mode: 4
+
+-
+  user_id: 2
+  repo_id: 5
+  type: 2
+  mode: 4
+
+-
+  user_id: 2
+  repo_id: 5
+  type: 3
+  mode: 4
+
+-
+  user_id: 2
+  repo_id: 5
+  type: 4
+  mode: 4
+
+-
+  user_id: 2
+  repo_id: 5
   type: 5
   mode: 4
 
