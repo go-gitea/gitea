@@ -26,7 +26,7 @@ func TestUserRepoUnitYaml(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, RebuildAllUserRepoUnits(x))
 
-	f, err := os.Create("fixtures/user_repo_unit.yml.new")
+	f, err := os.Create("fixtures/user_repo_unit.yml")
 	assert.NoError(t, err)
 	w := bufio.NewWriter(f)
 
@@ -42,4 +42,5 @@ func TestUserRepoUnitYaml(t *testing.T) {
 	}
 
 	w.Flush()
+	f.Close()
 }
