@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -55,6 +56,37 @@ func TestNoLoginViewIssues(t *testing.T) {
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues")
 	MakeRequest(t, req, http.StatusOK)
+}
+
+func TestIssueAutoSubscription(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	otherUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	session := loginUser(t, user.Name)
+
+	// create repo
+	repo, err := repo_service.CreateRepository(otherUser, otherUser, models.CreateRepoOptions{
+		Name:      "TESTIssueAutoSubscriptionRepo",
+		License:   "MIT",
+		Readme:    "Default",
+		IsPrivate: false,
+		AutoInit:  true,
+	})
+	assert.NoError(t, err)
+
+	//make sure repo is not subscribed
+	models.AssertNotExistsBean(t, &models.Watch{UserID: user.ID, RepoID: repo.ID})
+	models.AssertNotExistsBean(t, &models.IssueWatch{UserID: user.ID, Mode: models.IssueWatchModeAuto})
+
+	//create new issue
+	testNewIssue(t, session, repo.OwnerName, repo.Name, "some title text", "some body text")
+	newIssue, err := models.GetIssueByIndex(repo.ID, 1)
+	assert.NoError(t, err)
+
+	models.AssertNotExistsBean(t, &models.Watch{UserID: user.ID, RepoID: repo.ID})
+	issueWatch := models.AssertExistsAndLoadBean(t, &models.IssueWatch{UserID: user.ID, IssueID: newIssue.ID}).(*models.IssueWatch)
+	assert.Equal(t, models.IssueWatchModeAuto, issueWatch.Mode)
 }
 
 func TestViewIssuesSortByType(t *testing.T) {

@@ -23,7 +23,7 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		CreatedUnix timeutil.TimeStamp    `xorm:"created NOT NULL"`
 		UpdatedUnix timeutil.TimeStamp    `xorm:"updated NOT NULL"`
 		//since it it is not used anymore and has NOT NULL constrain
-		//it is altered to have a default value - we can drop it later ...
+		//it is altered to allow NULL - we can drop it later ...
 		IsWatching bool
 	}
 
@@ -65,7 +65,7 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		return err
 	}
 
-	//sqlite is done from L36-50 (you cant alter a column)
+	//sqlite is done from L36-49 (you cant alter a column)
 	switch x.Dialect().DBType() {
 	case core.POSTGRES:
 		if _, err := sess.Exec("ALTER TABLE issue_watch ALTER COLUMN is_watching DROP NOT NULL;"); err != nil {
