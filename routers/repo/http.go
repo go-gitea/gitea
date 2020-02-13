@@ -198,14 +198,14 @@ func HTTP(ctx *context.Context) {
 					authUser, err = models.GetUserByName(authUsername)
 					if err != nil {
 						if models.IsErrUserNotExist(err) {
-							ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+							ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
 						} else {
 							ctx.ServerError("GetUserByName", err)
 						}
 						return
 					}
 					if authUser.ID != token.UID {
-						ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+						ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
 						return
 					}
 				}
@@ -231,7 +231,7 @@ func HTTP(ctx *context.Context) {
 				}
 
 				if authUser == nil {
-					ctx.HandleText(http.StatusUnauthorized, "invalid credentials")
+					ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
 					return
 				}
 

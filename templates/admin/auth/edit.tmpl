@@ -112,6 +112,12 @@
 							</div>
 						</div>
 					{{end}}
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label for="allow_deactivate_all"><strong>{{.i18n.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
+							<input id="allow_deactivate_all" name="allow_deactivate_all" type="checkbox" {{if $cfg.AllowDeactivateAll}}checked{{end}}>
+						</div>
+					</div>
 				{{end}}
 
 				<!-- SMTP -->

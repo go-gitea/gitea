@@ -98,18 +98,18 @@
 				<li class="item">
 					<div class="ui grid">
 						<div class="three wide column">
-							<div class="ui label has-emoji" style="color: {{.ForegroundColor}}; background-color: {{.Color}}"><i class="octicon octicon-tag"></i> {{.Name}}</div>
+							<div class="ui label has-emoji" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag" 16}} {{.Name}}</div>
 						</div>
 						<div class="seven wide column">
 							{{.Description}}
 						</div>
 						<div class="three wide column">
-							<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}"><i class="octicon octicon-issue-opened"></i> {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
+							<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened" 16}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 						</div>
 						<div class="three wide column">
 							{{if and (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
-							<a class="ui right delete-button" href="#" data-url="{{$.RepoLink}}/labels/delete" data-id="{{.ID}}"><i class="octicon octicon-trashcan"></i> {{$.i18n.Tr "repo.issues.label_delete"}}</a>
-							<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}><i class="octicon octicon-pencil"></i> {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+							<a class="ui right delete-button" href="#" data-url="{{$.RepoLink}}/labels/delete" data-id="{{.ID}}">{{svg "octicon-trashcan" 16}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+							<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil" 16}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 						{{end}}
 						</div>
 					</div>

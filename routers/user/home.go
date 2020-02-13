@@ -53,7 +53,7 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	if err := ctx.User.GetOrganizations(true); err != nil {
+	if err := ctx.User.GetOrganizations(&models.SearchOrganizationsOptions{All: true}); err != nil {
 		ctx.ServerError("GetOrganizations", err)
 		return nil
 	}
@@ -538,13 +538,17 @@ func Issues(ctx *context.Context) {
 		}
 	}
 
-	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
+	issueStatsOpts := models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
 		IsClosed:    isShowClosed,
-	})
+	}
+	if len(repoIDs) > 0 {
+		issueStatsOpts.UserRepoIDs = repoIDs
+	}
+	issueStats, err := models.GetUserIssueStats(issueStatsOpts)
 	if err != nil {
 		ctx.ServerError("GetUserIssueStats", err)
 		return
@@ -609,7 +613,7 @@ func Issues(ctx *context.Context) {
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListPublicKeys(uid)
+	keys, err := models.ListPublicKeys(uid, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -625,7 +629,7 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListGPGKeys(uid)
+	keys, err := models.ListGPGKeys(uid, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return

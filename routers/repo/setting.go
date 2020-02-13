@@ -369,13 +369,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		newOwner := ctx.Query("new_owner_name")
-		isExist, err := models.IsUserExist(0, newOwner)
+		newOwner, err := models.GetUserByName(ctx.Query("new_owner_name"))
 		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+				return
+			}
 			ctx.ServerError("IsUserExist", err)
-			return
-		} else if !isExist {
-			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 			return
 		}
 
@@ -384,7 +384,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Repo.GitRepo.Close()
 			ctx.Repo.GitRepo = nil
 		}
-		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo); err != nil {
+		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo, nil); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else {
@@ -395,7 +395,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		log.Trace("Repository transferred: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))
-		ctx.Redirect(setting.AppSubURL + "/" + newOwner + "/" + repo.Name)
+		ctx.Redirect(setting.AppSubURL + "/" + newOwner.Name + "/" + repo.Name)
 
 	case "delete":
 		if !ctx.Repo.IsOwner() {
@@ -486,7 +486,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := ctx.Repo.Repository.GetCollaborators()
+	users, err := ctx.Repo.Repository.GetCollaborators(models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return
@@ -738,7 +738,7 @@ func DeployKeys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
+	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -753,7 +753,7 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
+	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return

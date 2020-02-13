@@ -6,12 +6,15 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListLabels list all the labels of a repository
@@ -32,11 +35,19 @@ func ListLabels(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
 
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"))
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"), utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByRepoID", err)
 		return
@@ -126,6 +137,17 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Label"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	form.Color = strings.Trim(form.Color, " ")
+	if len(form.Color) == 6 {
+		form.Color = "#" + form.Color
+	}
+	if !models.LabelColorPattern.MatchString(form.Color) {
+		ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", form.Color))
+		return
+	}
 
 	label := &models.Label{
 		Name:        form.Name,
@@ -173,6 +195,8 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Label"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -188,7 +212,14 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 		label.Name = *form.Name
 	}
 	if form.Color != nil {
-		label.Color = *form.Color
+		label.Color = strings.Trim(*form.Color, " ")
+		if len(label.Color) == 6 {
+			label.Color = "#" + label.Color
+		}
+		if !models.LabelColorPattern.MatchString(label.Color) {
+			ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", label.Color))
+			return
+		}
 	}
 	if form.Description != nil {
 		label.Description = *form.Description

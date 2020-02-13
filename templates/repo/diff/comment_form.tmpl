@@ -24,7 +24,7 @@
 		{{.i18n.Tr "loading"}}
 		</div>
 		<div class="footer">
-			<span class="markdown-info"><i class="octicon octicon-markdown"></i> {{$.root.i18n.Tr "repo.diff.comment.markdown_info"}}</span>
+			<span class="markdown-info">{{svg "octicon-markdown" 16}} {{$.root.i18n.Tr "repo.diff.comment.markdown_info"}}</span>
 			<div class="ui right floated">
 				{{if $.reply}}
 					<button name="reply" value="{{$.reply}}" class="ui submit green tiny button btn-reply">{{$.root.i18n.Tr "repo.diff.comment.reply"}}</button>
