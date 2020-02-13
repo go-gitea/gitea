@@ -1168,13 +1168,13 @@ i.icon.centerlock {
 }
 
 .svg {
-    &.green {
+    span.green & {
         color: #21ba45;
     }
-    &.red {
+    span.red & {
         color: #db2828;
     }
-    &.purple {
+    span.purple & {
         color: #a333c8;
     }
 }
@@ -1195,4 +1195,9 @@ i.icon.centerlock {
 
 .invisible {
     visibility: hidden;
+}
+
+/* https://github.com/go-gitea/gitea/issues/10210 */
+.ui.attached.segment + .ui.attached.header {
+    margin-top: 1rem;
 }
