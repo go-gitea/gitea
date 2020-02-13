@@ -149,16 +149,16 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name > SPAN")
 	items := files.Map(func(i int, s *goquery.Selection) string {
-		cls, _ := s.Find("SPAN").Attr("class")
+		cls, _ := s.Find("SVG").Attr("class")
 		file := strings.Trim(s.Find("A").Text(), " \t\n")
 		return fmt.Sprintf("%s: %s", file, cls)
 	})
 	assert.Equal(t, len(items), 5)
-	assert.Equal(t, items[0], "a: octicon octicon-file-directory")
-	assert.Equal(t, items[1], "link_b: octicon octicon-file-symlink-directory")
-	assert.Equal(t, items[2], "link_d: octicon octicon-file-symlink-file")
-	assert.Equal(t, items[3], "link_hi: octicon octicon-file-symlink-file")
-	assert.Equal(t, items[4], "link_link: octicon octicon-file-symlink-file")
+	assert.Equal(t, items[0], "a: svg octicon-file-directory")
+	assert.Equal(t, items[1], "link_b: svg octicon-file-symlink-directory")
+	assert.Equal(t, items[2], "link_d: svg octicon-file-symlink-file")
+	assert.Equal(t, items[3], "link_hi: svg octicon-file-symlink-file")
+	assert.Equal(t, items[4], "link_link: svg octicon-file-symlink-file")
 }
 
 // TestViewAsRepoAdmin tests PR #2167

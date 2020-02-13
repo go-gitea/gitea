@@ -127,14 +127,14 @@
 						{{end}}
 						{{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
 							<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-								<i class="octicon octicon-clippy"></i>
+								{{svg "octicon-clippy" 16}}
 							</button>
 						{{end}}
 						<div class="ui basic jump dropdown icon button poping up" data-content="{{.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 							<i class="download icon"></i>
 							<div class="menu">
-								<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
-								<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
+								<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.zip">{{svg "octicon-file-zip" 16}}&nbsp;ZIP</a>
+								<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.tar.gz">{{svg "octicon-file-zip" 16}}&nbsp;TAR.GZ</a>
 							</div>
 						</div>
 					</div>

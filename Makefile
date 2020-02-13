@@ -70,6 +70,7 @@ FOMANTIC_DEST_DIR := public/fomantic
 FOMANTIC_EVIDENCE := $(MAKE_EVIDENCE_DIR)/fomantic
 
 TAGS ?=
+TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
@@ -121,6 +122,7 @@ help:
 	@echo " - vet               examines Go source code and reports suspicious constructs"
 	@echo " - test              run unit test"
 	@echo " - test-sqlite       run integration test for sqlite"
+	@echo " - pr#<index>        build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
@@ -167,8 +169,17 @@ fmt:
 vet:
 	$(GO) vet $(PACKAGES)
 
+.PHONY: $(TAGS_EVIDENCE)
+$(TAGS_EVIDENCE):
+	@mkdir -p $(MAKE_EVIDENCE_DIR)
+	@echo "$(TAGS)" > $(TAGS_EVIDENCE)
+
+ifneq "$(TAGS)" "$(shell cat $(TAGS_EVIDENCE) 2>/dev/null)"
+TAGS_PREREQ := $(TAGS_EVIDENCE)
+endif
+
 .PHONY: generate
-generate: fomantic webpack
+generate: fomantic webpack $(TAGS_PREREQ)
 	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
 
 .PHONY: generate-swagger
@@ -424,14 +435,14 @@ migrations.sqlite.test: $(GO_SOURCES)
 .PHONY: check
 check: test
 
-.PHONY: install
+.PHONY: install $(TAGS_PREREQ)
 install: $(wildcard *.go)
 	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
 build: go-check generate $(EXECUTABLE)
 
-$(EXECUTABLE): $(GO_SOURCES)
+$(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
@@ -565,7 +576,7 @@ generate-images:
 	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
 
 .PHONY: pr\#%
-pr\#%:
+pr\#%: clean-all
 	$(GO) run contrib/pr/checkout.go $*
 
 .PHONY: golangci-lint

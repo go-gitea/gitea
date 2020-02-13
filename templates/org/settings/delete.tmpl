@@ -11,7 +11,7 @@
 				</h4>
 				<div class="ui attached warning segment">
 					<div class="ui red message">
-						<p class="text left"><i class="octicon octicon-alert"></i> {{.i18n.Tr "org.settings.delete_prompt" | Str2html}}</p>
+						<p class="text left">{{svg "octicon-alert" 16}} {{.i18n.Tr "org.settings.delete_prompt" | Str2html}}</p>
 					</div>
 					<form class="ui form ignore-dirty" id="delete-form" action="{{.Link}}" method="post">
 						{{.CsrfTokenHtml}}
