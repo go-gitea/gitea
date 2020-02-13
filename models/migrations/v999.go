@@ -89,4 +89,4 @@ func expandWebhooks(x *xorm.Engine) error {
 		}
 	}
 	return nil
-	}
+}
