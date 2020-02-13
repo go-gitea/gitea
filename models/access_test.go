@@ -135,7 +135,7 @@ func TestUser_GetAccessibleRepositories(t *testing.T) {
 	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	repos, err = user2.GetAccessibleRepositories(0)
 	assert.NoError(t, err)
-	assert.Len(t, repos, 3)
+	assert.Len(t, repos, 4)
 
 	user29 := AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
 	repos, err = user29.GetAccessibleRepositories(0)
