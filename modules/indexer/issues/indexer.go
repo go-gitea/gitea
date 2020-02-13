@@ -21,13 +21,13 @@ import (
 
 // IndexerData data stored in the issue indexer
 type IndexerData struct {
-	ID       int64
-	RepoID   int64
-	Title    string
-	Content  string
-	Comments []string
-	IsDelete bool
-	IDs      []int64
+	ID       int64    `json:"id"`
+	RepoID   int64    `json:"repo_id"`
+	Title    string   `json:"title"`
+	Content  string   `json:"content"`
+	Comments []string `json:"comments"`
+	IsDelete bool     `json:"is_delete"`
+	IDs      []int64  `json:"ids"`
 }
 
 // Match represents on search result
@@ -100,7 +100,7 @@ func InitIssueIndexer(syncReindex bool) {
 
 	// Create the Queue
 	switch setting.Indexer.IssueType {
-	case "bleve":
+	case "bleve", "elasticsearch":
 		handler := func(data ...queue.Data) {
 			indexer := holder.get()
 			if indexer == nil {
@@ -160,6 +160,19 @@ func InitIssueIndexer(syncReindex bool) {
 				log.Info("PID: %d Issue Indexer closed", os.Getpid())
 			})
 			log.Debug("Created Bleve Indexer")
+		case "elasticsearch":
+			graceful.GetManager().RunWithShutdownFns(func(_, atTerminate func(context.Context, func())) {
+				issueIndexer, err := NewElasticSearchIndexer(setting.Indexer.IssueConnStr, "gitea_issues")
+				if err != nil {
+					log.Fatal("Unable to initialize Elastic Search Issue Indexer: %v", err)
+				}
+				exist, err := issueIndexer.Init()
+				if err != nil {
+					log.Fatal("Unable to issueIndexer.Init: %v", err)
+				}
+				populate = !exist
+				holder.set(issueIndexer)
+			})
 		case "db":
 			issueIndexer := &DBIndexer{}
 			holder.set(issueIndexer)
@@ -308,6 +321,7 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 }
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
+// WARNNING: You have to ensure user have permission to visit repoIDs' issues
 func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
 	indexer := holder.get()
@@ -316,7 +330,7 @@ func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
 		log.Error("SearchIssuesByKeyword(): unable to get indexer!")
 		return nil, fmt.Errorf("unable to get issue indexer")
 	}
-	res, err := indexer.Search(keyword, repoIDs, 1000, 0)
+	res, err := indexer.Search(keyword, repoIDs, 50, 0)
 	if err != nil {
 		return nil, err
 	}
