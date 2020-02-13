@@ -134,7 +134,7 @@ func CreateOrUpdateIssueNotifications(issueID, commentID int64, notificationAuth
 
 func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notificationAuthorID int64) error {
 	// init
-	alreadyNotified := make(map[int64]struct{}, 50)
+	toNotify := make(map[int64]struct{}, 50)
 	notifications, err := getNotificationsByIssueID(e, issueID)
 	if err != nil {
 		return err
@@ -144,23 +144,29 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 		return err
 	}
 
+	issueWatches, err := getIssueWatchersIDs(e, issueID, IssueWatchModeNormal, IssueWatchModeAuto)
+	if err != nil {
+		return err
+	}
+	for _, id := range issueWatches {
+		toNotify[id] = struct{}{}
+	}
+
+	repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
+	if err != nil {
+		return err
+	}
+	for _, id := range repoWatches {
+		toNotify[id] = struct{}{}
+	}
+
 	// explicit unwatch on issue
 	issueUnWatches, err := getIssueWatchersIDs(e, issueID, IssueWatchModeDont)
 	if err != nil {
 		return err
 	}
 	for _, id := range issueUnWatches {
-		alreadyNotified[id] = struct{}{}
-	}
-
-	issueWatches, err := getIssueWatchersIDs(e, issueID, IssueWatchModeNormal, IssueWatchModeAuto)
-	if err != nil {
-		return err
-	}
-
-	repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
-	if err != nil {
-		return err
+		delete(toNotify, id)
 	}
 
 	err = issue.loadRepo(e)
@@ -169,15 +175,14 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 	}
 
 	// if Issue/Comment creator/updater is not subscribed ... auto subscribe to issue
-	if _, ok := alreadyNotified[notificationAuthorID]; !ok {
-		alreadyNotified[notificationAuthorID] = struct{}{}
+	if _, ok := toNotify[notificationAuthorID]; !ok {
 		if err = createOrUpdateIssueWatchMode(e, notificationAuthorID, issueID, IssueWatchModeAuto); err != nil {
 			return err
 		}
 	}
 
 	// notify
-	for _, userID := range append(repoWatches, issueWatches...) {
+	for userID := range toNotify {
 		issue.Repo.Units = nil
 		if issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypePullRequests) {
 			continue
@@ -185,11 +190,6 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 		if !issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypeIssues) {
 			continue
 		}
-
-		if _, ok := alreadyNotified[userID]; ok {
-			continue
-		}
-		alreadyNotified[userID] = struct{}{}
 
 		if notificationExists(notifications, issue.ID, userID) {
 			if err = updateIssueNotification(e, userID, issue.ID, commentID, notificationAuthorID); err != nil {
