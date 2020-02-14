@@ -1,6 +1,6 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
-/* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
+/* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, submitReply, cancelCodeComment, onOAuthLoginClick */
 'use strict';
 
 function htmlEncode(text) {
@@ -3171,6 +3171,14 @@ function cancelCodeComment(btn) {
         form.closest('.comment-code-cloud').remove()
     }
 }
+
+function submitReply(btn) {
+    const form = $(btn).closest('form');
+    if (form.length > 0 && form.hasClass('comment-form')) {
+        form.submit();
+    }
+}
+
 function onOAuthLoginClick() {
     const oauthLoader = $('#oauth2-login-loader');
     const oauthNav = $('#oauth2-login-navigator');
