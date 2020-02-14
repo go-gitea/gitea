@@ -86,6 +86,12 @@ services:
     pull: default
     image: gitea/test-openldap:latest
 
+  - name: elasticsearch
+    pull: default
+    environment:
+      discovery.type: single-node
+    image: elasticsearch:7.5.0
+
 steps:
   - name: fetch-tags
     pull: default
