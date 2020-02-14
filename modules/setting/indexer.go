@@ -36,7 +36,9 @@ var (
 		StartupTimeout        time.Duration
 
 		RepoIndexerEnabled bool
+		RepoType           string
 		RepoPath           string
+		RepoConnStr        string
 		UpdateQueueLength  int
 		MaxIndexerFileSize int64
 		IncludePatterns    []glob.Glob
@@ -52,6 +54,8 @@ var (
 		IssueQueueConnStr:     "",
 		IssueQueueBatchNumber: 20,
 
+		RepoIndexerEnabled: false,
+		RepoType:           "bleve",
 		MaxIndexerFileSize: 1024 * 1024,
 		ExcludeVendored:    true,
 	}
@@ -73,10 +77,12 @@ func newIndexerService() {
 	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
 
 	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
+	Indexer.RepoType = sec.Key("REPO_INDEXER_TYPE").MustString("bleve")
 	Indexer.RepoPath = sec.Key("REPO_INDEXER_PATH").MustString(path.Join(AppDataPath, "indexers/repos.bleve"))
 	if !filepath.IsAbs(Indexer.RepoPath) {
 		Indexer.RepoPath = path.Join(AppWorkPath, Indexer.RepoPath)
 	}
+	Indexer.RepoConnStr = sec.Key("REPO_INDEXER_CONNSTR").MustString("")
 	Indexer.IncludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_INCLUDE").MustString(""))
 	Indexer.ExcludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_EXCLUDE").MustString(""))
 	Indexer.ExcludeVendored = sec.Key("REPO_INDEXER_EXCLUDE_VENDORED").MustBool(true)

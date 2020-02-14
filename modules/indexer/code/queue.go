@@ -25,6 +25,30 @@ func initQueue(queueLength int) {
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, queueLength)
 }
 
+func index(repoID int64) error {
+	repo, err := models.GetRepositoryByID(repoID)
+	if err != nil {
+		return err
+	}
+
+	sha, err := getDefaultBranchSha(repo)
+	if err != nil {
+		return err
+	}
+	changes, err := getRepoChanges(repo, sha)
+	if err != nil {
+		return err
+	} else if changes == nil {
+		return nil
+	}
+
+	if err := indexer.Index(repo, sha, changes); err != nil {
+		return err
+	}
+
+	return repo.UpdateIndexerStatus(models.RepoIndexerTypeCode, sha)
+}
+
 func processRepoIndexerOperationQueue(indexer Indexer) {
 	for {
 		select {
@@ -35,7 +59,7 @@ func processRepoIndexerOperationQueue(indexer Indexer) {
 					log.Error("indexer.Delete: %v", err)
 				}
 			} else {
-				if err = indexer.Index(op.repoID); err != nil {
+				if err = index(op.repoID); err != nil {
 					log.Error("indexer.Index: %v", err)
 				}
 			}

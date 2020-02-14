@@ -7,8 +7,11 @@ package code
 import (
 	"context"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -37,10 +40,31 @@ type SearchResultLanguages struct {
 
 // Indexer defines an interface to indexer issues contents
 type Indexer interface {
-	Index(repoID int64) error
+	Index(repo *models.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
 	Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error)
 	Close()
+}
+
+func filenameIndexerID(repoID int64, filename string) string {
+	return indexerID(repoID) + "_" + filename
+}
+
+func parseIndexerID(indexerID string) (int64, string) {
+	index := strings.IndexByte(indexerID, '_')
+	if index == -1 {
+		log.Error("Unexpected ID in repo indexer: %s", indexerID)
+	}
+	repoID, _ := strconv.ParseInt(indexerID[:index], 10, 64)
+	return repoID, indexerID[index+1:]
+}
+
+func filenameOfIndexerID(indexerID string) string {
+	index := strings.IndexByte(indexerID, '_')
+	if index == -1 {
+		log.Error("Unexpected ID in repo indexer: %s", indexerID)
+	}
+	return indexerID[index+1:]
 }
 
 // Init initialize the repo indexer
@@ -63,33 +87,59 @@ func Init() {
 	waitChannel := make(chan time.Duration)
 	go func() {
 		start := time.Now()
-		log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoPath)
-		defer func() {
-			if err := recover(); err != nil {
-				log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
-				log.Error("The indexer files are likely corrupted and may need to be deleted")
-				log.Error("You can completely remove the %q directory to make Gitea recreate the indexes", setting.Indexer.RepoPath)
+		var populate bool
+		switch setting.Indexer.RepoType {
+		case "bleve":
+			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoPath)
+			defer func() {
+				if err := recover(); err != nil {
+					log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
+					log.Error("The indexer files are likely corrupted and may need to be deleted")
+					log.Error("You can completely remove the \"%s\" directory to make Gitea recreate the indexes", setting.Indexer.RepoPath)
+				}
+			}()
+
+			bleveIndexer, created, err := NewBleveIndexer(setting.Indexer.RepoPath)
+			if err != nil {
+				if bleveIndexer != nil {
+					bleveIndexer.Close()
+				}
 				cancel()
 				indexer.Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to initialize the Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
 			}
-		}()
-		bleveIndexer, created, err := NewBleveIndexer(setting.Indexer.RepoPath)
-		if err != nil {
-			if bleveIndexer != nil {
-				bleveIndexer.Close()
+			populate = created
+			indexer.set(bleveIndexer)
+		case "elasticsearch":
+			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoConnStr)
+			defer func() {
+				if err := recover(); err != nil {
+					log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
+					log.Error("The indexer files are likely corrupted and may need to be deleted")
+					log.Error("You can completely remove the \"%s\" index to make Gitea recreate the indexes", setting.Indexer.RepoConnStr)
+				}
+			}()
+
+			esIndexer, created, err := NewElasticSearchIndexer(setting.Indexer.RepoConnStr, "gitea_codes")
+			if err != nil {
+				if esIndexer != nil {
+					esIndexer.Close()
+				}
+				cancel()
+				indexer.Close()
+				close(waitChannel)
+				log.Fatal("PID: %d Unable to initialize the Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
 			}
-			cancel()
-			indexer.Close()
-			close(waitChannel)
-			log.Fatal("PID: %d Unable to initialize the Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
+			populate = created
+			indexer.set(esIndexer)
+		default:
+			log.Fatal("PID: %d Unknow Indexer type: %s", os.Getpid(), setting.Indexer.RepoType)
 		}
-		indexer.set(bleveIndexer)
 
 		go processRepoIndexerOperationQueue(indexer)
 
-		if created {
+		if populate {
 			go populateRepoIndexer()
 		}
 		select {
