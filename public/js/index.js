@@ -1,6 +1,6 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
-/* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
+/* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, submitReply, cancelCodeComment, onOAuthLoginClick */
 'use strict';
 
 function htmlEncode(text) {
