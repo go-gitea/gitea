@@ -58,21 +58,28 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 	}()
 
-	if err := rawMerge(pr, doer, mergeStyle, message); err != nil {
-		return err
-	}
-
-	pr.MergedCommitID, err = baseGitRepo.GetBranchCommitID(pr.BaseBranch)
+	pr.MergedCommitID, err = rawMerge(pr, doer, mergeStyle, message)
 	if err != nil {
-		return fmt.Errorf("GetBranchCommit: %v", err)
+		return err
 	}
 
 	pr.MergedUnix = timeutil.TimeStampNow()
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if err = pr.SetMerged(); err != nil {
+	if _, err = pr.SetMerged(); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
+	}
+
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("loadIssue [%d]: %v", pr.ID, err)
+	}
+
+	if err := pr.Issue.LoadRepo(); err != nil {
+		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
+	}
+	if err := pr.Issue.Repo.GetOwner(); err != nil {
+		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
 	}
 
 	notification.NotifyMergePullRequest(pr, doer)
@@ -106,18 +113,18 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 }
 
 // rawMerge perform the merge operation without changing any pull information in database
-func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.MergeStyle, message string) (err error) {
+func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.MergeStyle, message string) (string, error) {
 	binVersion, err := git.BinVersion()
 	if err != nil {
 		log.Error("git.BinVersion: %v", err)
-		return fmt.Errorf("Unable to get git version: %v", err)
+		return "", fmt.Errorf("Unable to get git version: %v", err)
 	}
 
 	// Clone base repo.
 	tmpBasePath, err := createTemporaryRepo(pr)
 	if err != nil {
 		log.Error("CreateTemporaryPath: %v", err)
-		return err
+		return "", err
 	}
 	defer func() {
 		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
@@ -135,19 +142,19 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	sparseCheckoutList, err := getDiffTree(tmpBasePath, baseBranch, trackingBranch)
 	if err != nil {
 		log.Error("getDiffTree(%s, %s, %s): %v", tmpBasePath, baseBranch, trackingBranch, err)
-		return fmt.Errorf("getDiffTree: %v", err)
+		return "", fmt.Errorf("getDiffTree: %v", err)
 	}
 
 	infoPath := filepath.Join(tmpBasePath, ".git", "info")
 	if err := os.MkdirAll(infoPath, 0700); err != nil {
 		log.Error("Unable to create .git/info in %s: %v", tmpBasePath, err)
-		return fmt.Errorf("Unable to create .git/info in tmpBasePath: %v", err)
+		return "", fmt.Errorf("Unable to create .git/info in tmpBasePath: %v", err)
 	}
 
 	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
 	if err := ioutil.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
 		log.Error("Unable to write .git/info/sparse-checkout file in %s: %v", tmpBasePath, err)
-		return fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %v", err)
+		return "", fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %v", err)
 	}
 
 	var gitConfigCommand func() *git.Command
@@ -164,35 +171,35 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	// Switch off LFS process (set required, clean and smudge here also)
 	if err := gitConfigCommand().AddArguments("filter.lfs.process", "").RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		log.Error("git config [filter.lfs.process -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("git config [filter.lfs.process -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+		return "", fmt.Errorf("git config [filter.lfs.process -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 	}
 	outbuf.Reset()
 	errbuf.Reset()
 
 	if err := gitConfigCommand().AddArguments("filter.lfs.required", "false").RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		log.Error("git config [filter.lfs.required -> <false> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("git config [filter.lfs.required -> <false> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+		return "", fmt.Errorf("git config [filter.lfs.required -> <false> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 	}
 	outbuf.Reset()
 	errbuf.Reset()
 
 	if err := gitConfigCommand().AddArguments("filter.lfs.clean", "").RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		log.Error("git config [filter.lfs.clean -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("git config [filter.lfs.clean -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+		return "", fmt.Errorf("git config [filter.lfs.clean -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 	}
 	outbuf.Reset()
 	errbuf.Reset()
 
 	if err := gitConfigCommand().AddArguments("filter.lfs.smudge", "").RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		log.Error("git config [filter.lfs.smudge -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("git config [filter.lfs.smudge -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+		return "", fmt.Errorf("git config [filter.lfs.smudge -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 	}
 	outbuf.Reset()
 	errbuf.Reset()
 
 	if err := gitConfigCommand().AddArguments("core.sparseCheckout", "true").RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		log.Error("git config [core.sparseCheckout -> true ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("git config [core.sparsecheckout -> true]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+		return "", fmt.Errorf("git config [core.sparsecheckout -> true]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 	}
 	outbuf.Reset()
 	errbuf.Reset()
@@ -200,7 +207,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	// Read base branch index
 	if err := git.NewCommand("read-tree", "HEAD").RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		log.Error("git read-tree HEAD: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
-		return fmt.Errorf("Unable to read base branch in to the index: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
+		return "", fmt.Errorf("Unable to read base branch in to the index: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 	}
 	outbuf.Reset()
 	errbuf.Reset()
@@ -235,12 +242,12 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		cmd := git.NewCommand("merge", "--no-ff", "--no-commit", trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
 			log.Error("Unable to merge tracking into base: %v", err)
-			return err
+			return "", err
 		}
 
 		if err := commitAndSignNoAuthor(pr, message, signArg, tmpBasePath, env); err != nil {
 			log.Error("Unable to make final commit: %v", err)
-			return err
+			return "", err
 		}
 	case models.MergeStyleRebase:
 		fallthrough
@@ -248,7 +255,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		// Checkout head branch
 		if err := git.NewCommand("checkout", "-b", stagingBranch, trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 			log.Error("git checkout base prior to merge post staging rebase [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			return fmt.Errorf("git checkout base prior to merge post staging rebase  [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+			return "", fmt.Errorf("git checkout base prior to merge post staging rebase  [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 		}
 		outbuf.Reset()
 		errbuf.Reset()
@@ -262,10 +269,10 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 				if readErr != nil {
 					// Abandon this attempt to handle the error
 					log.Error("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-					return fmt.Errorf("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+					return "", fmt.Errorf("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 				}
 				log.Debug("RebaseConflict at %s [%s:%s -> %s:%s]: %v\n%s\n%s", strings.TrimSpace(string(commitShaBytes)), pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return models.ErrRebaseConflicts{
+				return "", models.ErrRebaseConflicts{
 					Style:     mergeStyle,
 					CommitSHA: strings.TrimSpace(string(commitShaBytes)),
 					StdOut:    outbuf.String(),
@@ -274,7 +281,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 				}
 			}
 			log.Error("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			return fmt.Errorf("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+			return "", fmt.Errorf("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 		}
 		outbuf.Reset()
 		errbuf.Reset()
@@ -282,7 +289,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		// Checkout base branch again
 		if err := git.NewCommand("checkout", baseBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 			log.Error("git checkout base prior to merge post staging rebase [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			return fmt.Errorf("git checkout base prior to merge post staging rebase  [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+			return "", fmt.Errorf("git checkout base prior to merge post staging rebase  [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 		}
 		outbuf.Reset()
 		errbuf.Reset()
@@ -298,12 +305,12 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		// Prepare merge with commit
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
 			log.Error("Unable to merge staging into base: %v", err)
-			return err
+			return "", err
 		}
 		if mergeStyle == models.MergeStyleRebaseMerge {
 			if err := commitAndSignNoAuthor(pr, message, signArg, tmpBasePath, env); err != nil {
 				log.Error("Unable to make final commit: %v", err)
-				return err
+				return "", err
 			}
 		}
 	case models.MergeStyleSquash:
@@ -311,35 +318,39 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		cmd := git.NewCommand("merge", "--squash", trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
 			log.Error("Unable to merge --squash tracking into base: %v", err)
-			return err
+			return "", err
 		}
 
 		sig := pr.Issue.Poster.NewGitSig()
 		if signArg == "" {
 			if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 				log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+				return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 			}
 		} else {
 			if err := git.NewCommand("commit", signArg, fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 				log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+				return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 			}
 		}
 		outbuf.Reset()
 		errbuf.Reset()
 	default:
-		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
+		return "", models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
 	// OK we should cache our current head and origin/headbranch
 	mergeHeadSHA, err := git.GetFullCommitID(tmpBasePath, "HEAD")
 	if err != nil {
-		return fmt.Errorf("Failed to get full commit id for HEAD: %v", err)
+		return "", fmt.Errorf("Failed to get full commit id for HEAD: %v", err)
 	}
 	mergeBaseSHA, err := git.GetFullCommitID(tmpBasePath, "original_"+baseBranch)
 	if err != nil {
-		return fmt.Errorf("Failed to get full commit id for origin/%s: %v", pr.BaseBranch, err)
+		return "", fmt.Errorf("Failed to get full commit id for origin/%s: %v", pr.BaseBranch, err)
+	}
+	mergeCommitID, err := git.GetFullCommitID(tmpBasePath, baseBranch)
+	if err != nil {
+		return "", fmt.Errorf("Failed to get full commit id for the new merge: %v", err)
 	}
 
 	// Now it's questionable about where this should go - either after or before the push
@@ -347,7 +358,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	// the merge as you can always remerge.
 	if setting.LFS.StartServer {
 		if err := LFSPush(tmpBasePath, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
-			return err
+			return "", err
 		}
 	}
 
@@ -356,7 +367,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	if err != nil {
 		if !models.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository - %v", pr.HeadRepo.OwnerID, err)
-			return err
+			return "", err
 		}
 		log.Error("Can't find user: %d for head repository - defaulting to doer: %s - %v", pr.HeadRepo.OwnerID, doer.Name, err)
 		headUser = doer
@@ -375,19 +386,19 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	// Push back to upstream.
 	if err := git.NewCommand("push", "origin", baseBranch+":"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
-			return models.ErrMergePushOutOfDate{
+			return "", models.ErrMergePushOutOfDate{
 				Style:  mergeStyle,
 				StdOut: outbuf.String(),
 				StdErr: errbuf.String(),
 				Err:    err,
 			}
 		}
-		return fmt.Errorf("git push: %s", errbuf.String())
+		return "", fmt.Errorf("git push: %s", errbuf.String())
 	}
 	outbuf.Reset()
 	errbuf.Reset()
 
-	return nil
+	return mergeCommitID, nil
 }
 
 func commitAndSignNoAuthor(pr *models.PullRequest, message, signArg, tmpBasePath string, env []string) error {

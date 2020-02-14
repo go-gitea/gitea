@@ -1044,7 +1044,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	} else if isExist {
 		return ErrUserAlreadyExist{newUserName}
 	}
-	
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1384,6 +1384,17 @@ func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
 		And("`is_active` = ?", true).
 		And("`email_notifications_preference` = ?", EmailNotificationsEnabled).
 		Find(&ous)
+}
+
+// GetUserNamesByIDs returns usernames for all resolved users from a list of Ids.
+func GetUserNamesByIDs(ids []int64) ([]string, error) {
+	unames := make([]string, 0, len(ids))
+	err := x.In("id", ids).
+		Table("user").
+		Asc("name").
+		Cols("name").
+		Find(&unames)
+	return unames, err
 }
 
 // GetUsersByIDs returns all resolved users from a list of Ids.

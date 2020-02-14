@@ -133,7 +133,7 @@
 																		<i class="ui blob-excerpt fa fa-caret-up" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}"></i>
 																	{{end}}
 																	{{if or (eq $line.GetExpandDirection 2)}}
-																		<i class="ui blob-excerpt octicon octicon-fold" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}"></i>
+																		<span class="ui blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">{{svg "octicon-fold" 16}}</span>
 																	{{end}}
 																</td>
 																<td colspan="5" class="lines-code lines-code-old "><span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}} nohighlight{{end}}">{{$section.GetComputedInlineDiffFor $line}}</span></td>

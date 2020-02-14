@@ -10,7 +10,7 @@
 			{{if IsMultilineCommitMessage .Commit.Message}}
 				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
-			<span class="text grey"><i class="octicon octicon-git-branch"></i>{{.BranchName}}</span>
+			<span class="text grey">{{svg "octicon-git-branch" 16}}{{.BranchName}}</span>
 		</div>
 		<div class="ui attached info segment {{if .Commit.Signature}} isSigned {{if .Verification.Verified }} isVerified {{end}}{{end}}">
 			<div class="ui stackable grid">
