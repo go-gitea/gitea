@@ -14,7 +14,7 @@ import (
 )
 
 // statsQueue represents a queue to handle repository stats updates
-var statsQueue queue.Queue
+var statsQueue queue.UniqueQueue
 
 // handle passed PR IDs and test the PRs
 func handle(data ...queue.Data) {
@@ -27,7 +27,7 @@ func handle(data ...queue.Data) {
 }
 
 func initStatsQueue() error {
-	statsQueue = queue.CreateQueue("repo_stats_update", handle, int64(0)).(queue.Queue)
+	statsQueue = queue.CreateUniqueQueue("repo_stats_update", handle, int64(0)).(queue.UniqueQueue)
 	if statsQueue == nil {
 		return fmt.Errorf("Unable to create repo_stats_update Queue")
 	}
