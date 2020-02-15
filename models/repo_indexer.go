@@ -34,6 +34,8 @@ func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageS
 	ids := make([]int64, 0, 50)
 	cond := builder.Cond(builder.IsNull{
 		"repo_indexer_status.id",
+	}).And(builder.Eq{
+		"repository.is_empty": false,
 	})
 	sess := x.Table("repository").Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id AND repo_indexer_status.indexer_type = ?", indexerType)
 	if maxRepoID > 0 {
@@ -66,11 +68,11 @@ func (repo *Repository) getIndexerStatus(e Engine, indexerType RepoIndexerType) 
 			return repo.StatsIndexerStatus, nil
 		}
 	}
-	status := &RepoIndexerStatus{RepoID: repo.ID, IndexerType: indexerType}
-	has, err := e.Get(status)
-	if err != nil {
+	status := &RepoIndexerStatus{RepoID: repo.ID}
+	if has, err := e.Where("`indexer_type` = ?", indexerType).Get(status); err != nil {
 		return nil, err
 	} else if !has {
+		status.IndexerType = indexerType
 		status.CommitSha = ""
 	}
 	switch indexerType {

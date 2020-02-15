@@ -170,7 +170,7 @@ func NewBleveIndexer(indexDir string) *BleveIndexer {
 	}
 }
 
-// Init will initial the indexer
+// Init will initialize the indexer
 func (b *BleveIndexer) Init() (bool, error) {
 	var err error
 	b.indexer, err = openIndexer(b.indexDir, issueIndexerLatestVersion)

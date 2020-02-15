@@ -2,88 +2,125 @@
   id: 1
   user_id: 2
   repo_id: 3
-  mode: 2 # write
+  mode: 4
 
 -
   id: 2
-  user_id: 4
-  repo_id: 4
-  mode: 2 # write
+  user_id: 2
+  repo_id: 5
+  mode: 4
 
 -
   id: 3
-  user_id: 4
-  repo_id: 3
-  mode: 2 # write
+  user_id: 2
+  repo_id: 24
+  mode: 2
 
 -
   id: 4
-  user_id: 15
-  repo_id: 22
-  mode: 2 # write
+  user_id: 2
+  repo_id: 32
+  mode: 4
 
 -
   id: 5
-  user_id: 15
-  repo_id: 21
-  mode: 2 # write
+  user_id: 4
+  repo_id: 3
+  mode: 2
 
 -
   id: 6
-  user_id: 15
-  repo_id: 23
-  mode: 4 # owner
+  user_id: 4
+  repo_id: 4
+  mode: 2
 
 -
   id: 7
-  user_id: 15
-  repo_id: 24
-  mode: 4 # owner
+  user_id: 4
+  repo_id: 40
+  mode: 2
 
 -
   id: 8
-  user_id: 18
-  repo_id: 23
-  mode: 4 # owner
+  user_id: 15
+  repo_id: 21
+  mode: 2
 
 -
   id: 9
-  user_id: 18
-  repo_id: 24
-  mode: 4 # owner
+  user_id: 15
+  repo_id: 22
+  mode: 2
 
 -
   id: 10
-  user_id: 18
-  repo_id: 22
-  mode: 2 # write
+  user_id: 15
+  repo_id: 23
+  mode: 4
 
 -
   id: 11
-  user_id: 18
-  repo_id: 21
-  mode: 2 # write
+  user_id: 15
+  repo_id: 24
+  mode: 4
 
 -
   id: 12
-  user_id: 20
-  repo_id: 27
-  mode: 4 # owner
-  
+  user_id: 15
+  repo_id: 32
+  mode: 2
+
 -
   id: 13
-  user_id: 20
-  repo_id: 28
-  mode: 4 # owner
+  user_id: 18
+  repo_id: 21
+  mode: 2
 
 -
   id: 14
-  user_id: 29
-  repo_id: 4
-  mode: 2 # write (collaborator)
+  user_id: 18
+  repo_id: 22
+  mode: 2
 
 -
   id: 15
+  user_id: 18
+  repo_id: 23
+  mode: 4
+
+-
+  id: 16
+  user_id: 18
+  repo_id: 24
+  mode: 4
+
+-
+  id: 17
+  user_id: 20
+  repo_id: 24
+  mode: 1
+
+-
+  id: 18
+  user_id: 20
+  repo_id: 27
+  mode: 4
+
+-
+  id: 19
+  user_id: 20
+  repo_id: 28
+  mode: 4
+
+-
+  id: 20
+  user_id: 29
+  repo_id: 4
+  mode: 2
+
+-
+  id: 21
   user_id: 29
   repo_id: 24
-  mode: 1 # read
+  mode: 1
+
