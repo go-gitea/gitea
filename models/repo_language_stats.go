@@ -125,10 +125,19 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]fl
 		}
 	}
 	// Delete old languages
-	if _, err := sess.Where("`id` IN (SELECT `id` FROM `language_stat` WHERE `repo_id` = ? AND `commit_id` != ?)", repo.ID, commitID).Delete(&LanguageStat{}); err != nil {
-		return err
+	statsToDelete := make([]int64, 0, len(oldstats))
+	for _, s := range oldstats {
+		if s.CommitID != commitID {
+			statsToDelete = append(statsToDelete, s.ID)
+		}
+	}
+	if len(statsToDelete) > 0 {
+		if _, err := sess.In("`id`", statsToDelete).Delete(&LanguageStat{}); err != nil {
+			return err
+		}
 	}
 
+	// Update indexer status
 	if err = repo.updateIndexerStatus(sess, RepoIndexerTypeStats, commitID); err != nil {
 		return err
 	}
