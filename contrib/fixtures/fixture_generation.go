@@ -22,7 +22,6 @@ var (
 		name string
 	}{
 		{
-			models.GetYamlFixturesAccess, "access",
 			models.GetYamlFixturesUserRepoUnit, "user_repo_unit",
 		},
 	}
