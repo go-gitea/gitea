@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 type repoIndexerOperation struct {
@@ -25,7 +24,7 @@ func initQueue(queueLength int) {
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, queueLength)
 }
 
-func index(repoID int64) error {
+func index(indexer Indexer, repoID int64) error {
 	repo, err := models.GetRepositoryByID(repoID)
 	if err != nil {
 		return err
@@ -59,7 +58,7 @@ func processRepoIndexerOperationQueue(indexer Indexer) {
 					log.Error("indexer.Delete: %v", err)
 				}
 			} else {
-				if err = index(op.repoID); err != nil {
+				if err = index(indexer, op.repoID); err != nil {
 					log.Error("indexer.Index: %v", err)
 				}
 			}
@@ -84,9 +83,6 @@ func UpdateRepoIndexer(repo *models.Repository, watchers ...chan<- error) {
 }
 
 func addOperationToQueue(op repoIndexerOperation) {
-	if !setting.Indexer.RepoIndexerEnabled {
-		return
-	}
 	select {
 	case repoIndexerOperationQueue <- op:
 		break

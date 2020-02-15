@@ -6,6 +6,7 @@ package code
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -85,7 +86,7 @@ const (
 				"content": {
 					"type": "text",
 					"index": true
-				},
+				}
 			}
 		}
 	}`
@@ -115,64 +116,72 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	return true, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *models.Repository, reqs []elastic.BulkableRequest) error {
+func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
 	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
 		RunInDir(repo.RepoPath())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return fmt.Errorf("Misformatted git cat-file output: %v", err)
+		return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
 	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
-		return b.addDelete(update.Filename, repo, reqs)
+		return b.addDelete(update.Filename, repo)
 	}
 
 	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
 		RunInDirBytes(repo.RepoPath())
 	if err != nil {
-		return err
+		return nil, err
 	} else if !base.IsTextFile(fileContents) {
 		// FIXME: UTF-16 files will probably fail here
-		return nil
+		return nil, nil
 	}
 
 	id := filenameIndexerID(repo.ID, update.Filename)
 
-	reqs = append(reqs, elastic.NewBulkIndexRequest().
-		Index(b.indexerName).
-		Id(id).
-		Doc(map[string]interface{}{
-			"repo_id":    repo.ID,
-			"content":    string(charset.ToUTF8DropErrors(fileContents)),
-			"commit_id":  sha,
-			"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
-			"updated_at": time.Now().UTC(),
-		}))
-
-	return nil
+	return []elastic.BulkableRequest{
+		elastic.NewBulkIndexRequest().
+			Index(b.indexerName).
+			Id(id).
+			Doc(map[string]interface{}{
+				"repo_id":    repo.ID,
+				"content":    string(charset.ToUTF8DropErrors(fileContents)),
+				"commit_id":  sha,
+				"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
+				"updated_at": time.Now().UTC(),
+			}),
+	}, nil
 }
 
-func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repository, reqs []elastic.BulkableRequest) error {
+func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repository) ([]elastic.BulkableRequest, error) {
 	id := filenameIndexerID(repo.ID, filename)
-	reqs = append(reqs,
+	return []elastic.BulkableRequest{
 		elastic.NewBulkDeleteRequest().
 			Index(b.indexerName).
 			Id(id),
-	)
-	return nil
+	}, nil
 }
 
 // Index will save the index data
 func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	for _, update := range changes.Updates {
-		if err := b.addUpdate(sha, update, repo, reqs); err != nil {
+		updateReqs, err := b.addUpdate(sha, update, repo)
+		if err != nil {
 			return err
 		}
+		if len(updateReqs) > 0 {
+			reqs = append(reqs, updateReqs...)
+		}
 	}
+
 	for _, filename := range changes.RemovedFilenames {
-		if err := b.addDelete(filename, repo, reqs); err != nil {
+		delReqs, err := b.addDelete(filename, repo)
+		if err != nil {
 			return err
+		}
+		if len(delReqs) > 0 {
+			reqs = append(reqs, delReqs...)
 		}
 	}
 
@@ -188,15 +197,13 @@ func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, change
 
 // Delete deletes indexes by ids
 func (b *ElasticSearchIndexer) Delete(repoID int64) error {
-	_, err := b.client.Delete().
-		Index(b.indexerName).
+	_, err := b.client.DeleteByQuery(b.indexerName).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(context.Background())
 	return err
 }
 
-// Search searches for issues by given conditions.
-// Returns the matching issue IDs
+// Search searches for codes and language stats by given conditions.
 func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	kwQuery := elastic.NewMultiMatchQuery(keyword, "content")
 	query := elastic.NewBoolQuery()
@@ -209,38 +216,47 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
 		query = query.Must(repoQuery)
 	}
+	start := 0
+	if page > 0 {
+		start = (page - 1) * pageSize
+	}
 	searchResult, err := b.client.Search().
 		Index(b.indexerName).
 		Query(query).
-		Sort("id", true).
-		From(page * pageSize).Size(pageSize).
+		Highlight(elastic.NewHighlight().Field("content")).
+		Sort("repo_id", true).
+		From(start).Size(pageSize).
 		Do(context.Background())
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
+	var kw = "<em>" + keyword + "</em>"
+
 	hits := make([]*SearchResult, 0, pageSize)
 	for _, hit := range searchResult.Hits.Hits {
 		var startIndex, endIndex int = -1, -1
-		/*for _, locations := range hit.Fields["Content"] {
-			location := locations[0]
-			locationStart := int(location.Start)
-			locationEnd := int(location.End)
-			if startIndex < 0 || locationStart < startIndex {
-				startIndex = locationStart
+		c, ok := hit.Highlight["content"]
+		if ok && len(c) > 0 {
+			startIndex = strings.Index(c[0], kw)
+			if startIndex > -1 {
+				endIndex = startIndex + len(kw)
 			}
-			if endIndex < 0 || locationEnd > endIndex {
-				endIndex = locationEnd
-			}
-		}*/
+		}
+
 		repoID, fileName := parseIndexerID(hit.Id)
-		hits = append(hits, &SearchResult{
+		var h = SearchResult{
 			RepoID:     repoID,
 			StartIndex: startIndex,
 			EndIndex:   endIndex,
 			Filename:   fileName,
-			Content:    hit.Fields["content"].(string),
-		})
+		}
+
+		if err := json.Unmarshal(hit.Source, &h); err != nil {
+			return 0, nil, nil, err
+		}
+
+		hits = append(hits, &h)
 	}
 
 	return searchResult.TotalHits(), hits, nil, nil

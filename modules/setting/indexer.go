@@ -39,6 +39,7 @@ var (
 		RepoType           string
 		RepoPath           string
 		RepoConnStr        string
+		RepoIndexerName    string
 		UpdateQueueLength  int
 		MaxIndexerFileSize int64
 		IncludePatterns    []glob.Glob
@@ -56,6 +57,7 @@ var (
 
 		RepoIndexerEnabled: false,
 		RepoType:           "bleve",
+		RepoIndexerName:    "gitea_codes",
 		MaxIndexerFileSize: 1024 * 1024,
 		ExcludeVendored:    true,
 	}
