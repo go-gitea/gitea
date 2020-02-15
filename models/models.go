@@ -46,6 +46,12 @@ type Engine interface {
 	Asc(colNames ...string) *xorm.Session
 }
 
+const (
+	// When queries are broken down in parts because of the number
+	// of parameters, attempt to break by this amount
+	maxQueryParameters = 300
+)
+
 var (
 	x      *xorm.Engine
 	tables []interface{}
