@@ -9,9 +9,9 @@ import (
 	"strings"
 )
 
-// GetYamlFixtures_Access returns a string containing the contents
+// GetYamlFixturesAccess returns a string containing the contents
 // for the access table, as recalculated using repo.RecalculateAccesses()
-func GetYamlFixtures_Access() (string, error) {
+func GetYamlFixturesAccess() (string, error) {
 
 	repos := make([]*Repository, 0, 50)
 	if err := x.Find(&repos); err != nil {

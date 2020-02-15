@@ -22,7 +22,7 @@ var (
 		name string
 	}{
 		{
-			models.GetYamlFixtures_Access, "access",
+			models.GetYamlFixturesAccess, "access",
 		},
 	}
 	fixturesDir string

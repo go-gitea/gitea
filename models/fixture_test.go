@@ -30,5 +30,5 @@ func TestFixtureGeneration(t *testing.T) {
 		assert.True(t, data == expected, "Differences detected for %s.yml", name)
 	}
 
-	test(GetYamlFixtures_Access, "access")
+	test(GetYamlFixturesAccess, "access")
 }
