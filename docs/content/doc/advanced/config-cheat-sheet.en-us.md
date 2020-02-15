@@ -228,8 +228,10 @@ relation to port exhaustion.
 
 ## Indexer (`indexer`)
 
-- `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently support: bleve or db, if it's db, below issue indexer item will be invalid.
-- `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search.
+- `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently supported: `bleve`, `db` or `elasticsearch`.
+- `ISSUE_INDEXER_CONN_STR`: ****: Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch. i.e. http://elastic:changeme@localhost:9200
+- `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
+- `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch.
 - The next 4 configuration values are deprecated and should be set in `queue.issue_indexer` however are kept for backwards compatibility:
 - `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`.
 - `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the queue will be saved path.
@@ -252,6 +254,10 @@ relation to port exhaustion.
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
 - `CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Connection string for the redis queue type.
 - `QUEUE_NAME`: **_queue**: The suffix for default redis queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overriden in the specific `queue.name` section.
+- `SET_NAME`: **_unique**: The suffix that will added to the default redis
+set name for unique queues. Individual queues will default to
+**`name`**`QUEUE_NAME`_`SET_NAME`_ but can be overridden in the specific
+`queue.name` section.
 - `WRAP_IF_NECESSARY`: **true**: Will wrap queues with a timeoutable queue if the selected queue is not ready to be created - (Only relevant for the level queue.)
 - `MAX_ATTEMPTS`: **10**: Maximum number of attempts to create the wrapped queue
 - `TIMEOUT`: **GRACEFUL_HAMMER_TIME + 30s**: Timeout the creation of the wrapped queue if it takes longer than this to create.
@@ -383,12 +389,19 @@ relation to port exhaustion.
 
 ## Cache (`cache`)
 
+- `ENABLED`: **true**: Enable the cache.
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
    - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
 - `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
+
+## Cache - LastCommitCache settings (`cache.last_commit`)
+
+- `ENABLED`: **true**: Enable the cache.
+- `ITEM_TTL`: **8760h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
+- `COMMITS_COUNT`: **1000**: Only enable the cache when repository's commits count great than.
 
 ## Session (`session`)
 

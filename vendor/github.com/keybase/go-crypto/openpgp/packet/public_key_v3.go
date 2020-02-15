@@ -105,6 +105,8 @@ func (pk *PublicKeyV3) parseRSA(r io.Reader) (err error) {
 		return
 	}
 	rsa := &rsa.PublicKey{N: new(big.Int).SetBytes(pk.n.bytes)}
+	// Warning: incompatibility with crypto/rsa: keybase fork uses
+	// int64 public exponents instead of int32.
 	for i := 0; i < len(pk.e.bytes); i++ {
 		rsa.E <<= 8
 		rsa.E |= int64(pk.e.bytes[i])

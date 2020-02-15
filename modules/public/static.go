@@ -7,6 +7,8 @@
 package public
 
 import (
+	"io/ioutil"
+
 	"gitea.com/macaron/macaron"
 )
 
@@ -16,4 +18,35 @@ func Static(opts *Options) macaron.Handler {
 	// we don't need to pass the directory, because the directory var is only
 	// used when in the options there is no FileSystem.
 	return opts.staticHandler("")
+}
+
+func Asset(name string) ([]byte, error) {
+	f, err := Assets.Open("/" + name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
+}
+
+func AssetNames() []string {
+	realFS := Assets.(vfsgen۰FS)
+	var results = make([]string, 0, len(realFS))
+	for k := range realFS {
+		results = append(results, k[1:])
+	}
+	return results
+}
+
+func AssetIsDir(name string) (bool, error) {
+	if f, err := Assets.Open("/" + name); err != nil {
+		return false, err
+	} else {
+		defer f.Close()
+		if fi, err := f.Stat(); err != nil {
+			return false, err
+		} else {
+			return fi.IsDir(), nil
+		}
+	}
 }

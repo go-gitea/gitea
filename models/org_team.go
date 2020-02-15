@@ -553,6 +553,23 @@ func GetTeam(orgID int64, name string) (*Team, error) {
 	return getTeam(x, orgID, name)
 }
 
+// GetTeamIDsByNames returns a slice of team ids corresponds to names.
+func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
+	ids := make([]int64, 0, len(names))
+	for _, name := range names {
+		u, err := GetTeam(orgID, name)
+		if err != nil {
+			if ignoreNonExistent {
+				continue
+			} else {
+				return nil, err
+			}
+		}
+		ids = append(ids, u.ID)
+	}
+	return ids, nil
+}
+
 // getOwnerTeam returns team by given team name and organization.
 func getOwnerTeam(e Engine, orgID int64) (*Team, error) {
 	return getTeam(e, orgID, ownerTeamName)
@@ -572,6 +589,22 @@ func getTeamByID(e Engine, teamID int64) (*Team, error) {
 // GetTeamByID returns team by given ID.
 func GetTeamByID(teamID int64) (*Team, error) {
 	return getTeamByID(x, teamID)
+}
+
+// GetTeamNamesByID returns team's lower name from a list of team ids.
+func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
+	if len(teamIDs) == 0 {
+		return []string{}, nil
+	}
+
+	var teamNames []string
+	err := x.Table("team").
+		Select("lower_name").
+		In("id", teamIDs).
+		Asc("name").
+		Find(&teamNames)
+
+	return teamNames, err
 }
 
 // UpdateTeam updates information of team.

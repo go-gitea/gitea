@@ -119,9 +119,15 @@ func InsertRelease(rel *Release) error {
 	return err
 }
 
+// InsertReleasesContext insert releases
+func InsertReleasesContext(ctx DBContext, rels []*Release) error {
+	_, err := ctx.e.Insert(rels)
+	return err
+}
+
 // UpdateRelease updates all columns of a release
-func UpdateRelease(rel *Release) error {
-	_, err := x.ID(rel.ID).AllCols().Update(rel)
+func UpdateRelease(ctx DBContext, rel *Release) error {
+	_, err := ctx.e.ID(rel.ID).AllCols().Update(rel)
 	return err
 }
 
@@ -212,10 +218,10 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, er
 }
 
 // GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
-func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Release, err error) {
-	err = x.
-		Desc("created_unix").
+func GetReleasesByRepoIDAndNames(ctx DBContext, repoID int64, tagNames []string) (rels []*Release, err error) {
+	err = ctx.e.
 		In("tag_name", tagNames).
+		Desc("created_unix").
 		Find(&rels, Release{RepoID: repoID})
 	return rels, err
 }

@@ -10,19 +10,22 @@
 					{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
 				</a>
 				{{if .IsPrivate}}
-					<span class="text gold"><i class="octicon octicon-lock"></i></span>
+					<span class="middle text gold">{{svg "octicon-lock" 16}}</span>
 				{{else if .IsFork}}
-					<span><i class="octicon octicon-repo-forked"></i></span>
+					<span class="middle">{{svg "octicon-repo-forked" 16}}</span>
 				{{else if .IsMirror}}
-					<span><i class="octicon octicon-repo-clone"></i></span>
+					<span class="middle">{{svg "octicon-repo-clone" 16}}</span>
 				{{else if .Owner}}
 					{{if .Owner.Visibility.IsPrivate}}
-					<span class="text gold"><i class="octicon octicon-lock"></i></span>
+					<span class="text gold">{{svg "octicon-lock" 16}}</span>
 					{{end}}
 				{{end}}
 				<div class="ui right metas">
-					<span class="text grey"><i class="octicon octicon-star"></i> {{.NumStars}}</span>
-					<span class="text grey"><i class="octicon octicon-git-branch"></i> {{.NumForks}}</span>
+					{{if .PrimaryLanguage }}
+					<span class="text grey"><i class="color-icon" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
+					{{end}}
+					<span class="text grey">{{svg "octicon-repo" 16}} {{.NumStars}}</span>
+					<span class="text grey">{{svg "octicon-git-branch" 16}} {{.NumForks}}</span>
 				</div>
 			</div>
 			<div class="description">

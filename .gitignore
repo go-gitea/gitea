@@ -73,6 +73,7 @@ coverage.all
 /public/js
 /public/css
 /public/fomantic
+/public/img/svg
 
 # Snapcraft
 snap/.snapcraft/
@@ -83,3 +84,6 @@ prime/
 *.snap-build
 *_source.tar.bz2
 .DS_Store
+
+# Make evidence files
+/.make_evidence

@@ -158,6 +158,15 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 }
 
+// TransferRepoOption options when transfer a repository's ownership
+// swagger:model
+type TransferRepoOption struct {
+	// required: true
+	NewOwner string `json:"new_owner"`
+	// ID of the team or teams to add to the repository. Teams can only be added to organization-owned repositories.
+	TeamIDs *[]int64 `json:"team_ids"`
+}
+
 // GitServiceType represents a git service
 type GitServiceType int
 

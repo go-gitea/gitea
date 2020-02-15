@@ -114,6 +114,11 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 		if err != nil {
 			return fmt.Errorf("GetMSTeamsPayload: %v", err)
 		}
+	case models.FEISHU:
+		payloader, err = GetFeishuPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetFeishuPayload: %v", err)
+		}
 	default:
 		p.SetSecret(w.Secret)
 		payloader = p

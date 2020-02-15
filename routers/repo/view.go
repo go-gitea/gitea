@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -49,8 +50,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 	entries.CustomSort(base.NaturalSortLess)
 
+	var c git.LastCommitCache
+	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
+		c = cache.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
+	}
+
 	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, nil)
+	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, c)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
@@ -451,6 +457,16 @@ func Home(ctx *context.Context) {
 	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
 }
 
+func renderLanguageStats(ctx *context.Context) {
+	langs, err := ctx.Repo.Repository.GetTopLanguageStats(5)
+	if err != nil {
+		ctx.ServerError("Repo.GetTopLanguageStats", err)
+		return
+	}
+
+	ctx.Data["LanguageStats"] = langs
+}
+
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
@@ -488,6 +504,11 @@ func renderCode(ctx *context.Context) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		return
+	}
+
+	renderLanguageStats(ctx)
+	if ctx.Written() {
 		return
 	}
 

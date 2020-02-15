@@ -129,7 +129,7 @@ func addTopicByNameToRepo(e Engine, repoID int64, topicName string) (*Topic, err
 }
 
 // removeTopicFromRepo remove a topic from a repo and decrements the topic repo count
-func removeTopicFromRepo(repoID int64, topic *Topic, e Engine) error {
+func removeTopicFromRepo(e Engine, repoID int64, topic *Topic) error {
 	topic.RepoCount--
 	if _, err := e.ID(topic.ID).Cols("repo_count").Update(topic); err != nil {
 		return err
@@ -139,6 +139,24 @@ func removeTopicFromRepo(repoID int64, topic *Topic, e Engine) error {
 		RepoID:  repoID,
 		TopicID: topic.ID,
 	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// removeTopicsFromRepo remove all topics from the repo and decrements respective topics repo count
+func removeTopicsFromRepo(e Engine, repoID int64) error {
+	_, err := e.Where(
+		builder.In("id",
+			builder.Select("topic_id").From("repo_topic").Where(builder.Eq{"repo_id": repoID}),
+		),
+	).Cols("repo_count").SetExpr("repo_count", "repo_count-1").Update(&Topic{})
+	if err != nil {
+		return err
+	}
+
+	if _, err = e.Delete(&RepoTopic{RepoID: repoID}); err != nil {
 		return err
 	}
 
@@ -216,7 +234,7 @@ func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, nil
 	}
 
-	err = removeTopicFromRepo(repoID, topic, x)
+	err = removeTopicFromRepo(x, repoID, topic)
 
 	return topic, err
 }
@@ -277,7 +295,7 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 	}
 
 	for _, topic := range removeTopics {
-		err := removeTopicFromRepo(repoID, topic, sess)
+		err := removeTopicFromRepo(sess, repoID, topic)
 		if err != nil {
 			return err
 		}

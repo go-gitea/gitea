@@ -13,7 +13,6 @@
 	{{template "base/footer_content" .}}
 
 	<script src="{{StaticUrlPrefix}}/js/jquery.js?v={{MD5 AppVer}}"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/jquery.areyousure/jquery.are-you-sure.js"></script>
 {{if .RequireSimpleMDE}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.js"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
@@ -109,7 +108,6 @@
 	</script>
 {{end}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/emojify/emojify.custom.js"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/clipboard/clipboard.min.js"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/vue/vue.min.js"></script>
 	<script src="{{StaticUrlPrefix}}/fomantic/semantic.min.js?v={{MD5 AppVer}}"></script>
 	<script src="{{StaticUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>

@@ -201,7 +201,16 @@ func NewMacaron() *macaron.Macaron {
 	m.Use(captcha.Captchaer(captcha.Options{
 		SubURL: setting.AppSubURL,
 	}))
-	m.Use(session.Sessioner(setting.SessionConfig))
+	m.Use(session.Sessioner(session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		Domain:         setting.SessionConfig.Domain,
+	}))
 	m.Use(csrf.Csrfer(csrf.Options{
 		Secret:         setting.SecretKey,
 		Cookie:         setting.CSRFCookieName,
@@ -454,6 +463,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
 			m.Post("/telegram/new", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
 			m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
+			m.Post("/feishu/new", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 			m.Get("/:id", repo.WebHooksEdit)
 			m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
 			m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksEditPost)
@@ -462,6 +472,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
 			m.Post("/telegram/:id", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
 			m.Post("/msteams/:id", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
+			m.Post("/feishu/:id", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 		})
 
 		m.Group("/auths", func() {
@@ -481,12 +492,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	// ***** END: Admin *****
 
 	m.Group("", func() {
-		m.Group("/:username", func() {
-			m.Get("", user.Profile)
-			m.Get("/followers", user.Followers)
-			m.Get("/following", user.Following)
-		})
-
+		m.Get("/:username", user.Profile)
 		m.Get("/attachments/:uuid", repo.GetAttachment)
 	}, ignSignIn)
 
@@ -564,6 +570,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
 					m.Post("/telegram/new", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
 					m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
+					m.Post("/feishu/new", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 					m.Get("/:id", repo.WebHooksEdit)
 					m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
 					m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksEditPost)
@@ -572,6 +579,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
 					m.Post("/telegram/:id", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
 					m.Post("/msteams/:id", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
+					m.Post("/feishu/:id", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 				})
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
@@ -628,6 +636,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
 				m.Post("/telegram/new", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
 				m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
+				m.Post("/feishu/new", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 				m.Get("/:id", repo.WebHooksEdit)
 				m.Post("/:id/test", repo.TestWebhook)
 				m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
@@ -637,6 +646,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
 				m.Post("/telegram/:id", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
 				m.Post("/msteams/:id", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
+				m.Post("/feishu/:id", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 
 				m.Group("/git", func() {
 					m.Get("", repo.GitHooks)
@@ -963,8 +973,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}
 
 	var handlers []macaron.Handler
-	if setting.EnableCORS {
-		handlers = append(handlers, cors.CORS(setting.CORSConfig))
+	if setting.CORSConfig.Enabled {
+		handlers = append(handlers, cors.CORS(cors.Options{
+			Scheme:           setting.CORSConfig.Scheme,
+			AllowDomain:      setting.CORSConfig.AllowDomain,
+			AllowSubdomain:   setting.CORSConfig.AllowSubdomain,
+			Methods:          setting.CORSConfig.Methods,
+			MaxAgeSeconds:    int(setting.CORSConfig.MaxAge.Seconds()),
+			AllowCredentials: setting.CORSConfig.AllowCredentials,
+		}))
 	}
 	handlers = append(handlers, ignSignIn)
 	m.Group("/api", func() {
