@@ -25,12 +25,13 @@ func TestChannelQueue(t *testing.T) {
 
 	queue, err := NewChannelQueue(handle,
 		ChannelQueueConfiguration{
-			QueueLength:  20,
-			Workers:      1,
+			QueueLength:  0,
 			MaxWorkers:   10,
 			BlockTimeout: 1 * time.Second,
 			BoostTimeout: 5 * time.Minute,
 			BoostWorkers: 5,
+			Workers:      0,
+			Name:         "TestChannelQueue",
 		}, &testData{})
 	assert.NoError(t, err)
 
