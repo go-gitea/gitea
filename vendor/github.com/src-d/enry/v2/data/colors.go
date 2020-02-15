@@ -219,6 +219,7 @@ var LanguagesColor = map[string]string{
 	"Terra":                    "#00004c",
 	"Turing":                   "#cf142b",
 	"TypeScript":               "#2b7489",
+	"TSX":                      "#2b7489",
 	"UnrealScript":             "#a54c4d",
 	"VCL":                      "#148AA8",
 	"VHDL":                     "#adb2cb",
