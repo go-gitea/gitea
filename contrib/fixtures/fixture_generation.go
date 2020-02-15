@@ -23,6 +23,7 @@ var (
 	}{
 		{
 			models.GetYamlFixturesAccess, "access",
+			models.GetYamlFixturesUserRepoUnit, "user_repo_unit",
 		},
 	}
 	fixturesDir string

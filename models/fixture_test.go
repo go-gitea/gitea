@@ -31,4 +31,5 @@ func TestFixtureGeneration(t *testing.T) {
 	}
 
 	test(GetYamlFixturesAccess, "access")
+	test(GetYamlFixturesUserRepoUnit, "user_repo_unit")
 }
