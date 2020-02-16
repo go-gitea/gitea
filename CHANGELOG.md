@@ -9,7 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * FEATURE
   * Prevent empty LDAP search from deactivating all users (#9879) (#9890)
 * BUGFIXES
-  * Fix reply on code review (#10261)
+  * Fix reply on code review (#10261) (#10227)
   * Fix branch page pull request title and link error (#10092) (#10098)
   * Fix milestone API state parameter unhandled (#10049) (#10053)
   * Fix wiki raw view on sub path (#10002) (#10041)
