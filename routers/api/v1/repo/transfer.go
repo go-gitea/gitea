@@ -86,16 +86,15 @@ func Transfer(ctx *context.APIContext, opts api.TransferRepoOption) {
 	}
 
 	if err = repo_service.StartRepositoryTransfer(ctx.User, newOwner, ctx.Repo.Repository, teams); err != nil {
+		if models.IsErrRepoTransferInProgress(err) {
+			ctx.Error(http.StatusConflict, "StartRepositoryTransfer", err)
+			return
+		}
+
 		ctx.InternalServerError(err)
 		return
 	}
 
-	newRepo, err := models.GetRepositoryByName(newOwner.ID, ctx.Repo.Repository.Name)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	log.Trace("Repository transferred: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
-	ctx.JSON(http.StatusAccepted, newRepo.APIFormat(models.AccessModeAdmin))
+	log.Trace("Repository transfer initiated: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
+	ctx.JSON(http.StatusAccepted, ctx.Repo.Repository.APIFormat(models.AccessModeAdmin))
 }
