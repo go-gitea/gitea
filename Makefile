@@ -473,7 +473,7 @@ release-compress:
 
 .PHONY: release-sources
 release-sources:
-	tar cvzf $(DIST)/release/gitea-src-$(VERSION).tar.gz --exclude $(DIST) --exclude .git --exclude $(MAKE_EVIDENCE_DIR) .
+	tar cvzf $(DIST)/release/gitea-src-$(VERSION).tar.gz --exclude $(DIST) --exclude .git .
 
 node_modules: package-lock.json
 	npm install --no-save
