@@ -4,6 +4,19 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.10.4](https://github.com/go-gitea/gitea/releases/tag/v1.10.4) - 2020-02-16
+
+* FEATURE
+  * Prevent empty LDAP search from deactivating all users (#9879) (#9890)
+* BUGFIXES
+  * Fix reply on code review (#10261) (#10227)
+  * Fix branch page pull request title and link error (#10092) (#10098)
+  * Fix milestone API state parameter unhandled (#10049) (#10053)
+  * Fix wiki raw view on sub path (#10002) (#10041)
+  * Fix RocketChat Webhook (#9908) (#9921) (#9925)
+  * Fix bug about wrong dependencies permissions check and other wrong permissions check (#9884) (Partial backport #9842)
+  * Ensure that 2fa is checked on reset-password (#9857) (#9877)
+
 ## [1.10.3](https://github.com/go-gitea/gitea/releases/tag/v1.10.3) - 2020-01-17
 * SECURITY
   * Hide credentials when submitting migration (#9102) (#9704)
