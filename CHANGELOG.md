@@ -14,7 +14,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix milestone API state parameter unhandled (#10049) (#10053)
   * Fix wiki raw view on sub path (#10002) (#10041)
   * Fix RocketChat Webhook (#9908) (#9921) (#9925)
-  * fix bug about wrong dependencies permissions check and other wrong permissions check (#9884)
+  * Fix bug about wrong dependencies permissions check and other wrong permissions check (#9884) (Partial backport #9842)
   * Ensure that 2fa is checked on reset-password (#9857) (#9877)
 
 ## [1.10.3](https://github.com/go-gitea/gitea/releases/tag/v1.10.3) - 2020-01-17
