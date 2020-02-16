@@ -28,6 +28,10 @@ func URLJoin(base string, elems ...string) string {
 	// We do need to escape special chars here or else they can be silently discarded
 	// in the ResolveReference call below
 	base = PathEscapeSegments(base)
+	for k, v := range elems {
+		elems[k] = PathEscapeSegments(v)
+	}
+
 	if !strings.HasSuffix(base, "/") {
 		base += "/"
 	}
