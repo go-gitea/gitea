@@ -5,21 +5,41 @@
 package migrations
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func addRepoTransfer(x *xorm.Engine) error {
-	type RepoTransfer struct {
+func addLanguageStats(x *xorm.Engine) error {
+	// LanguageStat see models/repo_language_stats.go
+	type LanguageStat struct {
 		ID          int64 `xorm:"pk autoincr"`
-		UserID      int64
-		RecipientID int64
-		RepoID      int64
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
-		Status      bool
+		RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		CommitID    string
+		IsPrimary   bool
+		Language    string             `xorm:"VARCHAR(30) UNIQUE(s) INDEX NOT NULL"`
+		Percentage  float32            `xorm:"NUMERIC(5,2) NOT NULL DEFAULT 0"`
+		Color       string             `xorm:"-"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 	}
 
-	return x.Sync(new(RepoTransfer))
+	type RepoIndexerType int
+
+	// RepoIndexerStatus see models/repo_stats_indexer.go
+	type RepoIndexerStatus struct {
+		ID          int64           `xorm:"pk autoincr"`
+		RepoID      int64           `xorm:"INDEX(s)"`
+		CommitSha   string          `xorm:"VARCHAR(40)"`
+		IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
+	}
+
+	if err := x.Sync2(new(LanguageStat)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+	if err := x.Sync2(new(RepoIndexerStatus)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+	return nil
 }

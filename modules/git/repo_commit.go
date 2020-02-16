@@ -319,7 +319,7 @@ func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List
 	var stdout []byte
 	var err error
 	if before == nil {
-		stdout, err = NewCommand("rev-list", before.ID.String()).RunInDirBytes(repo.Path)
+		stdout, err = NewCommand("rev-list", last.ID.String()).RunInDirBytes(repo.Path)
 	} else {
 		stdout, err = NewCommand("rev-list", before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
 	}

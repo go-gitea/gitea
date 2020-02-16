@@ -41,7 +41,7 @@ type CreateHookOptionConfig map[string]string
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
 	// required: true
-	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram
+	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu
 	Type string `json:"type" binding:"Required"`
 	// required: true
 	Config       CreateHookOptionConfig `json:"config" binding:"Required"`

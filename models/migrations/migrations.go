@@ -187,6 +187,8 @@ var migrations = []Migration{
 	// v126 -> v127
 	NewMigration("Fix topic repository count", fixTopicRepositoryCount),
 	// v127 -> v128
+	NewMigration("add repository code language statistics", addLanguageStats),
+	// v128 -> v129
 	NewMigration("create repo transfer table", addRepoTransfer),
 }
 
