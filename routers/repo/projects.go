@@ -344,6 +344,31 @@ func UpdateIssueProject(ctx *context.Context) {
 	})
 }
 
+func DeleteProjectBoard(ctx context.Context) {
+	if ctx.User == nil {
+		ctx.JSON(403, map[string]string{
+			"message": "Only signed in users are allowed to call make this action.",
+		})
+		return
+	}
+
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+		ctx.JSON(403, map[string]string{
+			"message": "Only authorized users are allowed to call make this action.",
+		})
+		return
+	}
+
+	if err := models.DeleteProjectBoardByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"), ctx.ParamsInt64(":boardID")); err != nil {
+		ctx.ServerError("DeleteProjectBoardByID", err)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
+}
+
 // EditProjectBoardTitle allows a project board's title to be updated
 func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitleForm) {
 

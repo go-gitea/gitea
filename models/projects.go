@@ -324,6 +324,32 @@ func ChangeProjectStatus(p *Project, isClosed bool) error {
 	return sess.Commit()
 }
 
+// DeleteProjectBoardByID removes all issues references to the project board.
+func DeleteProjectBoardByID(repoID, projectID, boardID int64) error {
+	board, err := GetProjectBoard(repoID, projectID, boardID)
+	if err != nil {
+		if IsErrProjectBoardNotExist(err) {
+			return nil
+		}
+
+		return err
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if _, err := sess.ID(board.ID).Delete(board); err != nil {
+		return err
+	}
+
+	if _, err := x.Exec("UPDATE `issue` SET project_board_id = 0 WHERE project_id = ? AND repo_id = ? AND project_board_id = ? ",
+		board.ProjectID, board.RepoID, board.ID); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // DeleteProjectByRepoID deletes a project from a repository.
 func DeleteProjectByRepoID(repoID, id int64) error {
 	p, err := GetProjectByRepoID(repoID, id)
