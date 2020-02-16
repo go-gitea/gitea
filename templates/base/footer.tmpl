@@ -110,7 +110,7 @@
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/emojify/emojify.custom.js"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/vue/vue.min.js"></script>
 	<script src="{{StaticUrlPrefix}}/fomantic/semantic.min.js?v={{MD5 AppVer}}"></script>
-	<script src="{{StaticUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>
+	<script src="{{StaticUrlPrefix}}/js/index.js"></script>
 {{if .EnableHeatmap}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/moment/moment.min.js" charset="utf-8"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.browser.js" charset="utf-8"></script>
@@ -119,10 +119,10 @@
 	</script>
 {{end}}
 {{ if .PageIsProjects }}
-	<script src="{{AppSubUrl}}/vendor/plugins/sortable/sortable.min.js" charset="utf-8"></script>
+	<script src="{{StaticUrlPrefix}}/vendor/plugins/sortable/sortable.min.js" charset="utf-8"></script>
 	<script type="text/javascript">
 	{{ range .ProjectBoards }}
-		initKanbanBoard("board_{{.Board.ID}}")
+		window.initKanbanBoard("board_{{.Board.ID}}")
 	{{ end }}
 	</script>
 {{ end}}

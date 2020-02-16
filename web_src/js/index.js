@@ -1,5 +1,5 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
+/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap, initKanbanBoard */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import 'jquery.are-you-sure';
@@ -2944,6 +2944,31 @@ window.toggleStopwatch = function () {
 };
 window.cancelStopwatch = function () {
   $('#cancel_stopwatch_form').submit();
+};
+
+window.initKanbanBoard = function (appElementId) {
+  const el = document.getElementById(appElementId);
+  if (!el) {
+    return;
+  }
+
+  new Sortable(el, {
+    group: 'shared',
+    animation: 150,
+    onAdd: (e) => {
+      $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}`, {
+        headers: {
+          'X-Csrf-Token': csrf,
+          'X-Remote': true,
+        },
+        contentType: 'application/json',
+        type: 'POST',
+        success: () => {
+          // setTimeout(reload(),3000)
+        },
+      });
+    },
+  });
 };
 
 window.initHeatmap = function (appElementId, heatmapUser, locale) {
