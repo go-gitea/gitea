@@ -40,11 +40,13 @@ type RepoTransfer struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
 	Status      TransferStatus
+	TeamIDs     []int64
+	Teams       []*Team
 }
 
 // LoadAttributes fetches the transfer recipient from the database
 func (r *RepoTransfer) LoadAttributes() error {
-	if r.Recipient != nil && r.User != nil {
+	if r.Recipient != nil && r.User != nil && (len(r.TeamIDs) > 0 && len(r.Teams) == len(r.TeamIDs)) {
 		return nil
 	}
 
@@ -55,6 +57,22 @@ func (r *RepoTransfer) LoadAttributes() error {
 		}
 
 		r.Recipient = u
+	}
+
+	if r.Recipient.IsOrganization() && len(r.TeamIDs) != len(r.Teams) {
+
+		for _, v := range r.TeamIDs {
+			team, err := GetTeamByID(v)
+			if err != nil {
+				return err
+			}
+
+			if team.OrgID != r.Recipient.ID {
+				return fmt.Errorf("team %d belongs not to org %d", v, r.Recipient.ID)
+			}
+
+			r.Teams = append(r.Teams, team)
+		}
 	}
 
 	if r.User == nil {
@@ -136,7 +154,7 @@ func CancelRepositoryTransfer(repoTransfer *RepoTransfer) error {
 
 // StartRepositoryTransfer marks the repository transfer as "pending". It
 // doesn't actually transfer the repository until the user acks the transfer.
-func StartRepositoryTransfer(doer, newOwner *User, repo *Repository) error {
+func StartRepositoryTransfer(doer, newOwner *User, repo *Repository, teams []*Team) error {
 	// Make sure the repo isn't being transferred to someone currently
 	// Only one transfer process can be initiated at a time.
 	// It has to be cancelled for a new one to occur
@@ -165,6 +183,11 @@ func StartRepositoryTransfer(doer, newOwner *User, repo *Repository) error {
 		CreatedUnix: timeutil.TimeStampNow(),
 		UpdatedUnix: timeutil.TimeStampNow(),
 		UserID:      doer.ID,
+		TeamIDs:     []int64{},
+	}
+
+	for k := range teams {
+		transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
 	}
 
 	_, err = x.Insert(transfer)
