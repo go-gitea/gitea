@@ -13,7 +13,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix reply on code review (#10257)
   * Stop hanging issue indexer initialisation from preventing shutdown (#10243) (#10249)
   * Fix filter label emoji width (#10241) (#10244)
-  * Backport - Fix issue sidebar menus having an infinite height (#10240)
+  * Fix issue sidebar menus having an infinite height (#10239) (#10240)
   * Fix commit between two commits calculation if there is only last commit (#10225) (#10226)
   * Only check for conflicts/merging if the PR has not been merged in the interim (#10132) (#10206)
 
