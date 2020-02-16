@@ -41,7 +41,7 @@ type RepoTransfer struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
 	Status      TransferStatus
 	TeamIDs     []int64
-	Teams       []*Team
+	Teams       []*Team `xorm:"-"`
 }
 
 // LoadAttributes fetches the transfer recipient from the database
