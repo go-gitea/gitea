@@ -446,7 +446,7 @@ $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
+release: generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-sources release-check
 
 .PHONY: release-dirs
 release-dirs:
@@ -496,6 +496,10 @@ release-compress:
 		$(GO) get -u github.com/ulikunitz/xz/cmd/gxz; \
 	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
+
+.PHONY: release-sources
+release-sources:
+	tar cvzf $(DIST)/release/gitea-src-$(VERSION).tar.gz --exclude $(DIST) --exclude .git --exclude $(MAKE_EVIDENCE_DIR) .
 
 node_modules: package-lock.json
 	npm install --no-save

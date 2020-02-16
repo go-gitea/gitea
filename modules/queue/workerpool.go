@@ -132,8 +132,8 @@ func (p *WorkerPool) pushBoost(data Data) {
 				p.blockTimeout /= 2
 				p.lock.Unlock()
 			}()
-			p.addWorkers(ctx, boost)
 			p.lock.Unlock()
+			p.addWorkers(ctx, boost)
 			p.dataChan <- data
 		}
 	}
