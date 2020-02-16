@@ -475,6 +475,12 @@ func GetProjectBoard(repoID, projectID, boardID int64) (*ProjectBoard, error) {
 	return board, nil
 }
 
+// UpdateProjectBoard updates the title of a project board
+func UpdateProjectBoard(board *ProjectBoard) error {
+	_, err := x.ID(board.ID).AllCols().Update(board)
+	return err
+}
+
 // GetProjectBoards fetches all boards related to a project
 func GetProjectBoards(repoID, projectID int64) ([]ProjectBoard, error) {
 

@@ -846,6 +846,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/:id/edit", repo.EditProject)
 			m.Post("/delete", repo.DeleteProject)
 			m.Post("/:id/:boardID/:index", repo.MoveIssueAcrossBoards)
+			m.Put("/:id/:boardID", bindIgnErr(auth.EditProjectBoardTitleForm{}, repo.EditProjectBoardTitle))
 
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 

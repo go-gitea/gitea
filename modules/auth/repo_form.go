@@ -420,6 +420,12 @@ type UserCreateProjectForm struct {
 	UID       int64 `binding:"Required"`
 }
 
+// EditProjectBoardTitleForm is a form for editing the title of a project's
+// board
+type EditProjectBoardTitleForm struct {
+	Title string `binding:"Required;MaxSize(50)"`
+}
+
 //    _____  .__.__                   __
 //   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
 //  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \

@@ -205,7 +205,7 @@ func EditProject(ctx *context.Context) {
 	ctx.HTML(200, tplProjectsNew)
 }
 
-// EditProjectPost response for edting a project
+// EditProjectPost response for editing a project
 func EditProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsProjects"] = true
@@ -337,6 +337,48 @@ func UpdateIssueProject(ctx *context.Context) {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
+}
+
+// EditProjectBoardTitle allows a project board's title to be updated
+func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitleForm) {
+
+	if ctx.User == nil {
+		ctx.JSON(403, map[string]string{
+			"message": "Only signed in users are allowed to call make this action.",
+		})
+		return
+	}
+
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+		ctx.JSON(403, map[string]string{
+			"message": "Only authorized users are allowed to call make this action.",
+		})
+		return
+	}
+
+	board, err := models.GetProjectBoard(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"), ctx.ParamsInt64(":boardID"))
+	if err != nil {
+		if models.IsErrProjectBoardNotExist(err) {
+			ctx.NotFound("", err)
+		} else {
+			ctx.ServerError("GetProjectBoard", err)
+		}
+
+		return
+	}
+
+	if form.Title != "" {
+		board.Title = form.Title
+	}
+
+	if err := models.UpdateProjectBoard(board); err != nil {
+		ctx.ServerError("UpdateProjectBoard", err)
+		return
 	}
 
 	ctx.JSON(200, map[string]interface{}{

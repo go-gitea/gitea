@@ -26,6 +26,7 @@
 
             <div class="ui segment board-column">
 		<div class="ui label board-label" style="style">{{.Board.Title}}</div>
+		<span class="ui right small">{{svg "octicon-three-bars" 16}}</span>
                 <div class="ui divider"></div>
 
                 <div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{.Board.ProjectID}}/{{.Board.ID}}" data-project="{{.Board.ProjectID}}" data-board="{{.Board.ID}}" id="board_{{.Board.ID}}">
