@@ -166,7 +166,7 @@ func (iw IssueWatch) IsWatching() bool {
 	issue, err := GetIssueByID(iw.IssueID)
 	if err != nil {
 		// fail silent since template expect only bool
-		log.Error("IssueWatch.IsWatching: GetIssueByID: ", err)
+		log.Warn("IssueWatch.IsWatching: GetIssueByID: ", err)
 		return false
 	}
 	// if RepoWatch is true ...
