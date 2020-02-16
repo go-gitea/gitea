@@ -400,12 +400,17 @@ func TestAPIRepoTransfer(t *testing.T) {
 		teams          *[]int64
 		expectedStatus int
 	}{
-		{ctxUserID: 1, newOwner: "user2", teams: nil, expectedStatus: http.StatusAccepted},
-		{ctxUserID: 2, newOwner: "user1", teams: nil, expectedStatus: http.StatusAccepted},
-		{ctxUserID: 2, newOwner: "user6", teams: nil, expectedStatus: http.StatusForbidden},
-		{ctxUserID: 1, newOwner: "user2", teams: &[]int64{2}, expectedStatus: http.StatusUnprocessableEntity},
+		// Transfer to a user with teams in another org should fail
 		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{5}, expectedStatus: http.StatusForbidden},
-		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{2}, expectedStatus: http.StatusAccepted},
+		// Transfer to a user with non-existent team IDs should fail
+		{ctxUserID: 1, newOwner: "user2", teams: &[]int64{2}, expectedStatus: http.StatusUnprocessableEntity},
+		// Transfer should go through
+		{ctxUserID: 1, newOwner: "user2", teams: nil, expectedStatus: http.StatusAccepted},
+		// Transfer already started.. Cannot start transfer to another
+		// user again
+		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{2}, expectedStatus: http.StatusConflict},
+		// User does not have access to repo
+		{ctxUserID: 2, newOwner: "user6", teams: nil, expectedStatus: http.StatusForbidden},
 	}
 
 	defer prepareTestEnv(t)()
