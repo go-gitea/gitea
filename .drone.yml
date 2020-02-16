@@ -30,6 +30,7 @@ services:
     image: postgres:9.5
     environment:
       POSTGRES_DB: test
+      POSTGRES_PASSWORD: postgres
 
   - name: mssql
     pull: default
