@@ -1,5 +1,4 @@
 .repository {
-    @mega-octicon-width: 30px;
 
     padding-top: 15px;
 
@@ -12,36 +11,31 @@
             margin-top: 0;
         }
 
-        .mega-octicon {
-            width: @mega-octicon-width;
-            font-size: 30px;
-        }
-
         .ui.huge.breadcrumb {
             font-weight: 400;
             font-size: 1.5rem;
 
-            i.mega-octicon {
+            svg {
                 position: relative;
                 top: 5px;
             }
 
-            i.octicon-lock {
+            svg.octicon-lock {
                 margin-left: 5px;
             }
         }
 
         .fork-flag {
-            margin-left: @mega-octicon-width + 6px;
+            margin-left: 36px;
             margin-top: 3px;
             display: block;
             font-size: 12px;
             white-space: nowrap;
         }
 
-        .octicon.octicon-repo-forked {
+        .svg.octicon-repo-forked {
             margin-top: -1px;
-            font-size: 15px;
+            height: 15px;
         }
 
         .button {
@@ -89,6 +83,7 @@
     .metas {
         .menu {
             overflow-x: auto;
+            max-height: 300px;
         }
 
         .ui.list {
@@ -135,7 +130,7 @@
             border-bottom: 0;
         }
 
-        .ui.tabular .octicon {
+        .ui.tabular .svg {
             margin-right: 5px;
         }
     }
@@ -147,13 +142,13 @@
             padding: 0 8px;
         }
 
-        .octicon {
+        .svg {
             float: left;
             margin: 0 -7px 0 -5px;
             width: 16px;
         }
 
-        &.labels .octicon {
+        &.labels .svg {
             margin: -2px -7px 0 -5px;
         }
 
@@ -323,7 +318,7 @@
             }
 
             tbody {
-                .octicon {
+                .svg {
                     margin-left: 3px;
                     margin-right: 5px;
                     color: #777777;
@@ -454,7 +449,7 @@
         .sidebar {
             padding-left: 0;
 
-            .octicon {
+            .svg {
                 width: 16px;
             }
         }
@@ -474,7 +469,7 @@
         }
 
         .tabular.menu {
-            .octicon {
+            .svg {
                 margin-right: 5px;
             }
         }
@@ -635,7 +630,7 @@
             &.tabular.menu {
                 margin-bottom: 10px;
 
-                .octicon {
+                .svg {
                     margin-right: 5px;
                 }
             }
@@ -673,9 +668,9 @@
                     text-align: center;
                     vertical-align: middle;
 
-                    .octicon {
+                    .svg {
                         width: 23px;
-                        font-size: 23px;
+                        height: 23px;
                         margin-top: 0.45em;
                     }
                 }
@@ -894,11 +889,11 @@
                 margin: 15px 0 15px 79px;
                 padding-left: 25px;
 
-                & > .octicon:not(.issue-symbol) {
+                & > .svg:not(.issue-symbol) {
                     text-shadow: -2px 0 #fff, 0 2px #fff, 2px 0 #fff, 0 -2px #fff;
                 }
 
-                & > .octicon.issue-symbol {
+                & > .svg.issue-symbol {
                     font-size: 20px;
                     margin-left: -35px;
                     margin-right: -1px;
@@ -933,43 +928,43 @@
                     }
                 }
 
-                .octicon {
+                .svg {
                     width: 30px;
                     float: left;
                     text-align: center;
 
                     &.octicon-circle-slash {
                         margin-top: 5px;
-                        margin-left: -34.5px;
-                        font-size: 20px;
+                        margin-left: -35.5px;
+                        height: 20px;
                         color: #bd2c00;
                     }
 
                     &.octicon-primitive-dot {
                         margin-top: -1px;
-                        margin-left: -28.5px;
+                        margin-left: -35.5px;
                         margin-right: -1px;
-                        font-size: 30px;
+                        height: 30px;
                         color: #6cc644;
                     }
 
                     &.octicon-bookmark {
                         margin-top: 2px;
-                        margin-left: -31px;
+                        margin-left: -35.5px;
                         margin-right: -1px;
-                        font-size: 25px;
+                        height: 25px;
                     }
 
                     &.octicon-eye {
                         margin-top: 3px;
-                        margin-left: -36px;
+                        margin-left: -35.5px;
                         margin-right: 0;
-                        font-size: 22px;
+                        height: 22px;
                     }
 
                     &.octicon-x {
-                        margin-left: -33px;
-                        font-size: 25px;
+                        margin-left: -35.5px;
+                        height: 25px;
                     }
                 }
 
@@ -978,7 +973,7 @@
                     margin-top: 5px;
                     margin-left: 35px;
 
-                    .octicon {
+                    .svg {
                         &.octicon-git-commit {
                             margin-top: 2px;
                         }
@@ -1102,7 +1097,7 @@
                 color: #999999;
                 padding-top: 5px;
 
-                .issue-stats .octicon {
+                .issue-stats .svg {
                     padding-left: 5px;
                 }
 
@@ -1148,7 +1143,7 @@
         }
 
         .choose.branch {
-            .octicon {
+            .svg {
                 padding-right: 10px;
             }
         }
@@ -1615,7 +1610,7 @@
                         margin-top: 20px;
 
                         > a {
-                            .octicon {
+                            .svg {
                                 margin-left: 5px;
                                 margin-right: 5px;
                             }
@@ -1728,8 +1723,8 @@
                 padding-top: 70px;
                 padding-bottom: 100px;
 
-                .mega-octicon {
-                    font-size: 48px;
+                .svg {
+                    height: 48px;
                 }
             }
         }
@@ -1920,6 +1915,10 @@
                     }
                 }
 
+                span.ui {
+                    color: black;
+                }
+
                 &.active {
                     background: rgba(0, 0, 0, 0.05);
                 }
@@ -1996,6 +1995,22 @@
     .ui.fluid.action.input {
         .ui.search.action.input {
             flex: auto;
+        }
+    }
+
+    .segment.language-stats {
+        padding: 0;
+        height: 0.6em;
+        display: flex;
+        white-space: nowrap;
+        width: 100%;
+
+        .bar {
+            white-space: nowrap;
+            border: 0;
+            padding: 0;
+            margin: 0;
+            height: 0.6em;
         }
     }
 }
@@ -2078,6 +2093,10 @@
 
 .ui.checkbox.issue-checkbox {
     vertical-align: middle;
+}
+
+.ui.menu .item > img:not(.ui) {
+    width: auto;
 }
 
 .issue.list {
@@ -2210,11 +2229,11 @@
                 margin: 15px -1rem -1rem -1rem;
             }
 
-            > .mega-octicon {
+            > .svg {
                 display: table-cell;
             }
 
-            > .mega-octicon + .content {
+            > .svg + .content {
                 display: table-cell;
                 padding: 0 0 0 0.5em;
                 vertical-align: top;

@@ -231,7 +231,7 @@ func TestAPIOrgRepos(t *testing.T) {
 		includesPrivate bool
 	}{
 		nil:   {count: 1},
-		user:  {count: 2, includesPrivate: true},
+		user:  {count: 3, includesPrivate: true},
 		user2: {count: 3, includesPrivate: true},
 		user3: {count: 1},
 	}

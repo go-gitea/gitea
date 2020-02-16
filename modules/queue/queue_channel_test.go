@@ -26,15 +26,18 @@ func TestChannelQueue(t *testing.T) {
 	queue, err := NewChannelQueue(handle,
 		ChannelQueueConfiguration{
 			WorkerPoolConfiguration: WorkerPoolConfiguration{
-				QueueLength:  20,
+				QueueLength:  0,
 				MaxWorkers:   10,
 				BlockTimeout: 1 * time.Second,
 				BoostTimeout: 5 * time.Minute,
 				BoostWorkers: 5,
 			},
-			Workers: 1,
+			Workers: 0,
+			Name:    "TestChannelQueue",
 		}, &testData{})
 	assert.NoError(t, err)
+
+	assert.Equal(t, queue.(*ChannelQueue).WorkerPool.boostWorkers, 5)
 
 	go queue.Run(nilFn, nilFn)
 

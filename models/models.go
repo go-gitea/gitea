@@ -48,6 +48,12 @@ type Engine interface {
 	SumInt(bean interface{}, columnName string) (res int64, err error)
 }
 
+const (
+	// When queries are broken down in parts because of the number
+	// of parameters, attempt to break by this amount
+	maxQueryParameters = 300
+)
+
 var (
 	x      *xorm.Engine
 	tables []interface{}
@@ -116,6 +122,7 @@ func init() {
 		new(OAuth2AuthorizationCode),
 		new(OAuth2Grant),
 		new(Task),
+		new(LanguageStat),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

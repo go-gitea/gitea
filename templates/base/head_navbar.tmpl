@@ -44,7 +44,7 @@
 		<div class="right stackable menu">
 			<a href="{{AppSubUrl}}/notifications" class="item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
 				<span class="text">
-					<i class="fitted octicon octicon-bell"></i>
+					<span class="fitted">{{svg "octicon-bell" 16}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "notifications"}}</span>
 
 					{{if .NotificationUnreadCount}}
@@ -57,20 +57,20 @@
 
 			<div class="ui dropdown jump item poping up" data-content="{{.i18n.Tr "create_new"}}" data-variation="tiny inverted">
 				<span class="text">
-					<i class="fitted octicon octicon-plus"></i>
+					<span class="fitted">{{svg "octicon-plus" 16}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "create_new"}}</span>
-					<i class="fitted octicon octicon-triangle-down not-mobile"></i>
+					<span class="fitted not-mobile">{{svg "octicon-triangle-down" 16}}</span>
 				</span>
 				<div class="menu">
 					<a class="item" href="{{AppSubUrl}}/repo/create">
-						<i class="octicon octicon-plus"></i> {{.i18n.Tr "new_repo"}}
+						<span class="fitted">{{svg "octicon-plus" 16}}</span> {{.i18n.Tr "new_repo"}}
 					</a>
 					<a class="item" href="{{AppSubUrl}}/repo/migrate">
-						<i class="octicon octicon-repo-clone"></i> {{.i18n.Tr "new_migrate"}}
+						<span class="fitted">{{svg "octicon-repo-clone" 16}}</span> {{.i18n.Tr "new_migrate"}}
 					</a>
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
-						<i class="octicon octicon-organization"></i> {{.i18n.Tr "new_org"}}
+						<span class="fitted">{{svg "octicon-organization" 16}}</span> {{.i18n.Tr "new_org"}}
 					</a>
 					{{end}}
 				</div><!-- end content create new menu -->
@@ -81,7 +81,7 @@
 					<img class="ui tiny avatar image" width="24" height="24" src="{{.SignedUser.RelAvatarLink}}">
 					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
-					<i class="fitted octicon octicon-triangle-down not-mobile" tabindex="-1"></i>
+					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down" 16}}</span>
 				</span>
 				<div class="menu user-menu" tabindex="-1">
 					<div class="ui header">
@@ -90,19 +90,19 @@
 
 					<div class="divider"></div>
 					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}">
-						<i class="octicon octicon-person"></i>
+						{{svg "octicon-person" 16}}
 						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
 					</a>
 					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
-						<i class="octicon octicon-star"></i>
+						{{svg "octicon-star" 16}}
 						{{.i18n.Tr "your_starred"}}
 					</a>
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
-						<i class="octicon octicon-settings"></i>
+						{{svg "octicon-settings" 16}}
 						{{.i18n.Tr "your_settings"}}<!-- Your settings -->
 					</a>
 					<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">
-						<i class="octicon octicon-question"></i>
+						{{svg "octicon-question" 16}}
 						{{.i18n.Tr "help"}}<!-- Help -->
 					</a>
 					{{if .IsAdmin}}
@@ -116,7 +116,7 @@
 
 					<div class="divider"></div>
 					<a class="item" href="{{AppSubUrl}}/user/logout">
-						<i class="octicon octicon-sign-out"></i>
+						{{svg "octicon-sign-out" 16}}
 						{{.i18n.Tr "sign_out"}}<!-- Sign Out -->
 					</a>
 				</div><!-- end content avatar menu -->
@@ -129,11 +129,11 @@
 		<div class="right stackable menu">
 			{{if .ShowRegistrationButton}}
 				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
-					<i class="octicon octicon-person"></i> {{.i18n.Tr "register"}}
+					{{svg "octicon-person" 16}} {{.i18n.Tr "register"}}
 				</a>
 			{{end}}
 			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{.Link}}">
-				<i class="octicon octicon-sign-in"></i> {{.i18n.Tr "sign_in"}}
+				{{svg "octicon-sign-in" 16}} {{.i18n.Tr "sign_in"}}
 			</a>
 		</div><!-- end anonymous right menu -->
 
