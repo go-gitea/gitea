@@ -25,9 +25,6 @@ func PathEscapeSegments(path string) string {
 
 // URLJoin joins url components, like path.Join, but preserving contents
 func URLJoin(base string, elems ...string) string {
-	// We do need to escape special chars here or else they can be silently discarded
-	// in the ResolveReference call below
-	base = PathEscapeSegments(base)
 	if !strings.HasSuffix(base, "/") {
 		base += "/"
 	}
