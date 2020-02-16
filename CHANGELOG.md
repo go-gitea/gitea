@@ -16,6 +16,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix issue sidebar menus having an infinite height (#10239) (#10240)
   * Fix commit between two commits calculation if there is only last commit (#10225) (#10226)
   * Only check for conflicts/merging if the PR has not been merged in the interim (#10132) (#10206)
+  * Blacklist manifest.json & milestones user (#10292) (#10293)
 
 ## [1.11.0](https://github.com/go-gitea/gitea/releases/tag/v1.11.0) - 2020-02-10
 * BREAKING
