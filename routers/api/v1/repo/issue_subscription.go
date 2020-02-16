@@ -90,6 +90,8 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "201":
 	//     "$ref": "#/responses/empty"
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	//   "304":
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
@@ -150,7 +152,12 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 				ctx.Status(http.StatusOK)
 				return
 			}
-			mode = models.IssueWatchModeNone
+			if err = models.DeleteIssueWatch(user.ID, issue.ID); err != nil {
+				ctx.Error(http.StatusInternalServerError, "DeleteIssueWatch", err)
+				return
+			}
+			ctx.Status(http.StatusNoContent)
+			return
 		}
 	} else {
 		if repoWatch {

@@ -18,7 +18,7 @@ func TestCreateOrUpdateIssueWatch(t *testing.T) {
 	iw := AssertExistsAndLoadBean(t, &IssueWatch{UserID: 3, IssueID: 1}).(*IssueWatch)
 	assert.EqualValues(t, IssueWatchModeNormal, iw.Mode)
 
-	assert.NoError(t, CreateOrUpdateIssueWatchMode(3, 1, IssueWatchModeNone))
+	assert.NoError(t, DeleteIssueWatch(3, 1))
 	AssertNotExistsBean(t, &IssueWatch{UserID: 3, IssueID: 1})
 
 	assert.NoError(t, CreateOrUpdateIssueWatchMode(3, 1, IssueWatchModeAuto))

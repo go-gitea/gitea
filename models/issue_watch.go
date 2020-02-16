@@ -15,14 +15,12 @@ import (
 type IssueWatchMode int8
 
 const (
-	// IssueWatchModeNone don't watch
-	IssueWatchModeNone IssueWatchMode = iota // 0
-	// IssueWatchModeNormal watch issue (from other sources)
-	IssueWatchModeNormal // 1
-	// IssueWatchModeDont explicit don't auto-watch
-	IssueWatchModeDont // 2
-	// IssueWatchModeAuto watch issue (from AutoWatchOnChanges)
-	IssueWatchModeAuto // 3
+	// IssueWatchModeNormal watch issue
+	IssueWatchModeNormal IssueWatchMode = iota // 0
+	// IssueWatchModeDont explicit don't watch
+	IssueWatchModeDont // 1
+	// IssueWatchModeAuto watch issue (from AutoWatchOnIssueChanges)
+	IssueWatchModeAuto // 2
 )
 
 // IssueWatch is connection request for receiving issue notification.
@@ -58,7 +56,7 @@ func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWat
 		return err
 	}
 
-	if !exists && mode != IssueWatchModeNone {
+	if !exists {
 		iw = &IssueWatch{
 			UserID:  userID,
 			IssueID: issueID,
@@ -68,15 +66,27 @@ func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWat
 			return err
 		}
 	} else {
-		if mode != IssueWatchModeNone {
-			iw.Mode = mode
-			if _, err = e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
-				return err
-			}
-		}
-		if _, err = e.ID(iw.ID).Delete(iw); err != nil {
+		iw.Mode = mode
+		if _, err = e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+//DeleteIssueWatch delete an IssueWatch entry of an user to an given issue if exist
+func DeleteIssueWatch(userID, issueID int64) error {
+	return deleteIssueWatch(x, userID, issueID)
+}
+
+func deleteIssueWatch(e Engine, userID, issueID int64) error {
+	iw, exists, err := getIssueWatch(e, userID, issueID)
+	if err != nil {
+		return err
+	}
+	if exists {
+		_, err = e.ID(iw.ID).Delete(iw)
+		return err
 	}
 	return nil
 }
@@ -91,7 +101,6 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 	exists, err = e.
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
-		And("mode <> ?", IssueWatchModeNone).
 		Get(iw)
 	return
 }
@@ -144,14 +153,11 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions, modes ..
 }
 
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
-	iw := &IssueWatch{
-		Mode: IssueWatchModeNone,
-	}
 	_, err := e.
 		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
 		Cols("mode", "updated_unix").
 		Where("`issue_watch`.user_id = ?", userID).
-		Update(iw)
+		Delete(new(IssueWatch))
 	return err
 }
 
