@@ -16,11 +16,11 @@ type IssueWatchMode int8
 
 const (
 	// IssueWatchModeNormal watch issue
-	IssueWatchModeNormal IssueWatchMode = iota // 0
+	IssueWatchModeNormal IssueWatchMode = iota + 1 // 1
 	// IssueWatchModeDont explicit don't watch
-	IssueWatchModeDont // 1
+	IssueWatchModeDont // 2
 	// IssueWatchModeAuto watch issue (from AutoWatchOnIssueChanges)
-	IssueWatchModeAuto // 2
+	IssueWatchModeAuto // 3
 )
 
 // IssueWatch is connection request for receiving issue notification.
@@ -28,7 +28,7 @@ type IssueWatch struct {
 	ID          int64              `xorm:"pk autoincr"`
 	UserID      int64              `xorm:"UNIQUE(watch) NOT NULL"`
 	IssueID     int64              `xorm:"UNIQUE(watch) NOT NULL"`
-	Mode        IssueWatchMode     `xorm:"NOT NULL DEFAULT 1"`
+	Mode        IssueWatchMode     `xorm:"NOT NULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
