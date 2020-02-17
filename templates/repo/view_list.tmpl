@@ -29,7 +29,7 @@
 				</a>
 				{{template "repo/commit_status" .LatestCommitStatus}}
 				{{ $commitLink:= printf "%s/commit/%s" .RepoLink .LatestCommit.ID }}
-				<span class="grey has-emoji commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper" style="width: min(calc((max(100vw, 768px) - 768px) * 800 + 20rem), calc((max(100vw, 992px) - 992px) * 800 + 360px), calc((max(100vw, 1200px) - 1200px) * 800 + 500px), calc((min(100vw, 1200px) - 1200px) * (0 - 800) + 700px));">{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
+				<span class="grey has-emoji commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 				{{if IsMultilineCommitMessage .LatestCommit.Message}}
 					<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
 					<pre class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
