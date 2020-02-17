@@ -1874,7 +1874,7 @@ func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, origina
 func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, userID int64) error {
 	_, err := x.Table("reaction").
 		Where("original_author_id = ?", originalAuthorID).
-		And("issue_id IN (SELECT id FROM issue WHERE issue.repo_id IN (SELECT id FROM repository WHERE original_service_type = ?))", gitServiceType).
+		And(migratedIssueCond(gitServiceType)).
 		Update(map[string]interface{}{
 			"user_id":            userID,
 			"original_author":    "",
