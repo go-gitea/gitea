@@ -19,6 +19,7 @@ func addRepoTransfer(x *xorm.Engine) error {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
 		Status      bool
+		TeamIDs     []int64
 	}
 
 	return x.Sync(new(RepoTransfer))
