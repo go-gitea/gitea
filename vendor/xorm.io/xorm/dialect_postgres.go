@@ -901,7 +901,7 @@ func (db *postgres) TableCheckSql(tableName string) (string, []interface{}) {
 }
 
 func (db *postgres) ModifyColumnSql(tableName string, col *core.Column) string {
-	if len(db.Schema) == 0 {
+	if len(db.Schema) == 0 || strings.Contains(tableName, ".") {
 		return fmt.Sprintf("alter table %s ALTER COLUMN %s TYPE %s",
 			tableName, col.Name, db.SqlType(col))
 	}
@@ -913,8 +913,8 @@ func (db *postgres) DropIndexSql(tableName string, index *core.Index) string {
 	quote := db.Quote
 	idxName := index.Name
 
-	tableName = strings.Replace(tableName, `"`, "", -1)
-	tableName = strings.Replace(tableName, `.`, "_", -1)
+	tableParts := strings.Split(strings.Replace(tableName, `"`, "", -1), ".")
+	tableName = tableParts[len(tableParts)-1]
 
 	if !strings.HasPrefix(idxName, "UQE_") &&
 		!strings.HasPrefix(idxName, "IDX_") {

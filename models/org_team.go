@@ -39,12 +39,16 @@ type Team struct {
 
 // SearchTeamOptions holds the search options
 type SearchTeamOptions struct {
+	ListOptions
 	UserID      int64
 	Keyword     string
 	OrgID       int64
 	IncludeDesc bool
-	PageSize    int
-	Page        int
+}
+
+// SearchMembersOptions holds the search options
+type SearchMembersOptions struct {
+	ListOptions
 }
 
 // SearchTeam search for teams. Caller is responsible to check permissions.
@@ -160,9 +164,13 @@ func (t *Team) getRepositories(e Engine) error {
 		Find(&t.Repos)
 }
 
-// GetRepositories returns all repositories in team of organization.
-func (t *Team) GetRepositories() error {
-	return t.getRepositories(x)
+// GetRepositories returns paginated repositories in team of organization.
+func (t *Team) GetRepositories(opts *SearchTeamOptions) error {
+	if opts.Page == 0 {
+		return t.getRepositories(x)
+	}
+
+	return t.getRepositories(opts.getPaginatedSession())
 }
 
 func (t *Team) getMembers(e Engine) (err error) {
@@ -170,9 +178,13 @@ func (t *Team) getMembers(e Engine) (err error) {
 	return err
 }
 
-// GetMembers returns all members in team of organization.
-func (t *Team) GetMembers() (err error) {
-	return t.getMembers(x)
+// GetMembers returns paginated members in team of organization.
+func (t *Team) GetMembers(opts *SearchMembersOptions) (err error) {
+	if opts.Page == 0 {
+		return t.getMembers(x)
+	}
+
+	return t.getMembers(opts.getPaginatedSession())
 }
 
 // AddMember adds new membership of the team to the organization,
@@ -541,6 +553,23 @@ func GetTeam(orgID int64, name string) (*Team, error) {
 	return getTeam(x, orgID, name)
 }
 
+// GetTeamIDsByNames returns a slice of team ids corresponds to names.
+func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
+	ids := make([]int64, 0, len(names))
+	for _, name := range names {
+		u, err := GetTeam(orgID, name)
+		if err != nil {
+			if ignoreNonExistent {
+				continue
+			} else {
+				return nil, err
+			}
+		}
+		ids = append(ids, u.ID)
+	}
+	return ids, nil
+}
+
 // getOwnerTeam returns team by given team name and organization.
 func getOwnerTeam(e Engine, orgID int64) (*Team, error) {
 	return getTeam(e, orgID, ownerTeamName)
@@ -560,6 +589,22 @@ func getTeamByID(e Engine, teamID int64) (*Team, error) {
 // GetTeamByID returns team by given ID.
 func GetTeamByID(teamID int64) (*Team, error) {
 	return getTeamByID(x, teamID)
+}
+
+// GetTeamNamesByID returns team's lower name from a list of team ids.
+func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
+	if len(teamIDs) == 0 {
+		return []string{}, nil
+	}
+
+	var teamNames []string
+	err := x.Table("team").
+		Select("lower_name").
+		In("id", teamIDs).
+		Asc("name").
+		Find(&teamNames)
+
+	return teamNames, err
 }
 
 // UpdateTeam updates information of team.
@@ -642,7 +687,7 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 // DeleteTeam deletes given team.
 // It's caller's responsibility to assign organization ID.
 func DeleteTeam(t *Team) error {
-	if err := t.GetRepositories(); err != nil {
+	if err := t.GetRepositories(&SearchTeamOptions{}); err != nil {
 		return err
 	}
 
@@ -747,11 +792,14 @@ func GetTeamMembers(teamID int64) ([]*User, error) {
 	return getTeamMembers(x, teamID)
 }
 
-func getUserTeams(e Engine, userID int64) (teams []*Team, err error) {
-	return teams, e.
+func getUserTeams(e Engine, userID int64, listOptions ListOptions) (teams []*Team, err error) {
+	sess := e.
 		Join("INNER", "team_user", "team_user.team_id = team.id").
-		Where("team_user.uid=?", userID).
-		Find(&teams)
+		Where("team_user.uid=?", userID)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+	}
+	return teams, sess.Find(&teams)
 }
 
 func getUserOrgTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
@@ -778,8 +826,8 @@ func GetUserOrgTeams(orgID, userID int64) ([]*Team, error) {
 }
 
 // GetUserTeams returns all teams that user belongs across all organizations.
-func GetUserTeams(userID int64) ([]*Team, error) {
-	return getUserTeams(x, userID)
+func GetUserTeams(userID int64, listOptions ListOptions) ([]*Team, error) {
+	return getUserTeams(x, userID, listOptions)
 }
 
 // AddTeamMember adds new membership of given team to given organization,
@@ -795,7 +843,7 @@ func AddTeamMember(team *Team, userID int64) error {
 	}
 
 	// Get team and its repositories.
-	if err := team.GetRepositories(); err != nil {
+	if err := team.GetRepositories(&SearchTeamOptions{}); err != nil {
 		return err
 	}
 

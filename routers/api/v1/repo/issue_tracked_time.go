@@ -51,6 +51,14 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   description: Only show times updated before the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
@@ -72,6 +80,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	}
 
 	opts := models.FindTrackedTimesOptions{
+		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 		IssueID:      issue.ID,
 	}
@@ -435,6 +444,14 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	//   description: Only show times updated before the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
@@ -449,6 +466,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	opts := models.FindTrackedTimesOptions{
+		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
 
@@ -495,6 +513,15 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	// swagger:operation GET /user/times user userCurrentTrackedTimes
 	// ---
 	// summary: List the current user's tracked times
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// produces:
 	// - application/json
 	// parameters:
@@ -512,7 +539,10 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
 
-	opts := models.FindTrackedTimesOptions{UserID: ctx.User.ID}
+	opts := models.FindTrackedTimesOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		UserID:      ctx.User.ID,
+	}
 
 	var err error
 	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {

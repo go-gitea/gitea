@@ -67,7 +67,11 @@ type PullRequest struct {
 // MustHeadUserName returns the HeadRepo's username if failed return blank
 func (pr *PullRequest) MustHeadUserName() string {
 	if err := pr.LoadHeadRepo(); err != nil {
-		log.Error("LoadHeadRepo: %v", err)
+		if !IsErrRepoNotExist(err) {
+			log.Error("LoadHeadRepo: %v", err)
+		} else {
+			log.Warn("LoadHeadRepo %d but repository does not exist: %v", pr.HeadRepoID, err)
+		}
 		return ""
 	}
 	return pr.HeadRepo.OwnerName
@@ -181,7 +185,12 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
 		return ""
 	}
-	return fmt.Sprintf("Merge pull request '%s' (#%d) from %s/%s into %s", pr.Issue.Title, pr.Issue.Index, pr.MustHeadUserName(), pr.HeadBranch, pr.BaseBranch)
+
+	if pr.BaseRepoID == pr.HeadRepoID {
+		return fmt.Sprintf("Merge pull request '%s' (#%d) from %s into %s", pr.Issue.Title, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch)
+	}
+
+	return fmt.Sprintf("Merge pull request '%s' (#%d) from %s:%s into %s", pr.Issue.Title, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch)
 }
 
 // GetCommitMessages returns the commit messages between head and merge base (if there is one)
@@ -489,44 +498,66 @@ const (
 )
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
-func (pr *PullRequest) SetMerged() (err error) {
+func (pr *PullRequest) SetMerged() (bool, error) {
 	if pr.HasMerged {
-		return fmt.Errorf("PullRequest[%d] already merged", pr.Index)
+		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
 	if pr.MergedCommitID == "" || pr.MergedUnix == 0 || pr.Merger == nil {
-		return fmt.Errorf("Unable to merge PullRequest[%d], some required fields are empty", pr.Index)
+		return false, fmt.Errorf("Unable to merge PullRequest[%d], some required fields are empty", pr.Index)
 	}
 
 	pr.HasMerged = true
 
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
+	if err := sess.Begin(); err != nil {
+		return false, err
 	}
 
-	if err = pr.loadIssue(sess); err != nil {
-		return err
+	if _, err := sess.Exec("UPDATE `issue` SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
+		return false, err
 	}
 
-	if err = pr.Issue.loadRepo(sess); err != nil {
-		return err
-	}
-	if err = pr.Issue.Repo.getOwner(sess); err != nil {
-		return err
+	if _, err := sess.Exec("UPDATE `pull_request` SET `issue_id` = `issue_id` WHERE `id` = ?", pr.ID); err != nil {
+		return false, err
 	}
 
-	if _, err = pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
-		return fmt.Errorf("Issue.changeStatus: %v", err)
-	}
-	if _, err = sess.ID(pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
-		return fmt.Errorf("update pull request: %v", err)
+	pr.Issue = nil
+	if err := pr.loadIssue(sess); err != nil {
+		return false, err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
+	if tmpPr, err := getPullRequestByID(sess, pr.ID); err != nil {
+		return false, err
+	} else if tmpPr.HasMerged {
+		if pr.Issue.IsClosed {
+			return false, nil
+		}
+		return false, fmt.Errorf("PullRequest[%d] already merged but it's associated issue [%d] is not closed", pr.Index, pr.IssueID)
+	} else if pr.Issue.IsClosed {
+		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
-	return nil
+
+	if err := pr.Issue.loadRepo(sess); err != nil {
+		return false, err
+	}
+
+	if err := pr.Issue.Repo.getOwner(sess); err != nil {
+		return false, err
+	}
+
+	if _, err := pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
+		return false, fmt.Errorf("Issue.changeStatus: %v", err)
+	}
+
+	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
+		return false, fmt.Errorf("Failed to update pr[%d]: %v", pr.ID, err)
+	}
+
+	if err := sess.Commit(); err != nil {
+		return false, fmt.Errorf("Commit: %v", err)
+	}
+	return true, nil
 }
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -655,6 +686,19 @@ func GetPullRequestByID(id int64) (*PullRequest, error) {
 	return getPullRequestByID(x, id)
 }
 
+// GetPullRequestByIssueIDWithNoAttributes returns pull request with no attributes loaded by given issue ID.
+func GetPullRequestByIssueIDWithNoAttributes(issueID int64) (*PullRequest, error) {
+	var pr PullRequest
+	has, err := x.Where("issue_id = ?", issueID).Get(&pr)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
+	}
+	return &pr, nil
+}
+
 func getPullRequestByIssueID(e Engine, issueID int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		IssueID: issueID,
@@ -682,6 +726,12 @@ func (pr *PullRequest) Update() error {
 // UpdateCols updates specific fields of pull request.
 func (pr *PullRequest) UpdateCols(cols ...string) error {
 	_, err := x.ID(pr.ID).Cols(cols...).Update(pr)
+	return err
+}
+
+// UpdateColsIfNotMerged updates specific fields of a pull request if it has not been merged
+func (pr *PullRequest) UpdateColsIfNotMerged(cols ...string) error {
+	_, err := x.Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
 	return err
 }
 

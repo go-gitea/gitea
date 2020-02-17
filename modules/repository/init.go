@@ -164,7 +164,7 @@ func checkInitRepository(repoPath string) (err error) {
 	// Init git bare new repository.
 	if err = git.InitRepository(repoPath, true); err != nil {
 		return fmt.Errorf("git.InitRepository: %v", err)
-	} else if err = models.CreateDelegateHooks(repoPath); err != nil {
+	} else if err = createDelegateHooks(repoPath); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
 	}
 	return nil

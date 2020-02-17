@@ -26,6 +26,7 @@ type QueueSettings struct {
 	Addresses        string
 	Password         string
 	QueueName        string
+	SetName          string
 	DBIndex          int
 	WrapIfNecessary  bool
 	MaxAttempts      int
@@ -54,12 +55,17 @@ func GetQueueSettings(name string) QueueSettings {
 			q.DataDir = key.MustString(q.DataDir)
 		case "QUEUE_NAME":
 			q.QueueName = key.MustString(q.QueueName)
+		case "SET_NAME":
+			q.SetName = key.MustString(q.SetName)
 		}
+	}
+	if len(q.SetName) == 0 && len(Queue.SetName) > 0 {
+		q.SetName = q.QueueName + Queue.SetName
 	}
 	if !filepath.IsAbs(q.DataDir) {
 		q.DataDir = filepath.Join(AppDataPath, q.DataDir)
 	}
-	sec.Key("DATADIR").SetValue(q.DataDir)
+	_, _ = sec.NewKey("DATADIR", q.DataDir)
 	// The rest are...
 	q.Length = sec.Key("LENGTH").MustInt(Queue.Length)
 	q.BatchLength = sec.Key("BATCH_LENGTH").MustInt(Queue.BatchLength)
@@ -89,7 +95,7 @@ func NewQueueService() {
 	Queue.Length = sec.Key("LENGTH").MustInt(20)
 	Queue.BatchLength = sec.Key("BATCH_LENGTH").MustInt(20)
 	Queue.ConnectionString = sec.Key("CONN_STR").MustString(path.Join(AppDataPath, ""))
-	Queue.Type = sec.Key("TYPE").MustString("")
+	Queue.Type = sec.Key("TYPE").MustString("persistable-channel")
 	Queue.Network, Queue.Addresses, Queue.Password, Queue.DBIndex, _ = ParseQueueConnStr(Queue.ConnectionString)
 	Queue.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(true)
 	Queue.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(10)
@@ -100,6 +106,7 @@ func NewQueueService() {
 	Queue.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(5 * time.Minute)
 	Queue.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(5)
 	Queue.QueueName = sec.Key("QUEUE_NAME").MustString("_queue")
+	Queue.SetName = sec.Key("SET_NAME").MustString("")
 
 	// Now handle the old issue_indexer configuration
 	section := Cfg.Section("queue.issue_indexer")
@@ -110,27 +117,27 @@ func NewQueueService() {
 	if _, ok := sectionMap["TYPE"]; !ok {
 		switch Indexer.IssueQueueType {
 		case LevelQueueType:
-			section.Key("TYPE").SetValue("level")
+			_, _ = section.NewKey("TYPE", "level")
 		case ChannelQueueType:
-			section.Key("TYPE").SetValue("persistable-channel")
+			_, _ = section.NewKey("TYPE", "persistable-channel")
 		case RedisQueueType:
-			section.Key("TYPE").SetValue("redis")
+			_, _ = section.NewKey("TYPE", "redis")
 		default:
 			log.Fatal("Unsupported indexer queue type: %v",
 				Indexer.IssueQueueType)
 		}
 	}
 	if _, ok := sectionMap["LENGTH"]; !ok {
-		section.Key("LENGTH").SetValue(fmt.Sprintf("%d", Indexer.UpdateQueueLength))
+		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Indexer.UpdateQueueLength))
 	}
 	if _, ok := sectionMap["BATCH_LENGTH"]; !ok {
-		section.Key("BATCH_LENGTH").SetValue(fmt.Sprintf("%d", Indexer.IssueQueueBatchNumber))
+		_, _ = section.NewKey("BATCH_LENGTH", fmt.Sprintf("%d", Indexer.IssueQueueBatchNumber))
 	}
 	if _, ok := sectionMap["DATADIR"]; !ok {
-		section.Key("DATADIR").SetValue(Indexer.IssueQueueDir)
+		_, _ = section.NewKey("DATADIR", Indexer.IssueQueueDir)
 	}
 	if _, ok := sectionMap["CONN_STR"]; !ok {
-		section.Key("CONN_STR").SetValue(Indexer.IssueQueueConnStr)
+		_, _ = section.NewKey("CONN_STR", Indexer.IssueQueueConnStr)
 	}
 
 	// Handle the old mailer configuration
@@ -140,7 +147,18 @@ func NewQueueService() {
 		sectionMap[key.Name()] = true
 	}
 	if _, ok := sectionMap["LENGTH"]; !ok {
-		section.Key("LENGTH").SetValue(fmt.Sprintf("%d", Cfg.Section("mailer").Key("SEND_BUFFER_LEN").MustInt(100)))
+		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Cfg.Section("mailer").Key("SEND_BUFFER_LEN").MustInt(100)))
+	}
+
+	// Handle the old test pull requests configuration
+	// Please note this will be a unique queue
+	section = Cfg.Section("queue.pr_patch_checker")
+	sectionMap = map[string]bool{}
+	for _, key := range section.Keys() {
+		sectionMap[key.Name()] = true
+	}
+	if _, ok := sectionMap["LENGTH"]; !ok {
+		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Repository.PullRequestQueueLength))
 	}
 }
 

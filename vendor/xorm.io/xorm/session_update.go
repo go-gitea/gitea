@@ -239,14 +239,20 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	for i, colName := range exprColumns.colNames {
 		switch tp := exprColumns.args[i].(type) {
 		case string:
-			colNames = append(colNames, session.engine.Quote(colName)+" = "+tp)
+			if len(tp) == 0 {
+				tp = "''"
+			}
+			colNames = append(colNames, session.engine.Quote(colName)+"="+tp)
 		case *builder.Builder:
 			subQuery, subArgs, err := builder.ToSQL(tp)
 			if err != nil {
 				return 0, err
 			}
-			colNames = append(colNames, session.engine.Quote(colName)+" = ("+subQuery+")")
+			colNames = append(colNames, session.engine.Quote(colName)+"=("+subQuery+")")
 			args = append(args, subArgs...)
+		default:
+			colNames = append(colNames, session.engine.Quote(colName)+"=?")
+			args = append(args, exprColumns.args[i])
 		}
 	}
 

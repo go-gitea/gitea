@@ -89,5 +89,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/hook/set-default-branch/:owner/:repo/:branch", SetDefaultBranch)
 		m.Get("/serv/none/:keyid", ServNoCommand)
 		m.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
+		m.Post("/manager/shutdown", Shutdown)
+		m.Post("/manager/restart", Restart)
+		m.Post("/manager/flush-queues", bind(private.FlushOptions{}), FlushQueues)
+
 	}, CheckInternalToken)
 }

@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -49,8 +50,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 	entries.CustomSort(base.NaturalSortLess)
 
+	var c git.LastCommitCache
+	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
+		c = cache.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()))
+	}
+
 	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, nil)
+	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, c)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
@@ -451,6 +457,16 @@ func Home(ctx *context.Context) {
 	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
 }
 
+func renderLanguageStats(ctx *context.Context) {
+	langs, err := ctx.Repo.Repository.GetTopLanguageStats(5)
+	if err != nil {
+		ctx.ServerError("Repo.GetTopLanguageStats", err)
+		return
+	}
+
+	ctx.Data["LanguageStats"] = langs
+}
+
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
@@ -491,6 +507,11 @@ func renderCode(ctx *context.Context) {
 		return
 	}
 
+	renderLanguageStats(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	if entry.IsDir() {
 		renderDirectory(ctx, treeLink)
 	} else {
@@ -522,7 +543,7 @@ func renderCode(ctx *context.Context) {
 }
 
 // RenderUserCards render a page show users according the input templaet
-func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*models.User, error), tpl base.TplName) {
+func RenderUserCards(ctx *context.Context, total int, getter func(opts models.ListOptions) ([]*models.User, error), tpl base.TplName) {
 	page := ctx.QueryInt("page")
 	if page <= 0 {
 		page = 1
@@ -530,7 +551,7 @@ func RenderUserCards(ctx *context.Context, total int, getter func(page int) ([]*
 	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(pager.Paginater.Current())
+	items, err := getter(models.ListOptions{Page: pager.Paginater.Current()})
 	if err != nil {
 		ctx.ServerError("getter", err)
 		return
@@ -561,7 +582,7 @@ func Stars(ctx *context.Context) {
 func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
-	forks, err := ctx.Repo.Repository.GetForks()
+	forks, err := ctx.Repo.Repository.GetForks(models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
 		return
