@@ -57,6 +57,8 @@ var (
 
 		RepoIndexerEnabled: false,
 		RepoType:           "bleve",
+		RepoPath:           "indexers/repos.bleve",
+		RepoConnStr:        "",
 		RepoIndexerName:    "gitea_codes",
 		MaxIndexerFileSize: 1024 * 1024,
 		ExcludeVendored:    true,
@@ -85,6 +87,8 @@ func newIndexerService() {
 		Indexer.RepoPath = path.Join(AppWorkPath, Indexer.RepoPath)
 	}
 	Indexer.RepoConnStr = sec.Key("REPO_INDEXER_CONNSTR").MustString("")
+	Indexer.RepoIndexerName = sec.Key("REPO_INDEXER_NAME").MustString("gitea_codes")
+
 	Indexer.IncludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_INCLUDE").MustString(""))
 	Indexer.ExcludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_EXCLUDE").MustString(""))
 	Indexer.ExcludeVendored = sec.Key("REPO_INDEXER_EXCLUDE_VENDORED").MustBool(true)

@@ -121,7 +121,7 @@ func Init() {
 				}
 			}()
 
-			esIndexer, created, err := NewElasticSearchIndexer(setting.Indexer.RepoConnStr, "gitea_codes")
+			esIndexer, created, err := NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
 				if esIndexer != nil {
 					esIndexer.Close()
