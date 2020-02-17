@@ -362,6 +362,12 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileDeleteResponse"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/error"
 
 	if !CanWriteFiles(ctx.Repo) {
 		ctx.Error(http.StatusInternalServerError, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
@@ -402,6 +408,20 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	}
 
 	if fileResponse, err := repofiles.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
+		if git.IsErrBranchNotExist(err) || models.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
+			ctx.Error(http.StatusNotFound, "DeleteFile", err)
+			return
+		} else if models.IsErrBranchAlreadyExists(err) ||
+			models.IsErrFilenameInvalid(err) ||
+			models.IsErrSHADoesNotMatch(err) ||
+			models.IsErrCommitIDDoesNotMatch(err) ||
+			models.IsErrSHAOrCommitIDNotProvided(err) {
+			ctx.Error(http.StatusBadRequest, "DeleteFile", err)
+			return
+		} else if models.IsErrUserCannotCommit(err) {
+			ctx.Error(http.StatusForbidden, "DeleteFile", err)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "DeleteFile", err)
 	} else {
 		ctx.JSON(http.StatusOK, fileResponse)
