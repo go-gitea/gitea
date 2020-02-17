@@ -4,6 +4,20 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.1](https://github.com/go-gitea/gitea/releases/tag/v1.11.1) - 2020-02-15
+
+* BUGFIXES
+  * Repo name added to automatically generated commit message when merging (#9997) (#10285)
+  * Fix Workerpool deadlock (#10283) (#10284)
+  * Divide GetIssueStats query in smaller chunks (#10176) (#10282)
+  * Fix reply on code review (#10257)
+  * Stop hanging issue indexer initialisation from preventing shutdown (#10243) (#10249)
+  * Fix filter label emoji width (#10241) (#10244)
+  * Fix issue sidebar menus having an infinite height (#10239) (#10240)
+  * Fix commit between two commits calculation if there is only last commit (#10225) (#10226)
+  * Only check for conflicts/merging if the PR has not been merged in the interim (#10132) (#10206)
+  * Blacklist manifest.json & milestones user (#10292) (#10293)
+
 ## [1.11.0](https://github.com/go-gitea/gitea/releases/tag/v1.11.0) - 2020-02-10
 * BREAKING
   * Fix followers and following tabs in profile (#10202) (#10203)
