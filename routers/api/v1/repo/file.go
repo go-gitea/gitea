@@ -454,7 +454,7 @@ func GetContents(ctx *context.APIContext) {
 	ref := ctx.QueryTrim("ref")
 
 	if fileList, err := repofiles.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
-		if models.IsErrNotExist(err) {
+		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetContentsOrList", err)
 			return
 		}
@@ -490,6 +490,8 @@ func GetContentsList(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ContentsListResponse"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	// same as GetContents(), this function is here because swagger fails if path is empty in GetContents() interface
 	GetContents(ctx)
