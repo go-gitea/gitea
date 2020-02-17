@@ -439,6 +439,8 @@ func GetContents(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ContentsResponse"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if !CanReadFiles(ctx.Repo) {
 		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", models.ErrUserDoesNotHaveAccessToRepo{
@@ -452,6 +454,10 @@ func GetContents(ctx *context.APIContext) {
 	ref := ctx.QueryTrim("ref")
 
 	if fileList, err := repofiles.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
+		if models.IsErrNotExist(err) {
+			ctx.NotFound("GetContentsOrList", err)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", err)
 	} else {
 		ctx.JSON(http.StatusOK, fileList)
