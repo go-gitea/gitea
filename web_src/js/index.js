@@ -3582,7 +3582,7 @@ window.onOAuthLoginClick = function () {
   }, 5000);
 };
 
-// AJAX SVGs
+// Pull SVGs via AJAX to workaround CORS issues with <use> tags
 // https://css-tricks.com/ajaxing-svg-sprite/
 $.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
   const div = document.createElement('div');
