@@ -53,9 +53,6 @@ func addIssueWatchModes(x *xorm.Engine) error {
 	switch x.Dialect().DBType() {
 	case core.POSTGRES:
 	case core.MYSQL:
-		if _, err := sess.Exec("ALTER TABLE issue_watch DROP COLUMN IF EXISTS is_watching;"); err != nil {
-			return err
-		}
 	case core.MSSQL:
 		if _, err := sess.Exec("ALTER TABLE issue_watch DROP COLUMN is_watching;"); err != nil {
 			return err
