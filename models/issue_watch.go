@@ -38,38 +38,23 @@ type IssueWatchList []*IssueWatch
 
 // CreateOrUpdateIssueWatchMode set IssueWatchMode for a user and issue
 func CreateOrUpdateIssueWatchMode(userID, issueID int64, mode IssueWatchMode) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-	err := createOrUpdateIssueWatchMode(sess, userID, issueID, mode)
+	iw, exist, err := getIssueWatch(x, userID, issueID)
 	if err != nil {
 		return err
 	}
-	return sess.Commit()
+	if !exist {
+		if _, err := x.Exec(fmt.Sprintf("INSERT INTO issue_watch(user_id,issue_id,mode) SELECT %d,%d,%d WHERE NOT EXISTS(SELECT 1 FROM issue_watch WHERE user_id = %d AND issue_id = %d);", userID, issueID, mode, userID, issueID)); err != nil {
+			return err
+		}
+		return nil
+	}
+	iw.Mode = mode
+	return updateIssueWatchMode(x, iw)
 }
 
-func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWatchMode) error {
-	iw, exists, err := getIssueWatch(e, userID, issueID)
-	if err != nil {
+func updateIssueWatchMode(e Engine, iw *IssueWatch) error {
+	if _, err := e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
 		return err
-	}
-
-	if !exists {
-		iw = &IssueWatch{
-			UserID:  userID,
-			IssueID: issueID,
-			Mode:    mode,
-		}
-		if _, err = e.Insert(iw); err != nil {
-			return err
-		}
-	} else {
-		iw.Mode = mode
-		if _, err = e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
-			return err
-		}
 	}
 	return nil
 }
