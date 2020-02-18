@@ -28,7 +28,7 @@ type IssueWatch struct {
 	ID          int64              `xorm:"pk autoincr"`
 	UserID      int64              `xorm:"UNIQUE(watch) NOT NULL"`
 	IssueID     int64              `xorm:"UNIQUE(watch) NOT NULL"`
-	Mode        IssueWatchMode     `xorm:"NOT NULL"`
+	Mode        IssueWatchMode     `xorm:"NOT NULL DEFAULT 1"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
@@ -49,10 +49,10 @@ func CreateOrUpdateIssueWatchMode(userID, issueID int64, mode IssueWatchMode) er
 		return nil
 	}
 	iw.Mode = mode
-	return updateIssueWatchMode(x, iw)
+	return updateIssueWatch(x, iw)
 }
 
-func updateIssueWatchMode(e Engine, iw *IssueWatch) error {
+func updateIssueWatch(e Engine, iw *IssueWatch) error {
 	if _, err := e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
 		return err
 	}

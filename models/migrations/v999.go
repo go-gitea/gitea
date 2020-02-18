@@ -19,7 +19,7 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		ID          int64                 `xorm:"pk autoincr"`
 		UserID      int64                 `xorm:"UNIQUE(watch) NOT NULL"`
 		IssueID     int64                 `xorm:"UNIQUE(watch) NOT NULL"`
-		Mode        models.IssueWatchMode `xorm:"NOT NULL"`
+		Mode        models.IssueWatchMode `xorm:"NOT NULL DEFAULT 1"`
 		CreatedUnix timeutil.TimeStamp    `xorm:"created NOT NULL"`
 		UpdatedUnix timeutil.TimeStamp    `xorm:"updated NOT NULL"`
 	}
@@ -31,7 +31,7 @@ func addIssueWatchModes(x *xorm.Engine) error {
 	}
 
 	if x.Dialect().DBType() == core.SQLITE {
-		if _, err := x.Exec("ALTER TABLE issue_watch ADD mode INTEGER NOT NULL;"); err != nil {
+		if _, err := x.Exec("ALTER TABLE issue_watch ADD mode INTEGER NOT NULL DEFAULT 1;"); err != nil {
 			return err
 		}
 	}
