@@ -485,6 +485,46 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	ctx.Redirect(orCtx.Link)
 }
 
+// FeishuHooksNewPost response for creating feishu hook
+func FeishuHooksNewPost(ctx *context.Context, form auth.NewFeishuHookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksNew"] = true
+	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	w := &models.Webhook{
+		RepoID:       orCtx.RepoID,
+		URL:          form.PayloadURL,
+		ContentType:  models.ContentTypeJSON,
+		HookEvent:    ParseHookEvent(form.WebhookForm),
+		IsActive:     form.Active,
+		HookTaskType: models.FEISHU,
+		Meta:         "",
+		OrgID:        orCtx.OrgID,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.CreateWebhook(w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link)
+}
+
 func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 	ctx.Data["RequireHighlightJS"] = true
 
@@ -789,6 +829,38 @@ func TelegramHooksEditPost(ctx *context.Context, form auth.NewTelegramHookForm) 
 
 // MSTeamsHooksEditPost response for editing MS Teams hook
 func MSTeamsHooksEditPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	w.URL = form.PayloadURL
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
+// FeishuHooksEditPost response for editing feishu hook
+func FeishuHooksEditPost(ctx *context.Context, form auth.NewFeishuHookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true

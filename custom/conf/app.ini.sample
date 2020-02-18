@@ -368,8 +368,12 @@ CONN_MAX_LIFETIME = 3s
 MAX_OPEN_CONNS = 0
 
 [indexer]
-; Issue indexer type, currently support: bleve or db, default is bleve
+; Issue indexer type, currently support: bleve, db or elasticsearch, default is bleve
 ISSUE_INDEXER_TYPE = bleve
+; Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch
+ISSUE_INDEXER_CONN_STR = http://elastic:changeme@localhost:9200
+; Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
+ISSUE_INDEXER_NAME = gitea_issues
 ; Issue indexer storage path, available when ISSUE_INDEXER_TYPE is bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
 ; Issue indexer queue, currently support: channel, levelqueue or redis, default is levelqueue

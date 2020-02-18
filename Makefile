@@ -56,7 +56,8 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
 GO_SOURCES ?= $(shell find . -name "*.go" -type f)
-WEBPACK_SOURCES ?= $(shell find web_src/js web_src/css web_src/less -type f)
+WEBPACK_SOURCES ?= $(shell find web_src/js web_src/less -type f)
+WEBPACK_CONFIGS := webpack.config.js .eslintrc .stylelintrc
 
 WEBPACK_DEST := public/js/index.js public/css/index.css
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
@@ -69,6 +70,7 @@ FOMANTIC_DEST_DIR := public/fomantic
 FOMANTIC_EVIDENCE := $(MAKE_EVIDENCE_DIR)/fomantic
 
 TAGS ?=
+TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
@@ -120,6 +122,7 @@ help:
 	@echo " - vet               examines Go source code and reports suspicious constructs"
 	@echo " - test              run unit test"
 	@echo " - test-sqlite       run integration test for sqlite"
+	@echo " - pr#<index>        build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
@@ -166,8 +169,17 @@ fmt:
 vet:
 	$(GO) vet $(PACKAGES)
 
+.PHONY: $(TAGS_EVIDENCE)
+$(TAGS_EVIDENCE):
+	@mkdir -p $(MAKE_EVIDENCE_DIR)
+	@echo "$(TAGS)" > $(TAGS_EVIDENCE)
+
+ifneq "$(TAGS)" "$(shell cat $(TAGS_EVIDENCE) 2>/dev/null)"
+TAGS_PREREQ := $(TAGS_EVIDENCE)
+endif
+
 .PHONY: generate
-generate: fomantic webpack
+generate: fomantic webpack $(TAGS_PREREQ)
 	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
 
 .PHONY: generate-swagger
@@ -423,18 +435,18 @@ migrations.sqlite.test: $(GO_SOURCES)
 .PHONY: check
 check: test
 
-.PHONY: install
+.PHONY: install $(TAGS_PREREQ)
 install: $(wildcard *.go)
 	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
 build: go-check generate $(EXECUTABLE)
 
-$(EXECUTABLE): $(GO_SOURCES)
+$(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
+release: generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-sources release-check
 
 .PHONY: release-dirs
 release-dirs:
@@ -485,6 +497,10 @@ release-compress:
 	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
+.PHONY: release-sources
+release-sources:
+	tar cvzf $(DIST)/release/gitea-src-$(VERSION).tar.gz --exclude $(DIST) --exclude .git --exclude $(MAKE_EVIDENCE_DIR) .
+
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
@@ -517,7 +533,7 @@ $(FOMANTIC_EVIDENCE): semantic.json $(FOMANTIC_SOURCES) | node_modules
 .PHONY: webpack
 webpack: node-check $(WEBPACK_DEST)
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) webpack.config.js | node_modules
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) | node_modules
 	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
 	npx webpack --hide-modules --display-entrypoints=false
@@ -563,9 +579,9 @@ generate-images:
 	rm -rf $(TMPDIR)/images
 	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
 
-.PHONY: pr
-pr:
-	$(GO) run contrib/pr/checkout.go $(PR)
+.PHONY: pr\#%
+pr\#%: clean-all
+	$(GO) run contrib/pr/checkout.go $*
 
 .PHONY: golangci-lint
 golangci-lint:

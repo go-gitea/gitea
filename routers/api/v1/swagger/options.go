@@ -128,4 +128,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	EditReactionOption api.EditReactionOption
+
+	// in:body
+	CreateBranchProtectionOption api.CreateBranchProtectionOption
+
+	// in:body
+	EditBranchProtectionOption api.EditBranchProtectionOption
 }

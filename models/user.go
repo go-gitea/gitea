@@ -855,7 +855,9 @@ var (
 		"issues",
 		"js",
 		"less",
+		"manifest.json",
 		"metrics",
+		"milestones",
 		"new",
 		"notifications",
 		"org",
@@ -1045,12 +1047,22 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return ErrUserAlreadyExist{newUserName}
 	}
 
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+		return fmt.Errorf("Change repo owner name: %v", err)
+	}
+
 	// Do not fail if directory does not exist
 	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	return nil
+	return sess.Commit()
 }
 
 // checkDupEmail checks whether there are the same email with the user
@@ -1374,6 +1386,17 @@ func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
 		And("`is_active` = ?", true).
 		And("`email_notifications_preference` = ?", EmailNotificationsEnabled).
 		Find(&ous)
+}
+
+// GetUserNamesByIDs returns usernames for all resolved users from a list of Ids.
+func GetUserNamesByIDs(ids []int64) ([]string, error) {
+	unames := make([]string, 0, len(ids))
+	err := x.In("id", ids).
+		Table("user").
+		Asc("name").
+		Cols("name").
+		Find(&unames)
+	return unames, err
 }
 
 // GetUsersByIDs returns all resolved users from a list of Ids.
