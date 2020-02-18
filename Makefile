@@ -1,4 +1,5 @@
 DIST := dist
+DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
 export GO111MODULE=off
 
@@ -446,14 +447,13 @@ $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-sources release-check
+release: generate release-windows release-linux release-darwin release-copy release-compress release-sources release-check
 
-.PHONY: release-dirs
-release-dirs:
-	mkdir -p $(DIST)/binaries $(DIST)/release
+$(DIST_DIRS):
+	mkdir -p $(DIST_DIRS)
 
 .PHONY: release-windows
-release-windows:
+release-windows: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
@@ -463,7 +463,7 @@ ifeq ($(CI),drone)
 endif
 
 .PHONY: release-linux
-release-linux:
+release-linux: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
@@ -473,7 +473,7 @@ ifeq ($(CI),drone)
 endif
 
 .PHONY: release-darwin
-release-darwin:
+release-darwin: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
@@ -483,22 +483,22 @@ ifeq ($(CI),drone)
 endif
 
 .PHONY: release-copy
-release-copy:
+release-copy: | $(DIST_DIRS)
 	cd $(DIST); for file in `find /build -type f -name "*"`; do cp $${file} ./release/; done;
 
 .PHONY: release-check
-release-check:
+release-check: | $(DIST_DIRS)
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "checksumming $${file}" && $(SHASUM) `echo $${file} | sed 's/^..//'` > $${file}.sha256; done;
 
 .PHONY: release-compress
-release-compress:
+release-compress: | $(DIST_DIRS)
 	@hash gxz > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/ulikunitz/xz/cmd/gxz; \
 	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
 .PHONY: release-sources
-release-sources:
+release-sources: | $(DIST_DIRS)
 	tar cvzf $(DIST)/release/gitea-src-$(VERSION).tar.gz --exclude $(DIST) --exclude .git --exclude $(MAKE_EVIDENCE_DIR) .
 
 node_modules: package-lock.json
