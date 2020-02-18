@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -305,7 +306,7 @@ func commitRepoAction(repo *models.Repository, gitRepo *git.Repository, optsList
 				opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 			}
 
-			if err := UpdateIssuesCommit(opts.Pusher, repo, opts.Commits.Commits, refName); err != nil {
+			if err := repofiles.UpdateIssuesCommit(opts.Pusher, repo, opts.Commits.Commits, refName); err != nil {
 				log.Error("updateIssuesCommit: %v", err)
 			}
 		}
