@@ -49,12 +49,16 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		return err
 	}
 
+	if err := sess.Commit(); err != nil {
+		return err
+	}
+
 	//sqlite is done from L36-49 (you cant alter a column)
 	switch x.Dialect().DBType() {
 	case core.POSTGRES:
 	case core.MYSQL:
 	case core.MSSQL:
-		if _, err := sess.Exec("ALTER TABLE issue_watch DROP COLUMN is_watching;"); err != nil {
+		if _, err := x.Exec("ALTER TABLE issue_watch DROP COLUMN is_watching;"); err != nil {
 			return err
 		}
 	case core.SQLITE:
@@ -79,6 +83,5 @@ func addIssueWatchModes(x *xorm.Engine) error {
 			}
 		}
 	}
-
-	return sess.Commit()
+	return nil
 }
