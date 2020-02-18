@@ -580,7 +580,6 @@ depends_on:
 trigger:
   ref:
   - refs/heads/master
-  - "refs/heads/release/**"
   - "refs/tags/**"
 
 steps:
@@ -660,7 +659,6 @@ depends_on:
 trigger:
   ref:
   - refs/heads/master
-  - "refs/heads/release/**"
   - "refs/tags/**"
 steps:
   - name: fetch-tags
@@ -711,7 +709,6 @@ steps:
 trigger:
   ref:
   - refs/heads/master
-  - "refs/heads/release/**"
   - "refs/tags/**"
 
 depends_on:
