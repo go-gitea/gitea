@@ -68,6 +68,7 @@ func filenameOfIndexerID(indexerID string) string {
 	return indexerID[index+1:]
 }
 
+// IndexerData represents data stored in the code indexer
 type IndexerData struct {
 	RepoID   int64
 	IsDelete bool
