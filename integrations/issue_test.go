@@ -77,7 +77,6 @@ func TestIssueAutoSubscription(t *testing.T) {
 
 	//make sure repo is not subscribed
 	models.AssertNotExistsBean(t, &models.Watch{UserID: user.ID, RepoID: repo.ID})
-	models.AssertNotExistsBean(t, &models.IssueWatch{UserID: user.ID, Mode: models.IssueWatchModeAuto})
 
 	//create new issue
 	testNewIssue(t, session, repo.OwnerName, repo.Name, "some title text", "some body text")

@@ -50,6 +50,12 @@ func TestGetIssueWatch(t *testing.T) {
 	_, exists, err = GetIssueWatch(3, 1)
 	assert.False(t, exists)
 	assert.NoError(t, err)
+
+	assert.False(t, IsWatching(1, 10))
+	iw, exists, err = GetIssueWatch(1, 8)
+	assert.True(t, exists)
+	assert.NoError(t, err)
+	assert.True(t, iw.IsWatching())
 }
 
 func TestGetIssueWatchers(t *testing.T) {

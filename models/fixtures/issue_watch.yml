@@ -29,3 +29,11 @@
   mode: 2 #IssueWatchModeDont
   created_unix: 946684800
   updated_unix: 946684800
+
+-
+  id: 5
+  user_id: 1
+  issue_id: 8
+  mode: 3 #IssueWatchModeAuto
+  created_unix: 946684800
+  updated_unix: 946684800
