@@ -48,6 +48,9 @@ func TestSearchRepo(t *testing.T) {
 	executeIndexer(t, repo, code_indexer.DeleteRepoFromIndexer)
 	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)
 
+	// To wait the indexer done.
+	time.Sleep(5 * time.Second)
+
 	testSearch(t, "/user2/glob/search?q=loren&page=1", []string{"a.txt"})
 	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt"})
 	testSearch(t, "/user2/glob/search?q=file4&page=1", []string{})
@@ -62,14 +65,6 @@ func testSearch(t *testing.T, url string, expected []string) {
 	assert.EqualValues(t, expected, filenames)
 }
 
-func executeIndexer(t *testing.T, repo *models.Repository, op func(*models.Repository, ...chan<- error)) {
-	waiter := make(chan error, 1)
-	op(repo, waiter)
-
-	select {
-	case err := <-waiter:
-		assert.NoError(t, err)
-	case <-time.After(1 * time.Minute):
-		assert.Fail(t, "Repository indexer took too long")
-	}
+func executeIndexer(t *testing.T, repo *models.Repository, op func(*models.Repository)) {
+	op(repo)
 }
