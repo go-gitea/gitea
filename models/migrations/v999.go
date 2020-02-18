@@ -71,11 +71,11 @@ func addIssueWatchModes(x *xorm.Engine) error {
 			}
 
 			if err := x.Sync2(new(IssueWatch)); err != nil {
-				_, _ = x.Exec("ALTER TABLE `temp.issue_watch_old` RENAME TO `issue_watch`;")
+				_, _ = x.Exec("CREATE TABLE issue_watch AS SELECT * FROM temp.issue_watch_old;")
 				return fmt.Errorf("Sync2: %v", err)
 			}
 
-			if _, err := x.Exec("INSERT INTO `issue_watch` (user_id,issue_id,mode,created_unix,updated_unix) SELECT user_id,issue_id,mode,created_unix,updated_unix FROM `temp.issue_watch_old`;"); err != nil {
+			if _, err := x.Exec("INSERT INTO `issue_watch` (user_id,issue_id,mode,created_unix,updated_unix) SELECT user_id,issue_id,mode,created_unix,updated_unix FROM temp.issue_watch_old;"); err != nil {
 				return err
 			}
 			if _, err := x.Exec("DROP TABLE `temp.issue_watch_old`;"); err != nil {
