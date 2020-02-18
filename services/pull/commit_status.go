@@ -91,6 +91,11 @@ func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
 
 // GetPullRequestCommitStatusState returns pull request merged commit status state
 func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStatusState, error) {
+	// Ensure HeadRepo is loaded
+	if err := pr.LoadHeadRepo(); err != nil {
+		return "", errors.Wrap(err, "LoadHeadRepo")
+	}
+
 	// check if all required status checks are successful
 	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 	if err != nil {
