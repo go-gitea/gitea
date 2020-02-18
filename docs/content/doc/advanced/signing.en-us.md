@@ -91,7 +91,7 @@ of the `user.signingkey`, `user.name` and `user.email` as appropriate.
 
 Please note: by adjusting git's `config` file within Gitea's
 repositories, `SIGNING_KEY=default` could be used to provide different
-signing keys on a per-repository basis. However, this is cleary not an
+signing keys on a per-repository basis. However, this is clearly not an
 ideal UI and therefore subject to change.
 
 ### `INITIAL_COMMIT`
