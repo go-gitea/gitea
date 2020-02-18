@@ -75,7 +75,7 @@ func addIssueWatchModes(x *xorm.Engine) error {
 				return fmt.Errorf("Sync2: %v", err)
 			}
 
-			if _, err := x.Exec("INSERT INTO `issue_watch` (user_id,issue_id,is_watching,created_unix,updated_unix) SELECT user_id,issue_id,is_watching,created_unix,updated_unix FROM `issue_watch_old`;"); err != nil {
+			if _, err := x.Exec("INSERT INTO `issue_watch` (user_id,issue_id,mode,created_unix,updated_unix) SELECT user_id,issue_id,mode,created_unix,updated_unix FROM `issue_watch_old`;"); err != nil {
 				return err
 			}
 			if _, err := x.Exec("DROP TABLE `temp.issue_watch_old`;"); err != nil {
