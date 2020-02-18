@@ -184,8 +184,7 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				var err error
-				pusher, err = models.GetUserByID(opts.PusherID)
-				if err != nil {
+				if pusher, err = models.GetUserByID(opts.PusherID); err != nil {
 					return err
 				}
 			}
