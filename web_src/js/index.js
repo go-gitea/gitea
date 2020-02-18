@@ -1116,7 +1116,7 @@ function initRepository() {
   // Branches
   if ($('.repository.settings.branches').length > 0) {
     initFilterSearchDropdown('.protected-branches .dropdown');
-    $('.enable-protection, .enable-whitelist').change(function () {
+    $('.enable-protection, .enable-whitelist, .enable-statuscheck').change(function () {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
