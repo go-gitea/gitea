@@ -208,20 +208,24 @@ func InsertReleases(rels ...*Release) error {
 	return sess.Commit()
 }
 
+func migratedIssueCond(tp structs.GitServiceType) builder.Cond {
+	return builder.In("issue_id",
+		builder.Select("issue.id").
+			From("issue").
+			InnerJoin("repository", "issue.repo_id = repository.id").
+			Where(builder.Eq{
+				"repository.original_service_type": tp,
+			}),
+	)
+}
+
 // UpdateReviewsMigrationsByType updates reviews' migrations information via given git service type and original id and poster id
 func UpdateReviewsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := x.Table("review").
-		Where(builder.In("issue_id",
-			builder.Select("issue.id").
-				From("issue").
-				InnerJoin("repository", "issue.repo_id = repository.id").
-				Where(builder.Eq{
-					"repository.original_service_type": tp,
-				}),
-		)).
-		And("review.original_author_id = ?", originalAuthorID).
+		Where("original_author_id = ?", originalAuthorID).
+		And(migratedIssueCond(tp)).
 		Update(map[string]interface{}{
-			"poster_id":          posterID,
+			"reviewer_id":        posterID,
 			"original_author":    "",
 			"original_author_id": 0,
 		})
