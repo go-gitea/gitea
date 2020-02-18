@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -43,7 +44,7 @@ func CreateOrUpdateIssueWatchMode(userID, issueID int64, mode IssueWatchMode) er
 		return err
 	}
 	if !exist {
-		if _, err := x.Exec(fmt.Sprintf("INSERT INTO issue_watch(user_id,issue_id,mode) SELECT %d,%d,%d WHERE NOT EXISTS(SELECT 1 FROM issue_watch WHERE user_id = %d AND issue_id = %d);", userID, issueID, mode, userID, issueID)); err != nil {
+		if _, err := x.Exec(fmt.Sprintf("INSERT INTO issue_watch(user_id,issue_id,mode,created_unix) SELECT %d,%d,%d,%d WHERE NOT EXISTS(SELECT 1 FROM issue_watch WHERE user_id = %d AND issue_id = %d);", userID, issueID, mode, time.Now().Unix(), userID, issueID)); err != nil {
 			return err
 		}
 		return nil
