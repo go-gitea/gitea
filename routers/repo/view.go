@@ -36,6 +36,45 @@ const (
 	tplMigrating base.TplName = "repo/migrating"
 )
 
+// FIXME: There has to be a more efficient way of doing this
+func getReadmeFileFromPath(commit *git.Commit, treePath string) (*git.Blob, error) {
+	tree, err := commit.SubTree(treePath)
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := tree.ListEntries()
+	if err != nil {
+		return nil, err
+	}
+	entries.CustomSort(base.NaturalSortLess)
+
+	var readmeFiles [4]*git.Blob
+	var exts = []string{".md", ".txt", ""} // sorted by priority
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		for i, ext := range exts {
+			if markup.IsReadmeFile(entry.Name(), ext) {
+				readmeFiles[i] = entry.Blob()
+			}
+		}
+
+		if markup.IsReadmeFile(entry.Name()) {
+			readmeFiles[3] = entry.Blob()
+		}
+	}
+	var readmeFile *git.Blob
+	for _, f := range readmeFiles {
+		if f != nil {
+			readmeFile = f
+			break
+		}
+	}
+	return readmeFile, nil
+}
+
 func renderDirectory(ctx *context.Context, treeLink string) {
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
 	if err != nil {
@@ -66,9 +105,25 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	// the last one is for a readme that doesn't
 	// strictly match an extension
 	var readmeFiles [4]*git.Blob
+	var docsEntries [3]*git.TreeEntry
 	var exts = []string{".md", ".txt", ""} // sorted by priority
 	for _, entry := range entries {
 		if entry.IsDir() {
+			lowerName := strings.ToLower(entry.Name())
+			switch lowerName {
+			case "docs":
+				if entry.Name() == "docs" || docsEntries[0] == nil {
+					docsEntries[0] = entry
+				}
+			case ".gitea":
+				if entry.Name() == ".gitea" || docsEntries[1] == nil {
+					docsEntries[1] = entry
+				}
+			case ".github":
+				if entry.Name() == ".github" || docsEntries[2] == nil {
+					docsEntries[2] = entry
+				}
+			}
 			continue
 		}
 
@@ -84,10 +139,28 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	var readmeFile *git.Blob
+	readmeTreelink := treeLink
 	for _, f := range readmeFiles {
 		if f != nil {
 			readmeFile = f
 			break
+		}
+	}
+
+	if ctx.Repo.TreePath == "" && readmeFile == nil {
+		for _, entry := range docsEntries {
+			if entry == nil {
+				continue
+			}
+			readmeFile, err = getReadmeFileFromPath(ctx.Repo.Commit, entry.GetSubJumpablePathName())
+			if err != nil {
+				ctx.ServerError("getReadmeFileFromPath", err)
+				return
+			}
+			if readmeFile != nil {
+				readmeTreelink = treeLink + "/" + entry.GetSubJumpablePathName()
+				break
+			}
 		}
 	}
 
@@ -173,7 +246,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				if markupType := markup.Type(readmeFile.Name()); markupType != "" {
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["MarkupType"] = string(markupType)
-					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
+					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, readmeTreelink, ctx.Repo.Repository.ComposeMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
 					ctx.Data["FileContent"] = strings.Replace(
