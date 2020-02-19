@@ -188,8 +188,7 @@ var migrations = []Migration{
 	NewMigration("Fix topic repository count", fixTopicRepositoryCount),
 	// v127 -> v128
 	NewMigration("add repository code language statistics", addLanguageStats),
-
-	// v999 has no number jet
+	// v128 -> v129
 	NewMigration("Change from IsWatching to Modes at IssueWatch", addIssueWatchModes),
 }
 
