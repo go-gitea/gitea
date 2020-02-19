@@ -72,15 +72,8 @@ func DeleteIssueWatch(userID, issueID int64) error {
 }
 
 func deleteIssueWatch(e Engine, userID, issueID int64) error {
-	iw, exists, err := getIssueWatch(e, userID, issueID)
-	if err != nil {
-		return err
-	}
-	if exists {
-		_, err = e.ID(iw.ID).Delete(iw)
-		return err
-	}
-	return nil
+	_, err := e.Where("user_id = ?", userID).And("issue_id = ?", issueID).Delete(iw)
+	return err
 }
 
 // GetIssueWatch returns all IssueWatch objects from db by user and issue
