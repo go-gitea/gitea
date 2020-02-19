@@ -1352,6 +1352,36 @@ type IssueStatsOptions struct {
 
 // GetIssueStats returns issue statistic information by given conditions.
 func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
+	if len(opts.IssueIDs) <= maxQueryParameters {
+		return getIssueStatsChunk(opts, opts.IssueIDs)
+	}
+
+	// If too long a list of IDs is provided, we get the statistics in
+	// smaller chunks and get accumulates. Note: this could potentially
+	// get us invalid results. The alternative is to insert the list of
+	// ids in a temporary table and join from them.
+	accum := &IssueStats{}
+	for i := 0; i < len(opts.IssueIDs); {
+		chunk := i + maxQueryParameters
+		if chunk > len(opts.IssueIDs) {
+			chunk = len(opts.IssueIDs)
+		}
+		stats, err := getIssueStatsChunk(opts, opts.IssueIDs[i:chunk])
+		if err != nil {
+			return nil, err
+		}
+		accum.OpenCount += stats.OpenCount
+		accum.ClosedCount += stats.ClosedCount
+		accum.YourRepositoriesCount += stats.YourRepositoriesCount
+		accum.AssignCount += stats.AssignCount
+		accum.CreateCount += stats.CreateCount
+		accum.OpenCount += stats.MentionCount
+		i = chunk
+	}
+	return accum, nil
+}
+
+func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats, error) {
 	stats := &IssueStats{}
 
 	countSession := func(opts *IssueStatsOptions) *xorm.Session {
@@ -1843,9 +1873,8 @@ func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, origina
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
 func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, userID int64) error {
 	_, err := x.Table("reaction").
-		Join("INNER", "issue", "issue.id = reaction.issue_id").
-		Where("issue.repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
-		And("reaction.original_author_id = ?", originalAuthorID).
+		Where("original_author_id = ?", originalAuthorID).
+		And(migratedIssueCond(gitServiceType)).
 		Update(map[string]interface{}{
 			"user_id":            userID,
 			"original_author":    "",

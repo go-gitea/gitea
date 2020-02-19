@@ -4,6 +4,20 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.1](https://github.com/go-gitea/gitea/releases/tag/v1.11.1) - 2020-02-15
+
+* BUGFIXES
+  * Repo name added to automatically generated commit message when merging (#9997) (#10285)
+  * Fix Workerpool deadlock (#10283) (#10284)
+  * Divide GetIssueStats query in smaller chunks (#10176) (#10282)
+  * Fix reply on code review (#10257)
+  * Stop hanging issue indexer initialisation from preventing shutdown (#10243) (#10249)
+  * Fix filter label emoji width (#10241) (#10244)
+  * Fix issue sidebar menus having an infinite height (#10239) (#10240)
+  * Fix commit between two commits calculation if there is only last commit (#10225) (#10226)
+  * Only check for conflicts/merging if the PR has not been merged in the interim (#10132) (#10206)
+  * Blacklist manifest.json & milestones user (#10292) (#10293)
+
 ## [1.11.0](https://github.com/go-gitea/gitea/releases/tag/v1.11.0) - 2020-02-10
 * BREAKING
   * Fix followers and following tabs in profile (#10202) (#10203)
@@ -452,6 +466,19 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Upgrade gopkg.in/ini.v1 (#8500)
   * Update CodeMirror to version 5.49.0 (#8381)
   * Wiki editor: enable side-by-side button (#7242)
+
+## [1.10.4](https://github.com/go-gitea/gitea/releases/tag/v1.10.4) - 2020-02-16
+
+* FEATURE
+  * Prevent empty LDAP search from deactivating all users (#9879) (#9890)
+* BUGFIXES
+  * Fix reply on code review (#10261) (#10227)
+  * Fix branch page pull request title and link error (#10092) (#10098)
+  * Fix milestone API state parameter unhandled (#10049) (#10053)
+  * Fix wiki raw view on sub path (#10002) (#10041)
+  * Fix RocketChat Webhook (#9908) (#9921) (#9925)
+  * Fix bug about wrong dependencies permissions check and other wrong permissions check (#9884) (Partial backport #9842)
+  * Ensure that 2fa is checked on reset-password (#9857) (#9877)
 
 ## [1.10.3](https://github.com/go-gitea/gitea/releases/tag/v1.10.3) - 2020-01-17
 * SECURITY

@@ -1116,7 +1116,7 @@ function initRepository() {
   // Branches
   if ($('.repository.settings.branches').length > 0) {
     initFilterSearchDropdown('.protected-branches .dropdown');
-    $('.enable-protection, .enable-whitelist').change(function () {
+    $('.enable-protection, .enable-whitelist, .enable-statuscheck').change(function () {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
@@ -3559,6 +3559,14 @@ window.cancelCodeComment = function (btn) {
     form.closest('.comment-code-cloud').remove();
   }
 };
+
+window.submitReply = function (btn) {
+  const form = $(btn).closest('form');
+  if (form.length > 0 && form.hasClass('comment-form')) {
+    form.submit();
+  }
+};
+
 window.onOAuthLoginClick = function () {
   const oauthLoader = $('#oauth2-login-loader');
   const oauthNav = $('#oauth2-login-navigator');
@@ -3573,3 +3581,12 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
+
+// Pull SVGs via AJAX to workaround CORS issues with <use> tags
+// https://css-tricks.com/ajaxing-svg-sprite/
+$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
+  const div = document.createElement('div');
+  div.style.display = 'none';
+  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
+  document.body.insertBefore(div, document.body.childNodes[0]);
+});

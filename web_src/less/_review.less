@@ -132,3 +132,36 @@
 .ui.blob-excerpt:hover {
     color: #428bca;
 }
+
+@media only screen and (max-width: 768px) {
+    #review-box > .menu {
+        > .ui.segment {
+            width: 94vw;
+        }
+        .editor-toolbar {
+            overflow-x: auto;
+        }
+    }
+
+    #review-box .CodeMirror-scroll {
+        max-width: calc(100vw - 70px);
+    }
+}
+
+@media only screen and (min-width: 768px) and (max-width: 992px) {
+    #review-box .CodeMirror-scroll {
+        max-width: 700px;
+    }
+}
+
+@media only screen and (min-width: 992px) and (max-width: 1200px) {
+    #review-box .CodeMirror-scroll {
+        max-width: 800px;
+    }
+}
+
+@media only screen and (min-width: 1200px) {
+    #review-box .CodeMirror-scroll {
+        max-width: 900px;
+    }
+}
