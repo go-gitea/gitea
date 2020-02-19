@@ -30,16 +30,8 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		return err
 	}
 
-	if x.Dialect().DBType() == core.SQLITE {
-		if _, err := x.Exec("ALTER TABLE issue_watch ADD mode INTEGER NOT NULL DEFAULT 1;"); err != nil {
-			return err
-		}
-	}
-
-	if x.Dialect().DBType() != core.SQLITE {
-		if err := sess.Sync2(new(IssueWatch)); err != nil {
-			return fmt.Errorf("Sync2: %v", err)
-		}
+	if err := sess.Sync2(new(IssueWatch)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
 	}
 
 	if _, err := sess.Where("is_watching = ?", false).Cols("mode").Update(&models.IssueWatch{Mode: models.IssueWatchModeDont}); err != nil {
