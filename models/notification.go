@@ -176,11 +176,11 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 
 	// if Issue/Comment creator/updater is not subscribed ... auto subscribe to issue
 	if _, ok := toNotify[notificationAuthorID]; !ok {
-		go func() {
-			if err := CreateOrUpdateIssueWatchMode(notificationAuthorID, issueID, IssueWatchModeAuto); err != nil {
-				log.Error(err.Error())
-			}
-		}()
+
+		if err := createOrUpdateIssueWatchMode(e, notificationAuthorID, issueID, IssueWatchModeAuto); err != nil {
+			return err
+		}
+
 	}
 
 	// notify

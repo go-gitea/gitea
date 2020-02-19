@@ -44,21 +44,21 @@ func CreateOrUpdateIssueWatchMode(userID, issueID int64, mode IssueWatchMode) er
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := sess.Exec(fmt.Sprintf("INSERT INTO issue_watch(user_id,issue_id,mode,created_unix,updated_unix) SELECT %d,%d,%d,%d,%d WHERE NOT EXISTS(SELECT 1 FROM issue_watch WHERE user_id = %d AND issue_id = %d);", userID, issueID, mode, time.Now().Unix(), time.Now().Unix(), userID, issueID)); err != nil {
-		return err
-	}
-	iw, exist, err := getIssueWatch(sess, userID, issueID)
-	if err != nil && !exist {
-		return err
-	}
-	iw.Mode = mode
-	if err := updateIssueWatch(sess, iw); err != nil {
+	if err := createOrUpdateIssueWatchMode(sess, userID, issueID, mode); err != nil {
 		return err
 	}
 	return sess.Commit()
 }
 
-func updateIssueWatch(e Engine, iw *IssueWatch) error {
+func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWatchMode) error {
+	if _, err := e.Exec(fmt.Sprintf("INSERT INTO issue_watch(user_id,issue_id,mode,created_unix,updated_unix) SELECT %d,%d,%d,%d,%d WHERE NOT EXISTS(SELECT 1 FROM issue_watch WHERE user_id = %d AND issue_id = %d);", userID, issueID, mode, time.Now().Unix(), time.Now().Unix(), userID, issueID)); err != nil {
+		return err
+	}
+	iw, exist, err := getIssueWatch(e, userID, issueID)
+	if err != nil && !exist {
+		return err
+	}
+	iw.Mode = mode
 	iw.UpdatedUnix = timeutil.TimeStampNow()
 	if _, err := e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
 		return err
