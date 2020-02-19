@@ -56,6 +56,9 @@ func ReplaceSanitizer() {
 	// Allow classes for anchors
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`ref-issue`)).OnElements("a")
 
+	// Allow more characters in title attribute per commonmark spec
+	sanitizer.policy.AllowAttrs("title").Matching(regexp.MustCompile(`(.*?)`)).OnElements("a")
+
 	// Custom keyword markup
 	for _, rule := range setting.ExternalSanitizerRules {
 		if rule.Regexp != nil {
