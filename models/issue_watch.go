@@ -39,18 +39,23 @@ type IssueWatchList []*IssueWatch
 
 // CreateOrUpdateIssueWatchMode set IssueWatchMode for a user and issue
 func CreateOrUpdateIssueWatchMode(userID, issueID int64, mode IssueWatchMode) error {
-	iw, exist, err := getIssueWatch(x, userID, issueID)
-	if err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if !exist {
-		if _, err := x.Exec(fmt.Sprintf("INSERT INTO issue_watch(user_id,issue_id,mode,created_unix,updated_unix) SELECT %d,%d,%d,%d,%d WHERE NOT EXISTS(SELECT 1 FROM issue_watch WHERE user_id = %d AND issue_id = %d);", userID, issueID, mode, time.Now().Unix(), time.Now().Unix(), userID, issueID)); err != nil {
-			return err
-		}
-		return nil
+	if _, err := sess.Exec(fmt.Sprintf("INSERT INTO issue_watch(user_id,issue_id,mode,created_unix,updated_unix) SELECT %d,%d,%d,%d,%d WHERE NOT EXISTS(SELECT 1 FROM issue_watch WHERE user_id = %d AND issue_id = %d);", userID, issueID, mode, time.Now().Unix(), time.Now().Unix(), userID, issueID)); err != nil {
+		return err
+	}
+	iw, exist, err := getIssueWatch(sess, userID, issueID)
+	if err != nil && !exist {
+		return err
 	}
 	iw.Mode = mode
-	return updateIssueWatch(x, iw)
+	if err := updateIssueWatch(sess, iw); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 func updateIssueWatch(e Engine, iw *IssueWatch) error {
