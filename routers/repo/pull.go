@@ -807,6 +807,12 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
+		} else if models.IsErrPushRejected(err) {
+			log.Debug("MergePushRejected error: %v", err)
+			pushrejErr := err.(models.ErrPushRejected)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected", pushrejErr.Message))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
 		}
 		ctx.ServerError("Merge", err)
 		return

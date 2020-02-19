@@ -392,6 +392,13 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 				StdErr: errbuf.String(),
 				Err:    err,
 			}
+		} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
+			return "", models.ErrPushRejected{
+				Style:  mergeStyle,
+				StdOut: outbuf.String(),
+				StdErr: errbuf.String(),
+				Err:    err,
+			}
 		}
 		return "", fmt.Errorf("git push: %s", errbuf.String())
 	}
