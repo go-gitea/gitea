@@ -219,16 +219,17 @@ func pushUpdates(optsList []*PushUpdateOptions) error {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 
-				if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
-					log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
-				}
-
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
 				go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
 			} else if err = pull_service.CloseBranchPulls(pusher, repo.ID, branch); err != nil {
 				// close all related pulls
 				log.Error("close related pull request failed: %v", err)
+			}
+
+			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
+			if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
+				log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
 			}
 		}
 		actions = append(actions, &commitRepoActionOptions{
