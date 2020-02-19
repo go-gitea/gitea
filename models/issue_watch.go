@@ -72,7 +72,7 @@ func DeleteIssueWatch(userID, issueID int64) error {
 }
 
 func deleteIssueWatch(e Engine, userID, issueID int64) error {
-	_, err := e.Where("user_id = ?", userID).And("issue_id = ?", issueID).Delete(iw)
+	_, err := e.Where("user_id = ?", userID).And("issue_id = ?", issueID).Delete(new(IssueWatch))
 	return err
 }
 
