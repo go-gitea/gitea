@@ -21,8 +21,6 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		Mode        models.IssueWatchMode `xorm:"NOT NULL DEFAULT 1"`
 		CreatedUnix timeutil.TimeStamp    `xorm:"created NOT NULL"`
 		UpdatedUnix timeutil.TimeStamp    `xorm:"updated NOT NULL"`
-		//for convert query's make sure column exist
-		IsWatching bool
 	}
 
 	sess := x.NewSession()

@@ -54,6 +54,7 @@ func CreateOrUpdateIssueWatchMode(userID, issueID int64, mode IssueWatchMode) er
 }
 
 func updateIssueWatch(e Engine, iw *IssueWatch) error {
+	iw.UpdatedUnix = timeutil.TimeStampNow()
 	if _, err := e.ID(iw.ID).Cols("updated_unix", "mode").Update(iw); err != nil {
 		return err
 	}
