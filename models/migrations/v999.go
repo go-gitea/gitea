@@ -53,7 +53,6 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		return err
 	}
 
-	//sqlite is done from L36-49 (you cant alter a column)
 	switch x.Dialect().DBType() {
 	case core.POSTGRES:
 	case core.MYSQL:
