@@ -1025,7 +1025,7 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 		data := com.ToStr(user.ID) + email + user.LowerName + user.Passwd + user.Rands
 
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
-			emailAddress := &EmailAddress{Email: email}
+			emailAddress := &EmailAddress{UID: user.ID, Email: email}
 			if has, _ := x.Get(emailAddress); has {
 				return emailAddress
 			}
