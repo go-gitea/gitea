@@ -22,6 +22,8 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		Mode        models.IssueWatchMode `xorm:"NOT NULL DEFAULT 1"`
 		CreatedUnix timeutil.TimeStamp    `xorm:"created NOT NULL"`
 		UpdatedUnix timeutil.TimeStamp    `xorm:"updated NOT NULL"`
+		//for convert query's make sure column exist
+		IsWatching bool
 	}
 
 	sess := x.NewSession()
@@ -54,7 +56,7 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		}
 	case core.SQLITE:
 		if x.Dialect().DBType() == core.SQLITE {
-			if _, err := x.Exec("CREATE TABLE temp.issue_watch_old AS SELECT * FROM issue_watch;"); err != nil {
+			if _, err := x.Exec("CREATE TABLE issue_watch_old AS SELECT * FROM issue_watch;"); err != nil {
 				return err
 			}
 			if _, err := x.Exec("DROP TABLE issue_watch;"); err != nil {
@@ -62,14 +64,14 @@ func addIssueWatchModes(x *xorm.Engine) error {
 			}
 
 			if err := x.Sync2(new(IssueWatch)); err != nil {
-				_, _ = x.Exec("CREATE TABLE issue_watch AS SELECT * FROM temp.issue_watch_old;")
+				_, _ = x.Exec("CREATE TABLE issue_watch AS SELECT * FROM issue_watch_old;")
 				return fmt.Errorf("Sync2: %v", err)
 			}
 
-			if _, err := x.Exec("INSERT INTO `issue_watch` (user_id,issue_id,mode,created_unix,updated_unix) SELECT user_id,issue_id,mode,created_unix,updated_unix FROM temp.issue_watch_old;"); err != nil {
+			if _, err := x.Exec("INSERT INTO `issue_watch` (user_id,issue_id,mode,created_unix,updated_unix) SELECT user_id,issue_id,mode,created_unix,updated_unix FROM issue_watch_old;"); err != nil {
 				return err
 			}
-			if _, err := x.Exec("DROP TABLE `temp.issue_watch_old`;"); err != nil {
+			if _, err := x.Exec("DROP TABLE `issue_watch_old`;"); err != nil {
 				return err
 			}
 		}
