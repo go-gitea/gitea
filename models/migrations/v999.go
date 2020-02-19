@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"xorm.io/core"
 	"xorm.io/xorm"
 )
 
@@ -43,54 +42,9 @@ func addIssueWatchModes(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := dropTableColumns(sess, "issue_watch", "is_watching"); err != nil {
 		return err
 	}
 
-	switch x.Dialect().DBType() {
-	case core.MYSQL:
-		if _, err := x.Exec("ALTER TABLE `issue_watch` MODIFY `is_watching` tinyint(1) NULL;"); err != nil {
-			return err
-		}
-		if _, err := x.Exec("ALTER TABLE issue_watch DROP COLUMN is_watching;"); err != nil {
-			return err
-		}
-	case core.MSSQL:
-		if _, err := x.Exec("ALTER TABLE issue_watch ALTER COLUMN is_watching bit NULL;"); err != nil {
-			return err
-		}
-		if _, err := x.Exec("ALTER TABLE issue_watch DROP COLUMN is_watching;"); err != nil {
-			return err
-		}
-	case core.POSTGRES:
-		if _, err := x.Exec("ALTER TABLE issue_watch ALTER COLUMN is_watching DROP NOT NULL;"); err != nil {
-			return err
-
-		}
-		if _, err := x.Exec("ALTER TABLE issue_watch DROP COLUMN is_watching;"); err != nil {
-			return err
-		}
-	case core.SQLITE:
-		if x.Dialect().DBType() == core.SQLITE {
-			if _, err := x.Exec("CREATE TABLE issue_watch_old AS SELECT * FROM issue_watch;"); err != nil {
-				return err
-			}
-			if _, err := x.Exec("DROP TABLE issue_watch;"); err != nil {
-				return err
-			}
-
-			if err := x.Sync2(new(IssueWatch)); err != nil {
-				_, _ = x.Exec("CREATE TABLE issue_watch AS SELECT * FROM issue_watch_old;")
-				return fmt.Errorf("Sync2: %v", err)
-			}
-
-			if _, err := x.Exec("INSERT INTO `issue_watch` (user_id,issue_id,mode,created_unix,updated_unix) SELECT user_id,issue_id,mode,created_unix,updated_unix FROM issue_watch_old;"); err != nil {
-				return err
-			}
-			if _, err := x.Exec("DROP TABLE `issue_watch_old`;"); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return sess.Commit()
 }
