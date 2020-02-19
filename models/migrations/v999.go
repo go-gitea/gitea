@@ -49,10 +49,16 @@ func addIssueWatchModes(x *xorm.Engine) error {
 
 	switch x.Dialect().DBType() {
 	case core.MYSQL:
-		if _, err := x.Exec("ALTER TABLE issue_watch DROP COLUMN IF EXISTS is_watching;"); err != nil {
+		if _, err := x.Exec("ALTER TABLE `issue_watch` MODIFY `is_watching` tinyint(1) NULL;"); err != nil {
+			return err
+		}
+		if _, err := x.Exec("ALTER TABLE issue_watch DROP COLUMN is_watching;"); err != nil {
 			return err
 		}
 	case core.MSSQL:
+		if _, err := x.Exec("ALTER TABLE issue_watch ALTER COLUMN is_watching bit NULL;"); err != nil {
+			return err
+		}
 		if _, err := x.Exec("ALTER TABLE issue_watch DROP COLUMN is_watching;"); err != nil {
 			return err
 		}
