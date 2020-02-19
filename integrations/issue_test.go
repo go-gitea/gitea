@@ -83,8 +83,6 @@ func TestIssueAutoSubscription(t *testing.T) {
 	newIssue, err := models.GetIssueByIndex(repo.ID, 1)
 	assert.NoError(t, err)
 
-	time.Sleep(1 * time.Second)
-
 	models.AssertNotExistsBean(t, &models.Watch{UserID: user.ID, RepoID: repo.ID})
 	issueWatch := models.AssertExistsAndLoadBean(t, &models.IssueWatch{UserID: user.ID, IssueID: newIssue.ID}).(*models.IssueWatch)
 	assert.Equal(t, models.IssueWatchModeAuto, issueWatch.Mode)
