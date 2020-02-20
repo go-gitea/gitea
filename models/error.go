@@ -1374,10 +1374,11 @@ func (err ErrMergePushOutOfDate) Error() string {
 
 // ErrPushRejected represents an error if merging fails due to rejection from a hook
 type ErrPushRejected struct {
-	Style  MergeStyle
-	StdOut string
-	StdErr string
-	Err    error
+	Style   MergeStyle
+	Message string
+	StdOut  string
+	StdErr  string
+	Err     error
 }
 
 // IsErrPushRejected checks if an error is a ErrPushRejected.
@@ -1390,8 +1391,8 @@ func (err ErrPushRejected) Error() string {
 	return fmt.Sprintf("Merge PushRejected Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
 }
 
-// Message returns the cleaned message from Error
-func (err ErrPushRejected) Message() string {
+// GenerateMessage generates the remote message from the stderr
+func (err ErrPushRejected) GenerateMessage() {
 	messageBuilder := &strings.Builder{}
 	i := 0
 	for {
@@ -1411,7 +1412,7 @@ func (err ErrPushRejected) Message() string {
 			i = len(err.StdErr)
 		}
 	}
-	return messageBuilder.String()
+	err.Message = strings.TrimSpace(messageBuilder.String())
 }
 
 // ErrRebaseConflicts represents an error if rebase fails with a conflict

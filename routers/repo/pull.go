@@ -775,12 +775,12 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	if err = pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		sanitize := func(x string) string {
+			x = strings.Replace(x, setting.RepoRootPath, "{repositories}", -1)
 			runes := []rune(x)
 
 			if len(runes) > 512 {
 				x = "..." + string(runes[len(runes)-512:])
 			}
-
 			return strings.Replace(html.EscapeString(x), "\n", "<br>", -1)
 		}
 		if models.IsErrInvalidMergeStyle(err) {
@@ -810,7 +810,12 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		} else if models.IsErrPushRejected(err) {
 			log.Debug("MergePushRejected error: %v", err)
 			pushrejErr := err.(models.ErrPushRejected)
-			ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected", pushrejErr.Message))
+			message := pushrejErr.Message
+			if len(message) == 0 {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))
+			} else {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected", sanitize(pushrejErr.Message)))
+			}
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
 		}
