@@ -1392,9 +1392,13 @@ func (err ErrPushRejected) Error() string {
 }
 
 // GenerateMessage generates the remote message from the stderr
-func (err ErrPushRejected) GenerateMessage() {
+func (err *ErrPushRejected) GenerateMessage() {
 	messageBuilder := &strings.Builder{}
-	i := 0
+	i := strings.Index(err.StdErr, "remote: ")
+	if i < 0 {
+		err.Message = ""
+		return
+	}
 	for {
 		if len(err.StdErr) <= i+8 {
 			break
