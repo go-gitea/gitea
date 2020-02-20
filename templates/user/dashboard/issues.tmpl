@@ -66,7 +66,6 @@
 						</div>
 					</div>
 					<div class="column center aligned">
-					{{if .PageIsIssues}}
 						<form class="ui form ignore-dirty">
 							<div class="ui fluid action input">
 								<input type="hidden" name="type" value="{{$.ViewType}}"/>
@@ -79,7 +78,6 @@
 								<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
 							</div>
 						</form>
-					{{end}}
 					</div>
 					<div class="column right aligned">
 						<!-- Sort -->

@@ -76,7 +76,7 @@ var (
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
 const issueMaxDupIndexAttempts = 3
-const maxIssueIDs = 1000
+const maxIssueIDs = 950
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -1252,7 +1252,6 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error
 	accessCond := accessibleRepositoryCondition(user)
 	if err := sess.Where(accessCond).
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id").
-		GroupBy("issue.repo_id").
 		Distinct("issue.repo_id").
 		Table("issue").
 		Find(&repoIDs); err != nil {

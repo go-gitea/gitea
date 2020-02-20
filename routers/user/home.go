@@ -467,31 +467,26 @@ func Issues(ctx *context.Context) {
 
 	var forceEmpty bool
 	var issueIDsFromSearch []int64
-	var keyword string
-	if !isPullList {
-		keyword = strings.Trim(ctx.Query("q"), " ")
-		if bytes.Contains([]byte(keyword), []byte{0x00}) {
-			keyword = ""
-		}
+	var keyword = strings.Trim(ctx.Query("q"), " ")
 
-		if len(keyword) > 0 {
-			searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
-			if err != nil {
-				ctx.ServerError("GetRepoIDsForIssuesOptions", err)
-				return
-			}
-			issueIDsFromSearch, err = issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
-			if err != nil {
-				ctx.ServerError("SearchIssuesByKeyword", err)
-				return
-			}
-			if len(issueIDsFromSearch) > 0 {
-				opts.IssueIDs = issueIDsFromSearch
-			} else {
-				forceEmpty = true
-			}
+	if len(keyword) > 0 {
+		searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
+		if err != nil {
+			ctx.ServerError("GetRepoIDsForIssuesOptions", err)
+			return
+		}
+		issueIDsFromSearch, err = issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
+		if err != nil {
+			ctx.ServerError("SearchIssuesByKeyword", err)
+			return
+		}
+		if len(issueIDsFromSearch) > 0 {
+			opts.IssueIDs = issueIDsFromSearch
+		} else {
+			forceEmpty = true
 		}
 	}
+
 	ctx.Data["Keyword"] = keyword
 
 	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
