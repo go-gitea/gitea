@@ -242,6 +242,7 @@ relation to port exhaustion.
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `REPO_INDEXER_INCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **include** in the index. Use `**.txt` to match any files with .txt extension. An empty list means include all files.
 - `REPO_INDEXER_EXCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **exclude** from the index. Files that match this list will not be indexed, even if they match in `REPO_INDEXER_INCLUDE`.
+- `REPO_INDEXER_EXCLUDE_VENDORED`: **true**: Exclude vendored files from index.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 - `STARTUP_TIMEOUT`: **30s**: If the indexer takes longer than this timeout to start - fail. (This timeout will be added to the hammer time above for child processes - as bleve will not start until the previous parent is shutdown.) Set to zero to never timeout.

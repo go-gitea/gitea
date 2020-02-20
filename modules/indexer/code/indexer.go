@@ -12,22 +12,34 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // SearchResult result of performing a search in a repo
 type SearchResult struct {
-	RepoID     int64
-	StartIndex int
-	EndIndex   int
-	Filename   string
-	Content    string
+	RepoID      int64
+	StartIndex  int
+	EndIndex    int
+	Filename    string
+	Content     string
+	CommitID    string
+	UpdatedUnix timeutil.TimeStamp
+	Language    string
+	Color       string
+}
+
+// SearchResultLanguages result of top languages count in search results
+type SearchResultLanguages struct {
+	Language string
+	Color    string
+	Count    int
 }
 
 // Indexer defines an interface to indexer issues contents
 type Indexer interface {
 	Index(repoID int64) error
 	Delete(repoID int64) error
-	Search(repoIDs []int64, keyword string, page, pageSize int) (int64, []*SearchResult, error)
+	Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error)
 	Close()
 }
 
