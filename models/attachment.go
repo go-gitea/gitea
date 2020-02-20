@@ -79,7 +79,11 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 			return nil, UnitTypeIssues, err
 		}
 		repo, err := GetRepositoryByID(iss.RepoID)
-		return repo, UnitTypeIssues, err
+		unitType := UnitTypeIssues
+		if iss.IsPull {
+			unitType = UnitTypePullRequests
+		}
+		return repo, unitType, err
 	} else if a.ReleaseID != 0 {
 		rel, err := GetReleaseByID(a.ReleaseID)
 		if err != nil {
