@@ -5,6 +5,7 @@
 package utils
 
 import (
+	"html"
 	"strings"
 )
 
@@ -33,4 +34,15 @@ func IsValidSlackChannel(channelName string) bool {
 	}
 
 	return true
+}
+
+// SanitizeFlashErrorString will sanitize a flash error string
+func SanitizeFlashErrorString(x string) string {
+	runes := []rune(x)
+
+	if len(runes) > 512 {
+		x = "..." + string(runes[len(runes)-512:])
+	}
+
+	return strings.Replace(html.EscapeString(x), "\n", "<br>", -1)
 }
