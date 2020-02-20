@@ -1372,7 +1372,7 @@ func (err ErrMergePushOutOfDate) Error() string {
 	return fmt.Sprintf("Merge PushOutOfDate Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
 }
 
-// ErrPushRejected represents an error if merging fails due to unrelated histories
+// ErrPushRejected represents an error if merging fails due to rejection from a hook
 type ErrPushRejected struct {
 	Style  MergeStyle
 	StdOut string
@@ -1401,7 +1401,7 @@ func (err ErrPushRejected) Message() string {
 		if err.StdErr[i:i+8] != "remote: " {
 			break
 		}
-		i = i + 8
+		i += 8
 		nl := strings.IndexByte(err.StdErr[i:], '\n')
 		if nl > 0 {
 			messageBuilder.WriteString(err.StdErr[i : i+nl+1])
