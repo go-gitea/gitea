@@ -52,7 +52,6 @@ func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, 
 
 				lnk := string(link)
 				lnk = giteautil.URLJoin(prefix, lnk)
-				lnk = strings.Replace(lnk, " ", "+", -1)
 				link = []byte(lnk)
 			}
 			v.Destination = link
