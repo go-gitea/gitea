@@ -467,7 +467,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
+# golang.org/x/crypto v0.0.0-20200219234226-1ad67e1f0ef4
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/argon2
@@ -492,6 +492,7 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
+golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
 golang.org/x/net/context
@@ -508,7 +509,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
+# golang.org/x/sys v0.0.0-20200219091948-cb0a6d8edb6c
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
