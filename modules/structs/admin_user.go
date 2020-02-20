@@ -21,6 +21,14 @@ type CreateUserOption struct {
 	SendNotify         bool   `json:"send_notify"`
 }
 
+// CreateOauthApplicationOption create user options
+type CreateOauthApplicationOption struct {
+	// required: true
+	Name string `json:"name" binding:"Required"`
+	// required: true
+	RedirectURIs []string `json:"redirect-uri" binding:"Required"`
+}
+
 // EditUserOption edit user options
 type EditUserOption struct {
 	SourceID  int64  `json:"source_id"`
