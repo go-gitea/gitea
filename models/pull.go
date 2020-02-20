@@ -8,6 +8,7 @@ package models
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -769,6 +770,14 @@ func (pr *PullRequest) GetWorkInProgressPrefix() string {
 		}
 	}
 	return ""
+}
+
+// GetPatchPath returns the patch file path and not check if the patch exist.
+func (pr *PullRequest) GetPatchFilePath() (string, error) {
+	if err := pr.GetBaseRepo(); err != nil {
+		return "", err
+	}
+	return filepath.Join(pr.BaseRepo.RepoPath(), "pulls", fmt.Sprintf("%d.patch", pr.Index)),nil
 }
 
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head

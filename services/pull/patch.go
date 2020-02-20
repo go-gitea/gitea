@@ -31,34 +31,72 @@ func DownloadPatch(pr *models.PullRequest, w io.Writer, patch bool) error {
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
 func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error {
-	// Clone base repo.
-	tmpBasePath, err := createTemporaryRepo(pr)
-	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
+	if patch {
+		patchPath, err := pr.GetPatchFilePath()
+		if err != nil {
+			return err
+		}
+
+		if patchPath != "" {
+			stat, err := os.Stat(patchPath)
+			if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+			if err == nil && !stat.IsDir() {
+				f, err := os.Open(patchPath)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+				_, err = io.Copy(w, f)
+				return err
+			}
+		}
+	}
+
+	if !pr.IsSameRepo() {
+		// Clone base repo.
+		tmpBasePath, err := createTemporaryRepo(pr)
+		if err != nil {
+			log.Error("CreateTemporaryPath: %v", err)
+			return err
+		}
+		defer func() {
+			if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
+				log.Error("DownloadDiff: RemoveTemporaryPath: %s", err)
+			}
+		}()
+
+		gitRepo, err := git.OpenRepository(tmpBasePath)
+		if err != nil {
+			return fmt.Errorf("OpenRepository: %v", err)
+		}
+		defer gitRepo.Close()
+
+		pr.MergeBase, err = git.NewCommand("merge-base", "--", "base", "tracking").RunInDir(tmpBasePath)
+		if err != nil {
+			pr.MergeBase = "base"
+		}
+		pr.MergeBase = strings.TrimSpace(pr.MergeBase)
+		if err := gitRepo.GetDiffOrPatch(pr.MergeBase, "tracking", w, patch); err != nil {
+			log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+			return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		}
+		return nil
+	}
+
+	if err := pr.GetBaseRepo(); err != nil {
 		return err
 	}
-	defer func() {
-		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
-			log.Error("DownloadDiff: RemoveTemporaryPath: %s", err)
-		}
-	}()
 
-	gitRepo, err := git.OpenRepository(tmpBasePath)
+	// if base repo is the same as the head repo
+	baseRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+		return err
 	}
-	defer gitRepo.Close()
+	defer baseRepo.Close()
 
-	pr.MergeBase, err = git.NewCommand("merge-base", "--", "base", "tracking").RunInDir(tmpBasePath)
-	if err != nil {
-		pr.MergeBase = "base"
-	}
-	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
-	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, "tracking", w, patch); err != nil {
-		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-	}
-	return nil
+	return baseRepo.GetPatch(pr.BaseBranch, pr.HeadBranch, w)
 }
 
 var patchErrorSuffices = []string{

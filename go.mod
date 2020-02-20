@@ -18,6 +18,7 @@ require (
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/RoaringBitmap/roaring v0.4.21 // indirect
+	github.com/Unknwon/com v0.0.0-20190321035513-0fed4efef755
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/blevesearch/bleve v0.8.1
 	github.com/blevesearch/blevex v0.0.0-20180227211930-4b158bb555a3 // indirect
