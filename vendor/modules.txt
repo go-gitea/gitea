@@ -54,6 +54,7 @@ github.com/beorn7/perks/quantile
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis
 github.com/blevesearch/bleve/analysis/analyzer/custom
+github.com/blevesearch/bleve/analysis/analyzer/keyword
 github.com/blevesearch/bleve/analysis/analyzer/standard
 github.com/blevesearch/bleve/analysis/datetime/flexible
 github.com/blevesearch/bleve/analysis/datetime/optional
@@ -62,6 +63,7 @@ github.com/blevesearch/bleve/analysis/token/lowercase
 github.com/blevesearch/bleve/analysis/token/porter
 github.com/blevesearch/bleve/analysis/token/stop
 github.com/blevesearch/bleve/analysis/token/unicodenorm
+github.com/blevesearch/bleve/analysis/tokenizer/single
 github.com/blevesearch/bleve/analysis/tokenizer/unicode
 github.com/blevesearch/bleve/document
 github.com/blevesearch/bleve/geo
