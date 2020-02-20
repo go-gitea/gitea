@@ -882,6 +882,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
 
+		m.Group("/applications", func() {
+			m.Post("/oauth2", bind(api.CreateOauthApplicationOption{}), user.CreateOauth2Application)
+		}, reqToken())
+
 		m.Any("/*", func(ctx *context.APIContext) {
 			ctx.NotFound()
 		})

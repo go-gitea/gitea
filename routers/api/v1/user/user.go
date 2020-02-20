@@ -166,3 +166,24 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	}
 	ctx.JSON(http.StatusOK, heatmap)
 }
+
+// CreateOauth2Application is the handler to create a new OAuth2 Application for the authenticated user
+func CreateOauth2Application(ctx *context.APIContext, data api.CreateOauthApplicationOption) {
+	app, err := models.CreateOAuth2Application(models.CreateOAuth2ApplicationOptions{
+		Name:         data.Name,
+		UserID:       ctx.User.ID,
+		RedirectURIs: data.RedirectURIs,
+	})
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "", "error creating oauth2 application")
+		return
+	}
+	secret, err := app.GenerateClientSecret()
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "", "error creating application secret")
+		return
+	}
+	app.ClientSecret = secret
+
+	ctx.JSON(http.StatusOK, app)
+}
