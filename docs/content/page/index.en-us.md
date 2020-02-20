@@ -123,7 +123,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
             - Cron jobs
                 - Update mirrors
                 - Repository health check
-                - Check repository statstics
+                - Check repository statistics
                 - Clean up old archives
     - Environment variables
     - Command line options
