@@ -93,6 +93,12 @@ func TestRender_Images(t *testing.T) {
 	test(
 		"[!["+title+"]("+url+")]("+href+")",
 		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+	test(
+		"!["+title+"]("+url+" \"1 -> 2 -> 3 -> 4 -> 5\")",
+		`<p><a href="`+result+`" title="1 -&gt; 2 -&gt; 3 -&gt; 4 -&gt; 5" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+	test(
+		"!["+title+"]("+url+" \"this?is#a!test:P\")",
+		`<p><a href="`+result+`" title="this?is#a!test:P" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 }
 
 func testAnswers(baseURLContent, baseURLImages string) []string {
