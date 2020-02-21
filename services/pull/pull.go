@@ -324,6 +324,10 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 		}
 	}()
 
+	if err := pr.LoadHeadRepo(); err != nil {
+		log.Error("Unable to load head repository for PR[%d] Error: %v", pr.ID, err)
+		return err
+	}
 	headRepoPath := pr.HeadRepo.RepoPath()
 
 	if err := git.Clone(headRepoPath, tmpBasePath, git.CloneRepoOptions{
@@ -340,6 +344,10 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
 
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
+		return err
+	}
 	if err := gitRepo.AddRemote("base", pr.BaseRepo.RepoPath(), false); err != nil {
 		return fmt.Errorf("tmpGitRepo.AddRemote: %v", err)
 	}
