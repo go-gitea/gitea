@@ -19,8 +19,10 @@ for (const path of glob('web_src/less/themes/*.less')) {
   themes[parse(path).name] = [path];
 }
 
+const isProduction = process.env.NODE_ENV !== 'development';
+
 module.exports = {
-  mode: 'production',
+  mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
       resolve(__dirname, 'web_src/js/index.js'),
@@ -42,7 +44,7 @@ module.exports = {
     chunkFilename: 'js/[name].js',
   },
   optimization: {
-    minimize: true,
+    minimize: isProduction,
     minimizer: [
       new TerserPlugin({
         sourceMap: true,
@@ -96,6 +98,7 @@ module.exports = {
                 resolve(__dirname, 'package-lock.json'),
                 resolve(__dirname, 'webpack.config.js'),
               ].map((path) => statSync(path).mtime.getTime()).join(':'),
+              sourceMaps: true,
               presets: [
                 [
                   '@babel/preset-env',
@@ -190,6 +193,7 @@ module.exports = {
     }),
   ],
   performance: {
+    hints: isProduction ? 'warning' : false,
     maxEntrypointSize: 512000,
     maxAssetSize: 512000,
     assetFilter: (filename) => {
@@ -200,5 +204,10 @@ module.exports = {
   },
   resolve: {
     symlinks: false,
+  },
+  watchOptions: {
+    ignored: [
+      'node_modules/**',
+    ],
   },
 };
