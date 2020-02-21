@@ -32,3 +32,19 @@ type AccessTokenList []*AccessToken
 type CreateAccessTokenOption struct {
 	Name string `json:"name" binding:"Required"`
 }
+
+// CreateOAuth2ApplicationOptions holds options to create an oauth2 application
+// swagger:parameters userCreateOAuth2Application
+type CreateOAuth2ApplicationOptions struct {
+	Name         string   `json:"name" binding:"Required"`
+	RedirectURIs []string `json:"redirect-uris" binding:"Required"`
+}
+
+// OAuth2Application represents an OAuth2 application.
+// swagger:response OAuth2Application
+type OAuth2Application struct {
+	Name         string   `json:"name"`
+	ClientID     string   `json:"client-id"`
+	ClientSecret string   `json:"client-secret"`
+	RedirectURIs []string `json:"redirect-uris"`
+}

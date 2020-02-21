@@ -8059,6 +8059,20 @@
         }
       }
     },
+    "/user/applications/oauth2": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "summary": "creates a new OAuth2 application",
+        "operationId": "userCreateOAuth2Application",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OAuth2Application"
+          }
+        }
+      }
+    },
     "/user/emails": {
       "get": {
         "produces": [
@@ -12186,6 +12200,32 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "OAuth2Application": {
+      "type": "object",
+      "title": "OAuth2Application represents an OAuth2 application.",
+      "properties": {
+        "client-id": {
+          "type": "string",
+          "x-go-name": "ClientID"
+        },
+        "client-secret": {
+          "type": "string",
+          "x-go-name": "ClientSecret"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "redirect-uris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "RedirectURIs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Organization": {
       "description": "Organization represents an organization",
       "type": "object",
@@ -13675,6 +13715,12 @@
         "items": {
           "$ref": "#/definitions/NotificationThread"
         }
+      }
+    },
+    "OAuth2Application": {
+      "description": "OAuth2Application",
+      "schema": {
+        "$ref": "#/definitions/OAuth2Application"
       }
     },
     "Organization": {
