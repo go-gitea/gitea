@@ -37,26 +37,9 @@ const (
 )
 
 type namedBlob struct {
-	name string
-	blob *git.Blob
-}
-
-func followLinks(entry *git.TreeEntry) (*git.TreeEntry, error) {
-	var err error
-	for i := 0; i < 999; i++ {
-		if entry.IsLink() {
-			entry, err = entry.FollowLink()
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			break
-		}
-	}
-	if entry.IsRegular() || entry.IsExecutable() {
-		return entry, nil
-	}
-	return nil, nil
+	name      string
+	isSymlink bool
+	blob      *git.Blob
 }
 
 // FIXME: There has to be a more efficient way of doing this
@@ -81,14 +64,19 @@ func getReadmeFileFromPath(commit *git.Commit, treePath string) (*namedBlob, err
 			if markup.IsReadmeFile(entry.Name(), ext) {
 				if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].name, entry.Blob().Name()) {
 					name := entry.Name()
-					entry, err := followLinks(entry)
-					if err != nil {
-						return nil, err
+					isSymlink := entry.IsLink()
+					target := entry
+					if isSymlink {
+						target, err = entry.FollowLinks()
+						if err != nil && !git.IsErrBadLink(err) {
+							return nil, err
+						}
 					}
-					if entry != nil {
+					if target != nil && (target.IsExecutable() || target.IsRegular()) {
 						readmeFiles[i] = &namedBlob{
 							name,
-							entry.Blob(),
+							isSymlink,
+							target.Blob(),
 						}
 					}
 				}
@@ -98,13 +86,17 @@ func getReadmeFileFromPath(commit *git.Commit, treePath string) (*namedBlob, err
 		if markup.IsReadmeFile(entry.Name()) {
 			if readmeFiles[3] == nil || base.NaturalSortLess(readmeFiles[3].name, entry.Blob().Name()) {
 				name := entry.Name()
-				entry, err := followLinks(entry)
-				if err != nil {
-					return nil, err
+				isSymlink := entry.IsLink()
+				if isSymlink {
+					entry, err = entry.FollowLinks()
+					if err != nil && !git.IsErrBadLink(err) {
+						return nil, err
+					}
 				}
-				if entry != nil {
+				if entry != nil && (entry.IsExecutable() || entry.IsRegular()) {
 					readmeFiles[3] = &namedBlob{
 						name,
+						isSymlink,
 						entry.Blob(),
 					}
 				}
@@ -175,16 +167,23 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 		for i, ext := range exts {
 			if markup.IsReadmeFile(entry.Name(), ext) {
+				log.Debug("%s", entry.Name())
 				name := entry.Name()
-				entry, err := followLinks(entry)
-				if err != nil {
-					ctx.ServerError("FollowLinks", err)
-					return
+				isSymlink := entry.IsLink()
+				target := entry
+				if isSymlink {
+					target, err = entry.FollowLinks()
+					if err != nil && !git.IsErrBadLink(err) {
+						ctx.ServerError("FollowLinks", err)
+						return
+					}
 				}
-				if entry != nil {
+				log.Debug("%t", target == nil)
+				if target != nil && (target.IsExecutable() || target.IsRegular()) {
 					readmeFiles[i] = &namedBlob{
 						name,
-						entry.Blob(),
+						isSymlink,
+						target.Blob(),
 					}
 				}
 			}
@@ -192,14 +191,18 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 		if markup.IsReadmeFile(entry.Name()) {
 			name := entry.Name()
-			entry, err := followLinks(entry)
-			if err != nil {
-				ctx.ServerError("FollowLinks", err)
-				return
+			isSymlink := entry.IsLink()
+			if isSymlink {
+				entry, err = entry.FollowLinks()
+				if err != nil && !git.IsErrBadLink(err) {
+					ctx.ServerError("FollowLinks", err)
+					return
+				}
 			}
-			if entry != nil {
+			if entry != nil && (entry.IsExecutable() || entry.IsRegular()) {
 				readmeFiles[3] = &namedBlob{
 					name,
+					isSymlink,
 					entry.Blob(),
 				}
 			}
@@ -237,6 +240,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		ctx.Data["RawFileLink"] = ""
 		ctx.Data["ReadmeInList"] = true
 		ctx.Data["ReadmeExist"] = true
+		ctx.Data["FileIsSymlink"] = readmeFile.isSymlink
 
 		dataRc, err := readmeFile.blob.DataAsync()
 		if err != nil {
@@ -360,6 +364,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath + " at " + ctx.Repo.BranchName
 
 	fileSize := blob.Size()
+	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["HighlightClass"] = highlight.FileNameToHighlightClass(blob.Name())
