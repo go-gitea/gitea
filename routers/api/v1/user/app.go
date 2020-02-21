@@ -135,3 +135,38 @@ func DeleteAccessToken(ctx *context.APIContext) {
 
 	ctx.Status(http.StatusNoContent)
 }
+
+// CreateOauth2Application is the handler to create a new OAuth2 Application for the authenticated user
+func CreateOauth2Application(ctx *context.APIContext, data api.CreateOAuth2ApplicationOptions) {
+	// swagger:operation POST /user/applications/oauth2 userCreateOAuth2Application
+	// ---
+	// summary: creates a new OAuth2 application
+	// produces:
+	// - application/json
+	// parameters:
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/OAuth2Application"
+	app, err := models.CreateOAuth2Application(models.CreateOAuth2ApplicationOptions{
+		Name:         data.Name,
+		UserID:       ctx.User.ID,
+		RedirectURIs: data.RedirectURIs,
+	})
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "", "error creating oauth2 application")
+		return
+	}
+	secret, err := app.GenerateClientSecret()
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "", "error creating application secret")
+		return
+	}
+	app.ClientSecret = secret
+
+	ctx.JSON(http.StatusOK, api.OAuth2Application{
+		Name:         app.Name,
+		ClientID:     app.ClientID,
+		ClientSecret: app.ClientSecret,
+		RedirectURIs: app.RedirectURIs,
+	})
+}
