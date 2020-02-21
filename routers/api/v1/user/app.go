@@ -138,12 +138,17 @@ func DeleteAccessToken(ctx *context.APIContext) {
 
 // CreateOauth2Application is the handler to create a new OAuth2 Application for the authenticated user
 func CreateOauth2Application(ctx *context.APIContext, data api.CreateOAuth2ApplicationOptions) {
-	// swagger:operation POST /user/applications/oauth2 userCreateOAuth2Application
+	// swagger:operation POST /user/applications/oauth2 user userCreateOAuth2Application
 	// ---
 	// summary: creates a new OAuth2 application
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OAuth2Application"
