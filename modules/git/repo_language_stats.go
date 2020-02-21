@@ -9,7 +9,8 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"path/filepath"
+
+	"code.gitea.io/gitea/modules/analyze"
 
 	"github.com/src-d/enry/v2"
 	"gopkg.in/src-d/go-git.v4"
@@ -51,25 +52,15 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]float32, e
 
 		// TODO: Use .gitattributes file for linguist overrides
 
-		language, ok := enry.GetLanguageByExtension(f.Name)
-		if !ok {
-			if language, ok = enry.GetLanguageByFilename(f.Name); !ok {
-				content, err := readFile(f, fileSizeLimit)
-				if err != nil {
-					return nil
-				}
-
-				language = enry.GetLanguage(filepath.Base(f.Name), content)
-				if language == enry.OtherLanguage {
-					return nil
-				}
-			}
+		language := analyze.GetCodeLanguageWithCallback(f.Name, func() ([]byte, error) {
+			return readFile(f, fileSizeLimit)
+		})
+		if language == enry.OtherLanguage || language == "" {
+			return nil
 		}
 
-		if language != "" {
-			sizes[language] += f.Size
-			total += f.Size
-		}
+		sizes[language] += f.Size
+		total += f.Size
 
 		return nil
 	})
