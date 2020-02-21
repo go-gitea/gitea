@@ -8064,8 +8064,21 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "user"
+        ],
         "summary": "creates a new OAuth2 application",
         "operationId": "userCreateOAuth2Application",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
@@ -10359,6 +10372,24 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateOAuth2ApplicationOptions": {
+      "description": "CreateOAuth2ApplicationOptions holds options to create an oauth2 application",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "redirect_uris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "RedirectURIs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateOrgOption": {
       "description": "CreateOrgOption options for creating an organization",
       "type": "object",
@@ -12204,11 +12235,11 @@
       "type": "object",
       "title": "OAuth2Application represents an OAuth2 application.",
       "properties": {
-        "client-id": {
+        "client_id": {
           "type": "string",
           "x-go-name": "ClientID"
         },
-        "client-secret": {
+        "client_secret": {
           "type": "string",
           "x-go-name": "ClientSecret"
         },
@@ -12216,7 +12247,7 @@
           "type": "string",
           "x-go-name": "Name"
         },
-        "redirect-uris": {
+        "redirect_uris": {
           "type": "array",
           "items": {
             "type": "string"
@@ -14005,7 +14036,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/EditBranchProtectionOption"
+        "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
       }
     },
     "redirect": {
