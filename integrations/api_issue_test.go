@@ -39,12 +39,12 @@ func TestAPICreateIssue(t *testing.T) {
 	defer prepareTestEnv(t)()
 	const body, title = "apiTestBody", "apiTestTitle"
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repoBefore := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repoBefore.OwnerID}).(*models.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repo.Name, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:     body,
 		Title:    title,
@@ -57,19 +57,23 @@ func TestAPICreateIssue(t *testing.T) {
 	assert.Equal(t, apiIssue.Title, title)
 
 	models.AssertExistsAndLoadBean(t, &models.Issue{
-		RepoID:     repo.ID,
+		RepoID:     repoBefore.ID,
 		AssigneeID: owner.ID,
 		Content:    body,
 		Title:      title,
 	})
+
+	repoAfter := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	assert.Equal(t, repoBefore.NumIssues+1, repoAfter.NumIssues)
+	assert.Equal(t, repoBefore.NumClosedIssues, repoAfter.NumClosedIssues)
 }
 
 func TestAPIEditIssue(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	issueBefore := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issueBefore.RepoID}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repoBefore := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issueBefore.RepoID}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repoBefore.OwnerID}).(*models.User)
 	assert.NoError(t, issueBefore.LoadAttributes())
 	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issueBefore.State())
@@ -84,7 +88,7 @@ func TestAPIEditIssue(t *testing.T) {
 	body := "new content!"
 	title := "new title from api set"
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?token=%s", owner.Name, repo.Name, issueBefore.Index, token)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?token=%s", owner.Name, repoBefore.Name, issueBefore.Index, token)
 	req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
 		State:          &issueState,
 		RemoveDeadline: &removeDeadline,
@@ -99,6 +103,7 @@ func TestAPIEditIssue(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssue)
 
 	issueAfter := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
+	repoAfter := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issueBefore.RepoID}).(*models.Repository)
 
 	// check deleted user
 	assert.Equal(t, int64(500), issueAfter.PosterID)
@@ -106,6 +111,9 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, int64(-1), issueAfter.PosterID)
 	assert.Equal(t, int64(-1), issueBefore.PosterID)
 	assert.Equal(t, int64(-1), apiIssue.Poster.ID)
+
+	// check repo change
+	assert.Equal(t, repoBefore.NumClosedIssues+1, repoAfter.NumClosedIssues)
 
 	// API response
 	assert.Equal(t, api.StateClosed, apiIssue.State)
