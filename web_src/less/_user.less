@@ -5,6 +5,17 @@
 
     &.profile {
         .ui.card {
+            .header {
+                font-weight: 700;
+                font-size: 1.3em;
+                margin-top: -0.2em;
+                line-height: 1.3em;
+
+                &,
+                .username {
+                    display: block;
+                }
+            }
             .username {
                 display: block;
             }
@@ -40,6 +51,9 @@
             }
 
             #profile-avatar {
+                img {
+                    width: 100%;
+                }
                 @media only screen and (max-width: 768px) {
                     height: 250px;
                     overflow: hidden;
