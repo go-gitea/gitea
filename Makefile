@@ -463,7 +463,7 @@ $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: generate release-windows release-linux release-darwin release-copy release-compress release-sources release-check
+release: frontend generate release-windows release-linux release-darwin release-copy release-compress release-sources release-check
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
