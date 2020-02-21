@@ -134,7 +134,7 @@ func CreateOrUpdateIssueNotifications(issueID, commentID int64, notificationAuth
 
 func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notificationAuthorID int64) error {
 	// init
-	toNotify := make(map[int64]struct{}, 50)
+	toNotify := make(map[int64]struct{}, 32)
 	notifications, err := getNotificationsByIssueID(e, issueID)
 	if err != nil {
 		return err
@@ -160,6 +160,8 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 		toNotify[id] = struct{}{}
 	}
 
+	// dont notify user who cause notification
+	delete(toNotify, notificationAuthorID)
 	// explicit unwatch on issue
 	issueUnWatches, err := getIssueWatchersIDs(e, issueID, false)
 	if err != nil {
