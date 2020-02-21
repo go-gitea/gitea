@@ -254,8 +254,8 @@ func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, b
 				Err:    err,
 			}
 		} else if strings.Contains(errString, "! [remote rejected]") {
-			log.Error("Unable to push back to repo from temporary repo due to rejection: %s (%s)\nStdout: %s\nError: %v",
-				t.repo.FullName(), t.basePath, stdout, err)
+			log.Error("Unable to push back to repo from temporary repo due to rejection: %s (%s)\nStdout: %s\nStderr: %s\nError: %v",
+				t.repo.FullName(), t.basePath, stdout, errString, err)
 			err := models.ErrPushRejected{
 				StdOut: stdout.String(),
 				StdErr: errString,
