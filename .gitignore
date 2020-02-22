@@ -74,6 +74,7 @@ coverage.all
 /public/css
 /public/fomantic
 /public/img/svg
+/VERSION
 
 # Snapcraft
 snap/.snapcraft/
