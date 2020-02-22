@@ -15,16 +15,27 @@
 						<strong>{{.LatestCommit.Author.Name}}</strong>
 					{{end}}
 				{{end}}
-				<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified {{end}}{{end}}" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}">
+				<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}">
 						{{ShortSha .LatestCommit.ID.String}}
 						{{if .LatestCommit.Signature}}
-							<div class="ui detail icon button">
-								{{if .LatestCommitVerification.Verified}}
-									<i title="{{.LatestCommitVerification.Reason}}" class="lock green icon"></i>
-								{{else}}
+							{{if .LatestCommitVerification.Verified}}
+								<div class="ui detail icon button" title="{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}{{.i18n.Tr "repo.commits.signed_by_untrusted_user"}}: {{else}}{{.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}: {{end}}{{.LatestCommitVerification.Reason}}">
+									<i class="lock {{if eq .LatestCommitVerification.TrustStatus "trusted"}}green{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}yellow{{else}}orange{{end}} icon"></i>
+									{{if ne .LatestCommitVerification.SigningUser.ID 0}}
+										<img class="ui signature avatar image" src="{{.LatestCommitVerification.SigningUser.RelAvatarLink}}" />
+									{{else}}
+										<img class="ui signature avatar image" src="{{AvatarLink .LatestCommitVerification.SigningEmail}}" />
+									{{end}}
+								</div>
+							{{else if .LatestCommitVerification.Warning}}
+								<div class="ui detail icon button">
+									<i title="{{$.i18n.Tr .LatestCommitVerification.Reason}}" class="red unlock icon"></i>
+								</div>
+							{{else}}
+								<div class="ui detail icon button">
 									<i title="{{$.i18n.Tr .LatestCommitVerification.Reason}}" class="unlock icon"></i>
-								{{end}}
-							</div>
+								</div>
+							{{end}}
 						{{end}}
 				</a>
 				{{template "repo/commit_status" .LatestCommitStatus}}

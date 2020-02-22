@@ -70,7 +70,7 @@ func Commits(ctx *context.Context) {
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
@@ -139,7 +139,7 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
@@ -185,7 +185,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
@@ -269,12 +269,29 @@ func Diff(ctx *context.Context) {
 	setPathsCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
-	ctx.Data["Verification"] = models.ParseCommitWithSignature(commit)
+	verification := models.ParseCommitWithSignature(commit)
+	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = models.ValidateCommitWithEmail(commit)
 	ctx.Data["Diff"] = diff
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 
+	verification.TrustStatus = "trusted"
+	if verification.Verified && verification.SigningUser.ID != 0 {
+		trusted, err := ctx.Repo.Repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnerMemberCollaborator", err)
+			return
+		}
+		if !trusted {
+			verification.TrustStatus = "untrusted"
+			if verification.CommittingUser.ID != verification.SigningUser.ID {
+				// The committing user and the signing user are not the same and are not the default key
+				// This should be marked as questionable unless the signing user is a collaborator/team member etc.
+				verification.TrustStatus = "unmatched"
+			}
+		}
+	}
 	note := &git.Note{}
 	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)
 	if err == nil {

@@ -1234,7 +1234,7 @@
                     text-align: center;
                 }
 
-                width: 140px;
+                width: 175px;
             }
         }
 
@@ -1254,6 +1254,12 @@
     #commits-table td.sha .sha.label,
     #repo-files-table .sha.label {
         border: 1px solid #bbbbbb;
+
+        .ui.signature.avatar {
+            height: 16px;
+            margin-bottom: 0;
+            width: auto;
+        }
 
         .detail.icon {
             background: #fafafa;
@@ -1283,6 +1289,32 @@
 
             &:hover {
                 background: fade(#21ba45, 30%) !important;
+            }
+        }
+
+        &.isSigned.isVerifiedUntrusted {
+            border: 1px solid #fbbd08;
+            background: fade(#fbbd08, 10%);
+
+            .detail.icon {
+                border-left: 1px solid #fbbd08;
+            }
+
+            &:hover {
+                background: fade(#fbbd08, 30%) !important;
+            }
+        }
+
+        &.isSigned.isVerifiedUnmatched {
+            border: 1px solid #f2711c;
+            background: fade(#f2711c, 10%);
+
+            .detail.icon {
+                border-left: 1px solid #f2711c;
+            }
+
+            &:hover {
+                background: fade(#f2711c, 30%) !important;
             }
         }
     }
@@ -1905,6 +1937,36 @@
 
         &:not(.positive):last-child {
             border-bottom: 1px solid #a3c293;
+        }
+    }
+
+    .ui.attached.isSigned.isVerifiedUntrusted {
+        &:not(.positive) {
+            border-left: 1px solid #c2c193;
+            border-right: 1px solid #c2c193;
+        }
+
+        &.top:not(.positive) {
+            border-top: 1px solid #c2c193;
+        }
+
+        &:not(.positive):last-child {
+            border-bottom: 1px solid #c2c193;
+        }
+    }
+
+    .ui.attached.isSigned.isVerifiedUnmatched {
+        &:not(.positive) {
+            border-left: 1px solid #c2a893;
+            border-right: 1px solid #c2a893;
+        }
+
+        &.top:not(.positive) {
+            border-top: 1px solid #c2a893;
+        }
+
+        &:not(.positive):last-child {
+            border-bottom: 1px solid #c2a893;
         }
     }
 

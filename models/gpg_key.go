@@ -374,6 +374,7 @@ type CommitVerification struct {
 	CommittingUser *User
 	SigningEmail   string
 	SigningKey     *GPGKey
+	TrustStatus    string
 }
 
 // SignCommit represents a commit with validation of signature.
@@ -759,17 +760,41 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 }
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(oldCommits *list.List) *list.List {
+func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *list.List {
 	var (
 		newCommits = list.New()
 		e          = oldCommits.Front()
 	)
+	memberMap := map[int64]bool{}
+
 	for e != nil {
 		c := e.Value.(UserCommit)
-		newCommits.PushBack(SignCommit{
+		signCommit := SignCommit{
 			UserCommit:   &c,
 			Verification: ParseCommitWithSignature(c.Commit),
-		})
+		}
+
+		if signCommit.Verification.Verified {
+			signCommit.Verification.TrustStatus = "trusted"
+			if signCommit.Verification.SigningUser.ID != 0 {
+				isMember, has := memberMap[signCommit.Verification.SigningUser.ID]
+				if !has {
+					// We can ignore the error here as isMember would return false and so the user would be listed as untrusted
+					isMember, _ = repository.IsOwnerMemberCollaborator(signCommit.Verification.SigningUser.ID)
+					memberMap[signCommit.Verification.SigningUser.ID] = isMember
+				}
+				if !isMember {
+					signCommit.Verification.TrustStatus = "untrusted"
+					if signCommit.Verification.CommittingUser.ID != signCommit.Verification.SigningUser.ID {
+						// The committing user and the signing user are not the same and are not the default key
+						// This should be marked as questionable unless the signing user is a collaborator/team member etc.
+						signCommit.Verification.TrustStatus = "unmatched"
+					}
+				}
+			}
+		}
+
+		newCommits.PushBack(signCommit)
 		e = e.Next()
 	}
 	return newCommits
