@@ -3002,7 +3002,7 @@ window.initHeatmap = function (appElementId, heatmapUser, locale) {
     methods: {
       loadHeatmap(userName) {
         const self = this;
-        $.get(`${this.suburl}/api/v1/users/${userName}/heatmap`, (chartRawData) => {
+        $.get(`${this.suburl}/api/v1/users/${encodeURI(userName)}/heatmap`, (chartRawData) => {
           const chartData = [];
           for (let i = 0; i < chartRawData.length; i++) {
             self.totalContributions += chartRawData[i].contributions;
