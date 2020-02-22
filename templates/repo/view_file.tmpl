@@ -2,10 +2,19 @@
 	<h4 class="file-header ui top attached header">
 		<div class="file-header-left">
 			{{if .ReadmeInList}}
-				<i class="book icon"></i>
+				{{if .FileIsSymlink}}
+					<i class="icons"><i class="book icon"></i><i class="bottom left corner tiny inverted share icon"></i></i>
+				{{else}}
+					<i class="book icon"></i>
+				{{end}}
 				<strong>{{.FileName}}</strong>
 			{{else}}
 				<div class="file-info text grey normal mono">
+					{{if .FileIsSymlink}}
+						<div class="file-info-entry">
+							{{.i18n.Tr "repo.symbolic_link"}}
+						</div>
+					{{end}}
 					{{if .NumLinesSet}}
 						<div class="file-info-entry">
 							{{.NumLines}} {{.i18n.Tr (TrN .i18n.Lang .NumLines "repo.line" "repo.lines") }}

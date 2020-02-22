@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/utils"
 )
 
 const (
@@ -264,10 +265,17 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 			} else {
 				ctx.Error(500, err.Error())
 			}
-		} else if models.IsErrCommitIDDoesNotMatch(err) {
+		} else if models.IsErrCommitIDDoesNotMatch(err) || models.IsErrMergePushOutOfDate(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplEditFile, &form)
+		} else if models.IsErrPushRejected(err) {
+			errPushRej := err.(models.ErrPushRejected)
+			if len(errPushRej.Message) == 0 {
+				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplEditFile, &form)
+			} else {
+				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplEditFile, &form)
+			}
 		} else {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, err), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, utils.SanitizeFlashErrorString(err.Error())), tplEditFile, &form)
 		}
 	}
 
@@ -428,8 +436,15 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 			} else {
 				ctx.Error(500, err.Error())
 			}
-		} else if models.IsErrCommitIDDoesNotMatch(err) {
+		} else if models.IsErrCommitIDDoesNotMatch(err) || models.IsErrMergePushOutOfDate(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_deleting", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplDeleteFile, &form)
+		} else if models.IsErrPushRejected(err) {
+			errPushRej := err.(models.ErrPushRejected)
+			if len(errPushRej.Message) == 0 {
+				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplDeleteFile, &form)
+			} else {
+				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplDeleteFile, &form)
+			}
 		} else {
 			ctx.ServerError("DeleteRepoFile", err)
 		}
