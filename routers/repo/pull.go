@@ -313,7 +313,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 			ctx.Data["IsPullRequestBroken"] = true
-			ctx.Data["BaseTarget"] = "deleted"
+			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0
 			ctx.Data["NumFiles"] = 0
 			return nil
@@ -432,7 +432,15 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	if pull.HeadRepo == nil || !headBranchExist || headBranchSha != sha {
 		ctx.Data["IsPullRequestBroken"] = true
-		ctx.Data["HeadTarget"] = "deleted"
+		if pull.IsSameRepo() {
+			ctx.Data["HeadTarget"] = pull.HeadBranch
+		} else {
+			if pull.HeadRepo == nil {
+				ctx.Data["HeadTarget"] = "<deleted>:" + pull.HeadBranch
+			} else {
+				ctx.Data["HeadTarget"] = pull.HeadRepo.OwnerName + ":" + pull.HeadBranch
+			}
+		}
 	}
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
@@ -440,7 +448,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 			ctx.Data["IsPullRequestBroken"] = true
-			ctx.Data["BaseTarget"] = "deleted"
+			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0
 			ctx.Data["NumFiles"] = 0
 			return nil
