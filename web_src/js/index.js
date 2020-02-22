@@ -17,6 +17,18 @@ import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
 const { AppSubUrl, StaticUrlPrefix } = window.config;
 
+let staticNeedsCORS;
+if (StaticUrlPrefix && 'URL' in window) { // compat: IE11
+  try {
+    const { origin } = new URL(StaticUrlPrefix);
+    staticNeedsCORS = origin !== window.location.origin;
+  } catch (err) {
+    staticNeedsCORS = false;
+  }
+} else {
+  staticNeedsCORS = false;
+}
+
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
@@ -3584,9 +3596,11 @@ window.onOAuthLoginClick = function () {
 
 // Pull SVGs via AJAX to workaround CORS issues with <use> tags
 // https://css-tricks.com/ajaxing-svg-sprite/
-$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
-  const div = document.createElement('div');
-  div.style.display = 'none';
-  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
-  document.body.insertBefore(div, document.body.childNodes[0]);
-});
+if (staticNeedsCORS) {
+  $.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
+    const div = document.createElement('div');
+    div.style.display = 'none';
+    div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
+    document.body.insertBefore(div, document.body.childNodes[0]);
+  });
+}

@@ -38,6 +38,7 @@ rules:
   newline-per-chained-call: [0]
   no-alert: [0]
   no-continue: [0]
+  no-empty: [2, {allowEmptyCatch: true}]
   no-mixed-operators: [0]
   no-multi-assign: [0]
   no-new: [0]
