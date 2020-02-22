@@ -121,7 +121,7 @@ help:
 	@echo " - frontend          build frontend files"
 	@echo " - backend           build backend files"
 	@echo " - clean             delete backend and integration files"
-	@echo " - clean-all         delete backend, frontend and integation files"
+	@echo " - clean-all         delete backend, frontend and integration files"
 	@echo " - webpack           build webpack files"
 	@echo " - fomantic          build fomantic files"
 	@echo " - generate          run \"go generate\""
