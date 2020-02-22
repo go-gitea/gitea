@@ -242,8 +242,28 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, branch string) error {
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
+	stdout := &strings.Builder{}
+	stderr := &strings.Builder{}
 
-	if stdout, err := git.NewCommand("push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)).RunInDirWithEnv(t.basePath, env); err != nil {
+	if err := git.NewCommand("push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)).RunInDirTimeoutEnvPipeline(env, -1, t.basePath, stdout, stderr); err != nil {
+		errString := stderr.String()
+		if strings.Contains(errString, "non-fast-forward") {
+			return models.ErrMergePushOutOfDate{
+				StdOut: stdout.String(),
+				StdErr: errString,
+				Err:    err,
+			}
+		} else if strings.Contains(errString, "! [remote rejected]") {
+			log.Error("Unable to push back to repo from temporary repo due to rejection: %s (%s)\nStdout: %s\nStderr: %s\nError: %v",
+				t.repo.FullName(), t.basePath, stdout, errString, err)
+			err := models.ErrPushRejected{
+				StdOut: stdout.String(),
+				StdErr: errString,
+				Err:    err,
+			}
+			err.GenerateMessage()
+			return err
+		}
 		log.Error("Unable to push back to repo from temporary repo: %s (%s)\nStdout: %s\nError: %v",
 			t.repo.FullName(), t.basePath, stdout, err)
 		return fmt.Errorf("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
