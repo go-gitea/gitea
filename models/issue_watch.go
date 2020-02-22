@@ -109,29 +109,3 @@ func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
 		Delete(new(IssueWatch))
 	return err
 }
-
-// LoadWatchUsers return watching users
-func (iwl IssueWatchList) LoadWatchUsers() (users UserList, err error) {
-	return iwl.loadWatchUsers(x)
-}
-
-func (iwl IssueWatchList) loadWatchUsers(e Engine) (users UserList, err error) {
-	if len(iwl) == 0 {
-		return []*User{}, nil
-	}
-
-	var userIDs = make([]int64, 0, len(iwl))
-	for _, iw := range iwl {
-		if iw.IsWatching {
-			userIDs = append(userIDs, iw.UserID)
-		}
-	}
-
-	if len(userIDs) == 0 {
-		return []*User{}, nil
-	}
-
-	err = e.In("id", userIDs).Find(&users)
-
-	return
-}
