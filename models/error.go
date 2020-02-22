@@ -7,6 +7,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 )
@@ -1369,6 +1370,53 @@ func IsErrMergePushOutOfDate(err error) bool {
 
 func (err ErrMergePushOutOfDate) Error() string {
 	return fmt.Sprintf("Merge PushOutOfDate Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrPushRejected represents an error if merging fails due to rejection from a hook
+type ErrPushRejected struct {
+	Style   MergeStyle
+	Message string
+	StdOut  string
+	StdErr  string
+	Err     error
+}
+
+// IsErrPushRejected checks if an error is a ErrPushRejected.
+func IsErrPushRejected(err error) bool {
+	_, ok := err.(ErrPushRejected)
+	return ok
+}
+
+func (err ErrPushRejected) Error() string {
+	return fmt.Sprintf("Merge PushRejected Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// GenerateMessage generates the remote message from the stderr
+func (err *ErrPushRejected) GenerateMessage() {
+	messageBuilder := &strings.Builder{}
+	i := strings.Index(err.StdErr, "remote: ")
+	if i < 0 {
+		err.Message = ""
+		return
+	}
+	for {
+		if len(err.StdErr) <= i+8 {
+			break
+		}
+		if err.StdErr[i:i+8] != "remote: " {
+			break
+		}
+		i += 8
+		nl := strings.IndexByte(err.StdErr[i:], '\n')
+		if nl > 0 {
+			messageBuilder.WriteString(err.StdErr[i : i+nl+1])
+			i = i + nl + 1
+		} else {
+			messageBuilder.WriteString(err.StdErr[i:])
+			i = len(err.StdErr)
+		}
+	}
+	err.Message = strings.TrimSpace(messageBuilder.String())
 }
 
 // ErrRebaseConflicts represents an error if rebase fails with a conflict

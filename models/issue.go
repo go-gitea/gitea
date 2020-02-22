@@ -686,6 +686,10 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*C
 		return nil, err
 	}
 
+	if err := issue.updateClosedNum(e); err != nil {
+		return nil, err
+	}
+
 	// New action comment
 	cmtType := CommentTypeClose
 	if !issue.IsClosed {
@@ -1888,9 +1892,8 @@ func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, origina
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
 func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, userID int64) error {
 	_, err := x.Table("reaction").
-		Join("INNER", "issue", "issue.id = reaction.issue_id").
-		Where("issue.repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
-		And("reaction.original_author_id = ?", originalAuthorID).
+		Where("original_author_id = ?", originalAuthorID).
+		And(migratedIssueCond(gitServiceType)).
 		Update(map[string]interface{}{
 			"user_id":            userID,
 			"original_author":    "",
