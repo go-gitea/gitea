@@ -677,6 +677,11 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 		return user, nil
 	}
 
+	// Validate username make sure it satisfies requirement.
+	if alphaDashDotPattern.MatchString(login) {
+		return nil, fmt.Errorf("Invalid pattern for attribute 'username' [%s]: must be valid alpha or numeric or dash(-_) or dot characters", login)
+	}
+
 	user = &User{
 		LowerName:   strings.ToLower(login),
 		Name:        login,
