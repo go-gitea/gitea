@@ -29,6 +29,8 @@ EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 
+STORED_VERSION_FILE := VERSION
+
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
 	GITEA_VERSION ?= $(VERSION)
@@ -38,7 +40,13 @@ else
 	else
 		VERSION ?= master
 	endif
-	GITEA_VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+
+	STORED_VERSION=$(shell cat $(STORED_VERSION_FILE) 2>/dev/null)
+	ifneq ($(STORED_VERSION),)
+		GITEA_VERSION ?= $(STORED_VERSION)
+	else
+		GITEA_VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+	endif
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
@@ -96,13 +104,15 @@ include docker/Makefile
 help:
 	@echo "Make Routines:"
 	@echo " - \"\"                equivalent to \"build\""
-	@echo " - build             creates the entire project"
-	@echo " - clean             delete integration files and build files but not css and js files"
-	@echo " - clean-all         delete all generated files (integration test, build, css and js files)"
+	@echo " - build             build everything"
+	@echo " - frontend          build frontend files"
+	@echo " - backend           build backend files"
+	@echo " - clean             delete backend and integration files"
+	@echo " - clean-all         delete backend, frontend and integration files"
 	@echo " - css               rebuild only css files"
 	@echo " - js                rebuild only js files"
-	@echo " - generate          run \"make css js\" and \"go generate\""
-	@echo " - fmt               format the code"
+	@echo " - generate          run \"go generate\""
+	@echo " - fmt               format the Go code"
 	@echo " - generate-swagger  generate the swagger spec from code comments"
 	@echo " - swagger-validate  check if the swagger spec is valide"
 	@echo " - revive            run code linter revive"
@@ -155,10 +165,6 @@ fmt:
 .PHONY: vet
 vet:
 	$(GO) vet $(PACKAGES)
-
-.PHONY: generate
-generate: js css
-	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
@@ -414,13 +420,23 @@ install: $(wildcard *.go)
 	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
-build: go-check generate $(EXECUTABLE)
+build: frontend backend
+
+.PHONY: frontend
+frontend: node-check js css
+
+.PHONY: backend
+backend: go-check generate $(EXECUTABLE)
+
+.PHONY: generate
+generate:
+	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 $(EXECUTABLE): $(GO_SOURCES)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-sources release-check
+release: frontend generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-sources release-check
 
 .PHONY: release-dirs
 release-dirs:
@@ -472,8 +488,10 @@ release-compress:
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
 .PHONY: release-sources
-release-sources:
-	tar cvzf $(DIST)/release/gitea-src-$(VERSION).tar.gz --exclude $(DIST) --exclude .git .
+release-sources: | node_modules
+	echo $(VERSION) > $(STORED_VERSION_FILE)
+	tar --exclude=./$(DIST) --exclude=./.git --exclude=./node_modules/.cache -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+	rm -f $(STORED_VERSION_FILE)
 
 node_modules: package-lock.json
 	npm install --no-save
