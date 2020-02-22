@@ -50,6 +50,12 @@ func (err ErrBadLink) Error() string {
 	return fmt.Sprintf("%s: %s", err.Name, err.Message)
 }
 
+// IsErrBadLink if some error is ErrBadLink
+func IsErrBadLink(err error) bool {
+	_, ok := err.(ErrBadLink)
+	return ok
+}
+
 // ErrUnsupportedVersion error when required git version not matched
 type ErrUnsupportedVersion struct {
 	Required string
