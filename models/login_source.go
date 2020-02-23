@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"net/smtp"
 	"net/textproto"
-	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/auth/ldap"
@@ -455,10 +454,6 @@ func composeFullName(firstname, surname, username string) string {
 	}
 }
 
-var (
-	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
-)
-
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
 func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*User, error) {
@@ -502,10 +497,6 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*Use
 	// Fallback.
 	if len(sr.Username) == 0 {
 		sr.Username = login
-	}
-	// Validate username make sure it satisfies requirement.
-	if alphaDashDotPattern.MatchString(sr.Username) {
-		return nil, fmt.Errorf("Invalid pattern for attribute 'username' [%s]: must be valid alpha or numeric or dash(-_) or dot characters", sr.Username)
 	}
 
 	if len(sr.Mail) == 0 {
@@ -666,7 +657,8 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 // LoginViaPAM queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
 func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMConfig) (*User, error) {
-	if err := pam.Auth(cfg.ServiceName, login, password); err != nil {
+	pamLogin, err := pam.Auth(cfg.ServiceName, login, password)
+	if err != nil {
 		if strings.Contains(err.Error(), "Authentication failure") {
 			return nil, ErrUserNotExist{0, login, 0}
 		}
@@ -677,14 +669,21 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 		return user, nil
 	}
 
+	// Allow PAM sources with `@` in their name, like from Active Directory
+	username := pamLogin
+	idx := strings.Index(pamLogin, "@")
+	if idx > -1 {
+		username = pamLogin[:idx]
+	}
+
 	user = &User{
-		LowerName:   strings.ToLower(login),
-		Name:        login,
-		Email:       login,
+		LowerName:   strings.ToLower(username),
+		Name:        username,
+		Email:       pamLogin,
 		Passwd:      password,
 		LoginType:   LoginPAM,
 		LoginSource: sourceID,
-		LoginName:   login,
+		LoginName:   login, // This is what the user typed in
 		IsActive:    true,
 	}
 	return user, CreateUser(user)
