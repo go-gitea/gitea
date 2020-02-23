@@ -49,7 +49,10 @@ coverage.all
 
 /bin
 /dist
-/custom
+/custom/*
+!/custom/conf
+/custom/conf/*
+!/custom/conf/app.ini.sample
 /data
 /indexers
 /log
