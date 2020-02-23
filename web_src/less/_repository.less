@@ -1276,6 +1276,7 @@
 
             .detail.icon {
                 border-left: 1px solid fade(#db2828, 50%);
+                color: #db2828;
             }
         }
 
@@ -1285,6 +1286,7 @@
 
             .detail.icon {
                 border-left: 1px solid #21ba45;
+                color: #21ba45;
             }
 
             &:hover {
@@ -1298,6 +1300,7 @@
 
             .detail.icon {
                 border-left: 1px solid #fbbd08;
+                color: #fbbd08;
             }
 
             &:hover {
@@ -1311,6 +1314,7 @@
 
             .detail.icon {
                 border-left: 1px solid #f2711c;
+                color: #f2711c;
             }
 
             &:hover {
@@ -1925,47 +1929,110 @@
         }
     }
 
-    .ui.attached.isSigned.isVerified {
-        &:not(.positive) {
-            border-left: 1px solid #a3c293;
-            border-right: 1px solid #a3c293;
+    .ui.attached.isSigned.isWarning {
+        border-left: 1px solid #c29393;
+        border-right: 1px solid #c29393;
+
+        &.top,
+        &.message {
+            border-top: 1px solid #c29393;
         }
 
-        &.top:not(.positive) {
+        &.message {
+            box-shadow: none;
+            background-color: #fff5f5;
+            color: #d95c5c;
+
+            .ui.text {
+                color: #d64444;
+            }
+        }
+
+        &:last-child,
+        &.bottom {
+            border-bottom: 1px solid #c29393;
+        }
+    }
+
+    .ui.attached.isSigned:not(.isWarning) .pull-right {
+        padding-top: 5px;
+    }
+
+    .ui.attached.isSigned.isVerified {
+        border-left: 1px solid #a3c293;
+        border-right: 1px solid #a3c293;
+
+        &.top,
+        &.message {
             border-top: 1px solid #a3c293;
         }
 
-        &:not(.positive):last-child {
+        &.message {
+            box-shadow: none;
+            background-color: #fcfff5;
+            color: #6cc644;
+
+            .pull-right {
+                color: #000;
+            }
+
+            .ui.text {
+                color: #21ba45;
+            }
+        }
+
+        &:last-child,
+        &.bottom {
             border-bottom: 1px solid #a3c293;
         }
     }
 
     .ui.attached.isSigned.isVerifiedUntrusted {
-        &:not(.positive) {
-            border-left: 1px solid #c2c193;
-            border-right: 1px solid #c2c193;
-        }
+        border-left: 1px solid #c2c193;
+        border-right: 1px solid #c2c193;
 
-        &.top:not(.positive) {
+        &.top,
+        &.message {
             border-top: 1px solid #c2c193;
         }
 
-        &:not(.positive):last-child {
+        &.message {
+            box-shadow: none;
+            background-color: #fffff5;
+            color: #fbbd08;
+
+            .ui.text {
+                color: #d2ab00;
+            }
+        }
+
+        &:last-child,
+        &.bottom {
             border-bottom: 1px solid #c2c193;
         }
     }
 
     .ui.attached.isSigned.isVerifiedUnmatched {
-        &:not(.positive) {
-            border-left: 1px solid #c2a893;
-            border-right: 1px solid #c2a893;
-        }
+        border-left: 1px solid #c2a893;
+        border-right: 1px solid #c2a893;
 
-        &.top:not(.positive) {
+        &.top,
+        &.message {
             border-top: 1px solid #c2a893;
         }
 
-        &:not(.positive):last-child {
+        &.message {
+            box-shadow: none;
+            background-color: #fffaf5;
+            color: #f2711c;
+
+            .ui.text {
+                color: #ee5f00;
+            }
+        }
+
+        &:last-child,
+        &.bottom {
             border-bottom: 1px solid #c2a893;
         }
     }
