@@ -5,6 +5,8 @@
 package convert
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -33,6 +35,25 @@ func ToTrackedTimeList(tl models.TrackedTimeList) api.TrackedTimeList {
 	result := make([]*api.TrackedTime, 0, len(tl))
 	for _, t := range tl {
 		result = append(result, ToTrackedTime(t))
+	}
+	return result
+}
+
+// ToLabel converts Label to API format
+func ToLabel(label *models.Label) (apiT *api.Label) {
+	return &api.Label{
+		ID:          label.ID,
+		Name:        label.Name,
+		Color:       strings.TrimLeft(label.Color, "#"),
+		Description: label.Description,
+	}
+}
+
+// ToLabelList converts list of Label to API format
+func ToLabelList(labels []*models.Label) (apiT []*api.Label) {
+	result := make([]*api.Label, len(labels))
+	for i := range labels {
+		result[i] = ToLabel(labels[i])
 	}
 	return result
 }
