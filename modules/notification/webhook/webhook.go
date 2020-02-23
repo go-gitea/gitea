@@ -691,12 +691,12 @@ func (m *webhookNotifier) NotifyDeleteRef(pusher *models.User, repo *models.Repo
 
 	if err := webhook_module.PrepareWebhooks(repo, models.HookEventDelete, &api.DeletePayload{
 		Ref:        refName,
-		RefType:    "branch",
+		RefType:    refType,
 		PusherType: api.PusherTypeUser,
 		Repo:       apiRepo,
 		Sender:     apiPusher,
 	}); err != nil {
-		log.Error("PrepareWebhooks.(delete branch): %v", err)
+		log.Error("PrepareWebhooks.(delete %s): %v", refType, err)
 	}
 }
 

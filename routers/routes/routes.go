@@ -1002,6 +1002,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}
 	})
 
+	m.Get("/apple-touch-icon.png", func(ctx *context.Context) {
+		ctx.Redirect(path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
+	})
+
 	// Progressive Web App
 	m.Get("/manifest.json", templates.JSONRenderer(), func(ctx *context.Context) {
 		ctx.HTML(200, "pwa/manifest_json")
