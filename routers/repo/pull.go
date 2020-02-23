@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/repofiles"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
@@ -1066,7 +1067,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	if err := repofiles.PushUpdate(
 		pr.HeadRepo,
 		pr.HeadBranch,
-		repofiles.PushUpdateOptions{
+		repo_module.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + pr.HeadBranch,
 			OldCommitID:  branchCommitID,
 			NewCommitID:  git.EmptySHA,

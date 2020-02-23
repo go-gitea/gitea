@@ -5,7 +5,6 @@
 package repofiles
 
 import (
-	"encoding/json"
 	"fmt"
 	"html"
 
@@ -14,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -59,7 +58,7 @@ func changeIssueStatus(repo *models.Repository, issue *models.Issue, doer *model
 }
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*repository.PushCommit, branchName string) error {
+func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*repo_module.PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -150,10 +149,10 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 
 // CommitRepoActionOptions represent options of a new commit action.
 type CommitRepoActionOptions struct {
-	PushUpdateOptions
+	repo_module.PushUpdateOptions
 
 	RepoOwnerID int64
-	Commits     *repository.PushCommits
+	Commits     *repo_module.PushCommits
 }
 
 // CommitRepoAction adds new commit action to the repository, and prepare
@@ -161,9 +160,8 @@ type CommitRepoActionOptions struct {
 func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 	var pusher *models.User
 	var repo *models.Repository
-	actions := make([]*models.Action, len(optsList))
 
-	for i, opts := range optsList {
+	for _, opts := range optsList {
 		if pusher == nil || pusher.Name != opts.PusherName {
 			var err error
 			pusher, err = models.GetUserByName(opts.PusherName)
@@ -206,69 +204,31 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 			}
 		}
 
-		opType := models.ActionCommitRepo
-
 		// Check it's tag push or branch.
 		if opts.IsTag() {
-			opType = models.ActionPushTag
 			if opts.IsDelRef() {
-				opType = models.ActionDeleteTag
+				notification.NotifyDeleteRef(pusher, repo, "tag", opts.RefFullName)
+			} else {
+				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName)
 			}
-			opts.Commits = &repository.PushCommits{}
 		} else if opts.IsDelRef() {
-			opType = models.ActionDeleteBranch
-			opts.Commits = &repository.PushCommits{}
+			notification.NotifyDeleteRef(pusher, repo, "branch", opts.RefFullName)
 		} else {
 			// if not the first commit, set the compare URL.
 			if !opts.IsNewRef() {
 				opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
+			} else {
+				notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
 			}
 
 			if err := UpdateIssuesCommit(pusher, repo, opts.Commits.Commits, refName); err != nil {
 				log.Error("updateIssuesCommit: %v", err)
 			}
-		}
 
-		if len(opts.Commits.Commits) > setting.UI.FeedMaxCommitNum {
-			opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
-		}
-
-		data, err := json.Marshal(opts.Commits)
-		if err != nil {
-			return fmt.Errorf("Marshal: %v", err)
-		}
-
-		actions[i] = &models.Action{
-			ActUserID: pusher.ID,
-			ActUser:   pusher,
-			OpType:    opType,
-			Content:   string(data),
-			RepoID:    repo.ID,
-			Repo:      repo,
-			RefName:   refName,
-			IsPrivate: repo.IsPrivate,
-		}
-
-		var isHookEventPush = true
-		switch opType {
-		case models.ActionCommitRepo: // Push
-			if opts.IsNewBranch() {
-				notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
+			if len(opts.Commits.Commits) > setting.UI.FeedMaxCommitNum {
+				opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
 			}
-		case models.ActionDeleteBranch: // Delete Branch
-			notification.NotifyDeleteRef(pusher, repo, "branch", opts.RefFullName)
-
-		case models.ActionPushTag: // Create
-			notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName)
-
-		case models.ActionDeleteTag: // Delete Tag
-			notification.NotifyDeleteRef(pusher, repo, "tag", opts.RefFullName)
-		default:
-			isHookEventPush = false
-		}
-
-		if isHookEventPush {
-			notification.NotifyPushCommits(pusher, repo, opts.RefFullName, opts.OldCommitID, opts.NewCommitID, opts.Commits)
+			notification.NotifyPushCommits(pusher, repo, &opts.PushUpdateOptions, opts.Commits)
 		}
 	}
 
@@ -279,8 +239,5 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 		}
 	}
 
-	if err := models.NotifyWatchers(actions...); err != nil {
-		return fmt.Errorf("NotifyWatchers: %v", err)
-	}
 	return nil
 }

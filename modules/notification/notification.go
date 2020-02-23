@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/notification/mail"
 	"code.gitea.io/gitea/modules/notification/ui"
 	"code.gitea.io/gitea/modules/notification/webhook"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -215,9 +215,9 @@ func NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName 
 }
 
 // NotifyPushCommits notifies commits pushed to notifiers
-func NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+func NotifyPushCommits(pusher *models.User, repo *models.Repository, options *repo_module.PushUpdateOptions, commits *repo_module.PushCommits) {
 	for _, notifier := range notifiers {
-		notifier.NotifyPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+		notifier.NotifyPushCommits(pusher, repo, options, commits)
 	}
 }
 
@@ -236,7 +236,7 @@ func NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refF
 }
 
 // NotifySyncPushCommits notifies commits pushed to notifiers
-func NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+func NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repo_module.PushCommits) {
 	for _, notifier := range notifiers {
 		notifier.NotifySyncPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
 	}

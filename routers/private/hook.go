@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/repofiles"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -299,7 +300,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 	repoName := ctx.Params(":repo")
 
 	var repo *models.Repository
-	updates := make([]*repofiles.PushUpdateOptions, 0, len(opts.OldCommitIDs))
+	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
 
 	for i := range opts.OldCommitIDs {
@@ -326,7 +327,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				wasEmpty = repo.IsEmpty
 			}
 
-			option := repofiles.PushUpdateOptions{
+			option := repo_module.PushUpdateOptions{
 				RefFullName:  refFullName,
 				OldCommitID:  opts.OldCommitIDs[i],
 				NewCommitID:  opts.NewCommitIDs[i],

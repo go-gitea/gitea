@@ -443,85 +443,9 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	return file, nil
 }
 
-// PushUpdateOptions defines the push update options
-type PushUpdateOptions struct {
-	PusherID     int64
-	PusherName   string
-	RepoUserName string
-	RepoName     string
-	RefFullName  string
-	OldCommitID  string
-	NewCommitID  string
-}
-
-// IsNewRef return true if it's a first-time push to a branch, tag or etc.
-func (opts PushUpdateOptions) IsNewRef() bool {
-	return opts.OldCommitID == git.EmptySHA
-}
-
-// IsDelRef return true if it's a deletion to a branch or tag
-func (opts PushUpdateOptions) IsDelRef() bool {
-	return opts.NewCommitID == git.EmptySHA
-}
-
-// IsUpdateRef return true if it's an update operation
-func (opts PushUpdateOptions) IsUpdateRef() bool {
-	return !opts.IsNewRef() && !opts.IsDelRef()
-}
-
-// IsTag return true if it's an operation to a tag
-func (opts PushUpdateOptions) IsTag() bool {
-	return strings.HasPrefix(opts.RefFullName, git.TagPrefix)
-}
-
-// IsNewTag return true if it's a creation to a tag
-func (opts PushUpdateOptions) IsNewTag() bool {
-	return opts.IsTag() && opts.IsNewRef()
-}
-
-// IsDelTag return true if it's a deletion to a tag
-func (opts PushUpdateOptions) IsDelTag() bool {
-	return opts.IsTag() && opts.IsDelRef()
-}
-
-// IsBranch return true if it's a push to branch
-func (opts PushUpdateOptions) IsBranch() bool {
-	return strings.HasPrefix(opts.RefFullName, git.BranchPrefix)
-}
-
-// IsNewBranch return true if it's the first-time push to a branch
-func (opts PushUpdateOptions) IsNewBranch() bool {
-	return opts.IsBranch() && opts.IsNewRef()
-}
-
-// IsUpdateBranch return true if it's not the first push to a branch
-func (opts PushUpdateOptions) IsUpdateBranch() bool {
-	return opts.IsBranch() && opts.IsUpdateRef()
-}
-
-// IsDelBranch return true if it's a deletion to a branch
-func (opts PushUpdateOptions) IsDelBranch() bool {
-	return opts.IsBranch() && opts.IsDelRef()
-}
-
-// TagName returns simple tag name if it's an operation to a tag
-func (opts PushUpdateOptions) TagName() string {
-	return opts.RefFullName[len(git.TagPrefix):]
-}
-
-// BranchName returns simple branch name if it's an operation to branch
-func (opts PushUpdateOptions) BranchName() string {
-	return opts.RefFullName[len(git.BranchPrefix):]
-}
-
-// RepoFullName returns repo full name
-func (opts PushUpdateOptions) RepoFullName() string {
-	return opts.RepoUserName + "/" + opts.RepoName
-}
-
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds and other operations
-func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) error {
+func PushUpdate(repo *models.Repository, branch string, opts repo_module.PushUpdateOptions) error {
 	if opts.IsNewRef() && opts.IsDelRef() {
 		return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
@@ -618,7 +542,7 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 }
 
 // PushUpdates generates push action history feeds for push updating multiple refs
-func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
+func PushUpdates(repo *models.Repository, optsList []*repo_module.PushUpdateOptions) error {
 	repoPath := repo.RepoPath()
 	_, err := git.NewCommand("update-server-info").RunInDir(repoPath)
 	if err != nil {
@@ -680,7 +604,7 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 	return nil
 }
 
-func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, optsList []*PushUpdateOptions) ([]*CommitRepoActionOptions, error) {
+func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, optsList []*repo_module.PushUpdateOptions) ([]*CommitRepoActionOptions, error) {
 	addTags := make([]string, 0, len(optsList))
 	delTags := make([]string, 0, len(optsList))
 	actions := make([]*CommitRepoActionOptions, 0, len(optsList))

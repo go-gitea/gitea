@@ -12,7 +12,7 @@ import (
 	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -123,8 +123,8 @@ func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.U
 	}
 }
 
-func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
-	if setting.Indexer.RepoIndexerEnabled && refName == git.BranchPrefix+repo.DefaultBranch {
+func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, options *repo_module.PushUpdateOptions, commits *repo_module.PushCommits) {
+	if setting.Indexer.RepoIndexerEnabled && options.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
