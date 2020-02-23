@@ -40,6 +40,8 @@ ifneq ($(RACE_ENABLED),)
 	GOTESTFLAGS ?= -race
 endif
 
+STORED_VERSION_FILE := VERSION
+
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
 	GITEA_VERSION ?= $(VERSION)
@@ -49,7 +51,13 @@ else
 	else
 		VERSION ?= master
 	endif
-	GITEA_VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+
+	STORED_VERSION=$(shell cat $(STORED_VERSION_FILE) 2>/dev/null)
+	ifneq ($(STORED_VERSION),)
+		GITEA_VERSION ?= $(STORED_VERSION)
+	else
+		GITEA_VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+	endif
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
@@ -109,13 +117,15 @@ include docker/Makefile
 help:
 	@echo "Make Routines:"
 	@echo " - \"\"                equivalent to \"build\""
-	@echo " - build             creates the entire project"
-	@echo " - clean             delete integration files and build files but not css and js files"
-	@echo " - clean-all         delete all generated files (integration test, build, css and js files)"
-	@echo " - webpack           rebuild only js and css files"
-	@echo " - fomantic          rebuild fomantic-ui files"
-	@echo " - generate          run \"make fomantic webpack\" and \"go generate\""
-	@echo " - fmt               format the code"
+	@echo " - build             build everything"
+	@echo " - frontend          build frontend files"
+	@echo " - backend           build backend files"
+	@echo " - clean             delete backend and integration files"
+	@echo " - clean-all         delete backend, frontend and integration files"
+	@echo " - webpack           build webpack files"
+	@echo " - fomantic          build fomantic files"
+	@echo " - generate          run \"go generate\""
+	@echo " - fmt               format the Go code"
 	@echo " - generate-swagger  generate the swagger spec from code comments"
 	@echo " - swagger-validate  check if the swagger spec is valid"
 	@echo " - revive            run code linter revive"
@@ -178,10 +188,6 @@ $(TAGS_EVIDENCE):
 ifneq "$(TAGS)" "$(shell cat $(TAGS_EVIDENCE) 2>/dev/null)"
 TAGS_PREREQ := $(TAGS_EVIDENCE)
 endif
-
-.PHONY: generate
-generate: fomantic webpack $(TAGS_PREREQ)
-	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
@@ -441,13 +447,23 @@ install: $(wildcard *.go)
 	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: build
-build: go-check generate $(EXECUTABLE)
+build: frontend backend
+
+.PHONY: frontend
+frontend: node-check $(FOMANTIC_EVIDENCE) $(WEBPACK_DEST)
+
+.PHONY: backend
+backend: go-check generate $(EXECUTABLE)
+
+.PHONY: generate
+generate: $(TAGS_PREREQ)
+	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: generate release-windows release-linux release-darwin release-copy release-compress release-sources release-check
+release: frontend generate release-windows release-linux release-darwin release-copy release-compress release-sources release-check
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
@@ -498,8 +514,10 @@ release-compress: | $(DIST_DIRS)
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
 .PHONY: release-sources
-release-sources: | $(DIST_DIRS)
-	tar cvzf $(DIST)/release/gitea-src-$(VERSION).tar.gz --exclude $(DIST) --exclude .git --exclude $(MAKE_EVIDENCE_DIR) .
+release-sources: | $(DIST_DIRS) node_modules
+	echo $(VERSION) > $(STORED_VERSION_FILE)
+	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+	rm -f $(STORED_VERSION_FILE)
 
 node_modules: package-lock.json
 	npm install --no-save
@@ -522,7 +540,7 @@ css:
 	$(MAKE) webpack
 
 .PHONY: fomantic
-fomantic: node-check $(FOMANTIC_EVIDENCE)
+fomantic: $(FOMANTIC_EVIDENCE)
 
 $(FOMANTIC_EVIDENCE): semantic.json $(FOMANTIC_SOURCES) | node_modules
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
@@ -531,7 +549,7 @@ $(FOMANTIC_EVIDENCE): semantic.json $(FOMANTIC_SOURCES) | node_modules
 	@mkdir -p $(MAKE_EVIDENCE_DIR) && touch $(FOMANTIC_EVIDENCE)
 
 .PHONY: webpack
-webpack: node-check $(WEBPACK_DEST)
+webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) | node_modules
 	npx eslint web_src/js webpack.config.js
