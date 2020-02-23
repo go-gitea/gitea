@@ -113,7 +113,25 @@ func (prs PullRequestList) loadAttributes(e Engine) error {
 		return nil
 	}
 
-	// Load issues.
+	if err := prs.loadIssues(e); err != nil {
+		return fmt.Errorf("prs.loadAttributes: loadIssues: %v", err)
+	}
+	return nil
+}
+
+func (prs PullRequestList) getIssueIDs() []int64 {
+	issueIDs := make([]int64, 0, len(prs))
+	for i := range prs {
+		issueIDs = append(issueIDs, prs[i].IssueID)
+	}
+	return issueIDs
+}
+
+func (prs PullRequestList) loadIssues(e Engine) (err error) {
+	if len(prs) == 0 {
+		return nil
+	}
+
 	issueIDs := prs.getIssueIDs()
 	issues := make([]*Issue, 0, len(issueIDs))
 	if err := e.
@@ -131,14 +149,6 @@ func (prs PullRequestList) loadAttributes(e Engine) error {
 		prs[i].Issue = set[prs[i].IssueID]
 	}
 	return nil
-}
-
-func (prs PullRequestList) getIssueIDs() []int64 {
-	issueIDs := make([]int64, 0, len(prs))
-	for i := range prs {
-		issueIDs = append(issueIDs, prs[i].IssueID)
-	}
-	return issueIDs
 }
 
 // LoadAttributes load all the prs attributes
