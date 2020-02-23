@@ -790,11 +790,11 @@ func CalculateTrustStatus(verification *CommitVerification, repository *Reposito
 			var isMember bool
 			if memberMap != nil {
 				var has bool
-				isMember, has = memberMap[verification.SigningUser.ID]
+				isMember, has = *memberMap[verification.SigningUser.ID]
 				if !has {
 					// We can ignore the error here as isMember would return false and so the user would be listed as untrusted
 					isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
-					memberMap[verification.SigningUser.ID] = isMember
+					*memberMap[verification.SigningUser.ID] = isMember
 				}
 			} else {
 				isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
