@@ -86,11 +86,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//   "200":
-	//     "$ref": "#/responses/empty"
 	//   "201":
-	//     "$ref": "#/responses/empty"
-	//   "204":
 	//     "$ref": "#/responses/empty"
 	//   "304":
 	//     description: User can only subscribe itself if he is no admin
@@ -129,42 +125,9 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	// if watch   +    RepoWatch -> return OK
-	// if watch   + no RepoWatch -> set IssueWatchModeNormal
-	// if unwatch +    RepoWatch -> set IssueWatchModeDont
-	// if unwatch + no RepoWatch -> IssueWatch entry exist?
-	//                                yes -> delete
-	//                                no  -> return OK
-
-	repoWatch := models.IsWatching(user.ID, ctx.Repo.Repository.ID)
-
 	mode := models.IssueWatchModeNormal
 	if !watch {
-		if repoWatch {
-			mode = models.IssueWatchModeDont
-		} else {
-			_, exist, err := models.GetIssueWatch(user.ID, issue.ID)
-			if err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
-			if !exist {
-				ctx.Status(http.StatusOK)
-				return
-			}
-			if err = models.DeleteIssueWatch(user.ID, issue.ID); err != nil {
-				ctx.Error(http.StatusInternalServerError, "DeleteIssueWatch", err)
-				return
-			}
-			ctx.Status(http.StatusNoContent)
-			return
-		}
-	} else {
-		if repoWatch {
-			ctx.Status(http.StatusOK)
-			return
-		}
-		mode = models.IssueWatchModeNormal
+		mode = models.IssueWatchModeDont
 	}
 
 	if err := models.CreateOrUpdateIssueWatchMode(user.ID, issue.ID, mode); err != nil {
