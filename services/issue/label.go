@@ -62,7 +62,7 @@ func RemoveLabel(issue *models.Issue, doer *models.User, label *models.Label) er
 	return nil
 }
 
-// ReplaceLabels adds a list of new labels to the issue.
+// ReplaceLabels removes all current labels and add new labels to the issue.
 func ReplaceLabels(issue *models.Issue, doer *models.User, labels []*models.Label) error {
 	if err := issue.ReplaceLabels(labels, doer); err != nil {
 		return err
