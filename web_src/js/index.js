@@ -2948,7 +2948,6 @@ window.cancelStopwatch = function () {
   $('#cancel_stopwatch_form').submit();
 };
 
-
 window.initHeatmap = function (appElementId, heatmapUser, locale) {
   const el = document.getElementById(appElementId);
   if (!el) {
