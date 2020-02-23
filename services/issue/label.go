@@ -61,3 +61,13 @@ func RemoveLabel(issue *models.Issue, doer *models.User, label *models.Label) er
 	notification.NotifyIssueChangeLabels(doer, issue, nil, []*models.Label{label})
 	return nil
 }
+
+// ReplaceLabels adds a list of new labels to the issue.
+func ReplaceLabels(issue *models.Issue, doer *models.User, labels []*models.Label) error {
+	if err := issue.ReplaceLabels(labels, doer); err != nil {
+		return err
+	}
+
+	notification.NotifyIssueChangeLabels(doer, issue, labels, nil)
+	return nil
+}

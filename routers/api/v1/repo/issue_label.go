@@ -204,7 +204,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteIssueLabel(issue, label, ctx.User); err != nil {
+	if err := issue_service.RemoveLabel(issue, ctx.User, label); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteIssueLabel", err)
 		return
 	}
@@ -269,7 +269,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		return
 	}
 
-	if err := issue.ReplaceLabels(labels, ctx.User); err != nil {
+	if err := issue_service.ReplaceLabels(issue, ctx.User, labels); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ReplaceLabels", err)
 		return
 	}
