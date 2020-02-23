@@ -1,5 +1,5 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap, initKanbanBoard */
+/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import 'jquery.are-you-sure';
@@ -12,6 +12,7 @@ import initContextPopups from './features/contextPopup.js';
 import initHighlight from './features/highlight.js';
 import initGitGraph from './features/gitGraph.js';
 import initClipboard from './features/clipboard.js';
+import initProject from './features/projects.js';
 
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
@@ -2613,6 +2614,7 @@ $(document).ready(async () => {
     initHighlight(),
     initGitGraph(),
     initClipboard(),
+    initProject(csrf),
   ]);
 });
 
@@ -2946,30 +2948,6 @@ window.cancelStopwatch = function () {
   $('#cancel_stopwatch_form').submit();
 };
 
-window.initKanbanBoard = function (appElementId) {
-  const el = document.getElementById(appElementId);
-  if (!el) {
-    return;
-  }
-
-  new Sortable(el, {
-    group: 'shared',
-    animation: 150,
-    onAdd: (e) => {
-      $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}`, {
-        headers: {
-          'X-Csrf-Token': csrf,
-          'X-Remote': true,
-        },
-        contentType: 'application/json',
-        type: 'POST',
-        success: () => {
-          // setTimeout(reload(),3000)
-        },
-      });
-    },
-  });
-};
 
 window.initHeatmap = function (appElementId, heatmapUser, locale) {
   const el = document.getElementById(appElementId);
