@@ -16,9 +16,15 @@ import (
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func ToAPIIssue(issue *models.Issue) *api.Issue {
-	issue.LoadLabels()
-	issue.LoadPoster()
-	issue.LoadRepo()
+	if err := issue.LoadLabels(); err != nil {
+		return &api.Issue{}
+	}
+	if err := issue.LoadPoster(); err != nil {
+		return &api.Issue{}
+	}
+	if err := issue.LoadRepo(); err != nil {
+		return &api.Issue{}
+	}
 
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
@@ -46,12 +52,16 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		apiIssue.Closed = issue.ClosedUnix.AsTimePtr()
 	}
 
-	issue.LoadMilestone()
+	if err := issue.LoadMilestone(); err != nil {
+		return &api.Issue{}
+	}
 	if issue.Milestone != nil {
 		apiIssue.Milestone = issue.Milestone.APIFormat()
 	}
 
-	issue.LoadAssignees()
+	if err := issue.LoadAssignees(); err != nil {
+		return &api.Issue{}
+	}
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
 			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
@@ -59,7 +69,9 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		apiIssue.Assignee = issue.Assignees[0].APIFormat() // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
-		issue.LoadPullRequest()
+		if err := issue.LoadPullRequest(); err != nil {
+			return &api.Issue{}
+		}
 		apiIssue.PullRequest = &api.PullRequestMeta{
 			HasMerged: issue.PullRequest.HasMerged,
 		}
