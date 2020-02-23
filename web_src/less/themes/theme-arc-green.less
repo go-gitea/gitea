@@ -245,6 +245,7 @@ a:hover {
 footer {
     background: #2e323e;
     border-top: 1px solid #313131;
+    color: #bababa;
 }
 
 .ui.menu .dropdown.item .menu {
@@ -345,7 +346,7 @@ a.ui.basic.green.label:hover {
 
 .ui.basic.button,
 .ui.basic.buttons .button {
-    color: #797979 !important;
+    color: #797979;
 }
 
 .ui.basic.red.active.button,
@@ -358,8 +359,9 @@ a.ui.basic.green.label:hover {
 .ui.basic.button:hover,
 .ui.basic.buttons .button:focus,
 .ui.basic.buttons .button:hover {
-    background: transparent !important;
-    color: #dbdbdb !important;
+    color: #dbdbdb;
+    box-shadow: 0 0 0 1px rgba(200, 200, 200, 0.35) inset;
+    background: rgba(0, 0, 0, 0.5);
 }
 
 .ui.menu .item {
@@ -368,7 +370,9 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.menu .item.disabled,
-.ui.menu .item.disabled:hover {
+.ui.menu .item.disabled:hover,
+.ui.ui.menu .item.disabled,
+.ui.ui.menu .item.disabled:hover {
     color: #626773;
 }
 
@@ -515,7 +519,7 @@ a.ui.basic.green.label:hover {
 }
 
 .ui .text.grey {
-    color: #808084 !important;
+    color: #a5a5a8 !important;
 }
 
 .ui.attached.table.segment {
@@ -669,7 +673,12 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.comments .comment .actions a {
-    color: #dbdbdb;
+    color: #9e9e9e;
+}
+
+.ui.comments .comment .actions a.active,
+.ui.comments .comment .actions a:hover {
+    color: #fff;
 }
 
 .repository.view.issue .comment-list .comment .content .header:after {
@@ -708,6 +717,7 @@ a.ui.basic.green.label:hover {
 .ui.basic.green.active.button,
 .ui.basic.green.buttons .active.button {
     color: #13ae38 !important;
+    box-shadow: 0 0 0 1px #13ae38 inset !important;
 }
 
 .ui.form textarea,
@@ -1019,6 +1029,12 @@ input {
     color: #9e9e9e;
 }
 
+.ui.positive.message {
+    background-color: #0d491b;
+    color: #87ab63;
+    box-shadow: 0 0 0 1px #2d693b inset, 0 0 0 0 transparent;
+}
+
 .ui.negative.message {
     background-color: rgba(80, 23, 17, 0.6);
     color: #f9cbcb;
@@ -1212,10 +1228,21 @@ a.ui.labels .label:hover {
 
 .editor-toolbar {
     background-color: #404552;
+    border-color: #7f98ad;
+}
 
-    a {
-        color: #87ab63 !important;
-    }
+.editor-toolbar a {
+    color: #87ab63 !important;
+}
+
+.editor-toolbar a.active,
+.editor-toolbar a:hover {
+    background: #2a2e3a;
+    border-color: transparent;
+}
+
+.editor-toolbar i.separator {
+    border-right-color: #7f98ad;
 }
 
 .repository .diff-detail-box {
@@ -1369,7 +1396,8 @@ a.ui.labels .label:hover {
 
 .CodeMirror {
     color: #9daccc;
-    background-color: #2b2b2b;
+    background-color: #2e323e;
+    border-color: #7f98ad;
     border-top: 0;
 
     div.CodeMirror-cursor {
@@ -1377,7 +1405,7 @@ a.ui.labels .label:hover {
     }
 
     .CodeMirror-gutters {
-        background-color: #2b2b2b;
+        background-color: #2e323e;
     }
 
     ::selection,
@@ -1484,4 +1512,28 @@ a.ui.labels .label:hover {
     &.top::before {
         background-color: #383c4a;
     }
+}
+
+.markdown:not(code) h1 {
+    border-bottom-color: #888;
+}
+
+.markdown:not(code) blockquote {
+    border-left-color: #888;
+}
+
+footer .container .links > * {
+    border-left-color: #888;
+}
+
+.repository.file.list #repo-files-table tbody .svg {
+    color: #9e9e9e;
+}
+
+.repository.release #release-list > li .detail {
+    border-left-color: #888;
+}
+
+.repository.release #release-list > li .detail .dot {
+    background-color: #888;
 }
