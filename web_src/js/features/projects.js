@@ -1,5 +1,5 @@
 export default async function initProject(csrf) {
-  if (!window.config || !window.config.KanbanBoard) {
+  if (!window.config || !window.config.PageIsProjects) {
     return;
   }
 
