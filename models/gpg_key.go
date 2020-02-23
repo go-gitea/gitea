@@ -810,4 +810,5 @@ func CalculateTrustStatus(verification *CommitVerification, repository *Reposito
 			}
 		}
 	}
+	return
 }
