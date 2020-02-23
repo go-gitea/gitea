@@ -774,28 +774,40 @@ func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *l
 			Verification: ParseCommitWithSignature(c.Commit),
 		}
 
-		if signCommit.Verification.Verified {
-			signCommit.Verification.TrustStatus = "trusted"
-			if signCommit.Verification.SigningUser.ID != 0 {
-				isMember, has := memberMap[signCommit.Verification.SigningUser.ID]
-				if !has {
-					// We can ignore the error here as isMember would return false and so the user would be listed as untrusted
-					isMember, _ = repository.IsOwnerMemberCollaborator(signCommit.Verification.SigningUser.ID)
-					memberMap[signCommit.Verification.SigningUser.ID] = isMember
-				}
-				if !isMember {
-					signCommit.Verification.TrustStatus = "untrusted"
-					if signCommit.Verification.CommittingUser.ID != signCommit.Verification.SigningUser.ID {
-						// The committing user and the signing user are not the same and are not the default key
-						// This should be marked as questionable unless the signing user is a collaborator/team member etc.
-						signCommit.Verification.TrustStatus = "unmatched"
-					}
-				}
-			}
-		}
+		_ = CalculateTrustStatus(signCommit.Verification, repository, &memberMap)
 
 		newCommits.PushBack(signCommit)
 		e = e.Next()
 	}
 	return newCommits
+}
+
+// CalculateTrustStatus will calculate the TrustStatus for a commit verification within a repository
+func CalculateTrustStatus(verification *CommitVerification, repository *Repository, memberMap *map[int64]bool) (err error) {
+	if verification.Verified {
+		verification.TrustStatus = "trusted"
+		if verification.SigningUser.ID != 0 {
+			var isMember bool
+			if memberMap != nil {
+				var has bool
+				isMember, has = memberMap[signCommit.Verification.SigningUser.ID]
+				if !has {
+					// We can ignore the error here as isMember would return false and so the user would be listed as untrusted
+					isMember, err = repository.IsOwnerMemberCollaborator(signCommit.Verification.SigningUser.ID)
+					memberMap[signCommit.Verification.SigningUser.ID] = isMember
+				}
+			} else {
+				isMember, err = repository.IsOwnerMemberCollaborator(signCommit.Verification.SigningUser.ID)
+			}
+
+			if !isMember {
+				signCommit.Verification.TrustStatus = "untrusted"
+				if signCommit.Verification.CommittingUser.ID != signCommit.Verification.SigningUser.ID {
+					// The committing user and the signing user are not the same and are not the default key
+					// This should be marked as questionable unless the signing user is a collaborator/team member etc.
+					signCommit.Verification.TrustStatus = "unmatched"
+				}
+			}
+		}
+	}
 }

@@ -336,22 +336,11 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	verification := models.ParseCommitWithSignature(latestCommit)
 
 	ctx.Data["LatestCommitVerification"] = verification
-	verification.TrustStatus = "trusted"
-	if verification.Verified && verification.SigningUser.ID != 0 {
-		trusted, err := ctx.Repo.Repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
-		if err != nil {
-			ctx.ServerError("IsOwnerMemberCollaborator", err)
-			return
-		}
-		if !trusted {
-			verification.TrustStatus = "untrusted"
-			if verification.CommittingUser.ID != verification.SigningUser.ID {
-				// The committing user and the signing user are not the same and are not the default key
-				// This should be marked as questionable unless the signing user is a collaborator/team member etc.
-				verification.TrustStatus = "unmatched"
-			}
-		}
+	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
+		ctx.ServerError("IsOwnerMemberCollaborator", err)
+		return
 	}
+
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
 	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)

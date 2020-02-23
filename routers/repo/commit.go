@@ -276,22 +276,11 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 
-	verification.TrustStatus = "trusted"
-	if verification.Verified && verification.SigningUser.ID != 0 {
-		trusted, err := ctx.Repo.Repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
-		if err != nil {
-			ctx.ServerError("IsOwnerMemberCollaborator", err)
-			return
-		}
-		if !trusted {
-			verification.TrustStatus = "untrusted"
-			if verification.CommittingUser.ID != verification.SigningUser.ID {
-				// The committing user and the signing user are not the same and are not the default key
-				// This should be marked as questionable unless the signing user is a collaborator/team member etc.
-				verification.TrustStatus = "unmatched"
-			}
-		}
+	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
+		ctx.ServerError("IsOwnerMemberCollaborator", err)
+		return
 	}
+
 	note := &git.Note{}
 	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)
 	if err == nil {
