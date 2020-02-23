@@ -116,6 +116,11 @@ func (prs PullRequestList) loadAttributes(e Engine) error {
 	if err := prs.loadIssues(e); err != nil {
 		return fmt.Errorf("prs.loadAttributes: loadIssues: %v", err)
 	}
+
+	if err := prs.loadProtectedBranches(e); err != nil {
+		return fmt.Errorf("prs.loadAttributes: loadProtectedBranches: %v", err)
+	}
+
 	return nil
 }
 
@@ -148,6 +153,56 @@ func (prs PullRequestList) loadIssues(e Engine) (err error) {
 	for i := range prs {
 		prs[i].Issue = set[prs[i].IssueID]
 	}
+	return nil
+}
+
+type protectedBranchKey struct {
+	RepoID     int64
+	BranchName string
+}
+
+func (prs PullRequestList) getProtectedBranchKeys() []protectedBranchKey {
+	prKeys := make(map[protectedBranchKey]struct{}, len(prs))
+	for _, pr := range prs {
+		if pr.BaseRepoID <= 0 {
+			continue
+		}
+		key := protectedBranchKey{pr.BaseRepoID, pr.BaseBranch}
+		if _, ok := prKeys[key]; !ok {
+			prKeys[key] = struct{}{}
+		}
+	}
+	return valuesProtectedBranchKeys(prKeys)
+}
+
+func valuesProtectedBranchKeys(m map[protectedBranchKey]struct{}) []protectedBranchKey {
+	values := make([]protectedBranchKey, 0, len(m))
+	for k := range m {
+		values = append(values, k)
+	}
+	return values
+}
+
+func (prs PullRequestList) loadProtectedBranches(e Engine) (err error) {
+	if len(prs) == 0 {
+		return nil
+	}
+
+	prKeys := prs.getProtectedBranchKeys()
+	prMaps := make(map[protectedBranchKey]*ProtectedBranch, len(prKeys))
+	sess := e.Where("repo_id = ? and branch_name = ?", prKeys[0].RepoID, prKeys[0].BranchName)
+	for _, prk := range prKeys[1:] {
+		sess.Or("repo_id = ? and branch_name = ?", prk.RepoID, prk.BranchName)
+	}
+	err = sess.Find(&prMaps)
+	if err != nil {
+		return err
+	}
+
+	for _, pr := range prs {
+		pr.ProtectedBranch = prMaps[protectedBranchKey{pr.BaseRepoID, pr.BaseBranch}]
+	}
+
 	return nil
 }
 
