@@ -684,6 +684,14 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		} else if models.IsErrMergePushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "Merge", "merge push out of date")
 			return
+		} else if models.IsErrPushRejected(err) {
+			errPushRej := err.(models.ErrPushRejected)
+			if len(errPushRej.Message) == 0 {
+				ctx.Error(http.StatusConflict, "Merge", "PushRejected without remote error message")
+				return
+			}
+			ctx.Error(http.StatusConflict, "Merge", "PushRejected with remote message: "+errPushRej.Message)
+			return
 		}
 		ctx.Error(http.StatusInternalServerError, "Merge", err)
 		return
