@@ -112,6 +112,7 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	if err := models.CreateOrganization(org, ctx.User); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrNameReserved(err) ||
+			models.IsErrNameCharsNotAllowed(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
