@@ -23,7 +23,6 @@ globals:
   emojify: false
   SimpleMDE: false
   u2fApi: false
-  Sortable: false
   Vue: false
 
 rules:
