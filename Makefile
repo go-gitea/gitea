@@ -552,7 +552,7 @@ $(FOMANTIC_EVIDENCE): semantic.json $(FOMANTIC_SOURCES) | node_modules
 webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) | node_modules
-	npx eslint web_src/js webpack.config.js
+	npx eslint web_src/js scripts webpack.config.js
 	npx stylelint web_src/less
 	npx webpack --hide-modules --display-entrypoints=false
 	@touch $(WEBPACK_DEST)

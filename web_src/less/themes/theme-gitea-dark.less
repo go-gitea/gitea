@@ -1,0 +1,62 @@
+@import "./theme-gitea-dark.gen.css";
+
+@primary-color: #4f8cc9;
+@body-bg-color: #202020;
+
+body {
+    background: @body-bg-color;
+}
+
+.navbar > .active.item,
+.ui.header {
+    background: @body-bg-color !important;
+}
+
+.repository .header-wrapper {
+    background: #161616 !important;
+}
+
+/* /pulls */
+.ui.vertical.filter.menu {
+    background: none !important;
+}
+
+/* heatmap */
+[style*="fill: rgb(244, 244, 244)"] { fill: #282828 !important; }
+[style*="fill: rgb(216, 239, 191)"] { fill: darken(@primary-color, 32%) !important; }
+[style*="fill: rgb(159, 219, 129)"] { fill: darken(@primary-color, 24%) !important; }
+[style*="fill: rgb(102, 199, 75)"] { fill: darken(@primary-color, 16%) !important; }
+[style*="fill: rgb(96, 153, 38)"] { fill: darken(@primary-color, 8%) !important; }
+[style*="fill: rgb(2, 89, 0)"] { fill: @primary-color !important; }
+
+::selection {
+    background-color: @primary-color !important;
+    color: #fff !important;
+}
+::-moz-selection {
+    background-color: @primary-color !important;
+    color: #fff !important;
+}
+
+.CodeMirror-selected {
+    background: @primary-color !important;
+}
+.CodeMirror ::selection {
+    background: @primary-color !important;
+}
+.CodeMirror ::-moz-selection {
+    background: @primary-color !important;
+}
+
+::-webkit-input-placeholder {
+    color: #666 !important;
+    opacity: 1 !important;
+}
+::-moz-placeholder {
+    color: #666 !important;
+    opacity: 1 !important;
+}
+::placeholder {
+    color: #666 !important;
+    opacity: 1 !important;
+}

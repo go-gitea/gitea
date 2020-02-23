@@ -171,7 +171,7 @@ SHOW_USER_EMAIL = true
 ; Set the default theme for the Gitea install
 DEFAULT_THEME = gitea
 ; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
-THEMES = gitea,arc-green
+THEMES = gitea,gitea-dark,arc-green
 ; All available reactions. Allow users react with different emoji's
 ; For the whole list look at https://gitea.com/gitea/gitea.com/issues/8
 REACTIONS = +1, -1, laugh, hooray, confused, heart, rocket, eyes

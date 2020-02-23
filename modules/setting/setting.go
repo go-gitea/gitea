@@ -204,7 +204,7 @@ var (
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
-		Themes:              []string{`gitea`, `arc-green`},
+		Themes:              []string{`gitea`, `gitea-dark`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 		Admin: struct {
 			UserPagingNum   int

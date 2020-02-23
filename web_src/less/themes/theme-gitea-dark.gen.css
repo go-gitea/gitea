@@ -1,0 +1,2085 @@
+/* begin remap-css rules */
+/* remap-css rule for "background: none #fff" */
+.ui.basic.label, .ui.basic.labels .black.label, .ui.basic.labels .blue.label,
+.ui.basic.labels .brown.label, .ui.basic.labels .green.label,
+.ui.basic.labels .grey.label, .ui.basic.labels .label,
+.ui.basic.labels .olive.label, .ui.basic.labels .orange.label,
+.ui.basic.labels .pink.label, .ui.basic.labels .primary.label,
+.ui.basic.labels .purple.label, .ui.basic.labels .red.label,
+.ui.basic.labels .secondary.label, .ui.basic.labels .teal.label,
+.ui.basic.labels .violet.label, .ui.basic.labels .yellow.label,
+.ui.basic.labels a.black.label:hover, .ui.basic.labels a.blue.label:hover,
+.ui.basic.labels a.brown.label:hover, .ui.basic.labels a.green.label:hover,
+.ui.basic.labels a.grey.label:hover, .ui.basic.labels a.label:hover,
+.ui.basic.labels a.olive.label:hover, .ui.basic.labels a.orange.label:hover,
+.ui.basic.labels a.pink.label:hover, .ui.basic.labels a.primary.label:hover,
+.ui.basic.labels a.purple.label:hover, .ui.basic.labels a.red.label:hover,
+.ui.basic.labels a.secondary.label:hover, .ui.basic.labels a.teal.label:hover,
+.ui.basic.labels a.violet.label:hover, .ui.basic.labels a.yellow.label:hover,
+.ui.bottom.tabular.menu .active.item, .ui.tabular.menu .active.item,
+.ui.ui.ui.basic.black.label, .ui.ui.ui.basic.blue.label,
+.ui.ui.ui.basic.brown.label, .ui.ui.ui.basic.green.label,
+.ui.ui.ui.basic.grey.label, .ui.ui.ui.basic.olive.label,
+.ui.ui.ui.basic.orange.label, .ui.ui.ui.basic.pink.label,
+.ui.ui.ui.basic.primary.label, .ui.ui.ui.basic.purple.label,
+.ui.ui.ui.basic.red.label, .ui.ui.ui.basic.secondary.label,
+.ui.ui.ui.basic.teal.label, .ui.ui.ui.basic.violet.label,
+.ui.ui.ui.basic.yellow.label, .ui.vertical.right.tabular.menu .active.item,
+.ui.vertical.tabular.menu .active.item, a.ui.basic.label:hover,
+a.ui.ui.ui.basic.black.label:hover, a.ui.ui.ui.basic.blue.label:hover,
+a.ui.ui.ui.basic.brown.label:hover, a.ui.ui.ui.basic.green.label:hover,
+a.ui.ui.ui.basic.grey.label:hover, a.ui.ui.ui.basic.olive.label:hover,
+a.ui.ui.ui.basic.orange.label:hover, a.ui.ui.ui.basic.pink.label:hover,
+a.ui.ui.ui.basic.primary.label:hover, a.ui.ui.ui.basic.purple.label:hover,
+a.ui.ui.ui.basic.red.label:hover, a.ui.ui.ui.basic.secondary.label:hover,
+a.ui.ui.ui.basic.teal.label:hover, a.ui.ui.ui.basic.violet.label:hover,
+a.ui.ui.ui.basic.yellow.label:hover {
+    background: #181818;
+}
+/* remap-css rule for "background: #ffffff" */
+.CodeMirror, .CodeMirror-fullscreen, .CodeMirror-hints, .dropzone,
+.dropzone .dz-preview.dz-image-preview,
+.editor-toolbar.disabled-for-preview a:not(.no-disable),
+.editor-toolbar.fullscreen, .fileInput, .markdown:not(code) .csv-data .blob-num,
+.minicolors-panel, .minicolors-picker, .repository .diff-detail-box,
+.repository .diff-detail-box .detail-files, .tribute-container ul,
+.ui.active.progress .bar::after, .ui.attached.header, .ui.basic.button:focus,
+.ui.basic.button:hover, .ui.basic.buttons .button:focus,
+.ui.basic.buttons .button:hover, .ui.basic.table.segment,
+.ui.bottom.popup::before, .ui.category.search > .results .category .results,
+.ui.checkbox input:checked ~ label::before,
+.ui.checkbox input:checked:focus ~ label::before,
+.ui.checkbox input:focus ~ label::before,
+.ui.checkbox input:not([type=radio]):indeterminate ~ label::before,
+.ui.checkbox input:not([type=radio]):indeterminate:focus ~ label::before,
+.ui.checkbox label::before, .ui.checkbox label:hover::before,
+.ui.definition.table > tfoot:not(.full-width) > tr > th:first-child,
+.ui.definition.table > thead:not(.full-width) > tr > th:first-child,
+.ui.dropdown .menu, .ui.form input:not([type]), .ui.form input:not([type]):focus,
+.ui.form input[type="date"], .ui.form input[type="date"]:focus,
+.ui.form input[type="datetime-local"],
+.ui.form input[type="datetime-local"]:focus, .ui.form input[type="email"],
+.ui.form input[type="email"]:focus, .ui.form input[type="file"],
+.ui.form input[type="file"]:focus, .ui.form input[type="number"],
+.ui.form input[type="number"]:focus, .ui.form input[type="password"],
+.ui.form input[type="password"]:focus, .ui.form input[type="search"],
+.ui.form input[type="search"]:focus, .ui.form input[type="tel"],
+.ui.form input[type="tel"]:focus, .ui.form input[type="text"],
+.ui.form input[type="text"]:focus, .ui.form input[type="time"],
+.ui.form input[type="time"]:focus, .ui.form input[type="url"],
+.ui.form input[type="url"]:focus, .ui.form input[type=date],
+.ui.form input[type=date]:focus, .ui.form input[type=datetime-local],
+.ui.form input[type=datetime-local]:focus, .ui.form input[type=email],
+.ui.form input[type=email]:focus, .ui.form input[type=file],
+.ui.form input[type=file]:focus, .ui.form input[type=number],
+.ui.form input[type=number]:focus, .ui.form input[type=password],
+.ui.form input[type=password]:focus, .ui.form input[type=search],
+.ui.form input[type=search]:focus, .ui.form input[type=tel],
+.ui.form input[type=tel]:focus, .ui.form input[type=text],
+.ui.form input[type=text]:focus, .ui.form input[type=time],
+.ui.form input[type=time]:focus, .ui.form input[type=url],
+.ui.form input[type=url]:focus, .ui.form select, .ui.form textarea,
+.ui.form textarea:focus,
+.ui.indeterminate.progress:not(.sliding):not(.filling):not(.swinging) .bar::before,
+.ui.input > input, .ui.input > input:focus, .ui.input textarea,
+.ui.input.focus > input, .ui.inverted.button.active, .ui.inverted.button:focus,
+.ui.inverted.button:hover,
+.ui.inverted.definition.table > tfoot:not(.full-width) > tr > th:first-child,
+.ui.inverted.definition.table > thead:not(.full-width) > tr > th:first-child,
+.ui.inverted.form input:not([type]), .ui.inverted.form input[type="date"],
+.ui.inverted.form input[type="datetime-local"],
+.ui.inverted.form input[type="email"], .ui.inverted.form input[type="file"],
+.ui.inverted.form input[type="number"], .ui.inverted.form input[type="password"],
+.ui.inverted.form input[type="search"], .ui.inverted.form input[type="tel"],
+.ui.inverted.form input[type="text"], .ui.inverted.form input[type="time"],
+.ui.inverted.form input[type="url"], .ui.inverted.form input[type=date],
+.ui.inverted.form input[type=datetime-local],
+.ui.inverted.form input[type=email], .ui.inverted.form input[type=file],
+.ui.inverted.form input[type=number], .ui.inverted.form input[type=password],
+.ui.inverted.form input[type=search], .ui.inverted.form input[type=tel],
+.ui.inverted.form input[type=text], .ui.inverted.form input[type=time],
+.ui.inverted.form input[type=url], .ui.left.center.popup::before, .ui.menu,
+.ui.menu .dropdown.item .menu, .ui.modal, .ui.modal > .content,
+.ui.modal > .header, .ui.pointing.dropdown > .menu:not(.hidden)::after,
+.ui.popup, .ui.popup::before, .ui.right.center.popup::before,
+.ui.search > .prompt, .ui.search > .prompt:focus, .ui.search > .results,
+.ui.segment, .ui.selection.dropdown, .ui.styled.accordion,
+.ui.styled.accordion .accordion, .ui.table, .ui.top.popup::before,
+.ui.vertical.menu, .xdsoft_datetimepicker,
+.xdsoft_datetimepicker .xdsoft_label > .xdsoft_select,
+[data-position="left center"][data-tooltip]::before,
+[data-position="right center"][data-tooltip]::before,
+[data-position="top center"][data-tooltip]::before,
+[data-position~="bottom"][data-tooltip]::before,
+[data-position~="top"][data-tooltip]::before,
+[data-position~=bottom][data-tooltip]::before,
+[data-position~=top][data-tooltip]::before, [data-tooltip]::after,
+[data-tooltip]::before, [data-tooltip]:not([data-position])::before, body,
+body.pushable > .pusher {
+    background: #181818;
+}
+/* remap-css rule for "background: #ffffff !important" */
+.ui.form .field .prompt.label, .ui.inverted.toggle.checkbox label:hover::before {
+    background: #181818 !important;
+}
+/* remap-css rule for "background: none #ffffff" */
+.ui.basic.label, .ui.basic.labels .black.label, .ui.basic.labels .blue.label,
+.ui.basic.labels .brown.label, .ui.basic.labels .green.label,
+.ui.basic.labels .grey.label, .ui.basic.labels .label,
+.ui.basic.labels .olive.label, .ui.basic.labels .orange.label,
+.ui.basic.labels .pink.label, .ui.basic.labels .primary.label,
+.ui.basic.labels .purple.label, .ui.basic.labels .red.label,
+.ui.basic.labels .secondary.label, .ui.basic.labels .teal.label,
+.ui.basic.labels .violet.label, .ui.basic.labels .yellow.label,
+.ui.basic.labels a.black.label:hover, .ui.basic.labels a.blue.label:hover,
+.ui.basic.labels a.brown.label:hover, .ui.basic.labels a.green.label:hover,
+.ui.basic.labels a.grey.label:hover, .ui.basic.labels a.label:hover,
+.ui.basic.labels a.olive.label:hover, .ui.basic.labels a.orange.label:hover,
+.ui.basic.labels a.pink.label:hover, .ui.basic.labels a.primary.label:hover,
+.ui.basic.labels a.purple.label:hover, .ui.basic.labels a.red.label:hover,
+.ui.basic.labels a.secondary.label:hover, .ui.basic.labels a.teal.label:hover,
+.ui.basic.labels a.violet.label:hover, .ui.basic.labels a.yellow.label:hover,
+.ui.bottom.tabular.menu .active.item, .ui.tabular.menu .active.item,
+.ui.ui.ui.basic.black.label, .ui.ui.ui.basic.blue.label,
+.ui.ui.ui.basic.brown.label, .ui.ui.ui.basic.green.label,
+.ui.ui.ui.basic.grey.label, .ui.ui.ui.basic.olive.label,
+.ui.ui.ui.basic.orange.label, .ui.ui.ui.basic.pink.label,
+.ui.ui.ui.basic.primary.label, .ui.ui.ui.basic.purple.label,
+.ui.ui.ui.basic.red.label, .ui.ui.ui.basic.secondary.label,
+.ui.ui.ui.basic.teal.label, .ui.ui.ui.basic.violet.label,
+.ui.ui.ui.basic.yellow.label, .ui.vertical.right.tabular.menu .active.item,
+.ui.vertical.tabular.menu .active.item, a.ui.basic.label:hover,
+a.ui.ui.ui.basic.black.label:hover, a.ui.ui.ui.basic.blue.label:hover,
+a.ui.ui.ui.basic.brown.label:hover, a.ui.ui.ui.basic.green.label:hover,
+a.ui.ui.ui.basic.grey.label:hover, a.ui.ui.ui.basic.olive.label:hover,
+a.ui.ui.ui.basic.orange.label:hover, a.ui.ui.ui.basic.pink.label:hover,
+a.ui.ui.ui.basic.primary.label:hover, a.ui.ui.ui.basic.purple.label:hover,
+a.ui.ui.ui.basic.red.label:hover, a.ui.ui.ui.basic.secondary.label:hover,
+a.ui.ui.ui.basic.teal.label:hover, a.ui.ui.ui.basic.violet.label:hover,
+a.ui.ui.ui.basic.yellow.label:hover {
+    background: #181818;
+}
+/* remap-css rule for "background-color: #ffffff" */
+#errorMoreInfo, #viewer.textLayer-hover .textLayer > span:hover,
+.CodeMirror-Tern-tooltip, .CodeMirror-gutter-filler,
+.CodeMirror-scrollbar-filler, .following.bar.light, .lines-code .hljs,
+.lines-code ol, .lines-code pre, .lines-num .hljs, .lines-num ol, .lines-num pre,
+.markdown:not(code) table tr, .minicolors-opacity-slider, .minicolors-slider,
+.pdfViewer .page,
+.repository.view.issue .comment-list .comment .content > .bottom.segment a,
+.repository.wiki.new .editor-preview, .thumbnailImage, .ui.buttons .or::before,
+.ui.piled.segment::after, .ui.piled.segment::before, .ui.piled.segments::after,
+.ui.piled.segments::before, .ui.radio.checkbox input:checked ~ label::before,
+.ui.radio.checkbox input:focus ~ label::before,
+.ui.radio.checkbox input:focus:checked ~ label::before, .ui.tag.label::after,
+.ui.tag.labels .label::after,
+.ui.vertical.pointing.menu .menu .active.item::after,
+.xdsoft_datetimepicker .xdsoft_label, body, footer {
+    background-color: #181818;
+}
+/* remap-css rule for "background: #fcfcfc" */
+.editor-toolbar a.active, .editor-toolbar a:hover {
+    background: #181818;
+}
+/* remap-css rule for "background-color: #fcfcfc" */
+.markdown:not(code) kbd {
+    background-color: #181818;
+}
+/* remap-css rule for "background: #fafafa" */
+.editor-preview, .editor-preview-side,
+.repository #commits-table td.sha .sha.label .detail.icon,
+.repository #repo-files-table .sha.label .detail.icon,
+.repository .diff-file-box .file-body.file-code .lines-num,
+.ui.input > input:active, .ui.input.down input {
+    background: #202020;
+}
+/* remap-css rule for "background-color: #fafafa" */
+.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(1),
+.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(2),
+.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(3),
+.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(4),
+.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(5),
+.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(6),
+.repository .header-wrapper, td.blob-excerpt {
+    background-color: #202020;
+}
+/* remap-css rule for "background-color: #fafafa !important" */
+.explore .navbar, .ui.menu.new-menu {
+    background-color: #202020 !important;
+}
+/* remap-css rule for "background: #f9fafb" */
+.ui.category.search > .results .category .result:hover,
+.ui.checkbox label:active::before, .ui.modal > .actions, .ui.placeholder.segment,
+.ui.search > .results .result:hover, .ui.table > tfoot > tr > td,
+.ui.table > tfoot > tr > th, .ui.table > thead > tr > th {
+    background: #222;
+}
+/* remap-css rule for "background: #f8f8f9" */
+.ui.message {
+    background: #232323;
+}
+/* remap-css rule for "background: #f7f7f7" */
+.comment-code-cloud .ui.attached.tabular.menu {
+    background: #242424;
+}
+/* remap-css rule for "background-color: #f7f7f7" */
+.CodeMirror-gutters, .markdown:not(code) .highlight pre, .markdown:not(code) pre,
+.repository .diff-file-box .header,
+.repository.view.issue .comment-list .comment .content > .header,
+.repository.view.issue .comment-list .comment .content > .merge-section {
+    background-color: #242424;
+}
+/* remap-css rule for "background: #f5f5f5" */
+.lines-commit, .lines-num, .xdsoft_datetimepicker .xdsoft_calendar td,
+.xdsoft_datetimepicker .xdsoft_calendar th,
+.xdsoft_datetimepicker .xdsoft_timepicker .xdsoft_time_box > div > div {
+    background: #262626;
+}
+/* remap-css rule for "background: #f3f4f5" */
+.repository.view.issue .comment-list .comment .content > .bottom.segment,
+.ui.attached.block.header, .ui.block.header,
+.ui.category.search > .results .category,
+.ui.category.search > .results .category .result.active,
+.ui.category.search > .results .category.active,
+.ui.search > .results .result.active, .ui.search > .results > .action,
+.ui.secondary.segment {
+    background: #272727;
+}
+/* remap-css rule for "background-color: #f3f3f3" */
+.repository.view.issue .comment-list .timeline-line::before,
+.repository.view.issue .comment-list:not(.prevent-before-timeline)::before {
+    background-color: #282828;
+}
+/* remap-css rule for "background: #f0f0f0" */
+.ui.attached.header, .ui.vertical.menu .header.item {
+    background: #2a2a2a;
+}
+/* remap-css rule for "background-color: #f0f0f0 !important" */
+.tag-code, .tag-code td {
+    background-color: #2a2a2a !important;
+}
+/* remap-css rule for "background: #e8e8e8" */
+.ui.image.label {
+    background: #3a3a3a;
+}
+/* remap-css rule for "background-color: #e8e8e8" */
+.ui.label {
+    background-color: #3a3a3a;
+}
+/* remap-css rule for "background: none #e0e1e2" */
+.ui.button {
+    background: #404040;
+}
+/* remap-css rule for "background: #e0e0e0" */
+.ui.search .action:hover:not(div), .ui.selectable.table tr:hover td.active,
+.ui.table tr td.selectable.active:hover, .ui.ui.selectable.table tr.active:hover,
+.ui.ui.table td.active, .ui.ui.ui.ui.table tr.active {
+    background: #404040;
+}
+/* remap-css rule for "background-color: #e0e0e0" */
+.ui.labels a.label:hover, a.ui.label:hover {
+    background-color: #404040;
+}
+/* remap-css rule for "background: #dddddd" */
+.tribute-container li.highlight, .tribute-container li:hover,
+.ui.ui.table td.secondary:not(.marked),
+.ui.ui.ui.ui.table tr.secondary:not(.marked) {
+    background: #484848;
+}
+/* remap-css rule for "background-color: #dddddd" */
+#loadingBar .progress {
+    background-color: #484848;
+}
+/* remap-css rule for "background-color: #cacbcd" */
+.ui.button:focus, .ui.button:hover {
+    background-color: #505050;
+}
+/* remap-css rule for "background: #ccc" */
+.CodeMirror-simplescroll-horizontal div, .CodeMirror-simplescroll-vertical div {
+    background: #505050;
+}
+/* remap-css rule for "background: #ccc !important" */
+.xdsoft_scrollbar > .xdsoft_scroller {
+    background: #505050 !important;
+}
+/* remap-css rule for "background-color: #ccc" */
+.issue.list > .item .desc .checklist .progress-bar .progress,
+.repository.release #release-list > li .detail .dot {
+    background-color: #505050;
+}
+/* remap-css rule for "background: #999999" */
+.CodeMirror-Tern-completion-bool::before,
+.CodeMirror-Tern-completion-number::before,
+.CodeMirror-Tern-completion-string::before,
+.dropzone .dz-preview.dz-file-preview .dz-image, .ui.menu .item > .label {
+    background: #666;
+}
+/* remap-css rule for "background-color: #999999" */
+#loadingBar .progress.indeterminate {
+    background-color: #666;
+}
+/* remap-css rule for "background: #888888" */
+.ui.inverted.progress .bar, .ui.progress .bar {
+    background: #777;
+}
+/* remap-css rule for "background-color: #888888 !important" */
+.ui .background.light.grey {
+    background-color: #777 !important;
+}
+/* remap-css rule for "background-color: #404040" */
+body {
+    background-color: #a0a0a0;
+}
+/* remap-css rule for "background: rgba(0,0,0,.05)" */
+.CodeMirror .CodeMirror-code .cm-comment,
+.repository .ui.segment.sub-menu .list .item.active, .ui.basic.active.button,
+.ui.basic.buttons .active.button, .ui.dropdown .menu > .item:hover,
+.ui.menu .active.item, .ui.secondary.menu .active.item,
+.ui.secondary.menu .active.item:hover, .ui.secondary.menu .dropdown.item:hover,
+.ui.secondary.menu .link.item:hover, .ui.secondary.menu a.item:hover,
+.ui.selection.list .list > .item.active, .ui.selection.list .list > .item:active,
+.ui.selection.list > .item.active, .ui.selection.list > .item:active,
+.ui.sortable.table:not(.basic) > thead > tr > th:hover,
+.ui.sortable.table:not(.basic) thead th.sorted,
+.ui.sortable.table:not(.basic) thead th.sorted:hover,
+.ui.table tbody tr td.selectable:hover, .ui.toggle.checkbox label::before,
+.ui.ui.selectable.table > tbody > tr:hover, .ui.vertical.menu .active.item {
+    background: rgba(255, 255, 255, .1);
+}
+/* remap-css rule for "background: rgba(0,0,0,.05) !important" */
+.ui.menu .ui.dropdown .menu > .item:hover,
+.ui.menu .ui.dropdown .menu > .selected.item {
+    background: rgba(255, 255, 255, .1) !important;
+}
+/* remap-css rule for "background-color: rgba(0,0,0,.05)" */
+.ui.basic.active.button:hover, .ui.basic.buttons .active.button:hover,
+.ui.basic.striped.table > tbody > tr:nth-child(2n),
+.ui.labeled.icon.button > .icon, .ui.labeled.icon.buttons > .button > .icon,
+.ui.menu .active.item:hover, .ui.pagination.menu .active.item,
+.ui.slider.checkbox label::before, .ui.vertical.menu .active.item:hover {
+    background-color: rgba(255, 255, 255, .1);
+}
+/* remap-css rule for "background: rgba(0,0,0,.03)" */
+.ui.definition.table > tbody > tr > td:first-child:not(.ignored),
+.ui.definition.table > tfoot > tr > td:first-child:not(.ignored),
+.ui.definition.table > tr > td:first-child:not(.ignored),
+.ui.definition.table tr td.definition, .ui.dropdown .menu .selected.item,
+.ui.dropdown.selected, .ui.link.menu .item:active, .ui.link.menu .item:hover,
+.ui.menu .dropdown.item:hover, .ui.menu .link.item:active,
+.ui.menu .link.item:hover, .ui.menu a.item:active, .ui.menu a.item:hover,
+.ui.selection.list .list > .item:hover, .ui.selection.list > .item:hover,
+.ui.stacked.segment::after, .ui.stacked.segment::before,
+.ui.stacked.segments::after, .ui.stacked.segments::before {
+    background: rgba(255, 255, 255, .06);
+}
+/* remap-css rule for "background: rgba(0,0,0,.03) !important" */
+.ui.menu .ui.dropdown .menu > .active.item {
+    background: rgba(255, 255, 255, .06) !important;
+}
+/* remap-css rule for "background-color: rgba(0,0,0,.03)" */
+.ui.stacked.inverted.segment::after, .ui.stacked.inverted.segment::before,
+.ui.stacked.inverted.segments::after, .ui.stacked.inverted.segments::before {
+    background-color: rgba(255, 255, 255, .06);
+}
+/* remap-css rule for "background-color: rgba(0,0,0,.95)" */
+.ui.radio.checkbox input:checked ~ label::after,
+.ui.radio.checkbox input:focus ~ label::after,
+.ui.radio.checkbox input:focus:checked ~ label::after {
+    background-color: rgba(255, 255, 255, .9);
+}
+/* remap-css rule for "border-right: 1px solid #fff" */
+.editor-toolbar i.separator {
+    border-right-color: #1d1d1d;
+}
+/* remap-css rule for "border-color: #ffffff" */
+.ui.ui.secondary.inverted.pointing.menu .active.item {
+    border-color: #1d1d1d;
+}
+/* remap-css rule for "border-right-color: #ffffff" */
+.repository .comment.form .content .form::after,
+.repository.compare.pull .comment.form .content::after,
+.repository.file.editor .commit-form-wrapper .commit-form::after,
+.repository.new.issue .comment.form .content::after {
+    border-right-color: #1d1d1d;
+}
+/* remap-css rule for "border: 1px solid #ffffff" */
+.repository.release #release-list > li .detail .dot {
+    border-color: #1d1d1d;
+}
+/* remap-css rule for "border-right-color: #f7f7f7" */
+#avatar-arrow::after, .repository .comment.form .content .form::after,
+.repository.compare.pull .comment.form .content::after,
+.repository.file.editor .commit-form-wrapper .commit-form::after,
+.repository.new.issue .comment.form .content::after,
+.repository.view.issue .comment-list .comment .content > .header::after {
+    border-right-color: #242424;
+}
+/* remap-css rule for "border-top: 1px solid #fafafa" */
+.ui.selection.dropdown .menu > .item {
+    border-top-color: #303030;
+}
+/* remap-css rule for "border-top: 1px solid #eee" */
+.CodeMirror-dialog-bottom {
+    border-top-color: #343434;
+}
+/* remap-css rule for "border-bottom: 1px solid #eee" */
+.CodeMirror-dialog-top {
+    border-bottom-color: #343434;
+}
+/* remap-css rule for "border: 1px solid #eeeeee" */
+.repository.view.issue .comment-list .comment .content > .bottom.segment a {
+    border-color: #343434;
+}
+/* remap-css rule for "border-top: 1px solid #eeeeee" */
+.repository.release #release-list > li .detail .download .list,
+.ui.repository.list .item:not(:first-child),
+.ui.user.list .item:not(:first-child) {
+    border-top-color: #343434;
+}
+/* remap-css rule for "border-bottom: 1px solid #eeeeee" */
+.markdown:not(code) h1, .markdown:not(code) h2,
+.organization.members .list .item,
+.organization.teams .detail .item:not(:last-child),
+.repository.release #release-list > li .detail .download .list li,
+.repository.view.issue .comment-list .comment .content > .header {
+    border-bottom-color: #343434;
+}
+/* remap-css rule for "border: 1px solid #eaeaea" */
+.repository.settings.branches .protected-branches .item {
+    border-color: #383838;
+}
+/* remap-css rule for "border-top: 1px solid #eaeaea" */
+.settings .list > .item:not(:first-child) {
+    border-top-color: #383838;
+}
+/* remap-css rule for "border-bottom: 1px solid #eaeaea" */
+.user.profile .ui.card .extra.content ul li:not(:last-child) {
+    border-bottom-color: #383838;
+}
+/* remap-css rule for "border-bottom: 1px solid #ebebeb" */
+.feeds .list ul li:not(:last-child) {
+    border-bottom-color: #383838;
+}
+/* remap-css rule for "border: 1px solid #ddd" */
+.CodeMirror, .CodeMirror-merge, .editor-preview table td,
+.editor-preview table th, .editor-preview-side, .editor-preview-side table td,
+.editor-preview-side table th, .xdsoft_datetimepicker .xdsoft_calendar td,
+.xdsoft_datetimepicker .xdsoft_calendar th {
+    border-color: #404040;
+}
+/* remap-css rule for "border-top: 1px solid #ddd" */
+.xdsoft_datetimepicker .xdsoft_timepicker .xdsoft_time_box > div > div {
+    border-top-color: #404040;
+}
+/* remap-css rule for "border-bottom: 1px solid #ddd" */
+.xdsoft_datetimepicker .xdsoft_timepicker .xdsoft_time_box {
+    border-bottom-color: #404040;
+}
+/* remap-css rule for "border-left: 1px solid #ddd" */
+.CodeMirror-merge-gap {
+    border-left-color: #404040;
+}
+/* remap-css rule for "border-right: 1px solid #ddd" */
+.CodeMirror-gutters, .CodeMirror-merge-gap {
+    border-right-color: #404040;
+}
+/* remap-css rule for "border: 1px solid #dddddd" */
+.markdown:not(code) span.frame > span, .mono.raw,
+.repository.file.editor .commit-form-wrapper .commit-form, code.raw, pre.raw {
+    border-color: #404040;
+}
+/* remap-css rule for "border: 1px solid #dddddd !important" */
+.markdown:not(code) table td, .markdown:not(code) table th,
+.xdsoft_datetimepicker .xdsoft_save_selected {
+    border-color: #404040 !important;
+}
+/* remap-css rule for "border-top: 1px solid #dddddd" */
+.repository.release #release-list {
+    border-top-color: #404040;
+}
+/* remap-css rule for "border-bottom: 1px solid #dddddd" */
+.following.bar.light, .organization.teams .members .item:not(:last-child),
+.organization.teams .repositories .item:not(:last-child),
+.repository.forks .list .item,
+.repository.settings.collaboration .collaborator.list > .item:not(:last-child) {
+    border-bottom-color: #404040;
+}
+/* remap-css rule for "border-bottom: 1px dashed #dddddd" */
+.repository .diff-stats li {
+    border-bottom-color: #404040;
+}
+/* remap-css rule for "border-left: 1px solid #dddddd" */
+.repository.release #release-list > li .detail {
+    border-left-color: #404040;
+}
+/* remap-css rule for "border-right: 1px solid #dddddd" */
+.repository .diff-file-box .file-body.file-code .lines-num-old {
+    border-right-color: #404040;
+}
+/* remap-css rule for "border-left: 4px solid #dddddd" */
+.markdown:not(code) blockquote {
+    border-left-color: #404040;
+}
+/* remap-css rule for "border-color: #d3cfcf !important" */
+.tag-code, .tag-code td {
+    border-color: #424242 !important;
+}
+/* remap-css rule for "border-color: #d4d4d5" */
+.repository .diff-file-box .code-diff .lines-num,
+.ui.bottom.tabular.menu .active.item, .ui.tabular.menu .active.item,
+.ui.vertical.right.tabular.menu .active.item,
+.ui.vertical.tabular.menu .active.item {
+    border-color: #444;
+}
+/* remap-css rule for "border: 1px solid #d4d4d5" */
+.comment-code-cloud .ui.attached.tabular.menu, .ui.attached.header,
+.ui.attached.menu:not(.tabular), .ui.attached.segment, .ui.attached.table,
+.ui.block.header, .ui.checkbox label::before, .ui.popup, .ui.search > .results,
+[data-tooltip]::after {
+    border-color: #444;
+}
+/* remap-css rule for "border-top: 1px solid #d4d4d5" */
+.repository.view.issue .comment-list .comment .content > .merge-section,
+.ui.bottom.tabular.menu, .ui.vertical.pointing.menu .item::after {
+    border-top-color: #444;
+}
+/* remap-css rule for "border-bottom: 1px solid #d4d4d5" */
+.ui.pointing.menu .item::after, .ui.tabular.menu {
+    border-bottom-color: #444;
+}
+/* remap-css rule for "border-left: 1px solid #d4d4d5" */
+.ui.vertical.right.tabular.menu {
+    border-left-color: #444;
+}
+/* remap-css rule for "border-right: 1px solid #d4d4d5" */
+.ui.pointing.menu .item::after, .ui.vertical.pointing.menu .item::after,
+.ui.vertical.tabular.menu {
+    border-right-color: #444;
+}
+/* remap-css rule for "border-top: 1px solid #d6d6d6" */
+footer {
+    border-top-color: #464646;
+}
+/* remap-css rule for "border-left: 1px solid #d6d6d6" */
+footer .container .links > * {
+    border-left-color: #464646;
+}
+/* remap-css rule for "border-right-color: #d3d3d4" */
+#avatar-arrow::before, .repository .comment.form .content .form::before,
+.repository.compare.pull .comment.form .content::before,
+.repository.file.editor .commit-form-wrapper .commit-form::before,
+.repository.new.issue .comment.form .content::before,
+.repository.view.issue .comment-list .comment .content > .header::before {
+    border-right-color: #484848;
+}
+/* remap-css rule for "border: 1px solid #ccc" */
+.color-icon, .minicolors-panel, .minicolors-swatch,
+.xdsoft_datetimepicker .xdsoft_label > .xdsoft_select, .xdsoft_time_box {
+    border-color: #4b4b4b;
+}
+/* remap-css rule for "border-top: 1px solid #ccc" */
+.xdsoft_datetimepicker {
+    border-top-color: #4b4b4b;
+}
+/* remap-css rule for "border-left: 1px solid #ccc" */
+.CodeMirror-ruler, .xdsoft_datetimepicker {
+    border-left-color: #4b4b4b;
+}
+/* remap-css rule for "border-right: 1px solid #ccc" */
+.xdsoft_datetimepicker {
+    border-right-color: #4b4b4b;
+}
+/* remap-css rule for "border: 1px solid #cccccc" */
+.markdown:not(code) kbd,
+.repository .filter.menu.labels .label-filter .menu .info code {
+    border-color: #4b4b4b;
+}
+/* remap-css rule for "border-top: 1px solid #cccccc" */
+.markdown:not(code) table tr {
+    border-top-color: #4b4b4b;
+}
+/* remap-css rule for "border-bottom: 1px solid #cccccc" */
+.repository .filter.menu.labels .label-filter .menu .info {
+    border-bottom-color: #4b4b4b;
+}
+/* remap-css rule for "border: 1px solid #bbb" */
+.CodeMirror-simplescroll-horizontal div, .CodeMirror-simplescroll-vertical div {
+    border-color: #505050;
+}
+/* remap-css rule for "border-top: 1px solid #bbb" */
+.editor-toolbar {
+    border-top-color: #505050;
+}
+/* remap-css rule for "border-bottom: 1px solid #bbb" */
+.xdsoft_datetimepicker {
+    border-bottom-color: #505050;
+}
+/* remap-css rule for "border-left: 1px solid #bbb" */
+.editor-toolbar {
+    border-left-color: #505050;
+}
+/* remap-css rule for "border-right: 1px solid #bbb" */
+.editor-toolbar {
+    border-right-color: #505050;
+}
+/* remap-css rule for "border-bottom-color: #bbbbbb" */
+.markdown:not(code) kbd {
+    border-bottom-color: #505050;
+}
+/* remap-css rule for "border: 1px solid #bbbbbb" */
+.repository #commits-table td.sha .sha.label,
+.repository #repo-files-table .sha.label {
+    border-color: #505050;
+}
+/* remap-css rule for "border-left: 1px solid #bbbbbb" */
+.repository #commits-table td.sha .sha.label .detail.icon,
+.repository #repo-files-table .sha.label .detail.icon {
+    border-left-color: #505050;
+}
+/* remap-css rule for "border-bottom: 1px dashed #aaaaaa" */
+.issue.list > .item, .repository .label.list .item,
+.repository .milestone.list > .item {
+    border-bottom-color: #606060;
+}
+/* remap-css rule for "border-color: #95a5a6" */
+.editor-toolbar a.active, .editor-toolbar a:hover {
+    border-color: #666;
+}
+/* remap-css rule for "border-color: rgba(34,36,38,.35)" */
+.ui.checkbox input:checked ~ label::before,
+.ui.checkbox input:not([type=radio]):indeterminate ~ label::before,
+.ui.checkbox label:active::before, .ui.checkbox label:hover::before,
+.ui.search > .prompt:focus, .ui.selection.dropdown:hover {
+    border-color: #666;
+}
+/* remap-css rule for "border-top: 1px solid rgba(34,36,38,.35)" */
+.ui.stacked.inverted.segment::after, .ui.stacked.inverted.segment::before,
+.ui.stacked.inverted.segments::after, .ui.stacked.inverted.segments::before {
+    border-top-color: #666;
+}
+/* remap-css rule for "border-color: rgba(34,36,38,.15)" */
+.ui.labeled.button > .label, .ui.placeholder.segment,
+.ui.secondary.pointing.menu .dropdown.item:active,
+.ui.secondary.pointing.menu .link.item:active,
+.ui.secondary.pointing.menu a.item:active {
+    border-color: #444;
+}
+/* remap-css rule for "border-top-color: rgba(34,36,38,.15) !important" */
+.ui.divider.inverted, .ui.divider.inverted::after, .ui.divider.inverted::before {
+    border-top-color: #444 !important;
+}
+/* remap-css rule for "border-left-color: rgba(34,36,38,.15) !important" */
+.ui.divider.inverted, .ui.divider.inverted::after, .ui.divider.inverted::before {
+    border-left-color: #444 !important;
+}
+/* remap-css rule for "border-right-color: rgba(34,36,38,.15)" */
+.ui.secondary.vertical.pointing.menu {
+    border-right-color: #444;
+}
+/* remap-css rule for "border: 1px solid rgba(34,36,38,.15)" */
+.ui.basic.buttons, .ui.basic.label, .ui.basic.labels .label, .ui.basic.table,
+.ui.basic.table.segment, .ui.dropdown .menu, .ui.form input:not([type]),
+.ui.form input[type="date"], .ui.form input[type="datetime-local"],
+.ui.form input[type="email"], .ui.form input[type="file"],
+.ui.form input[type="number"], .ui.form input[type="password"],
+.ui.form input[type="search"], .ui.form input[type="tel"],
+.ui.form input[type="text"], .ui.form input[type="time"],
+.ui.form input[type="url"], .ui.form input[type=date],
+.ui.form input[type=datetime-local], .ui.form input[type=email],
+.ui.form input[type=file], .ui.form input[type=number],
+.ui.form input[type=password], .ui.form input[type=search],
+.ui.form input[type=tel], .ui.form input[type=text], .ui.form input[type=time],
+.ui.form input[type=url], .ui.form select, .ui.form textarea,
+.ui.horizontal.segments, .ui.input > input, .ui.input textarea, .ui.menu,
+.ui.piled.segment::after, .ui.piled.segment::before, .ui.piled.segments::after,
+.ui.piled.segments::before, .ui.search > .prompt, .ui.segment, .ui.segments,
+.ui.selection.dropdown, .ui.table, select.ui.dropdown {
+    border-color: #444;
+}
+/* remap-css rule for "border-top: 1px solid rgba(34,36,38,.15)" */
+.ui.basic.vertical.buttons .button, .ui.celled.list > .item,
+.ui.celled.list > .list, .ui.divided.items > .item, .ui.divided.list > .item,
+.ui.divider:not(.vertical):not(.horizontal), .ui.dropdown .scrolling.menu,
+.ui.modal > .actions, .ui.segments > .horizontal.segments,
+.ui.segments > .segment, .ui.segments > .ui.segments, .ui.stacked.segment::after,
+.ui.stacked.segment::before, .ui.stacked.segments::after,
+.ui.stacked.segments::before, .ui.styled.accordion .accordion .title,
+.ui.styled.accordion .title, .ui.table > tfoot > tr > td,
+.ui.table > tfoot > tr > th {
+    border-top-color: #444;
+}
+/* remap-css rule for "border-bottom: 1px solid rgba(34,36,38,.15)" */
+.ui.celled.list > .item:last-child, .ui.dividing.header,
+.ui.floating.dropdown .overflow.menu .scrolling.menu.items, .ui.modal > .header,
+.ui.vertical.segment {
+    border-bottom-color: #444;
+}
+/* remap-css rule for "border-left: 1px solid rgba(34,36,38,.15)" */
+.ui.basic.buttons .button, .ui.category.search > .results .category .results,
+.ui.definition.table > tbody > tr > td:nth-child(2),
+.ui.definition.table > tfoot:not(.full-width) > tr > td:nth-child(2),
+.ui.definition.table > tfoot:not(.full-width) > tr > th:nth-child(2),
+.ui.definition.table > thead:not(.full-width) > tr > th:nth-child(2),
+.ui.definition.table > tr > td:nth-child(2),
+.ui.horizontal.celled.list .list > .item, .ui.horizontal.celled.list > .item,
+.ui.horizontal.segments > .segment, .ui.sortable.table > thead > tr > th,
+.ui.structured.sortable.table > thead > tr > th, .ui.vertical.divider::after,
+.ui.vertical.divider::before {
+    border-left-color: #444;
+}
+/* remap-css rule for "border-right: 1px solid rgba(34,36,38,.15)" */
+.ui.divided.horizontal.list > .item,
+.ui.horizontal.celled.list .list > .item:last-child,
+.ui.horizontal.celled.list > .item:last-child,
+.ui.structured.sortable.table > thead > tr > th {
+    border-right-color: #444;
+}
+/* remap-css rule for "border-bottom: 2px solid rgba(34,36,38,.15)" */
+.ui.secondary.pointing.menu {
+    border-bottom-color: #444;
+}
+/* remap-css rule for "color: #000000" */
+#errorMoreInfo, #git-graph-container li a,
+#viewer.textLayer-hover .textLayer > span:hover,
+#viewer.textLayer-shadow .textLayer > span,
+#viewer.textLayer-visible .textLayer > span, .CodeMirror, .CodeMirror-Tern-fname,
+.CodeMirror-guttermarker, .CodeMirror-hint, .CodeMirror-lint-tooltip,
+.activity-bar-graph, .activity-bar-graph-alt, .fileInput,
+.issue.list > .item .title:hover, .markdown:not(code) h1 .octicon-link,
+.markdown:not(code) h2 .octicon-link, .markdown:not(code) h3 .octicon-link,
+.markdown:not(code) h4 .octicon-link, .markdown:not(code) h5 .octicon-link,
+.markdown:not(code) h6 .octicon-link, .repository .label.list .item a:hover,
+.repository .metas .ui.list a .text:hover,
+.repository .milestone.list > .item .operate > a:hover,
+.repository .milestone.list > .item > a,
+.repository .ui.segment.sub-menu .list .item a,
+.repository .ui.segment.sub-menu .list .item span.ui,
+.repository.view.issue .comment-list .comment .content > .bottom.segment span.ui.image,
+.repository.view.issue .comment-list .comment .content > .bottom.segment span.ui.image:hover,
+.repository.view.issue .comment-list .comment .tag.review.pending,
+.ui .text.black:hover, .ui.bottom.attached.message,
+.ui.bottom.attached.message .pull-right, .ui.checkbox input[disabled] ~ label,
+.ui.disabled.checkbox label, .ui.inverted.dimmer > .content,
+.ui.inverted.dimmer > .content > *, .ui.inverted.multiple.dropdown > .label,
+.ui.inverted.multiple.dropdown > .label:hover,
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_highlighted_default,
+.xdsoft_datetimepicker .xdsoft_calendar td.xdsoft_highlighted_mint,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td.xdsoft_current,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td.xdsoft_default,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td.xdsoft_highlighted_default,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td.xdsoft_highlighted_mint,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_label > .xdsoft_select > div > .xdsoft_option.xdsoft_current,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_label > .xdsoft_select > div > .xdsoft_option:hover,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_timepicker .xdsoft_time_box > div > div.xdsoft_current,
+a.ui.inverted.black.header.header.header:hover {
+    color: #eee;
+}
+/* remap-css rule for "color: #000000 !important" */
+.issue.list > .item .desc a.milestone:hover,
+.issue.list > .item .desc a.ref:hover, .ui .migrate a:hover,
+.ui .text.grey a:hover,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td:hover,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_timepicker .xdsoft_time_box > div > div:hover {
+    color: #eee !important;
+}
+/* remap-css rule for "color: #333333" */
+.hljs, .hljs-keyword, .hljs-selector-tag, .hljs-subst,
+.markdown:not(code) span.frame span span, .ui.tertiary.button:focus,
+.ui.tertiary.button:hover, .ui.user.list .item .description a,
+.xdsoft_datetimepicker {
+    color: #ccc;
+}
+/* remap-css rule for "color: #333333 !important" */
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_copyright {
+    color: #ccc !important;
+}
+/* remap-css rule for "color: #444444" */
+.CodeMirror-Tern-tooltip, .issue.list > .item .title,
+.repository .metas .ui.list a .text, .ui .text.black {
+    color: #aaa;
+}
+/* remap-css rule for "color: #444444 !important" */
+.ui .migrate a, .ui .text.grey a {
+    color: #aaa !important;
+}
+/* remap-css rule for "color: #666666" */
+#git-graph-container li .author, .issue.list > .item .comment,
+.repository .label.list .item a,
+.repository .milestone.list > .item .operate > a,
+.repository .ui.segment.sub-menu .list .item a:hover, .settings .list.key .meta,
+.ui.tertiary.button:active, .xdsoft_datetimepicker .xdsoft_calendar td,
+.xdsoft_datetimepicker .xdsoft_calendar th,
+.xdsoft_datetimepicker .xdsoft_timepicker .xdsoft_time_box > div > div,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar th {
+    color: #999;
+}
+/* remap-css rule for "color: #767676" */
+.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon,
+.repository.view.issue .comment-list .comment .content .no-content,
+.repository.view.issue .comment-list .comment .content > .header,
+.repository.view.issue .comment-list .comment .tag, .ui.basic.grey.button,
+.ui.basic.grey.buttons .button, .ui.basic.labels .grey.label,
+.ui.elastic.basic.loading.button::after,
+.ui.elastic.basic.loading.button::before,
+.ui.grey.basic.elastic.loading.button::after,
+.ui.grey.basic.elastic.loading.button::before,
+.ui.grey.elastic.loader.loader::before,
+.ui.grey.elastic.loading.loading.loading .input > i.icon::before,
+.ui.grey.elastic.loading.loading.loading.loading > i.icon::before,
+.ui.grey.elastic.loading.loading.loading:not(.segment)::before, .ui.grey.header,
+.ui.grey.loader.loader.loader::after,
+.ui.grey.loading.loading.loading.loading .input > i.icon::after,
+.ui.grey.loading.loading.loading.loading > i.icon::after,
+.ui.grey.loading.loading.loading.loading:not(.usual):not(.button)::after,
+.ui.grey.message, .ui.inverted.dimmer > .ui.elastic.loader,
+.ui.selectable.table tr:hover td.grey:not(.marked),
+.ui.table tr td.selectable.grey:not(.marked):hover, .ui.tertiary.grey.button,
+.ui.tertiary.grey.buttons .button, .ui.tertiary.grey.buttons .tertiary.button,
+.ui.ui.grey.menu .active.item, .ui.ui.grey.menu .active.item:hover,
+.ui.ui.menu .grey.active.item,
+.ui.ui.selectable.table tr.grey:not(.marked):hover,
+.ui.ui.table td.grey:not(.marked), .ui.ui.ui.basic.grey.label,
+.ui.ui.ui.ui.table tr.grey:not(.marked), i.grey.icon.icon.icon.icon,
+span.ui.grey.text {
+    color: #888;
+}
+/* remap-css rule for "color: #767676 !important" */
+.ui .text.grey {
+    color: #888 !important;
+}
+/* remap-css rule for "color: #888888" */
+.feeds .list ul li a .svg, .repository .diff-box .header .file,
+.repository.file.list #repo-files-table .jumpable-path,
+.ui.repository.list .item .ui.header .metas, footer {
+    color: #777;
+}
+/* remap-css rule for "color: #888888 !important" */
+.ui .migrate, .ui .text.light.grey {
+    color: #777 !important;
+}
+/* remap-css rule for "color: #999999" */
+#git-graph-container li .time, .CodeMirror-Tern-completion-guess,
+.CodeMirror-guttermarker-subtle, .CodeMirror-linenumber, .cm-s-default .cm-hr,
+.form .help, .hljs-meta, .issue.list > .item .desc, .lines-commit, .lines-num,
+.repository .milestone.list > .item .meta,
+.xdsoft_datetimepicker .xdsoft_calendar th,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar td,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_calendar th,
+.xdsoft_datetimepicker.xdsoft_dark .xdsoft_timepicker .xdsoft_time_box > div > div {
+    color: #666;
+}
+/* remap-css rule for "color: #999999 !important" */
+.issue.list > .item .desc a.milestone, .issue.list > .item .desc a.ref {
+    color: #666 !important;
+}
+/* remap-css rule for "color: #a6a6a6" */
+.repository .diff-file-box .file-body.file-code .lines-num {
+    color: #555;
+}
+/* remap-css rule for "color: rgba(0,0,0,.95)" */
+.ui.active.button, .ui.active.button:hover, .ui.active.label,
+.ui.active.label::before, .ui.basic.active.button,
+.ui.basic.buttons .active.button, .ui.bottom.tabular.menu .active.item,
+.ui.checkbox input:active ~ label, .ui.checkbox input:checked ~ label::after,
+.ui.checkbox input:checked:focus ~ label::after,
+.ui.checkbox input:focus ~ label, .ui.checkbox input:focus ~ label::after,
+.ui.checkbox input:not([type=radio]):indeterminate ~ label::after,
+.ui.checkbox input:not([type=radio]):indeterminate:focus ~ label::after,
+.ui.checkbox label:active::after,
+.ui.definition.table > tbody > tr > td:first-child:not(.ignored),
+.ui.definition.table > tfoot > tr > td:first-child:not(.ignored),
+.ui.definition.table > tr > td:first-child:not(.ignored),
+.ui.definition.table tr td.definition, .ui.dropdown .menu .active.item,
+.ui.dropdown .menu .selected.item, .ui.dropdown .menu > .item:hover,
+.ui.dropdown.selected, .ui.form input:not([type]):focus,
+.ui.form input[type="date"]:focus, .ui.form input[type="datetime-local"]:focus,
+.ui.form input[type="email"]:focus, .ui.form input[type="file"]:focus,
+.ui.form input[type="number"]:focus, .ui.form input[type="password"]:focus,
+.ui.form input[type="search"]:focus, .ui.form input[type="tel"]:focus,
+.ui.form input[type="text"]:focus, .ui.form input[type="time"]:focus,
+.ui.form input[type="url"]:focus, .ui.form input[type=date]:focus,
+.ui.form input[type=datetime-local]:focus, .ui.form input[type=email]:focus,
+.ui.form input[type=file]:focus, .ui.form input[type=number]:focus,
+.ui.form input[type=password]:focus, .ui.form input[type=search]:focus,
+.ui.form input[type=tel]:focus, .ui.form input[type=text]:focus,
+.ui.form input[type=time]:focus, .ui.form input[type=url]:focus,
+.ui.form textarea:focus, .ui.labels a.active.label:hover,
+.ui.labels a.active.label:hover::before, .ui.link.list.list .active.item,
+.ui.link.list.list .active.item a:not(.ui), .ui.link.menu .item:active,
+.ui.link.menu .item:hover, .ui.menu .active.item, .ui.menu .active.item:hover,
+.ui.menu .dropdown.item:hover, .ui.menu .link.item:active,
+.ui.menu .link.item:hover, .ui.menu a.item:active, .ui.menu a.item:hover,
+.ui.pagination.menu .active.item, .ui.search > .prompt:focus,
+.ui.secondary.menu .active.item, .ui.secondary.menu .active.item:hover,
+.ui.secondary.menu .dropdown.item:hover, .ui.secondary.menu .link.item:hover,
+.ui.secondary.menu a.item:hover, .ui.secondary.pointing.menu .active.item,
+.ui.secondary.pointing.menu .active.item:hover,
+.ui.selection.list .list > .item.active, .ui.selection.list > .item.active,
+.ui.sortable.table thead th.sorted, .ui.sortable.table thead th.sorted:hover,
+.ui.striped.selectable.selectable.selectable.table tbody tr.active:hover,
+.ui.styled.accordion .accordion .active.title,
+.ui.styled.accordion .active.title, .ui.table tbody tr td.selectable:hover,
+.ui.tabular.menu .active.item, .ui.text.menu .active.item,
+.ui.ui.selectable.table > tbody > tr:hover, .ui.vertical.menu .active.item:hover,
+.ui.vertical.menu .item .menu .active.item,
+.ui.vertical.right.tabular.menu .active.item,
+.ui.vertical.tabular.menu .active.item, a.ui.active.label:hover,
+a.ui.active.label:hover::before {
+    color: #ccc;
+}
+/* remap-css rule for "color: rgba(0,0,0,.95) !important" */
+.ui.menu .ui.dropdown .menu > .active.item,
+.ui.menu .ui.dropdown .menu > .item:hover,
+.ui.menu .ui.dropdown .menu > .selected.item,
+.ui.slider.checkbox input:checked ~ label,
+.ui.slider.checkbox input:focus:checked ~ label,
+.ui.toggle.checkbox input:checked ~ label,
+.ui.toggle.checkbox input:focus:checked ~ label {
+    color: #ccc !important;
+}
+/* remap-css rule for "color: rgba(0,0,0,.9)" */
+.dropzone .dz-preview .dz-details, .ui.active.button:active,
+.ui.basic.button:active, .ui.basic.buttons .button:active, .ui.button:active,
+.ui.link.list.list .item a:not(.ui):active, .ui.link.list.list a.item:active,
+.ui.selection.list .list > .item:active, .ui.selection.list > .item:active,
+.ui.tabular.menu .item.active {
+    color: #ccc;
+}
+/* remap-css rule for "color: rgba(0,0,0,.87)" */
+.file-comment, .ui.accordion .title:not(.ui), .ui.basic.label,
+.ui.basic.labels .label, .ui.bulleted.list .list > a.item::before,
+.ui.bulleted.list > a.item::before,
+.ui.category.search > .results .category.active > .name, .ui.checkbox + label,
+.ui.checkbox label, .ui.checkbox label::after, .ui.comments .comment .author,
+.ui.comments .comment .text, .ui.dropdown .menu > .item, .ui.form .field > label,
+.ui.form .grouped.fields > label, .ui.form .inline.field > label,
+.ui.form .inline.field > p, .ui.form .inline.fields .field > label,
+.ui.form .inline.fields .field > p, .ui.form .inline.fields > label,
+.ui.form input:not([type]), .ui.form input[type="date"],
+.ui.form input[type="datetime-local"], .ui.form input[type="email"],
+.ui.form input[type="file"], .ui.form input[type="number"],
+.ui.form input[type="password"], .ui.form input[type="search"],
+.ui.form input[type="tel"], .ui.form input[type="text"],
+.ui.form input[type="time"], .ui.form input[type="url"],
+.ui.form input[type=date], .ui.form input[type=datetime-local],
+.ui.form input[type=email], .ui.form input[type=file],
+.ui.form input[type=number], .ui.form input[type=password],
+.ui.form input[type=search], .ui.form input[type=tel], .ui.form input[type=text],
+.ui.form input[type=time], .ui.form input[type=url], .ui.form select,
+.ui.form textarea, .ui.fullscreen.modal > .close, .ui.header,
+.ui.horizontal.bulleted.list > .item::before,
+.ui.indicating.progress[data-percent="0"] .label,
+.ui.indicating.progress[data-percent="1"] .label,
+.ui.indicating.progress[data-percent="2"] .label,
+.ui.indicating.progress[data-percent="3"] .label,
+.ui.indicating.progress[data-percent="4"] .label,
+.ui.indicating.progress[data-percent="5"] .label,
+.ui.indicating.progress[data-percent="6"] .label,
+.ui.indicating.progress[data-percent="7"] .label,
+.ui.indicating.progress[data-percent="8"] .label,
+.ui.indicating.progress[data-percent="9"] .label,
+.ui.indicating.progress[data-percent^="1"] .label,
+.ui.indicating.progress[data-percent^="100"] .label,
+.ui.indicating.progress[data-percent^="2"] .label,
+.ui.indicating.progress[data-percent^="3"] .label,
+.ui.indicating.progress[data-percent^="4"] .label,
+.ui.indicating.progress[data-percent^="5"] .label,
+.ui.indicating.progress[data-percent^="6"] .label,
+.ui.indicating.progress[data-percent^="7"] .label,
+.ui.indicating.progress[data-percent^="8"] .label,
+.ui.indicating.progress[data-percent^="9"] .label, .ui.input, .ui.input > input,
+.ui.input > input:active, .ui.input textarea, .ui.input.down input,
+.ui.inverted.dimmer > .basic.modal, .ui.inverted.dimmer > .ui.loader,
+.ui.inverted.form input:not([type]), .ui.inverted.form input[type="date"],
+.ui.inverted.form input[type="datetime-local"],
+.ui.inverted.form input[type="email"], .ui.inverted.form input[type="file"],
+.ui.inverted.form input[type="number"], .ui.inverted.form input[type="password"],
+.ui.inverted.form input[type="search"], .ui.inverted.form input[type="tel"],
+.ui.inverted.form input[type="text"], .ui.inverted.form input[type="time"],
+.ui.inverted.form input[type="url"], .ui.inverted.form input[type=date],
+.ui.inverted.form input[type=datetime-local],
+.ui.inverted.form input[type=email], .ui.inverted.form input[type=file],
+.ui.inverted.form input[type=number], .ui.inverted.form input[type=password],
+.ui.inverted.form input[type=search], .ui.inverted.form input[type=tel],
+.ui.inverted.form input[type=text], .ui.inverted.form input[type=time],
+.ui.inverted.form input[type=url], .ui.inverted.segment .segment,
+.ui.items > .item .meta > a:not(.ui):hover, .ui.items > .item > .content,
+.ui.items > .item > .content > .description, .ui.list .list > .item .header,
+.ui.list .list > .item > .content, .ui.list .list > a.item:hover > .icon,
+.ui.list .list > a.item:hover > .icons, .ui.list > .item .header,
+.ui.list > .item > .content, .ui.list > a.item:hover > .icon,
+.ui.list > a.item:hover > .icons, .ui.menu .item, .ui.message,
+.ui.modal > .close.inside, .ui.ordered.list .list > .item::before,
+.ui.ordered.list > .item::before, .ui.popup, .ui.progress > .label,
+.ui.progress[data-percent="0"] .bar .progress, .ui.search > .prompt,
+.ui.search > .results .result, .ui.search > .results > .action,
+.ui.search > .results > .message .description,
+.ui.search > .results > .message .header,
+.ui.secondary.pointing.menu .dropdown.item:hover,
+.ui.secondary.pointing.menu .link.item:hover,
+.ui.secondary.pointing.menu a.item:hover,
+.ui.selectable.table tr:hover td.active, .ui.selection.dropdown,
+.ui.sortable.table > thead > tr > th,
+.ui.styled.accordion .accordion .active.title,
+.ui.styled.accordion .accordion .title:hover, .ui.styled.accordion .active.title,
+.ui.styled.accordion .title:hover, .ui.table, .ui.table > tfoot > tr > td,
+.ui.table > tfoot > tr > th, .ui.table > thead > tr > th,
+.ui.table tr td.selectable.active:hover, .ui.tabular.menu .item,
+.ui.toggle.checkbox label, .ui.ui.selectable.table tr.active:hover,
+.ui.ui.table td.active, .ui.ui.ui.ui.table tr.active, ::selection,
+[data-tooltip]::after, body, input::selection, ol.ui.list li::before,
+textarea::selection, ul.ui.horizontal.bulleted.list li::before,
+ul.ui.list li::before {
+    color: #ccc;
+}
+::-moz-selection, input::-moz-selection, textarea::-moz-selection {
+    color: #ccc;
+}
+::-webkit-selection, input::-webkit-selection, textarea::-webkit-selection {
+    color: #ccc;
+}
+/* remap-css rule for "color: rgba(0,0,0,.87) !important" */
+.ui.menu .ui.dropdown .menu > .item {
+    color: #ccc !important;
+}
+/* remap-css rule for "color: rgba(0,0,0,.85)" */
+.ui.divider, .ui.dropdown .menu > .header:not(.ui),
+.ui.inverted.dimmer > .modal > .close,
+.ui.inverted.dimmer > .ui.basic.modal > .header,
+.ui.items > .item > .content > .header, .ui.items > .item > .content > a.header,
+.ui.modal > .header, .ui.search > .results .result .title,
+.ui.search > .results .result.active .description,
+.ui.search > .results .result.active .title, .ui.text.menu .header.item,
+.ui.vertical.menu .item .menu .link.item:hover,
+.ui.vertical.menu .item .menu a.item:hover {
+    color: #bbb;
+}
+/* remap-css rule for "color: rgba(0,0,0,.85) !important" */
+.ui.secondary.pointing.menu .header.item {
+    color: #bbb !important;
+}
+/* remap-css rule for "color: rgba(0,0,0,.8)" */
+.ui.basic.button:focus, .ui.basic.button:hover, .ui.basic.buttons .button:focus,
+.ui.basic.buttons .button:hover, .ui.button:focus, .ui.button:hover,
+.ui.checkbox + label:hover, .ui.checkbox label:hover,
+.ui.comments .comment .actions a.active, .ui.comments .comment .actions a:hover,
+.ui.input > input:focus, .ui.input.focus > input, .ui.inverted.button.active,
+.ui.inverted.button.active:focus, .ui.inverted.button:focus,
+.ui.inverted.button:hover, .ui.labels a.label:hover,
+.ui.labels a.label:hover::before, .ui.link.list.list .item a:not(.ui):hover,
+.ui.link.list.list a.item:hover, .ui.selection.list .list > .item:hover,
+.ui.selection.list > .item:hover,
+.ui.selection.visible.dropdown > .text:not(.default),
+.ui.slider.checkbox label:hover, .ui.sortable.table > thead > tr > th:hover,
+.ui.tabular.menu .item:hover, a.ui.label:hover, a.ui.label:hover::before {
+    color: #aaa;
+}
+/* remap-css rule for "color: rgba(0,0,0,.6)" */
+.comment-code-cloud .footer .markdown-info, .ui.basic.button,
+.ui.basic.buttons .button, .ui.button, .ui.header .sub.header,
+.ui.inverted.grey.button.active, .ui.inverted.grey.button:active,
+.ui.inverted.grey.button:focus, .ui.inverted.grey.button:hover,
+.ui.inverted.grey.buttons .button.active,
+.ui.inverted.grey.buttons .button:active,
+.ui.inverted.grey.buttons .button:focus, .ui.inverted.grey.buttons .button:hover,
+.ui.inverted.olive.button.active, .ui.inverted.olive.button:active,
+.ui.inverted.olive.button:focus, .ui.inverted.olive.button:hover,
+.ui.inverted.olive.buttons .button.active,
+.ui.inverted.olive.buttons .button:active,
+.ui.inverted.olive.buttons .button:focus,
+.ui.inverted.olive.buttons .button:hover, .ui.inverted.teal.button.active,
+.ui.inverted.teal.button:active, .ui.inverted.teal.button:focus,
+.ui.inverted.teal.button:hover, .ui.inverted.teal.buttons .button.active,
+.ui.inverted.teal.buttons .button:active,
+.ui.inverted.teal.buttons .button:focus, .ui.inverted.teal.buttons .button:hover,
+.ui.inverted.yellow.button.active, .ui.inverted.yellow.button:active,
+.ui.inverted.yellow.button:focus, .ui.inverted.yellow.button:hover,
+.ui.inverted.yellow.buttons .button.active,
+.ui.inverted.yellow.buttons .button:active,
+.ui.inverted.yellow.buttons .button:focus,
+.ui.inverted.yellow.buttons .button:hover, .ui.items > .item .meta, .ui.label,
+.ui.secondary.segment, .ui.tertiary.button, .ui.tertiary.segment,
+.ui.text.menu .item {
+    color: #888;
+}
+/* remap-css rule for "color: rgba(0,0,0,.6) !important" */
+.repo-buttons .disabled-repo-button a.button:hover {
+    color: #888 !important;
+}
+/* remap-css rule for "color: rgba(0,0,0,.5)" */
+.ui.tabular.menu .item, .ui.vertical.menu .menu .item {
+    color: #777;
+}
+/* remap-css rule for "color: rgba(0,0,0,.4)" */
+.ui.breadcrumb .divider, .ui.buttons .or::before,
+.ui.category.search > .results .category > .name,
+.ui.comments .comment .actions a, .ui.comments .comment .metadata,
+.ui.definition.table > tfoot:not(.full-width) > tr > th:first-child,
+.ui.definition.table > thead:not(.full-width) > tr > th:first-child,
+.ui.dropdown .menu > .item > .description,
+.ui.dropdown .menu > .message:not(.ui), .ui.dropdown > .text > .description,
+.ui.items > .item .extra, .ui.items > .item .meta > a:not(.ui),
+.ui.link.list .item, .ui.link.list .item a:not(.ui), .ui.link.list a.item,
+.ui.list .list > a.item > i.icon, .ui.list .list > a.item > i.icons,
+.ui.list > a.item > i.icon, .ui.list > a.item > i.icons,
+.ui.search > .results .result .description, .ui.selection.list .list > .item,
+.ui.selection.list > .item, .ui.slider.checkbox label,
+.ui.styled.accordion .accordion .title, .ui.styled.accordion .title {
+    color: #666;
+}
+/* remap-css rule for "color: hsla(0,0%,100%,.5)" */
+.outlineItemToggler {
+    color: #888;
+}
+/* remap-css rule for "color: rgba(40,40,40,.3)" */
+.ui.disabled.segment, .ui.inverted.table tr td.disabled:not([class="disabled"]),
+.ui.inverted.table tr td.disabled:not([class=disabled]),
+.ui.inverted.table tr.disabled td[class]:not(.disabled),
+.ui.inverted.table tr.disabled:not([class="disabled"]) td,
+.ui.inverted.table tr.disabled:not([class=disabled]) td,
+.ui.inverted.table tr:hover td.disabled:not([class="disabled"]),
+.ui.inverted.table tr:hover td.disabled:not([class=disabled]),
+.ui.sortable.table th.disabled:hover, .ui.table tr td.disabled,
+.ui.table tr.disabled td, .ui.table tr.disabled:hover,
+.ui.table tr:hover td.disabled, .ui.ui.menu .item.disabled {
+    color: #888;
+}
+/* remap-css rule for "color: rgba(40,40,40,.3) !important" */
+.ui.list .list > .disabled.item, .ui.list > .disabled.item {
+    color: #888 !important;
+}
+/* remap-css rule for "color: #1678c2" */
+.ui.basic.blue.button:focus, .ui.basic.blue.button:hover,
+.ui.basic.blue.buttons .button:focus, .ui.basic.blue.buttons .button:hover,
+.ui.basic.labels a.blue.label:hover, .ui.basic.labels a.primary.label:hover,
+.ui.basic.primary.button:focus, .ui.basic.primary.button:hover,
+.ui.basic.primary.buttons .button:focus, .ui.basic.primary.buttons .button:hover,
+a.ui.blue.header:hover, a.ui.primary.header:hover,
+a.ui.ui.ui.basic.blue.label:hover, a.ui.ui.ui.basic.primary.label:hover {
+    color: #4f8cc9;
+}
+/* remap-css rule for "color: #1678c2 !important" */
+.ui.basic.blue.button, .ui.basic.blue.buttons .button {
+    color: #4f8cc9 !important;
+}
+/* remap-css rule for "color: #4183c4" */
+.ui.breadcrumb a, .ui.inverted.basic.label:hover,
+.ui.inverted.items > .item > .content a:not(.ui):hover, .ui.list .list > a.item,
+.ui.list > a.item, a {
+    color: #4f8cc9;
+}
+/* remap-css rule for "color: #4183c4 !important" */
+.ui.list .list > .item a.header, .ui.list > .item a.header {
+    color: #4f8cc9 !important;
+}
+/* remap-css rule for "color: #2c3e50 !important" */
+.editor-toolbar a {
+    color: #4f8cc9 !important;
+}
+/* remap-css rule for "border-color: #85b7d9" */
+.ui.form input:not([type]):focus, .ui.form input[type="date"]:focus,
+.ui.form input[type="datetime-local"]:focus, .ui.form input[type="email"]:focus,
+.ui.form input[type="file"]:focus, .ui.form input[type="number"]:focus,
+.ui.form input[type="password"]:focus, .ui.form input[type="search"]:focus,
+.ui.form input[type="tel"]:focus, .ui.form input[type="text"]:focus,
+.ui.form input[type="time"]:focus, .ui.form input[type="url"]:focus,
+.ui.form input[type=date]:focus, .ui.form input[type=datetime-local]:focus,
+.ui.form input[type=email]:focus, .ui.form input[type=file]:focus,
+.ui.form input[type=number]:focus, .ui.form input[type=password]:focus,
+.ui.form input[type=search]:focus, .ui.form input[type=tel]:focus,
+.ui.form input[type=text]:focus, .ui.form input[type=time]:focus,
+.ui.form input[type=url]:focus, .ui.form textarea:focus, .ui.input > input:focus,
+.ui.input.focus > input {
+    border-color: #4f8cc9;
+}
+/* remap-css rule for "border-left-color: #85b7d9" */
+.ui.labeled.input:not([class*="corner labeled"]) .label:first-child + input:focus,
+.ui.ui[class*="left action"].input > input:focus {
+    border-left-color: #4f8cc9;
+}
+/* remap-css rule for "border-right-color: #85b7d9" */
+.ui.action.input:not([class*="left action"]) > input:focus {
+    border-right-color: #4f8cc9;
+}
+/* remap-css rule for "border-right-color: #85b7d9 !important" */
+.ui[class*="right labeled"].input > input:focus {
+    border-right-color: #4f8cc9 !important;
+}
+/* remap-css rule for "border: 2px dashed #0087f5" */
+.ui.form .dropzone {
+    border-color: #4f8cc9;
+}
+/* remap-css rule for "box-shadow: inset 0 0 0 1px #1678c2 !important" */
+.ui.basic.blue.button, .ui.basic.blue.buttons .button {
+    box-shadow: inset 0 0 0 1px #4f8cc9 !important;
+}
+/* remap-css rule for "color: #1e70bf" */
+.repository.file.list #repo-files-table tbody .svg.octicon-file-directory,
+.repository.file.list #repo-files-table tbody .svg.octicon-file-submodule,
+.repository.file.list #repo-files-table tbody .svg.octicon-file-symlink-directory,
+.ui.basic.labels a.label:hover, .ui.breadcrumb a:hover,
+.ui.comments .comment a.author:hover, .ui.inverted.list .list > a.item:hover,
+.ui.inverted.list > a.item:hover, .ui.items > .item > .content > a.header:hover,
+.ui.items a.item:hover .content .header,
+.ui.link.items > .item:hover .content .header, .ui.list .list > a.item:hover,
+.ui.list > a.item:hover, a.ui.basic.label:hover, a:hover {
+    color: #5f9cd9;
+}
+/* remap-css rule for "color: #1e70bf !important" */
+.ui.inverted.list .item a:not(.ui):hover,
+.ui.list .list > .item > a.header:hover, .ui.list > .item > a.header:hover {
+    color: #5f9cd9 !important;
+}
+/* remap-css rule for "border-color: #96c8da" */
+.ui.checkbox input:checked:focus ~ label::before,
+.ui.checkbox input:focus ~ label::before,
+.ui.checkbox input:not([type=radio]):indeterminate:focus ~ label::before,
+.ui.selection.active.dropdown, .ui.selection.active.dropdown .menu,
+.ui.selection.active.dropdown:hover, .ui.selection.active.dropdown:hover .menu,
+.ui.selection.dropdown:focus, .ui.selection.dropdown:focus .menu {
+    border-color: #5f9cd9;
+}
+/* remap-css rule for "background-color: #e6f1f6 !important" */
+.ui .info.segment.top {
+    background-color: #182030 !important;
+}
+/* remap-css rule for "color: #2c662d" */
+.ui.dropdown.success, .ui.dropdown.success > .default.text,
+.ui.dropdown.success > .menu > .item, .ui.dropdown.success > .text,
+.ui.form .field.success .checkbox .box::after,
+.ui.form .field.success .checkbox label::after,
+.ui.form .field.success .checkbox:not(.toggle):not(.slider) .box,
+.ui.form .field.success .checkbox:not(.toggle):not(.slider) label,
+.ui.form .field.success .transparent.input input,
+.ui.form .field.success .transparent.input textarea,
+.ui.form .field.success .ui.dropdown, .ui.form .field.success .ui.dropdown .item,
+.ui.form .field.success .ui.dropdown .text,
+.ui.form .field.success .ui.multiple.selection.dropdown > .label,
+.ui.form .field.success input.transparent,
+.ui.form .field.success input:not([type]),
+.ui.form .field.success input:not([type]):focus,
+.ui.form .field.success input[type="date"],
+.ui.form .field.success input[type="date"]:focus,
+.ui.form .field.success input[type="datetime-local"],
+.ui.form .field.success input[type="datetime-local"]:focus,
+.ui.form .field.success input[type="email"],
+.ui.form .field.success input[type="email"]:focus,
+.ui.form .field.success input[type="file"],
+.ui.form .field.success input[type="file"]:focus,
+.ui.form .field.success input[type="number"],
+.ui.form .field.success input[type="number"]:focus,
+.ui.form .field.success input[type="password"],
+.ui.form .field.success input[type="password"]:focus,
+.ui.form .field.success input[type="search"],
+.ui.form .field.success input[type="search"]:focus,
+.ui.form .field.success input[type="tel"],
+.ui.form .field.success input[type="tel"]:focus,
+.ui.form .field.success input[type="text"],
+.ui.form .field.success input[type="text"]:focus,
+.ui.form .field.success input[type="time"],
+.ui.form .field.success input[type="time"]:focus,
+.ui.form .field.success input[type="url"],
+.ui.form .field.success input[type="url"]:focus,
+.ui.form .field.success input[type=date],
+.ui.form .field.success input[type=date]:focus,
+.ui.form .field.success input[type=datetime-local],
+.ui.form .field.success input[type=datetime-local]:focus,
+.ui.form .field.success input[type=email],
+.ui.form .field.success input[type=email]:focus,
+.ui.form .field.success input[type=file],
+.ui.form .field.success input[type=file]:focus,
+.ui.form .field.success input[type=number],
+.ui.form .field.success input[type=number]:focus,
+.ui.form .field.success input[type=password],
+.ui.form .field.success input[type=password]:focus,
+.ui.form .field.success input[type=search],
+.ui.form .field.success input[type=search]:focus,
+.ui.form .field.success input[type=tel],
+.ui.form .field.success input[type=tel]:focus,
+.ui.form .field.success input[type=text],
+.ui.form .field.success input[type=text]:focus,
+.ui.form .field.success input[type=time],
+.ui.form .field.success input[type=time]:focus,
+.ui.form .field.success input[type=url],
+.ui.form .field.success input[type=url]:focus, .ui.form .field.success select,
+.ui.form .field.success select:focus, .ui.form .field.success textarea,
+.ui.form .field.success textarea.transparent,
+.ui.form .field.success textarea:focus,
+.ui.form .fields.success .field .checkbox .box::after,
+.ui.form .fields.success .field .checkbox label::after,
+.ui.form .fields.success .field .checkbox:not(.toggle):not(.slider) .box,
+.ui.form .fields.success .field .checkbox:not(.toggle):not(.slider) label,
+.ui.form .fields.success .field .ui.dropdown,
+.ui.form .fields.success .field .ui.dropdown .item,
+.ui.form .fields.success .field .ui.multiple.selection.dropdown > .label,
+.ui.form .fields.success .field input:not([type]),
+.ui.form .fields.success .field input[type="date"],
+.ui.form .fields.success .field input[type="datetime-local"],
+.ui.form .fields.success .field input[type="email"],
+.ui.form .fields.success .field input[type="file"],
+.ui.form .fields.success .field input[type="number"],
+.ui.form .fields.success .field input[type="password"],
+.ui.form .fields.success .field input[type="search"],
+.ui.form .fields.success .field input[type="tel"],
+.ui.form .fields.success .field input[type="text"],
+.ui.form .fields.success .field input[type="time"],
+.ui.form .fields.success .field input[type="url"],
+.ui.form .fields.success .field input[type=date],
+.ui.form .fields.success .field input[type=datetime-local],
+.ui.form .fields.success .field input[type=email],
+.ui.form .fields.success .field input[type=file],
+.ui.form .fields.success .field input[type=number],
+.ui.form .fields.success .field input[type=password],
+.ui.form .fields.success .field input[type=search],
+.ui.form .fields.success .field input[type=tel],
+.ui.form .fields.success .field input[type=text],
+.ui.form .fields.success .field input[type=time],
+.ui.form .fields.success .field input[type=url],
+.ui.form .fields.success .field select, .ui.form .fields.success .field textarea,
+.ui.input.success > input, .ui.positive.message, .ui.success.message,
+.ui.ui.form .field.success .input, .ui.ui.form .field.success label,
+.ui.ui.form .fields.success .field .input,
+.ui.ui.form .fields.success .field label, .ui.ui.table td.positive,
+.ui.ui.ui.ui.table tr.positive {
+    color: #6cc644;
+}
+/* remap-css rule for "color: #1ebc30" */
+.ui.green.message, .ui.selectable.table tr:hover td.green:not(.marked),
+.ui.table tr td.selectable.green:not(.marked):hover,
+.ui.ui.selectable.table tr.green:not(.marked):hover,
+.ui.ui.table td.green:not(.marked), .ui.ui.ui.ui.table tr.green:not(.marked) {
+    color: #6cc644;
+}
+/* remap-css rule for "background-color: #21ba45" */
+.ui.button.toggle.active, .ui.buttons .button.toggle.active, .ui.green.button,
+.ui.green.buttons .button, .ui.green.labels .label, .ui.green.progress .bar,
+.ui.grid > .green.column, .ui.grid > .green.row, .ui.grid > .row > .green.column,
+.ui.indeterminate.green.progress .bar::before,
+.ui.inverted.green.segment.segment.segment.segment.segment,
+.ui.inverted.green.table, .ui.inverted.pointing.menu .green.active.item::after,
+.ui.positive.button, .ui.positive.buttons .button, .ui.progress .green.bar,
+.ui.toggle.buttons .active.button, .ui.ui.inverted.green.menu,
+.ui.ui.inverted.menu .green.active.item, .ui.ui.progress.success .bar,
+.ui.ui.ui.green.label, i.inverted.bordered.green.icon.icon.icon.icon,
+i.inverted.circular.green.icon.icon.icon.icon {
+    background-color: #373;
+}
+/* remap-css rule for "background-color: #16ab39" */
+.ui.button.toggle.active:hover, .ui.green.button:hover,
+.ui.green.buttons .button:hover, .ui.green.labels a.label:hover,
+.ui.inverted.pointing.green.menu .active.item, .ui.positive.button:hover,
+.ui.positive.buttons .button:hover, a.ui.ui.ui.green.label:hover {
+    background-color: #373;
+}
+/* remap-css rule for "background: #fcfff5" */
+.ui.form .field.success .checkbox:not(.toggle):not(.slider) .box::before,
+.ui.form .field.success .checkbox:not(.toggle):not(.slider) label::before,
+.ui.form .field.success .ui.dropdown, .ui.form .field.success .ui.dropdown .item,
+.ui.form .field.success .ui.dropdown .text,
+.ui.form .field.success input:not([type]),
+.ui.form .field.success input:not([type]):focus,
+.ui.form .field.success input[type="date"],
+.ui.form .field.success input[type="date"]:focus,
+.ui.form .field.success input[type="datetime-local"],
+.ui.form .field.success input[type="datetime-local"]:focus,
+.ui.form .field.success input[type="email"],
+.ui.form .field.success input[type="email"]:focus,
+.ui.form .field.success input[type="file"],
+.ui.form .field.success input[type="file"]:focus,
+.ui.form .field.success input[type="number"],
+.ui.form .field.success input[type="number"]:focus,
+.ui.form .field.success input[type="password"],
+.ui.form .field.success input[type="password"]:focus,
+.ui.form .field.success input[type="search"],
+.ui.form .field.success input[type="search"]:focus,
+.ui.form .field.success input[type="tel"],
+.ui.form .field.success input[type="tel"]:focus,
+.ui.form .field.success input[type="text"],
+.ui.form .field.success input[type="text"]:focus,
+.ui.form .field.success input[type="time"],
+.ui.form .field.success input[type="time"]:focus,
+.ui.form .field.success input[type="url"],
+.ui.form .field.success input[type="url"]:focus,
+.ui.form .field.success input[type=date],
+.ui.form .field.success input[type=date]:focus,
+.ui.form .field.success input[type=datetime-local],
+.ui.form .field.success input[type=datetime-local]:focus,
+.ui.form .field.success input[type=email],
+.ui.form .field.success input[type=email]:focus,
+.ui.form .field.success input[type=file],
+.ui.form .field.success input[type=file]:focus,
+.ui.form .field.success input[type=number],
+.ui.form .field.success input[type=number]:focus,
+.ui.form .field.success input[type=password],
+.ui.form .field.success input[type=password]:focus,
+.ui.form .field.success input[type=search],
+.ui.form .field.success input[type=search]:focus,
+.ui.form .field.success input[type=tel],
+.ui.form .field.success input[type=tel]:focus,
+.ui.form .field.success input[type=text],
+.ui.form .field.success input[type=text]:focus,
+.ui.form .field.success input[type=time],
+.ui.form .field.success input[type=time]:focus,
+.ui.form .field.success input[type=url],
+.ui.form .field.success input[type=url]:focus, .ui.form .field.success select,
+.ui.form .field.success select:focus, .ui.form .field.success textarea,
+.ui.form .field.success textarea:focus,
+.ui.form .fields.success .field .checkbox:not(.toggle):not(.slider) .box::before,
+.ui.form .fields.success .field .checkbox:not(.toggle):not(.slider) label::before,
+.ui.form .fields.success .field .ui.dropdown,
+.ui.form .fields.success .field .ui.dropdown .item,
+.ui.form .fields.success .field input:not([type]),
+.ui.form .fields.success .field input[type="date"],
+.ui.form .fields.success .field input[type="datetime-local"],
+.ui.form .fields.success .field input[type="email"],
+.ui.form .fields.success .field input[type="file"],
+.ui.form .fields.success .field input[type="number"],
+.ui.form .fields.success .field input[type="password"],
+.ui.form .fields.success .field input[type="search"],
+.ui.form .fields.success .field input[type="tel"],
+.ui.form .fields.success .field input[type="text"],
+.ui.form .fields.success .field input[type="time"],
+.ui.form .fields.success .field input[type="url"],
+.ui.form .fields.success .field input[type=date],
+.ui.form .fields.success .field input[type=datetime-local],
+.ui.form .fields.success .field input[type=email],
+.ui.form .fields.success .field input[type=file],
+.ui.form .fields.success .field input[type=number],
+.ui.form .fields.success .field input[type=password],
+.ui.form .fields.success .field input[type=search],
+.ui.form .fields.success .field input[type=tel],
+.ui.form .fields.success .field input[type=text],
+.ui.form .fields.success .field input[type=time],
+.ui.form .fields.success .field input[type=url],
+.ui.form .fields.success .field select, .ui.form .fields.success .field textarea,
+.ui.selection.dropdown.success, .ui.ui.table td.positive,
+.ui.ui.ui.ui.table tr.positive {
+    background: #030;
+}
+/* remap-css rule for "background-color: #fcfff5" */
+.ui.form .field.success .transparent.input input,
+.ui.form .field.success .transparent.input textarea,
+.ui.form .field.success input.transparent,
+.ui.form .field.success textarea.transparent, .ui.input.success > input,
+.ui.positive.message, .ui.success.message {
+    background-color: #030;
+}
+/* remap-css rule for "background-color: #e5f9e7" */
+.ui.green.message {
+    background-color: #030;
+}
+/* remap-css rule for "border-color: #21ba45" */
+.ui.basic.labels .green.label, .ui.green.labels .label,
+.ui.ui.ui.basic.green.label, .ui.ui.ui.green.label {
+    border-color: #6cc644;
+}
+/* remap-css rule for "border: 1px solid #21ba45" */
+.repository #commits-table td.sha .sha.label.isSigned.isVerified,
+.repository #repo-files-table .sha.label.isSigned.isVerified {
+    border-color: #6cc644;
+}
+/* remap-css rule for "border-left: 1px solid #21ba45" */
+.repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,
+.repository #repo-files-table .sha.label.isSigned.isVerified .detail.icon {
+    border-left-color: #6cc644;
+}
+/* remap-css rule for "border-top: 2px solid #21ba45" */
+.ui.green.segment.segment.segment.segment.segment:not(.inverted) {
+    border-top-color: #6cc644;
+}
+/* remap-css rule for "border-bottom: 2px solid #21ba45" */
+.ui.green.dividing.header {
+    border-bottom-color: #6cc644;
+}
+/* remap-css rule for "border-color: #a3c293" */
+.ui.dropdown.success > .menu, .ui.dropdown.success > .menu .menu,
+.ui.form .field.success .checkbox:not(.toggle):not(.slider) .box::before,
+.ui.form .field.success .checkbox:not(.toggle):not(.slider) label::before,
+.ui.form .field.success .ui.dropdown:hover .menu,
+.ui.form .field.success input:not([type]),
+.ui.form .field.success input:not([type]):focus,
+.ui.form .field.success input[type="date"],
+.ui.form .field.success input[type="date"]:focus,
+.ui.form .field.success input[type="datetime-local"],
+.ui.form .field.success input[type="datetime-local"]:focus,
+.ui.form .field.success input[type="email"],
+.ui.form .field.success input[type="email"]:focus,
+.ui.form .field.success input[type="file"],
+.ui.form .field.success input[type="file"]:focus,
+.ui.form .field.success input[type="number"],
+.ui.form .field.success input[type="number"]:focus,
+.ui.form .field.success input[type="password"],
+.ui.form .field.success input[type="password"]:focus,
+.ui.form .field.success input[type="search"],
+.ui.form .field.success input[type="search"]:focus,
+.ui.form .field.success input[type="tel"],
+.ui.form .field.success input[type="tel"]:focus,
+.ui.form .field.success input[type="text"],
+.ui.form .field.success input[type="text"]:focus,
+.ui.form .field.success input[type="time"],
+.ui.form .field.success input[type="time"]:focus,
+.ui.form .field.success input[type="url"],
+.ui.form .field.success input[type="url"]:focus,
+.ui.form .field.success input[type=date],
+.ui.form .field.success input[type=date]:focus,
+.ui.form .field.success input[type=datetime-local],
+.ui.form .field.success input[type=datetime-local]:focus,
+.ui.form .field.success input[type=email],
+.ui.form .field.success input[type=email]:focus,
+.ui.form .field.success input[type=file],
+.ui.form .field.success input[type=file]:focus,
+.ui.form .field.success input[type=number],
+.ui.form .field.success input[type=number]:focus,
+.ui.form .field.success input[type=password],
+.ui.form .field.success input[type=password]:focus,
+.ui.form .field.success input[type=search],
+.ui.form .field.success input[type=search]:focus,
+.ui.form .field.success input[type=tel],
+.ui.form .field.success input[type=tel]:focus,
+.ui.form .field.success input[type=text],
+.ui.form .field.success input[type=text]:focus,
+.ui.form .field.success input[type=time],
+.ui.form .field.success input[type=time]:focus,
+.ui.form .field.success input[type=url],
+.ui.form .field.success input[type=url]:focus, .ui.form .field.success select,
+.ui.form .field.success select:focus, .ui.form .field.success textarea,
+.ui.form .field.success textarea:focus,
+.ui.form .fields.success .field .checkbox:not(.toggle):not(.slider) .box::before,
+.ui.form .fields.success .field .checkbox:not(.toggle):not(.slider) label::before,
+.ui.form .fields.success .field .ui.dropdown:hover .menu,
+.ui.form .fields.success .field input:not([type]),
+.ui.form .fields.success .field input[type="date"],
+.ui.form .fields.success .field input[type="datetime-local"],
+.ui.form .fields.success .field input[type="email"],
+.ui.form .fields.success .field input[type="file"],
+.ui.form .fields.success .field input[type="number"],
+.ui.form .fields.success .field input[type="password"],
+.ui.form .fields.success .field input[type="search"],
+.ui.form .fields.success .field input[type="tel"],
+.ui.form .fields.success .field input[type="text"],
+.ui.form .fields.success .field input[type="time"],
+.ui.form .fields.success .field input[type="url"],
+.ui.form .fields.success .field input[type=date],
+.ui.form .fields.success .field input[type=datetime-local],
+.ui.form .fields.success .field input[type=email],
+.ui.form .fields.success .field input[type=file],
+.ui.form .fields.success .field input[type=number],
+.ui.form .fields.success .field input[type=password],
+.ui.form .fields.success .field input[type=search],
+.ui.form .fields.success .field input[type=tel],
+.ui.form .fields.success .field input[type=text],
+.ui.form .fields.success .field input[type=time],
+.ui.form .fields.success .field input[type=url],
+.ui.form .fields.success .field select, .ui.form .fields.success .field textarea,
+.ui.input.success > input, .ui.multiple.selection.success.dropdown > .label,
+.ui.selection.dropdown.success, .ui.selection.dropdown.success:hover {
+    border-color: #6cc644;
+}
+/* remap-css rule for "border-color: #a3c293 !important" */
+.ui.form .field.success .ui.dropdown, .ui.form .field.success .ui.dropdown:hover,
+.ui.form .fields.success .field .ui.dropdown,
+.ui.form .fields.success .field .ui.dropdown:hover {
+    border-color: #6cc644 !important;
+}
+/* remap-css rule for "border-top: 1px solid #a3c293" */
+.repository .ui.attached.isSigned.isVerified.top:not(.positive),
+.ui.action.input.success > .ui.button,
+.ui.form > .field.success > .ui.action.input > .ui.button,
+.ui.form > .field.success > .ui.labeled.input:not([class*="corner labeled"]) > .ui.label,
+.ui.labeled.input.success:not([class*="corner labeled"]) > .ui.label {
+    border-top-color: #6cc644;
+}
+/* remap-css rule for "border-bottom: 1px solid #a3c293" */
+.repository .ui.attached.isSigned.isVerified:not(.positive):last-child,
+.ui.action.input.success > .ui.button,
+.ui.form > .field.success > .ui.action.input > .ui.button,
+.ui.form > .field.success > .ui.labeled.input:not([class*="corner labeled"]) > .ui.label,
+.ui.labeled.input.success:not([class*="corner labeled"]) > .ui.label {
+    border-bottom-color: #6cc644;
+}
+/* remap-css rule for "border-left: 1px solid #a3c293" */
+.repository .ui.attached.isSigned.isVerified:not(.positive),
+.ui.form > .field.success > .ui.labeled.input:not(.right):not([class*="corner labeled"]) > .ui.label,
+.ui.form > .field.success > .ui.left.action.input > .ui.button,
+.ui.form > .field.success > .ui.right.labeled.input:not([class*="corner labeled"]) > .ui.label:first-child,
+.ui.labeled.input.success:not(.right):not([class*="corner labeled"]) > .ui.label,
+.ui.left.action.input.success > .ui.button,
+.ui.right.labeled.input.success:not([class*="corner labeled"]) > .ui.label:first-child {
+    border-left-color: #6cc644;
+}
+/* remap-css rule for "border-right: 1px solid #a3c293" */
+.repository .ui.attached.isSigned.isVerified:not(.positive),
+.ui.action.input.success:not(.left) > input + .ui.button,
+.ui.form > .field.success > .ui.action.input:not(.left) > input + .ui.button,
+.ui.form > .field.success > .ui.right.labeled.input:not([class*="corner labeled"]) > input + .ui.label,
+.ui.right.labeled.input.success:not([class*="corner labeled"]) > input + .ui.label {
+    border-right-color: #6cc644;
+}
+/* remap-css rule for "background-color: #d6fcd6 !important" */
+.repository .diff-file-box .code-diff-split tbody tr td.add-code,
+.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(4),
+.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(5),
+.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(6),
+.repository .diff-file-box .code-diff-unified tbody tr.add-code td {
+    background-color: #002800 !important;
+}
+/* remap-css rule for "border-color: #c1e9c1 !important" */
+.repository .diff-file-box .code-diff-split tbody tr td.add-code,
+.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(4),
+.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(5),
+.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(6),
+.repository .diff-file-box .code-diff-unified tbody tr.add-code td {
+    border-color: #060 !important;
+}
+/* remap-css rule for "background-color: #9f9" */
+.repository .diff-file-box .code-diff tbody tr .added-code {
+    background-color: #252;
+}
+/* remap-css rule for "box-shadow: 0 0 0 1px #a3c293 inset,0 0 0 0 transparent" */
+.ui.attached.positive.message, .ui.attached.success.message,
+.ui.positive.message, .ui.success.message {
+    box-shadow: 0 0 0 1px #6cc644 inset, 0 0 0 0 transparent;
+}
+/* remap-css rule for "box-shadow: 0 0 0 1px #1ebc30 inset,0 0 0 0 transparent" */
+.ui.attached.green.message, .ui.green.message {
+    box-shadow: 0 0 0 1px #6cc644 inset, 0 0 0 0 transparent;
+}
+/* remap-css rule for "color: #d14" */
+.hljs-doctag, .hljs-string {
+    color: #f44;
+}
+/* remap-css rule for "color: #db2828" */
+.ui.basic.labels .red.label, .ui.basic.negative.button,
+.ui.basic.negative.buttons .button, .ui.basic.red.button,
+.ui.basic.red.buttons .button, .ui.form .required.field > .checkbox::after,
+.ui.form .required.field > label::after,
+.ui.form .required.fields.grouped > label::after,
+.ui.form .required.fields:not(.grouped) > .field > .checkbox::after,
+.ui.form .required.fields:not(.grouped) > .field > label::after,
+.ui.form label.required::after, .ui.inverted.progress.error > .label,
+.ui.red.basic.elastic.loading.button::after,
+.ui.red.basic.elastic.loading.button::before,
+.ui.red.elastic.loader.loader::before,
+.ui.red.elastic.loading.loading.loading .input > i.icon::before,
+.ui.red.elastic.loading.loading.loading.loading > i.icon::before,
+.ui.red.elastic.loading.loading.loading:not(.segment)::before, .ui.red.header,
+.ui.red.loader.loader.loader::after,
+.ui.red.loading.loading.loading.loading .input > i.icon::after,
+.ui.red.loading.loading.loading.loading > i.icon::after,
+.ui.red.loading.loading.loading.loading:not(.usual):not(.button)::after,
+.ui.red.message, .ui.search.selection > .icon.input > .remove.icon:hover,
+.ui.selectable.table tr:hover td.red:not(.marked),
+.ui.table tr td.selectable.red:not(.marked):hover, .ui.tertiary.red.button,
+.ui.tertiary.red.buttons .button, .ui.tertiary.red.buttons .tertiary.button,
+.ui.ui.menu .red.active.item, .ui.ui.red.menu .active.item,
+.ui.ui.red.menu .active.item:hover,
+.ui.ui.selectable.table tr.red:not(.marked):hover,
+.ui.ui.table td.red:not(.marked), .ui.ui.ui.basic.red.label,
+.ui.ui.ui.ui.table tr.red:not(.marked), i.red.icon.icon.icon.icon, span.red .svg,
+span.ui.red.text {
+    color: #f44;
+}
+/* remap-css rule for "background-color: #d01919" */
+.ui.inverted.pointing.red.menu .active.item, .ui.negative.button:hover,
+.ui.negative.buttons .button:hover, .ui.red.button:hover,
+.ui.red.buttons .button:hover, .ui.red.labels a.label:hover,
+a.ui.ui.ui.red.label:hover {
+    background-color: #911;
+}
+/* remap-css rule for "background-color: #ffe8e6" */
+.ui.red.message {
+    background-color: #300;
+}
+/* remap-css rule for "background: #fff6f6" */
+.ui.form .field.error .checkbox:not(.toggle):not(.slider) .box::before,
+.ui.form .field.error .checkbox:not(.toggle):not(.slider) label::before,
+.ui.form .field.error .ui.dropdown, .ui.form .field.error .ui.dropdown .item,
+.ui.form .field.error .ui.dropdown .text,
+.ui.form .field.error input:not([type]),
+.ui.form .field.error input:not([type]):focus,
+.ui.form .field.error input[type="date"],
+.ui.form .field.error input[type="date"]:focus,
+.ui.form .field.error input[type="datetime-local"],
+.ui.form .field.error input[type="datetime-local"]:focus,
+.ui.form .field.error input[type="email"],
+.ui.form .field.error input[type="email"]:focus,
+.ui.form .field.error input[type="file"],
+.ui.form .field.error input[type="file"]:focus,
+.ui.form .field.error input[type="number"],
+.ui.form .field.error input[type="number"]:focus,
+.ui.form .field.error input[type="password"],
+.ui.form .field.error input[type="password"]:focus,
+.ui.form .field.error input[type="search"],
+.ui.form .field.error input[type="search"]:focus,
+.ui.form .field.error input[type="tel"],
+.ui.form .field.error input[type="tel"]:focus,
+.ui.form .field.error input[type="text"],
+.ui.form .field.error input[type="text"]:focus,
+.ui.form .field.error input[type="time"],
+.ui.form .field.error input[type="time"]:focus,
+.ui.form .field.error input[type="url"],
+.ui.form .field.error input[type="url"]:focus,
+.ui.form .field.error input[type=date],
+.ui.form .field.error input[type=date]:focus,
+.ui.form .field.error input[type=datetime-local],
+.ui.form .field.error input[type=datetime-local]:focus,
+.ui.form .field.error input[type=email],
+.ui.form .field.error input[type=email]:focus,
+.ui.form .field.error input[type=file],
+.ui.form .field.error input[type=file]:focus,
+.ui.form .field.error input[type=number],
+.ui.form .field.error input[type=number]:focus,
+.ui.form .field.error input[type=password],
+.ui.form .field.error input[type=password]:focus,
+.ui.form .field.error input[type=search],
+.ui.form .field.error input[type=search]:focus,
+.ui.form .field.error input[type=tel],
+.ui.form .field.error input[type=tel]:focus,
+.ui.form .field.error input[type=text],
+.ui.form .field.error input[type=text]:focus,
+.ui.form .field.error input[type=time],
+.ui.form .field.error input[type=time]:focus,
+.ui.form .field.error input[type=url],
+.ui.form .field.error input[type=url]:focus, .ui.form .field.error select,
+.ui.form .field.error select:focus, .ui.form .field.error textarea,
+.ui.form .field.error textarea:focus,
+.ui.form .fields.error .field .checkbox:not(.toggle):not(.slider) .box::before,
+.ui.form .fields.error .field .checkbox:not(.toggle):not(.slider) label::before,
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .fields.error .field .ui.dropdown .item,
+.ui.form .fields.error .field input:not([type]),
+.ui.form .fields.error .field input[type="date"],
+.ui.form .fields.error .field input[type="datetime-local"],
+.ui.form .fields.error .field input[type="email"],
+.ui.form .fields.error .field input[type="file"],
+.ui.form .fields.error .field input[type="number"],
+.ui.form .fields.error .field input[type="password"],
+.ui.form .fields.error .field input[type="search"],
+.ui.form .fields.error .field input[type="tel"],
+.ui.form .fields.error .field input[type="text"],
+.ui.form .fields.error .field input[type="time"],
+.ui.form .fields.error .field input[type="url"],
+.ui.form .fields.error .field input[type=date],
+.ui.form .fields.error .field input[type=datetime-local],
+.ui.form .fields.error .field input[type=email],
+.ui.form .fields.error .field input[type=file],
+.ui.form .fields.error .field input[type=number],
+.ui.form .fields.error .field input[type=password],
+.ui.form .fields.error .field input[type=search],
+.ui.form .fields.error .field input[type=tel],
+.ui.form .fields.error .field input[type=text],
+.ui.form .fields.error .field input[type=time],
+.ui.form .fields.error .field input[type=url],
+.ui.form .fields.error .field select, .ui.form .fields.error .field textarea,
+.ui.selection.dropdown.error, .ui.ui.table td.error, .ui.ui.table td.negative,
+.ui.ui.ui.ui.table tr.error, .ui.ui.ui.ui.table tr.negative {
+    background: #300;
+}
+/* remap-css rule for "background-color: #fff6f6" */
+.ui.error.message, .ui.form .field.error .transparent.input input,
+.ui.form .field.error .transparent.input textarea,
+.ui.form .field.error input.transparent,
+.ui.form .field.error textarea.transparent, .ui.input.error > input,
+.ui.negative.message {
+    background-color: #300;
+}
+/* remap-css rule for "background-color: #ffe0e0 !important" */
+.repository .diff-file-box .code-diff-split tbody tr td.del-code,
+.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(1),
+.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(2),
+.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(3),
+.repository .diff-file-box .code-diff-unified tbody tr.del-code td {
+    background-color: #380000 !important;
+}
+/* remap-css rule for "border-color: #f1c0c0 !important" */
+.repository .diff-file-box .code-diff-split tbody tr td.del-code,
+.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(1),
+.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(2),
+.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(3),
+.repository .diff-file-box .code-diff-unified tbody tr.del-code td {
+    border-color: #600 !important;
+}
+/* remap-css rule for "background-color: #f99" */
+.repository .diff-file-box .code-diff tbody tr .removed-code {
+    background-color: #622;
+}
+/* remap-css rule for "box-shadow: 0 0 0 1px #e0b4b4 inset,0 0 0 0 transparent" */
+.ui.attached.error.message, .ui.attached.negative.message, .ui.error.message,
+.ui.negative.message {
+    box-shadow: 0 0 0 1px #f44 inset, 0 0 0 0 transparent;
+}
+/* remap-css rule for "box-shadow: 0 0 0 1px #db2828 inset,0 0 0 0 transparent" */
+.ui.attached.red.message, .ui.red.message {
+    box-shadow: 0 0 0 1px #f44 inset, 0 0 0 0 transparent;
+}
+/* remap-css rule for "color: #b58105" */
+.ui.selectable.table tr:hover td.yellow:not(.marked),
+.ui.table tr td.selectable.yellow:not(.marked):hover,
+.ui.ui.selectable.table tr.yellow:not(.marked):hover,
+.ui.ui.table td.yellow:not(.marked), .ui.ui.ui.ui.table tr.yellow:not(.marked),
+.ui.yellow.message {
+    color: #cb4;
+}
+/* remap-css rule for "color: #573a08" */
+.ui.dropdown.warning, .ui.dropdown.warning > .default.text,
+.ui.dropdown.warning > .menu > .item, .ui.dropdown.warning > .text,
+.ui.form .field.warning .checkbox .box::after,
+.ui.form .field.warning .checkbox label::after,
+.ui.form .field.warning .checkbox:not(.toggle):not(.slider) .box,
+.ui.form .field.warning .checkbox:not(.toggle):not(.slider) label,
+.ui.form .field.warning .transparent.input input,
+.ui.form .field.warning .transparent.input textarea,
+.ui.form .field.warning .ui.dropdown, .ui.form .field.warning .ui.dropdown .item,
+.ui.form .field.warning .ui.dropdown .text,
+.ui.form .field.warning .ui.multiple.selection.dropdown > .label,
+.ui.form .field.warning input.transparent,
+.ui.form .field.warning input:not([type]),
+.ui.form .field.warning input:not([type]):focus,
+.ui.form .field.warning input[type="date"],
+.ui.form .field.warning input[type="date"]:focus,
+.ui.form .field.warning input[type="datetime-local"],
+.ui.form .field.warning input[type="datetime-local"]:focus,
+.ui.form .field.warning input[type="email"],
+.ui.form .field.warning input[type="email"]:focus,
+.ui.form .field.warning input[type="file"],
+.ui.form .field.warning input[type="file"]:focus,
+.ui.form .field.warning input[type="number"],
+.ui.form .field.warning input[type="number"]:focus,
+.ui.form .field.warning input[type="password"],
+.ui.form .field.warning input[type="password"]:focus,
+.ui.form .field.warning input[type="search"],
+.ui.form .field.warning input[type="search"]:focus,
+.ui.form .field.warning input[type="tel"],
+.ui.form .field.warning input[type="tel"]:focus,
+.ui.form .field.warning input[type="text"],
+.ui.form .field.warning input[type="text"]:focus,
+.ui.form .field.warning input[type="time"],
+.ui.form .field.warning input[type="time"]:focus,
+.ui.form .field.warning input[type="url"],
+.ui.form .field.warning input[type="url"]:focus,
+.ui.form .field.warning input[type=date],
+.ui.form .field.warning input[type=date]:focus,
+.ui.form .field.warning input[type=datetime-local],
+.ui.form .field.warning input[type=datetime-local]:focus,
+.ui.form .field.warning input[type=email],
+.ui.form .field.warning input[type=email]:focus,
+.ui.form .field.warning input[type=file],
+.ui.form .field.warning input[type=file]:focus,
+.ui.form .field.warning input[type=number],
+.ui.form .field.warning input[type=number]:focus,
+.ui.form .field.warning input[type=password],
+.ui.form .field.warning input[type=password]:focus,
+.ui.form .field.warning input[type=search],
+.ui.form .field.warning input[type=search]:focus,
+.ui.form .field.warning input[type=tel],
+.ui.form .field.warning input[type=tel]:focus,
+.ui.form .field.warning input[type=text],
+.ui.form .field.warning input[type=text]:focus,
+.ui.form .field.warning input[type=time],
+.ui.form .field.warning input[type=time]:focus,
+.ui.form .field.warning input[type=url],
+.ui.form .field.warning input[type=url]:focus, .ui.form .field.warning select,
+.ui.form .field.warning select:focus, .ui.form .field.warning textarea,
+.ui.form .field.warning textarea.transparent,
+.ui.form .field.warning textarea:focus,
+.ui.form .fields.warning .field .checkbox .box::after,
+.ui.form .fields.warning .field .checkbox label::after,
+.ui.form .fields.warning .field .checkbox:not(.toggle):not(.slider) .box,
+.ui.form .fields.warning .field .checkbox:not(.toggle):not(.slider) label,
+.ui.form .fields.warning .field .ui.dropdown,
+.ui.form .fields.warning .field .ui.dropdown .item,
+.ui.form .fields.warning .field .ui.multiple.selection.dropdown > .label,
+.ui.form .fields.warning .field input:not([type]),
+.ui.form .fields.warning .field input[type="date"],
+.ui.form .fields.warning .field input[type="datetime-local"],
+.ui.form .fields.warning .field input[type="email"],
+.ui.form .fields.warning .field input[type="file"],
+.ui.form .fields.warning .field input[type="number"],
+.ui.form .fields.warning .field input[type="password"],
+.ui.form .fields.warning .field input[type="search"],
+.ui.form .fields.warning .field input[type="tel"],
+.ui.form .fields.warning .field input[type="text"],
+.ui.form .fields.warning .field input[type="time"],
+.ui.form .fields.warning .field input[type="url"],
+.ui.form .fields.warning .field input[type=date],
+.ui.form .fields.warning .field input[type=datetime-local],
+.ui.form .fields.warning .field input[type=email],
+.ui.form .fields.warning .field input[type=file],
+.ui.form .fields.warning .field input[type=number],
+.ui.form .fields.warning .field input[type=password],
+.ui.form .fields.warning .field input[type=search],
+.ui.form .fields.warning .field input[type=tel],
+.ui.form .fields.warning .field input[type=text],
+.ui.form .fields.warning .field input[type=time],
+.ui.form .fields.warning .field input[type=url],
+.ui.form .fields.warning .field select, .ui.form .fields.warning .field textarea,
+.ui.input.warning > input, .ui.ui.form .field.warning .input,
+.ui.ui.form .field.warning label, .ui.ui.form .fields.warning .field .input,
+.ui.ui.form .fields.warning .field label, .ui.ui.table td.warning,
+.ui.ui.ui.ui.table tr.warning, .ui.warning.message {
+    color: #cb4;
+}
+/* remap-css rule for "background: #fff866" */
+.code-view .active {
+    background: #cb4;
+}
+/* remap-css rule for "background-color: #fbbd08" */
+.ui.grid > .row > .yellow.column, .ui.grid > .yellow.column,
+.ui.grid > .yellow.row, .ui.indeterminate.yellow.progress .bar::before,
+.ui.inverted.pointing.menu .yellow.active.item::after,
+.ui.inverted.yellow.segment.segment.segment.segment.segment,
+.ui.inverted.yellow.table, .ui.progress .yellow.bar,
+.ui.ui.inverted.menu .yellow.active.item, .ui.ui.inverted.yellow.menu,
+.ui.ui.ui.yellow.label, .ui.yellow.button, .ui.yellow.buttons .button,
+.ui.yellow.labels .label, .ui.yellow.progress .bar,
+i.inverted.bordered.yellow.icon.icon.icon.icon,
+i.inverted.circular.yellow.icon.icon.icon.icon {
+    background-color: #bba257;
+}
+/* remap-css rule for "background-color: #f9edbe !important" */
+.ui .warning.header {
+    background-color: #321 !important;
+}
+/* remap-css rule for "background-color: #fff8db" */
+.ui.yellow.message {
+    background-color: #321;
+}
+/* remap-css rule for "background: #fffaf3" */
+.ui.form .field.warning .checkbox:not(.toggle):not(.slider) .box::before,
+.ui.form .field.warning .checkbox:not(.toggle):not(.slider) label::before,
+.ui.form .field.warning .ui.dropdown, .ui.form .field.warning .ui.dropdown .item,
+.ui.form .field.warning .ui.dropdown .text,
+.ui.form .field.warning input:not([type]),
+.ui.form .field.warning input:not([type]):focus,
+.ui.form .field.warning input[type="date"],
+.ui.form .field.warning input[type="date"]:focus,
+.ui.form .field.warning input[type="datetime-local"],
+.ui.form .field.warning input[type="datetime-local"]:focus,
+.ui.form .field.warning input[type="email"],
+.ui.form .field.warning input[type="email"]:focus,
+.ui.form .field.warning input[type="file"],
+.ui.form .field.warning input[type="file"]:focus,
+.ui.form .field.warning input[type="number"],
+.ui.form .field.warning input[type="number"]:focus,
+.ui.form .field.warning input[type="password"],
+.ui.form .field.warning input[type="password"]:focus,
+.ui.form .field.warning input[type="search"],
+.ui.form .field.warning input[type="search"]:focus,
+.ui.form .field.warning input[type="tel"],
+.ui.form .field.warning input[type="tel"]:focus,
+.ui.form .field.warning input[type="text"],
+.ui.form .field.warning input[type="text"]:focus,
+.ui.form .field.warning input[type="time"],
+.ui.form .field.warning input[type="time"]:focus,
+.ui.form .field.warning input[type="url"],
+.ui.form .field.warning input[type="url"]:focus,
+.ui.form .field.warning input[type=date],
+.ui.form .field.warning input[type=date]:focus,
+.ui.form .field.warning input[type=datetime-local],
+.ui.form .field.warning input[type=datetime-local]:focus,
+.ui.form .field.warning input[type=email],
+.ui.form .field.warning input[type=email]:focus,
+.ui.form .field.warning input[type=file],
+.ui.form .field.warning input[type=file]:focus,
+.ui.form .field.warning input[type=number],
+.ui.form .field.warning input[type=number]:focus,
+.ui.form .field.warning input[type=password],
+.ui.form .field.warning input[type=password]:focus,
+.ui.form .field.warning input[type=search],
+.ui.form .field.warning input[type=search]:focus,
+.ui.form .field.warning input[type=tel],
+.ui.form .field.warning input[type=tel]:focus,
+.ui.form .field.warning input[type=text],
+.ui.form .field.warning input[type=text]:focus,
+.ui.form .field.warning input[type=time],
+.ui.form .field.warning input[type=time]:focus,
+.ui.form .field.warning input[type=url],
+.ui.form .field.warning input[type=url]:focus, .ui.form .field.warning select,
+.ui.form .field.warning select:focus, .ui.form .field.warning textarea,
+.ui.form .field.warning textarea:focus,
+.ui.form .fields.warning .field .checkbox:not(.toggle):not(.slider) .box::before,
+.ui.form .fields.warning .field .checkbox:not(.toggle):not(.slider) label::before,
+.ui.form .fields.warning .field .ui.dropdown,
+.ui.form .fields.warning .field .ui.dropdown .item,
+.ui.form .fields.warning .field input:not([type]),
+.ui.form .fields.warning .field input[type="date"],
+.ui.form .fields.warning .field input[type="datetime-local"],
+.ui.form .fields.warning .field input[type="email"],
+.ui.form .fields.warning .field input[type="file"],
+.ui.form .fields.warning .field input[type="number"],
+.ui.form .fields.warning .field input[type="password"],
+.ui.form .fields.warning .field input[type="search"],
+.ui.form .fields.warning .field input[type="tel"],
+.ui.form .fields.warning .field input[type="text"],
+.ui.form .fields.warning .field input[type="time"],
+.ui.form .fields.warning .field input[type="url"],
+.ui.form .fields.warning .field input[type=date],
+.ui.form .fields.warning .field input[type=datetime-local],
+.ui.form .fields.warning .field input[type=email],
+.ui.form .fields.warning .field input[type=file],
+.ui.form .fields.warning .field input[type=number],
+.ui.form .fields.warning .field input[type=password],
+.ui.form .fields.warning .field input[type=search],
+.ui.form .fields.warning .field input[type=tel],
+.ui.form .fields.warning .field input[type=text],
+.ui.form .fields.warning .field input[type=time],
+.ui.form .fields.warning .field input[type=url],
+.ui.form .fields.warning .field select, .ui.form .fields.warning .field textarea,
+.ui.selection.dropdown.warning, .ui.ui.table td.warning,
+.ui.ui.ui.ui.table tr.warning {
+    background: #321;
+}
+/* remap-css rule for "background-color: #fffaf3" */
+.ui.form .field.warning .transparent.input input,
+.ui.form .field.warning .transparent.input textarea,
+.ui.form .field.warning input.transparent,
+.ui.form .field.warning textarea.transparent, .ui.input.warning > input,
+.ui.warning.message {
+    background-color: #321;
+}
+/* remap-css rule for "background-color: #ffe" */
+.repository.file.list #repo-files-table tr:hover {
+    background-color: rgba(255, 255, 255, .1);
+}
+/* remap-css rule for "box-shadow: 0 0 0 1px #b58105 inset,0 0 0 0 transparent" */
+.ui.attached.yellow.message, .ui.yellow.message {
+    box-shadow: 0 0 0 1px #cb4 inset, 0 0 0 0 transparent;
+}
+/* remap-css rule for "box-shadow: 0 0 0 1px #c9ba9b inset,0 0 0 0 transparent" */
+.ui.attached.warning.message, .ui.warning.message {
+    box-shadow: 0 0 0 1px #cb4 inset, 0 0 0 0 transparent;
+}
+/* remap-css rule for "box-shadow: 0 0 0 1px rgba(34,36,38,.35) inset,0 0 0 0 rgba(34,36,38,.15) inset" */
+.ui.basic.button:focus, .ui.basic.button:hover, .ui.basic.buttons .button:focus,
+.ui.basic.buttons .button:hover {
+    box-shadow: 0 0 0 1px rgba(220, 220, 220, .35) inset, 0 0 0 0 rgba(220, 220, 220, .15) inset;
+}
+/* remap-css rule for "box-shadow: 0 0 0 1px transparent inset,0 0 0 0 rgba(34,36,38,.15) inset" */
+.ui.button, .ui.button:hover,
+.ui.buttons:not(.basic):not(.inverted) > .button:not(.basic):not(.inverted) {
+    box-shadow: 0 0 0 1px transparent inset, 0 0 0 0 rgba(220, 220, 220, .15) inset;
+}
+/* remap-css rule for "box-shadow: 0 0 0 1px rgba(34,36,38,.15) inset" */
+.ui.attached.message, .ui.basic.button, .ui.basic.buttons .button,
+.ui.multiple.dropdown > .label {
+    box-shadow: 0 0 0 1px rgba(220, 220, 220, .15) inset;
+}
+/* remap-css rule for "box-shadow: 0 0 0 1px rgba(34,36,38,.15) inset !important" */
+.repo-buttons .disabled-repo-button a.button:hover {
+    box-shadow: 0 0 0 1px rgba(220, 220, 220, .15) inset !important;
+}
+/* remap-css rule for "box-shadow: 0 0 0 0 rgba(34,36,38,.15) inset" */
+.ui.black.button, .ui.blue.button, .ui.brown.button, .ui.facebook.button,
+.ui.google.plus.button, .ui.green.button, .ui.grey.button, .ui.instagram.button,
+.ui.negative.button, .ui.olive.button, .ui.orange.button, .ui.pink.button,
+.ui.pinterest.button, .ui.positive.button, .ui.primary.button, .ui.purple.button,
+.ui.red.button, .ui.secondary.button, .ui.teal.button, .ui.telegram.button,
+.ui.twitter.button, .ui.violet.button, .ui.vk.button, .ui.whatsapp.button,
+.ui.yellow.button, .ui.youtube.button {
+    box-shadow: 0 0 0 0 rgba(220, 220, 220, .15) inset;
+}
+/* remap-css rule for "background-image: linear-gradient(to right, rgba(255, 255, 255, 0), #ffffff 100%)" */
+.ui.menu.new-menu::after {
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0), #202020 100%);
+}
+/* end remap-css rules */
