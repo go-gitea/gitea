@@ -344,6 +344,7 @@ func UpdateIssueProject(ctx *context.Context) {
 	})
 }
 
+// DeleteProjectBoard allows for the deletion of a project board
 func DeleteProjectBoard(ctx context.Context) {
 	if ctx.User == nil {
 		ctx.JSON(403, map[string]string{
@@ -367,6 +368,42 @@ func DeleteProjectBoard(ctx context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"ok": true,
 	})
+}
+
+// AddBoardToProject allows a new board to be added to a project.
+func AddBoardToProject(ctx context.Context, form auth.EditProjectBoardTitleForm) {
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplProjectsNew)
+		return
+	}
+
+	projectID := ctx.ParamsInt64(":id")
+
+	_, err := models.GetProjectByRepoID(ctx.Repo.Repository.RepoID, projectID)
+	if err != nil {
+
+		if models.IsErrProjectBoardNotExist(err) {
+			ctx.NotFound("", err)
+		} else {
+			ctx.ServerError("GetProjectBoard", err)
+		}
+
+		return
+	}
+
+	if err := models.NewProjectBoard(&models.ProjectBoard{
+		ProjectID: projectID,
+		RepoID:    ctx.Repo.Repository.RepoID,
+		Title:     form.Title,
+		CreatorID: ctx.User.ID,
+	}); err != nil {
+		ctx.ServerError("NewProjectBoard", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
+	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
 }
 
 // EditProjectBoardTitle allows a project board's title to be updated

@@ -324,6 +324,12 @@ func ChangeProjectStatus(p *Project, isClosed bool) error {
 	return sess.Commit()
 }
 
+// NewProjectBoard adds a new project board to a given project
+func NewProjectBoard(board *ProjectBoard) error {
+	_, err := x.Insert(board)
+	return err
+}
+
 // DeleteProjectBoardByID removes all issues references to the project board.
 func DeleteProjectBoardByID(repoID, projectID, boardID int64) error {
 	board, err := GetProjectBoard(repoID, projectID, boardID)
