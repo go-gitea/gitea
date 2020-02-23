@@ -107,7 +107,7 @@ func Init() {
 				cancel()
 				indexer.Close()
 				close(waitChannel)
-				log.Fatal("PID: %d Unable to initialize the Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
+				log.Fatal("PID: %d Unable to initialize the bleve Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
 			}
 			populate = created
 			indexer.set(bleveIndexer)
@@ -121,7 +121,7 @@ func Init() {
 				}
 			}()
 
-			esIndexer, created, err := NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
+			esIndexer, exists, err := NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
 				if esIndexer != nil {
 					esIndexer.Close()
@@ -129,9 +129,9 @@ func Init() {
 				cancel()
 				indexer.Close()
 				close(waitChannel)
-				log.Fatal("PID: %d Unable to initialize the Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
+				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
 			}
-			populate = created
+			populate = !exists
 			indexer.set(esIndexer)
 		default:
 			log.Fatal("PID: %d Unknow Indexer type: %s", os.Getpid(), setting.Indexer.RepoType)

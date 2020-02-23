@@ -86,7 +86,7 @@ func newIndexerService() {
 	if !filepath.IsAbs(Indexer.RepoPath) {
 		Indexer.RepoPath = path.Join(AppWorkPath, Indexer.RepoPath)
 	}
-	Indexer.RepoConnStr = sec.Key("REPO_INDEXER_CONNSTR").MustString("")
+	Indexer.RepoConnStr = sec.Key("REPO_INDEXER_CONN_STR").MustString("")
 	Indexer.RepoIndexerName = sec.Key("REPO_INDEXER_NAME").MustString("gitea_codes")
 
 	Indexer.IncludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_INCLUDE").MustString(""))

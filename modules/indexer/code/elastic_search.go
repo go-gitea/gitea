@@ -20,8 +20,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/olivere/elastic/v7"
+	"github.com/src-d/enry/v2"
 )
 
 var (
@@ -70,9 +72,9 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bo
 		client:      client,
 		indexerName: indexerName,
 	}
-	success, err := indexer.init()
+	exists, err := indexer.init()
 
-	return indexer, success, err
+	return indexer, exists, err
 }
 
 const (
@@ -80,11 +82,23 @@ const (
 		"mappings": {
 			"properties": {
 				"repo_id": {
-					"type": "integer",
+					"type": "long",
 					"index": true
 				},
 				"content": {
 					"type": "text",
+					"index": true
+				},
+				"commit_id": {
+					"type": "keyword",
+					"index": true
+				},
+				"language": {
+					"type": "keyword",
+					"index": true
+				},
+				"updated_at": {
+					"type": "long",
 					"index": true
 				}
 			}
@@ -99,21 +113,21 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
-	if !exists {
-		var mapping = defaultMapping
-
-		createIndex, err := b.client.CreateIndex(b.indexerName).BodyString(mapping).Do(ctx)
-		if err != nil {
-			return false, err
-		}
-		if !createIndex.Acknowledged {
-			return false, errors.New("init failed")
-		}
-
-		return false, nil
+	if exists {
+		return true, nil
 	}
-	return true, nil
+
+	var mapping = defaultMapping
+
+	createIndex, err := b.client.CreateIndex(b.indexerName).BodyString(mapping).Do(ctx)
+	if err != nil {
+		return false, err
+	}
+	if !createIndex.Acknowledged {
+		return false, errors.New("init failed")
+	}
+
+	return false, nil
 }
 
 func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
@@ -148,7 +162,7 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 				"content":    string(charset.ToUTF8DropErrors(fileContents)),
 				"commit_id":  sha,
 				"language":   analyze.GetCodeLanguage(update.Filename, fileContents),
-				"updated_at": time.Now().UTC(),
+				"updated_at": timeutil.TimeStampNow(),
 			}),
 	}, nil
 }
@@ -203,6 +217,73 @@ func (b *ElasticSearchIndexer) Delete(repoID int64) error {
 	return err
 }
 
+func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+	hits := make([]*SearchResult, 0, pageSize)
+	for _, hit := range searchResult.Hits.Hits {
+		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
+		// So we get it from content, this may made the query slower. See
+		// https://discuss.elastic.co/t/fetching-position-of-keyword-in-matched-document/94291
+		var startIndex, endIndex int = -1, -1
+		c, ok := hit.Highlight["content"]
+		if ok && len(c) > 0 {
+			var subStr = make([]rune, 0, len(kw))
+			startIndex = strings.IndexFunc(c[0], func(r rune) bool {
+				if len(subStr) >= len(kw) {
+					subStr = subStr[1:]
+				}
+				subStr = append(subStr, r)
+				return strings.EqualFold(kw, string(subStr))
+			})
+			if startIndex > -1 {
+				endIndex = startIndex + len(kw)
+			} else {
+				panic(fmt.Sprintf("1===%#v", hit.Highlight))
+			}
+		} else {
+			panic(fmt.Sprintf("2===%#v", hit.Highlight))
+		}
+
+		repoID, fileName := parseIndexerID(hit.Id)
+		var res = make(map[string]interface{})
+		if err := json.Unmarshal(hit.Source, &res); err != nil {
+			return 0, nil, nil, err
+		}
+
+		language := res["language"].(string)
+
+		hits = append(hits, &SearchResult{
+			RepoID:      repoID,
+			Filename:    fileName,
+			CommitID:    res["commit_id"].(string),
+			Content:     res["content"].(string),
+			UpdatedUnix: timeutil.TimeStamp(res["updated_at"].(float64)),
+			Language:    language,
+			StartIndex:  startIndex,
+			EndIndex:    endIndex,
+			Color:       enry.GetColor(language),
+		})
+	}
+
+	return searchResult.TotalHits(), hits, extractAggs(searchResult), nil
+}
+
+func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
+	var searchResultLanguages []*SearchResultLanguages
+	agg, found := searchResult.Aggregations.Terms("language")
+	if found {
+		searchResultLanguages = make([]*SearchResultLanguages, 0, 10)
+
+		for _, bucket := range agg.Buckets {
+			searchResultLanguages = append(searchResultLanguages, &SearchResultLanguages{
+				Language: bucket.Key.(string),
+				Color:    enry.GetColor(bucket.Key.(string)),
+				Count:    int(bucket.DocCount),
+			})
+		}
+	}
+	return searchResultLanguages
+}
+
 // Search searches for codes and language stats by given conditions.
 func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	kwQuery := elastic.NewMultiMatchQuery(keyword, "content")
@@ -216,10 +297,45 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 		repoQuery := elastic.NewTermsQuery("repo_id", repoStrs...)
 		query = query.Must(repoQuery)
 	}
-	start := 0
+
+	var (
+		start       int
+		kw          = "<em>" + keyword + "</em>"
+		aggregation = elastic.NewTermsAggregation().Field("language").Size(10).OrderByCountDesc()
+	)
+
 	if page > 0 {
 		start = (page - 1) * pageSize
 	}
+
+	if len(language) == 0 {
+		searchResult, err := b.client.Search().
+			Index(b.indexerName).
+			Aggregation("language", aggregation).
+			Query(query).
+			Highlight(elastic.NewHighlight().Field("content")).
+			Sort("repo_id", true).
+			From(start).Size(pageSize).
+			Do(context.Background())
+		if err != nil {
+			return 0, nil, nil, err
+		}
+
+		return convertResult(searchResult, kw, pageSize)
+	}
+
+	langQuery := elastic.NewMatchQuery("language", language)
+	countResult, err := b.client.Search().
+		Index(b.indexerName).
+		Aggregation("language", aggregation).
+		Query(query).
+		Size(0). // We only needs stats information
+		Do(context.Background())
+	if err != nil {
+		return 0, nil, nil, err
+	}
+
+	query = query.Must(langQuery)
 	searchResult, err := b.client.Search().
 		Index(b.indexerName).
 		Query(query).
@@ -231,35 +347,9 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 		return 0, nil, nil, err
 	}
 
-	var kw = "<em>" + keyword + "</em>"
+	total, hits, _, err := convertResult(searchResult, kw, pageSize)
 
-	hits := make([]*SearchResult, 0, pageSize)
-	for _, hit := range searchResult.Hits.Hits {
-		var startIndex, endIndex int = -1, -1
-		c, ok := hit.Highlight["content"]
-		if ok && len(c) > 0 {
-			startIndex = strings.Index(c[0], kw)
-			if startIndex > -1 {
-				endIndex = startIndex + len(kw)
-			}
-		}
-
-		repoID, fileName := parseIndexerID(hit.Id)
-		var h = SearchResult{
-			RepoID:     repoID,
-			StartIndex: startIndex,
-			EndIndex:   endIndex,
-			Filename:   fileName,
-		}
-
-		if err := json.Unmarshal(hit.Source, &h); err != nil {
-			return 0, nil, nil, err
-		}
-
-		hits = append(hits, &h)
-	}
-
-	return searchResult.TotalHits(), hits, nil, nil
+	return total, hits, extractAggs(countResult), err
 }
 
 // Close implements indexer
