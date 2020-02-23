@@ -104,7 +104,6 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWa
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
 	_, err := e.
 		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
-		Cols("is_watching", "updated_unix").
 		Where("`issue_watch`.user_id = ?", userID).
 		Delete(new(IssueWatch))
 	return err
