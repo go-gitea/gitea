@@ -201,7 +201,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 	}
 
 	// Make sure the former primary email doesn't disappear.
-	formerPrimaryEmail := &EmailAddress{Email: user.Email}
+	formerPrimaryEmail := &EmailAddress{UID: user.ID, Email: user.Email}
 	has, err = x.Get(formerPrimaryEmail)
 	if err != nil {
 		return err

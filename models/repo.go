@@ -1619,6 +1619,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if err = sess.Commit(); err != nil {
+		sess.Close()
 		if len(deployKeys) > 0 {
 			// We need to rewrite the public keys because the commit failed
 			if err2 := RewriteAllPublicKeys(); err2 != nil {

@@ -85,7 +85,7 @@
 								<ul class="repo-owner-name-list">
 									<li v-for="repo in repos" :class="{'private': repo.private}" v-show="showRepo(repo, reposFilter)">
 										<a :href="suburl + '/' + repo.full_name">
-											<svg :class="'svg ' + repoClass(repo)" width="16" height="16" aria-hidden="true"><use :xlink:href="staticPrefix + '/img/svg/icons.svg#' + repoClass(repo)" /></svg>
+											<svg :class="'svg ' + repoClass(repo)" width="16" height="16" aria-hidden="true"><use :xlink:href="'#' + repoClass(repo)" /></svg>
 											<strong class="text truncate item-name">${repo.full_name}</strong>
 											<i v-if="repo.archived" class="archive icon archived-icon"></i>
 											<span class="ui right text light grey">

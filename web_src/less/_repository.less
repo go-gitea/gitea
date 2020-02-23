@@ -381,6 +381,14 @@
                     font-size: 1em;
                 }
 
+                .small.icon {
+                    font-size: 0.75em;
+                }
+
+                .tiny.icon {
+                    font-size: 0.5em;
+                }
+
                 .file-actions {
                     margin-bottom: -5px;
 
@@ -1144,7 +1152,7 @@
 
         .choose.branch {
             .svg {
-                padding-right: 10px;
+                margin-right: 10px;
             }
         }
 
@@ -1501,6 +1509,11 @@
             }
 
             clear: right;
+        }
+
+        .ui.bottom.attached.table.segment {
+            padding-top: 5px;
+            padding-bottom: 5px;
         }
     }
 
@@ -2383,12 +2396,49 @@ tbody.commit-list {
     vertical-align: baseline;
 }
 
-.commit-list .message-wrapper {
+.message-wrapper {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: calc(100% - 50px);
     display: inline-block;
     vertical-align: middle;
+}
+
+@media only screen and (max-width: 767.98px) {
+    tr.commit-list {
+        width: 100%;
+    }
+    th .message-wrapper {
+        display: block;
+        max-width: calc(100vw - 70px);
+    }
+}
+
+@media only screen and (min-width: 768px) and (max-width: 991.98px) {
+    tr.commit-list {
+        width: 723px;
+    }
+    th .message-wrapper {
+        max-width: 280px;
+    }
+}
+
+@media only screen and (min-width: 992px) and (max-width: 1199.98px) {
+    tr.commit-list {
+        width: 933px;
+    }
+    th .message-wrapper {
+        max-width: 490px;
+    }
+}
+
+@media only screen and (min-width: 1200px) {
+    tr.commit-list {
+        width: 1127px;
+    }
+    th .message-wrapper {
+        max-width: 680px;
+    }
 }
 
 .commit-list .commit-summary a {

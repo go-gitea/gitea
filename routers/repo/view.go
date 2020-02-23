@@ -36,6 +36,83 @@ const (
 	tplMigrating base.TplName = "repo/migrating"
 )
 
+type namedBlob struct {
+	name      string
+	isSymlink bool
+	blob      *git.Blob
+}
+
+// FIXME: There has to be a more efficient way of doing this
+func getReadmeFileFromPath(commit *git.Commit, treePath string) (*namedBlob, error) {
+	tree, err := commit.SubTree(treePath)
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := tree.ListEntries()
+	if err != nil {
+		return nil, err
+	}
+
+	var readmeFiles [4]*namedBlob
+	var exts = []string{".md", ".txt", ""} // sorted by priority
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		for i, ext := range exts {
+			if markup.IsReadmeFile(entry.Name(), ext) {
+				if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].name, entry.Blob().Name()) {
+					name := entry.Name()
+					isSymlink := entry.IsLink()
+					target := entry
+					if isSymlink {
+						target, err = entry.FollowLinks()
+						if err != nil && !git.IsErrBadLink(err) {
+							return nil, err
+						}
+					}
+					if target != nil && (target.IsExecutable() || target.IsRegular()) {
+						readmeFiles[i] = &namedBlob{
+							name,
+							isSymlink,
+							target.Blob(),
+						}
+					}
+				}
+			}
+		}
+
+		if markup.IsReadmeFile(entry.Name()) {
+			if readmeFiles[3] == nil || base.NaturalSortLess(readmeFiles[3].name, entry.Blob().Name()) {
+				name := entry.Name()
+				isSymlink := entry.IsLink()
+				if isSymlink {
+					entry, err = entry.FollowLinks()
+					if err != nil && !git.IsErrBadLink(err) {
+						return nil, err
+					}
+				}
+				if entry != nil && (entry.IsExecutable() || entry.IsRegular()) {
+					readmeFiles[3] = &namedBlob{
+						name,
+						isSymlink,
+						entry.Blob(),
+					}
+				}
+			}
+		}
+	}
+	var readmeFile *namedBlob
+	for _, f := range readmeFiles {
+		if f != nil {
+			readmeFile = f
+			break
+		}
+	}
+	return readmeFile, nil
+}
+
 func renderDirectory(ctx *context.Context, treeLink string) {
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
 	if err != nil {
@@ -65,25 +142,75 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	// 3 for the extensions in exts[] in order
 	// the last one is for a readme that doesn't
 	// strictly match an extension
-	var readmeFiles [4]*git.Blob
+	var readmeFiles [4]*namedBlob
+	var docsEntries [3]*git.TreeEntry
 	var exts = []string{".md", ".txt", ""} // sorted by priority
 	for _, entry := range entries {
 		if entry.IsDir() {
+			lowerName := strings.ToLower(entry.Name())
+			switch lowerName {
+			case "docs":
+				if entry.Name() == "docs" || docsEntries[0] == nil {
+					docsEntries[0] = entry
+				}
+			case ".gitea":
+				if entry.Name() == ".gitea" || docsEntries[1] == nil {
+					docsEntries[1] = entry
+				}
+			case ".github":
+				if entry.Name() == ".github" || docsEntries[2] == nil {
+					docsEntries[2] = entry
+				}
+			}
 			continue
 		}
 
 		for i, ext := range exts {
 			if markup.IsReadmeFile(entry.Name(), ext) {
-				readmeFiles[i] = entry.Blob()
+				log.Debug("%s", entry.Name())
+				name := entry.Name()
+				isSymlink := entry.IsLink()
+				target := entry
+				if isSymlink {
+					target, err = entry.FollowLinks()
+					if err != nil && !git.IsErrBadLink(err) {
+						ctx.ServerError("FollowLinks", err)
+						return
+					}
+				}
+				log.Debug("%t", target == nil)
+				if target != nil && (target.IsExecutable() || target.IsRegular()) {
+					readmeFiles[i] = &namedBlob{
+						name,
+						isSymlink,
+						target.Blob(),
+					}
+				}
 			}
 		}
 
 		if markup.IsReadmeFile(entry.Name()) {
-			readmeFiles[3] = entry.Blob()
+			name := entry.Name()
+			isSymlink := entry.IsLink()
+			if isSymlink {
+				entry, err = entry.FollowLinks()
+				if err != nil && !git.IsErrBadLink(err) {
+					ctx.ServerError("FollowLinks", err)
+					return
+				}
+			}
+			if entry != nil && (entry.IsExecutable() || entry.IsRegular()) {
+				readmeFiles[3] = &namedBlob{
+					name,
+					isSymlink,
+					entry.Blob(),
+				}
+			}
 		}
 	}
 
-	var readmeFile *git.Blob
+	var readmeFile *namedBlob
+	readmeTreelink := treeLink
 	for _, f := range readmeFiles {
 		if f != nil {
 			readmeFile = f
@@ -91,12 +218,31 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		}
 	}
 
+	if ctx.Repo.TreePath == "" && readmeFile == nil {
+		for _, entry := range docsEntries {
+			if entry == nil {
+				continue
+			}
+			readmeFile, err = getReadmeFileFromPath(ctx.Repo.Commit, entry.GetSubJumpablePathName())
+			if err != nil {
+				ctx.ServerError("getReadmeFileFromPath", err)
+				return
+			}
+			if readmeFile != nil {
+				readmeFile.name = entry.Name() + "/" + readmeFile.name
+				readmeTreelink = treeLink + "/" + entry.GetSubJumpablePathName()
+				break
+			}
+		}
+	}
+
 	if readmeFile != nil {
 		ctx.Data["RawFileLink"] = ""
 		ctx.Data["ReadmeInList"] = true
 		ctx.Data["ReadmeExist"] = true
+		ctx.Data["FileIsSymlink"] = readmeFile.isSymlink
 
-		dataRc, err := readmeFile.DataAsync()
+		dataRc, err := readmeFile.blob.DataAsync()
 		if err != nil {
 			ctx.ServerError("Data", err)
 			return
@@ -109,7 +255,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 		isTextFile := base.IsTextFile(buf)
 		ctx.Data["FileIsText"] = isTextFile
-		ctx.Data["FileName"] = readmeFile.Name()
+		ctx.Data["FileName"] = readmeFile.name
 		fileSize := int64(0)
 		isLFSFile := false
 		ctx.Data["IsLFSFile"] = false
@@ -151,13 +297,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 				fileSize = meta.Size
 				ctx.Data["FileSize"] = meta.Size
-				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.Name()))
+				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
 				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 			}
 		}
 
 		if !isLFSFile {
-			fileSize = readmeFile.Size()
+			fileSize = readmeFile.blob.Size()
 		}
 
 		if isTextFile {
@@ -170,10 +316,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				d, _ := ioutil.ReadAll(dataRc)
 				buf = charset.ToUTF8WithFallback(append(buf, d...))
 
-				if markupType := markup.Type(readmeFile.Name()); markupType != "" {
+				if markupType := markup.Type(readmeFile.name); markupType != "" {
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["MarkupType"] = string(markupType)
-					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
+					ctx.Data["FileContent"] = string(markup.Render(readmeFile.name, buf, readmeTreelink, ctx.Repo.Repository.ComposeMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
 					ctx.Data["FileContent"] = strings.Replace(
@@ -218,6 +364,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath + " at " + ctx.Repo.BranchName
 
 	fileSize := blob.Size()
+	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["HighlightClass"] = highlight.FileNameToHighlightClass(blob.Name())

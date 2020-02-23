@@ -656,6 +656,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", context.RepoRefByType(context.RepoRefBranch), repo.GetBranch)
 				}, reqRepoReader(models.UnitTypeCode))
+				m.Group("/branch_protections", func() {
+					m.Get("", repo.ListBranchProtections)
+					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateBranchProtection)
+					m.Group("/:name", func() {
+						m.Get("", repo.GetBranchProtection)
+						m.Patch("", bind(api.EditBranchProtectionOption{}), repo.EditBranchProtection)
+						m.Delete("", repo.DeleteBranchProtection)
+					})
+				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
 				}, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(true))

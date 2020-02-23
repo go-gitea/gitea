@@ -16,12 +16,21 @@
 			<h3>
 				{{.i18n.Tr "repo.search.results" (.Keyword|Escape) .RepoLink .RepoName | Str2html }}
 			</h3>
+			<div>
+				{{range $term := .SearchResultLanguages}}
+				<a class="ui {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{EscapePound $.SourcePath}}/search?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}">
+					<i class="color-icon" style="background-color: {{$term.Color}}"></i>
+					{{$term.Language}}
+					<div class="detail">{{$term.Count}}</div>
+				</a>
+				{{end}}
+			</div>
 			<div class="repository search">
 				{{range $result := .SearchResults}}
 					<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
 						<h4 class="ui top attached normal header">
 							<span class="file">{{.Filename}}</span>
-							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Filename}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/src/commit/{{$result.CommitID}}/{{EscapePound .Filename}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 						</h4>
 						<div class="ui attached table segment">
 							<div class="file-body file-code code-view">
@@ -30,7 +39,7 @@
 										<tr>
 											<td class="lines-num">
 												{{range .LineNumbers}}
-													<a href="{{EscapePound $.SourcePath}}/{{EscapePound $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
+													<a href="{{EscapePound $.SourcePath}}/src/commit/{{$result.CommitID}}/{{EscapePound $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
 												{{end}}
 											</td>
 											<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FormattedLines}}</ol></code></pre></td>
@@ -38,6 +47,15 @@
 									</tbody>
 								</table>
 							</div>
+						</div>
+						<div class="ui bottom attached table segment">
+							{{if $result.Language}}
+							<i class="color-icon" style="background-color: {{$result.Color}}"></i>{{$result.Language}}
+							{{end}}
+							&nbsp;
+							{{if not $result.UpdatedUnix.IsZero}}
+							<span class="ui small grey text pull right">{{$.i18n.Tr "explore.code_last_indexed_at" (TimeSinceUnix $result.UpdatedUnix $.i18n.Lang) | Safe}} &nbsp;</span>
+							{{end}}
 						</div>
 					</div>
 				{{end}}
