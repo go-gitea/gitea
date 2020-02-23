@@ -22,7 +22,6 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		baseBranch *git.Branch
 		headBranch *git.Branch
 		baseCommit *git.Commit
-		headCommit *git.Commit
 		err        error
 	)
 
@@ -99,22 +98,37 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 		apiPullRequest.Head.Repository = pr.HeadRepo.APIFormat(models.AccessModeNone)
 
-		headBranch, err = repo_module.GetBranch(pr.HeadRepo, pr.HeadBranch)
+		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+		if err != nil {
+			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.RepoPath(), err)
+			return nil
+		}
+		defer headGitRepo.Close()
+
+		headBranch, err = headGitRepo.GetBranch(pr.HeadBranch)
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
 			return nil
 		}
 
-		if err == nil {
-			headCommit, err = headBranch.GetCommit()
+		if git.IsErrBranchNotExist(err) {
+			headCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
 			if err != nil && !git.IsErrNotExist(err) {
 				log.Error("GetCommit[%s]: %v", headBranch.Name, err)
 				return nil
 			}
-
+			if err == nil {
+				apiPullRequest.Head.Sha = headCommitID
+			}
+		} else {
+			commit, err := headBranch.GetCommit()
+			if err != nil && !git.IsErrNotExist(err) {
+				log.Error("GetCommit[%s]: %v", headBranch.Name, err)
+				return nil
+			}
 			if err == nil {
 				apiPullRequest.Head.Ref = pr.HeadBranch
-				apiPullRequest.Head.Sha = headCommit.ID.String()
+				apiPullRequest.Head.Sha = commit.ID.String()
 			}
 		}
 	}
