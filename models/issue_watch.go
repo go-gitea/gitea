@@ -66,16 +66,6 @@ func createOrUpdateIssueWatchMode(e Engine, userID, issueID int64, mode IssueWat
 	return nil
 }
 
-//DeleteIssueWatch delete an IssueWatch entry of an user to an given issue if exist
-func DeleteIssueWatch(userID, issueID int64) error {
-	return deleteIssueWatch(x, userID, issueID)
-}
-
-func deleteIssueWatch(e Engine, userID, issueID int64) error {
-	_, err := e.Where("user_id = ?", userID).And("issue_id = ?", issueID).Delete(new(IssueWatch))
-	return err
-}
-
 // GetIssueWatch returns all IssueWatch objects from db by user and issue
 func GetIssueWatch(userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
 	return getIssueWatch(x, userID, issueID)
