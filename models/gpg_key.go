@@ -790,22 +790,22 @@ func CalculateTrustStatus(verification *CommitVerification, repository *Reposito
 			var isMember bool
 			if memberMap != nil {
 				var has bool
-				isMember, has = memberMap[signCommit.Verification.SigningUser.ID]
+				isMember, has = memberMap[verification.SigningUser.ID]
 				if !has {
 					// We can ignore the error here as isMember would return false and so the user would be listed as untrusted
-					isMember, err = repository.IsOwnerMemberCollaborator(signCommit.Verification.SigningUser.ID)
-					memberMap[signCommit.Verification.SigningUser.ID] = isMember
+					isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+					memberMap[verification.SigningUser.ID] = isMember
 				}
 			} else {
-				isMember, err = repository.IsOwnerMemberCollaborator(signCommit.Verification.SigningUser.ID)
+				isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
 			}
 
 			if !isMember {
-				signCommit.Verification.TrustStatus = "untrusted"
-				if signCommit.Verification.CommittingUser.ID != signCommit.Verification.SigningUser.ID {
+				verification.TrustStatus = "untrusted"
+				if verification.CommittingUser.ID != verification.SigningUser.ID {
 					// The committing user and the signing user are not the same and are not the default key
 					// This should be marked as questionable unless the signing user is a collaborator/team member etc.
-					signCommit.Verification.TrustStatus = "unmatched"
+					verification.TrustStatus = "unmatched"
 				}
 			}
 		}
