@@ -204,6 +204,9 @@ module.exports = {
   },
   resolve: {
     symlinks: false,
+    alias: {
+      vue$: 'vue/dist/vue.esm.js', // needed because vue's default export is the runtime only
+    },
   },
   watchOptions: {
     ignored: [
