@@ -928,6 +928,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		LoginName:   gothUser.(goth.User).UserID,
 	}
 
+	//nolint: dupl
 	if err := models.CreateUser(u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
@@ -942,6 +943,9 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		case models.IsErrNamePatternNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplLinkAccount, &form)
+		case models.IsErrNameCharsNotAllowed(err):
+			ctx.Data["Err_UserName"] = true
+			ctx.RenderWithErr(ctx.Tr("user.form.name_chars_not_allowed", err.(models.ErrNameCharsNotAllowed).Name), tplLinkAccount, &form)
 		default:
 			ctx.ServerError("CreateUser", err)
 		}

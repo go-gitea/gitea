@@ -57,6 +57,21 @@ func (err ErrNamePatternNotAllowed) Error() string {
 	return fmt.Sprintf("name pattern is not allowed [pattern: %s]", err.Pattern)
 }
 
+// ErrNameCharsNotAllowed represents a "character not allowed in name" error.
+type ErrNameCharsNotAllowed struct {
+	Name string
+}
+
+// IsErrNameCharsNotAllowed checks if an error is an ErrNameCharsNotAllowed.
+func IsErrNameCharsNotAllowed(err error) bool {
+	_, ok := err.(ErrNameCharsNotAllowed)
+	return ok
+}
+
+func (err ErrNameCharsNotAllowed) Error() string {
+	return fmt.Sprintf("User name is invalid [%s]: must be valid alpha or numeric or dash(-_) or dot characters", err.Name)
+}
+
 // ErrSSHDisabled represents an "SSH disabled" error.
 type ErrSSHDisabled struct {
 }
