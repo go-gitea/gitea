@@ -258,7 +258,7 @@ func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Applic
 		Where("uid=?", uid).
 		Desc("id")
 
-	if listOptions.Page == 0 {
+	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
 
 		apps := make([]*OAuth2Application, 0, listOptions.PageSize)

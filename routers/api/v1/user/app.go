@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -168,13 +169,7 @@ func CreateOauth2Application(ctx *context.APIContext, data api.CreateOAuth2Appli
 	}
 	app.ClientSecret = secret
 
-	ctx.JSON(http.StatusCreated, api.OAuth2Application{
-		ID:           app.ID,
-		Name:         app.Name,
-		ClientID:     app.ClientID,
-		ClientSecret: app.ClientSecret,
-		RedirectURIs: app.RedirectURIs,
-	})
+	ctx.JSON(http.StatusCreated, convert.ToOAuth2Application(app))
 }
 
 // ListOauth2Applications list all the Oauth2 application
@@ -205,12 +200,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 
 	apiApps := make([]*api.OAuth2Application, len(apps))
 	for i := range apps {
-		apiApps[i] = &api.OAuth2Application{
-			ID:           apps[i].ID,
-			Name:         apps[i].Name,
-			ClientID:     apps[i].ClientID,
-			RedirectURIs: apps[i].RedirectURIs,
-		}
+		apiApps[i] = convert.ToOAuth2Application(apps[i])
 	}
 	ctx.JSON(http.StatusOK, &apiApps)
 }
