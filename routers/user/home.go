@@ -535,6 +535,11 @@ func Issues(ctx *context.Context) {
 
 		if isPullList {
 			commitStatus[issue.PullRequest.ID], _ = issue.PullRequest.GetLastCommitStatus()
+
+			if err := issue.PullRequest.LoadAttributes(); err != nil {
+				ctx.ServerError("LoadAttributes", err)
+				return
+			}
 		}
 	}
 

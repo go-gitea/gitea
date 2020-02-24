@@ -229,8 +229,8 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 
 		if issues[i].IsPull {
-			if err := issues[i].LoadPullRequest(); err != nil {
-				ctx.ServerError("LoadPullRequest", err)
+			if err := issues[i].PullRequest.LoadAttributes(); err != nil {
+				ctx.ServerError("LoadAttributes", err)
 				return
 			}
 

@@ -89,6 +89,10 @@ func (pr *PullRequest) loadAttributes(e Engine) (err error) {
 		}
 	}
 
+	if err = pr.loadProtectedBranch(e); err != nil {
+		return fmt.Errorf("pr.loadAttributes: loadProtectedBranch: %v", err)
+	}
+
 	return nil
 }
 
@@ -172,11 +176,6 @@ func (pr *PullRequest) loadProtectedBranch(e Engine) (err error) {
 }
 
 func (pr *PullRequest) requiredApprovals() int64 {
-	if pr.ProtectedBranch == nil {
-		if err := pr.loadProtectedBranch(x); err != nil {
-			log.Error("Error loading ProtectedBranch", err)
-		}
-	}
 	if pr.ProtectedBranch != nil {
 		return pr.ProtectedBranch.RequiredApprovals
 	}
