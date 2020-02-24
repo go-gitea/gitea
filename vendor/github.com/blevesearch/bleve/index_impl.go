@@ -15,14 +15,14 @@
 package bleve
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
@@ -50,6 +50,12 @@ type indexImpl struct {
 const storePath = "store"
 
 var mappingInternalKey = []byte("_mapping")
+
+const SearchQueryStartCallbackKey = "_search_query_start_callback_key"
+const SearchQueryEndCallbackKey = "_search_query_end_callback_key"
+
+type SearchQueryStartCallbackFn func(size uint64) error
+type SearchQueryEndCallbackFn func(size uint64) error
 
 func indexStorePath(path string) string {
 	return path + string(os.PathSeparator) + storePath
@@ -363,8 +369,70 @@ func (i *indexImpl) Search(req *SearchRequest) (sr *SearchResult, err error) {
 	return i.SearchInContext(context.Background(), req)
 }
 
+var documentMatchEmptySize int
+var searchContextEmptySize int
+var facetResultEmptySize int
+var documentEmptySize int
+
+func init() {
+	var dm search.DocumentMatch
+	documentMatchEmptySize = dm.Size()
+
+	var sc search.SearchContext
+	searchContextEmptySize = sc.Size()
+
+	var fr search.FacetResult
+	facetResultEmptySize = fr.Size()
+
+	var d document.Document
+	documentEmptySize = d.Size()
+}
+
+// memNeededForSearch is a helper function that returns an estimate of RAM
+// needed to execute a search request.
+func memNeededForSearch(req *SearchRequest,
+	searcher search.Searcher,
+	topnCollector *collector.TopNCollector) uint64 {
+
+	backingSize := req.Size + req.From + 1
+	if req.Size+req.From > collector.PreAllocSizeSkipCap {
+		backingSize = collector.PreAllocSizeSkipCap + 1
+	}
+	numDocMatches := backingSize + searcher.DocumentMatchPoolSize()
+
+	estimate := 0
+
+	// overhead, size in bytes from collector
+	estimate += topnCollector.Size()
+
+	// pre-allocing DocumentMatchPool
+	estimate += searchContextEmptySize + numDocMatches*documentMatchEmptySize
+
+	// searcher overhead
+	estimate += searcher.Size()
+
+	// overhead from results, lowestMatchOutsideResults
+	estimate += (numDocMatches + 1) * documentMatchEmptySize
+
+	// additional overhead from SearchResult
+	estimate += reflectStaticSizeSearchResult + reflectStaticSizeSearchStatus
+
+	// overhead from facet results
+	if req.Facets != nil {
+		estimate += len(req.Facets) * facetResultEmptySize
+	}
+
+	// highlighting, store
+	if len(req.Fields) > 0 || req.Highlight != nil {
+		// Size + From => number of hits
+		estimate += (req.Size + req.From) * documentEmptySize
+	}
+
+	return uint64(estimate)
+}
+
 // SearchInContext executes a search request operation within the provided
-// Context.  Returns a SearchResult object or an error.
+// Context. Returns a SearchResult object or an error.
 func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr *SearchResult, err error) {
 	i.mutex.RLock()
 	defer i.mutex.RUnlock()
@@ -375,7 +443,20 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 		return nil, ErrorIndexClosed
 	}
 
-	collector := collector.NewTopNCollector(req.Size, req.From, req.Sort)
+	var reverseQueryExecution bool
+	if req.SearchBefore != nil {
+		reverseQueryExecution = true
+		req.Sort.Reverse()
+		req.SearchAfter = req.SearchBefore
+		req.SearchBefore = nil
+	}
+
+	var coll *collector.TopNCollector
+	if req.SearchAfter != nil {
+		coll = collector.NewTopNCollectorAfter(req.Size, req.Sort, req.SearchAfter)
+	} else {
+		coll = collector.NewTopNCollector(req.Size, req.From, req.Sort)
+	}
 
 	// open a reader for this search
 	indexReader, err := i.i.Reader()
@@ -391,6 +472,7 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 	searcher, err := req.Query.Searcher(indexReader, i.m, search.SearcherOptions{
 		Explain:            req.Explain,
 		IncludeTermVectors: req.IncludeLocations || req.Highlight != nil,
+		Score:              req.Score,
 	})
 	if err != nil {
 		return nil, err
@@ -426,15 +508,33 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 				facetsBuilder.Add(facetName, facetBuilder)
 			}
 		}
-		collector.SetFacetsBuilder(facetsBuilder)
+		coll.SetFacetsBuilder(facetsBuilder)
 	}
 
-	err = collector.Collect(ctx, searcher, indexReader)
+	memNeeded := memNeededForSearch(req, searcher, coll)
+	if cb := ctx.Value(SearchQueryStartCallbackKey); cb != nil {
+		if cbF, ok := cb.(SearchQueryStartCallbackFn); ok {
+			err = cbF(memNeeded)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	hits := collector.Results()
+	if cb := ctx.Value(SearchQueryEndCallbackKey); cb != nil {
+		if cbF, ok := cb.(SearchQueryEndCallbackFn); ok {
+			defer func() {
+				_ = cbF(memNeeded)
+			}()
+		}
+	}
+
+	err = coll.Collect(ctx, searcher, indexReader)
+	if err != nil {
+		return nil, err
+	}
+
+	hits := coll.Results()
 
 	var highlighter highlight.Highlighter
 
@@ -456,69 +556,12 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 	}
 
 	for _, hit := range hits {
-		if len(req.Fields) > 0 || highlighter != nil {
-			doc, err := indexReader.Document(hit.ID)
-			if err == nil && doc != nil {
-				if len(req.Fields) > 0 {
-					for _, f := range req.Fields {
-						for _, docF := range doc.Fields {
-							if f == "*" || docF.Name() == f {
-								var value interface{}
-								switch docF := docF.(type) {
-								case *document.TextField:
-									value = string(docF.Value())
-								case *document.NumericField:
-									num, err := docF.Number()
-									if err == nil {
-										value = num
-									}
-								case *document.DateTimeField:
-									datetime, err := docF.DateTime()
-									if err == nil {
-										value = datetime.Format(time.RFC3339)
-									}
-								case *document.BooleanField:
-									boolean, err := docF.Boolean()
-									if err == nil {
-										value = boolean
-									}
-								case *document.GeoPointField:
-									lon, err := docF.Lon()
-									if err == nil {
-										lat, err := docF.Lat()
-										if err == nil {
-											value = []float64{lon, lat}
-										}
-									}
-								}
-								if value != nil {
-									hit.AddFieldValue(docF.Name(), value)
-								}
-							}
-						}
-					}
-				}
-				if highlighter != nil {
-					highlightFields := req.Highlight.Fields
-					if highlightFields == nil {
-						// add all fields with matches
-						highlightFields = make([]string, 0, len(hit.Locations))
-						for k := range hit.Locations {
-							highlightFields = append(highlightFields, k)
-						}
-					}
-					for _, hf := range highlightFields {
-						highlighter.BestFragmentsInField(hit, doc, hf, 1)
-					}
-				}
-			} else if doc == nil {
-				// unexpected case, a doc ID that was found as a search hit
-				// was unable to be found during document lookup
-				return nil, ErrorIndexReadInconsistency
-			}
-		}
 		if i.name != "" {
 			hit.Index = i.name
+		}
+		err = LoadAndHighlightFields(hit, req, i.name, indexReader, highlighter)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -531,20 +574,98 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 		logger.Printf("slow search took %s - %v", searchDuration, req)
 	}
 
+	if reverseQueryExecution {
+		// reverse the sort back to the original
+		req.Sort.Reverse()
+		// resort using the original order
+		mhs := newSearchHitSorter(req.Sort, hits)
+		sort.Sort(mhs)
+		// reset request
+		req.SearchBefore = req.SearchAfter
+		req.SearchAfter = nil
+	}
+
 	return &SearchResult{
 		Status: &SearchStatus{
 			Total:      1,
-			Failed:     0,
 			Successful: 1,
-			Errors:     make(map[string]error),
 		},
 		Request:  req,
 		Hits:     hits,
-		Total:    collector.Total(),
-		MaxScore: collector.MaxScore(),
+		Total:    coll.Total(),
+		MaxScore: coll.MaxScore(),
 		Took:     searchDuration,
-		Facets:   collector.FacetResults(),
+		Facets:   coll.FacetResults(),
 	}, nil
+}
+
+func LoadAndHighlightFields(hit *search.DocumentMatch, req *SearchRequest,
+	indexName string, r index.IndexReader,
+	highlighter highlight.Highlighter) error {
+	if len(req.Fields) > 0 || highlighter != nil {
+		doc, err := r.Document(hit.ID)
+		if err == nil && doc != nil {
+			if len(req.Fields) > 0 {
+				fieldsToLoad := deDuplicate(req.Fields)
+				for _, f := range fieldsToLoad {
+					for _, docF := range doc.Fields {
+						if f == "*" || docF.Name() == f {
+							var value interface{}
+							switch docF := docF.(type) {
+							case *document.TextField:
+								value = string(docF.Value())
+							case *document.NumericField:
+								num, err := docF.Number()
+								if err == nil {
+									value = num
+								}
+							case *document.DateTimeField:
+								datetime, err := docF.DateTime()
+								if err == nil {
+									value = datetime.Format(time.RFC3339)
+								}
+							case *document.BooleanField:
+								boolean, err := docF.Boolean()
+								if err == nil {
+									value = boolean
+								}
+							case *document.GeoPointField:
+								lon, err := docF.Lon()
+								if err == nil {
+									lat, err := docF.Lat()
+									if err == nil {
+										value = []float64{lon, lat}
+									}
+								}
+							}
+							if value != nil {
+								hit.AddFieldValue(docF.Name(), value)
+							}
+						}
+					}
+				}
+			}
+			if highlighter != nil {
+				highlightFields := req.Highlight.Fields
+				if highlightFields == nil {
+					// add all fields with matches
+					highlightFields = make([]string, 0, len(hit.Locations))
+					for k := range hit.Locations {
+						highlightFields = append(highlightFields, k)
+					}
+				}
+				for _, hf := range highlightFields {
+					highlighter.BestFragmentsInField(hit, doc, hf, 1)
+				}
+			}
+		} else if doc == nil {
+			// unexpected case, a doc ID that was found as a search hit
+			// was unable to be found during document lookup
+			return ErrorIndexReadInconsistency
+		}
+	}
+
+	return nil
 }
 
 // Fields returns the name of all the fields this
@@ -755,4 +876,40 @@ func (f *indexImplFieldDict) Close() error {
 		return err
 	}
 	return f.indexReader.Close()
+}
+
+// helper function to remove duplicate entries from slice of strings
+func deDuplicate(fields []string) []string {
+	entries := make(map[string]struct{})
+	ret := []string{}
+	for _, entry := range fields {
+		if _, exists := entries[entry]; !exists {
+			entries[entry] = struct{}{}
+			ret = append(ret, entry)
+		}
+	}
+	return ret
+}
+
+type searchHitSorter struct {
+	hits          search.DocumentMatchCollection
+	sort          search.SortOrder
+	cachedScoring []bool
+	cachedDesc    []bool
+}
+
+func newSearchHitSorter(sort search.SortOrder, hits search.DocumentMatchCollection) *searchHitSorter {
+	return &searchHitSorter{
+		sort:          sort,
+		hits:          hits,
+		cachedScoring: sort.CacheIsScore(),
+		cachedDesc:    sort.CacheDescending(),
+	}
+}
+
+func (m *searchHitSorter) Len() int      { return len(m.hits) }
+func (m *searchHitSorter) Swap(i, j int) { m.hits[i], m.hits[j] = m.hits[j], m.hits[i] }
+func (m *searchHitSorter) Less(i, j int) bool {
+	c := m.sort.Compare(m.cachedScoring, m.cachedDesc, m.hits[i], m.hits[j])
+	return c < 0
 }

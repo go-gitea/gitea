@@ -6,12 +6,17 @@
 package setting
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/mailer"
 )
 
 const (
@@ -47,6 +52,8 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
+	} else if !password.IsComplexEnough(form.Password) {
+		ctx.Flash.Error(password.BuildComplexityError(ctx))
 	} else {
 		var err error
 		if ctx.User.Salt, err = models.GetUserSalt(); err != nil {
@@ -81,6 +88,25 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
+	// Set Email Notification Preference
+	if ctx.Query("_method") == "NOTIFICATION" {
+		preference := ctx.Query("preference")
+		if !(preference == models.EmailNotificationsEnabled ||
+			preference == models.EmailNotificationsOnMention ||
+			preference == models.EmailNotificationsDisabled) {
+			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.User.Name)
+			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
+			return
+		}
+		if err := ctx.User.SetEmailNotifications(preference); err != nil {
+			log.Error("Set Email Notifications failed: %v", err)
+			ctx.ServerError("SetEmailNotifications", err)
+			return
+		}
+		log.Trace("Email notifications preference made %s: %s", preference, ctx.User.Name)
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
 
 	if ctx.HasError() {
 		loadAccountData(ctx)
@@ -107,12 +133,12 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
-		models.SendActivateEmailMail(ctx.Context, ctx.User, email)
+		mailer.SendActivateEmailMail(ctx.Locale, ctx.User, email)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
-		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
+		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
@@ -168,6 +194,34 @@ func DeleteAccount(ctx *context.Context) {
 	}
 }
 
+// UpdateUIThemePost is used to update users' specific theme
+func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
+
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAccount"] = true
+
+	if ctx.HasError() {
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
+
+	if !form.IsThemeExists() {
+		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
+
+	if err := ctx.User.UpdateTheme(form.Theme); err != nil {
+		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
+
+	log.Trace("Update user theme: %s", ctx.User.Name)
+	ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+}
+
 func loadAccountData(ctx *context.Context) {
 	emails, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
@@ -175,4 +229,5 @@ func loadAccountData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Emails"] = emails
+	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
 }

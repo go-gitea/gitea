@@ -18,7 +18,7 @@ import (
 	"bytes"
 )
 
-// Iterator represents a means of visity key/value pairs in order.
+// Iterator represents a means of visiting key/value pairs in order.
 type Iterator interface {
 
 	// Current() returns the key/value pair currently pointed to.
@@ -76,7 +76,8 @@ func newIterator(f *FST, startKeyInclusive, endKeyExclusive []byte,
 
 // Reset resets the Iterator' internal state to allow for iterator
 // reuse (e.g. pooling).
-func (i *FSTIterator) Reset(f *FST, startKeyInclusive, endKeyExclusive []byte, aut Automaton) error {
+func (i *FSTIterator) Reset(f *FST,
+	startKeyInclusive, endKeyExclusive []byte, aut Automaton) error {
 	if aut == nil {
 		aut = alwaysMatchAutomaton
 	}
@@ -91,14 +92,14 @@ func (i *FSTIterator) Reset(f *FST, startKeyInclusive, endKeyExclusive []byte, a
 
 // pointTo attempts to point us to the specified location
 func (i *FSTIterator) pointTo(key []byte) error {
-
 	// tried to seek before start
 	if bytes.Compare(key, i.startKeyInclusive) < 0 {
 		key = i.startKeyInclusive
 	}
 
-	// trid to see past end
-	if i.endKeyExclusive != nil && bytes.Compare(key, i.endKeyExclusive) > 0 {
+	// tried to see past end
+	if i.endKeyExclusive != nil &&
+		bytes.Compare(key, i.endKeyExclusive) > 0 {
 		key = i.endKeyExclusive
 	}
 
@@ -121,21 +122,23 @@ func (i *FSTIterator) pointTo(key []byte) error {
 	i.statesStack = append(i.statesStack, root)
 	i.autStatesStack = append(i.autStatesStack, autStart)
 	for j := 0; j < len(key); j++ {
+		keyJ := key[j]
 		curr := i.statesStack[len(i.statesStack)-1]
 		autCurr := i.autStatesStack[len(i.autStatesStack)-1]
 
-		pos, nextAddr, nextVal := curr.TransitionFor(key[j])
+		pos, nextAddr, nextVal := curr.TransitionFor(keyJ)
 		if nextAddr == noneAddr {
 			// needed transition doesn't exist
 			// find last trans before the one we needed
-			for q := 0; q < curr.NumTransitions(); q++ {
-				if curr.TransitionAt(q) < key[j] {
+			for q := curr.NumTransitions() - 1; q >= 0; q-- {
+				if curr.TransitionAt(q) < keyJ {
 					maxQ = q
+					break
 				}
 			}
 			break
 		}
-		autNext := i.aut.Accept(autCurr, key[j])
+		autNext := i.aut.Accept(autCurr, keyJ)
 
 		next, err := i.f.decoder.stateAt(nextAddr, nil)
 		if err != nil {
@@ -143,14 +146,16 @@ func (i *FSTIterator) pointTo(key []byte) error {
 		}
 
 		i.statesStack = append(i.statesStack, next)
-		i.keysStack = append(i.keysStack, key[j])
+		i.keysStack = append(i.keysStack, keyJ)
 		i.keysPosStack = append(i.keysPosStack, pos)
 		i.valsStack = append(i.valsStack, nextVal)
 		i.autStatesStack = append(i.autStatesStack, autNext)
 		continue
 	}
 
-	if !i.statesStack[len(i.statesStack)-1].Final() || !i.aut.IsMatch(i.autStatesStack[len(i.autStatesStack)-1]) || bytes.Compare(i.keysStack, key) < 0 {
+	if !i.statesStack[len(i.statesStack)-1].Final() ||
+		!i.aut.IsMatch(i.autStatesStack[len(i.autStatesStack)-1]) ||
+		bytes.Compare(i.keysStack, key) < 0 {
 		return i.next(maxQ)
 	}
 
@@ -181,77 +186,102 @@ func (i *FSTIterator) Next() error {
 }
 
 func (i *FSTIterator) next(lastOffset int) error {
+	// remember where we started with keysStack in this next() call
+	i.nextStart = append(i.nextStart[:0], i.keysStack...)
 
-	// remember where we started
-	if cap(i.nextStart) < len(i.keysStack) {
-		i.nextStart = make([]byte, len(i.keysStack))
-	} else {
-		i.nextStart = i.nextStart[0:len(i.keysStack)]
-	}
-	copy(i.nextStart, i.keysStack)
+	nextOffset := lastOffset + 1
+	allowCompare := false
 
+OUTER:
 	for true {
 		curr := i.statesStack[len(i.statesStack)-1]
 		autCurr := i.autStatesStack[len(i.autStatesStack)-1]
 
-		if curr.Final() && i.aut.IsMatch(autCurr) &&
-			bytes.Compare(i.keysStack, i.nextStart) > 0 {
-			// in final state greater than start key
-			return nil
-		}
-
-		nextOffset := lastOffset + 1
-		if nextOffset < curr.NumTransitions() {
-			t := curr.TransitionAt(nextOffset)
-			autNext := i.aut.Accept(autCurr, t)
-			if i.aut.CanMatch(autNext) {
-				pos, nextAddr, v := curr.TransitionFor(t)
-
-				// the next slot in the statesStack might have an
-				// fstState instance that we can reuse
-				var nextPrealloc fstState
-				if len(i.statesStack) < cap(i.statesStack) {
-					nextPrealloc = i.statesStack[0:cap(i.statesStack)][len(i.statesStack)]
-				}
-
-				// push onto stack
-				next, err := i.f.decoder.stateAt(nextAddr, nextPrealloc)
-				if err != nil {
-					return err
-				}
-				i.statesStack = append(i.statesStack, next)
-				i.keysStack = append(i.keysStack, t)
-				i.keysPosStack = append(i.keysPosStack, pos)
-				i.valsStack = append(i.valsStack, v)
-				i.autStatesStack = append(i.autStatesStack, autNext)
-				lastOffset = -1
-
-				// check to see if new keystack might have gone too far
-				if i.endKeyExclusive != nil && bytes.Compare(i.keysStack, i.endKeyExclusive) >= 0 {
-					return ErrIteratorDone
-				}
-			} else {
-				lastOffset = nextOffset
+		if curr.Final() && i.aut.IsMatch(autCurr) && allowCompare {
+			// check to see if new keystack might have gone too far
+			if i.endKeyExclusive != nil &&
+				bytes.Compare(i.keysStack, i.endKeyExclusive) >= 0 {
+				return ErrIteratorDone
 			}
 
-			continue
+			cmp := bytes.Compare(i.keysStack, i.nextStart)
+			if cmp > 0 {
+				// in final state greater than start key
+				return nil
+			}
 		}
 
-		if len(i.statesStack) > 1 {
-			// no transitions, and still room to pop
-			i.statesStack = i.statesStack[:len(i.statesStack)-1]
-			i.keysStack = i.keysStack[:len(i.keysStack)-1]
-			lastOffset = i.keysPosStack[len(i.keysPosStack)-1]
+		numTrans := curr.NumTransitions()
 
-			i.keysPosStack = i.keysPosStack[:len(i.keysPosStack)-1]
-			i.valsStack = i.valsStack[:len(i.valsStack)-1]
-			i.autStatesStack = i.autStatesStack[:len(i.autStatesStack)-1]
-			continue
-		} else {
+	INNER:
+		for nextOffset < numTrans {
+			t := curr.TransitionAt(nextOffset)
+
+			autNext := i.aut.Accept(autCurr, t)
+			if !i.aut.CanMatch(autNext) {
+				// TODO: potential optimization to skip nextOffset
+				// forwards more directly to something that the
+				// automaton likes rather than a linear scan?
+				nextOffset += 1
+				continue INNER
+			}
+
+			pos, nextAddr, v := curr.TransitionFor(t)
+
+			// the next slot in the statesStack might have an
+			// fstState instance that we can reuse
+			var nextPrealloc fstState
+			if len(i.statesStack) < cap(i.statesStack) {
+				nextPrealloc = i.statesStack[0:cap(i.statesStack)][len(i.statesStack)]
+			}
+
+			// push onto stack
+			next, err := i.f.decoder.stateAt(nextAddr, nextPrealloc)
+			if err != nil {
+				return err
+			}
+
+			i.statesStack = append(i.statesStack, next)
+			i.keysStack = append(i.keysStack, t)
+			i.keysPosStack = append(i.keysPosStack, pos)
+			i.valsStack = append(i.valsStack, v)
+			i.autStatesStack = append(i.autStatesStack, autNext)
+
+			nextOffset = 0
+			allowCompare = true
+
+			continue OUTER
+		}
+
+		// no more transitions, so need to backtrack and stack pop
+		if len(i.statesStack) <= 1 {
 			// stack len is 1 (root), can't go back further, we're done
 			break
 		}
 
+		// if the top of the stack represents a linear chain of states
+		// (i.e., a suffix of nodes linked by single transitions),
+		// then optimize by popping the suffix in one shot without
+		// going back all the way to the OUTER loop
+		var popNum int
+		for j := len(i.statesStack) - 1; j > 0; j-- {
+			if i.statesStack[j].NumTransitions() != 1 {
+				popNum = len(i.statesStack) - 1 - j
+				break
+			}
+		}
+		if popNum < 1 { // always pop at least 1 entry from the stacks
+			popNum = 1
+		}
+
+		nextOffset = i.keysPosStack[len(i.keysPosStack)-popNum] + 1
+		allowCompare = false
+
+		i.statesStack = i.statesStack[:len(i.statesStack)-popNum]
+		i.keysStack = i.keysStack[:len(i.keysStack)-popNum]
+		i.keysPosStack = i.keysPosStack[:len(i.keysPosStack)-popNum]
+		i.valsStack = i.valsStack[:len(i.valsStack)-popNum]
+		i.autStatesStack = i.autStatesStack[:len(i.autStatesStack)-popNum]
 	}
 
 	return ErrIteratorDone
@@ -262,15 +292,12 @@ func (i *FSTIterator) next(lastOffset int) error {
 // seek operation would go past the last key, or outside the configured
 // startKeyInclusive/endKeyExclusive then ErrIteratorDone is returned.
 func (i *FSTIterator) Seek(key []byte) error {
-	err := i.pointTo(key)
-	if err != nil {
-		return err
-	}
-	return nil
+	return i.pointTo(key)
 }
 
 // Close will free any resources held by this iterator.
 func (i *FSTIterator) Close() error {
-	// at the moment we don't do anything, but wanted this for API completeness
+	// at the moment we don't do anything,
+	// but wanted this for API completeness
 	return nil
 }

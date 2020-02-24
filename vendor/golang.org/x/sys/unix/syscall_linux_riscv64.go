@@ -41,8 +41,8 @@ func Select(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (n int, err
 }
 
 //sys	sendfile(outfd int, infd int, offset *int64, count int) (written int, err error)
-//sys	Setfsgid(gid int) (err error)
-//sys	Setfsuid(uid int) (err error)
+//sys	setfsgid(gid int) (prev int, err error)
+//sys	setfsuid(uid int) (prev int, err error)
 //sysnb	Setregid(rgid int, egid int) (err error)
 //sysnb	Setresgid(rgid int, egid int, sgid int) (err error)
 //sysnb	Setresuid(ruid int, euid int, suid int) (err error)
@@ -179,6 +179,10 @@ func (msghdr *Msghdr) SetControllen(length int) {
 	msghdr.Controllen = uint64(length)
 }
 
+func (msghdr *Msghdr) SetIovlen(length int) {
+	msghdr.Iovlen = uint64(length)
+}
+
 func (cmsg *Cmsghdr) SetLen(length int) {
 	cmsg.Len = uint64(length)
 }
@@ -206,4 +210,21 @@ func Poll(fds []PollFd, timeout int) (n int, err error) {
 		return ppoll(nil, 0, ts, nil)
 	}
 	return ppoll(&fds[0], len(fds), ts, nil)
+}
+
+func Renameat(olddirfd int, oldpath string, newdirfd int, newpath string) (err error) {
+	return Renameat2(olddirfd, oldpath, newdirfd, newpath, 0)
+}
+
+//sys	kexecFileLoad(kernelFd int, initrdFd int, cmdlineLen int, cmdline string, flags int) (err error)
+
+func KexecFileLoad(kernelFd int, initrdFd int, cmdline string, flags int) error {
+	cmdlineLen := len(cmdline)
+	if cmdlineLen > 0 {
+		// Account for the additional NULL byte added by
+		// BytePtrFromString in kexecFileLoad. The kexec_file_load
+		// syscall expects a NULL-terminated string.
+		cmdlineLen++
+	}
+	return kexecFileLoad(kernelFd, initrdFd, cmdlineLen, cmdline, flags)
 }

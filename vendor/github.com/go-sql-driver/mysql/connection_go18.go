@@ -149,22 +149,21 @@ func (mc *mysqlConn) watchCancel(ctx context.Context) error {
 		mc.cleanup()
 		return nil
 	}
+	// When ctx is already cancelled, don't watch it.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	// When ctx is not cancellable, don't watch it.
 	if ctx.Done() == nil {
 		return nil
 	}
-
-	mc.watching = true
-	select {
-	default:
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	// When watcher is not alive, can't watch it.
 	if mc.watcher == nil {
 		return nil
 	}
 
+	mc.watching = true
 	mc.watcher <- ctx
-
 	return nil
 }
 

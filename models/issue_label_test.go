@@ -8,7 +8,7 @@ import (
 	"html/template"
 	"testing"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -45,8 +45,11 @@ func TestNewLabels(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	labels := []*Label{
 		{RepoID: 2, Name: "labelName2", Color: "#123456"},
-		{RepoID: 3, Name: "labelName3", Color: "#234567"},
+		{RepoID: 3, Name: "labelName3", Color: "#23456F"},
 	}
+	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: ""}))
+	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "123456"}))
+	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "#12345G"}))
 	for _, label := range labels {
 		AssertNotExistsBean(t, label)
 	}
@@ -81,6 +84,30 @@ func TestGetLabelInRepoByName(t *testing.T) {
 	assert.True(t, IsErrLabelNotExist(err))
 }
 
+func TestGetLabelInRepoByNames(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	labelIDs, err := GetLabelIDsInRepoByNames(1, []string{"label1", "label2"})
+	assert.NoError(t, err)
+
+	assert.Len(t, labelIDs, 2)
+
+	assert.Equal(t, int64(1), labelIDs[0])
+	assert.Equal(t, int64(2), labelIDs[1])
+}
+
+func TestGetLabelInRepoByNamesDiscardsNonExistentLabels(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	// label3 doesn't exists.. See labels.yml
+	labelIDs, err := GetLabelIDsInRepoByNames(1, []string{"label1", "label2", "label3"})
+	assert.NoError(t, err)
+
+	assert.Len(t, labelIDs, 2)
+
+	assert.Equal(t, int64(1), labelIDs[0])
+	assert.Equal(t, int64(2), labelIDs[1])
+	assert.NoError(t, err)
+}
+
 func TestGetLabelInRepoByID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	label, err := GetLabelInRepoByID(1, 1)
@@ -107,7 +134,7 @@ func TestGetLabelsInRepoByIDs(t *testing.T) {
 func TestGetLabelsByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	testSuccess := func(repoID int64, sortType string, expectedIssueIDs []int64) {
-		labels, err := GetLabelsByRepoID(repoID, sortType)
+		labels, err := GetLabelsByRepoID(repoID, sortType, ListOptions{})
 		assert.NoError(t, err)
 		assert.Len(t, labels, len(expectedIssueIDs))
 		for i, label := range labels {
@@ -181,6 +208,7 @@ func TestNewIssueLabel(t *testing.T) {
 		LabelID:  label.ID,
 		Content:  "1",
 	})
+	label = AssertExistsAndLoadBean(t, &Label{ID: 2}).(*Label)
 	assert.EqualValues(t, prevNumIssues+1, label.NumIssues)
 
 	// re-add existing IssueLabel

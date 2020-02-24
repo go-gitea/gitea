@@ -4,7 +4,11 @@
 
 package models
 
-import "fmt"
+import (
+	"fmt"
+
+	"xorm.io/builder"
+)
 
 // IssueList defines a list of issues
 type IssueList []*Issue
@@ -43,7 +47,7 @@ func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
 		if err != nil {
 			return nil, fmt.Errorf("find repository: %v", err)
 		}
-		left = left - limit
+		left -= limit
 		repoIDs = repoIDs[limit:]
 	}
 
@@ -87,7 +91,7 @@ func (issues IssueList) loadPosters(e Engine) error {
 		if err != nil {
 			return err
 		}
-		left = left - limit
+		left -= limit
 		posterIDs = posterIDs[limit:]
 	}
 
@@ -142,13 +146,19 @@ func (issues IssueList) loadLabels(e Engine) error {
 			var labelIssue LabelIssue
 			err = rows.Scan(&labelIssue)
 			if err != nil {
-				rows.Close()
+				if err1 := rows.Close(); err1 != nil {
+					return fmt.Errorf("IssueList.loadLabels: Close: %v", err1)
+				}
 				return err
 			}
 			issueLabels[labelIssue.IssueLabel.IssueID] = append(issueLabels[labelIssue.IssueLabel.IssueID], labelIssue.Label)
 		}
-		rows.Close()
-		left = left - limit
+		// When there are no rows left and we try to close it.
+		// Since that is not relevant for us, we can safely ignore it.
+		if err1 := rows.Close(); err1 != nil {
+			return fmt.Errorf("IssueList.loadLabels: Close: %v", err1)
+		}
+		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 
@@ -187,7 +197,7 @@ func (issues IssueList) loadMilestones(e Engine) error {
 		if err != nil {
 			return err
 		}
-		left = left - limit
+		left -= limit
 		milestoneIDs = milestoneIDs[limit:]
 	}
 
@@ -227,15 +237,18 @@ func (issues IssueList) loadAssignees(e Engine) error {
 			var assigneeIssue AssigneeIssue
 			err = rows.Scan(&assigneeIssue)
 			if err != nil {
-				rows.Close()
+				if err1 := rows.Close(); err1 != nil {
+					return fmt.Errorf("IssueList.loadAssignees: Close: %v", err1)
+				}
 				return err
 			}
 
 			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
 		}
-		rows.Close()
-
-		left = left - limit
+		if err1 := rows.Close(); err1 != nil {
+			return fmt.Errorf("IssueList.loadAssignees: Close: %v", err1)
+		}
+		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
 
@@ -279,14 +292,17 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 			var pr PullRequest
 			err = rows.Scan(&pr)
 			if err != nil {
-				rows.Close()
+				if err1 := rows.Close(); err1 != nil {
+					return fmt.Errorf("IssueList.loadPullRequests: Close: %v", err1)
+				}
 				return err
 			}
 			pullRequestMaps[pr.IssueID] = &pr
 		}
-
-		rows.Close()
-		left = left - limit
+		if err1 := rows.Close(); err1 != nil {
+			return fmt.Errorf("IssueList.loadPullRequests: Close: %v", err1)
+		}
+		left -= limit
 		issuesIDs = issuesIDs[limit:]
 	}
 
@@ -321,14 +337,17 @@ func (issues IssueList) loadAttachments(e Engine) (err error) {
 			var attachment Attachment
 			err = rows.Scan(&attachment)
 			if err != nil {
-				rows.Close()
+				if err1 := rows.Close(); err1 != nil {
+					return fmt.Errorf("IssueList.loadAttachments: Close: %v", err1)
+				}
 				return err
 			}
 			attachments[attachment.IssueID] = append(attachments[attachment.IssueID], &attachment)
 		}
-
-		rows.Close()
-		left = left - limit
+		if err1 := rows.Close(); err1 != nil {
+			return fmt.Errorf("IssueList.loadAttachments: Close: %v", err1)
+		}
+		left -= limit
 		issuesIDs = issuesIDs[limit:]
 	}
 
@@ -338,7 +357,7 @@ func (issues IssueList) loadAttachments(e Engine) (err error) {
 	return nil
 }
 
-func (issues IssueList) loadComments(e Engine) (err error) {
+func (issues IssueList) loadComments(e Engine, cond builder.Cond) (err error) {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -354,6 +373,7 @@ func (issues IssueList) loadComments(e Engine) (err error) {
 		rows, err := e.Table("comment").
 			Join("INNER", "issue", "issue.id = comment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
+			Where(cond).
 			Rows(new(Comment))
 		if err != nil {
 			return err
@@ -363,13 +383,17 @@ func (issues IssueList) loadComments(e Engine) (err error) {
 			var comment Comment
 			err = rows.Scan(&comment)
 			if err != nil {
-				rows.Close()
+				if err1 := rows.Close(); err1 != nil {
+					return fmt.Errorf("IssueList.loadComments: Close: %v", err1)
+				}
 				return err
 			}
 			comments[comment.IssueID] = append(comments[comment.IssueID], &comment)
 		}
-		rows.Close()
-		left = left - limit
+		if err1 := rows.Close(); err1 != nil {
+			return fmt.Errorf("IssueList.loadComments: Close: %v", err1)
+		}
+		left -= limit
 		issuesIDs = issuesIDs[limit:]
 	}
 
@@ -405,6 +429,7 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 
 		// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
 		rows, err := e.Table("tracked_time").
+			Where("deleted = ?", false).
 			Select("issue_id, sum(time) as time").
 			In("issue_id", ids[:limit]).
 			GroupBy("issue_id").
@@ -417,13 +442,17 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 			var totalTime totalTimesByIssue
 			err = rows.Scan(&totalTime)
 			if err != nil {
-				rows.Close()
+				if err1 := rows.Close(); err1 != nil {
+					return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %v", err1)
+				}
 				return err
 			}
 			trackedTimes[totalTime.IssueID] = totalTime.Time
 		}
-		rows.Close()
-		left = left - limit
+		if err1 := rows.Close(); err1 != nil {
+			return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %v", err1)
+		}
+		left -= limit
 		ids = ids[limit:]
 	}
 
@@ -434,33 +463,33 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 }
 
 // loadAttributes loads all attributes, expect for attachments and comments
-func (issues IssueList) loadAttributes(e Engine) (err error) {
-	if _, err = issues.loadRepositories(e); err != nil {
-		return
+func (issues IssueList) loadAttributes(e Engine) error {
+	if _, err := issues.loadRepositories(e); err != nil {
+		return fmt.Errorf("issue.loadAttributes: loadRepositories: %v", err)
 	}
 
-	if err = issues.loadPosters(e); err != nil {
-		return
+	if err := issues.loadPosters(e); err != nil {
+		return fmt.Errorf("issue.loadAttributes: loadPosters: %v", err)
 	}
 
-	if err = issues.loadLabels(e); err != nil {
-		return
+	if err := issues.loadLabels(e); err != nil {
+		return fmt.Errorf("issue.loadAttributes: loadLabels: %v", err)
 	}
 
-	if err = issues.loadMilestones(e); err != nil {
-		return
+	if err := issues.loadMilestones(e); err != nil {
+		return fmt.Errorf("issue.loadAttributes: loadMilestones: %v", err)
 	}
 
-	if err = issues.loadAssignees(e); err != nil {
-		return
+	if err := issues.loadAssignees(e); err != nil {
+		return fmt.Errorf("issue.loadAttributes: loadAssignees: %v", err)
 	}
 
-	if err = issues.loadPullRequests(e); err != nil {
-		return
+	if err := issues.loadPullRequests(e); err != nil {
+		return fmt.Errorf("issue.loadAttributes: loadPullRequests: %v", err)
 	}
 
-	if err = issues.loadTotalTrackedTimes(e); err != nil {
-		return
+	if err := issues.loadTotalTrackedTimes(e); err != nil {
+		return fmt.Errorf("issue.loadAttributes: loadTotalTrackedTimes: %v", err)
 	}
 
 	return nil
@@ -479,5 +508,10 @@ func (issues IssueList) LoadAttachments() error {
 
 // LoadComments loads comments
 func (issues IssueList) LoadComments() error {
-	return issues.loadComments(x)
+	return issues.loadComments(x, builder.NewCond())
+}
+
+// LoadDiscussComments loads discuss comments
+func (issues IssueList) LoadDiscussComments() error {
+	return issues.loadComments(x, builder.Eq{"comment.type": CommentTypeComment})
 }

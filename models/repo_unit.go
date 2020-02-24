@@ -7,20 +7,20 @@ package models
 import (
 	"encoding/json"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
+	"xorm.io/core"
+	"xorm.io/xorm"
 )
 
 // RepoUnit describes all units of a repository
 type RepoUnit struct {
 	ID          int64
-	RepoID      int64           `xorm:"INDEX(s)"`
-	Type        UnitType        `xorm:"INDEX(s)"`
-	Config      core.Conversion `xorm:"TEXT"`
-	CreatedUnix util.TimeStamp  `xorm:"INDEX CREATED"`
+	RepoID      int64              `xorm:"INDEX(s)"`
+	Type        UnitType           `xorm:"INDEX(s)"`
+	Config      core.Conversion    `xorm:"TEXT"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 
 // UnitConfig describes common unit config
@@ -91,6 +91,7 @@ type PullRequestsConfig struct {
 	IgnoreWhitespaceConflicts bool
 	AllowMerge                bool
 	AllowRebase               bool
+	AllowRebaseMerge          bool
 	AllowSquash               bool
 }
 
@@ -108,6 +109,7 @@ func (cfg *PullRequestsConfig) ToDB() ([]byte, error) {
 func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 	return mergeStyle == MergeStyleMerge && cfg.AllowMerge ||
 		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
+		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
 		mergeStyle == MergeStyleSquash && cfg.AllowSquash
 }
 
@@ -166,10 +168,18 @@ func (r *RepoUnit) IssuesConfig() *IssuesConfig {
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
-func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
-	return units, e.Where("repo_id = ?", repoID).Find(&units)
-}
 
-func getUnitsByRepoIDAndIDs(e Engine, repoID int64, types []UnitType) (units []*RepoUnit, err error) {
-	return units, e.Where("repo_id = ?", repoID).In("`type`", types).Find(&units)
+func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
+	var tmpUnits []*RepoUnit
+	if err := e.Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
+		return nil, err
+	}
+
+	for _, u := range tmpUnits {
+		if !u.Type.UnitGlobalDisabled() {
+			units = append(units, u)
+		}
+	}
+
+	return units, nil
 }

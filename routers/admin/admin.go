@@ -1,30 +1,44 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package admin
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/url"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
-
-	"github.com/Unknwon/com"
-	"gopkg.in/macaron.v1"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/queue"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/mailer"
+
+	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
+	"github.com/unknwon/com"
 )
 
 const (
 	tplDashboard base.TplName = "admin/dashboard"
 	tplConfig    base.TplName = "admin/config"
 	tplMonitor   base.TplName = "admin/monitor"
+	tplQueue     base.TplName = "admin/queue"
 )
 
 var (
@@ -73,7 +87,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = base.TimeSincePro(startTime, "en")
+	sysStatus.Uptime = timeutil.TimeSincePro(startTime, "en")
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
@@ -123,6 +137,7 @@ const (
 	reinitMissingRepository
 	syncExternalUsers
 	gitFsck
+	deleteGeneratedRepositoryAvatars
 )
 
 // Dashboard show admin panel dashboard
@@ -136,6 +151,7 @@ func Dashboard(ctx *context.Context) {
 	if op > 0 {
 		var err error
 		var success string
+		shutdownCtx := graceful.GetManager().ShutdownContext()
 
 		switch Operation(op) {
 		case cleanInactivateUser:
@@ -146,25 +162,28 @@ func Dashboard(ctx *context.Context) {
 			err = models.DeleteRepositoryArchives()
 		case cleanMissingRepos:
 			success = ctx.Tr("admin.dashboard.delete_missing_repos_success")
-			err = models.DeleteMissingRepositories(ctx.User)
+			err = repo_module.DeleteMissingRepositories(ctx.User)
 		case gitGCRepos:
 			success = ctx.Tr("admin.dashboard.git_gc_repos_success")
-			err = models.GitGcRepos()
+			err = repo_module.GitGcRepos(shutdownCtx)
 		case syncSSHAuthorizedKey:
 			success = ctx.Tr("admin.dashboard.resync_all_sshkeys_success")
 			err = models.RewriteAllPublicKeys()
 		case syncRepositoryUpdateHook:
 			success = ctx.Tr("admin.dashboard.resync_all_hooks_success")
-			err = models.SyncRepositoryHooks()
+			err = repo_module.SyncRepositoryHooks(shutdownCtx)
 		case reinitMissingRepository:
 			success = ctx.Tr("admin.dashboard.reinit_missing_repos_success")
-			err = models.ReinitMissingRepositories()
+			err = repo_module.ReinitMissingRepositories()
 		case syncExternalUsers:
 			success = ctx.Tr("admin.dashboard.sync_external_users_started")
-			go models.SyncExternalUsers()
+			go graceful.GetManager().RunWithShutdownContext(models.SyncExternalUsers)
 		case gitFsck:
 			success = ctx.Tr("admin.dashboard.git_fsck_started")
-			go models.GitFsck()
+			err = repo_module.GitFsck(shutdownCtx)
+		case deleteGeneratedRepositoryAvatars:
+			success = ctx.Tr("admin.dashboard.delete_generated_repository_avatars_success")
+			err = models.RemoveRandomAvatars()
 		}
 
 		if err != nil {
@@ -187,13 +206,70 @@ func Dashboard(ctx *context.Context) {
 func SendTestMail(ctx *context.Context) {
 	email := ctx.Query("email")
 	// Send a test email to the user's email address and redirect back to Config
-	if err := models.SendTestMail(email); err != nil {
+	if err := mailer.SendTestMail(email); err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.config.test_mail_failed", email, err))
 	} else {
 		ctx.Flash.Info(ctx.Tr("admin.config.test_mail_sent", email))
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/admin/config")
+}
+
+func shadowPasswordKV(cfgItem, splitter string) string {
+	fields := strings.Split(cfgItem, splitter)
+	for i := 0; i < len(fields); i++ {
+		if strings.HasPrefix(fields[i], "password=") {
+			fields[i] = "password=******"
+			break
+		}
+	}
+	return strings.Join(fields, splitter)
+}
+
+func shadowURL(provider, cfgItem string) string {
+	u, err := url.Parse(cfgItem)
+	if err != nil {
+		log.Error("Shadowing Password for %v failed: %v", provider, err)
+		return cfgItem
+	}
+	if u.User != nil {
+		atIdx := strings.Index(cfgItem, "@")
+		if atIdx > 0 {
+			colonIdx := strings.LastIndex(cfgItem[:atIdx], ":")
+			if colonIdx > 0 {
+				return cfgItem[:colonIdx+1] + "******" + cfgItem[atIdx:]
+			}
+		}
+	}
+	return cfgItem
+}
+
+func shadowPassword(provider, cfgItem string) string {
+	switch provider {
+	case "redis":
+		return shadowPasswordKV(cfgItem, ",")
+	case "mysql":
+		//root:@tcp(localhost:3306)/macaron?charset=utf8
+		atIdx := strings.Index(cfgItem, "@")
+		if atIdx > 0 {
+			colonIdx := strings.Index(cfgItem[:atIdx], ":")
+			if colonIdx > 0 {
+				return cfgItem[:colonIdx+1] + "******" + cfgItem[atIdx:]
+			}
+		}
+		return cfgItem
+	case "postgres":
+		// user=jiahuachen dbname=macaron port=5432 sslmode=disable
+		if !strings.HasPrefix(cfgItem, "postgres://") {
+			return shadowPasswordKV(cfgItem, " ")
+		}
+		fallthrough
+	case "couchbase":
+		return shadowURL(provider, cfgItem)
+		// postgres://pqgotest:password@localhost/pqgotest?sslmode=verify-full
+		// Notice: use shadowURL
+	}
+	return cfgItem
 }
 
 // Config show admin config page
@@ -209,17 +285,20 @@ func Config(ctx *context.Context) {
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = strings.Title(macaron.Env)
-	ctx.Data["GitVersion"] = setting.Git.Version
+	ctx.Data["GitVersion"], _ = git.BinVersion()
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
+	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath
 	ctx.Data["LogRootPath"] = setting.LogRootPath
 	ctx.Data["ScriptType"] = setting.ScriptType
 	ctx.Data["ReverseProxyAuthUser"] = setting.ReverseProxyAuthUser
+	ctx.Data["ReverseProxyAuthEmail"] = setting.ReverseProxyAuthEmail
 
 	ctx.Data["SSH"] = setting.SSH
+	ctx.Data["LFS"] = setting.LFS
 
 	ctx.Data["Service"] = setting.Service
-	ctx.Data["DbCfg"] = models.DbCfg
+	ctx.Data["DbCfg"] = setting.Database
 	ctx.Data["Webhook"] = setting.Webhook
 
 	ctx.Data["MailerEnabled"] = false
@@ -230,23 +309,53 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["CacheAdapter"] = setting.CacheService.Adapter
 	ctx.Data["CacheInterval"] = setting.CacheService.Interval
-	ctx.Data["CacheConn"] = setting.CacheService.Conn
 
-	ctx.Data["SessionConfig"] = setting.SessionConfig
+	ctx.Data["CacheConn"] = shadowPassword(setting.CacheService.Adapter, setting.CacheService.Conn)
+	ctx.Data["CacheItemTTL"] = setting.CacheService.TTL
+
+	sessionCfg := setting.SessionConfig
+	if sessionCfg.Provider == "VirtualSession" {
+		var realSession session.Options
+		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
+			log.Error("Unable to unmarshall session config for virtualed provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
+		}
+		sessionCfg.Provider = realSession.Provider
+		sessionCfg.ProviderConfig = realSession.ProviderConfig
+		sessionCfg.CookieName = realSession.CookieName
+		sessionCfg.CookiePath = realSession.CookiePath
+		sessionCfg.Gclifetime = realSession.Gclifetime
+		sessionCfg.Maxlifetime = realSession.Maxlifetime
+		sessionCfg.Secure = realSession.Secure
+		sessionCfg.Domain = realSession.Domain
+	}
+	sessionCfg.ProviderConfig = shadowPassword(sessionCfg.Provider, sessionCfg.ProviderConfig)
+	ctx.Data["SessionConfig"] = sessionCfg
 
 	ctx.Data["DisableGravatar"] = setting.DisableGravatar
 	ctx.Data["EnableFederatedAvatar"] = setting.EnableFederatedAvatar
 
 	ctx.Data["Git"] = setting.Git
 
-	type logger struct {
-		Mode, Config string
+	type envVar struct {
+		Name, Value string
 	}
-	loggers := make([]*logger, len(setting.LogModes))
-	for i := range setting.LogModes {
-		loggers[i] = &logger{setting.LogModes[i], setting.LogConfigs[i]}
+
+	envVars := map[string]*envVar{}
+	if len(os.Getenv("GITEA_WORK_DIR")) > 0 {
+		envVars["GITEA_WORK_DIR"] = &envVar{"GITEA_WORK_DIR", os.Getenv("GITEA_WORK_DIR")}
 	}
-	ctx.Data["Loggers"] = loggers
+	if len(os.Getenv("GITEA_CUSTOM")) > 0 {
+		envVars["GITEA_CUSTOM"] = &envVar{"GITEA_CUSTOM", os.Getenv("GITEA_CUSTOM")}
+	}
+
+	ctx.Data["EnvVars"] = envVars
+	ctx.Data["Loggers"] = setting.LogDescriptions
+	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
+	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
+	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
+	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
+	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
+	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
 	ctx.HTML(200, tplConfig)
 }
@@ -256,7 +365,162 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"] = process.GetManager().Processes
+	ctx.Data["Processes"] = process.GetManager().Processes()
 	ctx.Data["Entries"] = cron.ListTasks()
+	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
 	ctx.HTML(200, tplMonitor)
+}
+
+// MonitorCancel cancels a process
+func MonitorCancel(ctx *context.Context) {
+	pid := ctx.ParamsInt64("pid")
+	process.GetManager().Cancel(pid)
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": ctx.Repo.RepoLink + "/admin/monitor",
+	})
+}
+
+// Queue shows details for a specific queue
+func Queue(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", mq.Name)
+	ctx.Data["PageIsAdmin"] = true
+	ctx.Data["PageIsAdminMonitor"] = true
+	ctx.Data["Queue"] = mq
+	ctx.HTML(200, tplQueue)
+}
+
+// WorkerCancel cancels a worker group
+func WorkerCancel(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	pid := ctx.ParamsInt64("pid")
+	mq.CancelWorkers(pid)
+	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.cancelling"))
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid),
+	})
+}
+
+// Flush flushes a queue
+func Flush(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	timeout, err := time.ParseDuration(ctx.Query("timeout"))
+	if err != nil {
+		timeout = -1
+	}
+	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.flush.added", mq.Name))
+	go func() {
+		err := mq.Flush(timeout)
+		if err != nil {
+			log.Error("Flushing failure for %s: Error %v", mq.Name, err)
+		}
+	}()
+	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+}
+
+// AddWorkers adds workers to a worker group
+func AddWorkers(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	number := ctx.QueryInt("number")
+	if number < 1 {
+		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.mustnumbergreaterzero"))
+		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		return
+	}
+	timeout, err := time.ParseDuration(ctx.Query("timeout"))
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.musttimeoutduration"))
+		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		return
+	}
+	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
+		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
+		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		return
+	}
+	mq.AddWorkers(number, timeout)
+	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.pool.added"))
+	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+}
+
+// SetQueueSettings sets the maximum number of workers and other settings for this queue
+func SetQueueSettings(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
+		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
+		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		return
+	}
+
+	maxNumberStr := ctx.Query("max-number")
+	numberStr := ctx.Query("number")
+	timeoutStr := ctx.Query("timeout")
+
+	var err error
+	var maxNumber, number int
+	var timeout time.Duration
+	if len(maxNumberStr) > 0 {
+		maxNumber, err = strconv.Atoi(maxNumberStr)
+		if err != nil {
+			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.maxnumberworkers.error"))
+			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			return
+		}
+		if maxNumber < -1 {
+			maxNumber = -1
+		}
+	} else {
+		maxNumber = mq.MaxNumberOfWorkers()
+	}
+
+	if len(numberStr) > 0 {
+		number, err = strconv.Atoi(numberStr)
+		if err != nil || number < 0 {
+			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.numberworkers.error"))
+			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			return
+		}
+	} else {
+		number = mq.BoostWorkers()
+	}
+
+	if len(timeoutStr) > 0 {
+		timeout, err = time.ParseDuration(timeoutStr)
+		if err != nil {
+			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.timeout.error"))
+			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			return
+		}
+	} else {
+		timeout = mq.BoostTimeout()
+	}
+
+	mq.SetPoolSettings(maxNumber, number, timeout)
+	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
+	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 }

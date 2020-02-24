@@ -18,7 +18,7 @@
 				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
 					{{$.CsrfTokenHtml}}
 					<button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
-						<i class="octicon octicon-checklist"></i>
+						{{svg "octicon-checklist" 16}}
 					</button>
 				</form>
 			{{end}}
@@ -34,34 +34,34 @@
 				<table class="ui unstackable striped very compact small selectable table">
 					<tbody>
 						{{range $notification := .Notifications}}
-							{{$issue := $notification.GetIssue}}
-							{{$repo := $notification.GetRepo}}
+							{{$issue := $notification.Issue}}
+							{{$repo := $notification.Repository}}
 							{{$repoOwner := $repo.MustOwner}}
 
-							<tr data-href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
+							<tr data-href="{{$notification.HTMLURL}}">
 								<td class="collapsing">
 									{{if eq $notification.Status 3}}
-										<i class="blue octicon octicon-pin"></i>
+										<span class="blue">{{svg "octicon-pin" 16}}</span>
 									{{else if $issue.IsPull}}
 										{{if $issue.IsClosed}}
 											{{if $issue.GetPullRequest.HasMerged}}
-												<i class="purple octicon octicon-git-merge"></i>
+												<span class="purple">{{svg "octicon-git-merge" 16}}</span>
 											{{else}}
-												<i class="red octicon octicon-git-pull-request"></i>
+												<span class="red">{{svg "octicon-git-pull-request" 16}}</span>
 											{{end}}
 										{{else}}
-											<i class="green octicon octicon-git-pull-request"></i>
+											<span class="green">{{svg "octicon-git-pull-request" 16}}</span>
 										{{end}}
 									{{else}}
 										{{if $issue.IsClosed}}
-											<i class="red octicon octicon-issue-closed"></i>
+											<span class="red">{{svg "octicon-issue-closed" 16}}</span>
 										{{else}}
-											<i class="green octicon octicon-issue-opened"></i>
+											<span class="green">{{svg "octicon-issue-opened" 16}}</span>
 										{{end}}
 									{{end}}
 								</td>
 								<td class="eleven wide">
-									<a class="item" href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
+									<a class="item" href="{{$notification.HTMLURL}}">
 										#{{$issue.Index}} - {{$issue.Title}}
 									</a>
 								</td>
@@ -77,7 +77,7 @@
 											<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 											<input type="hidden" name="status" value="pinned" />
 											<button class="ui mini button" title='{{$.i18n.Tr "notification.pin"}}'>
-												<i class="octicon octicon-pin"></i>
+												{{svg "octicon-pin" 16}}
 											</button>
 										</form>
 									{{end}}
@@ -88,8 +88,9 @@
 											{{$.CsrfTokenHtml}}
 											<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 											<input type="hidden" name="status" value="read" />
+											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
 											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_read"}}'>
-												<i class="octicon octicon-check"></i>
+												{{svg "octicon-check" 16}}
 											</button>
 										</form>
 									{{else if eq $notification.Status 2}}
@@ -97,8 +98,9 @@
 											{{$.CsrfTokenHtml}}
 											<input type="hidden" name="notification_id" value="{{$notification.ID}}" />
 											<input type="hidden" name="status" value="unread" />
+											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
 											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_unread"}}'>
-												<i class="octicon octicon-bell"></i>
+												{{svg "octicon-bell" 16}}
 											</button>
 										</form>
 									{{end}}

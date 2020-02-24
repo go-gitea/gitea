@@ -3,7 +3,7 @@ Package gothic wraps common behaviour when using Goth. This makes it quick, and 
 and running with Goth. Of course, if you want complete control over how things flow, in regards
 to the authentication process, feel free and use Goth directly.
 
-See https://github.com/markbates/goth/examples/main.go to see this in action.
+See https://github.com/markbates/goth/blob/master/examples/main.go to see this in action.
 */
 package gothic
 
@@ -245,19 +245,6 @@ var GetProviderName = getProviderName
 
 func getProviderName(req *http.Request) (string, error) {
 
-	// get all the used providers
-	providers := goth.GetProviders()
-
-	// loop over the used providers, if we already have a valid session for any provider (ie. user is already logged-in with a provider), then return that provider name
-	for _, provider := range providers {
-		p := provider.Name()
-		session, _ := Store.Get(req, p+SessionName)
-		value := session.Values[p]
-		if _, ok := value.(string); ok {
-			return p, nil
-		}
-	}
-
 	// try to get it from the url param "provider"
 	if p := req.URL.Query().Get("provider"); p != "" {
 		return p, nil
@@ -276,6 +263,17 @@ func getProviderName(req *http.Request) (string, error) {
 	//  try to get it from the go-context's value of "provider" key
 	if p, ok := req.Context().Value("provider").(string); ok {
 		return p, nil
+	}
+
+	// As a fallback, loop over the used providers, if we already have a valid session for any provider (ie. user has already begun authentication with a provider), then return that provider name
+	providers := goth.GetProviders()
+	session, _ := Store.Get(req, SessionName)
+	for _, provider := range providers {
+		p := provider.Name()
+		value := session.Values[p]
+		if _, ok := value.(string); ok {
+			return p, nil
+		}
 	}
 
 	// if not found then return an empty string with the corresponding error

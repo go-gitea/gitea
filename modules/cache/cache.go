@@ -10,23 +10,34 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	mc "github.com/go-macaron/cache"
+	mc "gitea.com/macaron/cache"
+
+	_ "gitea.com/macaron/cache/memcache" // memcache plugin for cache
+	_ "gitea.com/macaron/cache/redis"
 )
 
-var conn mc.Cache
+var (
+	conn mc.Cache
+)
+
+func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
+	return mc.NewCacher(cacheConfig.Adapter, mc.Options{
+		Adapter:       cacheConfig.Adapter,
+		AdapterConfig: cacheConfig.Conn,
+		Interval:      cacheConfig.Interval,
+	})
+}
 
 // NewContext start cache service
 func NewContext() error {
-	if setting.CacheService == nil || conn != nil {
-		return nil
+	var err error
+
+	if conn == nil && setting.CacheService.Enabled {
+		if conn, err = newCache(setting.CacheService.Cache); err != nil {
+			return err
+		}
 	}
 
-	var err error
-	conn, err = mc.NewCacher(setting.CacheService.Adapter, mc.Options{
-		Adapter:       setting.CacheService.Adapter,
-		AdapterConfig: setting.CacheService.Conn,
-		Interval:      setting.CacheService.Interval,
-	})
 	return err
 }
 
@@ -43,7 +54,10 @@ func GetInt(key string, getFunc func() (int, error)) (int, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		if err != nil {
+			return 0, err
+		}
 	}
 	switch value := conn.Get(key).(type) {
 	case int:
@@ -72,7 +86,10 @@ func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		if err != nil {
+			return 0, err
+		}
 	}
 	switch value := conn.Get(key).(type) {
 	case int64:
@@ -93,5 +110,5 @@ func Remove(key string) {
 	if conn == nil {
 		return
 	}
-	conn.Delete(key)
+	_ = conn.Delete(key)
 }

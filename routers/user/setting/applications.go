@@ -49,7 +49,7 @@ func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-	ctx.Flash.Info(t.Sha1)
+	ctx.Flash.Info(t.Token)
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 }
@@ -68,10 +68,23 @@ func DeleteApplication(ctx *context.Context) {
 }
 
 func loadApplicationsData(ctx *context.Context) {
-	tokens, err := models.ListAccessTokens(ctx.User.ID)
+	tokens, err := models.ListAccessTokens(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
 	}
 	ctx.Data["Tokens"] = tokens
+	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
+	if setting.OAuth2.Enable {
+		ctx.Data["Applications"], err = models.GetOAuth2ApplicationsByUserID(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
+			return
+		}
+		ctx.Data["Grants"], err = models.GetOAuth2GrantsByUserID(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetOAuth2GrantsByUserID", err)
+			return
+		}
+	}
 }

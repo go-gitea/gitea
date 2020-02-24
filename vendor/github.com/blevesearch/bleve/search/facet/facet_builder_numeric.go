@@ -15,11 +15,23 @@
 package facet
 
 import (
+	"reflect"
 	"sort"
 
 	"github.com/blevesearch/bleve/numeric"
 	"github.com/blevesearch/bleve/search"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeNumericFacetBuilder int
+var reflectStaticSizenumericRange int
+
+func init() {
+	var nfb NumericFacetBuilder
+	reflectStaticSizeNumericFacetBuilder = int(reflect.TypeOf(nfb).Size())
+	var nr numericRange
+	reflectStaticSizenumericRange = int(reflect.TypeOf(nr).Size())
+}
 
 type numericRange struct {
 	min *float64
@@ -43,6 +55,23 @@ func NewNumericFacetBuilder(field string, size int) *NumericFacetBuilder {
 		termsCount: make(map[string]int),
 		ranges:     make(map[string]*numericRange, 0),
 	}
+}
+
+func (fb *NumericFacetBuilder) Size() int {
+	sizeInBytes := reflectStaticSizeNumericFacetBuilder + size.SizeOfPtr +
+		len(fb.field)
+
+	for k, _ := range fb.termsCount {
+		sizeInBytes += size.SizeOfString + len(k) +
+			size.SizeOfInt
+	}
+
+	for k, _ := range fb.ranges {
+		sizeInBytes += size.SizeOfString + len(k) +
+			size.SizeOfPtr + reflectStaticSizenumericRange
+	}
+
+	return sizeInBytes
 }
 
 func (fb *NumericFacetBuilder) AddRange(name string, min, max *float64) {

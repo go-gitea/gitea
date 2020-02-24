@@ -1,7 +1,7 @@
 {{if .PageIsSettingsHooksEdit}}
 	<h4 class="ui top attached header">
 		{{.i18n.Tr "repo.settings.recent_deliveries"}}
-		{{if .IsRepositoryAdmin}}
+		{{if .Permission.IsAdmin}}
 			<div class="ui right">
 				<button class="ui teal tiny button poping up" id="test-delivery" data-content=
 				"{{.i18n.Tr "repo.settings.webhook.test_delivery_desc"}}" data-variation="inverted tiny" data-link="{{.Link}}/test" data-redirect="{{.Link}}">{{.i18n.Tr "repo.settings.webhook.test_delivery"}}</button>
@@ -14,9 +14,9 @@
 				<div class="item">
 					<div class="meta">
 						{{if .IsSucceed}}
-							<span class="text green"><i class="octicon octicon-check"></i></span>
+							<span class="text green">{{svg "octicon-check" 16}}</span>
 						{{else}}
-							<span class="text red"><i class="octicon octicon-alert"></i></span>
+							<span class="text red">{{svg "octicon-alert" 16}}</span>
 						{{end}}
 						<a class="ui blue sha label toggle button" data-target="#info-{{.ID}}">{{.UUID}}</a>
 						<div class="ui right">
@@ -45,7 +45,7 @@
 							{{if .RequestInfo}}
 								<h5>{{$.i18n.Tr "repo.settings.webhook.headers"}}</h5>
 								<pre class="raw"><strong>Request URL:</strong> {{.URL}}
-<strong>Request method:</strong> POST
+<strong>Request method:</strong> {{if .HTTPMethod}}{{.HTTPMethod}}{{else}}POST{{end}}
 {{ range $key, $val := .RequestInfo.Headers }}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 								<h5>{{$.i18n.Tr "repo.settings.webhook.payload"}}</h5>

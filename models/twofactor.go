@@ -16,12 +16,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pquerna/otp/totp"
-	"golang.org/x/crypto/pbkdf2"
-
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/pquerna/otp/totp"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 // TwoFactor represents a two-factor authentication token.
@@ -31,9 +31,9 @@ type TwoFactor struct {
 	Secret           string
 	ScratchSalt      string
 	ScratchHash      string
-	LastUsedPasscode string         `xorm:"VARCHAR(10)"`
-	CreatedUnix      util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix      util.TimeStamp `xorm:"INDEX updated"`
+	LastUsedPasscode string             `xorm:"VARCHAR(10)"`
+	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix      timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // GenerateScratchToken recreates the scratch token the user is using.
@@ -129,11 +129,7 @@ func aesDecrypt(key, text []byte) ([]byte, error) {
 
 // NewTwoFactor creates a new two-factor authentication token.
 func NewTwoFactor(t *TwoFactor) error {
-	_, err := t.GenerateScratchToken()
-	if err != nil {
-		return err
-	}
-	_, err = x.Insert(t)
+	_, err := x.Insert(t)
 	return err
 }
 

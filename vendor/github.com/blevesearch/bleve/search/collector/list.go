@@ -25,7 +25,7 @@ type collectStoreList struct {
 	compare collectorCompare
 }
 
-func newStoreList(cap int, compare collectorCompare) *collectStoreList {
+func newStoreList(capacity int, compare collectorCompare) *collectStoreList {
 	rv := &collectStoreList{
 		results: list.New(),
 		compare: compare,
@@ -34,8 +34,7 @@ func newStoreList(cap int, compare collectorCompare) *collectStoreList {
 	return rv
 }
 
-func (c *collectStoreList) AddNotExceedingSize(doc *search.DocumentMatch,
-	size int) *search.DocumentMatch {
+func (c *collectStoreList) AddNotExceedingSize(doc *search.DocumentMatch, size int) *search.DocumentMatch {
 	c.add(doc)
 	if c.len() > size {
 		return c.removeLast()

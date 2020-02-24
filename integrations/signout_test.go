@@ -10,7 +10,7 @@ import (
 )
 
 func TestSignOut(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 

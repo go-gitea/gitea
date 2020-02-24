@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -28,7 +28,8 @@ CodeMirror.defineMode("ruby", function(config) {
   var indentWords = wordObj(["def", "class", "case", "for", "while", "until", "module", "then",
                              "catch", "loop", "proc", "begin"]);
   var dedentWords = wordObj(["end", "until"]);
-  var matching = {"[": "]", "{": "}", "(": ")"};
+  var opening = {"[": "]", "{": "}", "(": ")"};
+  var closing = {"]": "[", "}": "{", ")": "("};
   var curPunc;
 
   function chain(newtok, stream, state) {
@@ -46,22 +47,10 @@ CodeMirror.defineMode("ruby", function(config) {
     if (ch == "`" || ch == "'" || ch == '"') {
       return chain(readQuoted(ch, "string", ch == '"' || ch == "`"), stream, state);
     } else if (ch == "/") {
-      var currentIndex = stream.current().length;
-      if (stream.skipTo("/")) {
-        var search_till = stream.current().length;
-        stream.backUp(stream.current().length - currentIndex);
-        var balance = 0;  // balance brackets
-        while (stream.current().length < search_till) {
-          var chchr = stream.next();
-          if (chchr == "(") balance += 1;
-          else if (chchr == ")") balance -= 1;
-          if (balance < 0) break;
-        }
-        stream.backUp(stream.current().length - currentIndex);
-        if (balance == 0)
-          return chain(readQuoted(ch, "string-2", true), stream, state);
-      }
-      return "operator";
+      if (regexpAhead(stream))
+        return chain(readQuoted(ch, "string-2", true), stream, state);
+      else
+        return "operator";
     } else if (ch == "%") {
       var style = "string", embed = true;
       if (stream.eat("s")) style = "atom";
@@ -70,13 +59,13 @@ CodeMirror.defineMode("ruby", function(config) {
       else if (stream.eat(/[wxq]/)) { style = "string"; embed = false; }
       var delim = stream.eat(/[^\w\s=]/);
       if (!delim) return "operator";
-      if (matching.propertyIsEnumerable(delim)) delim = matching[delim];
+      if (opening.propertyIsEnumerable(delim)) delim = opening[delim];
       return chain(readQuoted(delim, style, embed, true), stream, state);
     } else if (ch == "#") {
       stream.skipToEnd();
       return "comment";
-    } else if (ch == "<" && (m = stream.match(/^<-?[\`\"\']?([a-zA-Z_?]\w*)[\`\"\']?(?:;|$)/))) {
-      return chain(readHereDoc(m[1]), stream, state);
+    } else if (ch == "<" && (m = stream.match(/^<([-~])[\`\"\']?([a-zA-Z_?]\w*)[\`\"\']?(?:;|$)/))) {
+      return chain(readHereDoc(m[2], m[1]), stream, state);
     } else if (ch == "0") {
       if (stream.eat("x")) stream.eatWhile(/[\da-fA-F]/);
       else if (stream.eat("b")) stream.eatWhile(/[01]/);
@@ -148,6 +137,28 @@ CodeMirror.defineMode("ruby", function(config) {
     }
   }
 
+  function regexpAhead(stream) {
+    var start = stream.pos, depth = 0, next, found = false, escaped = false
+    while ((next = stream.next()) != null) {
+      if (!escaped) {
+        if ("[{(".indexOf(next) > -1) {
+          depth++
+        } else if ("]})".indexOf(next) > -1) {
+          depth--
+          if (depth < 0) break
+        } else if (next == "/" && depth == 0) {
+          found = true
+          break
+        }
+        escaped = next == "\\"
+      } else {
+        escaped = false
+      }
+    }
+    stream.backUp(stream.pos - start)
+    return found
+  }
+
   function tokenBaseUntilBrace(depth) {
     if (!depth) depth = 1;
     return function(stream, state) {
@@ -206,8 +217,9 @@ CodeMirror.defineMode("ruby", function(config) {
       return style;
     };
   }
-  function readHereDoc(phrase) {
+  function readHereDoc(phrase, mayIndent) {
     return function(stream, state) {
+      if (mayIndent) stream.eatSpace()
       if (stream.match(phrase)) state.tokenize.pop();
       else stream.skipToEnd();
       return "string";
@@ -266,17 +278,18 @@ CodeMirror.defineMode("ruby", function(config) {
     },
 
     indent: function(state, textAfter) {
-      if (state.tokenize[state.tokenize.length-1] != tokenBase) return 0;
+      if (state.tokenize[state.tokenize.length-1] != tokenBase) return CodeMirror.Pass;
       var firstChar = textAfter && textAfter.charAt(0);
       var ct = state.context;
-      var closing = ct.type == matching[firstChar] ||
+      var closed = ct.type == closing[firstChar] ||
         ct.type == "keyword" && /^(?:end|until|else|elsif|when|rescue)\b/.test(textAfter);
-      return ct.indented + (closing ? 0 : config.indentUnit) +
+      return ct.indented + (closed ? 0 : config.indentUnit) +
         (state.continuedLine ? config.indentUnit : 0);
     },
 
-    electricInput: /^\s*(?:end|rescue|\})$/,
-    lineComment: "#"
+    electricInput: /^\s*(?:end|rescue|elsif|else|\})$/,
+    lineComment: "#",
+    fold: "indent"
   };
 });
 

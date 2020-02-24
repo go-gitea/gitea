@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,9 +7,10 @@ package auth
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // ________                            .__                __  .__
@@ -20,7 +22,9 @@ import (
 
 // CreateOrgForm form for creating organization
 type CreateOrgForm struct {
-	OrgName string `binding:"Required;AlphaDashDot;MaxSize(35)" locale:"org.org_name_holder"`
+	OrgName                   string `binding:"Required;AlphaDashDot;MaxSize(40)" locale:"org.org_name_holder"`
+	Visibility                structs.VisibleType
+	RepoAdminChangeTeamAccess bool
 }
 
 // Validate validates the fields
@@ -30,12 +34,14 @@ func (f *CreateOrgForm) Validate(ctx *macaron.Context, errs binding.Errors) bind
 
 // UpdateOrgSettingForm form for updating organization settings
 type UpdateOrgSettingForm struct {
-	Name            string `binding:"Required;AlphaDashDot;MaxSize(35)" locale:"org.org_name_holder"`
-	FullName        string `binding:"MaxSize(100)"`
-	Description     string `binding:"MaxSize(255)"`
-	Website         string `binding:"ValidUrl;MaxSize(255)"`
-	Location        string `binding:"MaxSize(50)"`
-	MaxRepoCreation int
+	Name                      string `binding:"Required;AlphaDashDot;MaxSize(40)" locale:"org.org_name_holder"`
+	FullName                  string `binding:"MaxSize(100)"`
+	Description               string `binding:"MaxSize(255)"`
+	Website                   string `binding:"ValidUrl;MaxSize(255)"`
+	Location                  string `binding:"MaxSize(50)"`
+	Visibility                structs.VisibleType
+	MaxRepoCreation           int
+	RepoAdminChangeTeamAccess bool
 }
 
 // Validate validates the fields
@@ -52,10 +58,12 @@ func (f *UpdateOrgSettingForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // CreateTeamForm form for creating team
 type CreateTeamForm struct {
-	TeamName    string `binding:"Required;AlphaDashDot;MaxSize(30)"`
-	Description string `binding:"MaxSize(255)"`
-	Permission  string
-	Units       []models.UnitType
+	TeamName         string `binding:"Required;AlphaDashDot;MaxSize(30)"`
+	Description      string `binding:"MaxSize(255)"`
+	Permission       string
+	Units            []models.UnitType
+	RepoAccess       string
+	CanCreateOrgRepo bool
 }
 
 // Validate validates the fields

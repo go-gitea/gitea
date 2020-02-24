@@ -5,16 +5,15 @@
 package auth
 
 import (
-	"gopkg.in/macaron.v1"
-
-	"github.com/go-macaron/binding"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // AdminCreateUserForm form for admin to create user
 type AdminCreateUserForm struct {
 	LoginType          string `binding:"Required"`
 	LoginName          string
-	UserName           string `binding:"Required;AlphaDashDot;MaxSize(35)"`
+	UserName           string `binding:"Required;AlphaDashDot;MaxSize(40)"`
 	Email              string `binding:"Required;Email;MaxSize(254)"`
 	Password           string `binding:"MaxSize(255)"`
 	SendNotify         bool
@@ -38,6 +37,7 @@ type AdminEditUserForm struct {
 	MaxRepoCreation         int
 	Active                  bool
 	Admin                   bool
+	Restricted              bool
 	AllowGitHook            bool
 	AllowImportLocal        bool
 	AllowCreateOrganization bool

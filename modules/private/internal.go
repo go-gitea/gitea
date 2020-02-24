@@ -11,9 +11,7 @@ import (
 	"net"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -39,6 +37,7 @@ func decodeJSONError(resp *http.Response) *Response {
 func newInternalRequest(url, method string) *httplib.Request {
 	req := newRequest(url, method).SetTLSClientConfig(&tls.Config{
 		InsecureSkipVerify: true,
+		ServerName:         setting.Domain,
 	})
 	if setting.Protocol == setting.UnixSocket {
 		req.SetTransport(&http.Transport{
@@ -48,68 +47,4 @@ func newInternalRequest(url, method string) *httplib.Request {
 		})
 	}
 	return req
-}
-
-// CheckUnitUser check whether user could visit the unit of this repository
-func CheckUnitUser(userID, repoID int64, isAdmin bool, unitType models.UnitType) (bool, error) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/user/%d/checkunituser?isAdmin=%t&unitType=%d", repoID, userID, isAdmin, unitType)
-	log.GitLogger.Trace("AccessLevel: %s", reqURL)
-
-	resp, err := newInternalRequest(reqURL, "GET").Response()
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 200 {
-		return true, nil
-	}
-	return false, nil
-}
-
-// AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
-// user does not have access.
-func AccessLevel(userID, repoID int64) (*models.AccessMode, error) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repositories/%d/user/%d/accesslevel", repoID, userID)
-	log.GitLogger.Trace("AccessLevel: %s", reqURL)
-
-	resp, err := newInternalRequest(reqURL, "GET").Response()
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Failed to get user access level: %s", decodeJSONError(resp).Err)
-	}
-
-	var a models.AccessMode
-	if err := json.NewDecoder(resp.Body).Decode(&a); err != nil {
-		return nil, err
-	}
-
-	return &a, nil
-}
-
-// GetRepositoryByOwnerAndName returns the repository by given ownername and reponame.
-func GetRepositoryByOwnerAndName(ownerName, repoName string) (*models.Repository, error) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/repo/%s/%s", ownerName, repoName)
-	log.GitLogger.Trace("GetRepositoryByOwnerAndName: %s", reqURL)
-
-	resp, err := newInternalRequest(reqURL, "GET").Response()
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("Failed to get repository: %s", decodeJSONError(resp).Err)
-	}
-
-	var repo models.Repository
-	if err := json.NewDecoder(resp.Body).Decode(&repo); err != nil {
-		return nil, err
-	}
-
-	return &repo, nil
 }

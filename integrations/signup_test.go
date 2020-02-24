@@ -12,15 +12,15 @@ import (
 )
 
 func TestSignup(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	setting.Service.EnableCaptcha = false
 
 	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
 		"user_name": "exampleUser",
 		"email":     "exampleUser@example.com",
-		"password":  "examplePassword",
-		"retype":    "examplePassword",
+		"password":  "examplePassword!1",
+		"retype":    "examplePassword!1",
 	})
 	MakeRequest(t, req, http.StatusFound)
 

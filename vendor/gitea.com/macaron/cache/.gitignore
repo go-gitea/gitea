@@ -1,0 +1,5 @@
+nodb/cache
+ledis/tmp.db/
+nodb/tmp.db/
+/vendor
+/.idea

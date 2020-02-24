@@ -14,29 +14,33 @@ import (
 )
 
 // DumpMemProfileForUsername dumps a memory profile at pprofDataPath as memprofile_<username>_<temporary id>
-func DumpMemProfileForUsername(pprofDataPath, username string) {
+func DumpMemProfileForUsername(pprofDataPath, username string) error {
 	f, err := ioutil.TempFile(pprofDataPath, fmt.Sprintf("memprofile_%s_", username))
 	if err != nil {
-		log.GitLogger.Fatal(4, "Could not create memory profile: %v", err)
+		return err
 	}
 	defer f.Close()
 	runtime.GC() // get up-to-date statistics
-	if err := pprof.WriteHeapProfile(f); err != nil {
-		log.GitLogger.Fatal(4, "Could not write memory profile: %v", err)
-	}
+	return pprof.WriteHeapProfile(f)
 }
 
 // DumpCPUProfileForUsername dumps a CPU profile at pprofDataPath as cpuprofile_<username>_<temporary id>
 //  it returns the stop function which stops, writes and closes the CPU profile file
-func DumpCPUProfileForUsername(pprofDataPath, username string) func() {
+func DumpCPUProfileForUsername(pprofDataPath, username string) (func(), error) {
 	f, err := ioutil.TempFile(pprofDataPath, fmt.Sprintf("cpuprofile_%s_", username))
 	if err != nil {
-		log.GitLogger.Fatal(4, "Could not create cpu profile: %v", err)
+		return nil, err
 	}
 
-	pprof.StartCPUProfile(f)
+	err = pprof.StartCPUProfile(f)
+	if err != nil {
+		log.Fatal("StartCPUProfile: %v", err)
+	}
 	return func() {
 		pprof.StopCPUProfile()
-		f.Close()
-	}
+		err = f.Close()
+		if err != nil {
+			log.Fatal("StopCPUProfile Close: %v", err)
+		}
+	}, nil
 }

@@ -1,3 +1,4 @@
+
 ; This file lists the default values used by Gitea
 ; Copy required sections to your own app.ini (default is custom/conf/app.ini)
 ; and modify as needed.
@@ -31,8 +32,25 @@ PULL_REQUEST_QUEUE_LENGTH = 1000
 PREFERRED_LICENSES = Apache License 2.0,MIT License
 ; Disable the ability to interact with repositories using the HTTP protocol
 DISABLE_HTTP_GIT = false
+; Value for Access-Control-Allow-Origin header, default is not to present
+; WARNING: This maybe harmful to you website if you do not give it a right value.
+ACCESS_CONTROL_ALLOW_ORIGIN =
 ; Force ssh:// clone url instead of scp-style uri when default SSH port is used
 USE_COMPAT_SSH_URI = false
+; Close issues as long as a commit on any branch marks it as fixed
+DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH = false
+; Allow users to push local repositories to Gitea and have them automatically created for a user or an org
+ENABLE_PUSH_CREATE_USER = false
+ENABLE_PUSH_CREATE_ORG = false
+; Comma separated list of globally disabled repo units. Allowed values: repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki
+DISABLED_REPO_UNITS =
+; Comma separated list of default repo units. Allowed values: repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki.
+; Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility.
+; External wiki and issue tracker can't be enabled by default as it requires additional settings.
+; Disabled repo units will not be added to new repositories regardless if it is in the default list.
+DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
+; Prefix archive files by placing them in a directory named after the repository
+PREFIX_ARCHIVE_FILES = true
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor
@@ -63,6 +81,73 @@ MAX_FILES = 5
 [repository.pull-request]
 ; List of prefixes used in Pull Request title to mark them as Work In Progress
 WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+; List of keywords used in Pull Request comments to automatically close a related issue
+CLOSE_KEYWORDS=close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved
+; List of keywords used in Pull Request comments to automatically reopen a related issue
+REOPEN_KEYWORDS=reopen,reopens,reopened
+; In the default merge message for squash commits include at most this many commits
+DEFAULT_MERGE_MESSAGE_COMMITS_LIMIT=50
+; In the default merge message for squash commits limit the size of the commit messages to this
+DEFAULT_MERGE_MESSAGE_SIZE=5120
+; In the default merge message for squash commits walk all commits to include all authors in the Co-authored-by otherwise just use those in the limited list
+DEFAULT_MERGE_MESSAGE_ALL_AUTHORS=false
+; In default merge messages limit the number of approvers listed as Reviewed-by: to this many
+DEFAULT_MERGE_MESSAGE_MAX_APPROVERS=10
+; In default merge messages only include approvers who are official
+DEFAULT_MERGE_MESSAGE_OFFICIAL_APPROVERS_ONLY=true
+
+[repository.issue]
+; List of reasons why a Pull Request or Issue can be locked
+LOCK_REASONS=Too heated,Off-topic,Resolved,Spam
+
+[repository.signing]
+; GPG key to use to sign commits, Defaults to the default - that is the value of git config --get user.signingkey
+; run in the context of the RUN_USER
+; Switch to none to stop signing completely
+SIGNING_KEY = default
+; If a SIGNING_KEY ID is provided and is not set to default, use the provided Name and Email address as the signer.
+; These should match a publicized name and email address for the key. (When SIGNING_KEY is default these are set to
+; the results of git config --get user.name and git config --get user.email respectively and can only be overrided
+; by setting the SIGNING_KEY ID to the correct ID.)
+SIGNING_NAME =
+SIGNING_EMAIL =
+; Determines when gitea should sign the initial commit when creating a repository
+; Either:
+; - never
+; - pubkey: only sign if the user has a pubkey
+; - twofa: only sign if the user has logged in with twofa
+; - always
+; options other than none and always can be combined as comma separated list
+INITIAL_COMMIT = always
+; Determines when to sign for CRUD actions
+; - as above
+; - parentsigned: requires that the parent commit is signed.
+CRUD_ACTIONS = pubkey, twofa, parentsigned
+; Determines when to sign Wiki commits
+; - as above
+WIKI = never
+; Determines when to sign on merges
+; - basesigned: require that the parent of commit on the base repo is signed.
+; - commitssigned: require that all the commits in the head branch are signed.
+; - approved: only sign when merging an approved pr to a protected branch
+MERGES = pubkey, twofa, basesigned, commitssigned
+
+[cors]
+; More information about CORS can be found here: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#The_HTTP_response_headers
+; enable cors headers (disabled by default)
+ENABLED=false
+; scheme of allowed requests
+SCHEME=http
+; list of requesting domains that are allowed
+ALLOW_DOMAIN=*
+; allow subdomains of headers listed above to request
+ALLOW_SUBDOMAIN=false
+; list of methods allowed to request
+METHODS=GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS
+; max time to cache response
+MAX_AGE=10m
+; allow request with credentials
+ALLOW_CREDENTIALS=false
 
 [ui]
 ; Number of repositories that are displayed on one explore page
@@ -85,8 +170,17 @@ MAX_DISPLAY_FILE_SIZE = 8388608
 SHOW_USER_EMAIL = true
 ; Set the default theme for the Gitea install
 DEFAULT_THEME = gitea
-; Set the color range to use for heatmap (default to `['#f4f4f4', '#459928']` but can use `['#2d303b', '#80bb46']` with the theme `arc-green`)
-HEATMAP_COLOR_RANGE = `['#f4f4f4', '#459928']`
+; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
+THEMES = gitea,arc-green
+; All available reactions. Allow users react with different emoji's
+; For the whole list look at https://gitea.com/gitea/gitea.com/issues/8
+REACTIONS = +1, -1, laugh, hooray, confused, heart, rocket, eyes
+; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+DEFAULT_SHOW_FULL_NAME = false
+; Whether to search within description at repository search on explore page.
+SEARCH_REPO_DESCRIPTION = true
+; Whether to enable a Service Worker to cache frontend assets
+USE_SERVICE_WORKER = true
 
 [ui.admin]
 ; Number of users that are displayed on one page
@@ -110,8 +204,9 @@ KEYWORDS = go,git,self-hosted,gitea
 [markdown]
 ; Enable hard line break extension
 ENABLE_HARD_LINE_BREAK = false
-; List of custom URL-Schemes that are allowed as links when rendering Markdown
-; for example git,magnet
+; Comma separated list of custom URL-Schemes that are allowed as links when rendering Markdown
+; for example git,magnet,ftp (more at https://en.wikipedia.org/wiki/List_of_URI_schemes)
+; URLs starting with http and https are always displayed, whatever is put in this entry.
 CUSTOM_URL_SCHEMES =
 ; List of file extensions that should be rendered/edited as Markdown
 ; Separate the extensions with a comma. To render files without any extension as markdown, just put a comma
@@ -122,6 +217,8 @@ FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd
 PROTOCOL = http
 DOMAIN = localhost
 ROOT_URL = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
+; when STATIC_URL_PREFIX is empty it will follow ROOT_URL
+STATIC_URL_PREFIX =
 ; The address to listen on. Either a IPv4/IPv6 address or the path to a unix socket.
 HTTP_ADDR = 0.0.0.0
 HTTP_PORT = 3000
@@ -146,7 +243,7 @@ START_SSH_SERVER = false
 BUILTIN_SSH_SERVER_USER =
 ; Domain name to be exposed in clone URL
 SSH_DOMAIN = %(DOMAIN)s
-; THe network interface the builtin SSH server should listen on
+; The network interface the builtin SSH server should listen on
 SSH_LISTEN_HOST =
 ; Port number to be exposed in clone URL
 SSH_PORT = 22
@@ -154,6 +251,9 @@ SSH_PORT = 22
 SSH_LISTEN_PORT = %(SSH_PORT)s
 ; Root path of SSH directory, default is '~/.ssh', but you have to use '/home/git/.ssh'.
 SSH_ROOT_PATH =
+; Gitea will create a authorized_keys file by default when it is not using the internal ssh server
+; If you intend to use the AuthorizedKeysCommand functionality then you should turn this off.
+SSH_CREATE_AUTHORIZED_KEYS_FILE = true
 ; For the built-in SSH server, choose the ciphers to support for SSH connections,
 ; for system SSH this setting has no effect
 SSH_SERVER_CIPHERS = aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128
@@ -184,8 +284,9 @@ DISABLE_ROUTER_LOG = false
 ; not forget to export the private key):
 ; $ openssl pkcs12 -in cert.pfx -out cert.pem -nokeys
 ; $ openssl pkcs12 -in cert.pfx -out key.pem -nocerts -nodes
-CERT_FILE = custom/https/cert.pem
-KEY_FILE = custom/https/key.pem
+; Paths are relative to CUSTOM_PATH
+CERT_FILE = https/cert.pem
+KEY_FILE = https/key.pem
 ; Root directory containing templates and static files.
 ; default is the path where Gitea is executed
 STATIC_ROOT_PATH =
@@ -199,7 +300,8 @@ ENABLE_GZIP = false
 ENABLE_PPROF = false
 ; PPROF_DATA_PATH, use an absolute path when you start gitea as service
 PPROF_DATA_PATH = data/tmp/pprof
-; Landing page, can be "home", "explore", or "organizations"
+; Landing page, can be "home", "explore", "organizations" or "login"
+; The "login" choice is not a security measure but just a UI flow change, use REQUIRE_SIGNIN_VIEW to force users to log in.
 LANDING_PAGE = home
 ; Enables git-lfs support. true or false, default is false.
 LFS_START_SERVER = false
@@ -209,6 +311,17 @@ LFS_CONTENT_PATH = data/lfs
 LFS_JWT_SECRET =
 ; LFS authentication validity period (in time.Duration), pushes taking longer than this may fail.
 LFS_HTTP_AUTH_EXPIRY = 20m
+; Allow graceful restarts using SIGHUP to fork
+ALLOW_GRACEFUL_RESTARTS = true
+; After a restart the parent will finish ongoing requests before
+; shutting down. Force shutdown if this process takes longer than this delay.
+; set to a negative value to disable
+GRACEFUL_HAMMER_TIME = 60s
+; Allows the setting of a startup timeout and waithint for Windows as SVC service
+; 0 disables this.
+STARTUP_TIMEOUT = 0
+; Static resources, includes resources on custom/, public/ and all uploaded avatars web browser cache time, default is 6h
+STATIC_CACHE_TIME = 6h
 
 ; Define allowed algorithms and their minimum key length (use -1 to disable a type)
 [ssh.minimum_key_sizes]
@@ -225,9 +338,16 @@ NAME = gitea
 USER = root
 ; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
+; For Postgres, schema to use if different from "public". The schema must exist beforehand,
+; the user must have creation privileges on it, and the user search path must be set
+; to the look into the schema first. e.g.:ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;
+SCHEMA =
 ; For Postgres, either "disable" (default), "require", or "verify-full"
 ; For MySQL, either "false" (default), "true", or "skip-verify"
 SSL_MODE = disable
+; For MySQL only, either "utf8" or "utf8mb4", default is "utf8".
+; NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
+CHARSET = utf8
 ; For "sqlite3" and "tidb", use an absolute path when you start gitea as service
 PATH = data/gitea.db
 ; For "sqlite3" only. Query timeout
@@ -236,36 +356,117 @@ SQLITE_TIMEOUT = 500
 ITERATE_BUFFER_SIZE = 50
 ; Show the database generated SQL
 LOG_SQL = true
+; Maximum number of DB Connect retries
+DB_RETRIES = 10
+; Backoff time per DB retry (time.Duration)
+DB_RETRY_BACKOFF = 3s
+; Max idle database connections on connnection pool, default is 2
+MAX_IDLE_CONNS = 2
+; Database connection max life time, default is 0 or 3s mysql (See #6804 & #7071 for reasoning)
+CONN_MAX_LIFETIME = 3s
+; Database maximum number of open connections, default is 0 meaning no maximum
+MAX_OPEN_CONNS = 0
 
 [indexer]
+; Issue indexer type, currently support: bleve, db or elasticsearch, default is bleve
+ISSUE_INDEXER_TYPE = bleve
+; Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch
+ISSUE_INDEXER_CONN_STR = http://elastic:changeme@localhost:9200
+; Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
+ISSUE_INDEXER_NAME = gitea_issues
+; Issue indexer storage path, available when ISSUE_INDEXER_TYPE is bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
+; Issue indexer queue, currently support: channel, levelqueue or redis, default is levelqueue
+ISSUE_INDEXER_QUEUE_TYPE = levelqueue
+; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path,
+; default is indexers/issues.queue
+ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
+; When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string.
+ISSUE_INDEXER_QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
+; Batch queue number, default is 20
+ISSUE_INDEXER_QUEUE_BATCH_NUMBER = 20
+; Timeout the indexer if it takes longer than this to start.
+; Set to zero to disable timeout.
+STARTUP_TIMEOUT=30s
+
 ; repo indexer by default disabled, since it uses a lot of disk space
 REPO_INDEXER_ENABLED = false
 REPO_INDEXER_PATH = indexers/repos.bleve
 UPDATE_BUFFER_LEN = 20
 MAX_FILE_SIZE = 1048576
+; A comma separated list of glob patterns (see https://github.com/gobwas/glob) to include
+; in the index; default is empty
+REPO_INDEXER_INCLUDE =
+; A comma separated list of glob patterns to exclude from the index; ; default is empty
+REPO_INDEXER_EXCLUDE =
+
+[queue]
+; Specific queues can be individually configured with [queue.name]. [queue] provides defaults
+;
+; General queue queue type, currently support: persistable-channel, channel, level, redis, dummy
+; default to persistable-channel
+TYPE = persistable-channel
+; data-dir for storing persistable queues and level queues, individual queues will be named by their type
+DATADIR = queues/
+; Default queue length before a channel queue will block
+LENGTH = 20
+; Batch size to send for batched queues
+BATCH_LENGTH = 20
+; Connection string for redis queues this will store the redis connection string.
+CONN_STR = "addrs=127.0.0.1:6379 db=0"
+; Provide the suffix of the default redis queue name - specific queues can be overriden within in their [queue.name] sections.
+QUEUE_NAME = "_queue"
+; If the queue cannot be created at startup - level queues may need a timeout at startup - wrap the queue:
+WRAP_IF_NECESSARY = true
+; Attempt to create the wrapped queue at max
+MAX_ATTEMPTS = 10
+; Timeout queue creation
+TIMEOUT = 15m30s
+; Create a pool with this many workers
+WORKERS = 1
+; Dynamically scale the worker pool to at this many workers
+MAX_WORKERS = 10
+; Add boost workers when the queue blocks for BLOCK_TIMEOUT
+BLOCK_TIMEOUT = 1s
+; Remove the boost workers after BOOST_TIMEOUT
+BOOST_TIMEOUT = 5m
+; During a boost add BOOST_WORKERS
+BOOST_WORKERS = 5
 
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
 DISABLE_REGULAR_ORG_CREATION = false
+; Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
+DEFAULT_EMAIL_NOTIFICATIONS = enabled
 
 [security]
 ; Whether the installer is disabled
 INSTALL_LOCK = false
 ; !!CHANGE THIS TO KEEP YOUR USER DATA SAFE!!
 SECRET_KEY = !#@FDEWREWR&*(
-; How long to remember that an user is logged in before requiring relogin (in days)
+; How long to remember that a user is logged in before requiring relogin (in days)
 LOGIN_REMEMBER_DAYS = 7
 COOKIE_USERNAME = gitea_awesome
 COOKIE_REMEMBER_NAME = gitea_incredible
 ; Reverse proxy authentication header name of user name
 REVERSE_PROXY_AUTHENTICATION_USER = X-WEBAUTH-USER
+REVERSE_PROXY_AUTHENTICATION_EMAIL = X-WEBAUTH-EMAIL
 ; The minimum password length for new Users
 MIN_PASSWORD_LENGTH = 6
-; True when users are allowed to import local server paths
+; Set to true to allow users to import local server paths
 IMPORT_LOCAL_PATHS = false
-; Prevent all users (including admin) from creating custom git hooks
+; Set to true to prevent all users (including admin) from creating custom git hooks
 DISABLE_GIT_HOOKS = false
+; Set to false to allow pushes to gitea repositories despite having an incomplete environment - NOT RECOMMENDED
+ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET = true
+;Comma separated list of character classes required to pass minimum complexity.
+;If left empty or no valid values are specified, the default values ("lower,upper,digit,spec") will be used.
+;Use "off" to disable checking.
+PASSWORD_COMPLEXITY = lower,upper,digit,spec
+; Password Hash algorithm, either "pbkdf2", "argon2", "scrypt" or "bcrypt"
+PASSWORD_HASH_ALGO = pbkdf2
+; Set false to allow JavaScript to read CSRF cookie
+CSRF_COOKIE_HTTP_ONLY = true
 
 [openid]
 ;
@@ -301,7 +502,7 @@ WHITELISTED_URIS =
 ; Example value: loadaverage.org/badguy stackexchange.com/.*spammer
 BLACKLISTED_URIS =
 
-[oauth2]
+[oauth2_client]
 ; Whether a new auto registered oauth2 user needs to confirm their email.
 ; Do not include to use the REGISTER_EMAIL_CONFIRM setting.
 ;OAUTH2_REGISTER_EMAIL_CONFIRM =
@@ -321,34 +522,56 @@ ACTIVE_CODE_LIVE_MINUTES = 180
 RESET_PASSWD_CODE_LIVE_MINUTES = 180
 ; Whether a new user needs to confirm their email when registering.
 REGISTER_EMAIL_CONFIRM = false
+; List of domain names that are allowed to be used to register on a Gitea instance
+; gitea.io,example.com
+EMAIL_DOMAIN_WHITELIST=
 ; Disallow registration, only allow admins to create accounts.
 DISABLE_REGISTRATION = false
-; Allow registration only using third part services, it works only when DISABLE_REGISTRATION is false
+; Allow registration only using third-party services, it works only when DISABLE_REGISTRATION is false
 ALLOW_ONLY_EXTERNAL_REGISTRATION = false
 ; User must sign in to view anything.
 REQUIRE_SIGNIN_VIEW = false
 ; Mail notification
 ENABLE_NOTIFY_MAIL = false
+; This setting enables gitea to be signed in with HTTP BASIC Authentication using the user's password
+; If you set this to false you will not be able to access the tokens endpoints on the API with your password
+; Please note that setting this to false will not disable OAuth Basic or Basic authentication using a token
+ENABLE_BASIC_AUTHENTICATION = true
 ; More detail: https://github.com/gogits/gogs/issues/165
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
+ENABLE_REVERSE_PROXY_EMAIL = false
 ; Enable captcha validation for registration
 ENABLE_CAPTCHA = false
 ; Type of captcha you want to use. Options: image, recaptcha
 CAPTCHA_TYPE = image
 ; Enable recaptcha to use Google's recaptcha service
 ; Go to https://www.google.com/recaptcha/admin to sign up for a key
-RECAPTCHA_SECRET  = 
-RECAPTCHA_SITEKEY = 
+RECAPTCHA_SECRET  =
+RECAPTCHA_SITEKEY =
+; Change this to use recaptcha.net or other recaptcha service
+RECAPTCHA_URL = https://www.google.com/recaptcha/
 ; Default value for KeepEmailPrivate
 ; Each new user will get the value of this setting copied into their profile
 DEFAULT_KEEP_EMAIL_PRIVATE = false
 ; Default value for AllowCreateOrganization
 ; Every new user will have rights set to create organizations depending on this setting
 DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+; Either "public", "limited" or "private", default is "public"
+; Limited is for signed user only
+; Private is only for member of the organization
+; Public is for everyone
+DEFAULT_ORG_VISIBILITY = public
+; Default value for DefaultOrgMemberVisible
+; True will make the membership of the users visible when added to the organisation
+DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
-; Repositories will use depencies by default depending on this setting
+; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
+; Dependencies can be added from any repository where the user is granted access or only from the current repository depending on this setting.
+ALLOW_CROSS_REPOSITORY_DEPENDENCIES = true
+; Enable heatmap on users profiles.
+ENABLE_USER_HEATMAP = true
 ; Enable Timetracking
 ENABLE_TIMETRACKING = true
 ; Default value for EnableTimetracking
@@ -360,7 +583,18 @@ DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 ; Default value for the domain part of the user's email address in the git log
 ; if he has set KeepEmailPrivate to true. The user's email will be replaced with a
 ; concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
-NO_REPLY_ADDRESS = noreply.example.org
+NO_REPLY_ADDRESS = noreply.%(DOMAIN)s
+; Show Registration button
+SHOW_REGISTRATION_BUTTON = true
+; Show milestones dashboard page - a view of all the user's milestones
+SHOW_MILESTONES_DASHBOARD_PAGE = true
+; Default value for AutoWatchNewRepos
+; When adding a repo to a team or creating a new repo all team members will watch the
+; repo automatically if enabled
+AUTO_WATCH_NEW_REPOS = true
+; Default value for AutoWatchOnChanges
+; Make the user watch a repository When they commit for the first time
+AUTO_WATCH_ON_CHANGES = false
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging
@@ -371,13 +605,17 @@ DELIVER_TIMEOUT = 5
 SKIP_TLS_VERIFY = false
 ; Number of history information in each page
 PAGING_NUM = 10
+; Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
+PROXY_URL =
+; Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
+PROXY_HOSTS =
 
 [mailer]
 ENABLED = false
 ; Buffer length of channel, keep it as it is if you don't know what it is.
 SEND_BUFFER_LEN = 100
-; Name displayed in mail title
-SUBJECT = %(APP_NAME)s
+; Prefix displayed before subject in mail
+SUBJECT_PREFIX =
 ; Mail server
 ; Gmail: smtp.gmail.com:587
 ; QQ: smtp.qq.com:465
@@ -393,6 +631,8 @@ SKIP_VERIFY =
 USE_CERTIFICATE = false
 CERT_FILE = custom/mailer/cert.pem
 KEY_FILE = custom/mailer/key.pem
+; Should SMTP connection use TLS
+IS_TLS_ENABLED = false
 ; Mail from address, RFC 5322. This can be just an email address, or the `"Name" <email@example.com>` format
 FROM =
 ; Mailer user name and password
@@ -401,14 +641,16 @@ USER =
 PASSWD =
 ; Send mails as plain text
 SEND_AS_PLAIN_TEXT = false
-; Enable sendmail (override SMTP)
-USE_SENDMAIL = false
+; Set Mailer Type (either SMTP, sendmail or dummy to just send to the log)
+MAILER_TYPE = smtp
 ; Specify an alternative sendmail binary
 SENDMAIL_PATH = sendmail
 ; Specify any extra sendmail arguments
 SENDMAIL_ARGS =
 
 [cache]
+; if the cache enabled
+ENABLED = true
 ; Either "memory", "redis", or "memcache", default is "memory"
 ADAPTER = memory
 ; For "memory" only, GC interval in seconds, default is 60
@@ -420,6 +662,16 @@ HOST =
 ; Time to keep items in cache if not used, default is 16 hours.
 ; Setting it to 0 disables caching
 ITEM_TTL = 16h
+
+; Last commit cache
+[cache.last_commit]
+; if the cache enabled
+ENABLED = true
+; Time to keep items in cache if not used, default is 8760 hours.
+; Setting it to 0 disables caching
+ITEM_TTL = 8760h
+; Only enable the cache when repository's commits count great than
+COMMITS_COUNT = 1000
 
 [session]
 ; Either "memory", "file", or "redis", default is "memory"
@@ -443,10 +695,18 @@ SESSION_LIFE_TIME = 86400
 
 [picture]
 AVATAR_UPLOAD_PATH = data/avatars
-; Max Width and Height of uploaded avatars. This is to limit the amount of RAM
-; used when resizing the image.
+REPOSITORY_AVATAR_UPLOAD_PATH = data/repo-avatars
+; How Gitea deals with missing repository avatars
+; none = no avatar will be displayed; random = random avatar will be displayed; image = default image will be used
+REPOSITORY_AVATAR_FALLBACK = none
+REPOSITORY_AVATAR_FALLBACK_IMAGE = /img/repo_default.png
+; Max Width and Height of uploaded avatars.
+; This is to limit the amount of RAM used when resizing the image.
 AVATAR_MAX_WIDTH = 4096
 AVATAR_MAX_HEIGHT = 3072
+; Maximum alloved file size for uploaded avatars.
+; This is to limit the amount of RAM used when resizing the image.
+AVATAR_MAX_FILE_SIZE = 1048576
 ; Chinese users can choose "duoshuo"
 ; or a custom avatar source, like: http://cn.gravatar.com/avatar/
 GRAVATAR_SOURCE = gravatar
@@ -474,6 +734,9 @@ MAX_FILES = 5
 ; Special supported values are ANSIC, UnixDate, RubyDate, RFC822, RFC822Z, RFC850, RFC1123, RFC1123Z, RFC3339, RFC3339Nano, Kitchen, Stamp, StampMilli, StampMicro and StampNano
 ; For more information about the format see http://golang.org/pkg/time/#pkg-constants
 FORMAT =
+; Location the UI time display i.e. Asia/Shanghai
+; Empty means server's location setting
+DEFAULT_UI_LOCATION =
 
 [log]
 ROOT_PATH =
@@ -482,16 +745,37 @@ ROOT_PATH =
 MODE = console
 ; Buffer length of the channel, keep it as it is if you don't know what it is.
 BUFFER_LEN = 10000
+REDIRECT_MACARON_LOG = false
+MACARON = file
+; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Info"
+ROUTER_LOG_LEVEL = Info
+ROUTER = console
+ENABLE_ACCESS_LOG = false
+ACCESS_LOG_TEMPLATE = {{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"
+ACCESS = file
 ; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "Trace"
-LEVEL = Trace
+LEVEL = Info
+; Either "Trace", "Debug", "Info", "Warn", "Error", "Critical", default is "None"
+STACKTRACE_LEVEL = None
+
+; Generic log modes
+[log.x]
+FLAGS = stdflags
+EXPRESSION =
+PREFIX =
+COLORIZE = false
 
 ; For "console" mode only
 [log.console]
 LEVEL =
+STDERR = false
 
 ; For "file" mode only
 [log.file]
 LEVEL =
+; Set the file_name for the logger. If this is a relative path this
+; will be relative to ROOT_PATH
+FILE_NAME =
 ; This enables automated log rotate(switch of following options), default is true
 LOG_ROTATE = true
 ; Max number of lines in a single file, default is 1000000
@@ -502,6 +786,10 @@ MAX_SIZE_SHIFT = 28
 DAILY_ROTATE = true
 ; delete the log file after n days, default is 7
 MAX_DAYS = 7
+; compress logs with gzip
+COMPRESS = true
+; compression level see godoc for compress/gzip
+COMPRESSION_LEVEL = -1
 
 ; For "conn" mode only
 [log.conn]
@@ -529,14 +817,6 @@ PASSWD =
 ; Receivers, can be one or more, e.g. 1@example.com,2@example.com
 RECEIVERS =
 
-; For "database" mode only
-[log.database]
-LEVEL =
-; Either "mysql" or "postgres"
-DRIVER =
-; Based on xorm, e.g.: root:root@localhost/gitea?charset=utf8
-CONN =
-
 [cron]
 ; Enable running cron tasks periodically.
 ENABLED = true
@@ -552,7 +832,7 @@ SCHEDULE = @every 10m
 SCHEDULE = @every 24h
 TIMEOUT = 60s
 ; Arguments for command 'git fsck', e.g. "--unreachable --tags"
-; see more on http://git-scm.com/docs/git-fsck/1.7.5
+; see more on http://git-scm.com/docs/git-fsck
 ARGS =
 
 ; Check repository statistics
@@ -581,7 +861,14 @@ SCHEDULE = @every 24h
 ;   or only create new users if UPDATE_EXISTING is set to false
 UPDATE_EXISTING = true
 
+; Update migrated repositories' issues and comments' posterid, it will always attempt synchronization when the instance starts.
+[cron.update_migration_post_id]
+; Interval as a duration between each synchronization. (default every 24h)
+SCHEDULE = @every 24h
+
 [git]
+; The path of git executable. If empty, Gitea searches through the PATH environment.
+PATH =
 ; Disables highlight of added and removed changes
 DISABLE_DIFF_HIGHLIGHT = false
 ; Max number of lines allowed in a single file in diff view
@@ -591,11 +878,14 @@ MAX_GIT_DIFF_LINE_CHARACTERS = 5000
 ; Max number of files shown in diff view
 MAX_GIT_DIFF_FILES = 100
 ; Arguments for command 'git gc', e.g. "--aggressive --auto"
-; see more on http://git-scm.com/docs/git-gc/1.7.5
+; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
+; If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
+EnableAutoGitWireProtocol = true
 
 ; Operation timeout in seconds
 [git.timeout]
+DEFAULT = 360
 MIGRATE = 600
 MIRROR = 300
 CLONE = 300
@@ -613,6 +903,24 @@ MIN_INTERVAL = 10m
 ENABLE_SWAGGER = true
 ; Max number of items in a page
 MAX_RESPONSE_ITEMS = 50
+; Default paging number of api
+DEFAULT_PAGING_NUM = 30
+; Default and maximum number of items per page for git trees api
+DEFAULT_GIT_TREES_PER_PAGE = 1000
+; Default size of a blob returned by the blobs API (default is 10MiB)
+DEFAULT_MAX_BLOB_SIZE = 10485760
+
+[oauth2]
+; Enables OAuth2 provider
+ENABLE = true
+; Lifetime of an OAuth2 access token in seconds
+ACCESS_TOKEN_EXPIRATION_TIME=3600
+; Lifetime of an OAuth2 access token in hours
+REFRESH_TOKEN_EXPIRATION_TIME=730
+; Check if refresh token got already used
+INVALIDATE_REFRESH_TOKENS=false
+; OAuth2 authentication secret for access and refresh tokens, change this to a unique string.
+JWT_SECRET=Bk0yK7Y9g_p56v86KaHqjSbxvNvu3SbKoOdOt2ZcXvU
 
 [i18n]
 LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR
@@ -644,11 +952,12 @@ sv-SE = sv
 ko-KR = ko
 
 [U2F]
+; NOTE: THE DEFAULT VALUES HERE WILL NEED TO BE CHANGED
 ; Two Factor authentication with security keys
 ; https://developers.yubico.com/U2F/App_ID.html
-APP_ID = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
-; Comma seperated list of truisted facets
-TRUSTED_FACETS = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
+;APP_ID = http://localhost:3000/
+; Comma seperated list of trusted facets
+;TRUSTED_FACETS = http://localhost:3000/
 
 ; Extension mapping to highlight class
 ; e.g. .toml=ini
@@ -661,6 +970,12 @@ SHOW_FOOTER_VERSION = true
 ; Show template execution time in the footer
 SHOW_FOOTER_TEMPLATE_LOAD_TIME = true
 
+[markup.sanitizer]
+; The following keys can be used multiple times to define sanitation policy rules.
+;ELEMENT = span
+;ALLOW_ATTR = class
+;REGEXP = ^(info|warning|error)$
+
 [markup.asciidoc]
 ENABLED = false
 ; List of file extensions that should be rendered by an external command
@@ -669,3 +984,24 @@ FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 ; Don't pass the file on STDIN, pass the filename as argument instead.
 IS_INPUT_FILE = false
+
+[metrics]
+; Enables metrics endpoint. True or false; default is false.
+ENABLED = false
+; If you want to add authorization, specify a token here
+TOKEN =
+
+[task]
+; Task queue type, could be `channel` or `redis`.
+QUEUE_TYPE = channel
+; Task queue length, available only when `QUEUE_TYPE` is `channel`.
+QUEUE_LENGTH = 1000
+; Task queue connection string, available only when `QUEUE_TYPE` is `redis`.
+; If there is a password of redis, use `addrs=127.0.0.1:6379 password=123 db=0`.
+QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
+
+[migrations]
+; Max attempts per http/https request on migrations.
+MAX_ATTEMPTS = 3
+; Backoff time per http/https request retry (seconds)
+RETRY_BACKOFF = 3

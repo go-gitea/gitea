@@ -11,8 +11,8 @@ import (
 
 	"code.gitea.io/gitea/modules/test"
 
-	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/i18n"
 )
 
 func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title string, preRelease, draft bool) {
@@ -58,7 +58,7 @@ func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, ver
 }
 
 func TestViewReleases(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
@@ -66,41 +66,41 @@ func TestViewReleases(t *testing.T) {
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestCreateRelease(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.stable"), 1)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.stable"), 2)
 }
 
 func TestCreateReleasePreRelease(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", true, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.prerelease"), 1)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.prerelease"), 2)
 }
 
 func TestCreateReleaseDraft(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, true)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.draft"), 1)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.draft"), 2)
 }
 
 func TestCreateReleasePaging(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	// Create enaugh releases to have paging
@@ -112,7 +112,7 @@ func TestCreateReleasePaging(t *testing.T) {
 
 	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.12", i18n.Tr("en", "repo.release.draft"), 10)
 
-	// Check that user3 does not see draft and still see 10 latest releases
-	session2 := loginUser(t, "user3")
+	// Check that user4 does not see draft and still see 10 latest releases
+	session2 := loginUser(t, "user4")
 	checkLatestReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", i18n.Tr("en", "repo.release.stable"), 10)
 }

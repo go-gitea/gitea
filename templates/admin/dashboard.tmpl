@@ -53,6 +53,10 @@
 						<td>{{.i18n.Tr "admin.dashboard.git_fsck"}}</td>
 						<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=9">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
 					</tr>
+					<tr>
+						<td>{{.i18n.Tr "admin.dashboard.delete_generated_repository_avatars"}}</td>
+						<td><i class="fa fa-caret-square-o-right"></i> <a href="{{AppSubUrl}}/admin?op=10">{{.i18n.Tr "admin.dashboard.operation_run"}}</a></td>
+					</tr>
 				</tbody>
 			</table>
 		</div>
@@ -100,7 +104,7 @@
 				<dt>{{.i18n.Tr "admin.dashboard.mspan_structures_usage"}}</dt>
 				<dd>{{.SysStatus.MSpanInuse}}</dd>
 				<dt>{{.i18n.Tr "admin.dashboard.mspan_structures_obtained"}}</dt>
-				<dd>{{.SysStatus.HeapSys}}</dd>
+				<dd>{{.SysStatus.MSpanSys}}</dd>
 				<dt>{{.i18n.Tr "admin.dashboard.mcache_structures_usage"}}</dt>
 				<dd>{{.SysStatus.MCacheInuse}}</dd>
 				<dt>{{.i18n.Tr "admin.dashboard.mcache_structures_obtained"}}</dt>

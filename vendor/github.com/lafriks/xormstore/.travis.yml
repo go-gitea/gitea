@@ -1,0 +1,23 @@
+sudo: required
+services:
+  - docker
+
+branches:
+  only:
+  - master
+
+language: go
+go:
+  - "tip"
+  - "1.11"
+  - "1.12"
+  - "1.x"
+
+env:
+  global:
+    - GO111MODULE=on
+
+script: ./test
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

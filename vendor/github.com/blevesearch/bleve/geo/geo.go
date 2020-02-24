@@ -37,6 +37,12 @@ var geoTolerance = 1E-6
 var lonScale = float64((uint64(0x1)<<GeoBits)-1) / 360.0
 var latScale = float64((uint64(0x1)<<GeoBits)-1) / 180.0
 
+// Point represents a geo point.
+type Point struct {
+	Lon float64
+	Lat float64
+}
+
 // MortonHash computes the morton hash value for the provided geo point
 // This point is ordered as lon, lat.
 func MortonHash(lon, lat float64) uint64 {
@@ -167,4 +173,36 @@ func checkLongitude(longitude float64) error {
 		return fmt.Errorf("invalid longitude %f; must be between %f and %f", longitude, minLon, maxLon)
 	}
 	return nil
+}
+
+func BoundingRectangleForPolygon(polygon []Point) (
+	float64, float64, float64, float64, error) {
+	err := checkLongitude(polygon[0].Lon)
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	err = checkLatitude(polygon[0].Lat)
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	maxY, minY := polygon[0].Lat, polygon[0].Lat
+	maxX, minX := polygon[0].Lon, polygon[0].Lon
+	for i := 1; i < len(polygon); i++ {
+		err := checkLongitude(polygon[i].Lon)
+		if err != nil {
+			return 0, 0, 0, 0, err
+		}
+		err = checkLatitude(polygon[i].Lat)
+		if err != nil {
+			return 0, 0, 0, 0, err
+		}
+
+		maxY = math.Max(maxY, polygon[i].Lat)
+		minY = math.Min(minY, polygon[i].Lat)
+
+		maxX = math.Max(maxX, polygon[i].Lon)
+		minX = math.Min(minX, polygon[i].Lon)
+	}
+
+	return minX, maxY, maxX, minY, nil
 }

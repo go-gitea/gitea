@@ -1,0 +1,64 @@
+# github.com/go-task/task
+
+version: '2'
+
+tasks:
+  dl-deps:
+    desc: Download cli deps
+    cmds:
+      - go get -u github.com/golang/lint/golint
+
+  lint:
+    desc: Runs golint
+    cmds:
+      - golint .
+
+  test-free:
+    desc: Test free databases (PG, MySQL and SQLite)
+    cmds:
+      - task: test-pg
+      - task: test-mysql
+      - task: test-sqlite
+
+  test-all:
+    desc: Test all databases (PG, MySQL, SQLite, SQLServer and Oracle)
+    cmds:
+      - task: test-pg
+      - task: test-mysql
+      - task: test-sqlite
+      - task: test-sqlserver
+      - task: test-oracle
+
+  test-pg:
+    desc: Test PostgreSQL
+    cmds:
+      - task: test-db
+        vars: {DATABASE: postgresql}
+
+  test-mysql:
+    desc: Test MySQL
+    cmds:
+      - task: test-db
+        vars: {DATABASE: mysql}
+
+  test-sqlite:
+    desc: Test SQLite
+    cmds:
+      - task: test-db
+        vars: {DATABASE: sqlite}
+
+  test-sqlserver:
+    desc: Test SQLServer
+    cmds:
+      - task: test-db
+        vars: {DATABASE: sqlserver}
+
+  test-oracle:
+    desc: Test Oracle
+    cmds:
+      - task: test-db
+        vars: {DATABASE: oracle}
+
+  test-db:
+    cmds:
+      - go test -v -tags {{.DATABASE}}

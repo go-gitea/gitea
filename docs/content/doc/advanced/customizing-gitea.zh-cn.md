@@ -57,7 +57,7 @@ Gitea 引用 `custom` 目录中的自定义配置文件来覆盖配置、模板�
 
 如果您只是想添加额外的链接到顶部导航栏或额外的选项卡到存储库视图，您可以将它们放在您 `custom/templates/custom/` 目录下的 `extra_links.tmpl` 和 `extra_tabs.tmpl` 文件中。
 
-举例说明：假设您在德国，必须添加着名的法律要求的“Impressum”用以罗列谁负责网站的内容页面，您只需将该页面放在您的
+举例说明：假设您需要在网站放置一个静态的“关于”页面，您只需将该页面放在您的
 "custom/public/"目录下（比如 `custom/public/impressum.html`）并且将它与 `custom/templates/custom/extra_links.tmpl` 链接起来即可。
 
 这个链接应当使用一个名为“item”的 class 来匹配当前样式，您可以使用 `{{AppSubUrl}}` 来获取 base URL:

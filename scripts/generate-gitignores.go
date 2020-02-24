@@ -59,6 +59,8 @@ func main() {
 
 	tr := tar.NewReader(gz)
 
+	filesToCopy := make(map[string]string, 0)
+
 	for {
 		hdr, err := tr.Next()
 
@@ -71,6 +73,12 @@ func main() {
 		}
 
 		if filepath.Ext(hdr.Name) != ".gitignore" {
+			continue
+		}
+
+		if hdr.Typeflag == tar.TypeSymlink {
+			fmt.Printf("Found symlink %s -> %s\n", hdr.Name, hdr.Linkname)
+			filesToCopy[strings.TrimSuffix(filepath.Base(hdr.Name), ".gitignore")] = strings.TrimSuffix(filepath.Base(hdr.Linkname), ".gitignore")
 			continue
 		}
 
@@ -87,6 +95,22 @@ func main() {
 		} else {
 			fmt.Printf("Written %s\n", out.Name())
 		}
+	}
+
+	for dst, src := range filesToCopy {
+		// Read all content of src to data
+		src = path.Join(destination, src)
+		data, err := ioutil.ReadFile(src)
+		if err != nil {
+			log.Fatalf("Failed to read src file. %s", err)
+		}
+		// Write data to dst
+		dst = path.Join(destination, dst)
+		err = ioutil.WriteFile(dst, data, 0644)
+		if err != nil {
+			log.Fatalf("Failed to write new file. %s", err)
+		}
+		fmt.Printf("Written (copy of %s) %s\n", src, dst)
 	}
 
 	fmt.Println("Done")

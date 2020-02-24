@@ -134,7 +134,7 @@ func (email *EmailAddress) Activate() error {
 
 	email.IsActivated = true
 	if _, err := sess.
-		Id(email.ID).
+		ID(email.ID).
 		Cols("is_activated").
 		Update(email); err != nil {
 		return err
@@ -201,7 +201,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 	}
 
 	// Make sure the former primary email doesn't disappear.
-	formerPrimaryEmail := &EmailAddress{Email: user.Email}
+	formerPrimaryEmail := &EmailAddress{UID: user.ID, Email: user.Email}
 	has, err = x.Get(formerPrimaryEmail)
 	if err != nil {
 		return err

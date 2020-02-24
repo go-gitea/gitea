@@ -12,7 +12,7 @@ import (
 )
 
 func TestPullCompare(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/pulls")

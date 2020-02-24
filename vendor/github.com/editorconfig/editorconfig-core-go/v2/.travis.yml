@@ -1,0 +1,30 @@
+---
+language: go
+dist: xenial
+sudo: true
+
+go:
+  - '1.11.x'
+  - '1.12.x'
+
+compiler:
+  - gcc
+
+install:
+  # first we create a directory for the CMake binaries
+  - DEPS_DIR="${TRAVIS_BUILD_DIR}/deps"
+  - mkdir ${DEPS_DIR} && cd ${DEPS_DIR}
+  # we use wget to fetch the cmake binaries
+  - travis_retry wget --no-check-certificate https://cmake.org/files/v3.14/cmake-3.14.6-Linux-x86_64.tar.gz
+  - echo "82e08e50ba921035efa82b859c74c5fbe27d3e49a4003020e3c77618a4e912cd  cmake-3.14.6-Linux-x86_64.tar.gz" > sha256sum.txt
+  - sha256sum -c sha256sum.txt
+  - tar -xvf cmake-3.14.6-Linux-x86_64.tar.gz > /dev/null
+  - mv cmake-3.14.6-Linux-x86_64 cmake-install
+  - PATH=${DEPS_DIR}/cmake-install:${DEPS_DIR}/cmake-install/bin:$PATH
+  - cd ${TRAVIS_BUILD_DIR}
+
+env:
+  - GO111MODULE=on
+
+script:
+  - make test

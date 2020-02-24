@@ -1,0 +1,16 @@
+extends: stylelint-config-standard
+
+ignoreFiles:
+  - web_src/less/vendor/**/*
+
+rules:
+  at-rule-empty-line-before: null
+  block-closing-brace-empty-line-before: null
+  color-hex-length: null
+  comment-empty-line-before: null
+  declaration-empty-line-before: null
+  indentation: 4
+  no-descending-specificity: null
+  number-leading-zero: never
+  rule-empty-line-before: null
+  selector-pseudo-element-colon-notation: null

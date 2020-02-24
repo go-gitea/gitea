@@ -17,11 +17,20 @@ package document
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"time"
 
 	"github.com/blevesearch/bleve/analysis"
 	"github.com/blevesearch/bleve/numeric"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeDateTimeField int
+
+func init() {
+	var f DateTimeField
+	reflectStaticSizeDateTimeField = int(reflect.TypeOf(f).Size())
+}
 
 const DefaultDateTimeIndexingOptions = StoreField | IndexField | DocValues
 const DefaultDateTimePrecisionStep uint = 4
@@ -35,6 +44,12 @@ type DateTimeField struct {
 	options           IndexingOptions
 	value             numeric.PrefixCoded
 	numPlainTextBytes uint64
+}
+
+func (n *DateTimeField) Size() int {
+	return reflectStaticSizeDateTimeField + size.SizeOfPtr +
+		len(n.name) +
+		len(n.arrayPositions)*size.SizeOfUint64
 }
 
 func (n *DateTimeField) Name() string {

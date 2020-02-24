@@ -17,7 +17,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		CountResult int
 		JSONResult  string
 	}{
-		{2, 1, `[{"timestamp":1540080000,"contributions":1}]`},
+		{2, 1, `[{"timestamp":1571616000,"contributions":1}]`},
 		{3, 0, `[]`},
 	}
 	// Prepare
@@ -30,18 +30,18 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 
 		// get the action for comparison
 		actions, err := GetFeeds(GetFeedsOptions{
-			RequestedUser:    user,
-			RequestingUserID: user.ID,
-			IncludePrivate:   true,
-			OnlyPerformedBy:  false,
-			IncludeDeleted:   true,
+			RequestedUser:   user,
+			Actor:           user,
+			IncludePrivate:  true,
+			OnlyPerformedBy: false,
+			IncludeDeleted:  true,
 		})
 		assert.NoError(t, err)
 
 		// Get the heatmap and compare
 		heatmap, err := GetUserHeatmapDataByUser(user)
 		assert.NoError(t, err)
-		assert.Equal(t, len(actions), len(heatmap))
+		assert.Equal(t, len(actions), len(heatmap), "invalid action count: did the test data became too old?")
 		assert.Equal(t, tc.CountResult, len(heatmap))
 
 		//Test JSON rendering

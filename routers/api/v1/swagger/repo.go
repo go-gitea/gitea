@@ -5,7 +5,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // Repository
@@ -36,18 +36,81 @@ type swaggerResponseBranchList struct {
 	Body []api.Branch `json:"body"`
 }
 
+// BranchProtection
+// swagger:response BranchProtection
+type swaggerResponseBranchProtection struct {
+	// in:body
+	Body api.BranchProtection `json:"body"`
+}
+
+// BranchProtectionList
+// swagger:response BranchProtectionList
+type swaggerResponseBranchProtectionList struct {
+	// in:body
+	Body []api.BranchProtection `json:"body"`
+}
+
+// TagList
+// swagger:response TagList
+type swaggerResponseTagList struct {
+	// in:body
+	Body []api.Tag `json:"body"`
+}
+
+// Tag
+// swagger:response Tag
+type swaggerResponseTag struct {
+	// in:body
+	Body api.Tag `json:"body"`
+}
+
+// AnnotatedTag
+// swagger:response AnnotatedTag
+type swaggerResponseAnnotatedTag struct {
+	// in:body
+	Body api.AnnotatedTag `json:"body"`
+}
+
+// Reference
+// swagger:response Reference
+type swaggerResponseReference struct {
+	// in:body
+	Body api.Reference `json:"body"`
+}
+
+// ReferenceList
+// swagger:response ReferenceList
+type swaggerResponseReferenceList struct {
+	// in:body
+	Body []api.Reference `json:"body"`
+}
+
 // Hook
 // swagger:response Hook
 type swaggerResponseHook struct {
 	// in:body
-	Body []api.Branch `json:"body"`
+	Body api.Hook `json:"body"`
 }
 
 // HookList
 // swagger:response HookList
 type swaggerResponseHookList struct {
 	// in:body
-	Body []api.Branch `json:"body"`
+	Body []api.Hook `json:"body"`
+}
+
+// GitHook
+// swagger:response GitHook
+type swaggerResponseGitHook struct {
+	// in:body
+	Body api.GitHook `json:"body"`
+}
+
+// GitHookList
+// swagger:response GitHookList
+type swaggerResponseGitHookList struct {
+	// in:body
+	Body []api.GitHook `json:"body"`
 }
 
 // Release
@@ -118,4 +181,96 @@ type swaggerResponseAttachmentList struct {
 type swaggerResponseAttachment struct {
 	//in: body
 	Body api.Attachment `json:"body"`
+}
+
+// GitTreeResponse
+// swagger:response GitTreeResponse
+type swaggerGitTreeResponse struct {
+	//in: body
+	Body api.GitTreeResponse `json:"body"`
+}
+
+// GitBlobResponse
+// swagger:response GitBlobResponse
+type swaggerGitBlobResponse struct {
+	//in: body
+	Body api.GitBlobResponse `json:"body"`
+}
+
+// Commit
+// swagger:response Commit
+type swaggerCommit struct {
+	//in: body
+	Body api.Commit `json:"body"`
+}
+
+// CommitList
+// swagger:response CommitList
+type swaggerCommitList struct {
+	// The current page
+	Page int `json:"X-Page"`
+
+	// Commits per page
+	PerPage int `json:"X-PerPage"`
+
+	// Total commit count
+	Total int `json:"X-Total"`
+
+	// Total number of pages
+	PageCount int `json:"X-PageCount"`
+
+	// True if there is another page
+	HasMore bool `json:"X-HasMore"`
+
+	//in: body
+	Body []api.Commit `json:"body"`
+}
+
+// EmptyRepository
+// swagger:response EmptyRepository
+type swaggerEmptyRepository struct {
+	//in: body
+	Body api.APIError `json:"body"`
+}
+
+// FileResponse
+// swagger:response FileResponse
+type swaggerFileResponse struct {
+	//in: body
+	Body api.FileResponse `json:"body"`
+}
+
+// ContentsResponse
+// swagger:response ContentsResponse
+type swaggerContentsResponse struct {
+	//in: body
+	Body api.ContentsResponse `json:"body"`
+}
+
+// ContentsListResponse
+// swagger:response ContentsListResponse
+type swaggerContentsListResponse struct {
+	// in:body
+	Body []api.ContentsResponse `json:"body"`
+}
+
+// FileDeleteResponse
+// swagger:response FileDeleteResponse
+type swaggerFileDeleteResponse struct {
+	//in: body
+	Body api.FileDeleteResponse `json:"body"`
+}
+
+// TopicListResponse
+// swagger:response TopicListResponse
+type swaggerTopicListResponse struct {
+	//in: body
+	Body []api.TopicResponse `json:"body"`
+}
+
+// TopicNames
+// swagger:response TopicNames
+type swaggerTopicNames struct {
+	//in: body
+	Body api.TopicName `json:"body"`
 }

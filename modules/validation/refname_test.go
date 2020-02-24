@@ -7,7 +7,7 @@ package validation
 import (
 	"testing"
 
-	"github.com/go-macaron/binding"
+	"gitea.com/macaron/binding"
 )
 
 var gitRefNameValidationTestCases = []validationTestCase{
@@ -22,6 +22,13 @@ var gitRefNameValidationTestCases = []validationTestCase{
 		description: "Reference name contains single slash",
 		data: TestForm{
 			BranchName: "feature/test",
+		},
+		expectedErrors: binding.Errors{},
+	},
+	{
+		description: "Reference name has allowed special characters",
+		data: TestForm{
+			BranchName: "debian/1%1.6.0-2",
 		},
 		expectedErrors: binding.Errors{},
 	},
@@ -120,6 +127,123 @@ var gitRefNameValidationTestCases = []validationTestCase{
 		description: "Reference name contains multiple consecutive slashes",
 		data: TestForm{
 			BranchName: "te//st",
+		},
+		expectedErrors: binding.Errors{
+			binding.Error{
+				FieldNames:     []string{"BranchName"},
+				Classification: ErrGitRefName,
+				Message:        "GitRefName",
+			},
+		},
+	},
+	{
+		description: "Reference name is single @",
+		data: TestForm{
+			BranchName: "@",
+		},
+		expectedErrors: binding.Errors{
+			binding.Error{
+				FieldNames:     []string{"BranchName"},
+				Classification: ErrGitRefName,
+				Message:        "GitRefName",
+			},
+		},
+	},
+	{
+		description: "Reference name has @{",
+		data: TestForm{
+			BranchName: "branch@{",
+		},
+		expectedErrors: binding.Errors{
+			binding.Error{
+				FieldNames:     []string{"BranchName"},
+				Classification: ErrGitRefName,
+				Message:        "GitRefName",
+			},
+		},
+	},
+	{
+		description: "Reference name has unallowed special character ~",
+		data: TestForm{
+			BranchName: "~debian/1%1.6.0-2",
+		},
+		expectedErrors: binding.Errors{
+			binding.Error{
+				FieldNames:     []string{"BranchName"},
+				Classification: ErrGitRefName,
+				Message:        "GitRefName",
+			},
+		},
+	},
+	{
+		description: "Reference name has unallowed special character *",
+		data: TestForm{
+			BranchName: "*debian/1%1.6.0-2",
+		},
+		expectedErrors: binding.Errors{
+			binding.Error{
+				FieldNames:     []string{"BranchName"},
+				Classification: ErrGitRefName,
+				Message:        "GitRefName",
+			},
+		},
+	},
+	{
+		description: "Reference name has unallowed special character ?",
+		data: TestForm{
+			BranchName: "?debian/1%1.6.0-2",
+		},
+		expectedErrors: binding.Errors{
+			binding.Error{
+				FieldNames:     []string{"BranchName"},
+				Classification: ErrGitRefName,
+				Message:        "GitRefName",
+			},
+		},
+	},
+	{
+		description: "Reference name has unallowed special character ^",
+		data: TestForm{
+			BranchName: "^debian/1%1.6.0-2",
+		},
+		expectedErrors: binding.Errors{
+			binding.Error{
+				FieldNames:     []string{"BranchName"},
+				Classification: ErrGitRefName,
+				Message:        "GitRefName",
+			},
+		},
+	},
+	{
+		description: "Reference name has unallowed special character :",
+		data: TestForm{
+			BranchName: "debian:jessie",
+		},
+		expectedErrors: binding.Errors{
+			binding.Error{
+				FieldNames:     []string{"BranchName"},
+				Classification: ErrGitRefName,
+				Message:        "GitRefName",
+			},
+		},
+	},
+	{
+		description: "Reference name has unallowed special character (whitespace)",
+		data: TestForm{
+			BranchName: "debian jessie",
+		},
+		expectedErrors: binding.Errors{
+			binding.Error{
+				FieldNames:     []string{"BranchName"},
+				Classification: ErrGitRefName,
+				Message:        "GitRefName",
+			},
+		},
+	},
+	{
+		description: "Reference name has unallowed special character [",
+		data: TestForm{
+			BranchName: "debian[jessie",
 		},
 		expectedErrors: binding.Errors{
 			binding.Error{

@@ -81,5 +81,5 @@ func (m *AlwaysMatch) Accept(int, byte) int {
 	return 0
 }
 
-// creating an alwaysMatchAutomaton to avoid unnecesary repeated allocations.
+// creating an alwaysMatchAutomaton to avoid unnecessary repeated allocations.
 var alwaysMatchAutomaton = &AlwaysMatch{}

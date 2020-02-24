@@ -4,11 +4,16 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<div class="ui mobile reversed stackable grid">
-			<div class="ten wide column">
+			<div class="ui container ten wide column">
 				{{if .EnableHeatmap}}
-					<div class="ui active centered inline indeterminate text loader" id="loading-heatmap">{{.i18n.Tr "user.heatmap.loading"}}</div>
-					<div id="user-heatmap"></div>
-					<div class="ui divider"></div>
+					<div id="user-heatmap" style="padding-right: 40px">
+						<activity-heatmap :locale="locale" :suburl="suburl" :user="heatmapUser">
+							<div slot="loading">
+								<div class="ui active centered inline indeterminate text loader" id="loading-heatmap">{{.i18n.Tr "user.heatmap.loading"}}</div>
+							</div>
+						</activity-heatmap>
+						<div class="ui divider"></div>
+					</div>
 				{{end}}
 				{{template "user/dashboard/feeds" .}}
 			</div>
@@ -39,12 +44,14 @@
 						<div v-show="tab === 'repos'" class="ui tab active list dashboard-repos">
 							<h4 class="ui top attached header">
 								{{.i18n.Tr "home.my_repos"}} <span class="ui grey label">${reposTotalCount}</span>
+								{{if or (not .ContextUser.IsOrganization) .IsOrganizationOwner}}
 								<div class="ui right">
-									<a class="poping up" :href="suburl + '/repo/create'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
+									<a class="poping up" :href="suburl + '/repo/create{{if .ContextUser.IsOrganization}}?org={{.ContextUser.ID}}{{end}}'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
 										<i class="plus icon"></i>
 										<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
 									</a>
 								</div>
+								{{end}}
 							</h4>
 							<div class="ui attached secondary segment repos-search">
 								<div class="ui fluid icon input" :class="{loading: isLoading}">
@@ -78,10 +85,11 @@
 								<ul class="repo-owner-name-list">
 									<li v-for="repo in repos" :class="{'private': repo.private}" v-show="showRepo(repo, reposFilter)">
 										<a :href="suburl + '/' + repo.full_name">
-											<i :class="repoClass(repo)"></i>
+											<svg :class="'svg ' + repoClass(repo)" width="16" height="16" aria-hidden="true"><use :xlink:href="'#' + repoClass(repo)" /></svg>
 											<strong class="text truncate item-name">${repo.full_name}</strong>
+											<i v-if="repo.archived" class="archive icon archived-icon"></i>
 											<span class="ui right text light grey">
-												${repo.stars_count} <i class="octicon octicon-star rear"></i>
+												${repo.stars_count} <span class="rear">{{svg "octicon-star" 16}}</span>
 											</span>
 										</a>
 									</li>
@@ -105,10 +113,10 @@
 								<ul class="repo-owner-name-list">
 									<li v-for="org in organizations">
 										<a :href="suburl + '/' + org.name">
-											<i class="octicon octicon-organization"></i>
+											{{svg "octicon-organization" 16}}
 											<strong class="text truncate item-name">${org.name}</strong>
 											<span class="ui right text light grey">
-												${org.num_repos} <i class="octicon octicon-repo rear"></i>
+												${org.num_repos} <span class="rear">{{svg "octicon-repo" 16}}</span>
 											</span>
 										</a>
 									</li>

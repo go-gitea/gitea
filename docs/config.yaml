@@ -6,6 +6,7 @@ theme: gitea
 defaultContentLanguage: en-us
 defaultContentLanguageInSubdir: true
 enableMissingTranslationPlaceholders: true
+enableEmoji: true
 
 permalinks:
   post: /:year/:month/:title/
@@ -17,6 +18,13 @@ params:
   description: Git with a cup of tea
   author: The Gitea Authors
   website: https://docs.gitea.io
+  version: 1.11.0
+
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
 
 menu:
   page:
@@ -50,7 +58,7 @@ menu:
       weight: 60
       pre: github
     - name: Discord Chat
-      url: https://discord.gg/NsatcWJ
+      url: https://discord.gg/Gitea
       weight: 70
       pre: comment
     - name: Forum
@@ -98,7 +106,7 @@ languages:
           weight: 60
           pre: github
         - name: Discord Chat
-          url: https://discord.gg/NsatcWJ
+          url: https://discord.gg/Gitea
           weight: 70
           pre: comment
         - name: Forum
@@ -141,7 +149,7 @@ languages:
           weight: 60
           pre: github
         - name: Discord Chat
-          url: https://discord.gg/NsatcWJ
+          url: https://discord.gg/Gitea
           weight: 70
           pre: comment
         - name: Forum
@@ -184,7 +192,7 @@ languages:
           weight: 60
           pre: github
         - name: Chat no Discord
-          url: https://discord.gg/NsatcWJ
+          url: https://discord.gg/Gitea
           weight: 70
           pre: comment
         - name: Forum
@@ -227,7 +235,7 @@ languages:
           weight: 60
           pre: github
         - name: Discord Chat
-          url: https://discord.gg/NsatcWJ
+          url: https://discord.gg/Gitea
           weight: 70
           pre: comment
         - name: Forum
@@ -270,7 +278,7 @@ languages:
           weight: 60
           pre: github
         - name: Discord Chat
-          url: https://discord.gg/NsatcWJ
+          url: https://discord.gg/Gitea
           weight: 70
           pre: comment
         - name: Forum

@@ -12,6 +12,7 @@ _test
 
 # MS VSCode
 .vscode
+__debug_bin
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -33,8 +34,11 @@ _testmain.go
 coverage.all
 
 /modules/options/bindata.go
+/modules/options/bindata.go.hash
 /modules/public/bindata.go
+/modules/public/bindata.go.hash
 /modules/templates/bindata.go
+/modules/templates/bindata.go.hash
 
 *.db
 *.log
@@ -45,21 +49,35 @@ coverage.all
 
 /bin
 /dist
-/custom
+/custom/*
+!/custom/conf
+/custom/conf/*
+!/custom/conf/app.ini.sample
 /data
 /indexers
 /log
 /public/img/avatar
 /integrations/gitea-integration-mysql
+/integrations/gitea-integration-mysql8
 /integrations/gitea-integration-pgsql
 /integrations/gitea-integration-sqlite
+/integrations/gitea-integration-mssql
 /integrations/indexers-mysql
+/integrations/indexers-mysql8
 /integrations/indexers-pgsql
 /integrations/indexers-sqlite
+/integrations/indexers-mssql
 /integrations/mysql.ini
+/integrations/mysql8.ini
 /integrations/pgsql.ini
+/integrations/mssql.ini
 /node_modules
-
+/yarn.lock
+/public/js
+/public/css
+/public/fomantic
+/public/img/svg
+/VERSION
 
 # Snapcraft
 snap/.snapcraft/
@@ -69,3 +87,7 @@ prime/
 *.snap
 *.snap-build
 *_source.tar.bz2
+.DS_Store
+
+# Make evidence files
+/.make_evidence

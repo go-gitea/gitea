@@ -207,3 +207,18 @@
   id: 42
   team_id: 6
   type: 7
+
+-
+  id: 43
+  team_id: 7
+  type: 2 # issues
+
+-
+  id: 44
+  team_id: 8
+  type: 2 # issues
+
+-
+  id: 45
+  team_id: 9
+  type: 1 # code

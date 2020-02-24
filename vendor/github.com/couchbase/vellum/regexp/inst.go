@@ -27,7 +27,7 @@ const (
 	OpRange
 )
 
-// instSize is the approxmiate size of the an inst struct in bytes
+// instSize is the approximate size of the an inst struct in bytes
 const instSize = 40
 
 type inst struct {

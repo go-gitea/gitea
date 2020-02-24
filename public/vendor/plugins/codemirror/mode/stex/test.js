@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function() {
   var mode = CodeMirror.getMode({tabSize: 4}, "stex");
@@ -111,8 +111,17 @@
   MT("inlineMath",
      "[keyword $][number 3][variable-2 x][tag ^][number 2.45]-[tag \\sqrt][bracket {][tag \\$\\alpha][bracket }] = [number 2][keyword $] other text");
 
+  MT("inlineMathLatexStyle",
+     "[keyword \\(][number 3][variable-2 x][tag ^][number 2.45]-[tag \\sqrt][bracket {][tag \\$\\alpha][bracket }] = [number 2][keyword \\)] other text");
+
   MT("displayMath",
      "More [keyword $$]\t[variable-2 S][tag ^][variable-2 n][tag \\sum] [variable-2 i][keyword $$] other text");
+
+  MT("displayMath environment",
+     "[tag \\begin][bracket {][atom equation][bracket }] x [tag \\end][bracket {][atom equation][bracket }] other text");
+
+  MT("displayMath environment with label",
+     "[tag \\begin][bracket {][atom equation][bracket }][tag \\label][bracket {][atom eq1][bracket }] x [tag \\end][bracket {][atom equation][bracket }] other text~[tag \\ref][bracket {][atom eq1][bracket }]");
 
   MT("mathWithComment",
      "[keyword $][variable-2 x] [comment % $]",

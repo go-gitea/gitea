@@ -74,7 +74,7 @@ func TestGetCurrentReview(t *testing.T) {
 	assert.Equal(t, ReviewTypePending, review.Type)
 	assert.Equal(t, "Pending Review", review.Content)
 
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 7}).(*User)
 	review2, err := GetCurrentReview(user2, issue)
 	assert.Error(t, err)
 	assert.True(t, IsErrReviewNotExist(err))
@@ -98,10 +98,37 @@ func TestCreateReview(t *testing.T) {
 	AssertExistsAndLoadBean(t, &Review{Content: "New Review"})
 }
 
-func TestUpdateReview(t *testing.T) {
+func TestGetReviewersByIssueID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	review := AssertExistsAndLoadBean(t, &Review{ID: 1}).(*Review)
-	review.Content = "Updated Review"
-	assert.NoError(t, UpdateReview(review))
-	AssertExistsAndLoadBean(t, &Review{ID: 1, Content: "Updated Review"})
+
+	issue := AssertExistsAndLoadBean(t, &Issue{ID: 3}).(*Issue)
+	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user3 := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+
+	expectedReviews := []*Review{}
+	expectedReviews = append(expectedReviews,
+		&Review{
+			Reviewer:    user3,
+			Type:        ReviewTypeReject,
+			UpdatedUnix: 946684812,
+		},
+		&Review{
+			Reviewer:    user4,
+			Type:        ReviewTypeApprove,
+			UpdatedUnix: 946684813,
+		},
+		&Review{
+			Reviewer:    user2,
+			Type:        ReviewTypeReject,
+			UpdatedUnix: 946684814,
+		})
+
+	allReviews, err := GetReviewersByIssueID(issue.ID)
+	assert.NoError(t, err)
+	for i, review := range allReviews {
+		assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
+		assert.Equal(t, expectedReviews[i].Type, review.Type)
+		assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
+	}
 }

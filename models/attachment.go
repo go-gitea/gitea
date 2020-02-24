@@ -7,16 +7,15 @@ package models
 import (
 	"fmt"
 	"io"
-	"mime/multipart"
 	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
+	"xorm.io/xorm"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -25,11 +24,12 @@ type Attachment struct {
 	UUID          string `xorm:"uuid UNIQUE"`
 	IssueID       int64  `xorm:"INDEX"`
 	ReleaseID     int64  `xorm:"INDEX"`
+	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID     int64
 	Name          string
-	DownloadCount int64          `xorm:"DEFAULT 0"`
-	Size          int64          `xorm:"DEFAULT 0"`
-	CreatedUnix   util.TimeStamp `xorm:"created"`
+	DownloadCount int64              `xorm:"DEFAULT 0"`
+	Size          int64              `xorm:"DEFAULT 0"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 }
 
 // IncreaseDownloadCount is update download count + 1
@@ -71,12 +71,33 @@ func (a *Attachment) DownloadURL() string {
 	return fmt.Sprintf("%sattachments/%s", setting.AppURL, a.UUID)
 }
 
-// NewAttachment creates a new attachment object.
-func NewAttachment(name string, buf []byte, file multipart.File) (_ *Attachment, err error) {
-	attach := &Attachment{
-		UUID: gouuid.NewV4().String(),
-		Name: name,
+// LinkedRepository returns the linked repo if any
+func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
+	if a.IssueID != 0 {
+		iss, err := GetIssueByID(a.IssueID)
+		if err != nil {
+			return nil, UnitTypeIssues, err
+		}
+		repo, err := GetRepositoryByID(iss.RepoID)
+		unitType := UnitTypeIssues
+		if iss.IsPull {
+			unitType = UnitTypePullRequests
+		}
+		return repo, unitType, err
+	} else if a.ReleaseID != 0 {
+		rel, err := GetReleaseByID(a.ReleaseID)
+		if err != nil {
+			return nil, UnitTypeReleases, err
+		}
+		repo, err := GetRepositoryByID(rel.RepoID)
+		return repo, UnitTypeReleases, err
 	}
+	return nil, -1, nil
+}
+
+// NewAttachment creates a new attachment object.
+func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
+	attach.UUID = gouuid.NewV4().String()
 
 	localPath := attach.LocalPath()
 	if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
@@ -136,6 +157,11 @@ func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 	return attach, nil
 }
 
+// GetAttachmentsByUUIDs returns attachment by given UUID list.
+func GetAttachmentsByUUIDs(uuids []string) ([]*Attachment, error) {
+	return getAttachmentsByUUIDs(x, uuids)
+}
+
 func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {
 	if len(uuids) == 0 {
 		return []*Attachment{}, nil
@@ -149,6 +175,11 @@ func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {
 // GetAttachmentByUUID returns attachment by given UUID.
 func GetAttachmentByUUID(uuid string) (*Attachment, error) {
 	return getAttachmentByUUID(x, uuid)
+}
+
+// GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
+func GetAttachmentByReleaseIDFileName(releaseID int64, fileName string) (*Attachment, error) {
+	return getAttachmentByReleaseIDFileName(x, releaseID, fileName)
 }
 
 func getAttachmentsByIssueID(e Engine, issueID int64) ([]*Attachment, error) {
@@ -169,6 +200,18 @@ func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
 func getAttachmentsByCommentID(e Engine, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, x.Where("comment_id=?", commentID).Find(&attachments)
+}
+
+// getAttachmentByReleaseIDFileName return a file based on the the following infos:
+func getAttachmentByReleaseIDFileName(e Engine, releaseID int64, fileName string) (*Attachment, error) {
+	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
+	has, err := e.Get(attach)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, err
+	}
+	return attach, nil
 }
 
 // DeleteAttachment deletes the given attachment and optionally the associated file.
@@ -239,5 +282,11 @@ func updateAttachment(e Engine, atta *Attachment) error {
 		sess = e.Where("uuid = ?", atta.UUID)
 	}
 	_, err := sess.Cols("name", "issue_id", "release_id", "comment_id", "download_count").Update(atta)
+	return err
+}
+
+// DeleteAttachmentsByRelease deletes all attachments associated with the given release.
+func DeleteAttachmentsByRelease(releaseID int64) error {
+	_, err := x.Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
 }

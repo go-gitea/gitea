@@ -47,7 +47,7 @@
 					{{end}}
 					{{if or ((not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)))}}
 						<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-							<i class="octicon octicon-clippy"></i>
+							{{svg "octicon-clippy" 16}}
 						</button>
 					{{end}}
 				</div>
@@ -56,6 +56,7 @@
 		<div class="ui dividing header">
 			<div class="ui stackable grid">
 				<div class="eight wide column">
+					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}/_revision" ><span>{{.CommitCount}}</span> <i class="fa fa-fw fa-history"></i></a>
 					{{$title}}
 					<div class="ui sub header">
 						{{$timeSince := TimeSince .Author.When $.Lang}}
@@ -63,7 +64,7 @@
 					</div>
 				</div>
 				<div class="eight wide right aligned column">
-					{{if and .IsRepositoryWriter (not .Repository.IsMirror)}}
+					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<div class="ui right">
 							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}/_edit">{{.i18n.Tr "repo.wiki.edit_page_button"}}</a>
 							<a class="ui green small button" href="{{.RepoLink}}/wiki/_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>

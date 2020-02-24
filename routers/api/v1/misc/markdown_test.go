@@ -10,12 +10,12 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-macaron/inject"
+	"gitea.com/macaron/inject"
+	"gitea.com/macaron/macaron"
 	"github.com/stretchr/testify/assert"
-	macaron "gopkg.in/macaron.v1"
 )
 
 const AppURL = "http://localhost:3000/"
@@ -27,7 +27,7 @@ func createContext(req *http.Request) (*macaron.Context, *httptest.ResponseRecor
 	c := &macaron.Context{
 		Injector: inject.New(),
 		Req:      macaron.Request{Request: req},
-		Resp:     macaron.NewResponseWriter(resp),
+		Resp:     macaron.NewResponseWriter(req.Method, resp),
 		Render:   &macaron.DummyRender{ResponseWriter: resp},
 		Data:     make(map[string]interface{}),
 	}
@@ -69,7 +69,6 @@ func TestAPI_RenderGFM(t *testing.T) {
 - Bezier widget (by @r-lyeh) https://github.com/ocornut/imgui/issues/786`,
 		// rendered
 		`<p>Wiki! Enjoy :)</p>
-
 <ul>
 <li><a href="` + AppSubURL + `wiki/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="` + AppSubURL + `wiki/Tips" rel="nofollow">Tips</a></li>
@@ -87,14 +86,10 @@ Here are some links to the most important topics. You can find the full list of 
 [[images/icon-bug.png]]
 `,
 		// rendered
-		`<h2>What is Wine Staging?</h2>
-
+		`<h2 id="user-content-what-is-wine-staging">What is Wine Staging?</h2>
 <p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
-
-<h2>Quick Links</h2>
-
+<h2 id="user-content-quick-links">Quick Links</h2>
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
-
 <p><a href="` + AppSubURL + `wiki/Configuration" rel="nofollow">Configuration</a>
 <a href="` + AppSubURL + `wiki/raw/images/icon-bug.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
 `,
