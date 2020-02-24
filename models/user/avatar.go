@@ -64,6 +64,11 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 		return avatars.DefaultAvatarLink()
 	}
 
+	// return traQ avatar if u is individual
+	if !u.IsOrganization() {
+		return "https://q.trap.jp/api/v3/public/icon/" + u.Name
+	}
+
 	useLocalAvatar := false
 	autoGenerateAvatar := false
 
