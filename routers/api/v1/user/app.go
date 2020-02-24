@@ -201,6 +201,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 	apiApps := make([]*api.OAuth2Application, len(apps))
 	for i := range apps {
 		apiApps[i] = convert.ToOAuth2Application(apps[i])
+		apiApps[i].ClientSecret = "" // Hide secret on application list
 	}
 	ctx.JSON(http.StatusOK, &apiApps)
 }
