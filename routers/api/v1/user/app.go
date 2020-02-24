@@ -169,9 +169,74 @@ func CreateOauth2Application(ctx *context.APIContext, data api.CreateOAuth2Appli
 	app.ClientSecret = secret
 
 	ctx.JSON(http.StatusCreated, api.OAuth2Application{
+		ID:           app.ID,
 		Name:         app.Name,
 		ClientID:     app.ClientID,
 		ClientSecret: app.ClientSecret,
 		RedirectURIs: app.RedirectURIs,
 	})
+}
+
+// ListOauth2Applications list all the Oauth2 application
+func ListOauth2Applications(ctx *context.APIContext) {
+	// swagger:operation GET /user/applications/oauth2 user userGetOauth2Application
+	// ---
+	// summary: List the authenticated user's oauth2 applications
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/OAuth2ApplicationList"
+
+	apps, err := models.ListOAuth2Applications(ctx.User.ID, utils.GetListOptions(ctx))
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ListOAuth2Applications", err)
+		return
+	}
+
+	apiApps := make([]*api.OAuth2Application, len(apps))
+	for i := range apps {
+		apiApps[i] = &api.OAuth2Application{
+			ID:           apps[i].ID,
+			Name:         apps[i].Name,
+			ClientID:     apps[i].ClientID,
+			RedirectURIs: apps[i].RedirectURIs,
+		}
+	}
+	ctx.JSON(http.StatusOK, &apiApps)
+}
+
+// DeleteOauth2Application delete OAuth2 Application
+func DeleteOauth2Application(ctx *context.APIContext) {
+	// swagger:operation DELETE /user/applications/oauth2/{id} user userDeleteOAuth2Application
+	// ---
+	// summary: delete an OAuth2 Application
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: token to be deleted
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	appID := ctx.ParamsInt64(":id")
+	if err := models.DeleteOAuth2Application(appID, ctx.User.ID); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteOauth2ApplicationByID", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }

@@ -577,7 +577,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Delete(user.DeletePublicKey)
 			})
 			m.Group("/applications", func() {
-				m.Post("/oauth2", bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application)
+				m.Combo("/oauth2").
+					Get(user.ListOauth2Applications).
+					Post(bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application)
+				m.Delete("/oauth2/:id", user.DeleteOauth2Application)
 			}, reqToken())
 
 			m.Group("/gpg_keys", func() {
