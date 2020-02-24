@@ -12,7 +12,9 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/trap"
 	user_model "code.gitea.io/gitea/models/user"
+	git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
@@ -319,6 +321,8 @@ func (a *actionNotifier) NotifyPushCommits(ctx context.Context, pusher *user_mod
 	}
 
 	opType := activities_model.ActionCommitRepo
+
+	trap.ShowcasePushEvent(repo.MustOwner(ctx).Name, repo.Name, git.RefEndName(opts.RefFullName))
 
 	// Check it's tag push or branch.
 	if opts.IsTag() {
