@@ -1,0 +1,32 @@
+name: Push Docker Image
+
+on:
+  push:
+    branches:
+      - traP
+      - traP-*
+
+env:
+  IMAGE_NAME: gitea
+
+jobs:
+  image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set IMAGE_TAG env (non traP branch)
+        run: echo ::set-env name=IMAGE_TAG::$(echo ${GITHUB_REF:11})
+        if: github.ref != 'refs/heads/traP'
+      - name: Set IMAGE_TAG env (traP branch)
+        run: echo ::set-env name=IMAGE_TAG::latest
+        if: github.ref == 'refs/heads/traP'
+      - name: Set DRONE_TAG env (non traP branch)
+        run: echo ::set-env name=DRONE_TAG::$(echo ${GITHUB_REF:11})
+        if: github.ref != 'refs/heads/traP'
+      - uses: actions/checkout@v2
+      - name: Login GitHub Registry
+        run: docker login docker.pkg.github.com -u traPtitech -p ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Image
+        run: docker build -t docker.pkg.github.com/traptitech/gitea/${IMAGE_NAME}:${IMAGE_TAG} .
+      - name: Push image to GitHub Registry
+        run: docker push docker.pkg.github.com/traptitech/gitea/${IMAGE_NAME}:${IMAGE_TAG}
