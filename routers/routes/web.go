@@ -309,13 +309,6 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
-	openIDSignUpEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignUp {
-			ctx.Error(403)
-			return
-		}
-	}
-
 	reqMilestonesDashboardPageEnabled := func(ctx *context.Context) {
 		if !setting.Service.ShowMilestonesDashboardPage {
 			ctx.Error(403)
@@ -351,44 +344,7 @@ func RegisterRoutes(m *web.Route) {
 
 	// ***** START: User *****
 	m.Group("/user", func() {
-		m.Get("/login", user.SignIn)
-		m.Post("/login", bindIgnErr(auth.SignInForm{}), user.SignInPost)
-		m.Group("", func() {
-			m.Combo("/login/openid").
-				Get(user.SignInOpenID).
-				Post(bindIgnErr(auth.SignInOpenIDForm{}), user.SignInOpenIDPost)
-		}, openIDSignInEnabled)
-		m.Group("/openid", func() {
-			m.Combo("/connect").
-				Get(user.ConnectOpenID).
-				Post(bindIgnErr(auth.ConnectOpenIDForm{}), user.ConnectOpenIDPost)
-			m.Group("/register", func() {
-				m.Combo("").
-					Get(user.RegisterOpenID, openIDSignUpEnabled).
-					Post(bindIgnErr(auth.SignUpOpenIDForm{}), user.RegisterOpenIDPost)
-			}, openIDSignUpEnabled)
-		}, openIDSignInEnabled)
-		m.Get("/sign_up", user.SignUp)
-		m.Post("/sign_up", bindIgnErr(auth.RegisterForm{}), user.SignUpPost)
-		m.Group("/oauth2", func() {
-			m.Get("/{provider}", user.SignInOAuth)
-			m.Get("/{provider}/callback", user.SignInOAuthCallback)
-		})
-		m.Get("/link_account", user.LinkAccount)
-		m.Post("/link_account_signin", bindIgnErr(auth.SignInForm{}), user.LinkAccountPostSignIn)
-		m.Post("/link_account_signup", bindIgnErr(auth.RegisterForm{}), user.LinkAccountPostRegister)
-		m.Group("/two_factor", func() {
-			m.Get("", user.TwoFactor)
-			m.Post("", bindIgnErr(auth.TwoFactorAuthForm{}), user.TwoFactorPost)
-			m.Get("/scratch", user.TwoFactorScratch)
-			m.Post("/scratch", bindIgnErr(auth.TwoFactorScratchAuthForm{}), user.TwoFactorScratchPost)
-		})
-		m.Group("/u2f", func() {
-			m.Get("", user.U2F)
-			m.Get("/challenge", user.U2FChallenge)
-			m.Post("/sign", bindIgnErr(u2f.SignResponse{}), user.U2FSign)
-
-		})
+		m.Get("/login", user.TrapSignIn)
 	}, reqSignOut)
 
 	m.Any("/user/events", events.Events)
