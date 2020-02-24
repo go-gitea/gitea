@@ -314,8 +314,9 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 
 	// Add initial creator to organization and owner team.
 	if err = db.Insert(ctx, &OrgUser{
-		UID:   owner.ID,
-		OrgID: org.ID,
+		UID:      owner.ID,
+		OrgID:    org.ID,
+		IsPublic: true,
 	}); err != nil {
 		return fmt.Errorf("insert org-user relation: %w", err)
 	}
