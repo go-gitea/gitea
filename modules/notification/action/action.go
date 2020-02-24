@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
@@ -304,6 +305,8 @@ func (a *actionNotifier) NotifyPushCommits(pusher *models.User, repo *models.Rep
 	}
 
 	opType := models.ActionCommitRepo
+
+	models.ShowcasePushEvent(repo.MustOwner().Name, repo.Name, git.RefEndName(opts.RefFullName))
 
 	// Check it's tag push or branch.
 	if opts.IsTag() {

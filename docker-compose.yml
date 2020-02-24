@@ -12,6 +12,7 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
       DB_DATABASE: gitea
+      SHOWCASE_TRAP_TOKEN:
     ports:
       - "3000:3000"
       - "20:20"
