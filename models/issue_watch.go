@@ -81,7 +81,7 @@ func GetIssueWatchers(issueID int64, listOptions ListOptions) (IssueWatchList, e
 	return getIssueWatchers(x, issueID, listOptions)
 }
 
-func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (watches IssueWatchList, err error) {
+func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWatchList, error) {
 	sess := e.
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`issue_watch`.is_watching = ?", true).
@@ -89,11 +89,13 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (watches
 		And("`user`.prohibit_login = ?", false).
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id")
 
-	if listOptions.Page == 0 {
+	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
+		watches := make([]*IssueWatch, 0, listOptions.PageSize)
+		return watches, sess.Find(&watches)
 	}
-	err = sess.Find(&watches)
-	return
+	watches := make([]*IssueWatch, 0, 8)
+	return watches, sess.Find(&watches)
 }
 
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
