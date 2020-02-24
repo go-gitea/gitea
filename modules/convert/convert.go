@@ -397,5 +397,6 @@ func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
 		ClientID:     app.ClientID,
 		ClientSecret: app.ClientSecret,
 		RedirectURIs: app.RedirectURIs,
+		Created:      app.CreatedUnix.AsTime(),
 	}
 }
