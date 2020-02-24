@@ -38,7 +38,6 @@ import (
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
-	"code.gitea.io/gitea/routers/web/user/setting/security"
 	auth_service "code.gitea.io/gitea/services/auth"
 	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -366,26 +365,6 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/language", web.Bind(forms.UpdateLanguageForm{}), user_setting.UpdateUserLang)
 			m.Post("/hidden_comments", user_setting.UpdateUserHiddenComments)
 			m.Post("/theme", web.Bind(forms.UpdateThemeForm{}), user_setting.UpdateUIThemePost)
-		})
-		m.Group("/security", func() {
-			m.Get("", security.Security)
-			m.Group("/two_factor", func() {
-				m.Post("/regenerate_scratch", security.RegenerateScratchTwoFactor)
-				m.Post("/disable", security.DisableTwoFactor)
-				m.Get("/enroll", security.EnrollTwoFactor)
-				m.Post("/enroll", web.Bind(forms.TwoFactorAuthForm{}), security.EnrollTwoFactorPost)
-			})
-			m.Group("/webauthn", func() {
-				m.Post("/request_register", web.Bind(forms.WebauthnRegistrationForm{}), security.WebAuthnRegister)
-				m.Post("/register", security.WebauthnRegisterPost)
-				m.Post("/delete", web.Bind(forms.WebauthnDeleteForm{}), security.WebauthnDelete)
-			})
-			m.Group("/openid", func() {
-				m.Post("", web.Bind(forms.AddOpenIDForm{}), security.OpenIDPost)
-				m.Post("/delete", security.DeleteOpenID)
-				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
-			}, openIDSignInEnabled)
-			m.Post("/account_link", linkAccountEnabled, security.DeleteAccountLink)
 		})
 		m.Group("/applications/oauth2", func() {
 			m.Get("/{id}", user_setting.OAuth2ApplicationShow)
