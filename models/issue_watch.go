@@ -70,6 +70,7 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 func GetIssueWatchersIDs(issueID int64) ([]int64, error) {
 	return getIssueWatchersIDs(x, issueID, true)
 }
+
 func getIssueWatchersIDs(e Engine, issueID int64, watching bool) ([]int64, error) {
 	ids := make([]int64, 0, 64)
 	return ids, x.Table("issue_watch").
