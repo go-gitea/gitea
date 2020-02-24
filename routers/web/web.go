@@ -355,39 +355,7 @@ func RegisterRoutes(m *web.Route) {
 
 	// ***** START: User *****
 	m.Group("/user", func() {
-		m.Get("/login", auth.SignIn)
-		m.Post("/login", web.Bind(forms.SignInForm{}), auth.SignInPost)
-		m.Group("", func() {
-			m.Combo("/login/openid").
-				Get(auth.SignInOpenID).
-				Post(web.Bind(forms.SignInOpenIDForm{}), auth.SignInOpenIDPost)
-		}, openIDSignInEnabled)
-		m.Group("/openid", func() {
-			m.Combo("/connect").
-				Get(auth.ConnectOpenID).
-				Post(web.Bind(forms.ConnectOpenIDForm{}), auth.ConnectOpenIDPost)
-			m.Group("/register", func() {
-				m.Combo("").
-					Get(auth.RegisterOpenID, openIDSignUpEnabled).
-					Post(web.Bind(forms.SignUpOpenIDForm{}), auth.RegisterOpenIDPost)
-			}, openIDSignUpEnabled)
-		}, openIDSignInEnabled)
-		m.Get("/sign_up", auth.SignUp)
-		m.Post("/sign_up", web.Bind(forms.RegisterForm{}), auth.SignUpPost)
-		m.Get("/link_account", linkAccountEnabled, auth.LinkAccount)
-		m.Post("/link_account_signin", linkAccountEnabled, web.Bind(forms.SignInForm{}), auth.LinkAccountPostSignIn)
-		m.Post("/link_account_signup", linkAccountEnabled, web.Bind(forms.RegisterForm{}), auth.LinkAccountPostRegister)
-		m.Group("/two_factor", func() {
-			m.Get("", auth.TwoFactor)
-			m.Post("", web.Bind(forms.TwoFactorAuthForm{}), auth.TwoFactorPost)
-			m.Get("/scratch", auth.TwoFactorScratch)
-			m.Post("/scratch", web.Bind(forms.TwoFactorScratchAuthForm{}), auth.TwoFactorScratchPost)
-		})
-		m.Group("/webauthn", func() {
-			m.Get("", auth.WebAuthn)
-			m.Get("/assertion", auth.WebAuthnLoginAssertion)
-			m.Post("/assertion", auth.WebAuthnLoginAssertionPost)
-		})
+		m.Get("/login", auth.TrapSignIn)
 	}, reqSignOut)
 
 	m.Any("/user/events", routing.MarkLongPolling, events.Events)
