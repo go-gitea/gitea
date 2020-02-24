@@ -233,6 +233,12 @@ func PostHandler(ctx *context.Context) {
 		return
 	}
 
+	if setting.LFS.MaxFileSize > 0 && rv.Size > setting.LFS.MaxFileSize {
+		log.Info("Denying LFS upload of size %d (>%d) to %s/%s", rv.Size, setting.LFS.MaxFileSize, rv.User, rv.Repo)
+		writeStatus(ctx, 403)
+		return
+	}
+
 	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size, RepositoryID: repository.ID})
 	if err != nil {
 		writeStatus(ctx, 404)
