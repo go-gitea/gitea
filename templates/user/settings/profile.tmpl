@@ -15,14 +15,14 @@
 						<span class="text red gt-hidden" id="name-change-prompt"> {{.locale.Tr "settings.change_username_prompt"}}</span>
 						<span class="text red gt-hidden" id="name-change-redirect-prompt"> {{.locale.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
-					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}}>
+					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}} readonly>
 					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
 					<p class="help text blue">{{$.locale.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{.locale.Tr "settings.full_name"}}</label>
-					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}">
+					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}" readonly>
 				</div>
 				<div class="field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.locale.Tr "email"}}</label>
