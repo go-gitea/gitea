@@ -186,6 +186,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	if _, err = sess.Insert(&OrgUser{
 		UID:   owner.ID,
 		OrgID: org.ID,
+		IsPublic: true,
 	}); err != nil {
 		return fmt.Errorf("insert org-user relation: %v", err)
 	}
