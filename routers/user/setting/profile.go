@@ -83,13 +83,15 @@ func ProfilePost(ctx *context.Context) {
 		return
 	}
 
-	if len(form.Name) != 0 && ctx.User.Name != form.Name {
-		if err := HandleUsernameChange(ctx, ctx.User, form.Name); err != nil {
-			ctx.Redirect(setting.AppSubURL + "/user/settings")
-			return
-		}
-		ctx.User.Name = form.Name
-		ctx.User.LowerName = strings.ToLower(form.Name)
+	if ctx.User.Name != form.Name || ctx.User.FullName != form.FullName {
+		ctx.Flash.Error("Changing email, username or fullname is prohibited")
+		ctx.Redirect(setting.AppSubURL + "/user/settings")
+		return
+	}
+
+	handleUsernameChange(ctx, form.Name)
+	if ctx.Written() {
+		return
 	}
 
 	ctx.User.FullName = form.FullName
