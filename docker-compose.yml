@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+
+  gitea:
+    build: .
+    volumes:
+      - gitea-volume:/data
+    environment:
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: gitea
+    ports:
+      - "3000:3000"
+      - "20:20"
+    depends_on:
+      - mysql
+    restart: always
+
+  mysql:
+    image: mariadb:10.3.9
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: gitea
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    expose:
+      - 3306
+
+volumes:
+  gitea-volume:
