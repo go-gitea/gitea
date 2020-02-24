@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,13 +32,13 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 16,
 			commitRepoActionOptions: CommitRepoActionOptions{
-				PushUpdateOptions: PushUpdateOptions{
+				PushUpdateOptions: repo_module.PushUpdateOptions{
 					RefFullName: "refName",
 					OldCommitID: "oldCommitID",
 					NewCommitID: "newCommitID",
 				},
-				Commits: &repository.PushCommits{
-					Commits: []*repository.PushCommit{
+				Commits: &repo_module.PushCommits{
+					Commits: []*repo_module.PushCommit{
 						{
 							Sha1:           "69554a6",
 							CommitterEmail: "user2@example.com",
@@ -68,12 +68,12 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 1,
 			commitRepoActionOptions: CommitRepoActionOptions{
-				PushUpdateOptions: PushUpdateOptions{
+				PushUpdateOptions: repo_module.PushUpdateOptions{
 					RefFullName: git.TagPrefix + "v1.1",
 					OldCommitID: git.EmptySHA,
 					NewCommitID: "newCommitID",
 				},
-				Commits: &repository.PushCommits{},
+				Commits: &repo_module.PushCommits{},
 			},
 			action: models.Action{
 				OpType:  models.ActionPushTag,
@@ -84,12 +84,12 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 1,
 			commitRepoActionOptions: CommitRepoActionOptions{
-				PushUpdateOptions: PushUpdateOptions{
+				PushUpdateOptions: repo_module.PushUpdateOptions{
 					RefFullName: git.TagPrefix + "v1.1",
 					OldCommitID: "oldCommitID",
 					NewCommitID: git.EmptySHA,
 				},
-				Commits: &repository.PushCommits{},
+				Commits: &repo_module.PushCommits{},
 			},
 			action: models.Action{
 				OpType:  models.ActionDeleteTag,
@@ -100,12 +100,12 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 1,
 			commitRepoActionOptions: CommitRepoActionOptions{
-				PushUpdateOptions: PushUpdateOptions{
+				PushUpdateOptions: repo_module.PushUpdateOptions{
 					RefFullName: git.BranchPrefix + "feature/1",
 					OldCommitID: "oldCommitID",
 					NewCommitID: git.EmptySHA,
 				},
-				Commits: &repository.PushCommits{},
+				Commits: &repo_module.PushCommits{},
 			},
 			action: models.Action{
 				OpType:  models.ActionDeleteBranch,
@@ -136,7 +136,7 @@ func TestCommitRepoAction(t *testing.T) {
 
 func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
-	pushCommits := []*repository.PushCommit{
+	pushCommits := []*repo_module.PushCommit{
 		{
 			Sha1:           "abcdef1",
 			CommitterEmail: "user2@example.com",
@@ -183,7 +183,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	models.CheckConsistencyFor(t, &models.Action{})
 
 	// Test that push to a non-default branch closes no issue.
-	pushCommits = []*repository.PushCommit{
+	pushCommits = []*repo_module.PushCommit{
 		{
 			Sha1:           "abcdef1",
 			CommitterEmail: "user2@example.com",
@@ -212,7 +212,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 
 func TestUpdateIssuesCommit_Colon(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
-	pushCommits := []*repository.PushCommit{
+	pushCommits := []*repo_module.PushCommit{
 		{
 			Sha1:           "abcdef2",
 			CommitterEmail: "user2@example.com",
@@ -240,7 +240,7 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	// Test that push to a non-default branch closes an issue.
-	pushCommits := []*repository.PushCommit{
+	pushCommits := []*repo_module.PushCommit{
 		{
 			Sha1:           "abcdef1",
 			CommitterEmail: "user2@example.com",
@@ -275,7 +275,7 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 
 	// Test that a push to default branch closes issue in another repo
 	// If the user also has push permissions to that repo
-	pushCommits := []*repository.PushCommit{
+	pushCommits := []*repo_module.PushCommit{
 		{
 			Sha1:           "abcdef1",
 			CommitterEmail: "user2@example.com",
@@ -310,7 +310,7 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 
 	// Test that a push with close reference *can not* close issue
 	// If the commiter doesn't have push rights in that repo
-	pushCommits := []*repository.PushCommit{
+	pushCommits := []*repo_module.PushCommit{
 		{
 			Sha1:           "abcdef3",
 			CommitterEmail: "user10@example.com",
