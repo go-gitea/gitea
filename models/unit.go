@@ -80,7 +80,6 @@ var (
 		UnitTypeIssues,
 		UnitTypePullRequests,
 		UnitTypeReleases,
-		UnitTypeWiki,
 		UnitTypeProjects,
 	}
 
