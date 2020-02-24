@@ -150,7 +150,7 @@ func CreateOauth2Application(ctx *context.APIContext, data api.CreateOAuth2Appli
 	//   schema:
 	//     "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
 	// responses:
-	//   "200":
+	//   "201":
 	//     "$ref": "#/responses/OAuth2Application"
 	app, err := models.CreateOAuth2Application(models.CreateOAuth2ApplicationOptions{
 		Name:         data.Name,
@@ -168,7 +168,7 @@ func CreateOauth2Application(ctx *context.APIContext, data api.CreateOAuth2Appli
 	}
 	app.ClientSecret = secret
 
-	ctx.JSON(http.StatusOK, api.OAuth2Application{
+	ctx.JSON(http.StatusCreated, api.OAuth2Application{
 		Name:         app.Name,
 		ClientID:     app.ClientID,
 		ClientSecret: app.ClientSecret,
