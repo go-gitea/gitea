@@ -13,7 +13,9 @@
     "jquery-migrate": "3.1.0",
     "jquery.are-you-sure": "1.9.0",
     "swagger-ui": "3.25.0",
-    "vue-bar-graph": "1.2.0"
+    "vue": "2.6.11",
+    "vue-bar-graph": "1.2.0",
+    "vue-calendar-heatmap": "0.8.4"
   },
   "devDependencies": {
     "@babel/core": "7.8.4",
