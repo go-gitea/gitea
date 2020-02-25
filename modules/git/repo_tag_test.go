@@ -18,7 +18,7 @@ func TestRepository_GetTags(t *testing.T) {
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	tags, err := bareRepo1.GetTagInfos()
+	tags, err := bareRepo1.GetTagInfos(0, 0)
 	assert.NoError(t, err)
 	assert.Len(t, tags, 1)
 	assert.EqualValues(t, "test", tags[0].Name)
