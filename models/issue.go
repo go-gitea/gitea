@@ -676,6 +676,10 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*C
 		return nil, err
 	}
 
+	if err := issue.updateClosedNum(e); err != nil {
+		return nil, err
+	}
+
 	// New action comment
 	cmtType := CommentTypeClose
 	if !issue.IsClosed {

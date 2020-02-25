@@ -114,6 +114,17 @@ recommended way to build from source is therefore:
 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
+The `build` target is split into two sub-targets:
+
+- `make backend` which requires [Go 1.11](https://golang.org/dl/) or greater.
+- `make frontend` which requires [Node.js 10.0.0](https://nodejs.org/en/download/) or greater.
+
+If pre-built frontend files are present it is possible to only build the backend:
+
+```bash
+TAGS="bindata" make backend
+``
+
 ## Test
 
 After following the steps above, a `gitea` binary will be available in the working directory.
