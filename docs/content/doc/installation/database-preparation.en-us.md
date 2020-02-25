@@ -42,10 +42,10 @@ Note: All steps below requires that the database engine of your choice is instal
 
     ```sql
     SET old_passwords=0;
-    CREATE USER 'gitea'@'12.34.56.78' IDENTIFIED BY 'gitea';
+    CREATE USER 'gitea'@'192.0.2.10' IDENTIFIED BY 'gitea';
     ```
 
-    where `12.34.56.78` is the IP address of your Gitea instance.
+    where `192.0.2.10` is the IP address of your Gitea instance.
 
     Replace username and password above as appropriate.
 
@@ -69,7 +69,7 @@ Note: All steps below requires that the database engine of your choice is instal
     For remote database:
 
     ```sql
-    GRANT ALL PRIVILEGES ON giteadb.* TO 'gitea'@'12.34.56.78';
+    GRANT ALL PRIVILEGES ON giteadb.* TO 'gitea'@'192.0.2.10';
     FLUSH PRIVILEGES;
     ```
 
@@ -78,10 +78,10 @@ Note: All steps below requires that the database engine of your choice is instal
 6.  On your Gitea server, test connection to the database:
 
     ```
-    mysql -u gitea -h 23.45.67.89 -p giteadb
+    mysql -u gitea -h 203.0.113.3 -p giteadb
     ```
 
-    where `gitea` is database username, `giteadb` is database name, and `23.45.67.89` is IP address of database instance. Omit `-h` option for local database.
+    where `gitea` is database username, `giteadb` is database name, and `203.0.113.3` is IP address of database instance. Omit `-h` option for local database.
 
     You should be connected to the database.
 
@@ -128,7 +128,7 @@ Note: All steps below requires that the database engine of your choice is instal
     For remote database:
 
     ```ini
-    host    giteadb    gitea    12.34.56.78/32    scram-sha-256
+    host    giteadb    gitea    192.0.2.10/32    scram-sha-256
     ```
 
     Replace database name, user, and IP address of Gitea instance with your own.
@@ -148,9 +148,9 @@ Note: All steps below requires that the database engine of your choice is instal
     For remote database:
 
     ```
-    psql "postgres://gitea@23.45.67.89/giteadb"
+    psql "postgres://gitea@203.0.113.3/giteadb"
     ```
 
-    where `gitea` is database user, `giteadb` is database name, and `23.45.67.89` is IP address of your database instance.
+    where `gitea` is database user, `giteadb` is database name, and `203.0.113.3` is IP address of your database instance.
 
     You should be prompted to enter password for the database user, and connected to the database.
