@@ -207,7 +207,7 @@ func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
 		}
 	}
 
-	ctx.HTML(200, tplDashboard)
+	ctx.Redirect(setting.AppSubURL + "/admin")
 }
 
 // SendTestMail send test mail to confirm mail service is OK
