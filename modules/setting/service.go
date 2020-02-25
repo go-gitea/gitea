@@ -55,6 +55,14 @@ var Service struct {
 	OpenIDBlacklist    []*regexp.Regexp
 }
 
+// OAuth2Client settings
+var OAuth2Client struct {
+	OAuth2RegisterEmailConfirm bool
+	OAuth2OpenIDConnectScopes  []string
+	EnableOAuth2AutoRegister   bool
+	OAuth2UseNickname          bool
+}
+
 func newService() {
 	sec := Cfg.Section("service")
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
@@ -110,4 +118,16 @@ func newService() {
 			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
 		}
 	}
+
+	sec = Cfg.Section("oauth2_client")
+	OAuth2Client.OAuth2RegisterEmailConfirm = sec.Key("OAUTH2_REGISTER_EMAIL_CONFIRM").MustBool(Service.RegisterEmailConfirm)
+	pats = sec.Key("OAUTH2_OPENID_CONNECT_SCOPES").Strings(" ")
+	OAuth2Client.OAuth2OpenIDConnectScopes = make([]string, 0, len(pats))
+	for _, scope := range pats {
+		if scope != "" {
+			OAuth2Client.OAuth2OpenIDConnectScopes = append(OAuth2Client.OAuth2OpenIDConnectScopes, scope)
+		}
+	}
+	OAuth2Client.EnableOAuth2AutoRegister = sec.Key("ENABLE_OAUTH2_AUTO_REGISTRATION").MustBool()
+	OAuth2Client.OAuth2UseNickname = sec.Key("OAUTH2_USE_NICKNAME").MustBool()
 }
