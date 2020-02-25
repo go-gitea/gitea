@@ -588,10 +588,10 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	if u == nil {
-		if setting.OAuth2Client.EnableOAuth2AutoRegister {
+		if setting.OAuth2Client.EnableAutoRegistration {
 			// create new user with details from oauth2 provider
 			var name string
-			if setting.OAuth2Client.OAuth2UseNickname {
+			if setting.OAuth2Client.UseNickname {
 				name = gothUser.NickName
 			} else {
 				name = gothUser.UserID
@@ -600,7 +600,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				Name:        name,
 				FullName:    gothUser.Name,
 				Email:       gothUser.Email,
-				IsActive:    !setting.OAuth2Client.OAuth2RegisterEmailConfirm,
+				IsActive:    !setting.OAuth2Client.RegisterEmailConfirm,
 				LoginType:   models.LoginOAuth2,
 				LoginSource: loginSource.ID,
 				LoginName:   gothUser.UserID,

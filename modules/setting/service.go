@@ -57,10 +57,10 @@ var Service struct {
 
 // OAuth2Client settings
 var OAuth2Client struct {
-	OAuth2RegisterEmailConfirm bool
-	OAuth2OpenIDConnectScopes  []string
-	EnableOAuth2AutoRegister   bool
-	OAuth2UseNickname          bool
+	RegisterEmailConfirm   bool
+	OpenIDConnectScopes    []string
+	EnableAutoRegistration bool
+	UseNickname            bool
 }
 
 func newService() {
@@ -120,14 +120,14 @@ func newService() {
 	}
 
 	sec = Cfg.Section("oauth2_client")
-	OAuth2Client.OAuth2RegisterEmailConfirm = sec.Key("OAUTH2_REGISTER_EMAIL_CONFIRM").MustBool(Service.RegisterEmailConfirm)
-	pats = sec.Key("OAUTH2_OPENID_CONNECT_SCOPES").Strings(" ")
-	OAuth2Client.OAuth2OpenIDConnectScopes = make([]string, 0, len(pats))
+	OAuth2Client.RegisterEmailConfirm = sec.Key("REGISTER_EMAIL_CONFIRM").MustBool(Service.RegisterEmailConfirm)
+	pats = sec.Key("OPENID_CONNECT_SCOPES").Strings(" ")
+	OAuth2Client.OpenIDConnectScopes = make([]string, 0, len(pats))
 	for _, scope := range pats {
 		if scope != "" {
-			OAuth2Client.OAuth2OpenIDConnectScopes = append(OAuth2Client.OAuth2OpenIDConnectScopes, scope)
+			OAuth2Client.OpenIDConnectScopes = append(OAuth2Client.OpenIDConnectScopes, scope)
 		}
 	}
-	OAuth2Client.EnableOAuth2AutoRegister = sec.Key("ENABLE_OAUTH2_AUTO_REGISTRATION").MustBool()
-	OAuth2Client.OAuth2UseNickname = sec.Key("OAUTH2_USE_NICKNAME").MustBool()
+	OAuth2Client.EnableAutoRegistration = sec.Key("ENABLE_AUTO_REGISTRATION").MustBool()
+	OAuth2Client.UseNickname = sec.Key("USE_NICKNAME").MustBool()
 }

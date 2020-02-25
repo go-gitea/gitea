@@ -169,7 +169,7 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 	case "gplus": // named gplus due to legacy gplus -> google migration (Google killed Google+). This ensures old connections still work
 		provider = google.New(clientID, clientSecret, callbackURL)
 	case "openidConnect":
-		if provider, err = openidConnect.New(clientID, clientSecret, callbackURL, openIDConnectAutoDiscoveryURL, setting.OAuth2Client.OAuth2OpenIDConnectScopes...); err != nil {
+		if provider, err = openidConnect.New(clientID, clientSecret, callbackURL, openIDConnectAutoDiscoveryURL, setting.OAuth2Client.OpenIDConnectScopes...); err != nil {
 			log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %v", providerName, openIDConnectAutoDiscoveryURL, err)
 		}
 	case "twitter":

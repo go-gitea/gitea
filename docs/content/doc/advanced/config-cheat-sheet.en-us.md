@@ -310,14 +310,10 @@ set name for unique queues. Individual queues will default to
 
 ## OAuth2 Client (`oauth2_client`)
 
-- `OAUTH2_REGISTER_EMAIL_CONFIRM`: **REGISTER\_EMAIL\_CONFIRM**: Set this to enable or disable
-   mail confirmation of OAuth2 auto-registration.
-- `OAUTH2_OPENID_CONNECT_SCOPES`: **\<empty\>**: List of additional openid connect scopes.
-   (`openid` is implicitly added)
-- `ENABLE_OAUTH2_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
-   for oauth2 authentication.
-- `OAUTH2_USE_NICKNAME`: **false**: Set this to use the nickname from the oauth2 provider
-   instead of the userid for the username of the new user.
+- `REGISTER_EMAIL_CONFIRM`: *[service]* **REGISTER\_EMAIL\_CONFIRM**: Set this to enable or disable email confirmation of OAuth2 auto-registration. (Overwrites the REGISTER\_EMAIL\_CONFIRM setting of the `[service]` section)
+- `OPENID_CONNECT_SCOPES`: **\<empty\>**: List of additional openid connect scopes. (`openid` is implicitly added)
+- `ENABLE_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration for oauth2 authentication.
+- `USE_NICKNAME`: **false**: Set this to use the nickname from the oauth2 provider instead of the userid for the username of the new user.
 
 ## Service (`service`)
 

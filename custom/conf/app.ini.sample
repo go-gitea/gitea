@@ -504,16 +504,16 @@ BLACKLISTED_URIS =
 
 [oauth2_client]
 ; Whether a new auto registered oauth2 user needs to confirm their email.
-; Do not include to use the REGISTER_EMAIL_CONFIRM setting.
-;OAUTH2_REGISTER_EMAIL_CONFIRM =
+; Do not include to use the REGISTER_EMAIL_CONFIRM setting from the `[service]` section.
+;REGISTER_EMAIL_CONFIRM =
 ; Scopes for the openid connect oauth2 provider (seperated by space, the openid scope is implicitly added).
 ; Typical values are profile and email.
 ; For more information about the possible values see https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
-OAUTH2_OPENID_CONNECT_SCOPES =
+OPENID_CONNECT_SCOPES =
 ; Automatically create user accounts for new oauth2 users.
-ENABLE_OAUTH2_AUTO_REGISTRATION = false
-; Use the nickname attribute from the oauth2 provider instead of the userid as the new username
-OAUTH2_USE_NICKNAME = false
+ENABLE_AUTO_REGISTRATION = false
+; Use the nickname attribute from the oauth2 provider instead of the userid as the new username.
+USE_NICKNAME = false
 
 [service]
 ; Time limit to confirm account/email registration
