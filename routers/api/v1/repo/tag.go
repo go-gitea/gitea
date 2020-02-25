@@ -37,7 +37,7 @@ func ListTags(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results, default maximum page size is 50
 	//   type: integer
 	// responses:
 	//   "200":
