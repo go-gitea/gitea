@@ -68,18 +68,19 @@ func testViewRepo(t *testing.T) {
 		items = append(items, f)
 	})
 
+	commitT := time.Date(2017, time.June, 14, 13, 54, 21, 0, time.UTC).In(time.Local).Format(time.RFC1123)
 	assert.EqualValues(t, []file{
 		{
 			fileName:   "doc",
 			commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
 			commitMsg:  "init project",
-			commitTime: time.Date(2017, time.June, 14, 13, 54, 21, 0, time.UTC).Format(time.RFC1123),
+			commitTime: commitT,
 		},
 		{
 			fileName:   "README.md",
 			commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
 			commitMsg:  "init project",
-			commitTime: time.Date(2017, time.June, 14, 13, 54, 21, 0, time.UTC).Format(time.RFC1123),
+			commitTime: commitT,
 		},
 	}, items)
 }
