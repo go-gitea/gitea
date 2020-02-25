@@ -2479,6 +2479,7 @@ $(document).ready(() => {
   // Helpers.
   $('.delete-button').click(showDeletePopup);
   $('.add-all-button').click(showAddAllPopup);
+  $('.link-action').click(linkAction);
 
   $('.delete-branch-button').click(showDeletePopup);
 
@@ -2734,6 +2735,19 @@ function showAddAllPopup() {
     }
   }).modal('show');
   return false;
+}
+
+function linkAction() {
+  const $this = $(this);
+  $.post($this.data('url'), {
+    _csrf: csrf
+  }).done((data) => {
+    if (data.redirect) {
+      window.location.href = data.redirect;
+    } else {
+      window.location.reload();
+    }
+  });
 }
 
 function initVueComponents() {
