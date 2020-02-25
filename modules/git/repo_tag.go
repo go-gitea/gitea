@@ -187,7 +187,7 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 }
 
 // GetTagInfos returns all tag infos of the repository.
-func (repo *Repository) GetTagInfos() ([]*Tag, error) {
+func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, error) {
 	// TODO this a slow implementation, makes one git command per tag
 	stdout, err := NewCommand("tag").RunInDir(repo.Path)
 	if err != nil {
@@ -195,6 +195,19 @@ func (repo *Repository) GetTagInfos() ([]*Tag, error) {
 	}
 
 	tagNames := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+
+	if page != 0 {
+		skip := (page - 1) * pageSize
+		if skip >= len(tagNames) {
+			return nil, nil
+		}
+		tagNames = tagNames[skip:]
+		if len(tagNames) < pageSize {
+			pageSize = len(tagNames)
+		}
+		tagNames = tagNames[:pageSize]
+	}
+
 	var tags = make([]*Tag, 0, len(tagNames))
 	for _, tagName := range tagNames {
 		tagName = strings.TrimSpace(tagName)
