@@ -1072,7 +1072,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	handleSignInFull(ctx, u, false, true)
 }
 
-// CreateAndHandleCreatedUser calls createUserInContext and
+// createAndHandleCreatedUser calls createUserInContext and
 // then handleUserCreated.
 func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User, gothUser *goth.User) (ok bool) {
 	ok = createUserInContext(ctx, tpl, form, u)
@@ -1083,8 +1083,8 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form int
 	return
 }
 
-// CreateUserInContext creates a user and handles errors within a given context.
-// Optionaly a template can be specified.
+// createUserInContext creates a user and handles errors within a given context.
+// Optionally a template can be specified.
 func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User) (ok bool) {
 	if err := models.CreateUser(u); err != nil {
 		// handle error without template
@@ -1119,8 +1119,8 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 	return true
 }
 
-// HandleUserCreated does additional steps after a new user is created.
-// It auto-sets admin for the only user and
+// handleUserCreated does additional steps after a new user is created.
+// It auto-sets admin for the only user, updates the optional external user and
 // sends a confirmation email if required.
 func handleUserCreated(ctx *context.Context, u *models.User, gothUser *goth.User) (ok bool) {
 	// Auto-set admin for the only user.
