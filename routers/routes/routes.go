@@ -503,7 +503,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, reqSignIn)
 
 	m.Group("/:username", func() {
-		m.Get("/action/:action", user.Action)
+		m.Post("/action/:action", user.Action)
 	}, reqSignIn)
 
 	if macaron.Env == macaron.DEV {
@@ -535,7 +535,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/^:type(issues|pulls)$", user.Issues)
 			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/members", org.Members)
-			m.Get("/members/action/:action", org.MembersAction)
+			m.Post("/members/action/:action", org.MembersAction)
 
 			m.Get("/teams", org.Teams)
 		}, context.OrgAssignment(true))
@@ -543,8 +543,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/:org", func() {
 			m.Get("/teams/:team", org.TeamMembers)
 			m.Get("/teams/:team/repositories", org.TeamRepositories)
-			m.Route("/teams/:team/action/:action", "GET,POST", org.TeamsAction)
-			m.Route("/teams/:team/action/repo/:action", "GET,POST", org.TeamsRepoAction)
+			m.Post("/teams/:team/action/:action", org.TeamsAction)
+			m.Post("/teams/:team/action/repo/:action", org.TeamsRepoAction)
 		}, context.OrgAssignment(true, false, true))
 
 		m.Group("/:org", func() {
@@ -682,7 +682,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
-	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
+	m.Post("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("/issues", func() {
@@ -736,7 +736,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				Post(bindIgnErr(auth.CreateMilestoneForm{}), repo.NewMilestonePost)
 			m.Get("/:id/edit", repo.EditMilestone)
 			m.Post("/:id/edit", bindIgnErr(auth.CreateMilestoneForm{}), repo.EditMilestonePost)
-			m.Get("/:id/:action", repo.ChangeMilestonStatus)
+			m.Post("/:id/:action", repo.ChangeMilestonStatus)
 			m.Post("/delete", repo.DeleteMilestone)
 		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
 		m.Group("/milestone", func() {

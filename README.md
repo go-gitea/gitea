@@ -3,7 +3,7 @@
 <h1> <img src="https://raw.githubusercontent.com/go-gitea/gitea/master/public/img/gitea-192.png" alt="logo" width="30" height="30"> Gitea - Git with a cup of tea</h1>
 
 [![Build Status](https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg)](https://drone.gitea.io/go-gitea/gitea)
-[![Join the Discord chat at https://discord.gg/NsatcWJ](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/NsatcWJ)
+[![Join the Discord chat at https://discord.gg/Gitea](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/Gitea)
 [![](https://images.microbadger.com/badges/image/gitea/gitea.svg)](https://microbadger.com/images/gitea/gitea "Get your own image badge on microbadger.com")
 [![codecov](https://codecov.io/gh/go-gitea/gitea/branch/master/graph/badge.svg)](https://codecov.io/gh/go-gitea/gitea)
 [![Go Report Card](https://goreportcard.com/badge/code.gitea.io/gitea)](https://goreportcard.com/report/code.gitea.io/gitea)
@@ -69,7 +69,7 @@ NOTES:
 For more information and instructions about how to install Gitea, please look
 at our [documentation](https://docs.gitea.io/en-us/). If you have questions
 that are not covered by the documentation, you can get in contact with us on
-our [Discord server](https://discord.gg/NsatcWJ),
+our [Discord server](https://discord.gg/Gitea),
 or [forum](https://discourse.gitea.io/)!
 
 ## Authors
