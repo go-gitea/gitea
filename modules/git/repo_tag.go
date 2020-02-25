@@ -201,11 +201,10 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, error) {
 		if skip >= len(tagNames) {
 			return nil, nil
 		}
-		tagNames = tagNames[skip:]
-		if len(tagNames) < pageSize {
-			pageSize = len(tagNames)
+		if (len(tagNames) - skip) < pageSize {
+			pageSize = len(tagNames) - skip
 		}
-		tagNames = tagNames[:pageSize]
+		tagNames = tagNames[skip : skip+pageSize]
 	}
 
 	var tags = make([]*Tag, 0, len(tagNames))
