@@ -1443,6 +1443,10 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	if _, err := sess.Where("repo_id =?", repoID).Set("repo_id =?", repoID).Update(&Issue{}); err != nil {
+		return err
+	}
+
 	repo := &Repository{ID: repoID, OwnerID: uid}
 	has, err := sess.Get(repo)
 	if err != nil {
