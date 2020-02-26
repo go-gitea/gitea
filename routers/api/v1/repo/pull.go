@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -315,8 +314,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		ctx.Error(http.StatusInternalServerError, "NewPullRequest", err)
 		return
 	}
-
-	notification.NotifyNewPullRequest(pr)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 	ctx.JSON(http.StatusCreated, pr.APIFormat())

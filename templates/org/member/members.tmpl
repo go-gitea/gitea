@@ -22,10 +22,10 @@
 							{{ $isPublic := index $.MembersIsPublicMember .ID}}
 							{{if $isPublic}}
 								<strong>{{$.i18n.Tr "org.members.public"}}</strong>
-								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a href="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{$.i18n.Tr "org.members.public_helper"}}</a>){{end}}
+								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a class="link-action" href data-url="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{$.i18n.Tr "org.members.public_helper"}}</a>){{end}}
 							{{else}}
 								<strong>{{$.i18n.Tr "org.members.private"}}</strong>
-								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a href="{{$.OrgLink}}/members/action/public?uid={{.ID}}">{{$.i18n.Tr "org.members.private_helper"}}</a>){{end}}
+								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a class="link-action" href data-url="{{$.OrgLink}}/members/action/public?uid={{.ID}}">{{$.i18n.Tr "org.members.private_helper"}}</a>){{end}}
 							{{end}}
 						</div>
 					</div>
