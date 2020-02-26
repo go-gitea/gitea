@@ -335,11 +335,11 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	ctx.Data["LatestCommit"] = latestCommit
 	verification := models.ParseCommitWithSignature(latestCommit)
 
-	ctx.Data["LatestCommitVerification"] = verification
 	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
 		ctx.ServerError("IsOwnerMemberCollaborator", err)
 		return
 	}
+	ctx.Data["LatestCommitVerification"] = verification
 
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
