@@ -236,6 +236,12 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
+// ListUsers returns a slice of all users found in DB.
+func ListUsers() ([]*User, error) {
+	users := make([]*User, 0)
+	return users, x.Find(&users)
+}
+
 // APIFormat converts a User to api.User
 func (u *User) APIFormat() *api.User {
 	if u == nil {
