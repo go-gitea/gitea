@@ -160,6 +160,14 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 		toNotify[id] = struct{}{}
 	}
 
+	issueParticipants, err := getParticipantsByIssueID(e, issue)
+	if err != nil {
+		return err
+	}
+	for _, id := range issueParticipants {
+		toNotify[id] = struct{}{}
+	}
+
 	// dont notify user who cause notification
 	delete(toNotify, notificationAuthorID)
 	// explicit unwatch on issue

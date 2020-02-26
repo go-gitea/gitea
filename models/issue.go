@@ -1277,13 +1277,24 @@ func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
 
 // GetParticipantsByIssueID returns all users who are participated in comments of an issue.
 func GetParticipantsByIssueID(issueID int64) ([]*User, error) {
-	return getParticipantsByIssueID(x, issueID)
+	issue, err := getIssueByID(x, issueID)
+	if err != nil {
+		return nil, err
+	}
+	userIDs, err := getParticipantsByIssueID(x, issue)
+	if err != nil {
+		return nil, err
+	}
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	return GetUsersByIDs(userIDs)
 }
 
-func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
+func getParticipantsByIssueID(e Engine, issue *Issue) ([]int64, error) {
 	userIDs := make([]int64, 0, 5)
 	if err := e.Table("comment").Cols("poster_id").
-		Where("`comment`.issue_id = ?", issueID).
+		Where("`comment`.issue_id = ?", issue.ID).
 		And("`comment`.type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
@@ -1292,12 +1303,20 @@ func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %v", err)
 	}
-	if len(userIDs) == 0 {
-		return nil, nil
+	if !util.IsInt64InSlice(issue.PosterID, userIDs) {
+		return append(userIDs, issue.PosterID), nil
 	}
+	return userIDs, nil
+}
 
-	users := make([]*User, 0, len(userIDs))
-	return users, e.In("id", userIDs).Find(&users)
+// IsUserParticipantsOfIssue return true if user is participants of an issue
+func IsUserParticipantsOfIssue(user *User, issue *Issue) bool {
+	userIDs, err := getParticipantsByIssueID(x, issue)
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+	return util.IsInt64InSlice(user.ID, userIDs)
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.
