@@ -123,7 +123,7 @@ If pre-built frontend files are present it is possible to only build the backend
 
 ```bash
 TAGS="bindata" make backend
-``
+```
 
 ## Test
 
