@@ -18,7 +18,7 @@
                 </h3>
 				<div>
 					{{range $term := .SearchResultLanguages}}
-					<a class="ui {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{$.AppSubURL}}/explore/code?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}">
+					<a class="ui {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{AppSubUrl}}/explore/code?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}">
 						<i class="color-icon" style="background-color: {{$term.Color}}"></i>
 						{{$term.Language}}
 						<div class="detail">{{$term.Count}}</div>

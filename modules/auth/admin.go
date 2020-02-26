@@ -48,3 +48,13 @@ type AdminEditUserForm struct {
 func (f *AdminEditUserForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// AdminDashboardForm form for admin dashboard operations
+type AdminDashboardForm struct {
+	Op int `binding:"required"`
+}
+
+// Validate validates form fields
+func (f *AdminDashboardForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}

@@ -109,7 +109,7 @@ func GetIssueWatchers(issueID int64, listOptions ListOptions, modes ...IssueWatc
 	return getIssueWatchers(x, issueID, listOptions, modes...)
 }
 
-func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions, modes ...IssueWatchMode) (watches IssueWatchList, err error) {
+func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions, modes ...IssueWatchMode) (IssueWatchList, error) {
 	if len(modes) == 0 {
 		return nil, fmt.Errorf("no IssueWatchMode set")
 	}
@@ -120,11 +120,13 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions, modes ..
 		And("`user`.prohibit_login = ?", false).
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id")
 
-	if listOptions.Page == 0 {
+	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
+		watches := make([]*IssueWatch, 0, listOptions.PageSize)
+		return watches, sess.Find(&watches)
 	}
-	err = sess.Find(&watches)
-	return
+	watches := make([]*IssueWatch, 0, 8)
+	return watches, sess.Find(&watches)
 }
 
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
