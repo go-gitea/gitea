@@ -217,7 +217,9 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 		return true, nil
 	}
 	teamMember, err := x.Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
+		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
 		Where("team_repo.repo_id = ?", repo.ID).
+		And("team_unit.`type` = ?", UnitTypeCode).
 		And("team_user.uid = ?", userID).Table("team_user").Exist(&TeamUser{})
 	if err != nil {
 		return false, err
