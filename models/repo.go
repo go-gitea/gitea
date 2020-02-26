@@ -1443,10 +1443,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
-	if _, err := sess.Where("repo_id = ?", repoID).SetExpr("repo_id", repoID).Update(&Issue{}); err != nil {
-		return err
-	}
-
 	repo := &Repository{ID: repoID, OwnerID: uid}
 	has, err := sess.Get(repo)
 	if err != nil {
@@ -1477,6 +1473,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			if !t.hasRepository(sess, repoID) {
 				continue
 			} else if err = t.removeRepository(sess, repo, false); err != nil {
+				log.Error("Delete %d: %v", repo.ID, err)
 				return err
 			}
 		}
@@ -1486,6 +1483,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
 		Where("`release`.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 	releaseAttachments := make([]string, 0, len(attachments))
@@ -1514,6 +1512,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Comment{RefRepoID: repoID},
 		&Task{RepoID: repoID},
 	); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
@@ -1521,26 +1520,31 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Delete comments and attachments
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Comment{}); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueUser{}); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Reaction{}); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueWatch{}); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Stopwatch{}); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
@@ -1548,6 +1552,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
 		Where("issue.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 	attachmentPaths := make([]string, 0, len(attachments))
@@ -1557,29 +1562,35 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Attachment{}); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
 	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
 	if _, err = sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
 	if repo.IsFork {
 		if _, err = sess.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
+			log.Error("Delete %d: %v", repo.ID, err)
 			return fmt.Errorf("decrease fork count: %v", err)
 		}
 	}
 
 	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
 	if len(repo.Topics) > 0 {
 		if err = removeTopicsFromRepo(sess, repo.ID); err != nil {
+			log.Error("Delete %d: %v", repo.ID, err)
 			return err
 		}
 	}
@@ -1590,18 +1601,21 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	err = repo.deleteWiki(sess)
 	if err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
 	// Remove LFS objects
 	var lfsObjects []*LFSMetaObject
 	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
 	for _, v := range lfsObjects {
 		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
 		if err != nil {
+			log.Error("Delete %d: %v", repo.ID, err)
 			return err
 		}
 		if count > 1 {
@@ -1613,6 +1627,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
+		log.Error("Delete %d: %v", repo.ID, err)
 		return err
 	}
 
