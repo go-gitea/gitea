@@ -35,7 +35,10 @@
 					{{range .Team.Repos}}
 						<div class="item">
 							{{if $canAddRemove}}
-								<a class="ui red small button right" href="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/remove?repoid={{.ID}}">{{$.i18n.Tr "remove"}}</a>
+								<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/remove?repoid={{.ID}}">
+									{{$.CsrfTokenHtml}}
+									<button type="submit" class="ui red small button right">{{$.i18n.Tr "remove"}}</button>
+								</form>
 							{{end}}
 							<a class="member" href="{{AppSubUrl}}/{{$.Org.Name}}/{{.Name}}">
 								{{if .IsPrivate}}
