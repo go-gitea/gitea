@@ -1124,6 +1124,7 @@ func UpdateUserSetting(u *User) error {
 func deleteBeans(e Engine, beans ...interface{}) (err error) {
 	for i := range beans {
 		if _, err = e.Delete(beans[i]); err != nil {
+			log.Error("Failed to delete %T: %v", beans[i], err)
 			return err
 		}
 	}
