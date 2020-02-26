@@ -1264,8 +1264,11 @@
         .detail.icon {
             background: #fafafa;
             margin: -6px -10px -4px 0;
-            padding: 5px 3px 5px 6px;
+            padding: 5px 4px 5px 6px;
             border-left: 1px solid #bbbbbb;
+            border-top: 0;
+            border-right: 0;
+            border-bottom: 0;
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
         }
@@ -1274,15 +1277,29 @@
             border: 1px solid #db2828;
             background: fade(#db2828, 10%);
 
+            .shortsha {
+                display: inline-block;
+                padding-top: 1px;
+            }
+
             .detail.icon {
-                border-left: 1px solid fade(#db2828, 50%);
+                border-left: 1px solid #db2828;
                 color: #db2828;
+            }
+
+            &:hover {
+                background: fade(#db2828, 30%) !important;
             }
         }
 
         &.isSigned.isVerified {
             border: 1px solid #21ba45;
             background: fade(#21ba45, 10%);
+
+            .shortsha {
+                display: inline-block;
+                padding-top: 1px;
+            }
 
             .detail.icon {
                 border-left: 1px solid #21ba45;
@@ -1298,6 +1315,11 @@
             border: 1px solid #fbbd08;
             background: fade(#fbbd08, 10%);
 
+            .shortsha {
+                display: inline-block;
+                padding-top: 1px;
+            }
+
             .detail.icon {
                 border-left: 1px solid #fbbd08;
                 color: #fbbd08;
@@ -1311,6 +1333,11 @@
         &.isSigned.isVerifiedUnmatched {
             border: 1px solid #f2711c;
             background: fade(#f2711c, 10%);
+
+            .shortsha {
+                display: inline-block;
+                padding-top: 1px;
+            }
 
             .detail.icon {
                 border-left: 1px solid #f2711c;

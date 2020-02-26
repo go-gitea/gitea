@@ -44,7 +44,7 @@
 							{{else}}
 								<span class="{{$class}}">
 							{{end}}
-								{{ShortSha .ID.String}}
+								<span class="shortsha">{{ShortSha .ID.String}}</span>
 								{{if .Signature}}
 									<div class="ui detail icon button">
 										{{if .Verification.Verified}}
