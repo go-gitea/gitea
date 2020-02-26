@@ -42,31 +42,37 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 	}
 
 	// Enough room to avoid reallocations
-	unfiltered := make([]int64, 1, 64)
+	toNotify := make(map[int64]struct{}, 64)
 
 	// =========== Original poster ===========
-	unfiltered[0] = ctx.Issue.PosterID
+	toNotify[ctx.Issue.PosterID] = struct{}{}
 
 	// =========== Assignees ===========
 	ids, err := models.GetAssigneeIDsByIssue(ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetAssigneeIDsByIssue(%d): %v", ctx.Issue.ID, err)
 	}
-	unfiltered = append(unfiltered, ids...)
+	for _, id := range ids {
+		toNotify[id] = struct{}{}
+	}
 
 	// =========== Participants (i.e. commenters, reviewers) ===========
 	ids, err = models.GetParticipantsIDsByIssueID(ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetParticipantsIDsByIssueID(%d): %v", ctx.Issue.ID, err)
 	}
-	unfiltered = append(unfiltered, ids...)
+	for _, id := range ids {
+		toNotify[id] = struct{}{}
+	}
 
 	// =========== Issue watchers ===========
 	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
-	unfiltered = append(unfiltered, ids...)
+	for _, id := range ids {
+		toNotify[id] = struct{}{}
+	}
 
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
@@ -74,43 +80,42 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 	if err != nil {
 		return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
 	}
-	unfiltered = append(ids, unfiltered...)
-
-	visited := make(map[int64]bool, len(unfiltered)+len(mentions)+1)
-
-	// Avoid mailing the doer
-	visited[ctx.Doer.ID] = true
-
-	if err = mailIssueCommentBatch(ctx, unfiltered, visited, false); err != nil {
-		return fmt.Errorf("mailIssueCommentBatch(): %v", err)
+	for _, id := range ids {
+		toNotify[id] = struct{}{}
 	}
 
+	// Avoid mailing the doer
+	delete(toNotify, ctx.Doer.ID)
+
 	// =========== Mentions ===========
-	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
+	for _, m := range mentions {
+		delete(toNotify, m)
+	}
+	if err = mailIssueCommentBatch(ctx, mentions, true); err != nil {
 		return fmt.Errorf("mailIssueCommentBatch() mentions: %v", err)
 	}
 
+	notify := make([]int64, len(toNotify))
+	for id := range toNotify {
+		notify = append(notify, id)
+	}
+	if err = mailIssueCommentBatch(ctx, notify, false); err != nil {
+		return fmt.Errorf("mailIssueCommentBatch(): %v", err)
+	}
 	return nil
 }
 
-func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int64]bool, fromMention bool) error {
+func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, fromMention bool) error {
 	const batchSize = 100
 	for i := 0; i < len(ids); i += batchSize {
-		var last int
+		job := make([]int64, batchSize)
 		if i+batchSize < len(ids) {
-			last = i + batchSize
+			job = ids[i : i+batchSize]
 		} else {
-			last = len(ids)
+			job = ids[i:]
 		}
-		unique := make([]int64, 0, last-i)
-		for j := i; j < last; j++ {
-			id := ids[j]
-			if _, ok := visited[id]; !ok {
-				unique = append(unique, id)
-				visited[id] = true
-			}
-		}
-		recipients, err := models.GetMaileableUsersByIDs(unique)
+
+		recipients, err := models.GetMaileableUsersByIDs(job)
 		if err != nil {
 			return err
 		}
