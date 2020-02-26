@@ -93,10 +93,11 @@
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
 			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
 			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
+			Heatmap: {{if .EnableHeatmap}}true{{else}}false{{end}},
+			heatmapUser: {{if .HeatmapUser}}'{{.HeatmapUser}}'{{else}}null{{end}},
 		};
 	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">
-	<link rel="apple-touch-icon" href="{{StaticUrlPrefix}}/img/apple-touch-icon.png">
 	<link rel="mask-icon" href="{{StaticUrlPrefix}}/img/gitea-safari.svg" color="#609926">
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css">
 	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/icons.woff2" type="font/woff2" crossorigin="anonymous">
@@ -125,9 +126,6 @@
 {{end}}
 {{if .RequireDropzone}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/dropzone/dropzone.css">
-{{end}}
-{{if .EnableHeatmap}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.css">
 {{end}}
 	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
