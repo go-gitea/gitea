@@ -84,7 +84,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 
 func createTestEngine(fixturesDir string) error {
 	var err error
-	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
+	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
 	if err != nil {
 		return err
 	}
