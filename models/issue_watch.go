@@ -89,6 +89,7 @@ func GetIssueWatchersIDs(issueID int64, modes ...IssueWatchMode) ([]int64, error
 	}
 	return getIssueWatchersIDs(x, issueID, modes...)
 }
+
 func getIssueWatchersIDs(e Engine, issueID int64, modes ...IssueWatchMode) ([]int64, error) {
 	ids := make([]int64, 0, 64)
 	if len(modes) == 0 {
@@ -132,7 +133,6 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions, modes ..
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
 	_, err := e.
 		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
-		Cols("mode", "updated_unix").
 		Where("`issue_watch`.user_id = ?", userID).
 		Delete(new(IssueWatch))
 	return err
@@ -152,24 +152,4 @@ func (iw IssueWatch) IsWatching() bool {
 	}
 
 	return iw.Mode == IssueWatchModeNormal || iw.Mode == IssueWatchModeAuto
-}
-
-// GetWatchUsers return watching users based on an issue watch list
-func (iwl IssueWatchList) GetWatchUsers() (users UserList, err error) {
-	return iwl.getWatchUsers(x)
-}
-
-func (iwl IssueWatchList) getWatchUsers(e Engine) (users UserList, err error) {
-	if len(iwl) == 0 {
-		return []*User{}, nil
-	}
-
-	var userIDs = make([]int64, 0, len(iwl))
-	for _, iw := range iwl {
-		userIDs = append(userIDs, iw.UserID)
-	}
-
-	err = e.In("id", userIDs).Find(&users)
-
-	return
 }
