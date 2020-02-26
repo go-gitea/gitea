@@ -68,10 +68,14 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetIssueWatchersIDs(issueID int64) ([]int64, error) {
+	return getIssueWatchersIDs(x, issueID, true)
+}
+
+func getIssueWatchersIDs(e Engine, issueID int64, watching bool) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, x.Table("issue_watch").
+	return ids, e.Table("issue_watch").
 		Where("issue_id=?", issueID).
-		And("is_watching = ?", true).
+		And("is_watching = ?", watching).
 		Select("user_id").
 		Find(&ids)
 }
@@ -99,39 +103,9 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWa
 }
 
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
-	iw := &IssueWatch{
-		IsWatching: false,
-	}
 	_, err := e.
 		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
-		Cols("is_watching", "updated_unix").
 		Where("`issue_watch`.user_id = ?", userID).
-		Update(iw)
+		Delete(new(IssueWatch))
 	return err
-}
-
-// LoadWatchUsers return watching users
-func (iwl IssueWatchList) LoadWatchUsers() (users UserList, err error) {
-	return iwl.loadWatchUsers(x)
-}
-
-func (iwl IssueWatchList) loadWatchUsers(e Engine) (users UserList, err error) {
-	if len(iwl) == 0 {
-		return []*User{}, nil
-	}
-
-	var userIDs = make([]int64, 0, len(iwl))
-	for _, iw := range iwl {
-		if iw.IsWatching {
-			userIDs = append(userIDs, iw.UserID)
-		}
-	}
-
-	if len(userIDs) == 0 {
-		return []*User{}, nil
-	}
-
-	err = e.In("id", userIDs).Find(&users)
-
-	return
 }

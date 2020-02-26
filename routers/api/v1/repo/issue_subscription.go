@@ -190,9 +190,14 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	users, err := iwl.LoadWatchUsers()
+	var userIDs = make([]int64, 0, len(iwl))
+	for _, iw := range iwl {
+		userIDs = append(userIDs, iw.UserID)
+	}
+
+	users, err := models.GetUsersByIDs(userIDs)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadWatchUsers", err)
+		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
 		return
 	}
 

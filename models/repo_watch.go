@@ -144,8 +144,12 @@ func GetWatchers(repoID int64) ([]*Watch, error) {
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
+	return getRepoWatchersIDs(x, repoID)
+}
+
+func getRepoWatchersIDs(e Engine, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, x.Table("watch").
+	return ids, e.Table("watch").
 		Where("watch.repo_id=?", repoID).
 		And("watch.mode<>?", RepoWatchModeDont).
 		Select("user_id").
