@@ -231,6 +231,13 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 		}
 	}()
 
+	if pr.HeadRepo == nil {
+		pr.HeadRepo, err = models.GetRepositoryByID(pr.HeadRepoID)
+		if err != nil {
+			log.Error("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
+			return err
+		}
+	}
 	headRepoPath := pr.HeadRepo.RepoPath()
 
 	if err := git.Clone(headRepoPath, tmpBasePath, git.CloneRepoOptions{
