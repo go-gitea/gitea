@@ -300,7 +300,7 @@ github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/markbates/goth v1.56.0
+# github.com/markbates/goth v1.61.2
 github.com/markbates/goth
 github.com/markbates/goth/gothic
 github.com/markbates/goth/providers/bitbucket
