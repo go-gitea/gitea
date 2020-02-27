@@ -277,7 +277,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 
 	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
-		ctx.ServerError("IsOwnerMemberCollaborator", err)
+		ctx.ServerError("CalculateTrustStatus", err)
 		return
 	}
 
