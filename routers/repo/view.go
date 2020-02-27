@@ -333,7 +333,14 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	// Show latest commit info of repository in table header,
 	// or of directory if not in root directory.
 	ctx.Data["LatestCommit"] = latestCommit
-	ctx.Data["LatestCommitVerification"] = models.ParseCommitWithSignature(latestCommit)
+	verification := models.ParseCommitWithSignature(latestCommit)
+
+	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
+		ctx.ServerError("CalculateTrustStatus", err)
+		return
+	}
+	ctx.Data["LatestCommitVerification"] = verification
+
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
 	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, ctx.Repo.Commit.ID.String(), 0)
