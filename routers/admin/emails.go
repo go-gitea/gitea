@@ -97,6 +97,7 @@ func isKeywordValid(keyword string) bool {
 	return !bytes.Contains([]byte(keyword), nullByte)
 }
 
+// ActivateEmail serves a POST request for activating/deactivating a user's email
 func ActivateEmail(ctx *context.Context) {
 
 	truefalse := map[string]bool{"1": true, "0": false}
