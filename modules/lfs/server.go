@@ -234,7 +234,7 @@ func PostHandler(ctx *context.Context) {
 	}
 
 	if setting.LFS.MaxFileSize > 0 && rv.Size > setting.LFS.MaxFileSize {
-		log.Info("Denying LFS upload of size %d (>%d) to %s/%s", rv.Size, setting.LFS.MaxFileSize, rv.User, rv.Repo)
+		log.Info("Denied LFS upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", rv.Size, rv.User, rv.Repo, setting.LFS.MaxFileSize)
 		writeStatus(ctx, 413)
 		return
 	}
