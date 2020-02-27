@@ -325,7 +325,27 @@ func (ctx *postProcessCtx) visitNode(node *html.Node) {
 	case html.TextNode:
 		ctx.textNode(node)
 	case html.ElementNode:
-		if node.Data == "a" || node.Data == "code" || node.Data == "pre" {
+		if node.Data == "img" {
+			attrs := node.Attr
+			for idx, attr := range attrs {
+				if attr.Key != "src" {
+					continue
+				}
+				link := []byte(attr.Val)
+				if len(link) > 0 && !IsLink(link) {
+					prefix := ctx.urlPrefix
+					if ctx.isWikiMarkdown {
+						prefix = util.URLJoin(prefix, "wiki", "raw")
+					}
+					prefix = strings.Replace(prefix, "/src/", "/media/", 1)
+
+					lnk := string(link)
+					lnk = util.URLJoin(prefix, lnk)
+					link = []byte(lnk)
+				}
+				node.Attr[idx].Val = string(link)
+			}
+		} else if node.Data == "a" || node.Data == "code" || node.Data == "pre" {
 			return
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
