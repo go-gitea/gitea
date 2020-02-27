@@ -276,8 +276,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 	return sess.Commit()
 }
 
-// SearchEmailOptions contains the options for searching emails
-//SearchOrderBy is used to sort the result
+// SearchOrderBy is used to sort the results from SearchEmails()
 type SearchEmailOrderBy string
 
 func (s SearchEmailOrderBy) String() string {
