@@ -66,7 +66,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 	}
 
 	// =========== Issue watchers ===========
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID)
+	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, true)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -86,6 +86,14 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 
 	// Avoid mailing the doer
 	delete(toNotify, ctx.Doer.ID)
+  // Avoid mailing explicit unwatched
+	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, false)
+	if err != nil {
+		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
+	}
+	for _, id := range ids {
+    delete(toNotify, id)
+	}
 
 	// =========== Mentions ===========
 	for _, m := range mentions {
