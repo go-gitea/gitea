@@ -61,15 +61,17 @@ func TestGetIssuesByIDs(t *testing.T) {
 	testSuccess([]int64{1, 2, 3}, []int64{NonexistentID})
 }
 
-func TestGetParticipantsByIssueID(t *testing.T) {
+func TestGetParticipantIDsByIssue(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	checkParticipants := func(issueID int64, userIDs []int) {
-		participants, err := GetParticipantsByIssueID(issueID)
+		issue, err := GetIssueByID(issueID)
+		assert.NoError(t, err)
+		participants, err := issue.getParticipantIDsByIssue(x)
 		if assert.NoError(t, err) {
 			participantsIDs := make([]int, len(participants))
-			for i, u := range participants {
-				participantsIDs[i] = int(u.ID)
+			for i, uid := range participants {
+				participantsIDs[i] = int(uid)
 			}
 			sort.Ints(participantsIDs)
 			sort.Ints(userIDs)

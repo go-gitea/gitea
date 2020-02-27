@@ -159,8 +159,7 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 	for _, id := range repoWatches {
 		toNotify[id] = struct{}{}
 	}
-
-	issueParticipants, err := getParticipantsByIssueID(e, issue)
+	issueParticipants, err := issue.getParticipantIDsByIssue(e)
 	if err != nil {
 		return err
 	}
