@@ -1234,7 +1234,7 @@
                     text-align: center;
                 }
 
-                width: 140px;
+                width: 175px;
             }
         }
 
@@ -1255,21 +1255,49 @@
     #repo-files-table .sha.label {
         border: 1px solid #bbbbbb;
 
+        .ui.signature.avatar {
+            height: 16px;
+            margin-bottom: 0;
+            width: auto;
+        }
+
         .detail.icon {
             background: #fafafa;
             margin: -6px -10px -4px 0;
-            padding: 5px 3px 5px 6px;
+            padding: 5px 4px 5px 6px;
             border-left: 1px solid #bbbbbb;
+            border-top: 0;
+            border-right: 0;
+            border-bottom: 0;
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
+
+            img {
+                margin-right: 0;
+            }
+
+            > div {
+                display: inline-flex;
+                align-items: center;
+            }
         }
 
         &.isSigned.isWarning {
             border: 1px solid #db2828;
             background: fade(#db2828, 10%);
 
+            .shortsha {
+                display: inline-block;
+                padding-top: 1px;
+            }
+
             .detail.icon {
-                border-left: 1px solid fade(#db2828, 50%);
+                border-left: 1px solid #db2828;
+                color: #db2828;
+            }
+
+            &:hover {
+                background: fade(#db2828, 30%) !important;
             }
         }
 
@@ -1277,12 +1305,56 @@
             border: 1px solid #21ba45;
             background: fade(#21ba45, 10%);
 
+            .shortsha {
+                display: inline-block;
+                padding-top: 1px;
+            }
+
             .detail.icon {
                 border-left: 1px solid #21ba45;
+                color: #21ba45;
             }
 
             &:hover {
                 background: fade(#21ba45, 30%) !important;
+            }
+        }
+
+        &.isSigned.isVerifiedUntrusted {
+            border: 1px solid #fbbd08;
+            background: fade(#fbbd08, 10%);
+
+            .shortsha {
+                display: inline-block;
+                padding-top: 1px;
+            }
+
+            .detail.icon {
+                border-left: 1px solid #fbbd08;
+                color: #fbbd08;
+            }
+
+            &:hover {
+                background: fade(#fbbd08, 30%) !important;
+            }
+        }
+
+        &.isSigned.isVerifiedUnmatched {
+            border: 1px solid #f2711c;
+            background: fade(#f2711c, 10%);
+
+            .shortsha {
+                display: inline-block;
+                padding-top: 1px;
+            }
+
+            .detail.icon {
+                border-left: 1px solid #f2711c;
+                color: #f2711c;
+            }
+
+            &:hover {
+                background: fade(#f2711c, 30%) !important;
             }
         }
     }
@@ -1893,18 +1965,111 @@
         }
     }
 
-    .ui.attached.isSigned.isVerified {
-        &:not(.positive) {
-            border-left: 1px solid #a3c293;
-            border-right: 1px solid #a3c293;
+    .ui.attached.isSigned.isWarning {
+        border-left: 1px solid #c29393;
+        border-right: 1px solid #c29393;
+
+        &.top,
+        &.message {
+            border-top: 1px solid #c29393;
         }
 
-        &.top:not(.positive) {
+        &.message {
+            box-shadow: none;
+            background-color: #fff5f5;
+            color: #d95c5c;
+
+            .ui.text {
+                color: #d64444;
+            }
+        }
+
+        &:last-child,
+        &.bottom {
+            border-bottom: 1px solid #c29393;
+        }
+    }
+
+    .ui.attached.isSigned:not(.isWarning) .pull-right {
+        padding-top: 5px;
+    }
+
+    .ui.attached.isSigned.isVerified {
+        border-left: 1px solid #a3c293;
+        border-right: 1px solid #a3c293;
+
+        &.top,
+        &.message {
             border-top: 1px solid #a3c293;
         }
 
-        &:not(.positive):last-child {
+        &.message {
+            box-shadow: none;
+            background-color: #fcfff5;
+            color: #6cc644;
+
+            .pull-right {
+                color: #000;
+            }
+
+            .ui.text {
+                color: #21ba45;
+            }
+        }
+
+        &:last-child,
+        &.bottom {
             border-bottom: 1px solid #a3c293;
+        }
+    }
+
+    .ui.attached.isSigned.isVerifiedUntrusted {
+        border-left: 1px solid #c2c193;
+        border-right: 1px solid #c2c193;
+
+        &.top,
+        &.message {
+            border-top: 1px solid #c2c193;
+        }
+
+        &.message {
+            box-shadow: none;
+            background-color: #fffff5;
+            color: #fbbd08;
+
+            .ui.text {
+                color: #d2ab00;
+            }
+        }
+
+        &:last-child,
+        &.bottom {
+            border-bottom: 1px solid #c2c193;
+        }
+    }
+
+    .ui.attached.isSigned.isVerifiedUnmatched {
+        border-left: 1px solid #c2a893;
+        border-right: 1px solid #c2a893;
+
+        &.top,
+        &.message {
+            border-top: 1px solid #c2a893;
+        }
+
+        &.message {
+            box-shadow: none;
+            background-color: #fffaf5;
+            color: #f2711c;
+
+            .ui.text {
+                color: #ee5f00;
+            }
+        }
+
+        &:last-child,
+        &.bottom {
+            border-bottom: 1px solid #c2a893;
         }
     }
 
