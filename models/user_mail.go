@@ -292,6 +292,7 @@ const (
 	SearchEmailOrderByNameReverse  SearchEmailOrderBy = "`user`.lower_name DESC, is_primary ASC, sortid DESC"
 )
 
+// SearchEmailOptions are options to search e-mail addresses for the admin panel
 type SearchEmailOptions struct {
 	ListOptions
 	Keyword     string
@@ -300,6 +301,7 @@ type SearchEmailOptions struct {
 	IsActivated util.OptionalBool
 }
 
+// SearchEmailResult is an e-mail address found in the user or email_address table
 type SearchEmailResult struct {
 	UID         int64
 	Email       string
@@ -406,6 +408,8 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	return emails, count, err
 }
 
+// ActivateUserEmail will change the activated state of an email address,
+// either primary (in the user table) or secondary (in the email_address table)
 func ActivateUserEmail(userID int64, email string, primary, activate bool) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
