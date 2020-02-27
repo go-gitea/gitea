@@ -284,7 +284,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		return nil, nil
 	}
 	commitsHistory = models.ValidateCommitsWithEmails(commitsHistory)
-	commitsHistory = models.ParseCommitsWithSignature(commitsHistory)
+	commitsHistory = models.ParseCommitsWithSignature(commitsHistory, ctx.Repo.Repository)
 
 	ctx.Data["Commits"] = commitsHistory
 
