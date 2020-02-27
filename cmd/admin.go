@@ -377,7 +377,7 @@ func runListUsers(c *cli.Context) error {
 		return err
 	}
 
-	users, err := models.ListUsers()
+	users, err := models.GetAllUsers()
 
 	if err != nil {
 		return err
