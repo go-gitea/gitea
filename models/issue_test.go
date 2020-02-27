@@ -81,7 +81,7 @@ func TestGetParticipantsByIssueID(t *testing.T) {
 	// User 2 only labeled issue1 (see fixtures/comment.yml)
 	// Users 3 and 5 made actual comments (see fixtures/comment.yml)
 	// User 3 is inactive, thus not active participant
-	checkParticipants(1, []int{5})
+	checkParticipants(1, []int{1, 5})
 }
 
 func TestIssue_ClearLabels(t *testing.T) {
