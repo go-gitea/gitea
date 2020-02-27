@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
@@ -31,7 +32,6 @@ import (
 
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
-	"github.com/unknwon/com"
 )
 
 const (
@@ -145,15 +145,29 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
+	ctx.Data["Stats"] = models.GetStatistic()
+	// FIXME: update periodically
+	updateSystemStatus()
+	ctx.Data["SysStatus"] = sysStatus
+	ctx.HTML(200, tplDashboard)
+}
+
+// DashboardPost run an admin operation
+func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
+	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
+	ctx.Data["PageIsAdmin"] = true
+	ctx.Data["PageIsAdminDashboard"] = true
+	ctx.Data["Stats"] = models.GetStatistic()
+	updateSystemStatus()
+	ctx.Data["SysStatus"] = sysStatus
 
 	// Run operation.
-	op, _ := com.StrTo(ctx.Query("op")).Int()
-	if op > 0 {
+	if form.Op > 0 {
 		var err error
 		var success string
 		shutdownCtx := graceful.GetManager().ShutdownContext()
 
-		switch Operation(op) {
+		switch Operation(form.Op) {
 		case cleanInactivateUser:
 			success = ctx.Tr("admin.dashboard.delete_inactivate_accounts_success")
 			err = models.DeleteInactivateUsers()
@@ -191,15 +205,9 @@ func Dashboard(ctx *context.Context) {
 		} else {
 			ctx.Flash.Success(success)
 		}
-		ctx.Redirect(setting.AppSubURL + "/admin")
-		return
 	}
 
-	ctx.Data["Stats"] = models.GetStatistic()
-	// FIXME: update periodically
-	updateSystemStatus()
-	ctx.Data["SysStatus"] = sysStatus
-	ctx.HTML(200, tplDashboard)
+	ctx.Redirect(setting.AppSubURL + "/admin")
 }
 
 // SendTestMail send test mail to confirm mail service is OK

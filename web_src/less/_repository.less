@@ -2011,19 +2011,31 @@
         }
     }
 
-    .segment.language-stats {
-        padding: 0;
-        height: .6em;
-        display: flex;
-        white-space: nowrap;
-        width: 100%;
+    .repository-summary {
+        height: 48px;
+        overflow: hidden;
 
-        .bar {
-            white-space: nowrap;
-            border: 0;
+        .segment.language-stats-details,
+        .segment.repository-summary {
+            border-top: none;
+            background: none;
+        }
+
+        .segment.language-stats {
             padding: 0;
-            margin: 0;
-            height: .6em;
+            height: 11px;
+            display: flex;
+            white-space: nowrap;
+            width: 100%;
+            border-radius: 0;
+
+            .bar {
+                white-space: nowrap;
+                border: 0;
+                padding: 0;
+                margin: 0;
+                height: 100%;
+            }
         }
     }
 }
