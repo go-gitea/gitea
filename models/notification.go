@@ -396,7 +396,7 @@ func (n *Notification) loadIssue(e Engine) (err error) {
 
 func (n *Notification) loadComment(e Engine) (err error) {
 	if n.Comment == nil && n.CommentID > 0 {
-		n.Comment, err = GetCommentByID(n.CommentID)
+		n.Comment, err = getCommentByID(e, n.CommentID)
 		if err != nil {
 			return fmt.Errorf("GetCommentByID [%d] for issue ID [%d]: %v", n.CommentID, n.IssueID, err)
 		}
