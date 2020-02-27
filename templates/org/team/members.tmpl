@@ -27,9 +27,9 @@
 					{{range .Team.Members}}
 						<div class="item">
 							{{if $.IsOrganizationOwner}}
-								<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/remove?uid={{.ID}}">
+								<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/remove">
 									{{$.CsrfTokenHtml}}
-									<button type="submit" class="ui red small button right" >{{$.i18n.Tr "org.members.remove"}}</button>
+									<button type="submit" class="ui red small button right" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.remove"}}</button>
 								</form>
 							{{end}}
 							<a href="{{.HomeLink}}">
