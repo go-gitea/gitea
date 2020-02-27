@@ -41,7 +41,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 		return fmt.Errorf("LoadPullRequest(): %v", err)
 	}
 
-	// Enough room to avoid reallocation's
+	// Enough room to avoid reallocations
 	unfiltered := make([]int64, 1, 64)
 
 	// =========== Original poster ===========
