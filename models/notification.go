@@ -133,55 +133,42 @@ func CreateOrUpdateIssueNotifications(issueID, commentID int64, notificationAuth
 }
 
 func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notificationAuthorID int64) error {
-	issueWatches, err := getIssueWatchers(e, issueID, ListOptions{})
+	// init
+	toNotify := make(map[int64]struct{}, 32)
+	notifications, err := getNotificationsByIssueID(e, issueID)
 	if err != nil {
 		return err
 	}
-
 	issue, err := getIssueByID(e, issueID)
 	if err != nil {
 		return err
 	}
 
-	watches, err := getWatchers(e, issue.RepoID)
+	issueWatches, err := getIssueWatchersIDs(e, issueID, true)
 	if err != nil {
 		return err
 	}
+	for _, id := range issueWatches {
+		toNotify[id] = struct{}{}
+	}
 
-	notifications, err := getNotificationsByIssueID(e, issueID)
+	repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
 	if err != nil {
 		return err
 	}
-
-	alreadyNotified := make(map[int64]struct{}, len(issueWatches)+len(watches))
-
-	notifyUser := func(userID int64) error {
-		// do not send notification for the own issuer/commenter
-		if userID == notificationAuthorID {
-			return nil
-		}
-
-		if _, ok := alreadyNotified[userID]; ok {
-			return nil
-		}
-		alreadyNotified[userID] = struct{}{}
-
-		if notificationExists(notifications, issue.ID, userID) {
-			return updateIssueNotification(e, userID, issue.ID, commentID, notificationAuthorID)
-		}
-		return createIssueNotification(e, userID, issue, commentID, notificationAuthorID)
+	for _, id := range repoWatches {
+		toNotify[id] = struct{}{}
 	}
 
-	for _, issueWatch := range issueWatches {
-		// ignore if user unwatched the issue
-		if !issueWatch.IsWatching {
-			alreadyNotified[issueWatch.UserID] = struct{}{}
-			continue
-		}
-
-		if err := notifyUser(issueWatch.UserID); err != nil {
-			return err
-		}
+	// dont notify user who cause notification
+	delete(toNotify, notificationAuthorID)
+	// explicit unwatch on issue
+	issueUnWatches, err := getIssueWatchersIDs(e, issueID, false)
+	if err != nil {
+		return err
+	}
+	for _, id := range issueUnWatches {
+		delete(toNotify, id)
 	}
 
 	err = issue.loadRepo(e)
@@ -189,16 +176,23 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 		return err
 	}
 
-	for _, watch := range watches {
+	// notify
+	for userID := range toNotify {
 		issue.Repo.Units = nil
-		if issue.IsPull && !issue.Repo.checkUnitUser(e, watch.UserID, false, UnitTypePullRequests) {
+		if issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypePullRequests) {
 			continue
 		}
-		if !issue.IsPull && !issue.Repo.checkUnitUser(e, watch.UserID, false, UnitTypeIssues) {
+		if !issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypeIssues) {
 			continue
 		}
 
-		if err := notifyUser(watch.UserID); err != nil {
+		if notificationExists(notifications, issue.ID, userID) {
+			if err = updateIssueNotification(e, userID, issue.ID, commentID, notificationAuthorID); err != nil {
+				return err
+			}
+			continue
+		}
+		if err = createIssueNotification(e, userID, issue, commentID, notificationAuthorID); err != nil {
 			return err
 		}
 	}
