@@ -5,15 +5,6 @@
 
 package structs
 
-import (
-	"encoding/base64"
-)
-
-// BasicAuthEncode generate base64 of basic auth head
-func BasicAuthEncode(user, pass string) string {
-	return base64.StdEncoding.EncodeToString([]byte(user + ":" + pass))
-}
-
 // AccessToken represents an API access token.
 // swagger:response AccessToken
 type AccessToken struct {
