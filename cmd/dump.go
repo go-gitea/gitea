@@ -208,9 +208,16 @@ func runDump(ctx *cli.Context) error {
 	if ctx.IsSet("skip-repository") && ctx.Bool("skip-repository") {
 		log.Info("Skip dumping local repositories")
 	} else {
-		log.Info("Dumping local repositories...%s", setting.RepoRootPath)
+		log.Info("Dumping local repositories... %s", setting.RepoRootPath)
 		if err := addRecursive(w, "repos", setting.RepoRootPath, verbose); err != nil {
 			fatal("Failed to include repositories: %v", err)
+		}
+
+		if _, err := os.Stat(setting.LFS.ContentPath); !os.IsNotExist(err) {
+			log.Info("Dumping lfs... %s", setting.LFS.ContentPath)
+			if err := addRecursive(w, "lfs", setting.LFS.ContentPath, verbose); err != nil {
+				fatal("Failed to include lfs: %v", err)
+			}
 		}
 	}
 
