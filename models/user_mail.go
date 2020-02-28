@@ -376,9 +376,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 
 	opts.setDefaultValues()
 
-	rows, err := x.SQL(querySQL, args...).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Rows(new(SearchEmailResult))
+	rows, err := x.SQL(querySQL, args...).Rows(new(SearchEmailResult))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Emails: %v", err)
 	}
