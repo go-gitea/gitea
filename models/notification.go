@@ -159,6 +159,13 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 	for _, id := range repoWatches {
 		toNotify[id] = struct{}{}
 	}
+	issueParticipants, err := issue.getParticipantIDsByIssue(e)
+	if err != nil {
+		return err
+	}
+	for _, id := range issueParticipants {
+		toNotify[id] = struct{}{}
+	}
 
 	// dont notify user who cause notification
 	delete(toNotify, notificationAuthorID)
