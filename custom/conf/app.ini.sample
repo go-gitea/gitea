@@ -311,6 +311,8 @@ LFS_CONTENT_PATH = data/lfs
 LFS_JWT_SECRET =
 ; LFS authentication validity period (in time.Duration), pushes taking longer than this may fail.
 LFS_HTTP_AUTH_EXPIRY = 20m
+; Maximum allowed LFS file size in bytes (Set to 0 for no limit).
+LFS_MAX_FILE_SIZE = 0
 ; Allow graceful restarts using SIGHUP to fork
 ALLOW_GRACEFUL_RESTARTS = true
 ; After a restart the parent will finish ongoing requests before
