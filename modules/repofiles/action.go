@@ -60,6 +60,9 @@ func changeIssueStatus(repo *models.Repository, issue *models.Issue, doer *model
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
 func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*repository.PushCommit, branchName string) error {
+	// Track if a single commit changed an issue, as we need to update the repo instance in that case.
+	commitChangedIssue := false
+
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -142,9 +145,22 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 				if err := changeIssueStatus(refRepo, refIssue, doer, close); err != nil {
 					return err
 				}
+				// Set the issue changed flag to true, to later on update the local repo instance
+				commitChangedIssue = true
 			}
 		}
 	}
+
+	if commitChangedIssue {
+		if fetchedValue, err := repo.FetchClosedIssueNum(); err == nil {
+			if fetchedValue > -1 {
+				repo.NumClosedIssues = fetchedValue
+			}
+		} else {
+			return err
+		}
+	}
+
 	return nil
 }
 

@@ -1872,6 +1872,27 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 	}
 }
 
+// FetchClosedIssueNum fetches the currently stored repositories NumClosedIssues from the database.
+// To further clarify, this method does NOT:
+//    - Recalculate the number of closed issues in the database
+//    - Return the repositories value of the locally stored NumClosedIssues
+// The method will only return an error if an actual SQL error occurred.
+// If no value was found, a -1 and a nil error will be returned.
+func (repo *Repository) FetchClosedIssueNum() (int, error) {
+	var value int
+	found, err := x.Table("repository").
+		Select("num_closed_issues").
+		Where("id = ?", repo.ID).
+		Get(&value)
+	if err != nil {
+		return 0, err
+	}
+	if !found {
+		return -1, nil
+	}
+	return value, nil
+}
+
 // CheckRepoStats checks the repository stats
 func CheckRepoStats(ctx context.Context) {
 	log.Trace("Doing: CheckRepoStats")
