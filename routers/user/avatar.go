@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -40,4 +41,16 @@ func Avatar(ctx *context.Context) {
 	}
 
 	ctx.Redirect(user.RealSizedAvatarLink(size))
+}
+
+// AvatarByEmail redirects the browser to the appropriate Avatar link
+func AvatarByEmail(ctx *context.Context) {
+	email := ctx.Params(":email")
+
+	size := ctx.QueryInt("size")
+	if size == 0 {
+		size = base.DefaultAvatarSize
+	}
+
+	ctx.Redirect(base.SizedAvatarLink(email, size))
 }
