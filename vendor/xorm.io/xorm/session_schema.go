@@ -346,10 +346,12 @@ func (session *Session) Sync2(beans ...interface{}) error {
 			}
 
 			if col.Default != oriCol.Default {
-				if (col.SQLType.Name == core.Bool || col.SQLType.Name == core.Boolean) &&
+				switch {
+				case col.IsAutoIncrement: // For autoincrement column, don't check default
+				case (col.SQLType.Name == core.Bool || col.SQLType.Name == core.Boolean) &&
 					((strings.EqualFold(col.Default, "true") && oriCol.Default == "1") ||
-						(strings.EqualFold(col.Default, "false") && oriCol.Default == "0")) {
-				} else {
+						(strings.EqualFold(col.Default, "false") && oriCol.Default == "0")):
+				default:
 					engine.logger.Warnf("Table %s Column %s db default is %s, struct default is %s",
 						tbName, col.Name, oriCol.Default, col.Default)
 				}

@@ -287,7 +287,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 		if !condBeanIsStruct && table != nil {
 			if col := table.DeletedColumn(); col != nil && !session.statement.unscoped { // tag "deleted" is enabled
-				autoCond1 := session.engine.CondDeleted(session.engine.Quote(col.Name))
+				autoCond1 := session.engine.CondDeleted(col)
 
 				if autoCond == nil {
 					autoCond = autoCond1
@@ -300,21 +300,25 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 
 	st := &session.statement
 
-	var sqlStr string
-	var condArgs []interface{}
-	var condSQL string
-	cond := session.statement.cond.And(autoCond)
+	var (
+		sqlStr   string
+		condArgs []interface{}
+		condSQL  string
+		cond     = session.statement.cond.And(autoCond)
 
-	var doIncVer = (table != nil && table.Version != "" && session.statement.checkVersion)
-	var verValue *reflect.Value
+		doIncVer = isStruct && (table != nil && table.Version != "" && session.statement.checkVersion)
+		verValue *reflect.Value
+	)
 	if doIncVer {
 		verValue, err = table.VersionColumn().ValueOf(bean)
 		if err != nil {
 			return 0, err
 		}
 
-		cond = cond.And(builder.Eq{session.engine.Quote(table.Version): verValue.Interface()})
-		colNames = append(colNames, session.engine.Quote(table.Version)+" = "+session.engine.Quote(table.Version)+" + 1")
+		if verValue != nil {
+			cond = cond.And(builder.Eq{session.engine.Quote(table.Version): verValue.Interface()})
+			colNames = append(colNames, session.engine.Quote(table.Version)+" = "+session.engine.Quote(table.Version)+" + 1")
+		}
 	}
 
 	condSQL, condArgs, err = builder.ToSQL(cond)
@@ -333,11 +337,12 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var tableName = session.statement.TableName()
 	// TODO: Oracle support needed
 	var top string
-	if st.LimitN > 0 {
+	if st.LimitN != nil {
+		limitValue := *st.LimitN
 		if st.Engine.dialect.DBType() == core.MYSQL {
-			condSQL = condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
+			condSQL = condSQL + fmt.Sprintf(" LIMIT %d", limitValue)
 		} else if st.Engine.dialect.DBType() == core.SQLITE {
-			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
+			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", limitValue)
 			cond = cond.And(builder.Expr(fmt.Sprintf("rowid IN (SELECT rowid FROM %v %v)",
 				session.engine.Quote(tableName), tempCondSQL), condArgs...))
 			condSQL, condArgs, err = builder.ToSQL(cond)
@@ -348,7 +353,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 				condSQL = "WHERE " + condSQL
 			}
 		} else if st.Engine.dialect.DBType() == core.POSTGRES {
-			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", st.LimitN)
+			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", limitValue)
 			cond = cond.And(builder.Expr(fmt.Sprintf("CTID IN (SELECT CTID FROM %v %v)",
 				session.engine.Quote(tableName), tempCondSQL), condArgs...))
 			condSQL, condArgs, err = builder.ToSQL(cond)
@@ -363,7 +368,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			if st.OrderStr != "" && st.Engine.dialect.DBType() == core.MSSQL &&
 				table != nil && len(table.PrimaryKeys) == 1 {
 				cond = builder.Expr(fmt.Sprintf("%s IN (SELECT TOP (%d) %s FROM %v%v)",
-					table.PrimaryKeys[0], st.LimitN, table.PrimaryKeys[0],
+					table.PrimaryKeys[0], limitValue, table.PrimaryKeys[0],
 					session.engine.Quote(tableName), condSQL), condArgs...)
 
 				condSQL, condArgs, err = builder.ToSQL(cond)
@@ -374,7 +379,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 					condSQL = "WHERE " + condSQL
 				}
 			} else {
-				top = fmt.Sprintf("TOP (%d) ", st.LimitN)
+				top = fmt.Sprintf("TOP (%d) ", limitValue)
 			}
 		}
 	}
@@ -512,7 +517,7 @@ func (session *Session) genUpdateColumns(bean interface{}) ([]string, []interfac
 
 		// !evalphobia! set fieldValue as nil when column is nullable and zero-value
 		if _, ok := getFlagForColumn(session.statement.nullableMap, col); ok {
-			if col.Nullable && isZero(fieldValue.Interface()) {
+			if col.Nullable && isZeroValue(fieldValue) {
 				var nilValue *int
 				fieldValue = reflect.ValueOf(nilValue)
 			}

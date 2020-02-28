@@ -58,7 +58,7 @@ func (engine *Engine) buildConds(table *core.Table, bean interface{},
 		}
 
 		if col.IsDeleted && !unscoped { // tag "deleted" is enabled
-			conds = append(conds, engine.CondDeleted(colName))
+			conds = append(conds, engine.CondDeleted(col))
 		}
 
 		fieldValue := *fieldValuePtr

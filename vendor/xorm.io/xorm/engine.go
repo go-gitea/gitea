@@ -91,11 +91,22 @@ func (engine *Engine) BufferSize(size int) *Session {
 }
 
 // CondDeleted returns the conditions whether a record is soft deleted.
-func (engine *Engine) CondDeleted(colName string) builder.Cond {
-	if engine.dialect.DBType() == core.MSSQL {
-		return builder.IsNull{colName}
+func (engine *Engine) CondDeleted(col *core.Column) builder.Cond {
+	var cond = builder.NewCond()
+	if col.SQLType.IsNumeric() {
+		cond = builder.Eq{col.Name: 0}
+	} else {
+		// FIXME: mssql: The conversion of a nvarchar data type to a datetime data type resulted in an out-of-range value.
+		if engine.dialect.DBType() != core.MSSQL {
+			cond = builder.Eq{col.Name: zeroTime1}
+		}
 	}
-	return builder.IsNull{colName}.Or(builder.Eq{colName: zeroTime1})
+
+	if col.Nullable {
+		cond = cond.Or(builder.IsNull{col.Name})
+	}
+
+	return cond
 }
 
 // ShowSQL show SQL statement or not on logger if log level is great than INFO
@@ -215,7 +226,7 @@ func quoteTo(buf *strings.Builder, quotePair string, value string) {
 		_, _ = buf.WriteString(value)
 		return
 	}
-	
+
 	prefix, suffix := quotePair[0], quotePair[1]
 
 	i := 0
@@ -838,7 +849,7 @@ func (engine *Engine) Having(conditions string) *Session {
 	return session.Having(conditions)
 }
 
-// UnMapType removes the datbase mapper of a type
+// UnMapType removes the database mapper of a type
 func (engine *Engine) UnMapType(t reflect.Type) {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
@@ -921,7 +932,7 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 	t := v.Type()
 	table := core.NewEmptyTable()
 	table.Type = t
-	table.Name = engine.tbNameForMap(v)
+	table.Name = getTableName(engine.TableMapper, v)
 
 	var idFieldColName string
 	var hasCacheTag, hasNoCacheTag bool
@@ -987,11 +998,11 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 
 					pStart := strings.Index(k, "(")
 					if pStart == 0 {
-						return nil, errors.New("( could not be the first charactor")
+						return nil, errors.New("( could not be the first character")
 					}
 					if pStart > -1 {
 						if !strings.HasSuffix(k, ")") {
-							return nil, fmt.Errorf("field %s tag %s cannot match ) charactor", col.FieldName, key)
+							return nil, fmt.Errorf("field %s tag %s cannot match ) character", col.FieldName, key)
 						}
 
 						ctx.tagName = k[:pStart]
@@ -1621,7 +1632,7 @@ func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}
 		v = s[11:19]
 	case core.Date:
 		v = t.Format("2006-01-02")
-	case core.DateTime, core.TimeStamp:
+	case core.DateTime, core.TimeStamp, core.Varchar: // !DarthPestilane! format time when sqlTypeName is core.Varchar.
 		v = t.Format("2006-01-02 15:04:05")
 	case core.TimeStampz:
 		if engine.dialect.DBType() == core.MSSQL {

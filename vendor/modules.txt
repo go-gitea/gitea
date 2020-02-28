@@ -640,5 +640,5 @@ strk.kbt.io/projects/go/libravatar
 xorm.io/builder
 # xorm.io/core v0.7.3
 xorm.io/core
-# xorm.io/xorm v0.8.2-0.20200120024500-c37aff9b3a4a
+# xorm.io/xorm v0.8.2
 xorm.io/xorm

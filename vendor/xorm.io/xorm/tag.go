@@ -81,7 +81,7 @@ func OnlyToDBTagHandler(ctx *tagContext) error {
 	return nil
 }
 
-// PKTagHandler decribes primary key tag handler
+// PKTagHandler describes primary key tag handler
 func PKTagHandler(ctx *tagContext) error {
 	ctx.col.IsPrimaryKey = true
 	ctx.col.Nullable = false

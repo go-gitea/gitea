@@ -25,13 +25,21 @@ func (engine *Engine) tbNameWithSchema(v string) string {
 	return v
 }
 
+func isSubQuery(tbName string) bool {
+	const selStr = "select"
+	if len(tbName) <= len(selStr)+1 {
+		return false
+	}
+
+	return strings.EqualFold(tbName[:len(selStr)], selStr) || strings.EqualFold(tbName[:len(selStr)+1], "("+selStr)
+}
+
 // TableName returns table name with schema prefix if has
 func (engine *Engine) TableName(bean interface{}, includeSchema ...bool) string {
 	tbName := engine.tbNameNoSchema(bean)
-	if len(includeSchema) > 0 && includeSchema[0] {
+	if len(includeSchema) > 0 && includeSchema[0] && !isSubQuery(tbName) {
 		tbName = engine.tbNameWithSchema(tbName)
 	}
-
 	return tbName
 }
 
@@ -42,20 +50,6 @@ func (session *Session) tbNameNoSchema(table *core.Table) string {
 	}
 
 	return table.Name
-}
-
-func (engine *Engine) tbNameForMap(v reflect.Value) string {
-	if v.Type().Implements(tpTableName) {
-		return v.Interface().(TableName).TableName()
-	}
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-		if v.Type().Implements(tpTableName) {
-			return v.Interface().(TableName).TableName()
-		}
-	}
-
-	return engine.TableMapper.Obj2Table(v.Type().Name())
 }
 
 func (engine *Engine) tbNameNoSchema(tablename interface{}) string {
@@ -82,7 +76,7 @@ func (engine *Engine) tbNameNoSchema(tablename interface{}) string {
 				v := rValue(f)
 				t := v.Type()
 				if t.Kind() == reflect.Struct {
-					table = engine.tbNameForMap(v)
+					table = getTableName(engine.TableMapper, v)
 				} else {
 					table = engine.Quote(fmt.Sprintf("%v", f))
 				}
@@ -100,12 +94,12 @@ func (engine *Engine) tbNameNoSchema(tablename interface{}) string {
 		return tablename.(string)
 	case reflect.Value:
 		v := tablename.(reflect.Value)
-		return engine.tbNameForMap(v)
+		return getTableName(engine.TableMapper, v)
 	default:
 		v := rValue(tablename)
 		t := v.Type()
 		if t.Kind() == reflect.Struct {
-			return engine.tbNameForMap(v)
+			return getTableName(engine.TableMapper, v)
 		}
 		return engine.Quote(fmt.Sprintf("%v", tablename))
 	}

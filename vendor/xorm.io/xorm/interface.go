@@ -92,6 +92,7 @@ type EngineInterface interface {
 	Quote(string) string
 	SetCacher(string, core.Cacher)
 	SetConnMaxLifetime(time.Duration)
+	SetColumnMapper(core.IMapper)
 	SetDefaultCacher(core.Cacher)
 	SetLogger(logger core.ILogger)
 	SetLogLevel(core.LogLevel)
@@ -99,6 +100,7 @@ type EngineInterface interface {
 	SetMaxOpenConns(int)
 	SetMaxIdleConns(int)
 	SetSchema(string)
+	SetTableMapper(core.IMapper)
 	SetTZDatabase(tz *time.Location)
 	SetTZLocation(tz *time.Location)
 	ShowExecTime(...bool)

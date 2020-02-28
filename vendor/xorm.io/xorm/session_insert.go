@@ -16,6 +16,9 @@ import (
 	"xorm.io/core"
 )
 
+// ErrNoElementsOnSlice represents an error there is no element when insert
+var ErrNoElementsOnSlice = errors.New("No element on slice when insert")
+
 // Insert insert one or more beans
 func (session *Session) Insert(beans ...interface{}) (int64, error) {
 	var affected int64
@@ -67,21 +70,23 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 			sliceValue := reflect.Indirect(reflect.ValueOf(bean))
 			if sliceValue.Kind() == reflect.Slice {
 				size := sliceValue.Len()
-				if size > 0 {
-					if session.engine.SupportInsertMany() {
-						cnt, err := session.innerInsertMulti(bean)
+				if size <= 0 {
+					return 0, ErrNoElementsOnSlice
+				}
+
+				if session.engine.SupportInsertMany() {
+					cnt, err := session.innerInsertMulti(bean)
+					if err != nil {
+						return affected, err
+					}
+					affected += cnt
+				} else {
+					for i := 0; i < size; i++ {
+						cnt, err := session.innerInsert(sliceValue.Index(i).Interface())
 						if err != nil {
 							return affected, err
 						}
 						affected += cnt
-					} else {
-						for i := 0; i < size; i++ {
-							cnt, err := session.innerInsert(sliceValue.Index(i).Interface())
-							if err != nil {
-								return affected, err
-							}
-							affected += cnt
-						}
 					}
 				}
 			} else {
@@ -674,7 +679,7 @@ func (session *Session) genInsertColumns(bean interface{}) ([]string, []interfac
 
 		// !evalphobia! set fieldValue as nil when column is nullable and zero-value
 		if _, ok := getFlagForColumn(session.statement.nullableMap, col); ok {
-			if col.Nullable && isZero(fieldValue.Interface()) {
+			if col.Nullable && isZeroValue(fieldValue) {
 				var nilValue *int
 				fieldValue = reflect.ValueOf(nilValue)
 			}
