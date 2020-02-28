@@ -61,7 +61,7 @@ func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 	if !isPrimaryFound {
 		emails = append(emails, &EmailAddress{
 			Email:       u.Email,
-			IsActivated: true,
+			IsActivated: u.IsActive,
 			IsPrimary:   true,
 		})
 	}

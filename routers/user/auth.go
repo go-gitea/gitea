@@ -1217,6 +1217,13 @@ func ActivateEmail(ctx *context.Context) {
 
 		log.Trace("Email activated: %s", email.Email)
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
+
+		if u, err := models.GetUserByID(email.UID); err != nil {
+			log.Warn("GetUserByID: %d", email.UID)
+		} else {
+			// Allow user to validate more emails
+			_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
+		}
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/email")

@@ -223,11 +223,26 @@ func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
 }
 
 func loadAccountData(ctx *context.Context) {
-	emails, err := models.GetEmailAddresses(ctx.User.ID)
+	emlist, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetEmailAddresses", err)
 		return
 	}
+	type UserEmail struct {
+		models.EmailAddress
+		CanRequestActivation bool
+		CanBePrimary         bool
+	}
+	pendingActivation := ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName)
+	emails := make([]*UserEmail, len(emlist))
+	for i, em := range emlist {
+		var email UserEmail
+		email.EmailAddress = *em
+		email.CanRequestActivation = !email.IsActivated && !pendingActivation
+		email.CanBePrimary = em.IsActivated
+		emails[i] = &email
+	}
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
+	ctx.Data["CanAddEmails"] = !pendingActivation
 }
