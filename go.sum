@@ -574,8 +574,8 @@ github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53 h1:HsIQ6yAjfjQ3IxPGrTusxp6Qxn92gNVq2x5CbvQvx3w=
 github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53/go.mod h1:f6elajwZV+xceiaqgRL090YzLEDGSbqr3poGL3ZgXYo=
-github.com/yuin/goldmark v1.1.19 h1:0s2/60x0XsFCXHeFut+F3azDVAAyIMyUfJRbRexiTYs=
-github.com/yuin/goldmark v1.1.19/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+github.com/yuin/goldmark v1.1.23 h1:eTodJ8hwEUvwXhb9qxQNuL/q1d+xMQClrXR4mdvV7gs=
+github.com/yuin/goldmark v1.1.23/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/ziutek/mymysql v1.5.4 h1:GB0qdRGsTwQSBVYuVShFBKaXSnSnYYC2d9knnE1LHFs=
 github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wKdgO/C0=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
