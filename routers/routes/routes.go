@@ -422,6 +422,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
 		m.Get("", adminReq, admin.Dashboard)
+		m.Post("", adminReq, bindIgnErr(auth.AdminDashboardForm{}), admin.DashboardPost)
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
 		m.Group("/monitor", func() {
@@ -486,7 +487,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/notices", func() {
 			m.Get("", admin.Notices)
 			m.Post("/delete", admin.DeleteNotices)
-			m.Get("/empty", admin.EmptyNotices)
+			m.Post("/empty", admin.EmptyNotices)
 		})
 	}, adminReq)
 	// ***** END: Admin *****
