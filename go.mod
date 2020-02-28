@@ -90,7 +90,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
 	github.com/tstranex/u2f v1.0.0
-	github.com/unknwon/cae v0.0.0-20190822084630-55a0b64484a1
+	github.com/unknwon/cae v1.0.0
 	github.com/unknwon/com v1.0.1
 	github.com/unknwon/i18n v0.0.0-20190805065654-5c6446a380b6
 	github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
