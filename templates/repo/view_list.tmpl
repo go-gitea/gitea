@@ -16,10 +16,11 @@
 					{{end}}
 				{{end}}
 				<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}">
-						<span class="shortsha">{{ShortSha .LatestCommit.ID.String}}</span>
+					<span class="shortsha">{{ShortSha .LatestCommit.ID.String}}</span>
+					<div class="ui detail icon button">
 						{{if .LatestCommit.Signature}}
 							{{if .LatestCommitVerification.Verified}}
-								<div class="ui detail icon button" title="{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}{{.i18n.Tr "repo.commits.signed_by_untrusted_user"}}: {{else}}{{.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}: {{end}}{{.LatestCommitVerification.Reason}}">
+								<div title="{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}{{.i18n.Tr "repo.commits.signed_by_untrusted_user"}}: {{else}}{{.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}: {{end}}{{.LatestCommitVerification.Reason}}">
 									{{if ne .LatestCommitVerification.SigningUser.ID 0}}
 										<i class="lock icon"></i>
 										<img class="ui signature avatar image" src="{{.LatestCommitVerification.SigningUser.RelAvatarLink}}" />
@@ -32,11 +33,10 @@
 									{{end}}
 								</div>
 							{{else}}
-								<div class="ui detail icon button">
-									<i title="{{$.i18n.Tr .LatestCommitVerification.Reason}}" class="unlock icon"></i>
-								</div>
+								<i title="{{$.i18n.Tr .LatestCommitVerification.Reason}}" class="unlock icon"></i>
 							{{end}}
 						{{end}}
+					</div>
 				</a>
 				{{template "repo/commit_status" .LatestCommitStatus}}
 				{{ $commitLink:= printf "%s/commit/%s" .RepoLink .LatestCommit.ID }}

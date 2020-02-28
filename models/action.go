@@ -213,7 +213,7 @@ func (a *Action) getCommentLink(e Engine) string {
 		return "#"
 	}
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = GetCommentByID(a.CommentID)
+		a.Comment, _ = getCommentByID(e, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
