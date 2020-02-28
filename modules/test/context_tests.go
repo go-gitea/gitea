@@ -58,8 +58,11 @@ func LoadRepoCommit(t *testing.T, ctx *context.Context) {
 	defer gitRepo.Close()
 	branch, err := gitRepo.GetHEADBranch()
 	assert.NoError(t, err)
-	ctx.Repo.Commit, err = gitRepo.GetBranchCommit(branch.Name)
-	assert.NoError(t, err)
+	assert.NotNil(t, branch)
+	if branch != nil {
+		ctx.Repo.Commit, err = gitRepo.GetBranchCommit(branch.Name)
+		assert.NoError(t, err)
+	}
 }
 
 // LoadUser load a user into a test context.
