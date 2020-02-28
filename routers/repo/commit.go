@@ -244,11 +244,11 @@ func Diff(ctx *context.Context) {
 	parents := make([]string, commit.ParentCount())
 	for i := 0; i < commit.ParentCount(); i++ {
 		sha, err := commit.ParentID(i)
-		parents[i] = sha.String()
 		if err != nil {
 			ctx.NotFound("repo.Diff", err)
 			return
 		}
+		parents[i] = sha.String()
 	}
 
 	ctx.Data["CommitID"] = commitID
