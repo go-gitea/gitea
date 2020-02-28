@@ -11,7 +11,7 @@ import (
 )
 
 // A DelimiterProcessor interface provides a set of functions about
-// Deliiter nodes.
+// Delimiter nodes.
 type DelimiterProcessor interface {
 	// IsDelimiter returns true if given character is a delimiter, otherwise false.
 	IsDelimiter(byte) bool
@@ -38,7 +38,7 @@ type Delimiter struct {
 	// See https://spec.commonmark.org/0.29/#can-open-emphasis for details.
 	CanClose bool
 
-	// Length is a remaining length of this delmiter.
+	// Length is a remaining length of this delimiter.
 	Length int
 
 	// OriginalLength is a original length of this delimiter.
