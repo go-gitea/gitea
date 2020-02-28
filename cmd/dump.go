@@ -131,7 +131,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 		cli.StringFlag{
 			Name:  "file, f",
 			Value: fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
-			Usage: "Name of the dump file which will be created. See type for available types.",
+			Usage: "Name of the dump file which will be created. Supply '-' for stdout. See type for available types.",
 		},
 		cli.BoolFlag{
 			Name:  "verbose, V",
@@ -168,7 +168,23 @@ func fatal(format string, args ...interface{}) {
 }
 
 func runDump(ctx *cli.Context) error {
+	var file *os.File
+	fileName := ctx.String("file")
+	if fileName == "-" {
+		file = os.Stdout
+		err := log.DelLogger("console")
+		if err != nil {
+			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
+		}
+	}
 	setting.NewContext()
+	// make sure we are logging to the console no matter what the configuration tells us do to
+	if _, err := setting.Cfg.Section("log").NewKey("MODE", "console"); err != nil {
+		fatal("Setting logging mode to console failed: %v", err)
+	}
+	if _, err := setting.Cfg.Section("log.console").NewKey("STDERR", "true"); err != nil {
+		fatal("Setting console logger to stderr failed: %v", err)
+	}
 	setting.NewServices() // cannot access session settings otherwise
 
 	err := models.SetEngine()
@@ -176,10 +192,11 @@ func runDump(ctx *cli.Context) error {
 		return err
 	}
 
-	fileName := ctx.String("file")
-	file, err := os.Create(fileName)
-	if err != nil {
-		fatal("Unable to open %s: %s", fileName, err)
+	if file == nil {
+		file, err = os.Create(fileName)
+		if err != nil {
+			fatal("Unable to open %s: %v", fileName, err)
+		}
 	}
 	defer file.Close()
 
@@ -201,19 +218,6 @@ func runDump(ctx *cli.Context) error {
 	}
 	defer w.Close()
 
-	tmpDir := ctx.String("tempdir")
-	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
-		fatal("Path does not exist: %s", tmpDir)
-	}
-	tmpWorkDir, err := ioutil.TempDir(tmpDir, "gitea-dump-")
-	if err != nil {
-		fatal("Failed to create tmp work directory: %v", err)
-	}
-	defer os.RemoveAll(tmpWorkDir)
-	log.Info("Creating tmp work dir: %s", tmpWorkDir)
-
-	dbDump := path.Join(tmpWorkDir, "gitea-db.sql")
-
 	if ctx.IsSet("skip-repository") && ctx.Bool("skip-repository") {
 		log.Info("Skip dumping local repositories")
 	} else {
@@ -230,6 +234,17 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
+	tmpDir := ctx.String("tempdir")
+	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
+		fatal("Path does not exist: %s", tmpDir)
+	}
+
+	dbDump, err := ioutil.TempFile(tmpDir, "gitea-db.sql")
+	if err != nil {
+		fatal("Failed to create tmp file: %v", err)
+	}
+	defer os.Remove(dbDump.Name())
+
 	targetDBType := ctx.String("database")
 	if len(targetDBType) > 0 && targetDBType != setting.Database.Type {
 		log.Info("Dumping database %s => %s...", setting.Database.Type, targetDBType)
@@ -237,11 +252,11 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Dumping database...")
 	}
 
-	if err := models.DumpDatabase(dbDump, targetDBType); err != nil {
+	if err := models.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
 		fatal("Failed to dump database: %v", err)
 	}
 
-	if err := addFile(w, "gitea-db.sql", dbDump, verbose); err != nil {
+	if err := addFile(w, "gitea-db.sql", dbDump.Name(), verbose); err != nil {
 		fatal("Failed to include gitea-db.sql: %v", err)
 	}
 
@@ -296,16 +311,22 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	if err = w.Close(); err != nil {
-		_ = os.Remove(fileName)
-		fatal("Failed to save %s: %v", fileName, err)
+	if fileName != "-" {
+		if err = w.Close(); err != nil {
+			_ = os.Remove(fileName)
+			fatal("Failed to save %s: %v", fileName, err)
+		}
+
+		if err := os.Chmod(fileName, 0600); err != nil {
+			log.Info("Can't change file access permissions mask to 0600: %v", err)
+		}
 	}
 
-	if err := os.Chmod(fileName, 0600); err != nil {
-		log.Info("Can't change file access permissions mask to 0600: %v", err)
+	if fileName != "-" {
+		log.Info("Finish dumping in file %s", fileName)
+	} else {
+		log.Info("Finish dumping to stdout")
 	}
-
-	log.Info("Finish dumping in file %s", fileName)
 
 	return nil
 }
