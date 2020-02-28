@@ -78,6 +78,15 @@ func addRecursive(w archiver.Writer, dirPath string, absPath string, verbose boo
 	return nil
 }
 
+func isSubdir(upper string, lower string) (bool, error) {
+	if relPath, err := filepath.Rel(upper, lower); err != nil {
+		return false, err
+	} else if relPath == "." || !strings.HasPrefix(relPath, ".") {
+		return true, nil
+	}
+	return false, nil
+}
+
 type outputType struct {
 	Enum     []string
 	Default  string
@@ -245,8 +254,12 @@ func runDump(ctx *cli.Context) error {
 
 	customDir, err := os.Stat(setting.CustomPath)
 	if err == nil && customDir.IsDir() {
-		if err := addRecursive(w, "custom", setting.CustomPath, verbose); err != nil {
-			fatal("Failed to include custom: %v", err)
+		if is, _ := isSubdir(setting.AppDataPath, setting.CustomPath); !is {
+			if err := addRecursive(w, "custom", setting.CustomPath, verbose); err != nil {
+				fatal("Failed to include custom: %v", err)
+			}
+		} else {
+			log.Info("Custom dir %s is inside data dir %s, skipped", setting.CustomPath, setting.AppDataPath)
 		}
 	} else {
 		log.Info("Custom dir %s doesn't exist, skipped", setting.CustomPath)
