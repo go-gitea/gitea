@@ -10,11 +10,11 @@ gitea.com/macaron/cache/memcache
 gitea.com/macaron/cache/redis
 # gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
 gitea.com/macaron/captcha
-# gitea.com/macaron/cors v0.0.0-20190821152825-7dcef4a17175
+# gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 gitea.com/macaron/cors
 # gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 gitea.com/macaron/csrf
-# gitea.com/macaron/gzip v0.0.0-20191118033930-0c4c5566a0e5
+# gitea.com/macaron/gzip v0.0.0-20191118041502-506895b47aae
 gitea.com/macaron/gzip
 # gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
 gitea.com/macaron/i18n
@@ -22,7 +22,7 @@ gitea.com/macaron/i18n
 gitea.com/macaron/inject
 # gitea.com/macaron/macaron v1.4.0
 gitea.com/macaron/macaron
-# gitea.com/macaron/session v0.0.0-20190821211443-122c47c5f705
+# gitea.com/macaron/session v0.0.0-20191207215012-613cebf0674d
 gitea.com/macaron/session
 gitea.com/macaron/session/couchbase
 gitea.com/macaron/session/memcache
@@ -269,7 +269,7 @@ github.com/keybase/go-crypto/openpgp/errors
 github.com/keybase/go-crypto/openpgp/packet
 github.com/keybase/go-crypto/openpgp/s2k
 github.com/keybase/go-crypto/rsa
-# github.com/klauspost/compress v1.9.2
+# github.com/klauspost/compress v1.10.2
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 # github.com/kr/pretty v0.1.0
@@ -467,7 +467,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20200219234226-1ad67e1f0ef4
+# golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/argon2
@@ -570,7 +570,7 @@ gopkg.in/alexcesaro/quotedprintable.v3
 gopkg.in/asn1-ber.v1
 # gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 gopkg.in/gomail.v2
-# gopkg.in/ini.v1 v1.51.1
+# gopkg.in/ini.v1 v1.52.0
 gopkg.in/ini.v1
 # gopkg.in/ldap.v3 v3.0.2
 gopkg.in/ldap.v3
