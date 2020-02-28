@@ -97,7 +97,7 @@ require (
 	github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 	github.com/urfave/cli v1.20.0
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
-	github.com/yuin/goldmark v1.1.19
+	github.com/yuin/goldmark v1.1.23
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20200219234226-1ad67e1f0ef4
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
