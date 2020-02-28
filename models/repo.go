@@ -1412,11 +1412,14 @@ func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes [
 	for _, u := range units {
 		deleteUnitTypes = append(deleteUnitTypes, u.Type)
 	}
-
-	if _, err = sess.Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
-		return err
+	if len(deleteUnitTypes) != 0 {
+		if _, err = sess.Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
+			return err
+		}
 	}
-
+	if len(units) == 0 {
+		return sess.Commit()
+	}
 	if _, err = sess.Insert(units); err != nil {
 		return err
 	}
