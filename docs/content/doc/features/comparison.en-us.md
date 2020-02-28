@@ -60,7 +60,7 @@ _Symbols used in table:_
 | Git LFS 2.0 | ✓ | ✘ | ✓ | ✓ | ✓ | ⁄ | ✓ |
 | Group Milestones | ✘ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Granular user roles (Code, Issues, Wiki etc) | ✓ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
-| Verified Committer | ✘ | ✘ | ? | ✓ | ✓ | ✓ | ✘ |
+| Verified Committer | ⁄ | ✘ | ? | ✓ | ✓ | ✓ | ✘ |
 | GPG Signed Commits | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Reject unsigned commits | [✘](https://github.com/go-gitea/gitea/issues/2770) | ✘ | ✓ | ✓ | ✓ | ✘ | ✓ |
 | Repository Activity page | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
