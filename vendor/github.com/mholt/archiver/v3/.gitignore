@@ -1,0 +1,5 @@
+.DS_Store
+_gitignore
+builds/
+*.test
+cmd/archiver/archiver
