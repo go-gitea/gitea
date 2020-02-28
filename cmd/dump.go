@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"gitea.com/macaron/session"
 
 	archiver "github.com/mholt/archiver/v3"
 	"github.com/unknwon/com"
@@ -247,8 +249,12 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Packing data directory...%s", setting.AppDataPath)
 
 		var sessionAbsPath string
-		if setting.SessionConfig.Provider == "file" {
-			sessionAbsPath = setting.SessionConfig.ProviderConfig
+		if setting.Cfg.Section("session").Key("PROVIDER").Value() == "file" {
+			var opts session.Options
+			if err = json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &opts); err != nil {
+				return err
+			}
+			sessionAbsPath = opts.ProviderConfig
 		}
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, sessionAbsPath, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)
