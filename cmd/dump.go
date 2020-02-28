@@ -248,15 +248,19 @@ func runDump(ctx *cli.Context) error {
 	if com.IsExist(setting.AppDataPath) {
 		log.Info("Packing data directory...%s", setting.AppDataPath)
 
-		var sessionAbsPath string
+		var excludes []string
 		if setting.Cfg.Section("session").Key("PROVIDER").Value() == "file" {
 			var opts session.Options
 			if err = json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &opts); err != nil {
 				return err
 			}
-			sessionAbsPath = opts.ProviderConfig
+			excludes = append(excludes, opts.ProviderConfig)
 		}
-		if err := addRecursiveExclude(w, "data", setting.AppDataPath, sessionAbsPath, verbose); err != nil {
+
+		excludes = append(excludes, setting.RepoRootPath)
+		excludes = append(excludes, setting.LFS.ContentPath)
+		excludes = append(excludes, setting.LogRootPath)
+		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)
 		}
 	}
@@ -286,8 +290,17 @@ func runDump(ctx *cli.Context) error {
 	return nil
 }
 
+func contains(slice []string, s string) bool {
+	for _, v := range slice {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 // addRecursiveExclude zips absPath to specified insidePath inside writer excluding excludeAbsPath
-func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeAbsPath string, verbose bool) error {
+func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeAbsPath []string, verbose bool) error {
 	absPath, err := filepath.Abs(absPath)
 	if err != nil {
 		return err
@@ -306,7 +319,7 @@ func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeA
 		currentAbsPath := path.Join(absPath, file.Name())
 		currentInsidePath := path.Join(insidePath, file.Name())
 		if file.IsDir() {
-			if currentAbsPath != excludeAbsPath {
+			if !contains(excludeAbsPath, currentAbsPath) {
 				if err := addFile(w, currentInsidePath, currentAbsPath, false); err != nil {
 					return err
 				}
