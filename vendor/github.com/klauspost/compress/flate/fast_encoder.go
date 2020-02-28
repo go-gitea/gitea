@@ -35,17 +35,17 @@ func newFastEnc(level int) fastEnc {
 }
 
 const (
-	tableBits       = 16             // Bits used in the table
+	tableBits       = 15             // Bits used in the table
 	tableSize       = 1 << tableBits // Size of the table
 	tableShift      = 32 - tableBits // Right-shift to get the tableBits most significant bits of a uint32.
 	baseMatchOffset = 1              // The smallest match offset
 	baseMatchLength = 3              // The smallest match length per the RFC section 3.2.5
 	maxMatchOffset  = 1 << 15        // The largest match offset
 
-	bTableBits   = 18                                           // Bits used in the big tables
-	bTableSize   = 1 << bTableBits                              // Size of the table
-	allocHistory = maxMatchOffset * 10                          // Size to preallocate for history.
-	bufferReset  = (1 << 31) - allocHistory - maxStoreBlockSize // Reset the buffer offset when reaching this.
+	bTableBits   = 17                                               // Bits used in the big tables
+	bTableSize   = 1 << bTableBits                                  // Size of the table
+	allocHistory = maxStoreBlockSize * 10                           // Size to preallocate for history.
+	bufferReset  = (1 << 31) - allocHistory - maxStoreBlockSize - 1 // Reset the buffer offset when reaching this.
 )
 
 const (
@@ -92,7 +92,6 @@ func hash(u uint32) uint32 {
 }
 
 type tableEntry struct {
-	val    uint32
 	offset int32
 }
 
@@ -210,16 +209,14 @@ func (e *fastGen) matchlenLong(s, t int32, src []byte) int32 {
 
 // Reset the encoding table.
 func (e *fastGen) Reset() {
-	if cap(e.hist) < int(maxMatchOffset*8) {
-		l := maxMatchOffset * 8
-		// Make it at least 1MB.
-		if l < 1<<20 {
-			l = 1 << 20
-		}
-		e.hist = make([]byte, 0, l)
+	if cap(e.hist) < allocHistory {
+		e.hist = make([]byte, 0, allocHistory)
 	}
-	// We offset current position so everything will be out of reach
-	e.cur += maxMatchOffset + int32(len(e.hist))
+	// We offset current position so everything will be out of reach.
+	// If we are above the buffer reset it will be cleared anyway since len(hist) == 0.
+	if e.cur <= bufferReset {
+		e.cur += maxMatchOffset + int32(len(e.hist))
+	}
 	e.hist = e.hist[:0]
 }
 
