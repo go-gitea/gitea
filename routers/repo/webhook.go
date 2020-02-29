@@ -78,12 +78,12 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 	if ctx.User.IsAdmin {
 		// Are we looking at default webhooks?
 		if strings.Contains(ctx.Link, "/admin/hooks") {
-		return &orgRepoCtx{
-			IsAdmin:     true,
-			Link:        path.Join(setting.AppSubURL, "/admin/hooks"),
-			NewTemplate: tplAdminHookNew,
-		}, nil
-	}
+			return &orgRepoCtx{
+				IsAdmin:     true,
+				Link:        path.Join(setting.AppSubURL, "/admin/hooks"),
+				NewTemplate: tplAdminHookNew,
+			}, nil
+		}
 
 		// Must be system webhooks instead
 		return &orgRepoCtx{
@@ -165,7 +165,7 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 	}
 }
 
-// WebHooksNewPost response for creating webhook
+// WebHooksNewPost response for creating Gitea webhook
 func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
@@ -191,15 +191,16 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	}
 
 	w := &models.Webhook{
-		RepoID:       orCtx.RepoID,
-		URL:          form.PayloadURL,
-		HTTPMethod:   form.HTTPMethod,
-		ContentType:  contentType,
-		Secret:       form.Secret,
-		HookEvent:    ParseHookEvent(form.WebhookForm),
-		IsActive:     form.Active,
-		HookTaskType: models.GITEA,
-		OrgID:        orCtx.OrgID,
+		RepoID:          orCtx.RepoID,
+		URL:             form.PayloadURL,
+		HTTPMethod:      form.HTTPMethod,
+		ContentType:     contentType,
+		Secret:          form.Secret,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		HookTaskType:    models.GITEA,
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -244,14 +245,15 @@ func newGogsWebhookPost(ctx *context.Context, form auth.NewGogshookForm, kind mo
 	}
 
 	w := &models.Webhook{
-		RepoID:       orCtx.RepoID,
-		URL:          form.PayloadURL,
-		ContentType:  contentType,
-		Secret:       form.Secret,
-		HookEvent:    ParseHookEvent(form.WebhookForm),
-		IsActive:     form.Active,
-		HookTaskType: kind,
-		OrgID:        orCtx.OrgID,
+		RepoID:          orCtx.RepoID,
+		URL:             form.PayloadURL,
+		ContentType:     contentType,
+		Secret:          form.Secret,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		HookTaskType:    kind,
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -293,14 +295,15 @@ func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 	}
 
 	w := &models.Webhook{
-		RepoID:       orCtx.RepoID,
-		URL:          form.PayloadURL,
-		ContentType:  models.ContentTypeJSON,
-		HookEvent:    ParseHookEvent(form.WebhookForm),
-		IsActive:     form.Active,
-		HookTaskType: models.DISCORD,
-		Meta:         string(meta),
-		OrgID:        orCtx.OrgID,
+		RepoID:          orCtx.RepoID,
+		URL:             form.PayloadURL,
+		ContentType:     models.ContentTypeJSON,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		HookTaskType:    models.DISCORD,
+		Meta:            string(meta),
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -333,14 +336,15 @@ func DingtalkHooksNewPost(ctx *context.Context, form auth.NewDingtalkHookForm) {
 	}
 
 	w := &models.Webhook{
-		RepoID:       orCtx.RepoID,
-		URL:          form.PayloadURL,
-		ContentType:  models.ContentTypeJSON,
-		HookEvent:    ParseHookEvent(form.WebhookForm),
-		IsActive:     form.Active,
-		HookTaskType: models.DINGTALK,
-		Meta:         "",
-		OrgID:        orCtx.OrgID,
+		RepoID:          orCtx.RepoID,
+		URL:             form.PayloadURL,
+		ContentType:     models.ContentTypeJSON,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		HookTaskType:    models.DINGTALK,
+		Meta:            "",
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -382,14 +386,15 @@ func TelegramHooksNewPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 	}
 
 	w := &models.Webhook{
-		RepoID:       orCtx.RepoID,
-		URL:          fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", form.BotToken, form.ChatID),
-		ContentType:  models.ContentTypeJSON,
-		HookEvent:    ParseHookEvent(form.WebhookForm),
-		IsActive:     form.Active,
-		HookTaskType: models.TELEGRAM,
-		Meta:         string(meta),
-		OrgID:        orCtx.OrgID,
+		RepoID:          orCtx.RepoID,
+		URL:             fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", form.BotToken, form.ChatID),
+		ContentType:     models.ContentTypeJSON,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		HookTaskType:    models.TELEGRAM,
+		Meta:            string(meta),
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -422,14 +427,15 @@ func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	}
 
 	w := &models.Webhook{
-		RepoID:       orCtx.RepoID,
-		URL:          form.PayloadURL,
-		ContentType:  models.ContentTypeJSON,
-		HookEvent:    ParseHookEvent(form.WebhookForm),
-		IsActive:     form.Active,
-		HookTaskType: models.MSTEAMS,
-		Meta:         "",
-		OrgID:        orCtx.OrgID,
+		RepoID:          orCtx.RepoID,
+		URL:             form.PayloadURL,
+		ContentType:     models.ContentTypeJSON,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		HookTaskType:    models.MSTEAMS,
+		Meta:            "",
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -479,14 +485,15 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	}
 
 	w := &models.Webhook{
-		RepoID:       orCtx.RepoID,
-		URL:          form.PayloadURL,
-		ContentType:  models.ContentTypeJSON,
-		HookEvent:    ParseHookEvent(form.WebhookForm),
-		IsActive:     form.Active,
-		HookTaskType: models.SLACK,
-		Meta:         string(meta),
-		OrgID:        orCtx.OrgID,
+		RepoID:          orCtx.RepoID,
+		URL:             form.PayloadURL,
+		ContentType:     models.ContentTypeJSON,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		HookTaskType:    models.SLACK,
+		Meta:            string(meta),
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
@@ -519,14 +526,15 @@ func FeishuHooksNewPost(ctx *context.Context, form auth.NewFeishuHookForm) {
 	}
 
 	w := &models.Webhook{
-		RepoID:       orCtx.RepoID,
-		URL:          form.PayloadURL,
-		ContentType:  models.ContentTypeJSON,
-		HookEvent:    ParseHookEvent(form.WebhookForm),
-		IsActive:     form.Active,
-		HookTaskType: models.FEISHU,
-		Meta:         "",
-		OrgID:        orCtx.OrgID,
+		RepoID:          orCtx.RepoID,
+		URL:             form.PayloadURL,
+		ContentType:     models.ContentTypeJSON,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		HookTaskType:    models.FEISHU,
+		Meta:            "",
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
