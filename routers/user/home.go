@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -449,7 +450,6 @@ func Issues(ctx *context.Context) {
 	}
 
 	opts := &models.IssuesOptions{
-		IsClosed: util.OptionalBoolOf(isShowClosed),
 		IsPull:   util.OptionalBoolOf(isPullList),
 		SortType: sortType,
 	}
@@ -465,10 +465,39 @@ func Issues(ctx *context.Context) {
 		opts.MentionedID = ctxUser.ID
 	}
 
-	counts, err := models.CountIssuesByRepo(opts)
-	if err != nil {
-		ctx.ServerError("CountIssuesByRepo", err)
-		return
+	var forceEmpty bool
+	var issueIDsFromSearch []int64
+	var keyword = strings.Trim(ctx.Query("q"), " ")
+
+	if len(keyword) > 0 {
+		searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
+		if err != nil {
+			ctx.ServerError("GetRepoIDsForIssuesOptions", err)
+			return
+		}
+		issueIDsFromSearch, err = issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
+		if err != nil {
+			ctx.ServerError("SearchIssuesByKeyword", err)
+			return
+		}
+		if len(issueIDsFromSearch) > 0 {
+			opts.IssueIDs = issueIDsFromSearch
+		} else {
+			forceEmpty = true
+		}
+	}
+
+	ctx.Data["Keyword"] = keyword
+
+	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
+
+	var counts map[int64]int64
+	if !forceEmpty {
+		counts, err = models.CountIssuesByRepo(opts)
+		if err != nil {
+			ctx.ServerError("CountIssuesByRepo", err)
+			return
+		}
 	}
 
 	opts.Page = page
@@ -488,10 +517,15 @@ func Issues(ctx *context.Context) {
 		opts.RepoIDs = repoIDs
 	}
 
-	issues, err := models.Issues(opts)
-	if err != nil {
-		ctx.ServerError("Issues", err)
-		return
+	var issues []*models.Issue
+	if !forceEmpty {
+		issues, err = models.Issues(opts)
+		if err != nil {
+			ctx.ServerError("Issues", err)
+			return
+		}
+	} else {
+		issues = []*models.Issue{}
 	}
 
 	showReposMap := make(map[int64]*models.Repository, len(counts))
@@ -538,7 +572,7 @@ func Issues(ctx *context.Context) {
 		}
 	}
 
-	issueStatsOpts := models.UserIssueStatsOptions{
+	userIssueStatsOpts := models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
@@ -546,33 +580,61 @@ func Issues(ctx *context.Context) {
 		IsClosed:    isShowClosed,
 	}
 	if len(repoIDs) > 0 {
-		issueStatsOpts.UserRepoIDs = repoIDs
+		userIssueStatsOpts.UserRepoIDs = repoIDs
 	}
-	issueStats, err := models.GetUserIssueStats(issueStatsOpts)
+	userIssueStats, err := models.GetUserIssueStats(userIssueStatsOpts)
 	if err != nil {
-		ctx.ServerError("GetUserIssueStats", err)
+		ctx.ServerError("GetUserIssueStats User", err)
 		return
 	}
 
-	allIssueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
-		UserID:      ctxUser.ID,
-		UserRepoIDs: userRepoIDs,
-		FilterMode:  filterMode,
-		IsPull:      isPullList,
-		IsClosed:    isShowClosed,
-	})
-	if err != nil {
-		ctx.ServerError("GetUserIssueStats All", err)
-		return
+	var shownIssueStats *models.IssueStats
+	if !forceEmpty {
+		statsOpts := models.UserIssueStatsOptions{
+			UserID:      ctxUser.ID,
+			UserRepoIDs: userRepoIDs,
+			FilterMode:  filterMode,
+			IsPull:      isPullList,
+			IsClosed:    isShowClosed,
+			IssueIDs:    issueIDsFromSearch,
+		}
+		if len(repoIDs) > 0 {
+			statsOpts.RepoIDs = repoIDs
+		}
+		shownIssueStats, err = models.GetUserIssueStats(statsOpts)
+		if err != nil {
+			ctx.ServerError("GetUserIssueStats Shown", err)
+			return
+		}
+	} else {
+		shownIssueStats = &models.IssueStats{}
+	}
+
+	var allIssueStats *models.IssueStats
+	if !forceEmpty {
+		allIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
+			UserID:      ctxUser.ID,
+			UserRepoIDs: userRepoIDs,
+			FilterMode:  filterMode,
+			IsPull:      isPullList,
+			IsClosed:    isShowClosed,
+			IssueIDs:    issueIDsFromSearch,
+		})
+		if err != nil {
+			ctx.ServerError("GetUserIssueStats All", err)
+			return
+		}
+	} else {
+		allIssueStats = &models.IssueStats{}
 	}
 
 	var shownIssues int
 	var totalIssues int
 	if !isShowClosed {
-		shownIssues = int(issueStats.OpenCount)
+		shownIssues = int(shownIssueStats.OpenCount)
 		totalIssues = int(allIssueStats.OpenCount)
 	} else {
-		shownIssues = int(issueStats.ClosedCount)
+		shownIssues = int(shownIssueStats.ClosedCount)
 		totalIssues = int(allIssueStats.ClosedCount)
 	}
 
@@ -580,7 +642,8 @@ func Issues(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts
-	ctx.Data["IssueStats"] = issueStats
+	ctx.Data["IssueStats"] = userIssueStats
+	ctx.Data["ShownIssueStats"] = shownIssueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoIDs"] = repoIDs
@@ -599,6 +662,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["ReposParam"] = string(reposParam)
 
 	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "q", "Keyword")
 	pager.AddParam(ctx, "type", "ViewType")
 	pager.AddParam(ctx, "repos", "ReposParam")
 	pager.AddParam(ctx, "sort", "SortType")
