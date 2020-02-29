@@ -158,7 +158,7 @@
 									{{if or (gt $approveOfficial 0) (gt $rejectOfficial 0) }}
 										<span class="approvals">{{svg "octicon-check" 16}}
 											{{$.i18n.Tr (TrN $.i18n.Lang $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n") $approveOfficial}}
-										{{if or (gt $rejectOfficial 0) (gt $rejectNonOfficial 0)}}
+										{{if or (gt $rejectOfficial 0)}}
 											<span class="rejects">{{svg "octicon-x" 16}}
 												{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
 										{{end}}
