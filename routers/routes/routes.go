@@ -453,8 +453,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
-		m.Group("/hooks", func() {
-			m.Get("", admin.DefaultWebhooks)
+		m.Group("/^:type(hooks|system-hooks)$", func() {
+			m.Get("", admin.DefaultAndSystemWebhooks)
 			m.Post("/delete", admin.DeleteDefaultWebhook)
 			m.Get("/:type/new", repo.WebhooksNew)
 			m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
