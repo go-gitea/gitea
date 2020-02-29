@@ -182,6 +182,7 @@ func getGlobalWebhooks() []*models.Webhook {
 				SendEverything: true,
 				BranchFilter:   "*",
 			},
+			Secret:     setting.Webhook.GlobalSecret,
 			HTTPMethod: "POST",
 		}
 		hooks = append(hooks, hook)

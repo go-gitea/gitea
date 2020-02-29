@@ -600,6 +600,8 @@ PROXY_URL =
 PROXY_HOSTS =
 ; A list of URLs to POST any events to as webhook type Gitea in JSON format
 GLOBAL_WEBHOOKS =
+; A secret to be applied to all global webhooks in order to prove the request is legitimate
+GLOBAL_SECRET =
 
 [mailer]
 ENABLED = false

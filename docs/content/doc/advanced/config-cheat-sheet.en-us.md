@@ -364,6 +364,7 @@ set name for unique queues. Individual queues will default to
 - `PROXY_URL`: ****: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
 - `PROXY_HOSTS`: ****: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
 - `GLOBAL_HOOKS`: ****: Comma separated list of URLs to act as a system-wide webhook of type Gitea in JSON mode POSTing for all events. Useful for developing custom behaviour and plugins.
+- `GLOBAL_SECRET`: ****: A string secret applied to all global hooks in order to help prove the request is legitimate.
 
 ## Mailer (`mailer`)
 
