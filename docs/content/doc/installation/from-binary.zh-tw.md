@@ -32,4 +32,4 @@ chmod +x gitea
 
 ## 需要協助？
 
-如果本頁中無法解決您的問題，請直接到 [Discord server](https://discord.gg/NsatcWJ)，在那邊可以快速得到協助。
+如果本頁中無法解決您的問題，請直接到 [Discord server](https://discord.gg/Gitea)，在那邊可以快速得到協助。

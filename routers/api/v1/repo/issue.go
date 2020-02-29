@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -168,13 +169,8 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 
-	apiIssues := make([]*api.Issue, len(issues))
-	for i := range issues {
-		apiIssues[i] = issues[i].APIFormat()
-	}
-
 	ctx.SetLinkHeader(issueCount, setting.UI.IssuePagingNum)
-	ctx.JSON(http.StatusOK, &apiIssues)
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
 // ListIssues list the issues of a repository
@@ -287,13 +283,8 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
-	apiIssues := make([]*api.Issue, len(issues))
-	for i := range issues {
-		apiIssues[i] = issues[i].APIFormat()
-	}
-
 	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, listOptions.PageSize)
-	ctx.JSON(http.StatusOK, &apiIssues)
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
 // GetIssue get an issue of a repository
@@ -335,7 +326,7 @@ func GetIssue(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.JSON(http.StatusOK, issue.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(issue))
 }
 
 // CreateIssue create an issue of a repository
@@ -450,7 +441,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, issue.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(issue))
 }
 
 // EditIssue modify an issue of a repository
@@ -596,7 +587,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		ctx.InternalServerError(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, issue.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(issue))
 }
 
 // UpdateIssueDeadline updates an issue deadline

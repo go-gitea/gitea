@@ -40,7 +40,10 @@
 								<th></th>
 								<th colspan="5">
 									<div class="ui right">
-										<a class="ui red small button" href="{{AppSubUrl}}/admin/notices/empty">{{.i18n.Tr "admin.notices.delete_all"}}</a>
+										<form method="post" action="{{AppSubUrl}}/admin/notices/empty">
+											{{.CsrfTokenHtml}}
+											<button type="submit" class="ui red small button">{{.i18n.Tr "admin.notices.delete_all"}}</button>
+										</form>
 									</div>
 									<div class="ui floating upward dropdown small button">
 										<span class="text">{{.i18n.Tr "admin.notices.actions"}}</span>
