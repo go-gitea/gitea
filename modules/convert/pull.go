@@ -31,7 +31,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		return nil
 	}
 
-	apiIssue := pr.Issue.APIFormat()
+	apiIssue := ToAPIIssue(pr.Issue)
 	if pr.BaseRepo == nil {
 		pr.BaseRepo, err = models.GetRepositoryByID(pr.BaseRepoID)
 		if err != nil {
