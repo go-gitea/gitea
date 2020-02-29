@@ -92,11 +92,11 @@ func TestSizedAvatarLink(t *testing.T) {
 
 func TestAvatarLink(t *testing.T) {
 	disableGravatar()
-	assert.Equal(t, "/img/avatar_default.png", AvatarLink("gitea@example.com"))
+	assert.Equal(t, "/avatar/email-"+url.PathEscape("gitea@example.com"), AvatarLink("gitea@example.com"))
 
 	enableGravatar(t)
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon",
+		"/avatar/email-"+url.PathEscape("gitea@example.com"),
 		AvatarLink("gitea@example.com"),
 	)
 }
