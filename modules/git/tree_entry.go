@@ -167,6 +167,38 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 	return target, nil
 }
 
+// FollowLinks returns the entry ultimately pointed to by a symlink
+func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
+	if !te.IsLink() {
+		return nil, ErrBadLink{te.Name(), "not a symlink"}
+	}
+	entry := te
+	for i := 0; i < 999; i++ {
+		if entry.IsLink() {
+			next, err := entry.FollowLink()
+			if err != nil {
+				return nil, err
+			}
+			if next.ID == entry.ID {
+				return nil, ErrBadLink{
+					entry.Name(),
+					"recursive link",
+				}
+			}
+			entry = next
+		} else {
+			break
+		}
+	}
+	if entry.IsLink() {
+		return nil, ErrBadLink{
+			te.Name(),
+			"too many levels of symbolic links",
+		}
+	}
+	return entry, nil
+}
+
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )
 func (te *TreeEntry) GetSubJumpablePathName() string {
 	if te.IsSubModule() || !te.IsDir() {
