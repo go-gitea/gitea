@@ -583,7 +583,7 @@ func Issues(ctx *context.Context) {
 	}
 
 	ctx.Data["Issues"] = issues
-	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string, official bool) int64 {
+	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
 		counts, ok := approvalCounts[issueID]
 		if !ok || len(counts) == 0 {
 			return 0
@@ -593,7 +593,7 @@ func Issues(ctx *context.Context) {
 			reviewTyp = models.ReviewTypeReject
 		}
 		for _, count := range counts {
-			if count.Type == reviewTyp && count.Official == official {
+			if count.Type == reviewTyp {
 				return count.Count
 			}
 		}

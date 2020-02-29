@@ -517,6 +517,7 @@ func (issues IssueList) LoadDiscussComments() error {
 }
 
 // GetApprovalCounts returns a map of issue ID to slice of approval counts
+// FIXME: only returns official counts due to double counting of non-official approvals
 func (issues IssueList) GetApprovalCounts() (map[int64][]*ReviewCount, error) {
 	return issues.getApprovalCounts(x)
 }
@@ -528,7 +529,7 @@ func (issues IssueList) getApprovalCounts(e Engine) (map[int64][]*ReviewCount, e
 		ids[i] = issue.ID
 	}
 	sess := e.In("issue_id", ids)
-	err := sess.Select("issue_id, type, official, count(id) as `count`").GroupBy("issue_id, type, official").OrderBy("issue_id").Table("review").Find(&rCounts)
+	err := sess.Select("issue_id, type, count(id) as `count`").Where("official = ?", true).GroupBy("issue_id, type").OrderBy("issue_id").Table("review").Find(&rCounts)
 	if err != nil {
 		return nil, err
 	}

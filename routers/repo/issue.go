@@ -269,7 +269,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
 	}
 
-	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string, official bool) int64 {
+	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
 		counts, ok := approvalCounts[issueID]
 		if !ok || len(counts) == 0 {
 			return 0
@@ -279,7 +279,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			reviewTyp = models.ReviewTypeReject
 		}
 		for _, count := range counts {
-			if count.Type == reviewTyp && count.Official == official {
+			if count.Type == reviewTyp {
 				return count.Count
 			}
 		}

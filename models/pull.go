@@ -332,13 +332,13 @@ func (pr *PullRequest) GetCommitMessages() string {
 
 // ReviewCount represents a count of Reviews
 type ReviewCount struct {
-	IssueID  int64
-	Type     ReviewType
-	Official bool
-	Count    int64
+	IssueID int64
+	Type    ReviewType
+	Count   int64
 }
 
 // GetApprovalCounts returns the approval counts by type
+// FIXME: Only returns official counts due to double counting of non-official counts
 func (pr *PullRequest) GetApprovalCounts() ([]*ReviewCount, error) {
 	return pr.getApprovalCounts(x)
 }
@@ -346,7 +346,7 @@ func (pr *PullRequest) GetApprovalCounts() ([]*ReviewCount, error) {
 func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 6)
 	sess := e.Where("issue_id = ?", pr.IssueID)
-	return rCounts, sess.Select("issue_id, type, official, count(id) as `count`").GroupBy("issue_id, type, official").Table("review").Find(&rCounts)
+	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ?", true).GroupBy("issue_id, type").Table("review").Find(&rCounts)
 }
 
 // GetApprovers returns the approvers of the pull request
