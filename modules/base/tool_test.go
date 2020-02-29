@@ -1,6 +1,7 @@
 package base
 
 import (
+	"encoding/base64"
 	"net/url"
 	"testing"
 
@@ -92,11 +93,11 @@ func TestSizedAvatarLink(t *testing.T) {
 
 func TestAvatarLink(t *testing.T) {
 	disableGravatar()
-	assert.Equal(t, "/avatar/email-"+url.PathEscape("gitea@example.com"), AvatarLink("gitea@example.com"))
+	assert.Equal(t, "/avatar/"+base64.RawURLEncoding.EncodeToString([]byte("gitea@example.com")), AvatarLink("gitea@example.com"))
 
 	enableGravatar(t)
 	assert.Equal(t,
-		"/avatar/email-"+url.PathEscape("gitea@example.com"),
+		"/avatar/"+base64.RawURLEncoding.EncodeToString([]byte("gitea@example.com")),
 		AvatarLink("gitea@example.com"),
 	)
 }

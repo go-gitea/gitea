@@ -6,7 +6,7 @@ package repository
 
 import (
 	"container/list"
-	"net/url"
+	"encoding/base64"
 	"testing"
 	"time"
 
@@ -115,7 +115,7 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
-		"/avatar/email-"+url.PathEscape("nonexistent@example.com"),
+		"/avatar/"+base64.RawURLEncoding.EncodeToString([]byte("nonexistent@example.com")),
 		pushCommits.AvatarLink("nonexistent@example.com"))
 }
 

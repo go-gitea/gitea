@@ -5,6 +5,7 @@
 package user
 
 import (
+	"encoding/base64"
 	"errors"
 	"strconv"
 	"strings"
@@ -47,7 +48,12 @@ func Avatar(ctx *context.Context) {
 // AvatarByEmail redirects the browser to the appropriate Avatar link
 func AvatarByEmail(ctx *context.Context) {
 	email := ctx.Params(":email")
-	if email == "" {
+	addr, err := base64.RawURLEncoding.DecodeString(email)
+	email = string(addr)
+	if err != nil {
+		ctx.ServerError("invalid email address", err)
+		return
+	} else if email == "" {
 		ctx.ServerError("invalid email address", errors.New("email cannot be empty"))
 		return
 	}
