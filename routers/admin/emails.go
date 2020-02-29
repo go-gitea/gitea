@@ -39,11 +39,17 @@ func Emails(ctx *context.Context) {
 		opts.Page = 1
 	}
 
+	type ActiveEmail struct {
+		models.SearchEmailResult
+		CanChange bool
+	}
+
 	var (
-		emails  []*models.SearchEmailResult
-		count   int64
-		err     error
-		orderBy models.SearchEmailOrderBy
+		baseEmails []*models.SearchEmailResult
+		emails     []ActiveEmail
+		count      int64
+		err        error
+		orderBy    models.SearchEmailOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.Query("sort")
@@ -71,10 +77,17 @@ func Emails(ctx *context.Context) {
 	}
 
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
-		emails, count, err = models.SearchEmails(opts)
+		baseEmails, count, err = models.SearchEmails(opts)
 		if err != nil {
 			ctx.ServerError("SearchEmails", err)
 			return
+		}
+		emails = make([]ActiveEmail, len(baseEmails))
+		for i := range baseEmails {
+			emails[i].SearchEmailResult = *baseEmails[i]
+			// Don't let the admin deactivate its own primary email address
+			// We already know the user is admin
+			emails[i].CanChange = ctx.User.ID != emails[i].UID || !emails[i].IsPrimary
 		}
 	}
 	ctx.Data["Keyword"] = opts.Keyword

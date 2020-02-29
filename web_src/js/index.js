@@ -2757,7 +2757,7 @@ function linkEmailAction(e) {
   $('#form-primary').val($this.data('primary'));
   $('#form-activate').val($this.data('activate'));
   $('#form-uid').val($this.data('uid'));
-  $('#email-action-form').submit();
+  $('#change-email-modal').modal('show');
   e.preventDefault();
 }
 
