@@ -68,8 +68,8 @@ func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 	return emails, nil
 }
 
-// GetEmailAddressById gets a user's email address by ID
-func GetEmailAddressById(uid, id int64) (*EmailAddress, error) {
+// GetEmailAddressByID gets a user's email address by ID
+func GetEmailAddressByID(uid, id int64) (*EmailAddress, error) {
 	// User ID is required for security reasons
 	email := &EmailAddress{ID: id, UID: uid}
 	if has, err := x.Get(email); err != nil {

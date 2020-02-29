@@ -106,9 +106,9 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 			address = ctx.User.Email
 		} else {
 			id := ctx.QueryInt64("id")
-			email, err := models.GetEmailAddressById(ctx.User.ID, id)
+			email, err := models.GetEmailAddressByID(ctx.User.ID, id)
 			if err != nil {
-				log.Error("GetEmailAddressById(%d,%d) error: %v", ctx.User.ID, id, err)
+				log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.User.ID, id, err)
 				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 				return
 			}
