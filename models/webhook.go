@@ -316,7 +316,7 @@ func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error
 func GetDefaultWebhook(id int64) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
 	has, err := x.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, 0).
+		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
 		Get(webhook)
 	if err != nil {
 		return nil, err
@@ -334,7 +334,7 @@ func GetDefaultWebhooks() ([]*Webhook, error) {
 func getDefaultWebhooks(e Engine) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
 	return webhooks, e.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, 0).
+		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
 		Find(&webhooks)
 }
 
@@ -342,7 +342,7 @@ func getDefaultWebhooks(e Engine) ([]*Webhook, error) {
 func GetSystemWebhook(id int64) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
 	has, err := x.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, 1).
+		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
 		Get(webhook)
 	if err != nil {
 		return nil, err
@@ -360,7 +360,7 @@ func GetSystemWebhooks() ([]*Webhook, error) {
 func getSystemWebhooks(e Engine) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
 	return webhooks, e.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, 1).
+		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
 		Find(&webhooks)
 }
 
@@ -421,7 +421,7 @@ func DeleteDefaultWebhook(id int64) error {
 	}
 
 	count, err := sess.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, 0).
+		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
 		Delete(&Webhook{ID: id})
 	if err != nil {
 		return err

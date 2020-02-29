@@ -12,7 +12,7 @@ import (
 
 func addSystemWebhookColumn(x *xorm.Engine) error {
 	type Webhook struct {
-		IsSystemWebhook bool `xorm:"NOT NULL DEFAULT 0"`
+		IsSystemWebhook bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
 	if err := x.Sync2(new(Webhook)); err != nil {
