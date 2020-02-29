@@ -159,6 +159,13 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 	for _, id := range repoWatches {
 		toNotify[id] = struct{}{}
 	}
+	issueParticipants, err := issue.getParticipantIDsByIssue(e)
+	if err != nil {
+		return err
+	}
+	for _, id := range issueParticipants {
+		toNotify[id] = struct{}{}
+	}
 
 	// dont notify user who cause notification
 	delete(toNotify, notificationAuthorID)
@@ -396,7 +403,7 @@ func (n *Notification) loadIssue(e Engine) (err error) {
 
 func (n *Notification) loadComment(e Engine) (err error) {
 	if n.Comment == nil && n.CommentID > 0 {
-		n.Comment, err = GetCommentByID(n.CommentID)
+		n.Comment, err = getCommentByID(e, n.CommentID)
 		if err != nil {
 			return fmt.Errorf("GetCommentByID [%d] for issue ID [%d]: %v", n.CommentID, n.IssueID, err)
 		}

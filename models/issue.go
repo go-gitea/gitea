@@ -1275,29 +1275,14 @@ func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
 		Find(&userIDs)
 }
 
-// GetParticipantsByIssueID returns all users who are participated in comments of an issue.
-func GetParticipantsByIssueID(issueID int64) ([]*User, error) {
-	return getParticipantsByIssueID(x, issueID)
-}
-
-func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
-	userIDs := make([]int64, 0, 5)
-	if err := e.Table("comment").Cols("poster_id").
-		Where("`comment`.issue_id = ?", issueID).
-		And("`comment`.type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
-		And("`user`.is_active = ?", true).
-		And("`user`.prohibit_login = ?", false).
-		Join("INNER", "`user`", "`user`.id = `comment`.poster_id").
-		Distinct("poster_id").
-		Find(&userIDs); err != nil {
-		return nil, fmt.Errorf("get poster IDs: %v", err)
+// IsUserParticipantsOfIssue return true if user is participants of an issue
+func IsUserParticipantsOfIssue(user *User, issue *Issue) bool {
+	userIDs, err := issue.getParticipantIDsByIssue(x)
+	if err != nil {
+		log.Error(err.Error())
+		return false
 	}
-	if len(userIDs) == 0 {
-		return nil, nil
-	}
-
-	users := make([]*User, 0, len(userIDs))
-	return users, e.In("id", userIDs).Find(&users)
+	return util.IsInt64InSlice(user.ID, userIDs)
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.
@@ -1689,6 +1674,28 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *Us
 type DependencyInfo struct {
 	Issue      `xorm:"extends"`
 	Repository `xorm:"extends"`
+}
+
+// getParticipantIDsByIssue returns all userIDs who are participated in comments of an issue and issue author
+func (issue *Issue) getParticipantIDsByIssue(e Engine) ([]int64, error) {
+	if issue == nil {
+		return nil, nil
+	}
+	userIDs := make([]int64, 0, 5)
+	if err := e.Table("comment").Cols("poster_id").
+		Where("`comment`.issue_id = ?", issue.ID).
+		And("`comment`.type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
+		And("`user`.is_active = ?", true).
+		And("`user`.prohibit_login = ?", false).
+		Join("INNER", "`user`", "`user`.id = `comment`.poster_id").
+		Distinct("poster_id").
+		Find(&userIDs); err != nil {
+		return nil, fmt.Errorf("get poster IDs: %v", err)
+	}
+	if !util.IsInt64InSlice(issue.PosterID, userIDs) {
+		return append(userIDs, issue.PosterID), nil
+	}
+	return userIDs, nil
 }
 
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.

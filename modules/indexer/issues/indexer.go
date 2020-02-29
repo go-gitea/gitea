@@ -143,6 +143,14 @@ func InitIssueIndexer(syncReindex bool) {
 		var populate bool
 		switch setting.Indexer.IssueType {
 		case "bleve":
+			defer func() {
+				if err := recover(); err != nil {
+					log.Error("PANIC whilst initializing issue indexer: %v\nStacktrace: %s", err, log.Stack(2))
+					log.Error("The indexer files are likely corrupted and may need to be deleted")
+					holder.cancel()
+					log.Fatal("PID: %d Unable to initialize the Bleve Issue Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.IssuePath, err)
+				}
+			}()
 			issueIndexer := NewBleveIndexer(setting.Indexer.IssuePath)
 			exist, err := issueIndexer.Init()
 			if err != nil {
