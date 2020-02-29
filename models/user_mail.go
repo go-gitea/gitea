@@ -68,6 +68,18 @@ func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 	return emails, nil
 }
 
+// GetEmailAddressById gets a user's email address by ID
+func GetEmailAddressById(uid, id int64) (*EmailAddress, error) {
+	// User ID is required for security reasons
+	email := &EmailAddress{ID: id, UID: uid}
+	if has, err := x.Get(email); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, nil
+	}
+	return email, nil
+}
+
 func isEmailActive(e Engine, email string, userID, emailID int64) (bool, error) {
 	if len(email) == 0 {
 		return true, nil

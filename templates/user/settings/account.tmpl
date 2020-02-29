@@ -93,7 +93,11 @@
 									{{$.CsrfTokenHtml}}
 									<input name="_method" type="hidden" value="SENDACTIVATION">
 									<input name="id" type="hidden" value="{{if .IsPrimary}}PRIMARY{{else}}}.ID{{end}}">
-									<button {{if not .CanRequestActivation}}disabled{{end}} class="ui blue tiny button">{{$.i18n.Tr "settings.activate_email"}}</button>
+									{{if $.ActivationsPending}}
+										<button disabled class="ui blue tiny button">{{$.i18n.Tr "settings.activations_pending"}}</button>
+									{{else}}
+										<button class="ui blue tiny button">{{$.i18n.Tr "settings.activate_email"}}</button>
+									{{end}}
 								</form>
 							</div>
 						{{end}}

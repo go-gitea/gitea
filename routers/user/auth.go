@@ -1226,7 +1226,10 @@ func ActivateEmail(ctx *context.Context) {
 		}
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/email")
+	// FIXME: e-mail verification does not require the user to be logged in,
+	// so this could be redirecting to the login page.
+	// Should users be logged in automatically here? (consider 2FA requirements, etc.)
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // ForgotPasswd render the forget pasword page
