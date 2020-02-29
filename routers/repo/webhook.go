@@ -49,14 +49,15 @@ func Webhooks(ctx *context.Context) {
 }
 
 type orgRepoCtx struct {
-	OrgID       int64
-	RepoID      int64
-	IsAdmin     bool
-	Link        string
-	NewTemplate base.TplName
+	OrgID           int64
+	RepoID          int64
+	IsAdmin         bool
+	IsSystemWebhook bool
+	Link            string
+	NewTemplate     base.TplName
 }
 
-// getOrgRepoCtx determines whether this is a repo, organization, or admin context.
+// getOrgRepoCtx determines whether this is a repo, organization, or admin (both default and system) context.
 func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 	if len(ctx.Repo.RepoLink) > 0 {
 		return &orgRepoCtx{
@@ -75,10 +76,21 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 	}
 
 	if ctx.User.IsAdmin {
+		// Are we looking at default webhooks?
+		if strings.Contains(ctx.Link, "/admin/hooks") {
 		return &orgRepoCtx{
 			IsAdmin:     true,
 			Link:        path.Join(setting.AppSubURL, "/admin/hooks"),
 			NewTemplate: tplAdminHookNew,
+		}, nil
+	}
+
+		// Must be system webhooks instead
+		return &orgRepoCtx{
+			IsAdmin:         true,
+			IsSystemWebhook: true,
+			Link:            path.Join(setting.AppSubURL, "/admin/system-hooks"),
+			NewTemplate:     tplAdminHookNew,
 		}, nil
 	}
 
@@ -105,7 +117,10 @@ func WebhooksNew(ctx *context.Context) {
 		return
 	}
 
-	if orCtx.IsAdmin {
+	if orCtx.IsAdmin && orCtx.IsSystemWebhook {
+		ctx.Data["PageIsAdminSystemHooks"] = true
+		ctx.Data["PageIsAdminSystemHooksNew"] = true
+	} else if orCtx.IsAdmin {
 		ctx.Data["PageIsAdminHooks"] = true
 		ctx.Data["PageIsAdminHooksNew"] = true
 	} else {
@@ -535,11 +550,19 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
 
+	// Used to inform the admin template the difference between default and system webhooks
+	if orCtx.IsSystemWebhook {
+		ctx.Data["IsSystemWebhook"] = true
+	}
+
 	var w *models.Webhook
+	// Why different methods if only the ID matters?
 	if orCtx.RepoID > 0 {
 		w, err = models.GetWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	} else if orCtx.OrgID > 0 {
 		w, err = models.GetWebhookByOrgID(ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
+	} else if orCtx.IsSystemWebhook {
+		w, err = models.GetSystemWebhook(ctx.ParamsInt64(":id"))
 	} else {
 		w, err = models.GetDefaultWebhook(ctx.ParamsInt64(":id"))
 	}
