@@ -5,6 +5,7 @@
 package user
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 
@@ -46,7 +47,10 @@ func Avatar(ctx *context.Context) {
 // AvatarByEmail redirects the browser to the appropriate Avatar link
 func AvatarByEmail(ctx *context.Context) {
 	email := ctx.Params(":email")
-
+	if email == "" {
+		ctx.ServerError("invalid email address", errors.New("email cannot be empty"))
+		return
+	}
 	size := ctx.QueryInt("size")
 	if size == 0 {
 		size = base.DefaultAvatarSize

@@ -211,7 +211,7 @@ func SizedAvatarLink(email string, size int) string {
 // which includes app sub-url as prefix. However, it is possible
 // to return full URL if user enables Gravatar-like service.
 func AvatarLink(email string) string {
-	return setting.AppSubURL + "/avatar/" + url.PathEscape(email)
+	return setting.AppSubURL + "/avatar/email-" + url.PathEscape(email)
 }
 
 // FileSize calculates the file size and generate user-friendly string.
