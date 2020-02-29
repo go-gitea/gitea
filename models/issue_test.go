@@ -253,6 +253,20 @@ func TestGetUserIssueStats(t *testing.T) {
 				ClosedCount:           0,
 			},
 		},
+		{
+			UserIssueStatsOptions{
+				UserID:     1,
+				FilterMode: FilterModeCreate,
+				IssueIDs:   []int64{1},
+			},
+			IssueStats{
+				YourRepositoriesCount: 0,
+				AssignCount:           1,
+				CreateCount:           1,
+				OpenCount:             1,
+				ClosedCount:           0,
+			},
+		},
 	} {
 		stats, err := GetUserIssueStats(test.Opts)
 		if !assert.NoError(t, err) {
@@ -292,6 +306,36 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, []int64{1}, ids)
+}
+
+func TestGetRepoIDsForIssuesOptions(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	for _, test := range []struct {
+		Opts            IssuesOptions
+		ExpectedRepoIDs []int64
+	}{
+		{
+			IssuesOptions{
+				AssigneeID: 2,
+			},
+			[]int64{3},
+		},
+		{
+			IssuesOptions{
+				RepoIDs: []int64{1, 2},
+			},
+			[]int64{1, 2},
+		},
+	} {
+		repoIDs, err := GetRepoIDsForIssuesOptions(&test.Opts, user)
+		assert.NoError(t, err)
+		if assert.Len(t, repoIDs, len(test.ExpectedRepoIDs)) {
+			for i, repoID := range repoIDs {
+				assert.EqualValues(t, test.ExpectedRepoIDs[i], repoID)
+			}
+		}
+	}
 }
 
 func testInsertIssue(t *testing.T, title, content string) {

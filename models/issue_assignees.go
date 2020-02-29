@@ -19,6 +19,11 @@ type IssueAssignees struct {
 	IssueID    int64 `xorm:"INDEX"`
 }
 
+// LoadAssignees load assignees of this issue.
+func (issue *Issue) LoadAssignees() error {
+	return issue.loadAssignees(x)
+}
+
 // This loads all assignees of an issue
 func (issue *Issue) loadAssignees(e Engine) (err error) {
 	// Reset maybe preexisting assignees
