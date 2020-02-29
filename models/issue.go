@@ -138,6 +138,11 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 	return
 }
 
+// LoadLabels loads labels
+func (issue *Issue) LoadLabels() error {
+	return issue.loadLabels(x)
+}
+
 func (issue *Issue) loadLabels(e Engine) (err error) {
 	if issue.Labels == nil {
 		issue.Labels, err = getLabelsByIssueID(e, issue.ID)
@@ -362,76 +367,6 @@ func (issue *Issue) State() api.StateType {
 		return api.StateClosed
 	}
 	return api.StateOpen
-}
-
-// APIFormat assumes some fields assigned with values:
-// Required - Poster, Labels,
-// Optional - Milestone, Assignee, PullRequest
-func (issue *Issue) APIFormat() *api.Issue {
-	return issue.apiFormat(x)
-}
-
-func (issue *Issue) apiFormat(e Engine) *api.Issue {
-	issue.loadLabels(e)
-	apiLabels := make([]*api.Label, len(issue.Labels))
-	for i := range issue.Labels {
-		apiLabels[i] = issue.Labels[i].APIFormat()
-	}
-
-	issue.loadPoster(e)
-	issue.loadRepo(e)
-	apiIssue := &api.Issue{
-		ID:       issue.ID,
-		URL:      issue.APIURL(),
-		HTMLURL:  issue.HTMLURL(),
-		Index:    issue.Index,
-		Poster:   issue.Poster.APIFormat(),
-		Title:    issue.Title,
-		Body:     issue.Content,
-		Labels:   apiLabels,
-		State:    issue.State(),
-		Comments: issue.NumComments,
-		Created:  issue.CreatedUnix.AsTime(),
-		Updated:  issue.UpdatedUnix.AsTime(),
-	}
-
-	apiIssue.Repo = &api.RepositoryMeta{
-		ID:       issue.Repo.ID,
-		Name:     issue.Repo.Name,
-		Owner:    issue.Repo.OwnerName,
-		FullName: issue.Repo.FullName(),
-	}
-
-	if issue.ClosedUnix != 0 {
-		apiIssue.Closed = issue.ClosedUnix.AsTimePtr()
-	}
-
-	issue.loadMilestone(e)
-	if issue.Milestone != nil {
-		apiIssue.Milestone = issue.Milestone.APIFormat()
-	}
-
-	issue.loadAssignees(e)
-	if len(issue.Assignees) > 0 {
-		for _, assignee := range issue.Assignees {
-			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
-		}
-		apiIssue.Assignee = issue.Assignees[0].APIFormat() // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
-	}
-	if issue.IsPull {
-		issue.loadPullRequest(e)
-		apiIssue.PullRequest = &api.PullRequestMeta{
-			HasMerged: issue.PullRequest.HasMerged,
-		}
-		if issue.PullRequest.HasMerged {
-			apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
-		}
-	}
-	if issue.DeadlineUnix != 0 {
-		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
-	}
-
-	return apiIssue
 }
 
 // HashTag returns unique hash tag for issue.
