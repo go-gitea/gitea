@@ -90,21 +90,22 @@ const (
 
 // Webhook represents a web hook object.
 type Webhook struct {
-	ID           int64  `xorm:"pk autoincr"`
-	RepoID       int64  `xorm:"INDEX"`
-	OrgID        int64  `xorm:"INDEX"`
-	URL          string `xorm:"url TEXT"`
-	Signature    string `xorm:"TEXT"`
-	HTTPMethod   string `xorm:"http_method"`
-	ContentType  HookContentType
-	Secret       string `xorm:"TEXT"`
-	Events       string `xorm:"TEXT"`
-	*HookEvent   `xorm:"-"`
-	IsSSL        bool `xorm:"is_ssl"`
-	IsActive     bool `xorm:"INDEX"`
-	HookTaskType HookTaskType
-	Meta         string     `xorm:"TEXT"` // store hook-specific attributes
-	LastStatus   HookStatus // Last delivery status
+	ID              int64 `xorm:"pk autoincr"`
+	RepoID          int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
+	OrgID           int64 `xorm:"INDEX"`
+	IsSystemWebhook bool
+	URL             string `xorm:"url TEXT"`
+	Signature       string `xorm:"TEXT"`
+	HTTPMethod      string `xorm:"http_method"`
+	ContentType     HookContentType
+	Secret          string `xorm:"TEXT"`
+	Events          string `xorm:"TEXT"`
+	*HookEvent      `xorm:"-"`
+	IsSSL           bool `xorm:"is_ssl"`
+	IsActive        bool `xorm:"INDEX"`
+	HookTaskType    HookTaskType
+	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
+	LastStatus      HookStatus // Last delivery status
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
