@@ -21,6 +21,7 @@ var (
 		ProxyURL       string
 		ProxyURLFixed  *url.URL
 		ProxyHosts     []string
+		GlobalWebhooks []string // A list of URLs to POST any events to as webhook type Gitea
 	}{
 		QueueLength:    1000,
 		DeliverTimeout: 5,
@@ -28,6 +29,7 @@ var (
 		PagingNum:      10,
 		ProxyURL:       "",
 		ProxyHosts:     []string{},
+		GlobalWebhooks: []string{},
 	}
 )
 
@@ -48,4 +50,5 @@ func newWebhookService() {
 		}
 	}
 	Webhook.ProxyHosts = sec.Key("PROXY_HOSTS").Strings(",")
+	Webhook.GlobalWebhooks = sec.Key("GLOBAL_WEBHOOKS").Strings(",")
 }

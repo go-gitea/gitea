@@ -165,6 +165,30 @@ func PrepareWebhooks(repo *models.Repository, event models.HookEventType, p api.
 	return nil
 }
 
+// getGlobalWebhooks produces webhooks for each URL defined in the config
+func getGlobalWebhooks() []*models.Webhook {
+	if len(setting.Webhook.GlobalWebhooks) == 0 {
+		return nil
+	}
+
+	var hooks []*models.Webhook
+	for _, url := range setting.Webhook.GlobalWebhooks {
+		// Set enough properties for the fake webhook to be delivered.
+		hook := &models.Webhook{
+			URL:          url,
+			ContentType:  models.ContentTypeJSON,
+			HookTaskType: models.GITEA,
+			HookEvent: &models.HookEvent{
+				SendEverything: true,
+				BranchFilter:   "*",
+			},
+			HTTPMethod: "POST",
+		}
+		hooks = append(hooks, hook)
+	}
+	return hooks
+}
+
 func prepareWebhooks(repo *models.Repository, event models.HookEventType, p api.Payloader) error {
 	ws, err := models.GetActiveWebhooksByRepoID(repo.ID)
 	if err != nil {
@@ -179,6 +203,12 @@ func prepareWebhooks(repo *models.Repository, event models.HookEventType, p api.
 			return fmt.Errorf("GetActiveWebhooksByOrgID: %v", err)
 		}
 		ws = append(ws, orgHooks...)
+	}
+
+	// Add any config-defined webhooks
+	globalHooks := getGlobalWebhooks()
+	if globalHooks != nil {
+		ws = append(ws, globalHooks...)
 	}
 
 	if len(ws) == 0 {

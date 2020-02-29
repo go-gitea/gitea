@@ -598,6 +598,8 @@ PAGING_NUM = 10
 PROXY_URL =
 ; Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
 PROXY_HOSTS =
+; A list of URLs to POST any events to as webhook type Gitea in JSON format
+GLOBAL_WEBHOOKS =
 
 [mailer]
 ENABLED = false
