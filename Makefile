@@ -63,7 +63,7 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
-GO_SOURCES ?= $(shell find . -type d \( -path ./node_modules -o -path ./docs -o -path ./public \) -prune -o -type f -name '*.go' -print)
+GO_SOURCES ?= $(shell find . -type d \( -path ./node_modules -o -path ./docs -o -path ./public -o -path ./options -o -path ./contrib -o -path ./data \) -prune -o -type f -name '*.go' -print)
 GO_SOURCES_OWN := $(filter-out ./vendor/% %/bindata.go, $(GO_SOURCES))
 
 WEBPACK_SOURCES ?= $(shell find web_src/js web_src/less -type f)
