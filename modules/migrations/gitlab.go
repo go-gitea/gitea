@@ -366,6 +366,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			Labels:     labels,
 			Closed:     issue.ClosedAt,
 			IsLocked:   issue.DiscussionLocked,
+			Updated:    *issue.UpdatedAt,
 		})
 
 		// increment issueCount, to be used in GetPullRequests()
