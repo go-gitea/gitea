@@ -228,6 +228,8 @@ func GetDefaultTokenURL(provider string) string {
 		return gitlab.TokenURL
 	case "gitea":
 		return gitea.TokenURL
+	case "nextcloud":
+		return nextcloud.TokenURL
 	}
 	return ""
 }
@@ -241,6 +243,8 @@ func GetDefaultAuthURL(provider string) string {
 		return gitlab.AuthURL
 	case "gitea":
 		return gitea.AuthURL
+	case "nextcloud":
+		return nextcloud.AuthURL
 	}
 	return ""
 }
@@ -254,6 +258,8 @@ func GetDefaultProfileURL(provider string) string {
 		return gitlab.ProfileURL
 	case "gitea":
 		return gitea.ProfileURL
+	case "nextcloud":
+		return nextcloud.ProfileURL
 	}
 	return ""
 }
