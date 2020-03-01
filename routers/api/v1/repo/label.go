@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -53,11 +54,7 @@ func ListLabels(ctx *context.APIContext) {
 		return
 	}
 
-	apiLabels := make([]*api.Label, len(labels))
-	for i := range labels {
-		apiLabels[i] = labels[i].APIFormat()
-	}
-	ctx.JSON(http.StatusOK, &apiLabels)
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
 }
 
 // GetLabel get label by repository and label id
@@ -107,7 +104,7 @@ func GetLabel(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, label.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToLabel(label))
 }
 
 // CreateLabel create a label for a repository
@@ -159,7 +156,7 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, label.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToLabel(label))
 }
 
 // EditLabel modify a label for a repository
@@ -228,7 +225,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 		ctx.ServerError("UpdateLabel", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, label.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToLabel(label))
 }
 
 // DeleteLabel delete a label for a repository
