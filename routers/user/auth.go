@@ -1219,7 +1219,7 @@ func ActivateEmail(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/email")
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // ForgotPasswd render the forget pasword page
