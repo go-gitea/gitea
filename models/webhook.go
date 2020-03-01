@@ -412,8 +412,8 @@ func DeleteWebhookByOrgID(orgID, id int64) error {
 	})
 }
 
-// DeleteDefaultWebhook deletes an admin-default webhook by given ID.
-func DeleteDefaultWebhook(id int64) error {
+// DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
+func DeleteDefaultSystemWebhook(id int64) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -421,7 +421,7 @@ func DeleteDefaultWebhook(id int64) error {
 	}
 
 	count, err := sess.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
+		Where("repo_id=? AND org_id=?", 0, 0).
 		Delete(&Webhook{ID: id})
 	if err != nil {
 		return err
