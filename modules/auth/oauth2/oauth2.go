@@ -22,6 +22,7 @@ import (
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
 	"github.com/markbates/goth/providers/google"
+	"github.com/markbates/goth/providers/nextcloud"
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
 	"github.com/satori/go.uuid"
@@ -192,6 +193,22 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 			}
 		}
 		provider = gitea.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
+	case "nextcloud":
+		authURL := nextcloud.AuthURL
+		tokenURL := nextcloud.TokenURL
+		profileURL := nextcloud.ProfileURL
+		if customURLMapping != nil {
+			if len(customURLMapping.AuthURL) > 0 {
+				authURL = customURLMapping.AuthURL
+			}
+			if len(customURLMapping.TokenURL) > 0 {
+				tokenURL = customURLMapping.TokenURL
+			}
+			if len(customURLMapping.ProfileURL) > 0 {
+				profileURL = customURLMapping.ProfileURL
+			}
+		}
+		provider = nextcloud.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
