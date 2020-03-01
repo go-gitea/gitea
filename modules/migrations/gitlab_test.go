@@ -221,10 +221,10 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					Name: "bug",
 				},
 			},
-			PatchURL: "https://gitlab.com/gitea/test_repo/merge_requests/2.patch",
+			PatchURL: "https://gitlab.com/gitea/test_repo/-/merge_requests/2.patch",
 			Head: base.PullRequestBranch{
 				Ref:       "feat/test",
-				CloneURL:  "https://gitlab.com/gitea/test_repo/merge_requests/2",
+				CloneURL:  "https://gitlab.com/gitea/test_repo/-/merge_requests/2",
 				SHA:       "9f733b96b98a4175276edf6a2e1231489c3bdd23",
 				RepoName:  "test_repo",
 				OwnerName: "lafriks",
