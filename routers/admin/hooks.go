@@ -5,8 +5,6 @@
 package admin
 
 import (
-	"strings"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -24,7 +22,7 @@ func DefaultAndSystemWebhooks(ctx *context.Context) {
 	var err error
 
 	// Are we looking at default webhooks?
-	if strings.Contains(ctx.Link, "/admin/hooks") {
+	if ctx.Params(":configType") == "hooks" {
 		ctx.Data["Title"] = ctx.Tr("admin.hooks")
 		ctx.Data["Description"] = ctx.Tr("admin.hooks.desc")
 		ctx.Data["PageIsAdminHooks"] = true

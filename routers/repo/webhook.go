@@ -77,7 +77,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 
 	if ctx.User.IsAdmin {
 		// Are we looking at default webhooks?
-		if strings.Contains(ctx.Link, "/admin/hooks") {
+		if ctx.Params(":configType") == "hooks" {
 			return &orgRepoCtx{
 				IsAdmin:     true,
 				Link:        path.Join(setting.AppSubURL, "/admin/hooks"),

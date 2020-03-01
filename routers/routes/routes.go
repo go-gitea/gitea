@@ -453,7 +453,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
-		m.Group("/^:type(hooks|system-hooks)$", func() {
+		m.Group("/^:configType(hooks|system-hooks)$", func() {
 			m.Get("", admin.DefaultAndSystemWebhooks)
 			m.Post("/delete", admin.DeleteDefaultWebhook)
 			m.Get("/:type/new", repo.WebhooksNew)
