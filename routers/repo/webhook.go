@@ -558,11 +558,6 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 	}
 	ctx.Data["BaseLink"] = orCtx.Link
 
-	// Used to inform the admin template the difference between default and system webhooks
-	if orCtx.IsSystemWebhook {
-		ctx.Data["IsSystemWebhook"] = true
-	}
-
 	var w *models.Webhook
 	// Why different methods if only the ID matters?
 	if orCtx.RepoID > 0 {

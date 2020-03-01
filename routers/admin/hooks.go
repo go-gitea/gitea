@@ -20,17 +20,19 @@ const (
 
 // DefaultAndSystemWebhooks renders both admin default and system webhook list pages
 func DefaultAndSystemWebhooks(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.hooks")
-	ctx.Data["Description"] = ctx.Tr("admin.hooks.desc")
-
-	// Are we looking at default webhooks?
 	var ws []*models.Webhook
 	var err error
+
+	// Are we looking at default webhooks?
 	if strings.Contains(ctx.Link, "/admin/hooks") {
+		ctx.Data["Title"] = ctx.Tr("admin.hooks")
+		ctx.Data["Description"] = ctx.Tr("admin.hooks.desc")
 		ctx.Data["PageIsAdminHooks"] = true
 		ctx.Data["BaseLink"] = setting.AppSubURL + "/admin/hooks"
 		ws, err = models.GetDefaultWebhooks()
 	} else {
+		ctx.Data["Title"] = ctx.Tr("admin.systemhooks")
+		ctx.Data["Description"] = ctx.Tr("admin.systemhooks.desc")
 		ctx.Data["PageIsAdminSystemHooks"] = true
 		ctx.Data["BaseLink"] = setting.AppSubURL + "/admin/system-hooks"
 		ws, err = models.GetSystemWebhooks()
