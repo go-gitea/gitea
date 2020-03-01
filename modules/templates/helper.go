@@ -287,7 +287,7 @@ func NewFuncMap() []template.FuncMap {
 			return false
 		},
 		"svg": func(icon string, size int) template.HTML {
-			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="%s/img/svg/icons.svg#%s" /></svg>`, icon, size, size, setting.StaticURLPrefix, icon))
+			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
 		},
 	}}
 }

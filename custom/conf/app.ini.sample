@@ -217,7 +217,7 @@ FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd
 PROTOCOL = http
 DOMAIN = localhost
 ROOT_URL = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
-; when STATIC_URL_PREFIX is empty it will follow APP_URL
+; when STATIC_URL_PREFIX is empty it will follow ROOT_URL
 STATIC_URL_PREFIX =
 ; The address to listen on. Either a IPv4/IPv6 address or the path to a unix socket.
 HTTP_ADDR = 0.0.0.0
@@ -311,6 +311,8 @@ LFS_CONTENT_PATH = data/lfs
 LFS_JWT_SECRET =
 ; LFS authentication validity period (in time.Duration), pushes taking longer than this may fail.
 LFS_HTTP_AUTH_EXPIRY = 20m
+; Maximum allowed LFS file size in bytes (Set to 0 for no limit).
+LFS_MAX_FILE_SIZE = 0
 ; Allow graceful restarts using SIGHUP to fork
 ALLOW_GRACEFUL_RESTARTS = true
 ; After a restart the parent will finish ongoing requests before
@@ -368,8 +370,12 @@ CONN_MAX_LIFETIME = 3s
 MAX_OPEN_CONNS = 0
 
 [indexer]
-; Issue indexer type, currently support: bleve or db, default is bleve
+; Issue indexer type, currently support: bleve, db or elasticsearch, default is bleve
 ISSUE_INDEXER_TYPE = bleve
+; Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch
+ISSUE_INDEXER_CONN_STR = http://elastic:changeme@localhost:9200
+; Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
+ISSUE_INDEXER_NAME = gitea_issues
 ; Issue indexer storage path, available when ISSUE_INDEXER_TYPE is bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
 ; Issue indexer queue, currently support: channel, levelqueue or redis, default is levelqueue

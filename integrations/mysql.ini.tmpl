@@ -10,6 +10,8 @@ PASSWD   = {{TEST_MYSQL_PASSWORD}}
 SSL_MODE = disable
 
 [indexer]
+ISSUE_INDEXER_TYPE = elasticsearch
+ISSUE_INDEXER_CONN_STR = http://elastic:changeme@elasticsearch:9200
 ISSUE_INDEXER_PATH = integrations/indexers-mysql/issues.bleve
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/indexers-mysql/repos.bleve

@@ -54,9 +54,9 @@ Nginx can serve static resources directly and proxy only the dynamic requests to
 Nginx is optimized for serving static content, while the proxying of large responses might be the opposite of that
  (see https://serverfault.com/q/587386).
 
-Download a snap shot of the gitea source repository to `/path/to/gitea/`.
-
-We are only interested in the `public/` directory and you can delete the rest.
+Download a snapshot of the Gitea source repository to `/path/to/gitea/`.
+After this, run `make webpack` in the repository directory to generate the static resources. We are only interested in the `public/` directory for this task, so you can delete the rest.
+(You will need to have [Node with npm](https://nodejs.org/en/download/) and `make` installed to generate the static resources)
 
 Depending on the scale of your user base, you might want to split the traffic to two distinct servers,
  or use a cdn for the static files.

@@ -42,6 +42,8 @@ Gitea applies glob pattern matching from the [`gobwas/glob` library](https://git
 
 Limiting the list of files prevents the indexes from becoming polluted with derived or irrelevant files (e.g. lss, sym, map, etc.), so the search results are more relevant. It can also help reduce the index size.
 
+`REPO_INDEXER_EXCLUDE_VENDORED` (default: true) excludes vendored files from index.
+
 `REPO_INDEXER_INCLUDE` (default: empty) is a comma separated list of glob patterns to **include** in the index. An empty list means "_include all files_".
 `REPO_INDEXER_EXCLUDE` (default: empty) is a comma separated list of glob patterns to **exclude** from the index. Files that match this list will not be indexed. `REPO_INDEXER_EXCLUDE` takes precedence over `REPO_INDEXER_INCLUDE`.
 

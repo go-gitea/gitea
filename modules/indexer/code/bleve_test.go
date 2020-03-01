@@ -49,26 +49,33 @@ func TestIndexAndSearch(t *testing.T) {
 		keywords = []struct {
 			Keyword string
 			IDs     []int64
+			Langs   int
 		}{
 			{
 				Keyword: "Description",
 				IDs:     []int64{1},
+				Langs:   1,
 			},
 			{
 				Keyword: "repo1",
 				IDs:     []int64{1},
+				Langs:   1,
 			},
 			{
 				Keyword: "non-exist",
 				IDs:     []int64{},
+				Langs:   0,
 			},
 		}
 	)
 
 	for _, kw := range keywords {
-		total, res, err := idx.Search(nil, kw.Keyword, 1, 10)
+		total, res, langs, err := idx.Search(nil, "", kw.Keyword, 1, 10)
 		assert.NoError(t, err)
 		assert.EqualValues(t, len(kw.IDs), total)
+
+		assert.NotNil(t, langs)
+		assert.Len(t, langs, kw.Langs)
 
 		var ids = make([]int64, 0, len(res))
 		for _, hit := range res {

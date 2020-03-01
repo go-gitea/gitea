@@ -8,13 +8,13 @@ require (
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
 	gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
-	gitea.com/macaron/cors v0.0.0-20190821152825-7dcef4a17175
+	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
-	gitea.com/macaron/gzip v0.0.0-20191118033930-0c4c5566a0e5
+	gitea.com/macaron/gzip v0.0.0-20191118041502-506895b47aae
 	gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
 	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 	gitea.com/macaron/macaron v1.4.0
-	gitea.com/macaron/session v0.0.0-20190821211443-122c47c5f705
+	gitea.com/macaron/session v0.0.0-20191207215012-613cebf0674d
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/RoaringBitmap/roaring v0.4.21 // indirect
@@ -25,7 +25,6 @@ require (
 	github.com/blevesearch/segment v0.0.0-20160915185041-762005e7a34f // indirect
 	github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26 // indirect
 	github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 // indirect
-	github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85 // indirect
 	github.com/couchbase/vellum v0.0.0-20190829182332-ef2e028c01fd // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
@@ -59,12 +58,12 @@ require (
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
-	github.com/klauspost/compress v1.9.2
+	github.com/klauspost/compress v1.10.2
 	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.2.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/mailru/easyjson v0.7.0 // indirect
-	github.com/markbates/goth v1.56.0
+	github.com/markbates/goth v1.61.2
 	github.com/mattn/go-isatty v0.0.7
 	github.com/mattn/go-oci8 v0.0.0-20190320171441-14ba190cf52d // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
@@ -74,6 +73,7 @@ require (
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
 	github.com/niklasfasching/go-org v0.1.9
 	github.com/oliamb/cutter v0.2.2
+	github.com/olivere/elastic/v7 v7.0.9
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e
 	github.com/prometheus/client_golang v1.1.0
@@ -90,24 +90,24 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
 	github.com/tstranex/u2f v1.0.0
-	github.com/unknwon/cae v0.0.0-20190822084630-55a0b64484a1
+	github.com/unknwon/cae v1.0.0
 	github.com/unknwon/com v1.0.1
 	github.com/unknwon/i18n v0.0.0-20190805065654-5c6446a380b6
 	github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 	github.com/urfave/cli v1.20.0
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
-	github.com/yuin/goldmark v1.1.19
+	github.com/yuin/goldmark v1.1.23
 	go.etcd.io/bbolt v1.3.3 // indirect
-	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
+	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
+	golang.org/x/sys v0.0.0-20200219091948-cb0a6d8edb6c
 	golang.org/x/text v0.3.2
 	golang.org/x/tools v0.0.0-20191213221258-04c2e8eff935 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/ini.v1 v1.51.1
+	gopkg.in/ini.v1 v1.52.0
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/src-d/go-billy.v4 v4.3.2
 	gopkg.in/src-d/go-git.v4 v4.13.1

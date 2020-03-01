@@ -1,10 +1,12 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
+/* exported timeAddManual, toggleStopwatch, cancelStopwatch */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
-import 'jquery.are-you-sure';
 import './publicPath.js';
 import './polyfills.js';
+
+import Vue from 'vue';
+import 'jquery.are-you-sure';
 import './vendor/semanticDropdown.js';
 import { svg } from './utils.js';
 
@@ -12,6 +14,7 @@ import initContextPopups from './features/contextPopup.js';
 import initHighlight from './features/highlight.js';
 import initGitGraph from './features/gitGraph.js';
 import initClipboard from './features/clipboard.js';
+import initUserHeatmap from './features/userHeatmap.js';
 
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
@@ -1116,7 +1119,7 @@ function initRepository() {
   // Branches
   if ($('.repository.settings.branches').length > 0) {
     initFilterSearchDropdown('.protected-branches .dropdown');
-    $('.enable-protection, .enable-whitelist').change(function () {
+    $('.enable-protection, .enable-whitelist, .enable-statuscheck').change(function () {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
@@ -2466,6 +2469,7 @@ $(document).ready(async () => {
   // Helpers.
   $('.delete-button').click(showDeletePopup);
   $('.add-all-button').click(showAddAllPopup);
+  $('.link-action').click(linkAction);
 
   $('.delete-branch-button').click(showDeletePopup);
 
@@ -2612,6 +2616,7 @@ $(document).ready(async () => {
     initHighlight(),
     initGitGraph(),
     initClipboard(),
+    initUserHeatmap(),
   ]);
 });
 
@@ -2729,6 +2734,19 @@ function showAddAllPopup() {
     }
   }).modal('show');
   return false;
+}
+
+function linkAction() {
+  const $this = $(this);
+  $.post($this.data('url'), {
+    _csrf: csrf
+  }).done((data) => {
+    if (data.redirect) {
+      window.location.href = data.redirect;
+    } else {
+      window.location.reload();
+    }
+  });
 }
 
 function initVueComponents() {
@@ -2917,7 +2935,7 @@ function initVueApp() {
     delimiters: ['${', '}'],
     el,
     data: {
-      searchLimit: (document.querySelector('meta[name=_search_limit]') || {}).content,
+      searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
       suburl: AppSubUrl,
       uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
       activityTopAuthors: window.ActivityTopAuthors || [],
@@ -2943,102 +2961,6 @@ window.toggleStopwatch = function () {
 };
 window.cancelStopwatch = function () {
   $('#cancel_stopwatch_form').submit();
-};
-
-window.initHeatmap = function (appElementId, heatmapUser, locale) {
-  const el = document.getElementById(appElementId);
-  if (!el) {
-    return;
-  }
-
-  locale = locale || {};
-
-  locale.contributions = locale.contributions || 'contributions';
-  locale.no_contributions = locale.no_contributions || 'No contributions';
-
-  const vueDelimeters = ['${', '}'];
-
-  Vue.component('activity-heatmap', {
-    delimiters: vueDelimeters,
-
-    props: {
-      user: {
-        type: String,
-        required: true
-      },
-      suburl: {
-        type: String,
-        required: true
-      },
-      locale: {
-        type: Object,
-        required: true
-      }
-    },
-
-    data() {
-      return {
-        isLoading: true,
-        colorRange: [],
-        endDate: null,
-        values: [],
-        totalContributions: 0,
-      };
-    },
-
-    mounted() {
-      this.colorRange = [
-        this.getColor(0),
-        this.getColor(1),
-        this.getColor(2),
-        this.getColor(3),
-        this.getColor(4),
-        this.getColor(5)
-      ];
-      this.endDate = new Date();
-      this.loadHeatmap(this.user);
-    },
-
-    methods: {
-      loadHeatmap(userName) {
-        const self = this;
-        $.get(`${this.suburl}/api/v1/users/${userName}/heatmap`, (chartRawData) => {
-          const chartData = [];
-          for (let i = 0; i < chartRawData.length; i++) {
-            self.totalContributions += chartRawData[i].contributions;
-            chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
-          }
-          self.values = chartData;
-          self.isLoading = false;
-        });
-      },
-
-      getColor(idx) {
-        const el = document.createElement('div');
-        el.className = `heatmap-color-${idx}`;
-        document.body.appendChild(el);
-
-        const color = getComputedStyle(el).backgroundColor;
-
-        document.body.removeChild(el);
-
-        return color;
-      }
-    },
-
-    template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><h4 class="total-contributions" v-if="!isLoading"><span v-html="totalContributions"></span> total contributions in the last 12 months</h4><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
-  });
-
-  new Vue({
-    delimiters: vueDelimeters,
-    el,
-
-    data: {
-      suburl: AppSubUrl,
-      heatmapUser,
-      locale
-    },
-  });
 };
 
 function initFilterBranchTagDropdown(selector) {
@@ -3559,6 +3481,14 @@ window.cancelCodeComment = function (btn) {
     form.closest('.comment-code-cloud').remove();
   }
 };
+
+window.submitReply = function (btn) {
+  const form = $(btn).closest('form');
+  if (form.length > 0 && form.hasClass('comment-form')) {
+    form.submit();
+  }
+};
+
 window.onOAuthLoginClick = function () {
   const oauthLoader = $('#oauth2-login-loader');
   const oauthNav = $('#oauth2-login-navigator');
@@ -3573,3 +3503,12 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
+
+// Pull SVGs via AJAX to workaround CORS issues with <use> tags
+// https://css-tricks.com/ajaxing-svg-sprite/
+$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
+  const div = document.createElement('div');
+  div.style.display = 'none';
+  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
+  document.body.insertBefore(div, document.body.childNodes[0]);
+});

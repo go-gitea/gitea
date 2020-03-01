@@ -28,7 +28,10 @@ import (
 const NonexistentID = int64(math.MaxInt64)
 
 // giteaRoot a path to the gitea root
-var giteaRoot string
+var (
+	giteaRoot   string
+	fixturesDir string
+)
 
 func fatalTestError(fmtStr string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, fmtStr, args...)
@@ -40,8 +43,8 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 func MainTest(m *testing.M, pathToGiteaRoot string) {
 	var err error
 	giteaRoot = pathToGiteaRoot
-	fixturesDir := filepath.Join(pathToGiteaRoot, "models", "fixtures")
-	if err = createTestEngine(fixturesDir); err != nil {
+	fixturesDir = filepath.Join(pathToGiteaRoot, "models", "fixtures")
+	if err = CreateTestEngine(fixturesDir); err != nil {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
@@ -82,9 +85,10 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	os.Exit(exitStatus)
 }
 
-func createTestEngine(fixturesDir string) error {
+// CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
+func CreateTestEngine(fixturesDir string) error {
 	var err error
-	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
+	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
 	if err != nil {
 		return err
 	}
