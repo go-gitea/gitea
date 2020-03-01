@@ -531,3 +531,9 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 	return allPRs, nil
 }
+
+// GetReviews returns pull requests review
+func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
+
+	return nil, nil
+}
