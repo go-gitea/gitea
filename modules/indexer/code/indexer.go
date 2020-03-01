@@ -12,22 +12,34 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // SearchResult result of performing a search in a repo
 type SearchResult struct {
-	RepoID     int64
-	StartIndex int
-	EndIndex   int
-	Filename   string
-	Content    string
+	RepoID      int64
+	StartIndex  int
+	EndIndex    int
+	Filename    string
+	Content     string
+	CommitID    string
+	UpdatedUnix timeutil.TimeStamp
+	Language    string
+	Color       string
+}
+
+// SearchResultLanguages result of top languages count in search results
+type SearchResultLanguages struct {
+	Language string
+	Color    string
+	Count    int
 }
 
 // Indexer defines an interface to indexer issues contents
 type Indexer interface {
 	Index(repoID int64) error
 	Delete(repoID int64) error
-	Search(repoIDs []int64, keyword string, page, pageSize int) (int64, []*SearchResult, error)
+	Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error)
 	Close()
 }
 
@@ -52,6 +64,17 @@ func Init() {
 	go func() {
 		start := time.Now()
 		log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoPath)
+		defer func() {
+			if err := recover(); err != nil {
+				log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
+				log.Error("The indexer files are likely corrupted and may need to be deleted")
+				log.Error("You can completely remove the \"%s\" directory to make Gitea recreate the indexes", setting.Indexer.RepoPath)
+				cancel()
+				indexer.Close()
+				close(waitChannel)
+				log.Fatal("PID: %d Unable to initialize the Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
+			}
+		}()
 		bleveIndexer, created, err := NewBleveIndexer(setting.Indexer.RepoPath)
 		if err != nil {
 			if bleveIndexer != nil {

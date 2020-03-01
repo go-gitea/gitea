@@ -24,7 +24,7 @@
 						</a>
 					{{end}}
 					<div class="ui divider"></div>
-					<a class="{{if not $.RepoIDs}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}">
+					<a class="{{if not $.RepoIDs}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
 						<span class="text truncate">All</span>
 						<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{.TotalIssueCount}}</div>
 					</a>
@@ -43,7 +43,7 @@
 											{{$Repo.ID}}%2C
 										{{end}}
 									{{end}}
-									]&sort={{$.SortType}}&state={{$.State}}" title="{{.FullName}}">
+									]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
 								<span class="text truncate">{{$Repo.FullName}}</span>
 								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
 							</a>
@@ -52,32 +52,50 @@
 				</div>
 			</div>
 			<div class="twelve wide column content">
-				<div class="ui tiny basic status buttons">
-					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open">
-						<i class="octicon octicon-issue-opened"></i>
-						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
-					</a>
-					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed">
-						<i class="octicon octicon-issue-closed"></i>
-						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
-					</a>
-				</div>
-				<div class="ui right floated secondary filter menu">
-					<!-- Sort -->
-					<div class="ui dropdown type jump item">
-						<span class="text">
-							{{.i18n.Tr "repo.issues.filter_sort"}}
-							<i class="dropdown icon"></i>
-						</span>
-						<div class="menu">
-							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=latest&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
-							<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=oldest&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
-							<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=recentupdate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-							<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastupdate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-							<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomment&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-							<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomment&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-							<a class="{{if eq .SortType "nearduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=nearduedate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-							<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.farduedate"}}</a>
+				<div class="ui three column stackable grid">
+					<div class="column">
+						<div class="ui tiny basic status buttons">
+							<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
+								{{svg "octicon-issue-opened" 16}}
+								{{.i18n.Tr "repo.issues.open_tab" .ShownIssueStats.OpenCount}}
+							</a>
+							<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
+								{{svg "octicon-issue-closed" 16}}
+								{{.i18n.Tr "repo.issues.close_tab" .ShownIssueStats.ClosedCount}}
+							</a>
+						</div>
+					</div>
+					<div class="column center aligned">
+						<form class="ui form ignore-dirty">
+							<div class="ui fluid action input">
+								<input type="hidden" name="type" value="{{$.ViewType}}"/>
+								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}}%2C{{end}}]"/>
+								<input type="hidden" name="sort" value="{{$.SortType}}"/>
+								<input type="hidden" name="state" value="{{$.State}}"/>
+								<div class="ui search action input">
+									<input name="q" value="{{$.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+								</div>
+								<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
+							</div>
+						</form>
+					</div>
+					<div class="column right aligned">
+						<!-- Sort -->
+						<div class="ui dropdown type jump item">
+							<span class="text">
+								{{.i18n.Tr "repo.issues.filter_sort"}}
+								<i class="dropdown icon"></i>
+							</span>
+							<div class="menu">
+								<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
+								<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
+								<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+								<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+								<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+								<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+								<a class="{{if eq .SortType "nearduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+								<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.farduedate"}}</a>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -89,13 +107,13 @@
 						{{if .Repo}}
 						<li class="item">
 							<div class="ui label">{{.Repo.FullName}}#{{.Index}}</div>
-							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
+							<a class="title has-emoji" href="{{.HTMLURL}}">{{.Title}}</a>
 
-                            {{if .IsPull }}
-                                {{if (index $.CommitStatus .PullRequest.ID)}}
-                                    {{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
-                                {{end}}
-                            {{end}}
+							{{if .IsPull}}
+									{{if (index $.CommitStatus .PullRequest.ID)}}
+											{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
+									{{end}}
+							{{end}}
 
 							{{with .Labels}}
 								{{/* If we have any labels, we should show them
@@ -110,10 +128,10 @@
 							{{end}}
 
 							{{if .NumComments}}
-								<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
+								<span class="comment ui right">{{svg "octicon-comment" 16}} {{.NumComments}}</span>
 							{{end}}
 							{{if .TotalTrackedTime}}
-								<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
+								<span class="comment ui right">{{svg "octicon-clock" 16}} {{.TotalTrackedTime | Sec2Time}}</span>
 							{{end}}
 
 							<p class="desc">
@@ -126,12 +144,12 @@
 								{{end}}
 								{{if .Milestone}}
 									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
-										<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
+										{{svg "octicon-milestone" 16}} {{.Milestone.Name}}
 									</a>
 								{{end}}
 								{{if .Ref}}
 									<a class="ref" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/src/branch/{{.Ref}}">
-										<span class="octicon octicon-git-branch"></span> {{.Ref}}
+										{{svg "octicon-git-branch" 16}} {{.Ref}}
 									</a>
 								{{end}}
 								{{range .Assignees}}
@@ -143,13 +161,18 @@
 								{{if gt $tasks 0}}
 									{{$tasksDone := .GetTasksDone}}
 									<span class="checklist">
-										<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+										{{svg "octicon-checklist" 16}} {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 									</span>
 								{{end}}
 								{{if ne .DeadlineUnix 0}}
 									<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
-										<span class="octicon octicon-calendar"></span><span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+										{{svg "octicon-calendar" 16}}<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 									</span>
+								{{end}}
+								{{if .IsPull}}
+									{{if and (not .PullRequest.HasMerged) ((len .PullRequest.ConflictedFiles) gt 0)}}
+										<span class="conflicting">{{svg "octicon-mirror" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
+									{{end}}
 								{{end}}
 							</p>
 						</li>

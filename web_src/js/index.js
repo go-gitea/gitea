@@ -1,21 +1,35 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
+/* exported timeAddManual, toggleStopwatch, cancelStopwatch */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import './publicPath.js';
-import './gitGraphLoader.js';
-import './semanticDropdown.js';
+import './polyfills.js';
+
+import Vue from 'vue';
+import 'jquery.are-you-sure';
+import './vendor/semanticDropdown.js';
+import { svg } from './utils.js';
+
+import initContextPopups from './features/contextPopup.js';
+import initHighlight from './features/highlight.js';
+import initGitGraph from './features/gitGraph.js';
+import initClipboard from './features/clipboard.js';
+import initUserHeatmap from './features/userHeatmap.js';
+
+import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+
+const { AppSubUrl, StaticUrlPrefix } = window.config;
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
 
 let csrf;
-let suburl;
 let previewFileModes;
 let simpleMDEditor;
 const commentMDEditors = {};
 let codeMirrorEditor;
+let hljs;
 
 // Disable Dropzone auto-discover because it's manually initialized
 if (typeof (Dropzone) !== 'undefined') {
@@ -143,7 +157,7 @@ function initRepoStatusChecker() {
     }
     $.ajax({
       type: 'GET',
-      url: `${suburl}/${repo_name}/status`,
+      url: `${AppSubUrl}/${repo_name}/status`,
       data: {
         _csrf: csrf,
       },
@@ -279,7 +293,7 @@ function uploadFile(file, callback) {
     }
   };
 
-  xhr.open('post', `${suburl}/attachments`, true);
+  xhr.open('post', `${AppSubUrl}/attachments`, true);
   xhr.setRequestHeader('X-Csrf-Token', csrf);
   const formData = new FormData();
   formData.append('file', file, file.name);
@@ -299,7 +313,7 @@ function initImagePaste(target) {
         insertAtCursor(field, `![${name}]()`);
         uploadFile(img, (res) => {
           const data = JSON.parse(res);
-          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${suburl}/attachments/${data.uuid})`);
+          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $('.files').append(input);
         });
@@ -315,7 +329,7 @@ function initSimpleMDEImagePaste(simplemde, files) {
       uploadFile(img, (res) => {
         const data = JSON.parse(res);
         const pos = simplemde.codemirror.getCursor();
-        simplemde.codemirror.replaceRange(`![${name}](${suburl}/attachments/${data.uuid})`, pos);
+        simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
         const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
         files.append(input);
       });
@@ -368,10 +382,10 @@ function initCommentForm() {
         // adding/removing labels
         if ($(this).hasClass('checked')) {
           $(this).removeClass('checked');
-          $(this).find('.octicon').removeClass('octicon-check');
+          $(this).find('.octicon-check').addClass('invisible');
         } else {
           $(this).addClass('checked');
-          $(this).find('.octicon').addClass('octicon-check');
+          $(this).find('.octicon-check').removeClass('invisible');
         }
 
         updateIssuesMeta(
@@ -386,7 +400,7 @@ function initCommentForm() {
 
       if ($(this).hasClass('checked')) {
         $(this).removeClass('checked');
-        $(this).find('.octicon').removeClass('octicon-check');
+        $(this).find('.octicon-check').addClass('invisible');
         if (hasLabelUpdateAction) {
           if (!($(this).data('id') in labels)) {
             labels[$(this).data('id')] = {
@@ -400,7 +414,7 @@ function initCommentForm() {
         }
       } else {
         $(this).addClass('checked');
-        $(this).find('.octicon').addClass('octicon-check');
+        $(this).find('.octicon-check').removeClass('invisible');
         if (hasLabelUpdateAction) {
           if (!($(this).data('id') in labels)) {
             labels[$(this).data('id')] = {
@@ -443,7 +457,7 @@ function initCommentForm() {
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
-        $(this).find('.octicon').removeClass('octicon-check');
+        $(this).find('.octicon').addClass('invisible');
       });
 
       $list.find('.item').each(function () {
@@ -1105,7 +1119,7 @@ function initRepository() {
   // Branches
   if ($('.repository.settings.branches').length > 0) {
     initFilterSearchDropdown('.protected-branches .dropdown');
-    $('.enable-protection, .enable-whitelist').change(function () {
+    $('.enable-protection, .enable-whitelist, .enable-statuscheck').change(function () {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
@@ -1116,6 +1130,14 @@ function initRepository() {
       if (this.checked) {
         $($(this).data('target')).addClass('disabled');
       }
+    });
+  }
+
+  // Language stats
+  if ($('.language-stats').length > 0) {
+    $('.language-stats').on('click', (e) => {
+      e.preventDefault();
+      $('.language-stats-details, .repository-menu').slideToggle();
     });
   }
 }
@@ -1362,7 +1384,16 @@ function initWikiForm() {
         }, '|',
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
-        'clean-block', 'preview', 'fullscreen', 'side-by-side']
+        'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
+        {
+          name: 'revert-to-textarea',
+          action(e) {
+            e.toTextArea();
+          },
+          className: 'fa fa-file',
+          title: 'Revert to simple textarea',
+        },
+      ]
     });
     $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
 
@@ -1466,7 +1497,16 @@ function setSimpleMDE($editArea) {
       'code', 'quote', '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block', 'preview', 'fullscreen', 'side-by-side']
+      'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
+      {
+        name: 'revert-to-textarea',
+        action(e) {
+          e.toTextArea();
+        },
+        className: 'fa fa-file',
+        title: 'Revert to simple textarea',
+      },
+    ]
   });
 
   return true;
@@ -1488,7 +1528,16 @@ function setCommentSimpleMDE($editArea) {
       'code', 'quote', '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block']
+      'clean-block', '|',
+      {
+        name: 'revert-to-textarea',
+        action(e) {
+          e.toTextArea();
+        },
+        className: 'fa fa-file',
+        title: 'Revert to simple textarea',
+      },
+    ]
   });
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
@@ -2010,7 +2059,7 @@ function searchUsers() {
   $searchUserBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/users/search?q={query}`,
+      url: `${AppSubUrl}/api/v1/users/search?q={query}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2037,7 +2086,7 @@ function searchTeams() {
   $searchTeamBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
+      url: `${AppSubUrl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
       headers: { 'X-Csrf-Token': csrf },
       onResponse(response) {
         const items = [];
@@ -2061,7 +2110,7 @@ function searchRepositories() {
   $searchRepoBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
+      url: `${AppSubUrl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2106,17 +2155,12 @@ function initCodeView() {
       }
     }).trigger('hashchange');
   }
-  $('.ui.fold-code').on('click', (e) => {
-    const $foldButton = $(e.target);
-    if ($foldButton.hasClass('fa-chevron-down')) {
-      $(e.target).parent().next().slideUp('fast', () => {
-        $foldButton.removeClass('fa-chevron-down').addClass('fa-chevron-right');
-      });
-    } else {
-      $(e.target).parent().next().slideDown('fast', () => {
-        $foldButton.removeClass('fa-chevron-right').addClass('fa-chevron-down');
-      });
-    }
+  $('.fold-code').on('click', ({ target }) => {
+    const box = target.closest('.file-content');
+    const folded = box.dataset.folded !== 'true';
+    target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
+    target.classList.remove(`fa-chevron-${folded ? 'down' : 'right'}`);
+    box.dataset.folded = String(folded);
   });
   function insertBlobExcerpt(e) {
     const $blob = $(e.target);
@@ -2136,7 +2180,7 @@ function initU2FAuth() {
   }
   u2fApi.ensureSupport()
     .then(() => {
-      $.getJSON(`${suburl}/user/u2f/challenge`).success((req) => {
+      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).success((req) => {
         u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
           .then(u2fSigned)
           .catch((err) => {
@@ -2149,12 +2193,12 @@ function initU2FAuth() {
       });
     }).catch(() => {
       // Fallback in case browser do not support U2F
-      window.location.href = `${suburl}/user/two_factor`;
+      window.location.href = `${AppSubUrl}/user/two_factor`;
     });
 }
 function u2fSigned(resp) {
   $.ajax({
-    url: `${suburl}/user/u2f/sign`,
+    url: `${AppSubUrl}/user/u2f/sign`,
     type: 'POST',
     headers: { 'X-Csrf-Token': csrf },
     data: JSON.stringify(resp),
@@ -2171,7 +2215,7 @@ function u2fRegistered(resp) {
     return;
   }
   $.ajax({
-    url: `${suburl}/user/settings/security/u2f/register`,
+    url: `${AppSubUrl}/user/settings/security/u2f/register`,
     type: 'POST',
     headers: { 'X-Csrf-Token': csrf },
     data: JSON.stringify(resp),
@@ -2230,7 +2274,7 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-  $.post(`${suburl}/user/settings/security/u2f/request_register`, {
+  $.post(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
     _csrf: csrf,
     name: $('#nickname').val()
   }).success((req) => {
@@ -2293,7 +2337,7 @@ function initTemplateSearch() {
     $('#repo_template_search')
       .dropdown({
         apiSettings: {
-          url: `${suburl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
+          url: `${AppSubUrl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
           onResponse(response) {
             const filteredResponse = { success: true, results: [] };
             filteredResponse.results.push({
@@ -2319,9 +2363,8 @@ function initTemplateSearch() {
   changeOwner();
 }
 
-$(document).ready(() => {
+$(document).ready(async () => {
   csrf = $('meta[name=_csrf]').attr('content');
-  suburl = $('meta[name=_suburl]').attr('content');
 
   // Show exact time
   $('.time-since').each(function () {
@@ -2371,14 +2414,6 @@ $(document).ready(() => {
     window.location = $(this).data('href');
   });
 
-  // Highlight JS
-  if (typeof hljs !== 'undefined') {
-    const nodes = [].slice.call(document.querySelectorAll('pre code') || []);
-    for (let i = 0; i < nodes.length; i++) {
-      hljs.highlightBlock(nodes[i]);
-    }
-  }
-
   // Dropzone
   const $dropzone = $('#dropzone');
   if ($dropzone.length > 0) {
@@ -2418,7 +2453,7 @@ $(document).ready(() => {
 
   // Emojify
   emojify.setConfig({
-    img_dir: `${suburl}/vendor/plugins/emojify/images`,
+    img_dir: `${AppSubUrl}/vendor/plugins/emojify/images`,
     ignore_emoticons: true
   });
   const hasEmoji = document.getElementsByClassName('has-emoji');
@@ -2431,27 +2466,10 @@ $(document).ready(() => {
     }
   }
 
-  // Clipboard JS
-  const clipboard = new Clipboard('.clipboard');
-  clipboard.on('success', (e) => {
-    e.clearSelection();
-
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-success'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
-  clipboard.on('error', (e) => {
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-error'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
   // Helpers.
   $('.delete-button').click(showDeletePopup);
   $('.add-all-button').click(showAddAllPopup);
+  $('.link-action').click(linkAction);
 
   $('.delete-branch-button').click(showDeletePopup);
 
@@ -2484,7 +2502,7 @@ $(document).ready(() => {
     $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
       let node = $(this);
       node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}"><span class="octicon octicon-link"></span></a>`);
+      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
     });
   });
 
@@ -2556,6 +2574,7 @@ $(document).ready(() => {
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
+  initContextPopups();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2591,6 +2610,14 @@ $(document).ready(() => {
       $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
     }
   });
+
+  // parallel init of lazy-loaded features
+  [hljs] = await Promise.all([
+    initHighlight(),
+    initGitGraph(),
+    initClipboard(),
+    initUserHeatmap(),
+  ]);
 });
 
 function changeHash(hash) {
@@ -2709,6 +2736,19 @@ function showAddAllPopup() {
   return false;
 }
 
+function linkAction() {
+  const $this = $(this);
+  $.post($this.data('url'), {
+    _csrf: csrf
+  }).done((data) => {
+    if (data.redirect) {
+      window.location.href = data.redirect;
+    } else {
+      window.location.reload();
+    }
+  });
+}
+
 function initVueComponents() {
   const vueDelimeters = ['${', '}'];
 
@@ -2758,6 +2798,7 @@ function initVueComponents() {
         reposFilter: 'all',
         searchQuery: '',
         isLoading: false,
+        staticPrefix: StaticUrlPrefix,
         repoTypes: {
           all: {
             count: 0,
@@ -2860,13 +2901,15 @@ function initVueComponents() {
 
       repoClass(repo) {
         if (repo.fork) {
-          return 'octicon octicon-repo-forked';
+          return 'octicon-repo-forked';
         } if (repo.mirror) {
-          return 'octicon octicon-repo-clone';
+          return 'octicon-repo-clone';
+        } if (repo.template) {
+          return `octicon-repo-template${repo.private ? '-private' : ''}`;
         } if (repo.private) {
-          return 'octicon octicon-lock';
+          return 'octicon-lock';
         }
-        return 'octicon octicon-repo';
+        return 'octicon-repo';
       }
     }
   });
@@ -2892,9 +2935,13 @@ function initVueApp() {
     delimiters: ['${', '}'],
     el,
     data: {
-      searchLimit: document.querySelector('meta[name=_search_limit]').content,
-      suburl: document.querySelector('meta[name=_suburl]').content,
-      uid: Number(document.querySelector('meta[name=_context_uid]').content),
+      searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
+      suburl: AppSubUrl,
+      uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
+      activityTopAuthors: window.ActivityTopAuthors || [],
+    },
+    components: {
+      ActivityTopAuthors,
     },
   });
 }
@@ -2914,102 +2961,6 @@ window.toggleStopwatch = function () {
 };
 window.cancelStopwatch = function () {
   $('#cancel_stopwatch_form').submit();
-};
-
-window.initHeatmap = function (appElementId, heatmapUser, locale) {
-  const el = document.getElementById(appElementId);
-  if (!el) {
-    return;
-  }
-
-  locale = locale || {};
-
-  locale.contributions = locale.contributions || 'contributions';
-  locale.no_contributions = locale.no_contributions || 'No contributions';
-
-  const vueDelimeters = ['${', '}'];
-
-  Vue.component('activity-heatmap', {
-    delimiters: vueDelimeters,
-
-    props: {
-      user: {
-        type: String,
-        required: true
-      },
-      suburl: {
-        type: String,
-        required: true
-      },
-      locale: {
-        type: Object,
-        required: true
-      }
-    },
-
-    data() {
-      return {
-        isLoading: true,
-        colorRange: [],
-        endDate: null,
-        values: [],
-        totalContributions: 0,
-      };
-    },
-
-    mounted() {
-      this.colorRange = [
-        this.getColor(0),
-        this.getColor(1),
-        this.getColor(2),
-        this.getColor(3),
-        this.getColor(4),
-        this.getColor(5)
-      ];
-      this.endDate = new Date();
-      this.loadHeatmap(this.user);
-    },
-
-    methods: {
-      loadHeatmap(userName) {
-        const self = this;
-        $.get(`${this.suburl}/api/v1/users/${userName}/heatmap`, (chartRawData) => {
-          const chartData = [];
-          for (let i = 0; i < chartRawData.length; i++) {
-            self.totalContributions += chartRawData[i].contributions;
-            chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
-          }
-          self.values = chartData;
-          self.isLoading = false;
-        });
-      },
-
-      getColor(idx) {
-        const el = document.createElement('div');
-        el.className = `heatmap-color-${idx}`;
-        document.body.appendChild(el);
-
-        const color = getComputedStyle(el).backgroundColor;
-
-        document.body.removeChild(el);
-
-        return color;
-      }
-    },
-
-    template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><h4 class="total-contributions" v-if="!isLoading"><span v-html="totalContributions"></span> total contributions in the last 12 months</h4><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
-  });
-
-  new Vue({
-    delimiters: vueDelimeters,
-    el,
-
-    data: {
-      suburl: document.querySelector('meta[name=_suburl]').content,
-      heatmapUser,
-      locale
-    },
-  });
 };
 
 function initFilterBranchTagDropdown(selector) {
@@ -3251,7 +3202,7 @@ function initTopicbar() {
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
             const link = $('<a class="ui repo-topic small label topic"></a>');
-            link.attr('href', `${suburl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
+            link.attr('href', `${AppSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
             link.insertBefore(last);
           }
@@ -3299,7 +3250,7 @@ function initTopicbar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${suburl}/api/v1/topics/search?q={encodeURIComponent(query)}`,
+      url: `${AppSubUrl}/api/v1/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {
@@ -3455,9 +3406,10 @@ function initIssueList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  let issueSearchUrl = `${suburl}/api/v1/repos/${repolink}/issues?q={query}`;
+  const tp = $('#type').val();
+  let issueSearchUrl = `${AppSubUrl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${suburl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}`;
+    issueSearchUrl = `${AppSubUrl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
@@ -3529,6 +3481,14 @@ window.cancelCodeComment = function (btn) {
     form.closest('.comment-code-cloud').remove();
   }
 };
+
+window.submitReply = function (btn) {
+  const form = $(btn).closest('form');
+  if (form.length > 0 && form.hasClass('comment-form')) {
+    form.submit();
+  }
+};
+
 window.onOAuthLoginClick = function () {
   const oauthLoader = $('#oauth2-login-loader');
   const oauthNav = $('#oauth2-login-navigator');
@@ -3543,3 +3503,12 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
+
+// Pull SVGs via AJAX to workaround CORS issues with <use> tags
+// https://css-tricks.com/ajaxing-svg-sprite/
+$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
+  const div = document.createElement('div');
+  div.style.display = 'none';
+  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
+  document.body.insertBefore(div, document.body.childNodes[0]);
+});

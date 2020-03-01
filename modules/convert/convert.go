@@ -30,28 +30,86 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User) *api.Branch {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) *api.Branch {
 	if bp == nil {
 		return &api.Branch{
-			Name:                b.Name,
-			Commit:              ToCommit(repo, c),
-			Protected:           false,
-			RequiredApprovals:   0,
-			EnableStatusCheck:   false,
-			StatusCheckContexts: []string{},
-			UserCanPush:         true,
-			UserCanMerge:        true,
+			Name:                          b.Name,
+			Commit:                        ToCommit(repo, c),
+			Protected:                     false,
+			RequiredApprovals:             0,
+			EnableStatusCheck:             false,
+			StatusCheckContexts:           []string{},
+			UserCanPush:                   true,
+			UserCanMerge:                  true,
+			EffectiveBranchProtectionName: "",
 		}
 	}
+	branchProtectionName := ""
+	if isRepoAdmin {
+		branchProtectionName = bp.BranchName
+	}
+
 	return &api.Branch{
-		Name:                b.Name,
-		Commit:              ToCommit(repo, c),
-		Protected:           true,
-		RequiredApprovals:   bp.RequiredApprovals,
-		EnableStatusCheck:   bp.EnableStatusCheck,
-		StatusCheckContexts: bp.StatusCheckContexts,
-		UserCanPush:         bp.CanUserPush(user.ID),
-		UserCanMerge:        bp.IsUserMergeWhitelisted(user.ID),
+		Name:                          b.Name,
+		Commit:                        ToCommit(repo, c),
+		Protected:                     true,
+		RequiredApprovals:             bp.RequiredApprovals,
+		EnableStatusCheck:             bp.EnableStatusCheck,
+		StatusCheckContexts:           bp.StatusCheckContexts,
+		UserCanPush:                   bp.CanUserPush(user.ID),
+		UserCanMerge:                  bp.IsUserMergeWhitelisted(user.ID),
+		EffectiveBranchProtectionName: branchProtectionName,
+	}
+}
+
+// ToBranchProtection convert a ProtectedBranch to api.BranchProtection
+func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
+	pushWhitelistUsernames, err := models.GetUserNamesByIDs(bp.WhitelistUserIDs)
+	if err != nil {
+		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
+	}
+	mergeWhitelistUsernames, err := models.GetUserNamesByIDs(bp.MergeWhitelistUserIDs)
+	if err != nil {
+		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
+	}
+	approvalsWhitelistUsernames, err := models.GetUserNamesByIDs(bp.ApprovalsWhitelistUserIDs)
+	if err != nil {
+		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
+	}
+	pushWhitelistTeams, err := models.GetTeamNamesByID(bp.WhitelistTeamIDs)
+	if err != nil {
+		log.Error("GetTeamNamesByID (WhitelistTeamIDs): %v", err)
+	}
+	mergeWhitelistTeams, err := models.GetTeamNamesByID(bp.MergeWhitelistTeamIDs)
+	if err != nil {
+		log.Error("GetTeamNamesByID (MergeWhitelistTeamIDs): %v", err)
+	}
+	approvalsWhitelistTeams, err := models.GetTeamNamesByID(bp.ApprovalsWhitelistTeamIDs)
+	if err != nil {
+		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
+	}
+
+	return &api.BranchProtection{
+		BranchName:                  bp.BranchName,
+		EnablePush:                  bp.CanPush,
+		EnablePushWhitelist:         bp.EnableWhitelist,
+		PushWhitelistUsernames:      pushWhitelistUsernames,
+		PushWhitelistTeams:          pushWhitelistTeams,
+		PushWhitelistDeployKeys:     bp.WhitelistDeployKeys,
+		EnableMergeWhitelist:        bp.EnableMergeWhitelist,
+		MergeWhitelistUsernames:     mergeWhitelistUsernames,
+		MergeWhitelistTeams:         mergeWhitelistTeams,
+		EnableStatusCheck:           bp.EnableStatusCheck,
+		StatusCheckContexts:         bp.StatusCheckContexts,
+		RequiredApprovals:           bp.RequiredApprovals,
+		EnableApprovalsWhitelist:    bp.EnableApprovalsWhitelist,
+		ApprovalsWhitelistUsernames: approvalsWhitelistUsernames,
+		ApprovalsWhitelistTeams:     approvalsWhitelistTeams,
+		BlockOnRejectedReviews:      bp.BlockOnRejectedReviews,
+		DismissStaleApprovals:       bp.DismissStaleApprovals,
+		RequireSignedCommits:        bp.RequireSignedCommits,
+		Created:                     bp.CreatedUnix.AsTime(),
+		Updated:                     bp.UpdatedUnix.AsTime(),
 	}
 }
 
@@ -328,5 +386,17 @@ func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
 		RepoCount: topic.RepoCount,
 		Created:   topic.CreatedUnix.AsTime(),
 		Updated:   topic.UpdatedUnix.AsTime(),
+	}
+}
+
+// ToOAuth2Application convert from models.OAuth2Application to api.OAuth2Application
+func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
+	return &api.OAuth2Application{
+		ID:           app.ID,
+		Name:         app.Name,
+		ClientID:     app.ClientID,
+		ClientSecret: app.ClientSecret,
+		RedirectURIs: app.RedirectURIs,
+		Created:      app.CreatedUnix.AsTime(),
 	}
 }

@@ -46,11 +46,14 @@ func (repos RepositoryList) loadAttributes(e Engine) error {
 		return nil
 	}
 
-	// Load owners.
 	set := make(map[int64]struct{})
+	repoIDs := make([]int64, len(repos))
 	for i := range repos {
 		set[repos[i].OwnerID] = struct{}{}
+		repoIDs[i] = repos[i].ID
 	}
+
+	// Load owners.
 	users := make(map[int64]*User, len(set))
 	if err := e.
 		Where("id > 0").
@@ -61,6 +64,25 @@ func (repos RepositoryList) loadAttributes(e Engine) error {
 	for i := range repos {
 		repos[i].Owner = users[repos[i].OwnerID]
 	}
+
+	// Load primary language.
+	stats := make(LanguageStatList, 0, len(repos))
+	if err := e.
+		Where("`is_primary` = ? AND `language` != ?", true, "other").
+		In("`repo_id`", repoIDs).
+		Find(&stats); err != nil {
+		return fmt.Errorf("find primary languages: %v", err)
+	}
+	stats.loadAttributes()
+	for i := range repos {
+		for _, st := range stats {
+			if st.RepoID == repos[i].ID {
+				repos[i].PrimaryLanguage = st
+				break
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -111,6 +133,7 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
+	ListOptions
 	Actor           *User
 	Keyword         string
 	OwnerID         int64
@@ -118,11 +141,8 @@ type SearchRepoOptions struct {
 	OrderBy         SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
-	Page            int
-	IsProfile       bool
 	AllPublic       bool // Include also all public repositories of users and public organisations
 	AllLimited      bool // Include also all public repositories of limited organisations
-	PageSize        int  // Can be smaller than or equal to setting.ExplorePagingNum
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> incude just non-collaborative
@@ -307,10 +327,8 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
-	if !opts.IsProfile {
-		if err = repos.loadAttributes(sess); err != nil {
-			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
-		}
+	if err = repos.loadAttributes(sess); err != nil {
+		return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
 	return repos, count, nil
@@ -320,9 +338,9 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 func accessibleRepositoryCondition(user *User) builder.Cond {
 	var cond = builder.NewCond()
 
-	if user == nil || !user.IsRestricted {
+	if user == nil || !user.IsRestricted || user.ID <= 0 {
 		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
-		if user == nil {
+		if user == nil || user.ID <= 0 {
 			orgVisibilityLimit = append(orgVisibilityLimit, structs.VisibleTypeLimited)
 		}
 		// 1. Be able to see all non-private repositories that either:
@@ -364,7 +382,8 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 }
 
 // AccessibleRepoIDsQuery queries accessible repository ids. Usable as a subquery wherever repo ids need to be filtered.
-func (user *User) AccessibleRepoIDsQuery() *builder.Builder {
+func AccessibleRepoIDsQuery(user *User) *builder.Builder {
+	// NB: Please note this code needs to still work if user is nil
 	return builder.Select("id").From("repository").Where(accessibleRepositoryCondition(user))
 }
 

@@ -303,11 +303,11 @@ func NewBlockquote() *Blockquote {
 	}
 }
 
-// A List structr represents a list of Markdown text.
+// A List struct represents a list of Markdown text.
 type List struct {
 	BaseBlock
 
-	// Marker is a markar character like '-', '+', ')' and '.'.
+	// Marker is a marker character like '-', '+', ')' and '.'.
 	Marker byte
 
 	// IsTight is a true if this list is a 'tight' list.
@@ -364,7 +364,7 @@ func NewList(marker byte) *List {
 type ListItem struct {
 	BaseBlock
 
-	// Offset is an offset potision of this item.
+	// Offset is an offset position of this item.
 	Offset int
 }
 

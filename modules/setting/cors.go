@@ -8,34 +8,31 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"gitea.com/macaron/cors"
 )
 
 var (
 	// CORSConfig defines CORS settings
-	CORSConfig cors.Options
-	// EnableCORS defines whether CORS settings is enabled or not
-	EnableCORS bool
+	CORSConfig = struct {
+		Enabled          bool
+		Scheme           string
+		AllowDomain      []string
+		AllowSubdomain   bool
+		Methods          []string
+		MaxAge           time.Duration
+		AllowCredentials bool
+	}{
+		Enabled: false,
+		MaxAge:  10 * time.Minute,
+	}
 )
 
 func newCORSService() {
 	sec := Cfg.Section("cors")
-	// Check cors setting.
-	EnableCORS = sec.Key("ENABLED").MustBool(false)
-
-	maxAge := sec.Key("MAX_AGE").MustDuration(10 * time.Minute)
-
-	CORSConfig = cors.Options{
-		Scheme:           sec.Key("SCHEME").String(),
-		AllowDomain:      sec.Key("ALLOW_DOMAIN").Strings(","),
-		AllowSubdomain:   sec.Key("ALLOW_SUBDOMAIN").MustBool(),
-		Methods:          sec.Key("METHODS").Strings(","),
-		MaxAgeSeconds:    int(maxAge.Seconds()),
-		AllowCredentials: sec.Key("ALLOW_CREDENTIALS").MustBool(),
+	if err := sec.MapTo(&CORSConfig); err != nil {
+		log.Fatal("Failed to map cors settings: %v", err)
 	}
 
-	if EnableCORS {
+	if CORSConfig.Enabled {
 		log.Info("CORS Service Enabled")
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/repo"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
@@ -79,7 +80,7 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 		}
 	} else {
 		// Use ListPublicKeys
-		keys, err = models.ListPublicKeys(user.ID)
+		keys, err = models.ListPublicKeys(user.ID, utils.GetListOptions(ctx))
 	}
 
 	if err != nil {
@@ -109,6 +110,14 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 	//   in: query
 	//   description: fingerprint of the key
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
@@ -135,6 +144,14 @@ func ListPublicKeys(ctx *context.APIContext) {
 	//   in: query
 	//   description: fingerprint of the key
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"

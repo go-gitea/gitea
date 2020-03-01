@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -72,6 +73,7 @@ var (
 		"git-receive-pack":   models.AccessModeWrite,
 		lfsAuthenticateVerb:  models.AccessModeNone,
 	}
+	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
 func fail(userMessage, logMessage string, args ...interface{}) {
@@ -146,6 +148,10 @@ func runServ(c *cli.Context) error {
 
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
+
+	if alphaDashDotPattern.MatchString(reponame) {
+		fail("Invalid repo name", "Invalid repo name: %s", reponame)
+	}
 
 	if setting.EnablePprof || c.Bool("enable-pprof") {
 		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {

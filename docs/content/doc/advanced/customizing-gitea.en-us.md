@@ -18,7 +18,8 @@ menu:
 Customizing Gitea is typically done using the `CustomPath` folder - by default this is
 the `custom` folder from the running directory, but may be different if your build has
 set this differently. This is the central place to override configuration settings,
-templates, etc. You can check the `CustomPath` using `gitea help`. You can override
+templates, etc. You can check the `CustomPath` using `gitea help`. You can also find
+the path on the _Configuration_ tab in the _Site Administration_ page. You can override
 the `CustomPath` by setting either the `GITEA_CUSTOM` environment variable or by
 using the `--custom-path` option on the `gitea` binary. (The option will override the
 environment variable.)
@@ -56,14 +57,21 @@ the url `http://gitea.domain.tld/image.png`.
 
 Place the png image at the following path: `custom/public/img/avatar_default.png`
 
-## Customizing Gitea pages
+## Customizing Gitea pages and resources
 
-The `custom/templates` folder allows changing every single page of Gitea. Templates
-to override can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source (Note: the example link is from `master` branch. Make sure to copy templates from same release you are using). Override by
-making a copy of the file under `custom/templates` using a full path structure
-matching source.
+Gitea's executable contains all the resources required to run: templates, images, style-sheets
+and translations. Any of them can be overridden by placing a replacement in a matching path
+inside the `custom` directory. For example, to replace the default `.gitignore` provided
+for C++ repositories, we want to replace `options/gitignore/C++`. To do this, a replacement
+must be placed in `custom/options/gitignore/C++` (see about the location of the `custom`
+directory at the top of this document).
 
-Any statement contained inside `{{` and `}}` are Gitea's template syntax and
+Every single page of Gitea can be changed. Dynamic content is generated using [go templates](https://golang.org/pkg/html/template/),
+which can be modified by placing replacements below the `custom/templates` directory.
+
+To obtain any embedded file (including templates), the [`gitea embedded` tool]({{< relref "doc/advanced/cmd-embedded.en-us.md" >}}) can be used. Alternatively, they can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source (Note: the example link is from the `master` branch. Make sure to use templates compatible with the release you are using).
+
+Be aware that any statement contained inside `{{` and `}}` are Gitea's template syntax and
 shouldn't be touched without fully understanding these components.
 
 ### Customizing startpage / homepage
@@ -100,6 +108,78 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
 
+#### Example: Mermaid.js
+
+If you would like to add [mermaid.js](https://mermaid-js.github.io/mermaid) support to Gitea's markdown you simply add:
+
+```html
+{{if .RequireHighlightJS}}
+<script src="https://unpkg.com/mermaid@8.4.5/dist/mermaid.min.js"></script>
+<!-- or wherever you have placed it -->
+<script>mermaid.init(".language-mermaid")</script>
+{{end}}
+```
+
+to `custom/footer.tmpl`. You then can add blocks
+like below to your markdown:
+
+    ```mermaid
+        stateDiagram
+        [*] --> Active
+
+        state Active {
+            [*] --> NumLockOff
+            NumLockOff --> NumLockOn : EvNumLockPressed
+            NumLockOn --> NumLockOff : EvNumLockPressed
+            --
+            [*] --> CapsLockOff
+            CapsLockOff --> CapsLockOn : EvCapsLockPressed
+            CapsLockOn --> CapsLockOff : EvCapsLockPressed
+            --
+            [*] --> ScrollLockOff
+            ScrollLockOff --> ScrollLockOn : EvCapsLockPressed
+            ScrollLockOn --> ScrollLockOff : EvCapsLockPressed
+        }
+    ```
+
+If you want to use Mermaid.js outside of markdown, e.g. in other templates or HTML files,
+you would need to remove `{{if .RequireHighlightJS}}` and `{{end}}`.
+
+Mermaid will detect and use tags with `class="language-mermaid"`.
+
+#### Example: PlantUML
+
+You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by using a PlantUML server.
+The data is encoded and sent to the PlantUML server which generates the picture. There is an online 
+demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you 
+can set up your own [PlantUML server](https://plantuml.com/server) instead. To set up PlantUML rendering,
+copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
+`custom/public` folder. Then add the following to `custom/footer.tmpl`:
+
+```html
+{{if .RequireHighlightJS}}
+<script src="https://your-server.com/deflate.js"></script>
+<script src="https://your-server.com/encode.js"></script>
+<script src="https://your-server.com/plantuml_codeblock_parse.js"></script>
+<script>
+<!-- Replace call with address to your plantuml server-->
+parsePlantumlCodeBlocks("http://www.plantuml..com/plantuml")
+</script>
+{{end}}
+```
+
+You can then add blocks like the following to your markdown:
+
+    ```plantuml
+        Alice -> Bob: Authentication Request
+        Bob --> Alice: Authentication Response
+        
+        Alice -> Bob: Another authentication Request
+        Alice <-- Bob: Another authentication Response
+    ```
+
+The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
+
 ## Customizing Gitea mails
 
 The `custom/templates/mail` folder allows changing the body of every mail of Gitea.
@@ -111,8 +191,6 @@ full path structure matching source.
 
 Any statement contained inside `{{` and `}}` are Gitea's template
 syntax and shouldn't be touched without fully understanding these components.
-
-
 
 ## Adding Analytics to Gitea
 

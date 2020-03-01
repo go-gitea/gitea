@@ -351,6 +351,17 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected")(t)
 			assert.NoError(t, err)
 		})
+		t.Run("GenerateCommit", func(t *testing.T) {
+			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			assert.NoError(t, err)
+		})
+		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected-2"))
+		var pr2 api.PullRequest
+		t.Run("CreatePullRequest", func(t *testing.T) {
+			pr2, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "unprotected", "unprotected-2")(t)
+			assert.NoError(t, err)
+		})
+		t.Run("MergePR2", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr2.Index))
 		t.Run("MergePR", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", baseCtx.Username))
@@ -422,6 +433,9 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
 		assert.NoError(t, err)
 
+		_, err = git.NewCommand("clone", u.String()).RunInDir(tmpDir)
+		assert.Error(t, err)
+
 		err = git.InitRepository(tmpDir, false)
 		assert.NoError(t, err)
 
@@ -449,6 +463,13 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		_, err = git.NewCommand("remote", "add", "origin", u.String()).RunInDir(tmpDir)
 		assert.NoError(t, err)
 
+		invalidCtx := ctx
+		invalidCtx.Reponame = fmt.Sprintf("invalid/repo-tmp-push-create-%s", u.Scheme)
+		u.Path = invalidCtx.GitPath()
+
+		_, err = git.NewCommand("remote", "add", "invalid", u.String()).RunInDir(tmpDir)
+		assert.NoError(t, err)
+
 		// Push to create disabled
 		setting.Repository.EnablePushCreateUser = false
 		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
@@ -456,6 +477,12 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 
 		// Push to create enabled
 		setting.Repository.EnablePushCreateUser = true
+
+		// Invalid repo
+		_, err = git.NewCommand("push", "invalid", "master").RunInDir(tmpDir)
+		assert.Error(t, err)
+
+		// Valid repo
 		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
 		assert.NoError(t, err)
 

@@ -316,7 +316,7 @@ func PrepareCompareDiff(
 	}
 
 	compareInfo.Commits = models.ValidateCommitsWithEmails(compareInfo.Commits)
-	compareInfo.Commits = models.ParseCommitsWithSignature(compareInfo.Commits)
+	compareInfo.Commits = models.ParseCommitsWithSignature(compareInfo.Commits, headRepo)
 	compareInfo.Commits = models.ParseCommitsWithStatus(compareInfo.Commits, headRepo)
 	ctx.Data["Commits"] = compareInfo.Commits
 	ctx.Data["CommitCount"] = compareInfo.Commits.Len()
@@ -413,7 +413,7 @@ func CompareDiff(ctx *context.Context) {
 
 		if !nothingToCompare {
 			// Setup information for new form.
-			RetrieveRepoMetas(ctx, ctx.Repo.Repository)
+			RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
 			if ctx.Written() {
 				return
 			}

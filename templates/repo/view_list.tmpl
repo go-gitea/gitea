@@ -15,21 +15,32 @@
 						<strong>{{.LatestCommit.Author.Name}}</strong>
 					{{end}}
 				{{end}}
-				<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified {{end}}{{end}}" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}">
-						{{ShortSha .LatestCommit.ID.String}}
-						{{if .LatestCommit.Signature}}
-							<div class="ui detail icon button">
-								{{if .LatestCommitVerification.Verified}}
-									<i title="{{.LatestCommitVerification.Reason}}" class="lock green icon"></i>
-								{{else}}
-									<i title="{{$.i18n.Tr .LatestCommitVerification.Reason}}" class="unlock icon"></i>
-								{{end}}
-							</div>
-						{{end}}
+				<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}">
+					<span class="shortsha">{{ShortSha .LatestCommit.ID.String}}</span>
+					{{if .LatestCommit.Signature}}
+						<div class="ui detail icon button">
+							{{if .LatestCommitVerification.Verified}}
+								<div title="{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}{{.i18n.Tr "repo.commits.signed_by_untrusted_user"}}: {{else}}{{.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}: {{end}}{{.LatestCommitVerification.Reason}}">
+									{{if ne .LatestCommitVerification.SigningUser.ID 0}}
+										<i class="lock icon"></i>
+										<img class="ui signature avatar image" src="{{.LatestCommitVerification.SigningUser.RelAvatarLink}}" />
+									{{else}}
+										<i title="{{.LatestCommitVerification.Reason}}" class="icons">
+											<i class="lock icon"></i>
+											<i class="tiny inverted cog icon centerlock"></i>
+										</i>
+										<img class="ui signature avatar image" src="{{AvatarLink .LatestCommitVerification.SigningEmail}}" />
+									{{end}}
+								</div>
+							{{else}}
+								<i title="{{$.i18n.Tr .LatestCommitVerification.Reason}}" class="unlock icon"></i>
+							{{end}}
+						</div>
+					{{end}}
 				</a>
 				{{template "repo/commit_status" .LatestCommitStatus}}
 				{{ $commitLink:= printf "%s/commit/%s" .RepoLink .LatestCommit.ID }}
-				<span class="grey has-emoji commit-summary" title="{{.LatestCommit.Summary}}">{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}
+				<span class="grey has-emoji commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 				{{if IsMultilineCommitMessage .LatestCommit.Message}}
 					<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
 					<pre class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
@@ -42,7 +53,7 @@
 	<tbody>
 		{{if .HasParentPath}}
 			<tr class="has-parent">
-				<td colspan="3"><i class="octicon octicon-mail-reply"></i><a href="{{EscapePound .BranchLink}}{{.ParentPath}}">..</a></td>
+				<td colspan="3">{{svg "octicon-mail-reply" 16}}<a href="{{EscapePound .BranchLink}}{{.ParentPath}}">..</a></td>
 			</tr>
 		{{end}}
 		{{range $item := .Files}}
@@ -52,7 +63,7 @@
 				{{if $entry.IsSubModule}}
 					<td>
 						<span class="truncate">
-							<span class="octicon octicon-file-submodule"></span>
+							{{svg "octicon-file-submodule" 16}}
 							{{$refURL := $commit.RefURL AppUrl $.BranchLink}}
 							{{if $refURL}}
 								<a href="{{$refURL}}">{{$entry.Name}}</a> @ <a href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
@@ -67,7 +78,7 @@
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
-								<span class="octicon octicon-file-directory"></span>
+								{{svg "octicon-file-directory" 16}}
 								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 									{{if eq (len $subJumpablePath) 2}}
 										<span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
@@ -76,7 +87,7 @@
 									{{end}}
 								</a>
 							{{else}}
-								<span class="octicon octicon-{{EntryIcon $entry}}"></span>
+								{{svg (printf "octicon-%s" (EntryIcon $entry)) 16}}
 								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 							{{end}}
 						</span>

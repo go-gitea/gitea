@@ -38,16 +38,16 @@ Gitea</a>
 
 ## Download
 
-First, retrieve the source code. The easiest way is to use the Go tool. Use the
-following commands to fetch the source and switch into the source directory.
-Go is quite opinionated about where it expects its source code, and simply
-cloning the Gitea repository to an arbitrary path is likely to lead to
-problems - the fixing of which is out of scope for this document.
+First, we must retrieve the source code. Since, the advent of go modules, the
+simplest way of doing this is to use git directly as we no longer have to have
+gitea built from within the GOPATH. 
 
 ```bash
-go get -d -u code.gitea.io/gitea
-cd "$GOPATH/src/code.gitea.io/gitea"
+git clone https://github.com/go-gitea/gitea
 ```
+
+(Previous versions of this document recommended using `go get`. This is
+no longer necessary.)
 
 Decide which version of Gitea to build and install. Currently, there are
 multiple options to choose from. The `master` branch represents the current
@@ -112,6 +112,17 @@ recommended way to build from source is therefore:
 
 ```bash
 TAGS="bindata sqlite sqlite_unlock_notify" make build
+```
+
+The `build` target is split into two sub-targets:
+
+- `make backend` which requires [Go 1.11](https://golang.org/dl/) or greater.
+- `make frontend` which requires [Node.js 10.0.0](https://nodejs.org/en/download/) or greater.
+
+If pre-built frontend files are present it is possible to only build the backend:
+
+```bash
+TAGS="bindata" make backend
 ```
 
 ## Test

@@ -1,6 +1,6 @@
 # cloud.google.com/go v0.45.0
 cloud.google.com/go/compute/metadata
-# gitea.com/lunny/levelqueue v0.1.0
+# gitea.com/lunny/levelqueue v0.2.0
 gitea.com/lunny/levelqueue
 # gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 gitea.com/macaron/binding
@@ -10,11 +10,11 @@ gitea.com/macaron/cache/memcache
 gitea.com/macaron/cache/redis
 # gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
 gitea.com/macaron/captcha
-# gitea.com/macaron/cors v0.0.0-20190821152825-7dcef4a17175
+# gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
 gitea.com/macaron/cors
 # gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 gitea.com/macaron/csrf
-# gitea.com/macaron/gzip v0.0.0-20191118033930-0c4c5566a0e5
+# gitea.com/macaron/gzip v0.0.0-20191118041502-506895b47aae
 gitea.com/macaron/gzip
 # gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
 gitea.com/macaron/i18n
@@ -22,7 +22,7 @@ gitea.com/macaron/i18n
 gitea.com/macaron/inject
 # gitea.com/macaron/macaron v1.4.0
 gitea.com/macaron/macaron
-# gitea.com/macaron/session v0.0.0-20190821211443-122c47c5f705
+# gitea.com/macaron/session v0.0.0-20191207215012-613cebf0674d
 gitea.com/macaron/session
 gitea.com/macaron/session/couchbase
 gitea.com/macaron/session/memcache
@@ -54,6 +54,7 @@ github.com/beorn7/perks/quantile
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis
 github.com/blevesearch/bleve/analysis/analyzer/custom
+github.com/blevesearch/bleve/analysis/analyzer/keyword
 github.com/blevesearch/bleve/analysis/analyzer/standard
 github.com/blevesearch/bleve/analysis/datetime/flexible
 github.com/blevesearch/bleve/analysis/datetime/optional
@@ -62,6 +63,7 @@ github.com/blevesearch/bleve/analysis/token/lowercase
 github.com/blevesearch/bleve/analysis/token/porter
 github.com/blevesearch/bleve/analysis/token/stop
 github.com/blevesearch/bleve/analysis/token/unicodenorm
+github.com/blevesearch/bleve/analysis/tokenizer/single
 github.com/blevesearch/bleve/analysis/tokenizer/unicode
 github.com/blevesearch/bleve/document
 github.com/blevesearch/bleve/geo
@@ -121,6 +123,8 @@ github.com/denisenkom/go-mssqldb/internal/decimal
 github.com/denisenkom/go-mssqldb/internal/querytext
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
+# github.com/dustin/go-humanize v1.0.0
+github.com/dustin/go-humanize
 # github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
 github.com/editorconfig/editorconfig-core-go/v2
 # github.com/edsrzf/mmap-go v1.0.0
@@ -237,6 +241,8 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
+# github.com/huandu/xstrings v1.3.0
+github.com/huandu/xstrings
 # github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
 github.com/issue9/identicon
 # github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d
@@ -249,7 +255,7 @@ github.com/jessevdk/go-flags
 github.com/kballard/go-shellquote
 # github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
-# github.com/keybase/go-crypto v0.0.0-20170605145657-00ac4db533f6
+# github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 github.com/keybase/go-crypto/brainpool
 github.com/keybase/go-crypto/cast5
 github.com/keybase/go-crypto/curve25519
@@ -263,7 +269,7 @@ github.com/keybase/go-crypto/openpgp/errors
 github.com/keybase/go-crypto/openpgp/packet
 github.com/keybase/go-crypto/openpgp/s2k
 github.com/keybase/go-crypto/rsa
-# github.com/klauspost/compress v1.9.2
+# github.com/klauspost/compress v1.10.2
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 # github.com/kr/pretty v0.1.0
@@ -290,10 +296,11 @@ github.com/lunny/nodb/store/goleveldb
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
 # github.com/mailru/easyjson v0.7.0
+github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/markbates/goth v1.56.0
+# github.com/markbates/goth v1.61.2
 github.com/markbates/goth
 github.com/markbates/goth/gothic
 github.com/markbates/goth/providers/bitbucket
@@ -332,6 +339,10 @@ github.com/nfnt/resize
 github.com/niklasfasching/go-org/org
 # github.com/oliamb/cutter v0.2.2
 github.com/oliamb/cutter
+# github.com/olivere/elastic/v7 v7.0.9
+github.com/olivere/elastic/v7
+github.com/olivere/elastic/v7/config
+github.com/olivere/elastic/v7/uritemplates
 # github.com/pelletier/go-toml v1.4.0
 github.com/pelletier/go-toml
 # github.com/philhofer/fwd v1.0.0
@@ -382,11 +393,20 @@ github.com/spf13/jwalterweatherman
 github.com/spf13/pflag
 # github.com/spf13/viper v1.4.0
 github.com/spf13/viper
+# github.com/src-d/enry/v2 v2.1.0
+github.com/src-d/enry/v2
+github.com/src-d/enry/v2/data
+github.com/src-d/enry/v2/data/rule
+github.com/src-d/enry/v2/internal/tokenizer
+github.com/src-d/enry/v2/internal/tokenizer/flex
+github.com/src-d/enry/v2/regex
 # github.com/src-d/gcfg v1.4.0
 github.com/src-d/gcfg
 github.com/src-d/gcfg/scanner
 github.com/src-d/gcfg/token
 github.com/src-d/gcfg/types
+# github.com/src-d/go-oniguruma v1.1.0
+github.com/src-d/go-oniguruma
 # github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2
 github.com/steveyen/gtreap
 # github.com/stretchr/testify v1.4.0
@@ -407,11 +427,13 @@ github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/tinylib/msgp v1.1.0
 github.com/tinylib/msgp/msgp
+# github.com/toqueteos/trie v1.0.0
+github.com/toqueteos/trie
 # github.com/toqueteos/webbrowser v1.2.0
 github.com/toqueteos/webbrowser
 # github.com/tstranex/u2f v1.0.0
 github.com/tstranex/u2f
-# github.com/unknwon/cae v0.0.0-20190822084630-55a0b64484a1
+# github.com/unknwon/cae v1.0.0
 github.com/unknwon/cae
 github.com/unknwon/cae/zip
 # github.com/unknwon/com v1.0.1
@@ -430,7 +452,7 @@ github.com/xanzy/go-gitlab
 github.com/xanzy/ssh-agent
 # github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 github.com/yohcop/openid-go
-# github.com/yuin/goldmark v1.1.19
+# github.com/yuin/goldmark v1.1.24
 github.com/yuin/goldmark
 github.com/yuin/goldmark/ast
 github.com/yuin/goldmark/extension
@@ -447,7 +469,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
+# golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/argon2
@@ -472,8 +494,9 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
+golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
+# golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -488,7 +511,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
+# golang.org/x/sys v0.0.0-20200219091948-cb0a6d8edb6c
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -549,7 +572,7 @@ gopkg.in/alexcesaro/quotedprintable.v3
 gopkg.in/asn1-ber.v1
 # gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 gopkg.in/gomail.v2
-# gopkg.in/ini.v1 v1.51.1
+# gopkg.in/ini.v1 v1.52.0
 gopkg.in/ini.v1
 # gopkg.in/ldap.v3 v3.0.2
 gopkg.in/ldap.v3
@@ -605,6 +628,8 @@ gopkg.in/src-d/go-git.v4/utils/merkletrie/internal/frame
 gopkg.in/src-d/go-git.v4/utils/merkletrie/noder
 # gopkg.in/testfixtures.v2 v2.5.0
 gopkg.in/testfixtures.v2
+# gopkg.in/toqueteos/substring.v1 v1.0.2
+gopkg.in/toqueteos/substring.v1
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
 # gopkg.in/yaml.v2 v2.2.2
@@ -615,7 +640,7 @@ mvdan.cc/xurls/v2
 strk.kbt.io/projects/go/libravatar
 # xorm.io/builder v0.3.6
 xorm.io/builder
-# xorm.io/core v0.7.2
+# xorm.io/core v0.7.3
 xorm.io/core
-# xorm.io/xorm v0.8.1
+# xorm.io/xorm v0.8.2-0.20200120024500-c37aff9b3a4a
 xorm.io/xorm

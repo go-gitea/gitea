@@ -93,6 +93,7 @@ func NewFuncMap() []template.FuncMap {
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"RawTimeSince":  timeutil.RawTimeSince,
 		"FileSize":      base.FileSize,
+		"PrettyNumber":  base.PrettyNumber,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
@@ -181,6 +182,13 @@ func NewFuncMap() []template.FuncMap {
 				path = append(path, str)
 			}
 			return path
+		},
+		"Json": func(in interface{}) string {
+			out, err := json.Marshal(in)
+			if err != nil {
+				return ""
+			}
+			return string(out)
 		},
 		"JsonPrettyPrint": func(in string) string {
 			var out bytes.Buffer
@@ -277,6 +285,9 @@ func NewFuncMap() []template.FuncMap {
 				}
 			}
 			return false
+		},
+		"svg": func(icon string, size int) template.HTML {
+			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
 		},
 	}}
 }

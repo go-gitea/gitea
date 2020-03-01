@@ -6,9 +6,8 @@ package queue
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"reflect"
+	"time"
 )
 
 // ErrInvalidConfiguration is called when there is invalid configuration for a queue
@@ -53,8 +52,11 @@ type Named interface {
 	Name() string
 }
 
-// Queue defines an interface to save an issue indexer queue
+// Queue defines an interface of a queue-like item
+//
+// Queues will handle their own contents in the Run method
 type Queue interface {
+	Flushable
 	Run(atShutdown, atTerminate func(context.Context, func()))
 	Push(Data) error
 }
@@ -71,32 +73,37 @@ func NewDummyQueue(handler HandlerFunc, opts, exemplar interface{}) (Queue, erro
 type DummyQueue struct {
 }
 
-// Run starts to run the queue
-func (b *DummyQueue) Run(_, _ func(context.Context, func())) {}
+// Run does nothing
+func (*DummyQueue) Run(_, _ func(context.Context, func())) {}
 
-// Push pushes data to the queue
-func (b *DummyQueue) Push(Data) error {
+// Push fakes a push of data to the queue
+func (*DummyQueue) Push(Data) error {
 	return nil
 }
 
-func toConfig(exemplar, cfg interface{}) (interface{}, error) {
-	if reflect.TypeOf(cfg).AssignableTo(reflect.TypeOf(exemplar)) {
-		return cfg, nil
-	}
+// PushFunc fakes a push of data to the queue with a function. The function is never run.
+func (*DummyQueue) PushFunc(Data, func() error) error {
+	return nil
+}
 
-	configBytes, ok := cfg.([]byte)
-	if !ok {
-		configStr, ok := cfg.(string)
-		if !ok {
-			return nil, ErrInvalidConfiguration{cfg: cfg}
-		}
-		configBytes = []byte(configStr)
-	}
-	newVal := reflect.New(reflect.TypeOf(exemplar))
-	if err := json.Unmarshal(configBytes, newVal.Interface()); err != nil {
-		return nil, ErrInvalidConfiguration{cfg: cfg, err: err}
-	}
-	return newVal.Elem().Interface(), nil
+// Has always returns false as this queue never does anything
+func (*DummyQueue) Has(Data) (bool, error) {
+	return false, nil
+}
+
+// Flush always returns nil
+func (*DummyQueue) Flush(time.Duration) error {
+	return nil
+}
+
+// FlushWithContext always returns nil
+func (*DummyQueue) FlushWithContext(context.Context) error {
+	return nil
+}
+
+// IsEmpty asserts that the queue is empty
+func (*DummyQueue) IsEmpty() bool {
+	return true
 }
 
 var queuesMap = map[Type]NewQueueFunc{DummyQueueType: NewDummyQueue}
@@ -123,7 +130,7 @@ func RegisteredTypesAsString() []string {
 	return types
 }
 
-// NewQueue takes a queue Type and HandlerFunc some options and possibly an exemplar and returns a Queue or an error
+// NewQueue takes a queue Type, HandlerFunc, some options and possibly an exemplar and returns a Queue or an error
 func NewQueue(queueType Type, handlerFunc HandlerFunc, opts, exemplar interface{}) (Queue, error) {
 	newFn, ok := queuesMap[queueType]
 	if !ok {

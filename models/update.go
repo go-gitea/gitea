@@ -7,41 +7,7 @@ package models
 import (
 	"fmt"
 	"strings"
-	"time"
-
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/timeutil"
 )
-
-// env keys for git hooks need
-const (
-	EnvRepoName     = "GITEA_REPO_NAME"
-	EnvRepoUsername = "GITEA_REPO_USER_NAME"
-	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
-	EnvPusherName   = "GITEA_PUSHER_NAME"
-	EnvPusherEmail  = "GITEA_PUSHER_EMAIL"
-	EnvPusherID     = "GITEA_PUSHER_ID"
-	EnvKeyID        = "GITEA_KEY_ID"
-	EnvIsDeployKey  = "GITEA_IS_DEPLOY_KEY"
-	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
-)
-
-// PushUpdateAddDeleteTags updates a number of added and delete tags
-func PushUpdateAddDeleteTags(repo *Repository, gitRepo *git.Repository, addTags, delTags []string) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return fmt.Errorf("Unable to begin sess in PushUpdateDeleteTags: %v", err)
-	}
-	if err := pushUpdateDeleteTags(sess, repo, delTags); err != nil {
-		return err
-	}
-	if err := pushUpdateAddTags(sess, repo, gitRepo, addTags); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
 
 // PushUpdateDeleteTags updates a number of delete tags
 func PushUpdateDeleteTags(repo *Repository, tags []string) error {
@@ -55,6 +21,11 @@ func PushUpdateDeleteTags(repo *Repository, tags []string) error {
 	}
 
 	return sess.Commit()
+}
+
+// PushUpdateDeleteTagsContext updates a number of delete tags with context
+func PushUpdateDeleteTagsContext(ctx DBContext, repo *Repository, tags []string) error {
+	return pushUpdateDeleteTags(ctx.e, repo, tags)
 }
 
 func pushUpdateDeleteTags(e Engine, repo *Repository, tags []string) error {
@@ -105,125 +76,6 @@ func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 		rel.Sha1 = ""
 		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
-		}
-	}
-
-	return nil
-}
-
-// PushUpdateAddTags updates a number of add tags
-func PushUpdateAddTags(repo *Repository, gitRepo *git.Repository, tags []string) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return fmt.Errorf("Unable to begin sess in PushUpdateAddTags: %v", err)
-	}
-	if err := pushUpdateAddTags(sess, repo, gitRepo, tags); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
-func pushUpdateAddTags(e Engine, repo *Repository, gitRepo *git.Repository, tags []string) error {
-	if len(tags) == 0 {
-		return nil
-	}
-
-	lowerTags := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		lowerTags = append(lowerTags, strings.ToLower(tag))
-	}
-
-	releases := make([]Release, 0, len(tags))
-	if err := e.Where("repo_id = ?", repo.ID).
-		In("lower_tag_name", lowerTags).Find(&releases); err != nil {
-		return fmt.Errorf("GetRelease: %v", err)
-	}
-	relMap := make(map[string]*Release)
-	for _, rel := range releases {
-		relMap[rel.LowerTagName] = &rel
-	}
-
-	newReleases := make([]*Release, 0, len(lowerTags)-len(relMap))
-
-	emailToUser := make(map[string]*User)
-
-	for i, lowerTag := range lowerTags {
-		tag, err := gitRepo.GetTag(tags[i])
-		if err != nil {
-			return fmt.Errorf("GetTag: %v", err)
-		}
-		commit, err := tag.Commit()
-		if err != nil {
-			return fmt.Errorf("Commit: %v", err)
-		}
-
-		sig := tag.Tagger
-		if sig == nil {
-			sig = commit.Author
-		}
-		if sig == nil {
-			sig = commit.Committer
-		}
-		var author *User
-		var createdAt = time.Unix(1, 0)
-
-		if sig != nil {
-			var ok bool
-			author, ok = emailToUser[sig.Email]
-			if !ok {
-				author, err = GetUserByEmail(sig.Email)
-				if err != nil && !IsErrUserNotExist(err) {
-					return fmt.Errorf("GetUserByEmail: %v", err)
-				}
-			}
-			createdAt = sig.When
-		}
-
-		commitsCount, err := commit.CommitsCount()
-		if err != nil {
-			return fmt.Errorf("CommitsCount: %v", err)
-		}
-
-		rel, has := relMap[lowerTag]
-
-		if !has {
-			rel = &Release{
-				RepoID:       repo.ID,
-				Title:        "",
-				TagName:      tags[i],
-				LowerTagName: lowerTag,
-				Target:       "",
-				Sha1:         commit.ID.String(),
-				NumCommits:   commitsCount,
-				Note:         "",
-				IsDraft:      false,
-				IsPrerelease: false,
-				IsTag:        true,
-				CreatedUnix:  timeutil.TimeStamp(createdAt.Unix()),
-			}
-			if author != nil {
-				rel.PublisherID = author.ID
-			}
-
-			newReleases = append(newReleases, rel)
-		} else {
-			rel.Sha1 = commit.ID.String()
-			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
-			rel.NumCommits = commitsCount
-			rel.IsDraft = false
-			if rel.IsTag && author != nil {
-				rel.PublisherID = author.ID
-			}
-			if _, err = e.ID(rel.ID).AllCols().Update(rel); err != nil {
-				return fmt.Errorf("Update: %v", err)
-			}
-		}
-	}
-
-	if len(newReleases) > 0 {
-		if _, err := e.Insert(newReleases); err != nil {
-			return fmt.Errorf("Insert: %v", err)
 		}
 	}
 

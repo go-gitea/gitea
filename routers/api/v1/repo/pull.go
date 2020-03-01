@@ -16,9 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -41,10 +41,6 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: page
-	//   in: query
-	//   description: Page number
-	//   type: integer
 	// - name: state
 	//   in: query
 	//   description: "State of pull request: open or closed (optional)"
@@ -68,12 +64,22 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	//   items:
 	//     type: integer
 	//     format: int64
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
 
+	listOptions := utils.GetListOptions(ctx)
+
 	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
-		Page:        ctx.QueryInt("page"),
+		ListOptions: listOptions,
 		State:       ctx.QueryTrim("state"),
 		SortType:    ctx.QueryTrim("sort"),
 		Labels:      ctx.QueryStrings("labels"),
@@ -106,7 +112,7 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 		apiPrs[i] = convert.ToAPIPullRequest(prs[i])
 	}
 
-	ctx.SetLinkHeader(int(maxResults), models.ItemsPerPage)
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.JSON(http.StatusOK, &apiPrs)
 }
 
@@ -318,8 +324,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		ctx.Error(http.StatusInternalServerError, "NewPullRequest", err)
 		return
 	}
-
-	notification.NotifyNewPullRequest(pr)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr))
@@ -676,6 +680,14 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 			ctx.JSON(http.StatusConflict, conflictError)
 		} else if models.IsErrMergePushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "Merge", "merge push out of date")
+			return
+		} else if models.IsErrPushRejected(err) {
+			errPushRej := err.(models.ErrPushRejected)
+			if len(errPushRej.Message) == 0 {
+				ctx.Error(http.StatusConflict, "Merge", "PushRejected without remote error message")
+				return
+			}
+			ctx.Error(http.StatusConflict, "Merge", "PushRejected with remote message: "+errPushRej.Message)
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "Merge", err)
