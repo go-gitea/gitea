@@ -188,7 +188,7 @@ var migrations = []Migration{
 	NewMigration("Fix topic repository count", fixTopicRepositoryCount),
 	// v127 -> v128
 	NewMigration("add repository code language statistics", addLanguageStats),
-	// v128 -> v999
+	// v128 -> v129
 	NewMigration("Expand webhooks for more granularity", expandWebhooks),
 }
 

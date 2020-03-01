@@ -44,7 +44,12 @@ func expandWebhooks(x *xorm.Engine) error {
 	var bytes []byte
 	var last int
 	const batchSize = 50
+	sess := x.NewSession()
+	defer sess.Close()
 	for {
+		if err := sess.Begin(); err != nil {
+			return err
+		}
 		var results = make([]Webhook, 0, batchSize)
 		err := x.OrderBy("id").
 			Limit(batchSize, last).
@@ -82,8 +87,12 @@ func expandWebhooks(x *xorm.Engine) error {
 				return err
 			}
 
-			_, err = x.Exec("UPDATE webhook SET events = ? WHERE id = ?", string(bytes), res.ID)
+			_, err = sess.Exec("UPDATE webhook SET events = ? WHERE id = ?", string(bytes), res.ID)
 			if err != nil {
+				return err
+			}
+
+			if err := sess.Commit(); err != nil {
 				return err
 			}
 		}
