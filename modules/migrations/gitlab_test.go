@@ -130,6 +130,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			PosterName: "lafriks",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 28, 8, 43, 35, 459000000, time.UTC),
+			Updated:    time.Date(2019, 11, 28, 8, 46, 23, 275000000, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name: "bug",
@@ -150,6 +151,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			PosterName: "lafriks",
 			State:      "closed",
 			Created:    time.Date(2019, 11, 28, 8, 44, 46, 277000000, time.UTC),
+			Updated:    time.Date(2019, 11, 28, 8, 45, 44, 987000000, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name: "duplicate",
