@@ -91,10 +91,10 @@ func expandWebhooks(x *xorm.Engine) error {
 			if err != nil {
 				return err
 			}
+		}
 
-			if err := sess.Commit(); err != nil {
-				return err
-			}
+		if err := sess.Commit(); err != nil {
+			return err
 		}
 	}
 	return nil
