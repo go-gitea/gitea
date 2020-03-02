@@ -64,10 +64,10 @@ var OAuth2Providers = map[string]OAuth2Provider{
 // key is used to map the OAuth2Provider
 // value is the mapping as defined for the OAuth2Provider
 var OAuth2DefaultCustomURLMappings = map[string]*oauth2.CustomURLMapping{
-	"github": OAuth2Providers["github"].CustomURLMapping,
-	"gitlab": OAuth2Providers["gitlab"].CustomURLMapping,
-	"gitea":  OAuth2Providers["gitea"].CustomURLMapping,
-	"nextcloud":  OAuth2Providers["nextcloud"].CustomURLMapping,
+	"github":    OAuth2Providers["github"].CustomURLMapping,
+	"gitlab":    OAuth2Providers["gitlab"].CustomURLMapping,
+	"gitea":     OAuth2Providers["gitea"].CustomURLMapping,
+	"nextcloud": OAuth2Providers["nextcloud"].CustomURLMapping,
 }
 
 // GetActiveOAuth2ProviderLoginSources returns all actived LoginOAuth2 sources
