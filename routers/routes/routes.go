@@ -444,6 +444,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/:userid/delete", admin.DeleteUser)
 		})
 
+		m.Group("/emails", func() {
+			m.Get("", admin.Emails)
+			m.Post("/activate", admin.ActivateEmail)
+		})
+
 		m.Group("/orgs", func() {
 			m.Get("", admin.Organizations)
 		})

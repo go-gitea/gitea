@@ -1217,8 +1217,18 @@ func ActivateEmail(ctx *context.Context) {
 
 		log.Trace("Email activated: %s", email.Email)
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
+
+		if u, err := models.GetUserByID(email.UID); err != nil {
+			log.Warn("GetUserByID: %d", email.UID)
+		} else {
+			// Allow user to validate more emails
+			_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
+		}
 	}
 
+	// FIXME: e-mail verification does not require the user to be logged in,
+	// so this could be redirecting to the login page.
+	// Should users be logged in automatically here? (consider 2FA requirements, etc.)
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
