@@ -13,14 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 )
 
-// UserID user ID of authenticated user, or 0 if not authenticated
-func UserID(ctx *context.APIContext) int64 {
-	if ctx.User == nil {
-		return 0
-	}
-	return ctx.User.ID
-}
-
 // GetQueryBeforeSince return parsed time (unix format) from URL query's before and since
 func GetQueryBeforeSince(ctx *context.APIContext) (before, since int64, err error) {
 	qCreatedBefore := strings.Trim(ctx.Query("before"), " ")

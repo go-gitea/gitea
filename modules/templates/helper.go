@@ -437,31 +437,6 @@ func Sha1(str string) string {
 	return base.EncodeSha1(str)
 }
 
-// ReplaceLeft replaces all prefixes 'oldS' in 's' with 'newS'.
-func ReplaceLeft(s, oldS, newS string) string {
-	oldLen, newLen, i, n := len(oldS), len(newS), 0, 0
-	for ; i < len(s) && strings.HasPrefix(s[i:], oldS); n++ {
-		i += oldLen
-	}
-
-	// simple optimization
-	if n == 0 {
-		return s
-	}
-
-	// allocating space for the new string
-	curLen := n*newLen + len(s[i:])
-	replacement := make([]byte, curLen)
-
-	j := 0
-	for ; j < n*newLen; j += newLen {
-		copy(replacement[j:j+newLen], newS)
-	}
-
-	copy(replacement[j:], s[i:])
-	return string(replacement)
-}
-
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func RenderCommitMessage(msg, urlPrefix string, metas map[string]string) template.HTML {
 	return RenderCommitMessageLink(msg, urlPrefix, "", metas)
