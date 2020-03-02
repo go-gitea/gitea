@@ -24,7 +24,8 @@ import (
 	"github.com/markbates/goth/providers/google"
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
-	"github.com/satori/go.uuid"
+	"github.com/markbates/goth/providers/yandex"
+	uuid "github.com/satori/go.uuid"
 	"xorm.io/xorm"
 )
 
@@ -192,6 +193,9 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 			}
 		}
 		provider = gitea.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
+	case "yandex":
+		// See https://tech.yandex.com/passport/doc/dg/reference/response-docpage/
+		provider = yandex.New(clientID, clientSecret, callbackURL, "login:email", "login:info", "login:avatar")
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
