@@ -225,10 +225,8 @@ func TestListEmails(t *testing.T) {
 
 	// Must find more than one page, but retrieve only one
 	opts = &SearchEmailOptions{
-		ListOptions: ListOptions{
-			PageSize: 5,
-			Page:     1,
-		},
+		PageSize: 5,
+		Page:     1,
 	}
 	emails, count, err = SearchEmails(opts)
 	assert.NoError(t, err)
