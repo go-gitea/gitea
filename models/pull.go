@@ -76,6 +76,9 @@ func (pr *PullRequest) MustHeadUserName() string {
 		}
 		return ""
 	}
+	if pr.HeadRepo == nil {
+		return ""
+	}
 	return pr.HeadRepo.OwnerName
 }
 
