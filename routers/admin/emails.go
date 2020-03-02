@@ -29,10 +29,8 @@ func Emails(ctx *context.Context) {
 	ctx.Data["PageIsAdminEmails"] = true
 
 	opts := &models.SearchEmailOptions{
-		ListOptions: models.ListOptions{
-			PageSize: setting.UI.Admin.UserPagingNum,
-			Page:     ctx.QueryInt("page"),
-		},
+		PageSize: setting.UI.Admin.UserPagingNum,
+		Page:     ctx.QueryInt("page"),
 	}
 
 	if opts.Page <= 1 {

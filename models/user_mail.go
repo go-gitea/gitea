@@ -305,7 +305,8 @@ const (
 
 // SearchEmailOptions are options to search e-mail addresses for the admin panel
 type SearchEmailOptions struct {
-	ListOptions
+	Page        int
+	PageSize    int // Can be smaller than or equal to setting.UI.ExplorePagingNum
 	Keyword     string
 	SortType    SearchEmailOrderBy
 	IsPrimary   util.OptionalBool
@@ -386,7 +387,12 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	querySQL := "SELECT emails.uid, emails.email, emails.is_activated, emails.is_primary, " +
 		"`user`.name, `user`.full_name " + joinSQL + " ORDER BY " + orderby
 
-	opts.setDefaultValues()
+	if opts.PageSize == 0 || opts.PageSize > setting.UI.ExplorePagingNum {
+		opts.PageSize = setting.UI.ExplorePagingNum
+	}
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
 
 	rows, err := x.SQL(querySQL, args...).Rows(new(SearchEmailResult))
 	if err != nil {
