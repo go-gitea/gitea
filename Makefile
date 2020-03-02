@@ -16,14 +16,18 @@ endif
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE ?= gitea.exe
+	FIND_REGEXP = -regextype posix-egrep
 else
 	EXECUTABLE ?= gitea
 	UNAME_S := $(shell uname -s)
+	FIND_REGEXP = -regextype posix-egrep
 	ifeq ($(UNAME_S),Darwin)
 		SED_INPLACE := sed -i ''
+		FIND_REGEXP = -E
 	endif
 	ifeq ($(UNAME_S),FreeBSD)
 		SED_INPLACE := sed -i ''
+		FIND_REGEXP = -E
 	endif
 endif
 
@@ -63,7 +67,7 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
-GO_SOURCES ?= $(shell find . -regextype posix-egrep -regex '\./(node_modules|docs|public|options|contrib|data)' -prune -o -name "*.go" -type f -print)
+GO_SOURCES ?= $(shell find . $(FIND_REGEXP) -regex '\./(node_modules|docs|public|options|contrib|data)' -prune -o -name "*.go" -type f -print)
 GO_SOURCES_OWN := $(filter-out ./vendor/% %/bindata.go, $(GO_SOURCES))
 
 WEBPACK_SOURCES ?= $(shell find web_src/js web_src/less -type f)
