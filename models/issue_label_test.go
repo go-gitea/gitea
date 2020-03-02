@@ -8,22 +8,10 @@ import (
 	"html/template"
 	"testing"
 
-	api "code.gitea.io/gitea/modules/structs"
-
 	"github.com/stretchr/testify/assert"
 )
 
 // TODO TestGetLabelTemplateFile
-
-func TestLabel_APIFormat(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	label := AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
-	assert.Equal(t, api.Label{
-		ID:    label.ID,
-		Name:  label.Name,
-		Color: "abcdef",
-	}, *label.APIFormat())
-}
 
 func TestLabel_CalOpenIssues(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())

@@ -704,7 +704,7 @@ func ViewIssue(ctx *context.Context) {
 			iw = &models.IssueWatch{
 				UserID:     ctx.User.ID,
 				IssueID:    issue.ID,
-				IsWatching: models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID),
+				IsWatching: models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) || models.IsUserParticipantsOfIssue(ctx.User, issue),
 			}
 		}
 	}

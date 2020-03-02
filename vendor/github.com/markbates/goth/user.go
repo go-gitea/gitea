@@ -27,4 +27,5 @@ type User struct {
 	AccessTokenSecret string
 	RefreshToken      string
 	ExpiresAt         time.Time
+	IDToken           string
 }

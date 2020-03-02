@@ -90,10 +90,8 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 				if err != nil {
 					return err
 				}
-				log.Info("have commit %s", commit.ID.String())
 				verification := models.ParseCommitWithSignature(commit)
 				if !verification.Verified {
-					log.Info("unverified commit %s", commit.ID.String())
 					cancel()
 					return &errUnverifiedCommit{
 						commit.ID.String(),
