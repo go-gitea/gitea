@@ -2,31 +2,37 @@ name: Push Docker Image
 
 on:
   push:
-    branches:
-      - traP
+    tags:
       - traP-*
 
-env:
-  IMAGE_NAME: gitea
-
 jobs:
-  image:
-    name: Build Docker Image
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
-      - name: Set IMAGE_TAG env (non traP branch)
-        run: echo ::set-env name=IMAGE_TAG::$(echo ${GITHUB_REF:11})
-        if: github.ref != 'refs/heads/traP'
-      - name: Set IMAGE_TAG env (traP branch)
-        run: echo ::set-env name=IMAGE_TAG::latest
-        if: github.ref == 'refs/heads/traP'
-      - name: Set DRONE_TAG env (non traP branch)
-        run: echo ::set-env name=DRONE_TAG::$(echo ${GITHUB_REF:11})
-        if: github.ref != 'refs/heads/traP'
+      - name: Set DRONE_TAG env
+        run: echo ::set-env name=DRONE_TAG::$(echo ${GITHUB_REF:10})
       - uses: actions/checkout@v2
-      - name: Login GitHub Registry
-        run: docker login docker.pkg.github.com -u traPtitech -p ${{ secrets.GITHUB_TOKEN }}
-      - name: Build Image
-        run: docker build -t docker.pkg.github.com/traptitech/gitea/${IMAGE_NAME}:${IMAGE_TAG} .
-      - name: Push image to GitHub Registry
-        run: docker push docker.pkg.github.com/traptitech/gitea/${IMAGE_NAME}:${IMAGE_TAG}
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+      - name: Make Release
+        run: |
+          export PATH=${PATH}:`go env GOPATH`/bin
+          go get src.techknowlogick.com/xgo
+          make release
+        env:
+          TAGS: bindata sqlite sqlite_unlock_notify
+      - name: Release binaries
+        uses: fnkr/github-action-ghr@bc9a9ecae3c0c6cbc71a96390e344171f963d59d
+        env:
+          GHR_PATH: dist/binaries
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        uses: fnkr/github-action-ghr@bc9a9ecae3c0c6cbc71a96390e344171f963d59d
+        env:
+          GHR_PATH: dist/release
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
