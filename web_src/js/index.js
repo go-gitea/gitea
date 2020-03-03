@@ -1892,6 +1892,7 @@ function initAdmin() {
       case 'github':
       case 'gitlab':
       case 'gitea':
+      case 'nextcloud':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1925,6 +1926,7 @@ function initAdmin() {
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
           break;
+        case 'nextcloud':
         case 'gitea':
         case 'gitlab':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
