@@ -138,8 +138,8 @@ help:
 .PHONY: go-check
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?[[:space:]]' | tr '.' ' ');))
-	@if [ "$(GO_VERSION)" -lt "001011000" ]; then \
-		echo "Gitea requires Go 1.11.0 or greater to build. You can get it at https://golang.org/dl/"; \
+	@if [ "$(GO_VERSION)" -lt "001012000" ]; then \
+		echo "Gitea requires Go 1.12.0 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 

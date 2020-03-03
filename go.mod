@@ -1,6 +1,6 @@
 module code.gitea.io/gitea
 
-go 1.13
+go 1.14
 
 require (
 	cloud.google.com/go v0.45.0 // indirect
