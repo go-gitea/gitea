@@ -195,7 +195,7 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 			}
 		}
 		provider = gitea.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
-  case "nextcloud":
+	case "nextcloud":
 		authURL := nextcloud.AuthURL
 		tokenURL := nextcloud.TokenURL
 		profileURL := nextcloud.ProfileURL
