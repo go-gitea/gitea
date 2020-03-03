@@ -1892,6 +1892,7 @@ function initAdmin() {
       case 'github':
       case 'gitlab':
       case 'gitea':
+      case 'nextcloud':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1925,6 +1926,7 @@ function initAdmin() {
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
           break;
+        case 'nextcloud':
         case 'gitea':
         case 'gitlab':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
@@ -2470,6 +2472,7 @@ $(document).ready(async () => {
   $('.delete-button').click(showDeletePopup);
   $('.add-all-button').click(showAddAllPopup);
   $('.link-action').click(linkAction);
+  $('.link-email-action').click(linkEmailAction);
 
   $('.delete-branch-button').click(showDeletePopup);
 
@@ -2747,6 +2750,17 @@ function linkAction() {
       window.location.reload();
     }
   });
+}
+
+function linkEmailAction(e) {
+  const $this = $(this);
+  $('#form-uid').val($this.data('uid'));
+  $('#form-email').val($this.data('email'));
+  $('#form-primary').val($this.data('primary'));
+  $('#form-activate').val($this.data('activate'));
+  $('#form-uid').val($this.data('uid'));
+  $('#change-email-modal').modal('show');
+  e.preventDefault();
 }
 
 function initVueComponents() {

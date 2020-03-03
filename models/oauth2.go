@@ -51,15 +51,23 @@ var OAuth2Providers = map[string]OAuth2Provider{
 			ProfileURL: oauth2.GetDefaultProfileURL("gitea"),
 		},
 	},
+	"nextcloud": {Name: "nextcloud", DisplayName: "Nextcloud", Image: "/img/auth/nextcloud.png",
+		CustomURLMapping: &oauth2.CustomURLMapping{
+			TokenURL:   oauth2.GetDefaultTokenURL("nextcloud"),
+			AuthURL:    oauth2.GetDefaultAuthURL("nextcloud"),
+			ProfileURL: oauth2.GetDefaultProfileURL("nextcloud"),
+		},
+	},
 }
 
 // OAuth2DefaultCustomURLMappings contains the map of default URL's for OAuth2 providers that are allowed to have custom urls
 // key is used to map the OAuth2Provider
 // value is the mapping as defined for the OAuth2Provider
 var OAuth2DefaultCustomURLMappings = map[string]*oauth2.CustomURLMapping{
-	"github": OAuth2Providers["github"].CustomURLMapping,
-	"gitlab": OAuth2Providers["gitlab"].CustomURLMapping,
-	"gitea":  OAuth2Providers["gitea"].CustomURLMapping,
+	"github":    OAuth2Providers["github"].CustomURLMapping,
+	"gitlab":    OAuth2Providers["gitlab"].CustomURLMapping,
+	"gitea":     OAuth2Providers["gitea"].CustomURLMapping,
+	"nextcloud": OAuth2Providers["nextcloud"].CustomURLMapping,
 }
 
 // GetActiveOAuth2ProviderLoginSources returns all actived LoginOAuth2 sources

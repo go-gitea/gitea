@@ -59,7 +59,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *model
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
 			Action:     api.HookIssueLabelCleared,
 			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
+			Issue:      convert.ToAPIIssue(issue),
 			Repository: issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
 		})
@@ -155,7 +155,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 		mode, _ := models.AccessLevelUnit(doer, issue.Repo, models.UnitTypeIssues)
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
+			Issue:      convert.ToAPIIssue(issue),
 			Repository: issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
 		}
@@ -202,7 +202,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 					From: oldTitle,
 				},
 			},
-			Issue:      issue.APIFormat(),
+			Issue:      convert.ToAPIIssue(issue),
 			Repository: issue.Repo.APIFormat(mode),
 			Sender:     issue.Poster.APIFormat(),
 		})
@@ -237,7 +237,7 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *mode
 	} else {
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
+			Issue:      convert.ToAPIIssue(issue),
 			Repository: issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
 		}
@@ -267,7 +267,7 @@ func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
 	if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
-		Issue:      issue.APIFormat(),
+		Issue:      convert.ToAPIIssue(issue),
 		Repository: issue.Repo.APIFormat(mode),
 		Sender:     issue.Poster.APIFormat(),
 	}); err != nil {
@@ -327,7 +327,7 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 					From: oldContent,
 				},
 			},
-			Issue:      issue.APIFormat(),
+			Issue:      convert.ToAPIIssue(issue),
 			Repository: issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
 		})
@@ -355,7 +355,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 	mode, _ := models.AccessLevel(doer, c.Issue.Repo)
 	if err := webhook_module.PrepareWebhooks(c.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
 		Action:  api.HookIssueCommentEdited,
-		Issue:   c.Issue.APIFormat(),
+		Issue:   convert.ToAPIIssue(c.Issue),
 		Comment: c.APIFormat(),
 		Changes: &api.ChangesPayload{
 			Body: &api.ChangesFromPayload{
@@ -375,7 +375,7 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 	mode, _ := models.AccessLevel(doer, repo)
 	if err := webhook_module.PrepareWebhooks(repo, models.HookEventIssueComment, &api.IssueCommentPayload{
 		Action:     api.HookIssueCommentCreated,
-		Issue:      issue.APIFormat(),
+		Issue:      convert.ToAPIIssue(issue),
 		Comment:    comment.APIFormat(),
 		Repository: repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
@@ -404,7 +404,7 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models
 
 	if err := webhook_module.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
 		Action:     api.HookIssueCommentDeleted,
-		Issue:      comment.Issue.APIFormat(),
+		Issue:      convert.ToAPIIssue(comment.Issue),
 		Comment:    comment.APIFormat(),
 		Repository: comment.Issue.Repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
@@ -449,7 +449,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *mode
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
 			Action:     api.HookIssueLabelUpdated,
 			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
+			Issue:      convert.ToAPIIssue(issue),
 			Repository: issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
 		})
@@ -491,7 +491,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
 			Action:     hookAction,
 			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
+			Issue:      convert.ToAPIIssue(issue),
 			Repository: issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
 		})

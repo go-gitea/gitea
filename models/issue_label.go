@@ -12,8 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	api "code.gitea.io/gitea/modules/structs"
-
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -35,16 +33,6 @@ type Label struct {
 	QueryString     string `xorm:"-"`
 	IsSelected      bool   `xorm:"-"`
 	IsExcluded      bool   `xorm:"-"`
-}
-
-// APIFormat converts a Label to the api.Label format
-func (label *Label) APIFormat() *api.Label {
-	return &api.Label{
-		ID:          label.ID,
-		Name:        label.Name,
-		Color:       strings.TrimLeft(label.Color, "#"),
-		Description: label.Description,
-	}
 }
 
 // GetLabelTemplateFile loads the label template file by given name,

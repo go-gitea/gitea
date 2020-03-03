@@ -101,12 +101,12 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
 		}
-		if err = prs[i].GetBaseRepo(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetBaseRepo", err)
+		if err = prs[i].LoadBaseRepo(); err != nil {
+			ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
 			return
 		}
-		if err = prs[i].GetHeadRepo(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetHeadRepo", err)
+		if err = prs[i].LoadHeadRepo(); err != nil {
+			ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 			return
 		}
 		apiPrs[i] = convert.ToAPIPullRequest(prs[i])
@@ -156,12 +156,12 @@ func GetPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.GetBaseRepo(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetBaseRepo", err)
+	if err = pr.LoadBaseRepo(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
 		return
 	}
-	if err = pr.GetHeadRepo(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetHeadRepo", err)
+	if err = pr.LoadHeadRepo(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr))
@@ -579,8 +579,8 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err = pr.GetHeadRepo(); err != nil {
-		ctx.ServerError("GetHeadRepo", err)
+	if err = pr.LoadHeadRepo(); err != nil {
+		ctx.ServerError("LoadHeadRepo", err)
 		return
 	}
 
