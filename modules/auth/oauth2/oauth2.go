@@ -26,8 +26,7 @@ import (
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
 	"github.com/markbates/goth/providers/yandex"
-	uuid "github.com/satori/go.uuid"
-
+	"github.com/satori/go.uuid"
 	"xorm.io/xorm"
 )
 
