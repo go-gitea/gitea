@@ -33,13 +33,12 @@ import (
 // Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, mergeStyle models.MergeStyle, message string) (err error) {
-
-	if err = pr.GetHeadRepo(); err != nil {
-		log.Error("GetHeadRepo: %v", err)
-		return fmt.Errorf("GetHeadRepo: %v", err)
-	} else if err = pr.GetBaseRepo(); err != nil {
-		log.Error("GetBaseRepo: %v", err)
-		return fmt.Errorf("GetBaseRepo: %v", err)
+	if err = pr.LoadHeadRepo(); err != nil {
+		log.Error("LoadHeadRepo: %v", err)
+		return fmt.Errorf("LoadHeadRepo: %v", err)
+	} else if err = pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
 	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
@@ -535,18 +534,15 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *mod
 
 // CheckPRReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
 func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
-	if pr.BaseRepo == nil {
-		if err = pr.GetBaseRepo(); err != nil {
-			return fmt.Errorf("GetBaseRepo: %v", err)
-		}
+	if err = pr.LoadBaseRepo(); err != nil {
+		return fmt.Errorf("LoadBaseRepo: %v", err)
+	}
+
+	if err = pr.LoadProtectedBranch(); err != nil {
+		return fmt.Errorf("LoadProtectedBranch: %v", err)
 	}
 	if pr.ProtectedBranch == nil {
-		if err = pr.LoadProtectedBranch(); err != nil {
-			return fmt.Errorf("LoadProtectedBranch: %v", err)
-		}
-		if pr.ProtectedBranch == nil {
-			return nil
-		}
+		return nil
 	}
 
 	isPass, err := IsPullCommitStatusPass(pr)

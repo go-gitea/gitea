@@ -76,7 +76,7 @@
 									{{$.i18n.Tr "settings.delete_email"}}
 								</button>
 							</div>
-							{{if .IsActivated}}
+							{{if .CanBePrimary}}
 								<div class="right floated content">
 									<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 										{{$.CsrfTokenHtml}}
@@ -87,9 +87,30 @@
 								</div>
 							{{end}}
 						{{end}}
+						{{if not .IsActivated}}
+							<div class="right floated content">
+								<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
+									{{$.CsrfTokenHtml}}
+									<input name="_method" type="hidden" value="SENDACTIVATION">
+									<input name="id" type="hidden" value="{{if .IsPrimary}}PRIMARY{{else}}}.ID{{end}}">
+									{{if $.ActivationsPending}}
+										<button disabled class="ui blue tiny button">{{$.i18n.Tr "settings.activations_pending"}}</button>
+									{{else}}
+										<button class="ui blue tiny button">{{$.i18n.Tr "settings.activate_email"}}</button>
+									{{end}}
+								</form>
+							</div>
+						{{end}}
 						<div class="content">
 							<strong>{{.Email}}</strong>
-							{{if .IsPrimary}}<span class="text red">{{$.i18n.Tr "settings.primary"}}</span>{{end}}
+							{{if .IsPrimary}}
+								<div class="ui blue label">{{$.i18n.Tr "settings.primary"}}</div>
+							{{end}}
+							{{if .IsActivated}}
+								<div class="ui green label">{{$.i18n.Tr "settings.activated"}}</div>
+							{{else}}
+								<div class="ui label">{{$.i18n.Tr "settings.requires_activation"}}</div>
+							{{end}}
 						</div>
 					</div>
 				{{end}}
@@ -100,9 +121,9 @@
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Email}}error{{end}}">
 					<label for="email">{{.i18n.Tr "settings.add_new_email"}}</label>
-					<input id="email" name="email" type="email" required>
+					<input id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>
 				</div>
-				<button class="ui green button">
+				<button class="ui green button" {{if not .CanAddEmails}}disabled{{end}}>
 					{{.i18n.Tr "settings.add_email"}}
 				</button>
 			</form>
