@@ -311,6 +311,7 @@ github.com/markbates/goth/providers/gitea
 github.com/markbates/goth/providers/github
 github.com/markbates/goth/providers/gitlab
 github.com/markbates/goth/providers/google
+github.com/markbates/goth/providers/nextcloud
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 # github.com/mattn/go-isatty v0.0.7
