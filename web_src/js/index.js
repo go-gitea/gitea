@@ -2470,6 +2470,7 @@ $(document).ready(async () => {
   $('.delete-button').click(showDeletePopup);
   $('.add-all-button').click(showAddAllPopup);
   $('.link-action').click(linkAction);
+  $('.link-email-action').click(linkEmailAction);
 
   $('.delete-branch-button').click(showDeletePopup);
 
@@ -2747,6 +2748,17 @@ function linkAction() {
       window.location.reload();
     }
   });
+}
+
+function linkEmailAction(e) {
+  const $this = $(this);
+  $('#form-uid').val($this.data('uid'));
+  $('#form-email').val($this.data('email'));
+  $('#form-primary').val($this.data('primary'));
+  $('#form-activate').val($this.data('activate'));
+  $('#form-uid').val($this.data('uid'));
+  $('#change-email-modal').modal('show');
+  e.preventDefault();
 }
 
 function initVueComponents() {
