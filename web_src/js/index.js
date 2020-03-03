@@ -2741,11 +2741,14 @@ function showAddAllPopup() {
 
 function linkAction() {
   const $this = $(this);
+  const redirect = $this.data('redirect');
   $.post($this.data('url'), {
     _csrf: csrf
   }).done((data) => {
     if (data.redirect) {
       window.location.href = data.redirect;
+    } else if (redirect) {
+      window.location.href = redirect;
     } else {
       window.location.reload();
     }
