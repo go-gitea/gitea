@@ -239,7 +239,7 @@ func TestHashPasswordDeterministic(t *testing.T) {
 	b := make([]byte, 16)
 	rand.Read(b)
 	u := &User{Salt: string(b)}
-	algos := []string{"pbkdf2", "argon2", "scrypt", "bcrypt"}
+	algos := []string{"argon2", "pbkdf2", "scrypt", "bcrypt"}
 	for j := 0; j < len(algos); j++ {
 		u.PasswdHashAlgo = algos[j]
 		for i := 0; i < 50; i++ {

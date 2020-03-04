@@ -12,7 +12,7 @@ func addUserRepoMissingColumns(x *xorm.Engine) error {
 
 	type VisibleType int
 	type User struct {
-		PasswdHashAlgo string      `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
+		PasswdHashAlgo string      `xorm:"NOT NULL DEFAULT 'argon2'"`
 		Visibility     VisibleType `xorm:"NOT NULL DEFAULT 0"`
 	}
 
