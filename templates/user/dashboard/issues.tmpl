@@ -170,7 +170,7 @@
 									</span>
 								{{end}}
 								{{if .IsPull}}
-									{{if and (not .PullRequest.HasMerged) ((len .PullRequest.ConflictedFiles) gt 0)}}
+									{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
 										<span class="conflicting">{{svg "octicon-mirror" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
 									{{end}}
 								{{end}}
