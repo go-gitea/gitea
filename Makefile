@@ -21,6 +21,7 @@ else
 	EXECUTABLE ?= gitea
 	UNAME_S := $(shell uname -s)
 	FIND_PWD_REGEXP := find . -regextype posix-egrep
+	BUSYBOX := $(shell find --help 2>&1 | grep -o BusyBox)
 	ifeq ($(UNAME_S),Darwin)
 		SED_INPLACE := sed -i ''
 		FIND_PWD_REGEXP := find -E .
@@ -28,6 +29,9 @@ else
 	ifeq ($(UNAME_S),FreeBSD)
 		SED_INPLACE := sed -i ''
 		FIND_PWD_REGEXP := find -E .
+	endif
+	ifeq ($(BUSYBOX),BusyBox)
+		FIND_PWD_REGEXP := find .
 	endif
 endif
 
@@ -70,18 +74,17 @@ PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filte
 GO_SOURCES ?= $(shell $(FIND_PWD_REGEXP) -regex '\./(node_modules|docs|public|options|contrib|data)' -prune -o -name "*.go" -type f -print)
 GO_SOURCES_OWN := $(filter-out ./vendor/% %/bindata.go, $(GO_SOURCES))
 
-WEBPACK_SOURCES ?= $(shell find web_src/js web_src/less -type f)
+WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
 WEBPACK_CONFIGS := webpack.config.js .eslintrc .stylelintrc
-
 WEBPACK_DEST := public/js/index.js public/css/index.css
+WEBPACK_DEST_DIRS := public/js public/css
+
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
-WEBPACK_DEST_DIRS := public/js public/css
-
-FOMANTIC_SOURCES ?= web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
+FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
+FOMANTIC_DEST := public/fomantic/semantic.min.js public/fomantic/semantic.min.css
 FOMANTIC_DEST_DIR := public/fomantic
-FOMANTIC_EVIDENCE := $(MAKE_EVIDENCE_DIR)/fomantic
 
 TAGS ?=
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
@@ -164,7 +167,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(WEBPACK_DEST_DIRS) $(FOMANTIC_DEST_DIR) $(FOMANTIC_EVIDENCE)
+	rm -rf $(WEBPACK_DEST_DIRS) $(FOMANTIC_DEST_DIR)
 
 .PHONY: clean
 clean:
@@ -453,7 +456,7 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: node-check $(FOMANTIC_EVIDENCE) $(WEBPACK_DEST)
+frontend: node-check $(FOMANTIC_DEST) $(WEBPACK_DEST)
 
 .PHONY: backend
 backend: go-check generate $(EXECUTABLE)
@@ -543,18 +546,19 @@ css:
 	$(MAKE) webpack
 
 .PHONY: fomantic
-fomantic: $(FOMANTIC_EVIDENCE)
+fomantic: $(FOMANTIC_DEST)
 
-$(FOMANTIC_EVIDENCE): semantic.json $(FOMANTIC_SOURCES) | node_modules
+$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
+	rm -rf $(FOMANTIC_DEST_DIR)
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
-	@mkdir -p $(MAKE_EVIDENCE_DIR) && touch $(FOMANTIC_EVIDENCE)
+	@touch $(FOMANTIC_DEST)
 
 .PHONY: webpack
 webpack: $(WEBPACK_DEST)
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) | node_modules
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
 	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
 	npx webpack --hide-modules --display-entrypoints=false
