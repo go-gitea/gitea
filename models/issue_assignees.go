@@ -81,23 +81,6 @@ func isUserAssignedToIssue(e Engine, issue *Issue, user *User) (isAssigned bool,
 	return e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
 }
 
-// MakeAssigneeList concats a string with all names of the assignees. Useful for logs.
-func MakeAssigneeList(issue *Issue) (assigneeList string, err error) {
-	err = issue.loadAssignees(x)
-	if err != nil {
-		return "", err
-	}
-
-	for in, assignee := range issue.Assignees {
-		assigneeList += assignee.Name
-
-		if len(issue.Assignees) > (in + 1) {
-			assigneeList += ", "
-		}
-	}
-	return
-}
-
 // ClearAssigneeByUserID deletes all assignments of an user
 func clearAssigneeByUserID(sess *xorm.Session, userID int64) (err error) {
 	_, err = sess.Delete(&IssueAssignees{AssigneeID: userID})
