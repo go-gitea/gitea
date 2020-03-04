@@ -87,7 +87,8 @@ func fixMergeBase(x *xorm.Engine) error {
 					continue
 				}
 			}
-			x.Update(pr)
+			pr.MergeBase = strings.TrimSpace(pr.MergeBase)
+			x.ID(pr.ID).Cols("merge_base").Update(pr)
 		}
 	}
 
