@@ -307,6 +307,12 @@ func BatchHandler(ctx *context.Context) {
 			continue
 		}
 
+		if requireWrite && setting.LFS.MaxFileSize > 0 && object.Size > setting.LFS.MaxFileSize {
+			log.Info("Denied LFS upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", object.Size, object.User, object.Repo, setting.LFS.MaxFileSize)
+			writeStatus(ctx, 413)
+			return
+		}
+
 		// Object is not found
 		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
 		if err == nil {
