@@ -128,6 +128,8 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFuncti
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction) error {
 	go srv.awaitShutdown()
 
+	tlsConfig.MinVersion = tls.VersionTLS12
+
 	l, err := GetListener(srv.network, srv.address)
 	if err != nil {
 		log.Error("Unable to get Listener: %v", err)
