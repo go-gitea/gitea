@@ -306,5 +306,5 @@ There is no setting for password resets. It is enabled when a [mail service]({{<
    
 ## Why is my markdown broken
 In Gitea version `1.11` we moved to [goldmark](https://github.com/yuin/goldmark) for markdown rendering, which is [CommonMark](https://commonmark.org/) compliant.  
-If you have markdown that worked prior to version `1.11` and is now not working, please look through the CommonMark spec to see whether it is a bug or actually non-compliant.  
+If you have markdown that worked as you expected prior to version `1.11` and after upgrading it's not working anymore, please look through the CommonMark spec to see whether the problem is due to a bug or non-compliant syntax.  
 If it is the latter, _usually_ there is a compliant alternative listed in the spec.
