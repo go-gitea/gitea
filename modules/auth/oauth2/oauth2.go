@@ -25,6 +25,7 @@ import (
 	"github.com/markbates/goth/providers/nextcloud"
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
+	"github.com/markbates/goth/providers/yandex"
 	"github.com/satori/go.uuid"
 	"xorm.io/xorm"
 )
@@ -209,6 +210,9 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 			}
 		}
 		provider = nextcloud.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
+	case "yandex":
+		// See https://tech.yandex.com/passport/doc/dg/reference/response-docpage/
+		provider = yandex.New(clientID, clientSecret, callbackURL, "login:email", "login:info", "login:avatar")
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
