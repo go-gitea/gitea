@@ -46,6 +46,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [How can I create users before starting Gitea](#how-can-i-create-users-before-starting-gitea)
 * [How can I enable password reset](#how-can-i-enable-password-reset)
 * [How can a user's password be changed](#how-can-a-user-s-password-be-changed)
+* [Why is my markdown broken](#why-is-my-markdown-broken)
 
 
 ## Difference between 1.x and 1.x.x downloads
@@ -302,3 +303,8 @@ There is no setting for password resets. It is enabled when a [mail service]({{<
   - In your account `Settings -> Account` page (this method **requires** you to know your current password).
   - By using the `Forgot Password` link.  
    If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).
+   
+## Why is my markdown broken
+In Gitea version `1.11` we moved to [goldmark](https://github.com/yuin/goldmark) for markdown rendering, which is [CommonMark](https://commonmark.org/) compliant.  
+If you have markdown that worked as you expected prior to version `1.11` and after upgrading it's not working anymore, please look through the CommonMark spec to see whether the problem is due to a bug or non-compliant syntax.  
+If it is the latter, _usually_ there is a compliant alternative listed in the spec.
