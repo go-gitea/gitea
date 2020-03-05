@@ -252,6 +252,23 @@ func DeleteOAuth2Application(id, userid int64) error {
 	return sess.Commit()
 }
 
+// ListOAuth2Applications returns a list of oauth2 applications belongs to given user.
+func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Application, error) {
+	sess := x.
+		Where("uid=?", uid).
+		Desc("id")
+
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		apps := make([]*OAuth2Application, 0, listOptions.PageSize)
+		return apps, sess.Find(&apps)
+	}
+
+	apps := make([]*OAuth2Application, 0, 5)
+	return apps, sess.Find(&apps)
+}
+
 //////////////////////////////////////////////////////
 
 // OAuth2AuthorizationCode is a code to obtain an access token in combination with the client secret once. It has a limited lifetime.

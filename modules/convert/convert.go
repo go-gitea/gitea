@@ -388,3 +388,15 @@ func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
 		Updated:   topic.UpdatedUnix.AsTime(),
 	}
 }
+
+// ToOAuth2Application convert from models.OAuth2Application to api.OAuth2Application
+func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
+	return &api.OAuth2Application{
+		ID:           app.ID,
+		Name:         app.Name,
+		ClientID:     app.ClientID,
+		ClientSecret: app.ClientSecret,
+		RedirectURIs: app.RedirectURIs,
+		Created:      app.CreatedUnix.AsTime(),
+	}
+}
