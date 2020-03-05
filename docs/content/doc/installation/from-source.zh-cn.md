@@ -46,7 +46,7 @@ git checkout v{{< version >}}
 
 要从源代码进行编译，以下依赖程序必须事先安装好：
 
-- `go` 1.11.0 或以上版本, 详见 [here](https://golang.org/dl/)
+- `go` {{< min-go-version >}} 或以上版本, 详见 [here](https://golang.org/dl/)
 - `node` 10.0.0 或以上版本，并且安装 `npm`, 详见 [here](https://nodejs.org/en/download/)
 - `make`, 详见 <a href='{{< relref "make.zh-cn.md" >}}'>这里</a>
 
