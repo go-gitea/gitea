@@ -190,6 +190,8 @@ var migrations = []Migration{
 	NewMigration("add repository code language statistics", addLanguageStats),
 	// v128 -> v129
 	NewMigration("fix merge base for pull requests", fixMergeBase),
+	// v129 -> v130
+	NewMigration("remove dependencies from deleted repositories", purgeUnusedDependencies),
 }
 
 // Migrate database to current version
