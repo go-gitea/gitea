@@ -230,6 +230,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	encoding := "UTF-8"
 	bom := false
+	executable := false
 
 	if !opts.IsNewFile {
 		fromEntry, err := commit.GetTreeEntryByPath(fromTreePath)
@@ -265,6 +266,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			return nil, models.ErrSHAOrCommitIDNotProvided{}
 		}
 		encoding, bom = detectEncodingAndBOM(fromEntry, repo)
+		executable = fromEntry.IsExecutable()
 	}
 
 	// For the path where this file will be created/updated, we need to make
@@ -388,8 +390,14 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Add the object to the index
-	if err := t.AddObjectToIndex("100644", objectHash, treePath); err != nil {
-		return nil, err
+	if executable {
+		if err := t.AddObjectToIndex("100755", objectHash, treePath); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := t.AddObjectToIndex("100644", objectHash, treePath); err != nil {
+			return nil, err
+		}
 	}
 
 	// Now write the tree
