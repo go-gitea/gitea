@@ -265,7 +265,8 @@ github.com/gogs/chardet
 github.com/gogs/cron
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 github.com/golang-sql/civil
-# github.com/golang/protobuf v1.3.2
+# github.com/golang/protobuf v1.3.4
+## explicit
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
@@ -526,7 +527,8 @@ github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481
 ## explicit
-# github.com/tinylib/msgp v1.1.0
+# github.com/tinylib/msgp v1.1.1
+## explicit
 github.com/tinylib/msgp/msgp
 # github.com/toqueteos/trie v1.0.0
 github.com/toqueteos/trie
@@ -623,7 +625,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20200219091948-cb0a6d8edb6c
+# golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
