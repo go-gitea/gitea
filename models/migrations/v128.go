@@ -5,97 +5,93 @@
 package migrations
 
 import (
-	"encoding/json"
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
 
-func expandWebhooks(x *xorm.Engine) error {
-
-	type ChooseEvents struct {
-		Issues               bool `json:"issues"`
-		IssueAssign          bool `json:"issue_assign"`
-		IssueLabel           bool `json:"issue_label"`
-		IssueMilestone       bool `json:"issue_milestone"`
-		IssueComment         bool `json:"issue_comment"`
-		PullRequest          bool `json:"pull_request"`
-		PullRequestAssign    bool `json:"pull_request_assign"`
-		PullRequestLabel     bool `json:"pull_request_label"`
-		PullRequestMilestone bool `json:"pull_request_milestone"`
-		PullRequestComment   bool `json:"pull_request_comment"`
-		PullRequestReview    bool `json:"pull_request_review"`
-		PullRequestSync      bool `json:"pull_request_sync"`
+func fixMergeBase(x *xorm.Engine) error {
+	type Repository struct {
+		ID        int64 `xorm:"pk autoincr"`
+		OwnerID   int64 `xorm:"UNIQUE(s) index"`
+		OwnerName string
+		LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Name      string `xorm:"INDEX NOT NULL"`
 	}
 
-	type Events struct {
-		PushOnly       bool         `json:"push_only"`
-		SendEverything bool         `json:"send_everything"`
-		ChooseEvents   bool         `json:"choose_events"`
-		BranchFilter   string       `json:"branch_filter"`
-		Events         ChooseEvents `json:"events"`
+	type PullRequest struct {
+		ID         int64 `xorm:"pk autoincr"`
+		Index      int64
+		HeadRepoID int64 `xorm:"INDEX"`
+		BaseRepoID int64 `xorm:"INDEX"`
+		HeadBranch string
+		BaseBranch string
+		MergeBase  string `xorm:"VARCHAR(40)"`
+
+		HasMerged      bool   `xorm:"INDEX"`
+		MergedCommitID string `xorm:"VARCHAR(40)"`
 	}
 
-	type Webhook struct {
-		ID     int64
-		Events string
+	var limit = setting.Database.IterateBufferSize
+	if limit <= 0 {
+		limit = 50
 	}
 
-	var events Events
-	var bytes []byte
-	var last int
-	const batchSize = 50
-	sess := x.NewSession()
-	defer sess.Close()
+	i := 0
 	for {
-		if err := sess.Begin(); err != nil {
-			return err
+		prs := make([]PullRequest, 0, 50)
+		if err := x.Limit(limit, i).Asc("id").Find(&prs); err != nil {
+			return fmt.Errorf("Find: %v", err)
 		}
-		var results = make([]Webhook, 0, batchSize)
-		err := x.OrderBy("id").
-			Limit(batchSize, last).
-			Find(&results)
-		if err != nil {
-			return err
-		}
-		if len(results) == 0 {
+		if len(prs) == 0 {
 			break
 		}
-		last += len(results)
 
-		for _, res := range results {
-			if err = json.Unmarshal([]byte(res.Events), &events); err != nil {
-				return err
-			}
-
-			if events.Events.Issues {
-				events.Events.IssueAssign = true
-				events.Events.IssueLabel = true
-				events.Events.IssueMilestone = true
-				events.Events.IssueComment = true
-			}
-
-			if events.Events.PullRequest {
-				events.Events.PullRequestAssign = true
-				events.Events.PullRequestLabel = true
-				events.Events.PullRequestMilestone = true
-				events.Events.PullRequestComment = true
-				events.Events.PullRequestReview = true
-				events.Events.PullRequestSync = true
-			}
-
-			if bytes, err = json.Marshal(&events); err != nil {
-				return err
-			}
-
-			_, err = sess.Exec("UPDATE webhook SET events = ? WHERE id = ?", string(bytes), res.ID)
+		i += 50
+		for _, pr := range prs {
+			baseRepo := &Repository{ID: pr.BaseRepoID}
+			has, err := x.Table("repository").Get(baseRepo)
 			if err != nil {
-				return err
+				return fmt.Errorf("Unable to get base repo %d %v", pr.BaseRepoID, err)
 			}
-		}
+			if !has {
+				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
+				continue
+			}
+			userPath := filepath.Join(setting.RepoRootPath, strings.ToLower(baseRepo.OwnerName))
+			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
 
-		if err := sess.Commit(); err != nil {
-			return err
+			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
+
+			if !pr.HasMerged {
+				var err error
+				pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.BaseBranch, gitRefName).RunInDir(repoPath)
+				if err != nil {
+					var err2 error
+					pr.MergeBase, err2 = git.NewCommand("rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
+					if err2 != nil {
+						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err, err2)
+						continue
+					}
+				}
+			} else {
+				var err error
+				pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.MergedCommitID+"^", gitRefName).RunInDir(repoPath)
+				if err != nil {
+					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
+					continue
+				}
+			}
+			pr.MergeBase = strings.TrimSpace(pr.MergeBase)
+			x.ID(pr.ID).Cols("merge_base").Update(pr)
 		}
 	}
+
 	return nil
 }
