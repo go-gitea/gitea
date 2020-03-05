@@ -5,7 +5,6 @@
 package user
 
 import (
-	"encoding/base64"
 	"errors"
 	"strconv"
 	"strings"
@@ -47,13 +46,9 @@ func Avatar(ctx *context.Context) {
 
 // AvatarByEmail redirects the browser to the appropriate Avatar link
 func AvatarByEmail(ctx *context.Context) {
-	email := ctx.Params(":email")
-	addr, err := base64.RawURLEncoding.DecodeString(email)
-	email = string(addr)
-	if err != nil {
-		ctx.ServerError("invalid email address", err)
-		return
-	} else if email == "" {
+	domain := ctx.Params(":domain")
+	hash := ctx.Params(":hash")
+	if len(domain) == 0 || len(hash) == 0 {
 		ctx.ServerError("invalid email address", errors.New("email cannot be empty"))
 		return
 	}
@@ -61,6 +56,5 @@ func AvatarByEmail(ctx *context.Context) {
 	if size == 0 {
 		size = base.DefaultAvatarSize
 	}
-
-	ctx.Redirect(base.SizedAvatarLink(email, size))
+	ctx.Redirect(base.SizedAvatarLinkWithDomain(hash, domain, size))
 }

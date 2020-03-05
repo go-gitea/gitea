@@ -417,7 +417,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	})
 	// ***** END: User *****
 
-	m.Get("/avatar/:email", user.AvatarByEmail)
+	m.Get("/avatar/:domain/:hash", user.AvatarByEmail)
 
 	adminReq := context.Toggle(&context.ToggleOptions{SignInRequired: true, AdminRequired: true})
 
