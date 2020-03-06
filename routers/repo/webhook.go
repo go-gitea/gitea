@@ -165,8 +165,8 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 	}
 }
 
-// WebHooksNewPost response for creating Gitea webhook
-func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
+// GiteaHooksNewPost response for creating Gitea webhook
+func GiteaHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
