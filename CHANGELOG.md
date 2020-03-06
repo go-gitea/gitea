@@ -4,6 +4,51 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.2](https://github.com/go-gitea/gitea/releases/tag/v1.11.2) - 2020-03-06
+
+* BREAKING
+  * Various fixes in login sources (#10428) (#10429)
+* SECURITY
+  * Ensure only own addresses are updated (#10397) (#10399)
+  * Logout POST action (#10582) (#10585)
+  * Org action fixes and form cleanup (#10512) (#10514)
+  * Change action GETs to POST (#10462) (#10464)
+  * Fix admin notices (#10480) (#10483)
+  * Change admin dashboard to POST (#10465) (#10466)
+  * Update markbates/goth (#10444) (#10445)
+  * Update crypto vendors (#10385) (#10398)
+* BUGFIXES
+  * Allow users with write permissions to modify issue descriptions and comments. (#10623) (#10626)
+  * Handle deleted base branch in PR (#10618) (#10619)
+  * Delete dependencies when deleting a repository (#10608) (#10616)
+  * Ensure executable bit is kept on the web editor (#10607) (#10614)
+  * Update mergebase in pr checker (#10586) (#10605)
+  * Fix release attachments being deleted while upgrading (#10572) (#10573)
+  * Fix redirection path if Slack webhook channel is invalid (#10566)
+  * Fix head.tmpl og:image picture location (#10531) (#10556)
+  * Fix 404 after activating secondary email (#10547) (#10553)
+  * Show Signer in commit lists and add basic trust (#10425 & #10511) (#10524)
+  * Fix potential bugs (#10513) (#10518)
+  * Use \[:space:\] instead of \\s (#10508) (#10509)
+  * Avoid mailing users that have explicitly unwatched an issue (#10475) (#10500)
+  * Handle push rejection message in Merge & Web Editor (#10373) (#10497)
+  * Fix SQLite concurrency problems by using BEGIN IMMEDIATE (#10368) (#10493)
+  * Fix double PR notification from API (#10482) (#10486)
+  * Show the username as a fallback on feeds if full name is blank (#10461)
+  * Trigger webhooks on issue label-change via API too (#10421) (#10439)
+  * Fix git reference type in webhooks (#10427) (#10432)
+  * Prevent panic on merge to PR (#10403) (#10408)
+  * Fix wrong num closed issues on repository when close issue via commit… (#10364) (#10380)
+  * Reading pull attachments should depend on read UnitTypePullRequests (#10346) (#10354)
+  * Set max-width on review-box comment box (#10348) (#10353)
+  * Prevent nil pointer in GetPullRequestCommitStatusState (#10342) (#10344)
+  * Fix protected branch status check settings (#10341) (#10343)
+  * Truncate long commit message header (#10301) (#10319)
+  * Set the initial commit status to Success otherwise it will always be Pending (#10317) (#10318)
+  * Don't manually replace whitespace during render (#10291) (#10315)
+* ENHANCEMENT
+  * Admin page for managing user e-mail activation (#10557) (#10579)
+
 ## [1.11.1](https://github.com/go-gitea/gitea/releases/tag/v1.11.1) - 2020-02-15
 
 * BUGFIXES
