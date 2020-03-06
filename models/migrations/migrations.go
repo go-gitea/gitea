@@ -300,7 +300,10 @@ var migrations = []Migration{
 //      minor revision and when the actual migration is executed again on the next major upgrade).
 //    * The function must not rely on data structures that might not be present in the branch
 //      it is backported to, unless its safe that it will add the column itself.
-var backports = []Migration{}
+var backports = []Migration{
+	// v117 -> v117.1
+	NewMigration("remove dependencies from deleted repositories", purgeUnusedDependencies),
+}
 
 // Migrate database to current version
 func Migrate(x *xorm.Engine) error {
