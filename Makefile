@@ -576,10 +576,14 @@ release-windows: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) install src.techknowlogick.com/xgo@latest; \
 	fi
+<<<<<<< HEAD
 	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq (,$(findstring gogit,$(TAGS)))
 	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
 endif
+=======
+	xgo -go go-1.13.x -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+>>>>>>> c2c202db7 (hotfix build)
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -589,7 +593,11 @@ release-linux: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) install src.techknowlogick.com/xgo@latest; \
 	fi
+<<<<<<< HEAD
 	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
+=======
+	xgo -go go-1.13.x -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
+>>>>>>> c2c202db7 (hotfix build)
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -599,7 +607,11 @@ release-darwin: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) install src.techknowlogick.com/xgo@latest; \
 	fi
+<<<<<<< HEAD
 	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
+=======
+	xgo -go go-1.13.x -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
+>>>>>>> c2c202db7 (hotfix build)
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
