@@ -25,7 +25,7 @@ environment variable and to add the go bin directory or directories
 
 Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
 required to build the JavaScript and CSS files. The minimum supported Node.js
-version is 10 and the latest LTS version is recommended.
+version is {{< min-node-version >}} and the latest LTS version is recommended.
 
 You will also need make.
 <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>
