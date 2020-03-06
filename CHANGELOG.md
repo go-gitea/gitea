@@ -13,6 +13,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Logout POST action (#10582) (#10585)
   * Org action fixes and form cleanup (#10512) (#10514)
   * Change action GETs to POST (#10462) (#10464)
+  * Fix admin notices (#10480) (#10483)
+  * Change admin dashboard to POST (#10465) (#10466)
 * BUGFIXES
   * Allow users with write permissions to modify issue descriptions and comments. (#10623) (#10626)
   * Handle deleted base branch in PR (#10618) (#10619)
@@ -30,8 +32,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Handle push rejection message in Merge & Web Editor (#10373) (#10497)
   * Fix SQLite concurrency problems by using BEGIN IMMEDIATE (#10368) (#10493)
   * Fix double PR notification from API (#10482) (#10486)
-  * Fix admin notices (#10480) (#10483)
-  * Change admin dashboard to POST (#10465) (#10466)
   * Show the username as a fallback on feeds if full name is blank (#10461)
   * Update markbates/goth (backport v1.11) (#10445)
   * Trigger webhooks on issue label-change via API too (#10421) (#10439)
