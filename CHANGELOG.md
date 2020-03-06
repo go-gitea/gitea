@@ -47,7 +47,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Don't manually replace whitespace during render (#10291) (#10315)
 * ENHANCEMENT
   * Admin page for managing user e-mail activation (#10557) (#10579)
-  * update crypto vendors (#10385) (#10398)
+  * Update crypto vendors (#10385) (#10398)
 
 ## [1.11.1](https://github.com/go-gitea/gitea/releases/tag/v1.11.1) - 2020-02-15
 
