@@ -11,7 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * SECURITY
   * Ensure only own addresses are updated (#10397) (#10399)
 * BUGFIXES
-  * Fix modifying issues (#10623) (#10626)
+  * Allow users with write permissions to modify issue descriptions and comments. (#10623) (#10626)
   * Handle deleted base branch in PR (#10618) (#10619)
   * Delete dependencies when deleting a repository (#10608) (#10616)
   * Ensure executable bit is kept on the web editor (#10607) (#10614)
