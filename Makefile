@@ -16,18 +16,25 @@ endif
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE ?= gitea.exe
+	FIND_PWD_REGEXP := find . -regextype posix-egrep
 else
 	EXECUTABLE ?= gitea
 	UNAME_S := $(shell uname -s)
+	FIND_PWD_REGEXP := find . -regextype posix-egrep
+	BUSYBOX := $(shell find --help 2>&1 | grep -o BusyBox)
 	ifeq ($(UNAME_S),Darwin)
 		SED_INPLACE := sed -i ''
+		FIND_PWD_REGEXP := find -E .
 	endif
 	ifeq ($(UNAME_S),FreeBSD)
 		SED_INPLACE := sed -i ''
+		FIND_PWD_REGEXP := find -E .
+	endif
+	ifeq ($(BUSYBOX),BusyBox)
+		FIND_PWD_REGEXP := find .
 	endif
 endif
 
-GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
 GOFLAGS := -v
@@ -64,24 +71,23 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
-GO_SOURCES ?= $(shell find . -name "*.go" -type f)
-WEBPACK_SOURCES ?= $(shell find web_src/js web_src/less -type f)
-WEBPACK_CONFIGS := webpack.config.js .eslintrc .stylelintrc
+GO_SOURCES ?= $(shell $(FIND_PWD_REGEXP) -regex '\./(node_modules|docs|public|options|contrib|data)' -prune -o -name "*.go" -type f -print)
+GO_SOURCES_OWN := $(filter-out ./vendor/% %/bindata.go, $(GO_SOURCES))
 
+WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
+WEBPACK_CONFIGS := webpack.config.js .eslintrc .stylelintrc
 WEBPACK_DEST := public/js/index.js public/css/index.css
+WEBPACK_DEST_DIRS := public/js public/css
+
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
-WEBPACK_DEST_DIRS := public/js public/css
-
-FOMANTIC_SOURCES ?= $(shell find web_src/fomantic -type f)
+FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
+FOMANTIC_DEST := public/fomantic/semantic.min.js public/fomantic/semantic.min.css
 FOMANTIC_DEST_DIR := public/fomantic
-FOMANTIC_EVIDENCE := $(MAKE_EVIDENCE_DIR)/fomantic
 
 TAGS ?=
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
-
-TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
 #To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
 SWAGGER := GO111MODULE=on $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
@@ -139,7 +145,7 @@ help:
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?[[:space:]]' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "001011000" ]; then \
-		echo "Gitea requires Go 1.11.0 or greater to build. You can get it at https://golang.org/dl/"; \
+		echo "Gitea requires Go 1.11 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
@@ -155,13 +161,13 @@ node-check:
 	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?' | tr '.' ' ');))
 	$(eval NPM_MISSING := $(shell hash npm > /dev/null 2>&1 || echo 1))
 	@if [ "$(NODE_VERSION)" -lt "010000000" -o "$(NPM_MISSING)" = "1" ]; then \
-		echo "Gitea requires Node.js 10.0.0 or greater and npm to build. You can get it at https://nodejs.org/en/download/"; \
+		echo "Gitea requires Node.js 10 or greater and npm to build. You can get it at https://nodejs.org/en/download/"; \
 		exit 1; \
 	fi
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(WEBPACK_DEST_DIRS) $(FOMANTIC_DEST_DIR) $(FOMANTIC_EVIDENCE)
+	rm -rf $(WEBPACK_DEST_DIRS) $(FOMANTIC_DEST_DIR)
 
 .PHONY: clean
 clean:
@@ -174,7 +180,7 @@ clean:
 
 .PHONY: fmt
 fmt:
-	$(GOFMT) -w $(GOFILES)
+	$(GOFMT) -w $(GO_SOURCES_OWN)
 
 .PHONY: vet
 vet:
@@ -229,19 +235,19 @@ misspell-check:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
-	misspell -error -i unknwon,destory $(GOFILES)
+	misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
 
 .PHONY: misspell
 misspell:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
-	misspell -w -i unknwon $(GOFILES)
+	misspell -w -i unknwon $(GO_SOURCES_OWN)
 
 .PHONY: fmt-check
 fmt-check:
 	# get all go files and run go fmt on them
-	@diff=$$($(GOFMT) -d $(GOFILES)); \
+	@diff=$$($(GOFMT) -d $(GO_SOURCES_OWN)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
@@ -450,7 +456,7 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: node-check $(FOMANTIC_EVIDENCE) $(WEBPACK_DEST)
+frontend: node-check $(FOMANTIC_DEST) $(WEBPACK_DEST)
 
 .PHONY: backend
 backend: go-check generate $(EXECUTABLE)
@@ -540,18 +546,19 @@ css:
 	$(MAKE) webpack
 
 .PHONY: fomantic
-fomantic: $(FOMANTIC_EVIDENCE)
+fomantic: $(FOMANTIC_DEST)
 
-$(FOMANTIC_EVIDENCE): semantic.json $(FOMANTIC_SOURCES) | node_modules
+$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
+	rm -rf $(FOMANTIC_DEST_DIR)
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
-	@mkdir -p $(MAKE_EVIDENCE_DIR) && touch $(FOMANTIC_EVIDENCE)
+	@touch $(FOMANTIC_DEST)
 
 .PHONY: webpack
 webpack: $(WEBPACK_DEST)
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) | node_modules
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
 	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
 	npx webpack --hide-modules --display-entrypoints=false
@@ -569,6 +576,7 @@ update-translations:
 
 .PHONY: generate-images
 generate-images:
+	$(eval TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp'))
 	mkdir -p $(TMPDIR)/images
 	inkscape -f $(PWD)/assets/logo.svg -w 880 -h 880 -e $(PWD)/public/img/gitea-lg.png
 	inkscape -f $(PWD)/assets/logo.svg -w 512 -h 512 -e $(PWD)/public/img/gitea-512.png

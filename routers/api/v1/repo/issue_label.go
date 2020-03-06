@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -59,11 +60,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	apiLabels := make([]*api.Label, len(issue.Labels))
-	for i := range issue.Labels {
-		apiLabels[i] = issue.Labels[i].APIFormat()
-	}
-	ctx.JSON(http.StatusOK, &apiLabels)
+	ctx.JSON(http.StatusOK, convert.ToLabelList(issue.Labels))
 }
 
 // AddIssueLabels add labels for an issue
@@ -118,11 +115,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		return
 	}
 
-	apiLabels := make([]*api.Label, len(labels))
-	for i := range labels {
-		apiLabels[i] = labels[i].APIFormat()
-	}
-	ctx.JSON(http.StatusOK, &apiLabels)
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
 }
 
 // DeleteIssueLabel delete a label for an issue
@@ -248,11 +241,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		return
 	}
 
-	apiLabels := make([]*api.Label, len(labels))
-	for i := range labels {
-		apiLabels[i] = labels[i].APIFormat()
-	}
-	ctx.JSON(http.StatusOK, &apiLabels)
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
 }
 
 // ClearIssueLabels delete all the labels for an issue
