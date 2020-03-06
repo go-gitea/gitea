@@ -4,6 +4,11 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.10.5](https://github.com/go-gitea/gitea/releases/tag/v1.10.5) - 2020-03-06
+
+* BUGFIXES
+  * Fix release attachments being deleted while upgrading (#10572) (#10574)
+
 ## [1.10.4](https://github.com/go-gitea/gitea/releases/tag/v1.10.4) - 2020-02-16
 
 * FEATURE
