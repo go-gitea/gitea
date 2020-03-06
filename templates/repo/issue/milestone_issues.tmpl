@@ -177,6 +177,7 @@
 		</div>
 
 		<div class="issue list">
+			{{ $approvalCounts := .ApprovalCounts}}
 			{{range .Issues}}
 				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 				<li class="item">
@@ -185,8 +186,14 @@
 						<input type="checkbox" data-issue-id={{.ID}}></input>
 					</div>
 					{{end}}
-					<div class="ui {{if .IsRead}}gray{{else}}green{{end}} label">#{{.Index}}</div>
+					<div class="ui {{if .IsClosed}}{{if .IsPull}}{{if .PullRequest.HasMerged}}purple{{else}}red{{end}}{{else}}red{{end}}{{else}}{{if .IsRead}}white{{else}}green{{end}}{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+
+					{{if .IsPull }}
+						{{if (index $.CommitStatus .PullRequest.ID)}}
+							{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
+						{{end}}
+					{{end}}
 
 					{{range .Labels}}
 						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
@@ -201,11 +208,15 @@
 					{{end}}
 
 					<p class="desc">
-						{{if gt .Poster.ID 0}}
-							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName|Escape) | Safe}}
+						{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
+						{{if .OriginalAuthor }}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+						{{else if gt .Poster.ID 0}}
+							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
 						{{else}}
-							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 						{{end}}
+
 						{{if .Ref}}
 							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
 								{{svg "octicon-git-branch" 16}} {{.Ref}}
@@ -226,6 +237,21 @@
 							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-variation="inverted" data-position="left center">
 								<img class="ui avatar image" src="{{.RelAvatarLink}}">
 							</a>
+						{{end}}
+						{{if .IsPull}}
+							{{$approveOfficial := call $approvalCounts .ID "approve"}}
+							{{$rejectOfficial := call $approvalCounts .ID "reject"}}
+							{{if or (gt $approveOfficial 0) (gt $rejectOfficial 0)}}
+								<span class="approvals">{{svg "octicon-check" 16}}
+									{{$.i18n.Tr (TrN $.i18n.Lang $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n") $approveOfficial}}
+								{{if or (gt $rejectOfficial 0)}}
+									<span class="rejects">{{svg "octicon-x" 16}}
+										{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
+								{{end}}
+							{{end}}
+							{{if and (not .PullRequest.HasMerged) ((len .PullRequest.ConflictedFiles) gt 0)}}
+								<span class="conflicting">{{svg "octicon-mirror" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
+							{{end}}
 						{{end}}
 					</p>
 				</li>
