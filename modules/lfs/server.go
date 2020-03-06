@@ -233,6 +233,12 @@ func PostHandler(ctx *context.Context) {
 		return
 	}
 
+	if setting.LFS.MaxFileSize > 0 && rv.Size > setting.LFS.MaxFileSize {
+		log.Info("Denied LFS upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", rv.Size, rv.User, rv.Repo, setting.LFS.MaxFileSize)
+		writeStatus(ctx, 413)
+		return
+	}
+
 	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size, RepositoryID: repository.ID})
 	if err != nil {
 		writeStatus(ctx, 404)
@@ -299,6 +305,12 @@ func BatchHandler(ctx *context.Context) {
 		if err == nil && contentStore.Exists(meta) { // Object is found and exists
 			responseObjects = append(responseObjects, Represent(object, meta, true, false))
 			continue
+		}
+
+		if requireWrite && setting.LFS.MaxFileSize > 0 && object.Size > setting.LFS.MaxFileSize {
+			log.Info("Denied LFS upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", object.Size, object.User, object.Repo, setting.LFS.MaxFileSize)
+			writeStatus(ctx, 413)
+			return
 		}
 
 		// Object is not found

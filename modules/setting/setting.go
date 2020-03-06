@@ -140,6 +140,7 @@ var (
 		JWTSecretBase64 string        `ini:"LFS_JWT_SECRET"`
 		JWTSecretBytes  []byte        `ini:"-"`
 		HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
+		MaxFileSize     int64         `ini:"LFS_MAX_FILE_SIZE"`
 	}
 
 	// Security settings

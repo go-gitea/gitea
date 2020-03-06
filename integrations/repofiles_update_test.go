@@ -207,11 +207,14 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
 		expectedFileResponse := getExpectedFileResponseForRepofilesCreate(commitID)
-		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
-		assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
-		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+		assert.NotNil(t, expectedFileResponse)
+		if expectedFileResponse != nil {
+			assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
+			assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
+			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
+			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
+			assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+		}
 	})
 }
 
