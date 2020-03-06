@@ -151,15 +151,24 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 		SendEverything: form.SendEverything(),
 		ChooseEvents:   form.ChooseEvents(),
 		HookEvents: models.HookEvents{
-			Create:       form.Create,
-			Delete:       form.Delete,
-			Fork:         form.Fork,
-			Issues:       form.Issues,
-			IssueComment: form.IssueComment,
-			Release:      form.Release,
-			Push:         form.Push,
-			PullRequest:  form.PullRequest,
-			Repository:   form.Repository,
+			Create:               form.Create,
+			Delete:               form.Delete,
+			Fork:                 form.Fork,
+			Issues:               form.Issues,
+			IssueAssign:          form.IssueAssign,
+			IssueLabel:           form.IssueLabel,
+			IssueMilestone:       form.IssueMilestone,
+			IssueComment:         form.IssueComment,
+			Release:              form.Release,
+			Push:                 form.Push,
+			PullRequest:          form.PullRequest,
+			PullRequestAssign:    form.PullRequestAssign,
+			PullRequestLabel:     form.PullRequestLabel,
+			PullRequestMilestone: form.PullRequestMilestone,
+			PullRequestComment:   form.PullRequestComment,
+			PullRequestReview:    form.PullRequestReview,
+			PullRequestSync:      form.PullRequestSync,
+			Repository:           form.Repository,
 		},
 		BranchFilter: form.BranchFilter,
 	}
@@ -469,7 +478,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 
 	if form.HasInvalidChannel() {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_webhook.invalid_channel_name"))
-		ctx.Redirect(orCtx.Link + "/settings/hooks/slack/new")
+		ctx.Redirect(orCtx.Link + "/slack/new")
 		return
 	}
 
@@ -559,7 +568,6 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 	ctx.Data["BaseLink"] = orCtx.Link
 
 	var w *models.Webhook
-	// Why different methods if only the ID matters?
 	if orCtx.RepoID > 0 {
 		w, err = models.GetWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	} else if orCtx.OrgID > 0 {
@@ -708,7 +716,7 @@ func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 
 	if form.HasInvalidChannel() {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_webhook.invalid_channel_name"))
-		ctx.Redirect(fmt.Sprintf("%s/settings/hooks/%d", orCtx.Link, w.ID))
+		ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 		return
 	}
 

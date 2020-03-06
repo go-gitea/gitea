@@ -413,7 +413,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/recover_account", user.ResetPasswdPost)
 		m.Get("/forgot_password", user.ForgotPasswd)
 		m.Post("/forgot_password", user.ForgotPasswdPost)
-		m.Get("/logout", user.SignOut)
+		m.Post("/logout", user.SignOut)
 	})
 	// ***** END: User *****
 
@@ -442,6 +442,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Combo("/new").Get(admin.NewUser).Post(bindIgnErr(auth.AdminCreateUserForm{}), admin.NewUserPost)
 			m.Combo("/:userid").Get(admin.EditUser).Post(bindIgnErr(auth.AdminEditUserForm{}), admin.EditUserPost)
 			m.Post("/:userid/delete", admin.DeleteUser)
+		})
+
+		m.Group("/emails", func() {
+			m.Get("", admin.Emails)
+			m.Post("/activate", admin.ActivateEmail)
 		})
 
 		m.Group("/orgs", func() {

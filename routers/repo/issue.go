@@ -216,6 +216,12 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 	}
 
+	approvalCounts, err := models.IssueList(issues).GetApprovalCounts()
+	if err != nil {
+		ctx.ServerError("ApprovalCounts", err)
+		return
+	}
+
 	var commitStatus = make(map[int64]*models.CommitStatus, len(issues))
 
 	// Get posters.
@@ -263,6 +269,22 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
 	}
 
+	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
+		counts, ok := approvalCounts[issueID]
+		if !ok || len(counts) == 0 {
+			return 0
+		}
+		reviewTyp := models.ReviewTypeApprove
+		if typ == "reject" {
+			reviewTyp = models.ReviewTypeReject
+		}
+		for _, count := range counts {
+			if count.Type == reviewTyp {
+				return count.Count
+			}
+		}
+		return 0
+	}
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
@@ -910,8 +932,8 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["AllowMerge"] = false
 
 		if ctx.IsSigned {
-			if err := pull.GetHeadRepo(); err != nil {
-				log.Error("GetHeadRepo: %v", err)
+			if err := pull.LoadHeadRepo(); err != nil {
+				log.Error("LoadHeadRepo: %v", err)
 			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch {
 				perm, err := models.GetUserRepoPermission(pull.HeadRepo, ctx.User)
 				if err != nil {
@@ -929,8 +951,8 @@ func ViewIssue(ctx *context.Context) {
 				}
 			}
 
-			if err := pull.GetBaseRepo(); err != nil {
-				log.Error("GetBaseRepo: %v", err)
+			if err := pull.LoadBaseRepo(); err != nil {
+				log.Error("LoadBaseRepo: %v", err)
 			}
 			perm, err := models.GetUserRepoPermission(pull.BaseRepo, ctx.User)
 			if err != nil {

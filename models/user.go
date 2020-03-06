@@ -1315,21 +1315,6 @@ func UserPath(userName string) string {
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
 
-// GetUserByKeyID get user information by user's public key id
-func GetUserByKeyID(keyID int64) (*User, error) {
-	var user User
-	has, err := x.Join("INNER", "public_key", "`public_key`.owner_id = `user`.id").
-		Where("`public_key`.id=?", keyID).
-		Get(&user)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, ErrUserNotExist{0, "", keyID}
-	}
-	return &user, nil
-}
-
 func getUserByID(e Engine, id int64) (*User, error) {
 	u := new(User)
 	has, err := e.ID(id).Get(u)
@@ -1890,15 +1875,16 @@ func SyncExternalUsers(ctx context.Context) {
 					log.Trace("SyncExternalUsers[%s]: Creating user %s", s.Name, su.Username)
 
 					usr = &User{
-						LowerName:   strings.ToLower(su.Username),
-						Name:        su.Username,
-						FullName:    fullName,
-						LoginType:   s.Type,
-						LoginSource: s.ID,
-						LoginName:   su.Username,
-						Email:       su.Mail,
-						IsAdmin:     su.IsAdmin,
-						IsActive:    true,
+						LowerName:    strings.ToLower(su.Username),
+						Name:         su.Username,
+						FullName:     fullName,
+						LoginType:    s.Type,
+						LoginSource:  s.ID,
+						LoginName:    su.Username,
+						Email:        su.Mail,
+						IsAdmin:      su.IsAdmin,
+						IsRestricted: su.IsRestricted,
+						IsActive:     true,
 					}
 
 					err = CreateUser(usr)
@@ -1921,6 +1907,7 @@ func SyncExternalUsers(ctx context.Context) {
 
 					// Check if user data has changed
 					if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
+						(len(s.LDAP().RestrictedFilter) > 0 && usr.IsRestricted != su.IsRestricted) ||
 						!strings.EqualFold(usr.Email, su.Mail) ||
 						usr.FullName != fullName ||
 						!usr.IsActive {
@@ -1933,9 +1920,13 @@ func SyncExternalUsers(ctx context.Context) {
 						if len(s.LDAP().AdminFilter) > 0 {
 							usr.IsAdmin = su.IsAdmin
 						}
+						// Change existing restricted flag only if RestrictedFilter option is set
+						if !usr.IsAdmin && len(s.LDAP().RestrictedFilter) > 0 {
+							usr.IsRestricted = su.IsRestricted
+						}
 						usr.IsActive = true
 
-						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_active")
+						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
 						if err != nil {
 							log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
 						}
