@@ -17,7 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Ensure executable bit is kept on the web editor (#10607) (#10614)
   * Update mergebase in pr checker (#10586) (#10605)
   * Logout POST action (#10582) (#10585)
-  * Fix migration bug on v96.go (#10572) (#10573)
+  * Fix release attachments being deleted while upgrading (#10572) (#10573)
   * Bugfix/slack webhook redirect backport (#10566)
   * head.tmpl og:image picture location (#10531) (#10556)
   * Fix 404 after activating secondary email (backport of #10547) (#10553)
