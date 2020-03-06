@@ -15,6 +15,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Change action GETs to POST (#10462) (#10464)
   * Fix admin notices (#10480) (#10483)
   * Change admin dashboard to POST (#10465) (#10466)
+  * Update crypto vendors (#10385) (#10398)
 * BUGFIXES
   * Allow users with write permissions to modify issue descriptions and comments. (#10623) (#10626)
   * Handle deleted base branch in PR (#10618) (#10619)
@@ -47,7 +48,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Don't manually replace whitespace during render (#10291) (#10315)
 * ENHANCEMENT
   * Admin page for managing user e-mail activation (#10557) (#10579)
-  * Update crypto vendors (#10385) (#10398)
 
 ## [1.11.1](https://github.com/go-gitea/gitea/releases/tag/v1.11.1) - 2020-02-15
 
