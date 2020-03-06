@@ -41,7 +41,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Reading pull attachments should depend on read UnitTypePullRequests (#10346) (#10354)
   * Set max-width on review-box comment box (#10348) (#10353)
   * Prevent nil pointer in GetPullRequestCommitStatusState (#10342) (#10344)
-  * Fix status check enable (#10341) (#10343)
+  * Fix protected branch status check settings (#10341) (#10343)
   * Truncate long commit message header (#10301) (#10319)
   * Set the initial commit status to Success otherwise it will always be Pending (#10317) (#10318)
   * Don't manually replace whitespace during render (#10291) (#10315)
