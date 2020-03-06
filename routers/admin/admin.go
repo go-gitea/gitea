@@ -180,9 +180,8 @@ func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
 			err = repo_module.DeleteMissingRepositories(ctx.User)
 		case gitGCRepos:
 			success = ctx.Tr("admin.dashboard.git_gc_repos_started")
-			go graceful.GetManager().RunWithShutdownContext(func(ctx gocontext.Context) {
-				err := repo_module.GitGcRepos
-				if err != nil {
+			go cron.WithUnique("git_gc", func(ctx gocontext.Context) {
+				if err := repo_module.GitGcRepos(ctx); err != nil {
 					log.Error("Error whilst running git gc: %v", err)
 				}
 			})
@@ -197,15 +196,10 @@ func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
 			err = repo_module.ReinitMissingRepositories()
 		case syncExternalUsers:
 			success = ctx.Tr("admin.dashboard.sync_external_users_started")
-			go graceful.GetManager().RunWithShutdownContext(models.SyncExternalUsers)
+			go cron.SyncExternalUsers()
 		case gitFsck:
 			success = ctx.Tr("admin.dashboard.git_fsck_started")
-			go graceful.GetManager().RunWithShutdownContext(func(ctx gocontext.Context) {
-				err := repo_module.GitFsck
-				if err != nil {
-					log.Error("Error whilst running git fsck: %v", err)
-				}
-			})
+			go cron.RepoHealthCheck()
 		case deleteGeneratedRepositoryAvatars:
 			success = ctx.Tr("admin.dashboard.delete_generated_repository_avatars_success")
 			err = models.RemoveRandomAvatars()

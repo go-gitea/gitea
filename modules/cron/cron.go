@@ -50,6 +50,45 @@ func WithUnique(name string, body func(context.Context)) Func {
 	}
 }
 
+// UpdateMirror runs the UpdateMirror cron task uniquely
+func UpdateMirror() {
+	WithUnique(mirrorUpdate, mirror_service.Update)()
+}
+
+// RepoHealthCheck runs the RepoHealthCheck cron task uniquely
+func RepoHealthCheck() {
+	WithUnique(gitFsck, func(ctx context.Context) {
+		if err := repo_module.GitFsck(ctx); err != nil {
+			log.Error("Error whilst performing repository health checks (git fsck): %s", err)
+		}
+	})()
+}
+
+// CheckRepoStats checks the repository statistics uniquely
+func CheckRepoStats() {
+	WithUnique(checkRepos, models.CheckRepoStats)()
+}
+
+// ArchiveCleanup cleans the archives uniquely
+func ArchiveCleanup() {
+	WithUnique(archiveCleanup, models.DeleteOldRepositoryArchives)()
+}
+
+// SyncExternalUsers syncs external users uniquely
+func SyncExternalUsers() {
+	WithUnique(syncExternalUsers, models.SyncExternalUsers)()
+}
+
+// DeletedBranchesCleanup performs branch deletion cleanup uniquely
+func DeletedBranchesCleanup() {
+	WithUnique(deletedBranchesCleanup, models.RemoveOldDeletedBranches)()
+}
+
+// UpdateMigrationPosterID updates the migrations uniquely
+func UpdateMigrationPosterID() {
+	WithUnique(updateMigrationPosterID, migrations.UpdateMigrationPosterID)()
+}
+
 // NewContext begins cron tasks
 // Each cron task is run within the shutdown context as a running server
 // AtShutdown the cron server is stopped
@@ -59,87 +98,79 @@ func NewContext() {
 		err   error
 	)
 	if setting.Cron.UpdateMirror.Enabled {
-		entry, err = c.AddFunc("Update mirrors", setting.Cron.UpdateMirror.Schedule, WithUnique(mirrorUpdate, mirror_service.Update))
+		entry, err = c.AddFunc("Update mirrors", setting.Cron.UpdateMirror.Schedule, UpdateMirror)
 		if err != nil {
 			log.Fatal("Cron[Update mirrors]: %v", err)
 		}
 		if setting.Cron.UpdateMirror.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go WithUnique(mirrorUpdate, mirror_service.Update)()
+			go UpdateMirror()
 		}
 	}
 	if setting.Cron.RepoHealthCheck.Enabled {
-		entry, err = c.AddFunc("Repository health check", setting.Cron.RepoHealthCheck.Schedule, WithUnique(gitFsck, func(ctx context.Context) {
-			if err := repo_module.GitFsck(ctx); err != nil {
-				log.Error("GitFsck: %s", err)
-			}
-		}))
+		entry, err = c.AddFunc("Repository health check", setting.Cron.RepoHealthCheck.Schedule, RepoHealthCheck)
 		if err != nil {
 			log.Fatal("Cron[Repository health check]: %v", err)
 		}
 		if setting.Cron.RepoHealthCheck.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go WithUnique(gitFsck, func(ctx context.Context) {
-				if err := repo_module.GitFsck(ctx); err != nil {
-					log.Error("GitFsck: %s", err)
-				}
-			})()
+			go RepoHealthCheck()
 		}
 	}
 	if setting.Cron.CheckRepoStats.Enabled {
-		entry, err = c.AddFunc("Check repository statistics", setting.Cron.CheckRepoStats.Schedule, WithUnique(checkRepos, models.CheckRepoStats))
+		entry, err = c.AddFunc("Check repository statistics", setting.Cron.CheckRepoStats.Schedule, CheckRepoStats)
 		if err != nil {
 			log.Fatal("Cron[Check repository statistics]: %v", err)
 		}
 		if setting.Cron.CheckRepoStats.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go WithUnique(checkRepos, models.CheckRepoStats)()
+			go CheckRepoStats()
 		}
 	}
 	if setting.Cron.ArchiveCleanup.Enabled {
-		entry, err = c.AddFunc("Clean up old repository archives", setting.Cron.ArchiveCleanup.Schedule, WithUnique(archiveCleanup, models.DeleteOldRepositoryArchives))
+		entry, err = c.AddFunc("Clean up old repository archives", setting.Cron.ArchiveCleanup.Schedule, ArchiveCleanup)
 		if err != nil {
 			log.Fatal("Cron[Clean up old repository archives]: %v", err)
 		}
 		if setting.Cron.ArchiveCleanup.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go WithUnique(archiveCleanup, models.DeleteOldRepositoryArchives)()
+			go ArchiveCleanup()
 		}
 	}
 	if setting.Cron.SyncExternalUsers.Enabled {
-		entry, err = c.AddFunc("Synchronize external users", setting.Cron.SyncExternalUsers.Schedule, WithUnique(syncExternalUsers, models.SyncExternalUsers))
+		entry, err = c.AddFunc("Synchronize external users", setting.Cron.SyncExternalUsers.Schedule, SyncExternalUsers)
 		if err != nil {
 			log.Fatal("Cron[Synchronize external users]: %v", err)
 		}
 		if setting.Cron.SyncExternalUsers.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go WithUnique(syncExternalUsers, models.SyncExternalUsers)()
+			go SyncExternalUsers()
 		}
 	}
 	if setting.Cron.DeletedBranchesCleanup.Enabled {
-		entry, err = c.AddFunc("Remove old deleted branches", setting.Cron.DeletedBranchesCleanup.Schedule, WithUnique(deletedBranchesCleanup, models.RemoveOldDeletedBranches))
+		entry, err = c.AddFunc("Remove old deleted branches", setting.Cron.DeletedBranchesCleanup.Schedule, DeletedBranchesCleanup)
 		if err != nil {
 			log.Fatal("Cron[Remove old deleted branches]: %v", err)
 		}
 		if setting.Cron.DeletedBranchesCleanup.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go WithUnique(deletedBranchesCleanup, models.RemoveOldDeletedBranches)()
+			go DeletedBranchesCleanup()
 		}
 	}
 
-	entry, err = c.AddFunc("Update migrated repositories' issues and comments' posterid", setting.Cron.UpdateMigrationPosterID.Schedule, WithUnique(updateMigrationPosterID, migrations.UpdateMigrationPosterID))
+	entry, err = c.AddFunc("Update migrated repositories' issues and comments' posterid", setting.Cron.UpdateMigrationPosterID.Schedule, UpdateMigrationPosterID)
 	if err != nil {
 		log.Fatal("Cron[Update migrated repositories]: %v", err)
 	}
 	entry.Prev = time.Now()
 	entry.ExecTimes++
-	go WithUnique(updateMigrationPosterID, migrations.UpdateMigrationPosterID)()
+	go UpdateMigrationPosterID()
 
 	c.Start()
 	graceful.GetManager().RunAtShutdown(context.Background(), c.Stop)
