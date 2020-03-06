@@ -35,7 +35,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Show the username as a fallback on feeds if full name is blank (#10461)
   * Update markbates/goth (backport v1.11) (#10445)
   * Trigger webhooks on issue label-change via API too (#10421) (#10439)
-  * Fix webhook bug (#10427) (#10432)
+  * Fix git reference type in webhooks (#10427) (#10432)
   * Prevent panic on merge to PR (#10403) (#10408)
   * Fix wrong num closed issues on repository when close issue via commit… (#10364) (#10380)
   * Reading pull attachments should depend on read UnitTypePullRequests (#10346) (#10354)
