@@ -258,7 +258,7 @@ fmt-check:
 test:
 	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
-PHONY: test-check
+.PHONY: test-check
 test-check:
 	@echo "Checking if tests have changed the source tree...";
 	@diff=$$(git status -s); \
