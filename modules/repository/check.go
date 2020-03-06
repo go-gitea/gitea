@@ -34,10 +34,10 @@ func GitFsck(ctx context.Context) error {
 			}
 			repo := bean.(*models.Repository)
 			repoPath := repo.RepoPath()
-			log.Trace("Running health check on repository %s", repoPath)
+			log.Trace("Running health check on repository %v", repo)
 			if err := git.Fsck(repoPath, setting.Cron.RepoHealthCheck.Timeout, setting.Cron.RepoHealthCheck.Args...); err != nil {
+				log.Warn("Failed to health check repository (%v): %v", repo, err)
 				desc := fmt.Sprintf("Failed to health check repository (%s): %v", repoPath, err)
-				log.Warn(desc)
 				if err = models.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
@@ -72,13 +72,18 @@ func GitGcRepos(ctx context.Context) error {
 			if err := repo.GetOwner(); err != nil {
 				return err
 			}
+			log.Trace("Running git gc on %v", repo)
 			if stdout, err := git.NewCommand(args...).
 				SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName())).
 				RunInDirTimeout(
 					time.Duration(setting.Git.Timeout.GC)*time.Second,
 					repo.RepoPath()); err != nil {
 				log.Error("Repository garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
-				return fmt.Errorf("Repository garbage collection failed: Error: %v", err)
+				desc := fmt.Sprintf("Repository garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
+				if err = models.CreateRepositoryNotice(desc); err != nil {
+					log.Error("CreateRepositoryNotice: %v", err)
+				}
+				return fmt.Errorf("Repository garbage collection failed in repo: %s: Error: %v", repo.FullName(), err)
 			}
 			return nil
 		},

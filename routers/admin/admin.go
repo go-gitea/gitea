@@ -6,6 +6,7 @@
 package admin
 
 import (
+	gocontext "context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -178,8 +179,13 @@ func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
 			success = ctx.Tr("admin.dashboard.delete_missing_repos_success")
 			err = repo_module.DeleteMissingRepositories(ctx.User)
 		case gitGCRepos:
-			success = ctx.Tr("admin.dashboard.git_gc_repos_success")
-			err = repo_module.GitGcRepos(shutdownCtx)
+			success = ctx.Tr("admin.dashboard.git_gc_repos_started")
+			go graceful.GetManager().RunWithShutdownContext(func(ctx gocontext.Context) {
+				err := repo_module.GitGcRepos
+				if err != nil {
+					log.Error("Error whilst running git gc: %v", err)
+				}
+			})
 		case syncSSHAuthorizedKey:
 			success = ctx.Tr("admin.dashboard.resync_all_sshkeys_success")
 			err = models.RewriteAllPublicKeys()
@@ -194,7 +200,12 @@ func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
 			go graceful.GetManager().RunWithShutdownContext(models.SyncExternalUsers)
 		case gitFsck:
 			success = ctx.Tr("admin.dashboard.git_fsck_started")
-			err = repo_module.GitFsck(shutdownCtx)
+			go graceful.GetManager().RunWithShutdownContext(func(ctx gocontext.Context) {
+				err := repo_module.GitFsck
+				if err != nil {
+					log.Error("Error whilst running git fsck: %v", err)
+				}
+			})
 		case deleteGeneratedRepositoryAvatars:
 			success = ctx.Tr("admin.dashboard.delete_generated_repository_avatars_success")
 			err = models.RemoveRandomAvatars()
