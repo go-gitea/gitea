@@ -25,7 +25,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix potential bugs (#10513) (#10518)
   * Org action fixes and form cleanup (#10512) (#10514)
   * Use \[:space:\] instead of \\s (#10508) (#10509)
-  * Avoid mailing explicit unwatched (#10475) (#10500)
+  * Avoid mailing users that have explicitly unwatched an issue (#10475) (#10500)
   * Handle push rejection message in Merge & Web Editor (#10373) (#10497)
   * Fix SQLite concurrency problems by using BEGIN IMMEDIATE (#10368) (#10493)
   * Fix double PR notification from API (#10482) (#10486)
