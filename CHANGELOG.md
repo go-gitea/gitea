@@ -23,7 +23,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update mergebase in pr checker (#10586) (#10605)
   * Fix release attachments being deleted while upgrading (#10572) (#10573)
   * Fix redirection path if Slack webhook channel is invalid (#10566)
-  * head.tmpl og:image picture location (#10531) (#10556)
+  * Fix head.tmpl og:image picture location (#10531) (#10556)
   * Fix 404 after activating secondary email (#10547) (#10553)
   * Show Signer in commit lists and add basic trust (#10425 & #10511) (#10524)
   * Fix potential bugs (#10513) (#10518)
