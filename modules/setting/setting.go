@@ -960,7 +960,6 @@ func NewContext() {
 	u.Path = path.Join(u.Path, "api", "swagger")
 	API.SwaggerURL = u.String()
 
-	newCron()
 	newGit()
 
 	sec = Cfg.Section("mirror")

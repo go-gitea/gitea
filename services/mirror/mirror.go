@@ -296,7 +296,7 @@ func Password(m *models.Mirror) string {
 }
 
 // Update checks and updates mirror repositories.
-func Update(ctx context.Context) {
+func Update(ctx context.Context) error {
 	log.Trace("Doing: Update")
 	if err := models.MirrorsIterate(func(idx int, bean interface{}) error {
 		m := bean.(*models.Mirror)
@@ -306,14 +306,17 @@ func Update(ctx context.Context) {
 		}
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("Aborted due to shutdown")
+			return fmt.Errorf("Aborted")
 		default:
 			mirrorQueue.Add(m.RepoID)
 			return nil
 		}
 	}); err != nil {
-		log.Error("Update: %v", err)
+		log.Trace("Update: %v", err)
+		return err
 	}
+	log.Trace("Finished: Update")
+	return nil
 }
 
 // SyncMirrors checks and syncs mirrors.

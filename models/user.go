@@ -1285,16 +1285,30 @@ func DeleteUser(u *User) (err error) {
 	return sess.Commit()
 }
 
-// DeleteInactivateUsers deletes all inactivate users and email addresses.
-func DeleteInactivateUsers() (err error) {
+// DeleteInactiveUsers deletes all inactive users and email addresses.
+func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err error) {
 	users := make([]*User, 0, 10)
-	if err = x.
-		Where("is_active = ?", false).
-		Find(&users); err != nil {
-		return fmt.Errorf("get all inactive users: %v", err)
+	if olderThan > 0 {
+		if err = x.
+			Where("is_active = ? and created_unix < ?", false, time.Now().Add(-olderThan).Unix()).
+			Find(&users); err != nil {
+			return fmt.Errorf("get all inactive users: %v", err)
+		}
+	} else {
+		if err = x.
+			Where("is_active = ?", false).
+			Find(&users); err != nil {
+			return fmt.Errorf("get all inactive users: %v", err)
+		}
+
 	}
 	// FIXME: should only update authorized_keys file once after all deletions.
 	for _, u := range users {
+		select {
+		case <-ctx.Done():
+			return ErrCancelledf("Before delete inactive user %s", u.Name)
+		default:
+		}
 		if err = DeleteUser(u); err != nil {
 			// Ignore users that were set inactive by admin.
 			if IsErrUserOwnRepos(err) || IsErrUserHasOrgs(err) {
@@ -1778,16 +1792,14 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []str
 }
 
 // SyncExternalUsers is used to synchronize users with external authorization source
-func SyncExternalUsers(ctx context.Context) {
+func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers")
 
 	ls, err := LoginSources()
 	if err != nil {
-		log.Error("SyncExternalUsers: %v", err)
-		return
+		log.Trace("SyncExternalUsers: %v", err)
+		return err
 	}
-
-	updateExisting := setting.Cron.SyncExternalUsers.UpdateExisting
 
 	for _, s := range ls {
 		if !s.IsActived || !s.IsSyncEnabled {
@@ -1795,8 +1807,8 @@ func SyncExternalUsers(ctx context.Context) {
 		}
 		select {
 		case <-ctx.Done():
-			log.Warn("SyncExternalUsers: Aborted due to shutdown before update of %s", s.Name)
-			return
+			log.Warn("SyncExternalUsers: Cancelled before update of %s", s.Name)
+			return ErrCancelledf("Before update of %s", s.Name)
 		default:
 		}
 
@@ -1814,12 +1826,12 @@ func SyncExternalUsers(ctx context.Context) {
 				Find(&users)
 			if err != nil {
 				log.Error("SyncExternalUsers: %v", err)
-				return
+				return err
 			}
 			select {
 			case <-ctx.Done():
-				log.Warn("SyncExternalUsers: Aborted due to shutdown before update of %s", s.Name)
-				return
+				log.Warn("SyncExternalUsers: Cancelled before update of %s", s.Name)
+				return ErrCancelledf("Before update of %s", s.Name)
 			default:
 			}
 
@@ -1841,7 +1853,7 @@ func SyncExternalUsers(ctx context.Context) {
 			for _, su := range sr {
 				select {
 				case <-ctx.Done():
-					log.Warn("SyncExternalUsers: Aborted due to shutdown at update of %s before completed update of users", s.Name)
+					log.Warn("SyncExternalUsers: Cancelled at update of %s before completed update of users", s.Name)
 					// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 					if sshKeysNeedUpdate {
 						err = RewriteAllPublicKeys()
@@ -1849,7 +1861,7 @@ func SyncExternalUsers(ctx context.Context) {
 							log.Error("RewriteAllPublicKeys: %v", err)
 						}
 					}
-					return
+					return ErrCancelledf("During update of %s before completed update of users", s.Name)
 				default:
 				}
 				if len(su.Username) == 0 {
@@ -1944,8 +1956,8 @@ func SyncExternalUsers(ctx context.Context) {
 
 			select {
 			case <-ctx.Done():
-				log.Warn("SyncExternalUsers: Aborted due to shutdown at update of %s before delete users", s.Name)
-				return
+				log.Warn("SyncExternalUsers: Cancelled during update of %s before delete users", s.Name)
+				return ErrCancelledf("During update of %s before delete users", s.Name)
 			default:
 			}
 
@@ -1972,4 +1984,5 @@ func SyncExternalUsers(ctx context.Context) {
 			}
 		}
 	}
+	return nil
 }

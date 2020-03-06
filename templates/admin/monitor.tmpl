@@ -7,28 +7,33 @@
 			{{.i18n.Tr "admin.monitor.cron"}}
 		</h4>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table">
-				<thead>
-					<tr>
-						<th>{{.i18n.Tr "admin.monitor.name"}}</th>
-						<th>{{.i18n.Tr "admin.monitor.schedule"}}</th>
-						<th>{{.i18n.Tr "admin.monitor.next"}}</th>
-						<th>{{.i18n.Tr "admin.monitor.previous"}}</th>
-						<th>{{.i18n.Tr "admin.monitor.execute_times"}}</th>
-					</tr>
-				</thead>
-				<tbody>
-					{{range .Entries}}
+			<form method="post" action="{{.AppSubUrl}}/admin">
+				{{.CsrfTokenHtml}}
+				<table class="ui very basic striped table">
+					<thead>
 						<tr>
-							<td>{{.Description}}</td>
-							<td>{{.Spec}}</td>
-							<td>{{DateFmtLong .Next}}</td>
-							<td>{{if gt .Prev.Year 1 }}{{DateFmtLong .Prev}}{{else}}N/A{{end}}</td>
-							<td>{{.ExecTimes}}</td>
+							<th></th>
+							<th>{{.i18n.Tr "admin.monitor.name"}}</th>
+							<th>{{.i18n.Tr "admin.monitor.schedule"}}</th>
+							<th>{{.i18n.Tr "admin.monitor.next"}}</th>
+							<th>{{.i18n.Tr "admin.monitor.previous"}}</th>
+							<th>{{.i18n.Tr "admin.monitor.execute_times"}}</th>
 						</tr>
-					{{end}}
-				</tbody>
-			</table>
+					</thead>
+					<tbody>
+						{{range .Entries}}
+							<tr>
+								<td><button type="submit" class="ui green button" name="op" value="{{.Name}}" title="{{$.i18n.Tr "admin.dashboard.operation_run"}}">{{svg "octicon-triangle-right" 16}}</button></td>
+								<td>{{$.i18n.Tr (printf "admin.dashboard.%s" .Name)}}</td>
+								<td>{{.Spec}}</td>
+								<td>{{DateFmtLong .Next}}</td>
+								<td>{{if gt .Prev.Year 1 }}{{DateFmtLong .Prev}}{{else}}N/A{{end}}</td>
+								<td>{{.ExecTimes}}</td>
+							</tr>
+						{{end}}
+					</tbody>
+				</table>
+			</form>
 		</div>
 
 		<h4 class="ui top attached header">
