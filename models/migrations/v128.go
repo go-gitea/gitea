@@ -92,5 +92,6 @@ func fixMergeBase(x *xorm.Engine) error {
 			x.ID(pr.ID).Cols("merge_base").Update(pr)
 		}
 	}
+
 	return nil
 }
