@@ -777,7 +777,7 @@ func UserSignIn(username, password string) (*User, error) {
 	if hasUser {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
-			if user.IsPasswordSet() && user.ValidatePassword(password) {
+			if /*user.IsPasswordSet() && */user.ValidatePassword(password) {
 
 				// Update password hash if server password hash algorithm have changed
 				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
