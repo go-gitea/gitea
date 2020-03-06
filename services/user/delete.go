@@ -6,6 +6,7 @@ package user
 import (
 	"context"
 	"fmt"
+	_ "image/jpeg" // Needed for jpeg support
 	"time"
 
 	_ "image/jpeg" // Needed for jpeg support

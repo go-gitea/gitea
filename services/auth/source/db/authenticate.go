@@ -15,7 +15,7 @@ func Authenticate(user *user_model.User, login, password string) (*user_model.Us
 		return nil, user_model.ErrUserNotExist{Name: login}
 	}
 
-	if !user.IsPasswordSet() || !user.ValidatePassword(password) {
+	if /*!user.IsPasswordSet() ||*/ !user.ValidatePassword(password) {
 		return nil, user_model.ErrUserNotExist{UID: user.ID, Name: user.Name}
 	}
 
