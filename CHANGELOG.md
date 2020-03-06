@@ -15,6 +15,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Change action GETs to POST (#10462) (#10464)
   * Fix admin notices (#10480) (#10483)
   * Change admin dashboard to POST (#10465) (#10466)
+  * Update markbates/goth (#10444) (#10445)
   * Update crypto vendors (#10385) (#10398)
 * BUGFIXES
   * Allow users with write permissions to modify issue descriptions and comments. (#10623) (#10626)
@@ -34,7 +35,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix SQLite concurrency problems by using BEGIN IMMEDIATE (#10368) (#10493)
   * Fix double PR notification from API (#10482) (#10486)
   * Show the username as a fallback on feeds if full name is blank (#10461)
-  * Update markbates/goth (backport v1.11) (#10445)
   * Trigger webhooks on issue label-change via API too (#10421) (#10439)
   * Fix git reference type in webhooks (#10427) (#10432)
   * Prevent panic on merge to PR (#10403) (#10408)
