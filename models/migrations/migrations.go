@@ -192,6 +192,8 @@ var migrations = []Migration{
 	NewMigration("fix merge base for pull requests", fixMergeBase),
 	// v129 -> v130
 	NewMigration("remove dependencies from deleted repositories", purgeUnusedDependencies),
+	// v130 -> v131
+	NewMigration("Expand webhooks for more granularity", expandWebhooks),
 }
 
 // Migrate database to current version
