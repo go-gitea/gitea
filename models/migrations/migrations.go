@@ -57,8 +57,9 @@ func (m *migration) Migrate(x *xorm.Engine) error {
 
 // Version describes the version table. Should have only one row with id==1
 type Version struct {
-	ID      int64 `xorm:"pk autoincr"`
-	Version int64
+	ID         int64 `xorm:"pk autoincr"`
+	Version    int64
+	SubVersion int64
 }
 
 func emptyMigration(x *xorm.Engine) error {
@@ -292,6 +293,15 @@ var migrations = []Migration{
 	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
 }
 
+// Backports are only applied after latest version in 'migrations'.
+// This list must be **empty** in master, but can contain items in release branches.
+// Backported migrations must conform to the following criteria:
+//    * The function must support being executed multiple times (e.g. when updating to the next
+//      minor revision and when the actual migration is executed again on the next major upgrade).
+//    * The function must not rely on data structures that might not be present in the branch
+//      it is backported to, unless its safe that it will add the column itself.
+var backports = []Migration{}
+
 // Migrate database to current version
 func Migrate(x *xorm.Engine) error {
 	if err := x.Sync(new(Version)); err != nil {
@@ -307,6 +317,7 @@ func Migrate(x *xorm.Engine) error {
 		// it is a fresh installation and we can skip all migrations.
 		currentVersion.ID = 0
 		currentVersion.Version = int64(minDBVersion + len(migrations))
+		currentVersion.SubVersion = int64(len(backports))
 
 		if _, err = x.InsertOne(currentVersion); err != nil {
 			return fmt.Errorf("insert: %v", err)
@@ -323,19 +334,43 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	if int(v-minDBVersion) > len(migrations) {
 		// User downgraded Gitea.
 		currentVersion.Version = int64(len(migrations) + minDBVersion)
+		// Backports are always considered pending when downgrading
+		currentVersion.SubVersion = 0
+		if _, err = x.ID(1).Update(currentVersion); err != nil {
+			return err
+		}
+	} else {
+		for i, m := range migrations[v-minDBVersion:] {
+			log.Info("Migration[%d]: %s", v+int64(i), m.Description())
+			if err = m.Migrate(x); err != nil {
+				return fmt.Errorf("do migrate: %v", err)
+			}
+			currentVersion.Version = v + int64(i) + 1
+			currentVersion.SubVersion = 0
+			if _, err = x.ID(1).Update(currentVersion); err != nil {
+				return err
+			}
+		}
+	}
+
+	if currentVersion.SubVersion > int64(len(backports)) {
+		// Downgraded subversion
 		_, err = x.ID(1).Update(currentVersion)
 		return err
 	}
-	for i, m := range migrations[v-minDBVersion:] {
-		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
+
+	for sv := currentVersion.SubVersion; sv < int64(len(backports)); sv++ {
+		m := backports[sv]
+		log.Info("Migration[%d.%d]: %s", currentVersion.Version, sv, m.Description())
 		if err = m.Migrate(x); err != nil {
-			return fmt.Errorf("do migrate: %v", err)
+			return fmt.Errorf("do backport: %v", err)
 		}
-		currentVersion.Version = v + int64(i) + 1
+		currentVersion.SubVersion = sv
 		if _, err = x.ID(1).Update(currentVersion); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
