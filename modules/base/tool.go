@@ -195,23 +195,19 @@ func SizedAvatarLink(email string, size int) string {
 
 // SizedAvatarLinkWithDomain returns a sized link to the avatar for the given email
 // address.
-func SizedAvatarLinkWithDomain(emailHash, domain string, size int) string {
+func SizedAvatarLinkWithDomain(email string, size int) string {
 	var avatarURL *url.URL
 	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
 		var err error
-		avatarURL, err = libravatarURL("ignoreme@" + domain)
+		avatarURL, err = libravatarURL(email)
 		if err != nil {
 			return DefaultAvatarLink()
 		}
-		// now we replace the hash with the correct one...
-		avatarPath := avatarURL.EscapedPath()
-		lastSlash := strings.LastIndexByte(avatarPath, '/')
-		avatarURL.Path = avatarPath[:lastSlash+1] + emailHash
 	} else if !setting.DisableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		copyOfGravatarSourceURL := *setting.GravatarSourceURL
 		avatarURL = &copyOfGravatarSourceURL
-		avatarURL.Path = path.Join(avatarURL.Path, emailHash)
+		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
 	} else {
 		return DefaultAvatarLink()
 	}
@@ -223,23 +219,6 @@ func SizedAvatarLinkWithDomain(emailHash, domain string, size int) string {
 	}
 	avatarURL.RawQuery = vals.Encode()
 	return avatarURL.String()
-}
-
-// AvatarLink returns relative avatar link to the site domain by given email,
-// which includes app sub-url as prefix. However, it is possible
-// to return full URL if user enables Gravatar-like service.
-func AvatarLink(email string) string {
-	lowerEmail := strings.ToLower(strings.TrimSpace(email))
-	sum := fmt.Sprintf("%x", md5.Sum([]byte(lowerEmail)))
-	index := strings.IndexByte(email, '@')
-	domain := ""
-	if index >= 0 {
-		domain = email[index+1:]
-	}
-	if len(domain) == 0 {
-		domain = "cdn.libravatar.org"
-	}
-	return setting.AppSubURL + "/avatar/" + url.PathEscape(domain) + "/" + url.PathEscape(sum)
 }
 
 // FileSize calculates the file size and generate user-friendly string.

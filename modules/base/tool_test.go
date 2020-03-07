@@ -1,8 +1,6 @@
 package base
 
 import (
-	"crypto/md5"
-	"fmt"
 	"net/url"
 	"testing"
 
@@ -89,17 +87,6 @@ func TestSizedAvatarLink(t *testing.T) {
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon&s=100",
 		SizedAvatarLink("gitea@example.com", 100),
-	)
-}
-
-func TestAvatarLink(t *testing.T) {
-	disableGravatar()
-	assert.Equal(t, "/avatar/example.com/"+fmt.Sprintf("%x", md5.Sum([]byte("gitea@example.com"))), AvatarLink("gitea@example.com"))
-
-	enableGravatar(t)
-	assert.Equal(t,
-		"/avatar/example.com/"+fmt.Sprintf("%x", md5.Sum([]byte("gitea@example.com"))),
-		AvatarLink("gitea@example.com"),
 	)
 }
 

@@ -46,15 +46,23 @@ func Avatar(ctx *context.Context) {
 
 // AvatarByEmail redirects the browser to the appropriate Avatar link
 func AvatarByEmail(ctx *context.Context) {
-	domain := ctx.Params(":domain")
 	hash := ctx.Params(":hash")
-	if len(domain) == 0 || len(hash) == 0 {
-		ctx.ServerError("invalid email address", errors.New("email cannot be empty"))
+	if len(hash) == 0 {
+		ctx.ServerError("invalid avatar hash", errors.New("hash cannot be empty"))
+		return
+	}
+	email, err := models.GetEmailForHash(hash)
+	if err != nil {
+		ctx.ServerError("invalid avatar hash", err)
+		return
+	}
+	if len(email) == 0 {
+		ctx.Redirect(base.DefaultAvatarLink())
 		return
 	}
 	size := ctx.QueryInt("size")
 	if size == 0 {
 		size = base.DefaultAvatarSize
 	}
-	ctx.Redirect(base.SizedAvatarLinkWithDomain(hash, domain, size))
+	ctx.Redirect(base.SizedAvatarLinkWithDomain(email, size))
 }
