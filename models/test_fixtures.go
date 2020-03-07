@@ -36,7 +36,7 @@ func LoadFixtures() error {
 		fmt.Printf("LoadFixtures failed after retries: %v\n", err)
 	}
 	// Now if we're running postgres we need to tell it to update the sequences
-	if x.Dialect().DriverName() == "postgres" {
+	if x.Dialect().DBType() == "postgres" {
 		results, err := x.QueryString(`SELECT 'SELECT SETVAL(' ||
 		quote_literal(quote_ident(PGT.schemaname) || '.' || quote_ident(S.relname)) ||
 		', COALESCE(MAX(' ||quote_ident(C.attname)|| '), 1) ) FROM ' ||

@@ -440,27 +440,7 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 ## Changelog
 
-* **v0.7.0**
-    * Some bugs fixed
-
-* **v0.6.6**
-    * Some bugs fixed
-
-* **v0.6.5**
-    * Postgres schema support
-    * vgo support
-    * Add FindAndCount
-    * Database special params support via NewEngineWithParams
-    * Some bugs fixed
-
-* **v0.6.4**
-    * Automatical Read/Write seperatelly
-    * Query/QueryString/QueryInterface and action with Where/And
-    * Get support non-struct variables
-    * BufferSize on Iterate
-    * fix some other bugs.
-
-[More changes ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
+You can find all the changelog [here](CHANGELOG.md)
 
 ## Cases
 

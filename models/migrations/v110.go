@@ -5,28 +5,28 @@
 package migrations
 
 import (
-	"xorm.io/core"
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 func changeReviewContentToText(x *xorm.Engine) error {
 
-	if x.Dialect().DBType() == core.MYSQL {
+	if x.Dialect().DBType() == schemas.MYSQL {
 		_, err := x.Exec("ALTER TABLE review MODIFY COLUMN content TEXT")
 		return err
 	}
 
-	if x.Dialect().DBType() == core.ORACLE {
+	if x.Dialect().DBType() == schemas.ORACLE {
 		_, err := x.Exec("ALTER TABLE review MODIFY content TEXT")
 		return err
 	}
 
-	if x.Dialect().DBType() == core.MSSQL {
+	if x.Dialect().DBType() == schemas.MSSQL {
 		_, err := x.Exec("ALTER TABLE review ALTER COLUMN content TEXT")
 		return err
 	}
 
-	if x.Dialect().DBType() == core.POSTGRES {
+	if x.Dialect().DBType() == schemas.POSTGRES {
 		_, err := x.Exec("ALTER TABLE review ALTER COLUMN content TYPE TEXT")
 		return err
 	}

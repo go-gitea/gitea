@@ -435,13 +435,13 @@ res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) 
 
 # 案例
 
-* [Go语言中文网](http://studygolang.com/) - [github.com/studygolang/studygolang](https://github.com/studygolang/studygolang)
-
 * [Gitea](http://gitea.io) - [github.com/go-gitea/gitea](http://github.com/go-gitea/gitea)
 
 * [Gogs](http://try.gogits.org) - [github.com/gogits/gogs](http://github.com/gogits/gogs)
 
 * [grafana](https://grafana.com/) - [github.com/grafana/grafana](http://github.com/grafana/grafana)
+
+* [Go语言中文网](http://studygolang.com/) - [github.com/studygolang/studygolang](https://github.com/studygolang/studygolang)
 
 * [github.com/m3ng9i/qreader](https://github.com/m3ng9i/qreader)
 
@@ -470,27 +470,7 @@ res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) 
 
 ## 更新日志
 
-* **v0.7.0**
-    * 修正部分Bug
-
-* **v0.6.6**
-    * 修正部分Bug
-
-* **v0.6.5**
-    * 通过 engine.SetSchema 来支持 schema，当前仅支持Postgres
-    * vgo 支持
-    * 新增 `FindAndCount` 函数
-    * 通过 `NewEngineWithParams` 支持数据库特别参数
-    * 修正部分Bug
-
-* **v0.6.4**
-    * 自动读写分离支持
-    * Query/QueryString/QueryInterface 支持与 Where/And 合用
-    * `Get` 支持获取非结构体变量
-    * `Iterate` 支持 `BufferSize` 
-    * 修正部分Bug
-
-[更多更新日志...](https://github.com/go-xorm/manual-zh-CN/tree/master/chapter-16)
+请访问 [CHANGELOG.md](CHANGELOG.md) 获得更新日志。
 
 ## LICENSE
 

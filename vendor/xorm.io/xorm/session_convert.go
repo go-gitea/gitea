@@ -14,10 +14,14 @@ import (
 	"strings"
 	"time"
 
-	"xorm.io/core"
+	"xorm.io/xorm/convert"
+	"xorm.io/xorm/dialects"
+	"xorm.io/xorm/internal/json"
+	"xorm.io/xorm/internal/utils"
+	"xorm.io/xorm/schemas"
 )
 
-func (session *Session) str2Time(col *core.Column, data string) (outTime time.Time, outErr error) {
+func (session *Session) str2Time(col *schemas.Column, data string) (outTime time.Time, outErr error) {
 	sdata := strings.TrimSpace(data)
 	var x time.Time
 	var err error
@@ -27,7 +31,7 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 		parseLoc = col.TimeZone
 	}
 
-	if sdata == zeroTime0 || sdata == zeroTime1 {
+	if sdata == utils.ZeroTime0 || sdata == utils.ZeroTime1 {
 	} else if !strings.ContainsAny(sdata, "- :") { // !nashtsai! has only found that mymysql driver is using this for time type column
 		// time stamp
 		sd, err := strconv.ParseInt(sdata, 10, 64)
@@ -54,14 +58,14 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 	} else if len(sdata) == 10 && sdata[4] == '-' && sdata[7] == '-' {
 		x, err = time.ParseInLocation("2006-01-02", sdata, parseLoc)
 		//session.engine.logger.Debugf("time(5) key[%v]: %+v | sdata: [%v]\n", col.FieldName, x, sdata)
-	} else if col.SQLType.Name == core.Time {
+	} else if col.SQLType.Name == schemas.Time {
 		if strings.Contains(sdata, " ") {
 			ssd := strings.Split(sdata, " ")
 			sdata = ssd[1]
 		}
 
 		sdata = strings.TrimSpace(sdata)
-		if session.engine.dialect.DBType() == core.MYSQL && len(sdata) > 8 {
+		if session.engine.dialect.DBType() == schemas.MYSQL && len(sdata) > 8 {
 			sdata = sdata[len(sdata)-8:]
 		}
 
@@ -80,7 +84,7 @@ func (session *Session) str2Time(col *core.Column, data string) (outTime time.Ti
 	return
 }
 
-func (session *Session) byte2Time(col *core.Column, data []byte) (outTime time.Time, outErr error) {
+func (session *Session) byte2Time(col *schemas.Column, data []byte) (outTime time.Time, outErr error) {
 	return session.str2Time(col, string(data))
 }
 
@@ -89,12 +93,12 @@ var (
 )
 
 // convert a db data([]byte) to a field value
-func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value, data []byte) error {
-	if structConvert, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
+func (session *Session) bytes2Value(col *schemas.Column, fieldValue *reflect.Value, data []byte) error {
+	if structConvert, ok := fieldValue.Addr().Interface().(convert.Conversion); ok {
 		return structConvert.FromDB(data)
 	}
 
-	if structConvert, ok := fieldValue.Interface().(core.Conversion); ok {
+	if structConvert, ok := fieldValue.Interface().(convert.Conversion); ok {
 		return structConvert.FromDB(data)
 	}
 
@@ -106,9 +110,8 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 	case reflect.Complex64, reflect.Complex128:
 		x := reflect.New(fieldType)
 		if len(data) > 0 {
-			err := DefaultJSONHandler.Unmarshal(data, x.Interface())
+			err := json.DefaultJSONHandler.Unmarshal(data, x.Interface())
 			if err != nil {
-				session.engine.logger.Error(err)
 				return err
 			}
 			fieldValue.Set(x.Elem())
@@ -120,9 +123,8 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		if col.SQLType.IsText() {
 			x := reflect.New(fieldType)
 			if len(data) > 0 {
-				err := DefaultJSONHandler.Unmarshal(data, x.Interface())
+				err := json.DefaultJSONHandler.Unmarshal(data, x.Interface())
 				if err != nil {
-					session.engine.logger.Error(err)
 					return err
 				}
 				fieldValue.Set(x.Elem())
@@ -133,9 +135,8 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			} else {
 				x := reflect.New(fieldType)
 				if len(data) > 0 {
-					err := DefaultJSONHandler.Unmarshal(data, x.Interface())
+					err := json.DefaultJSONHandler.Unmarshal(data, x.Interface())
 					if err != nil {
-						session.engine.logger.Error(err)
 						return err
 					}
 					fieldValue.Set(x.Elem())
@@ -157,8 +158,8 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		var x int64
 		var err error
 		// for mysql, when use bit, it returned \x01
-		if col.SQLType.Name == core.Bit &&
-			session.engine.dialect.DBType() == core.MYSQL { // !nashtsai! TODO dialect needs to provide conversion interface API
+		if col.SQLType.Name == schemas.Bit &&
+			session.engine.dialect.DBType() == schemas.MYSQL { // !nashtsai! TODO dialect needs to provide conversion interface API
 			if len(data) == 1 {
 				x = int64(data[0])
 			} else {
@@ -199,7 +200,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				return fmt.Errorf("sql.Scan(%v) failed: %s ", data, err.Error())
 			}
 		} else {
-			if fieldType.ConvertibleTo(core.TimeType) {
+			if fieldType.ConvertibleTo(schemas.TimeType) {
 				x, err := session.byte2Time(col, data)
 				if err != nil {
 					return err
@@ -207,7 +208,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 				v = x
 				fieldValue.Set(reflect.ValueOf(v).Convert(fieldType))
 			} else if session.statement.UseCascade {
-				table, err := session.engine.autoMapType(*fieldValue)
+				table, err := session.engine.tagParser.ParseWithCache(*fieldValue)
 				if err != nil {
 					return err
 				}
@@ -217,14 +218,14 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 					return errors.New("unsupported composited primary key cascade")
 				}
 
-				var pk = make(core.PK, len(table.PrimaryKeys))
+				var pk = make(schemas.PK, len(table.PrimaryKeys))
 				rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
 				pk[0], err = str2PK(string(data), rawValueType)
 				if err != nil {
 					return err
 				}
 
-				if !isPKZero(pk) {
+				if !pk.IsZero() {
 					// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
 					// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 					// property to be fetched lazily
@@ -247,11 +248,11 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		//typeStr := fieldType.String()
 		switch fieldType.Elem().Kind() {
 		// case "*string":
-		case core.StringType.Kind():
+		case schemas.StringType.Kind():
 			x := string(data)
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*bool":
-		case core.BoolType.Kind():
+		case schemas.BoolType.Kind():
 			d := string(data)
 			v, err := strconv.ParseBool(d)
 			if err != nil {
@@ -259,36 +260,34 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&v).Convert(fieldType))
 		// case "*complex64":
-		case core.Complex64Type.Kind():
+		case schemas.Complex64Type.Kind():
 			var x complex64
 			if len(data) > 0 {
-				err := DefaultJSONHandler.Unmarshal(data, &x)
+				err := json.DefaultJSONHandler.Unmarshal(data, &x)
 				if err != nil {
-					session.engine.logger.Error(err)
 					return err
 				}
 				fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 			}
 		// case "*complex128":
-		case core.Complex128Type.Kind():
+		case schemas.Complex128Type.Kind():
 			var x complex128
 			if len(data) > 0 {
-				err := DefaultJSONHandler.Unmarshal(data, &x)
+				err := json.DefaultJSONHandler.Unmarshal(data, &x)
 				if err != nil {
-					session.engine.logger.Error(err)
 					return err
 				}
 				fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 			}
 		// case "*float64":
-		case core.Float64Type.Kind():
+		case schemas.Float64Type.Kind():
 			x, err := strconv.ParseFloat(string(data), 64)
 			if err != nil {
 				return fmt.Errorf("arg %v as float64: %s", key, err.Error())
 			}
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*float32":
-		case core.Float32Type.Kind():
+		case schemas.Float32Type.Kind():
 			var x float32
 			x1, err := strconv.ParseFloat(string(data), 32)
 			if err != nil {
@@ -297,7 +296,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x = float32(x1)
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*uint64":
-		case core.Uint64Type.Kind():
+		case schemas.Uint64Type.Kind():
 			var x uint64
 			x, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
@@ -305,7 +304,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*uint":
-		case core.UintType.Kind():
+		case schemas.UintType.Kind():
 			var x uint
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
@@ -314,7 +313,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x = uint(x1)
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*uint32":
-		case core.Uint32Type.Kind():
+		case schemas.Uint32Type.Kind():
 			var x uint32
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
@@ -323,7 +322,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x = uint32(x1)
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*uint8":
-		case core.Uint8Type.Kind():
+		case schemas.Uint8Type.Kind():
 			var x uint8
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
@@ -332,7 +331,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x = uint8(x1)
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*uint16":
-		case core.Uint16Type.Kind():
+		case schemas.Uint16Type.Kind():
 			var x uint16
 			x1, err := strconv.ParseUint(string(data), 10, 64)
 			if err != nil {
@@ -341,12 +340,12 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			x = uint16(x1)
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*int64":
-		case core.Int64Type.Kind():
+		case schemas.Int64Type.Kind():
 			sdata := string(data)
 			var x int64
 			var err error
 			// for mysql, when use bit, it returned \x01
-			if col.SQLType.Name == core.Bit &&
+			if col.SQLType.Name == schemas.Bit &&
 				strings.Contains(session.engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int64(data[0])
@@ -365,13 +364,13 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*int":
-		case core.IntType.Kind():
+		case schemas.IntType.Kind():
 			sdata := string(data)
 			var x int
 			var x1 int64
 			var err error
 			// for mysql, when use bit, it returned \x01
-			if col.SQLType.Name == core.Bit &&
+			if col.SQLType.Name == schemas.Bit &&
 				strings.Contains(session.engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int(data[0])
@@ -393,14 +392,14 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*int32":
-		case core.Int32Type.Kind():
+		case schemas.Int32Type.Kind():
 			sdata := string(data)
 			var x int32
 			var x1 int64
 			var err error
 			// for mysql, when use bit, it returned \x01
-			if col.SQLType.Name == core.Bit &&
-				session.engine.dialect.DBType() == core.MYSQL {
+			if col.SQLType.Name == schemas.Bit &&
+				session.engine.dialect.DBType() == schemas.MYSQL {
 				if len(data) == 1 {
 					x = int32(data[0])
 				} else {
@@ -421,13 +420,13 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*int8":
-		case core.Int8Type.Kind():
+		case schemas.Int8Type.Kind():
 			sdata := string(data)
 			var x int8
 			var x1 int64
 			var err error
 			// for mysql, when use bit, it returned \x01
-			if col.SQLType.Name == core.Bit &&
+			if col.SQLType.Name == schemas.Bit &&
 				strings.Contains(session.engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int8(data[0])
@@ -449,13 +448,13 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			}
 			fieldValue.Set(reflect.ValueOf(&x).Convert(fieldType))
 		// case "*int16":
-		case core.Int16Type.Kind():
+		case schemas.Int16Type.Kind():
 			sdata := string(data)
 			var x int16
 			var x1 int64
 			var err error
 			// for mysql, when use bit, it returned \x01
-			if col.SQLType.Name == core.Bit &&
+			if col.SQLType.Name == schemas.Bit &&
 				strings.Contains(session.engine.DriverName(), "mysql") {
 				if len(data) == 1 {
 					x = int16(data[0])
@@ -480,7 +479,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 		case reflect.Struct:
 			switch fieldType {
 			// case "*.time.Time":
-			case core.PtrTimeType:
+			case schemas.PtrTimeType:
 				x, err := session.byte2Time(col, data)
 				if err != nil {
 					return err
@@ -490,7 +489,7 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 			default:
 				if session.statement.UseCascade {
 					structInter := reflect.New(fieldType.Elem())
-					table, err := session.engine.autoMapType(structInter.Elem())
+					table, err := session.engine.tagParser.ParseWithCache(structInter.Elem())
 					if err != nil {
 						return err
 					}
@@ -499,14 +498,14 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 						return errors.New("unsupported composited primary key cascade")
 					}
 
-					var pk = make(core.PK, len(table.PrimaryKeys))
+					var pk = make(schemas.PK, len(table.PrimaryKeys))
 					rawValueType := table.ColumnType(table.PKColumns()[0].FieldName)
 					pk[0], err = str2PK(string(data), rawValueType)
 					if err != nil {
 						return err
 					}
 
-					if !isPKZero(pk) {
+					if !pk.IsZero() {
 						// !nashtsai! TODO for hasOne relationship, it's preferred to use join query for eager fetch
 						// however, also need to consider adding a 'lazy' attribute to xorm tag which allow hasOne
 						// property to be fetched lazily
@@ -536,9 +535,9 @@ func (session *Session) bytes2Value(col *core.Column, fieldValue *reflect.Value,
 }
 
 // convert a field value of a struct to interface for put into db
-func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Value) (interface{}, error) {
+func (session *Session) value2Interface(col *schemas.Column, fieldValue reflect.Value) (interface{}, error) {
 	if fieldValue.CanAddr() {
-		if fieldConvert, ok := fieldValue.Addr().Interface().(core.Conversion); ok {
+		if fieldConvert, ok := fieldValue.Addr().Interface().(convert.Conversion); ok {
 			data, err := fieldConvert.ToDB()
 			if err != nil {
 				return 0, err
@@ -550,7 +549,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		}
 	}
 
-	if fieldConvert, ok := fieldValue.Interface().(core.Conversion); ok {
+	if fieldConvert, ok := fieldValue.Interface().(convert.Conversion); ok {
 		data, err := fieldConvert.ToDB()
 		if err != nil {
 			return 0, err
@@ -567,7 +566,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		if fieldValue.IsNil() {
 			return nil, nil
 		} else if !fieldValue.IsValid() {
-			session.engine.logger.Warn("the field[", col.FieldName, "] is invalid")
+			session.engine.logger.Warnf("the field [%s] is invalid", col.FieldName)
 			return nil, nil
 		} else {
 			// !nashtsai! deference pointer type to instance type
@@ -583,9 +582,9 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 	case reflect.String:
 		return fieldValue.String(), nil
 	case reflect.Struct:
-		if fieldType.ConvertibleTo(core.TimeType) {
-			t := fieldValue.Convert(core.TimeType).Interface().(time.Time)
-			tf := session.engine.formatColTime(col, t)
+		if fieldType.ConvertibleTo(schemas.TimeType) {
+			t := fieldValue.Convert(schemas.TimeType).Interface().(time.Time)
+			tf := dialects.FormatColumnTime(session.engine.dialect, session.engine.DatabaseTZ, col, t)
 			return tf, nil
 		} else if fieldType.ConvertibleTo(nullFloatType) {
 			t := fieldValue.Convert(nullFloatType).Interface().(sql.NullFloat64)
@@ -601,7 +600,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 				return v.Value()
 			}
 
-			fieldTable, err := session.engine.autoMapType(fieldValue)
+			fieldTable, err := session.engine.tagParser.ParseWithCache(fieldValue)
 			if err != nil {
 				return nil, err
 			}
@@ -613,25 +612,22 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		}
 
 		if col.SQLType.IsText() {
-			bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
+			bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
 			if err != nil {
-				session.engine.logger.Error(err)
 				return 0, err
 			}
 			return string(bytes), nil
 		} else if col.SQLType.IsBlob() {
-			bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
+			bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
 			if err != nil {
-				session.engine.logger.Error(err)
 				return 0, err
 			}
 			return bytes, nil
 		}
 		return nil, fmt.Errorf("Unsupported type %v", fieldValue.Type())
 	case reflect.Complex64, reflect.Complex128:
-		bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
+		bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
 		if err != nil {
-			session.engine.logger.Error(err)
 			return 0, err
 		}
 		return string(bytes), nil
@@ -641,9 +637,8 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		}
 
 		if col.SQLType.IsText() {
-			bytes, err := DefaultJSONHandler.Marshal(fieldValue.Interface())
+			bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
 			if err != nil {
-				session.engine.logger.Error(err)
 				return 0, err
 			}
 			return string(bytes), nil
@@ -654,9 +649,8 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 				(fieldValue.Type().Elem().Kind() == reflect.Uint8) {
 				bytes = fieldValue.Bytes()
 			} else {
-				bytes, err = DefaultJSONHandler.Marshal(fieldValue.Interface())
+				bytes, err = json.DefaultJSONHandler.Marshal(fieldValue.Interface())
 				if err != nil {
-					session.engine.logger.Error(err)
 					return 0, err
 				}
 			}
