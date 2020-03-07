@@ -474,7 +474,6 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 }
 
 func renderUploadSettings(ctx *context.Context) {
-	ctx.Data["RequireDropzone"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["UploadAllowedTypes"] = strings.Join(setting.Repository.Upload.AllowedTypes, ",")
