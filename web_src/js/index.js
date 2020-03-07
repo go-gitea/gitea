@@ -15,26 +15,21 @@ import initHighlight from './features/highlight.js';
 import initGitGraph from './features/gitGraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userHeatmap.js';
+import createDropzone from './features/dropzone.js';
 
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
-const { AppSubUrl, StaticUrlPrefix } = window.config;
+const { AppSubUrl, StaticUrlPrefix, csrf } = window.config;
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
 
-let csrf;
 let previewFileModes;
 let simpleMDEditor;
 const commentMDEditors = {};
 let codeMirrorEditor;
 let hljs;
-
-// Disable Dropzone auto-discover because it's manually initialized
-if (typeof (Dropzone) !== 'undefined') {
-  Dropzone.autoDiscover = false;
-}
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -867,7 +862,7 @@ function initRepository() {
     });
 
     // Edit issue or comment content
-    $('.edit-content').click(function (event) {
+    $('.edit-content').click(async function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
@@ -883,12 +878,14 @@ function initRepository() {
         issuesTribute.attach($textarea.get());
         emojiTribute.attach($textarea.get());
 
+        let dz;
         const $dropzone = $editContentZone.find('.dropzone');
-        $dropzone.data('saved', false);
         const $files = $editContentZone.find('.comment-files');
         if ($dropzone.length > 0) {
+          $dropzone.data('saved', false);
+
           const filenameDict = {};
-          $dropzone.dropzone({
+          dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
             headers: { 'X-Csrf-Token': csrf },
             maxFiles: $dropzone.data('max-file'),
@@ -927,15 +924,14 @@ function initRepository() {
               });
               this.on('reload', () => {
                 $.getJSON($editContentZone.data('attachment-url'), (data) => {
-                  const drop = $dropzone.get(0).dropzone;
-                  drop.removeAllFiles(true);
+                  dz.removeAllFiles(true);
                   $files.empty();
                   $.each(data, function () {
                     const imgSrc = `${$dropzone.data('upload-url')}/${this.uuid}`;
-                    drop.emit('addedfile', this);
-                    drop.emit('thumbnail', this, imgSrc);
-                    drop.emit('complete', this);
-                    drop.files.push(this);
+                    dz.emit('addedfile', this);
+                    dz.emit('thumbnail', this, imgSrc);
+                    dz.emit('complete', this);
+                    dz.files.push(this);
                     filenameDict[this.name] = {
                       submitted: true,
                       uuid: this.uuid
@@ -948,7 +944,7 @@ function initRepository() {
               });
             }
           });
-          $dropzone.get(0).dropzone.emit('reload');
+          dz.emit('reload');
         }
         // Give new write/preview data-tab name to distinguish from others
         const $editContentForm = $editContentZone.find('.ui.comment.form');
@@ -967,7 +963,7 @@ function initRepository() {
         $editContentZone.find('.cancel.button').click(() => {
           $renderContent.show();
           $editContentZone.hide();
-          $dropzone.get(0).dropzone.emit('reload');
+          dz.emit('reload');
         });
         $editContentZone.find('.save.button').click(() => {
           $renderContent.show();
@@ -1003,8 +999,8 @@ function initRepository() {
             } else {
               $content.find('.ui.small.images').html(data.attachments);
             }
-            $dropzone.get(0).dropzone.emit('submit');
-            $dropzone.get(0).dropzone.emit('reload');
+            dz.emit('submit');
+            dz.emit('reload');
           });
         });
       } else {
@@ -2366,8 +2362,6 @@ function initTemplateSearch() {
 }
 
 $(document).ready(async () => {
-  csrf = $('meta[name=_csrf]').attr('content');
-
   // Show exact time
   $('.time-since').each(function () {
     $(this)
@@ -2421,7 +2415,7 @@ $(document).ready(async () => {
   if ($dropzone.length > 0) {
     const filenameDict = {};
 
-    new Dropzone('#dropzone', {
+    await createDropzone('#dropzone', {
       url: $dropzone.data('upload-url'),
       headers: { 'X-Csrf-Token': csrf },
       maxFiles: $dropzone.data('max-file'),

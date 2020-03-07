@@ -86,8 +86,8 @@
 		window.config = {
 			AppSubUrl: '{{AppSubUrl}}',
 			StaticUrlPrefix: '{{StaticUrlPrefix}}',
+			csrf: '{{.CsrfToken}}',
 			Datetimepicker: {{if .RequireDatetimepicker}}true{{else}}false{{end}},
-			Dropzone: {{if .RequireDropzone}}true{{else}}false{{end}},
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
@@ -124,9 +124,6 @@
 {{end}}
 {{if .RequireDatetimepicker}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css">
-{{end}}
-{{if .RequireDropzone}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/dropzone/dropzone.css">
 {{end}}
 	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
