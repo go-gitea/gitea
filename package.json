@@ -24,6 +24,7 @@
     "@babel/preset-env": "7.8.4",
     "@babel/runtime": "7.8.4",
     "babel-loader": "8.0.6",
+    "copy-webpack-plugin": "5.1.1",
     "core-js": "3.6.4",
     "css-loader": "3.4.2",
     "cssnano": "4.1.10",
