@@ -2,7 +2,7 @@ export default async function initClipboard() {
   const els = document.querySelectorAll('.clipboard');
   if (!els || !els.length) return;
 
-  const { default: ClipboardJS } = await import(/* webpackChunkName: "clipboard" */'clipboard');
+  const {default: ClipboardJS} = await import(/* webpackChunkName: "clipboard" */'clipboard');
 
   const clipboard = new ClipboardJS(els);
   clipboard.on('success', (e) => {
