@@ -91,6 +91,7 @@ func isOidValid(oid string) bool {
 // ObjectOidHandler is the main request routing entry point into LFS server functions
 func ObjectOidHandler(ctx *context.Context) {
 	if !setting.LFS.StartServer {
+		log.Debug("Attempt to access LFS server but LFS server is disabled")
 		writeStatus(ctx, 404)
 		return
 	}
@@ -108,17 +109,20 @@ func ObjectOidHandler(ctx *context.Context) {
 		return
 	}
 
+	log.Warn("Unhandled LFS method: %s for %s/%s OID[%s]", ctx.Req.Method, ctx.Params("username"), ctx.Params("reponame"), ctx.Params("oid"))
+	writeStatus(ctx, 404)
 }
 
 func getAuthenticatedRepoAndMeta(ctx *context.Context, rv *RequestVars, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
 	if !isOidValid(rv.Oid) {
+		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", rv.Oid, rv.User, rv.Repo)
 		writeStatus(ctx, 404)
 		return nil, nil
 	}
 
 	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
-		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
+		log.Error("Unable to get repository: %s/%s Error: %v", rv.User, rv.Repo, err)
 		writeStatus(ctx, 404)
 		return nil, nil
 	}
@@ -130,6 +134,7 @@ func getAuthenticatedRepoAndMeta(ctx *context.Context, rv *RequestVars, requireW
 
 	meta, err := repository.GetLFSMetaObjectByOid(rv.Oid)
 	if err != nil {
+		log.Error("Unable to get LFS OID[%s] Error: %v", rv.Oid, err)
 		writeStatus(ctx, 404)
 		return nil, nil
 	}
@@ -143,6 +148,7 @@ func getContentHandler(ctx *context.Context) {
 
 	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, false)
 	if meta == nil {
+		// Status already written in getAuthenticatedRepoAndMeta
 		return
 	}
 
@@ -162,9 +168,11 @@ func getContentHandler(ctx *context.Context) {
 	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	content, err := contentStore.Get(meta, fromByte)
 	if err != nil {
+		// Errors are logged in contentStore.Get
 		writeStatus(ctx, 404)
 		return
 	}
+	defer content.Close()
 
 	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(meta.Size-fromByte, 10))
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
@@ -178,8 +186,9 @@ func getContentHandler(ctx *context.Context) {
 	}
 
 	ctx.Resp.WriteHeader(statusCode)
-	_, _ = io.Copy(ctx.Resp, content)
-	_ = content.Close()
+	if written, err := io.Copy(ctx.Resp, content); err != nil {
+		log.Error("Error whilst copying LFS OID[%s] to the response after %d bytes. Error: %v", meta.Oid, written, err)
+	}
 	logRequest(ctx.Req, statusCode)
 }
 
@@ -189,6 +198,7 @@ func getMetaHandler(ctx *context.Context) {
 
 	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, false)
 	if meta == nil {
+		// Status already written in getAuthenticatedRepoAndMeta
 		return
 	}
 
@@ -196,7 +206,9 @@ func getMetaHandler(ctx *context.Context) {
 
 	if ctx.Req.Method == "GET" {
 		enc := json.NewEncoder(ctx.Resp)
-		_ = enc.Encode(Represent(rv, meta, true, false))
+		if err := enc.Encode(Represent(rv, meta, true, false)); err != nil {
+			log.Error("Failed to encode representation as json. Error: %v", err)
+		}
 	}
 
 	logRequest(ctx.Req, 200)
@@ -205,11 +217,13 @@ func getMetaHandler(ctx *context.Context) {
 // PostHandler instructs the client how to upload data
 func PostHandler(ctx *context.Context) {
 	if !setting.LFS.StartServer {
+		log.Debug("Attempt to access LFS server but LFS server is disabled")
 		writeStatus(ctx, 404)
 		return
 	}
 
 	if !MetaMatcher(ctx.Req) {
+		log.Info("Attempt to POST without accepting the correct media type: %s", metaMediaType)
 		writeStatus(ctx, 400)
 		return
 	}
@@ -218,7 +232,7 @@ func PostHandler(ctx *context.Context) {
 
 	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
-		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
+		log.Error("Unable to get repository: %s/%s Error: %v", rv.User, rv.Repo, err)
 		writeStatus(ctx, 404)
 		return
 	}
@@ -229,18 +243,20 @@ func PostHandler(ctx *context.Context) {
 	}
 
 	if !isOidValid(rv.Oid) {
+		log.Info("Invalid LFS OID[%s] attempt to POST in %s/%s", rv.Oid, rv.User, rv.Repo)
 		writeStatus(ctx, 404)
 		return
 	}
 
 	if setting.LFS.MaxFileSize > 0 && rv.Size > setting.LFS.MaxFileSize {
-		log.Info("Denied LFS upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", rv.Size, rv.User, rv.Repo, setting.LFS.MaxFileSize)
+		log.Info("Denied LFS OID[%s] upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", rv.Oid, rv.Size, rv.User, rv.Repo, setting.LFS.MaxFileSize)
 		writeStatus(ctx, 413)
 		return
 	}
 
 	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: rv.Oid, Size: rv.Size, RepositoryID: repository.ID})
 	if err != nil {
+		log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", rv.Oid, rv.Size, rv.User, rv.Repo, err)
 		writeStatus(ctx, 404)
 		return
 	}
@@ -255,18 +271,22 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.WriteHeader(sentStatus)
 
 	enc := json.NewEncoder(ctx.Resp)
-	_ = enc.Encode(Represent(rv, meta, meta.Existing, true))
+	if err := enc.Encode(Represent(rv, meta, meta.Existing, true)); err != nil {
+		log.Error("Failed to encode representation as json. Error: %v", err)
+	}
 	logRequest(ctx.Req, sentStatus)
 }
 
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
 	if !setting.LFS.StartServer {
+		log.Debug("Attempt to access LFS server but LFS server is disabled")
 		writeStatus(ctx, 404)
 		return
 	}
 
 	if !MetaMatcher(ctx.Req) {
+		log.Info("Attempt to BATCH without accepting the correct media type: %s", metaMediaType)
 		writeStatus(ctx, 400)
 		return
 	}
@@ -278,13 +298,13 @@ func BatchHandler(ctx *context.Context) {
 	// Create a response object
 	for _, object := range bv.Objects {
 		if !isOidValid(object.Oid) {
+			log.Info("Invalid LFS OID[%s] attempt to BATCH in %s/%s", object.Oid, object.User, object.Repo)
 			continue
 		}
 
 		repository, err := models.GetRepositoryByOwnerAndName(object.User, object.Repo)
-
 		if err != nil {
-			log.Debug("Could not find repository: %s/%s - %s", object.User, object.Repo, err)
+			log.Error("Unable to get repository: %s/%s Error: %v", object.User, object.Repo, err)
 			writeStatus(ctx, 404)
 			return
 		}
@@ -308,7 +328,7 @@ func BatchHandler(ctx *context.Context) {
 		}
 
 		if requireWrite && setting.LFS.MaxFileSize > 0 && object.Size > setting.LFS.MaxFileSize {
-			log.Info("Denied LFS upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", object.Size, object.User, object.Repo, setting.LFS.MaxFileSize)
+			log.Info("Denied LFS OID[%s] upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", object.Oid, object.Size, object.User, object.Repo, setting.LFS.MaxFileSize)
 			writeStatus(ctx, 413)
 			return
 		}
@@ -317,6 +337,8 @@ func BatchHandler(ctx *context.Context) {
 		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
 		if err == nil {
 			responseObjects = append(responseObjects, Represent(object, meta, meta.Existing, !contentStore.Exists(meta)))
+		} else {
+			log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", object.Oid, object.Size, object.User, object.Repo, err)
 		}
 	}
 
@@ -325,7 +347,9 @@ func BatchHandler(ctx *context.Context) {
 	respobj := &BatchResponse{Objects: responseObjects}
 
 	enc := json.NewEncoder(ctx.Resp)
-	_ = enc.Encode(respobj)
+	if err := enc.Encode(respobj); err != nil {
+		log.Error("Failed to encode representation as json. Error: %v", err)
+	}
 	logRequest(ctx.Req, 200)
 }
 
@@ -335,6 +359,7 @@ func PutHandler(ctx *context.Context) {
 
 	meta, repository := getAuthenticatedRepoAndMeta(ctx, rv, true)
 	if meta == nil {
+		// Status already written in getAuthenticatedRepoAndMeta
 		return
 	}
 
@@ -342,10 +367,15 @@ func PutHandler(ctx *context.Context) {
 	bodyReader := ctx.Req.Body().ReadCloser()
 	defer bodyReader.Close()
 	if err := contentStore.Put(meta, bodyReader); err != nil {
+		// Put will log the error itself
 		ctx.Resp.WriteHeader(500)
-		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
+		if err == errSizeMismatch || err == errHashMismatch {
+			fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
+		} else {
+			fmt.Fprintf(ctx.Resp, `{"message":"Internal Server Error"}`)
+		}
 		if _, err = repository.RemoveLFSMetaObjectByOid(rv.Oid); err != nil {
-			log.Error("RemoveLFSMetaObjectByOid: %v", err)
+			log.Error("Whilst removing metaobject for LFS OID[%s] due to preceding error there was another Error: %v", rv.Oid, err)
 		}
 		return
 	}
@@ -356,11 +386,13 @@ func PutHandler(ctx *context.Context) {
 // VerifyHandler verify oid and its size from the content store
 func VerifyHandler(ctx *context.Context) {
 	if !setting.LFS.StartServer {
+		log.Debug("Attempt to access LFS server but LFS server is disabled")
 		writeStatus(ctx, 404)
 		return
 	}
 
 	if !MetaMatcher(ctx.Req) {
+		log.Info("Attempt to VERIFY without accepting the correct media type: %s", metaMediaType)
 		writeStatus(ctx, 400)
 		return
 	}
@@ -369,14 +401,16 @@ func VerifyHandler(ctx *context.Context) {
 
 	meta, _ := getAuthenticatedRepoAndMeta(ctx, rv, true)
 	if meta == nil {
+		// Status already written in getAuthenticatedRepoAndMeta
 		return
 	}
 
 	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
 	ok, err := contentStore.Verify(meta)
 	if err != nil {
+		// Error will be logged in Verify
 		ctx.Resp.WriteHeader(500)
-		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
+		fmt.Fprintf(ctx.Resp, `{"message":"Internal Server Error"}`)
 		return
 	}
 	if !ok {
@@ -453,6 +487,8 @@ func unpack(ctx *context.Context) *RequestVars {
 		dec := json.NewDecoder(bodyReader)
 		err := dec.Decode(&p)
 		if err != nil {
+			// The error is logged as a WARN here because this may represent misbehaviour rather than a true error
+			log.Warn("Unable to decode POST request vars for LFS OID[%s] in %s/%s: Error: %v", rv.Oid, rv.User, rv.Repo, err)
 			return rv
 		}
 
@@ -474,6 +510,8 @@ func unpackbatch(ctx *context.Context) *BatchVars {
 	dec := json.NewDecoder(bodyReader)
 	err := dec.Decode(&bv)
 	if err != nil {
+		// The error is logged as a WARN here because this may represent misbehaviour rather than a true error
+		log.Warn("Unable to decode BATCH request vars in %s/%s: Error: %v", ctx.Params("username"), strings.TrimSuffix(ctx.Params("reponame"), ".git"), err)
 		return &bv
 	}
 
@@ -515,6 +553,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
 	perm, err := models.GetUserRepoPermission(repository, ctx.User)
 	if err != nil {
+		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.User, repository)
 		return false
 	}
 
@@ -525,12 +564,15 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 
 	user, repo, opStr, err := parseToken(authorization)
 	if err != nil {
+		// Most of these are Warn level - the true internal server errors are logged in parseToken already
+		log.Warn("Authentication failure for provided token with Error: %v", err)
 		return false
 	}
 	ctx.User = user
 	if opStr == "basic" {
 		perm, err = models.GetUserRepoPermission(repository, ctx.User)
 		if err != nil {
+			log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.User, repository)
 			return false
 		}
 		return perm.CanAccess(accessMode, models.UnitTypeCode)
@@ -556,6 +598,7 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 			return setting.LFS.JWTSecretBytes, nil
 		})
 		if err != nil {
+			// The error here is WARN level because it is caused by bad authorization rather than an internal server error
 			return nil, nil, "unknown", err
 		}
 		claims, claimsOk := token.Claims.(jwt.MapClaims)
@@ -572,6 +615,7 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 		}
 		r, err := models.GetRepositoryByID(int64(repoID))
 		if err != nil {
+			log.Error("Unable to GetRepositoryById[%d]: Error: %v", repoID, err)
 			return nil, nil, opStr, err
 		}
 		userID, ok := claims["user"].(float64)
@@ -580,6 +624,7 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 		}
 		u, err := models.GetUserByID(int64(userID))
 		if err != nil {
+			log.Error("Unable to GetUserById[%d]: Error: %v", int64(userID), err)
 			return nil, r, opStr, err
 		}
 		return u, r, opStr, nil
@@ -598,6 +643,7 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 		user, password := cs[:i], cs[i+1:]
 		u, err := models.GetUserByName(user)
 		if err != nil {
+			log.Error("Unable to GetUserByName[%d]: Error: %v", user, err)
 			return nil, nil, "basic", err
 		}
 		if !u.IsPasswordSet() || !u.ValidatePassword(password) {
