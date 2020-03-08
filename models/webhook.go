@@ -99,21 +99,22 @@ const (
 
 // Webhook represents a web hook object.
 type Webhook struct {
-	ID           int64  `xorm:"pk autoincr"`
-	RepoID       int64  `xorm:"INDEX"`
-	OrgID        int64  `xorm:"INDEX"`
-	URL          string `xorm:"url TEXT"`
-	Signature    string `xorm:"TEXT"`
-	HTTPMethod   string `xorm:"http_method"`
-	ContentType  HookContentType
-	Secret       string `xorm:"TEXT"`
-	Events       string `xorm:"TEXT"`
-	*HookEvent   `xorm:"-"`
-	IsSSL        bool `xorm:"is_ssl"`
-	IsActive     bool `xorm:"INDEX"`
-	HookTaskType HookTaskType
-	Meta         string     `xorm:"TEXT"` // store hook-specific attributes
-	LastStatus   HookStatus // Last delivery status
+	ID              int64 `xorm:"pk autoincr"`
+	RepoID          int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
+	OrgID           int64 `xorm:"INDEX"`
+	IsSystemWebhook bool
+	URL             string `xorm:"url TEXT"`
+	Signature       string `xorm:"TEXT"`
+	HTTPMethod      string `xorm:"http_method"`
+	ContentType     HookContentType
+	Secret          string `xorm:"TEXT"`
+	Events          string `xorm:"TEXT"`
+	*HookEvent      `xorm:"-"`
+	IsSSL           bool `xorm:"is_ssl"`
+	IsActive        bool `xorm:"INDEX"`
+	HookTaskType    HookTaskType
+	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
+	LastStatus      HookStatus // Last delivery status
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -401,7 +402,7 @@ func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error
 func GetDefaultWebhook(id int64) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
 	has, err := x.
-		Where("repo_id=? AND org_id=?", 0, 0).
+		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
 		Get(webhook)
 	if err != nil {
 		return nil, err
@@ -419,7 +420,33 @@ func GetDefaultWebhooks() ([]*Webhook, error) {
 func getDefaultWebhooks(e Engine) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
 	return webhooks, e.
-		Where("repo_id=? AND org_id=?", 0, 0).
+		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
+		Find(&webhooks)
+}
+
+// GetSystemWebhook returns admin system webhook by given ID.
+func GetSystemWebhook(id int64) (*Webhook, error) {
+	webhook := &Webhook{ID: id}
+	has, err := x.
+		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+		Get(webhook)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrWebhookNotExist{id}
+	}
+	return webhook, nil
+}
+
+// GetSystemWebhooks returns all admin system webhooks.
+func GetSystemWebhooks() ([]*Webhook, error) {
+	return getSystemWebhooks(x)
+}
+
+func getSystemWebhooks(e Engine) ([]*Webhook, error) {
+	webhooks := make([]*Webhook, 0, 5)
+	return webhooks, e.
+		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
 		Find(&webhooks)
 }
 
@@ -471,8 +498,8 @@ func DeleteWebhookByOrgID(orgID, id int64) error {
 	})
 }
 
-// DeleteDefaultWebhook deletes an admin-default webhook by given ID.
-func DeleteDefaultWebhook(id int64) error {
+// DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
+func DeleteDefaultSystemWebhook(id int64) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
