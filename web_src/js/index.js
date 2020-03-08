@@ -2795,16 +2795,13 @@ function initVueComponents() {
         type: Number,
         default: 0
       },
-      moreReposLink: {
-        type: String,
-        default: ''
-      }
     },
 
     data() {
       return {
         tab: 'repos',
         repos: [],
+        page: 1,
         reposTotalCount: 0,
         reposFilter: 'all',
         searchQuery: '',
@@ -2836,13 +2833,13 @@ function initVueComponents() {
     },
 
     computed: {
-      showMoreReposLink() {
+      hasMoreRepos() {
         return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
       },
       searchURL() {
         return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=${this.searchQuery
         }&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
-        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''}`;
+        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''}&page=${this.page}`;
       },
       repoTypeCount() {
         return this.repoTypes[this.reposFilter].count;
@@ -2866,6 +2863,7 @@ function initVueComponents() {
       changeReposFilter(filter) {
         this.reposFilter = filter;
         this.repos = [];
+        this.page = 1;
         this.repoTypes[filter].count = 0;
         this.searchRepos(filter);
       },
@@ -2896,7 +2894,11 @@ function initVueComponents() {
 
         $.getJSON(searchedURL, (result, _textStatus, request) => {
           if (searchedURL === self.searchURL) {
-            self.repos = result.data;
+            if (self.page > 1) {
+              result.data.forEach((repo) => self.repos.push(repo));
+            } else {
+              self.repos = result.data;
+            }
             const count = request.getResponseHeader('X-Total-Count');
             if (searchedQuery === '' && searchedMode === '') {
               self.reposTotalCount = count;
@@ -2908,6 +2910,11 @@ function initVueComponents() {
             self.isLoading = false;
           }
         });
+      },
+
+      showMoreRepos() {
+        this.page += 1;
+        this.searchRepos(this.reposFilter);
       },
 
       repoClass(repo) {

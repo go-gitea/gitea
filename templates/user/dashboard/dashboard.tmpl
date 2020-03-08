@@ -22,7 +22,6 @@
 					:search-limit="searchLimit"
 					:suburl="suburl"
 					:uid="uid"
-					:more-repos-link="'{{.ContextUser.HomeLink}}'"
 					{{if not .ContextUser.IsOrganization}}
 					:organizations="[
 						{{range .ContextUser.Orgs}}
@@ -81,7 +80,7 @@
 									</a>
 								</div>
 							</div>
-							<div class="ui attached table segment">
+							<div class="ui attached table segment repo-owner">
 								<ul class="repo-owner-name-list">
 									<li v-for="repo in repos" :class="{'private': repo.private}" v-show="showRepo(repo, reposFilter)">
 										<a :href="suburl + '/' + repo.full_name">
@@ -93,8 +92,12 @@
 											</span>
 										</a>
 									</li>
-									<li v-if="showMoreReposLink">
-										<a :href="moreReposLink">{{.i18n.Tr "home.show_more_repos"}}</a>
+								</ul>
+							</div>
+							<div v-if="hasMoreRepos" class="ui attached table segment">
+								<ul class="repo-owner-name-list">
+									<li>
+										<a @click="showMoreRepos">{{.i18n.Tr "home.show_more_repos"}}</a>
 									</li>
 								</ul>
 							</div>
