@@ -576,6 +576,7 @@ github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53 h1:HsIQ6yAjfjQ3Ix
 github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53/go.mod h1:f6elajwZV+xceiaqgRL090YzLEDGSbqr3poGL3ZgXYo=
 github.com/yuin/goldmark v1.1.24 h1:K4FemPDr4x/ZcqldoXWnexTLfdMIy2eEfXxsLnotTRI=
 github.com/yuin/goldmark v1.1.24/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/ziutek/mymysql v1.5.4 h1:GB0qdRGsTwQSBVYuVShFBKaXSnSnYYC2d9knnE1LHFs=
 github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wKdgO/C0=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
