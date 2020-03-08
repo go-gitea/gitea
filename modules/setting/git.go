@@ -25,7 +25,7 @@ var (
 		VerbosePushDelay          time.Duration
 		GCArgs                    []string `ini:"GC_ARGS" delim:" "`
 		EnableAutoGitWireProtocol bool
-		PullRequestPushMessage bool
+		PullRequestPushMessage    bool
 		Timeout                   struct {
 			Default int
 			Migrate int
@@ -43,7 +43,7 @@ var (
 		VerbosePushDelay:          5 * time.Second,
 		GCArgs:                    []string{},
 		EnableAutoGitWireProtocol: true,
-		PullRequestPushMessage: true,
+		PullRequestPushMessage:    true,
 		Timeout: struct {
 			Default int
 			Migrate int
