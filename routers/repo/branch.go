@@ -252,7 +252,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 					repoIDToGitRepo[pr.BaseRepoID] = baseGitRepo
 				}
 				pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
-				if err != nil && !models.IsErrNotExist(err) {
+				if err != nil && !git.IsErrNotExist(err) {
 					ctx.ServerError("GetBranchCommitID", err)
 					return nil
 				}
