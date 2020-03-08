@@ -86,6 +86,8 @@ const (
 	CommentTypeChangeTargetBranch
 	// Delete time manual for time tracking
 	CommentTypeDeleteTimeManual
+	// Request 
+	CommentTypeReviewRequest
 )
 
 // CommentTag defines comment tag type

@@ -373,8 +373,8 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 	}
 
 	// Get latest review of each reviwer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND type in (?, ?) GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
-		issueID, ReviewTypeApprove, ReviewTypeReject).
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND type in (?, ? , ?) GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
+		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviewsUnfiltered); err != nil {
 		return nil, err
 	}
@@ -445,4 +445,36 @@ func InsertReviews(reviews []*Review) error {
 	}
 
 	return sess.Commit()
+}
+
+// SwithchRewiewRequest switch Rewiew Request status
+func SwithchRewiewRequest(issue *Issue, reviewer *User, doer *User) (isRequest bool, err error) {
+	reviews, err := GetReviewersByIssueID(issue.ID)
+	var get *Review
+	for _, rev := range reviews {
+		if rev.ReviewerID == reviewer.ID {
+			get = rev
+			break
+		}
+	}
+
+	if get != nil && get.Type == ReviewTypeRequest {
+		x.Delete(get)
+		isRequest = false
+	} else {
+		_, err := CreateReview(CreateReviewOptions{
+			Type:     ReviewTypeRequest,
+			Issue:    issue,
+			Reviewer: reviewer,
+			Content:  doer.Name,
+			Official: false,
+			CommitID: "",
+			Stale:    true,
+		})
+		if err != nil {
+			return isRequest, err
+		}
+		isRequest = true
+	}
+	return isRequest, nil
 }

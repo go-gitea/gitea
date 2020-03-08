@@ -10,6 +10,7 @@
 						<span class="type-icon text {{if eq .Type 1}}green
 							{{else if eq .Type 2}}grey
 							{{else if eq .Type 3}}red
+							{{else if eq .Type 4}}yellow
 							{{else}}grey{{end}}">
 							{{svg (printf "octicon-%s" .Type.Icon) 16}}
 						</span>
@@ -23,6 +24,8 @@
 								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 							{{else if eq .Type 3}}
 								{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+							{{else if eq .Type 4}}
+								{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
 							{{else}}
 								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 							{{end}}

@@ -100,6 +100,12 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 	}
 }
 
+func (m *mailNotifier) NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool) {
+	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() == models.EmailNotificationsEnabled {
+		// TODO
+	}
+}
+
 func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("pr.LoadIssue: %v", err)

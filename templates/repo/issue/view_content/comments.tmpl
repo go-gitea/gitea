@@ -321,6 +321,7 @@
 			<span class="issue-symbol {{if eq .Review.Type 1}}green
 			{{else if eq .Review.Type 2}}grey
 			{{else if eq .Review.Type 3}}red
+			{{else if eq .Review.Type 4}}yellow
 			{{else}}grey{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon) 16}}</span>
 			{{if .OriginalAuthor }}
 			{{else}}
@@ -341,6 +342,8 @@
 					{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 				{{else if eq .Review.Type 3}}
 					{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+				{{else if eq .Review.Type 4}}
+					{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
 				{{else}}
 					{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 				{{end}}

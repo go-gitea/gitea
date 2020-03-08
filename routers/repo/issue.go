@@ -1238,6 +1238,53 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	})
 }
 
+// UpdatePullReviewRequest change pull's request reviewers
+func UpdatePullReviewRequest(ctx *context.Context) {
+	issues := getActionIssues(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	reviewID := ctx.QueryInt64("id")
+	action := ctx.Query("action")
+
+	if action != "" {
+		return
+	}
+
+	for _, issue := range issues {
+
+		if issue.IsPull {
+
+			reviewer, err := models.GetUserByID(reviewID)
+			if err != nil {
+				ctx.ServerError("GetUserByID", err)
+				return
+			}
+
+			valid, err := models.CanBeAssigned(reviewer, issue.Repo, issue.IsPull)
+			if err != nil {
+				ctx.ServerError("canBeAssigned", err)
+				return
+			}
+			if !valid {
+				ctx.ServerError("canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: reviewID, RepoName: issue.Repo.Name})
+				return
+			}
+
+			err = issue_service.ToggleReviewRequest(issue, ctx.User, reviewer)
+			if err != nil {
+				ctx.ServerError("ToggleReviewRequest", err)
+				return
+			}
+		}
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
+}
+
 // UpdateIssueStatus change issue's status
 func UpdateIssueStatus(ctx *context.Context) {
 	issues := getActionIssues(ctx)

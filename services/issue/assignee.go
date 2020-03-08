@@ -51,3 +51,16 @@ func ToggleAssignee(issue *models.Issue, doer *models.User, assigneeID int64) (r
 
 	return
 }
+
+// ToggleReviewRequest changes a user between review requested and not review requested for this PR, and make comment for it.
+func ToggleReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User) (err error) {
+	isRequest := true
+	isRequest, err = models.SwithchRewiewRequest(issue, reviewer, doer)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyPullRewiewRequest(doer, issue, reviewer, isRequest)
+
+	return nil
+}
