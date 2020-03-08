@@ -14,20 +14,17 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var ()
-
 // EmailHash represents a pre-generated hash map
 type EmailHash struct {
-	ID     int64  `xorm:"pk autoincr"`
-	Email  string `xorm:"UNIQUE NOT NULL"`
-	MD5Sum string `xorm:"md5_sum UNIQUE NOT NULL"`
+	Hash  string `xorm:"pk hash UNIQUE NOT NULL"`
+	Email string `xorm:"UNIQUE NOT NULL"`
 }
 
 // GetEmailForHash converts a provided md5sum to the email
 func GetEmailForHash(md5Sum string) (string, error) {
 	return cache.GetString("Avatar:"+md5Sum, func() (string, error) {
 		emailHash := EmailHash{
-			MD5Sum: strings.ToLower(strings.TrimSpace(md5Sum)),
+			Hash: strings.ToLower(strings.TrimSpace(md5Sum)),
 		}
 
 		_, err := x.Get(&emailHash)
@@ -41,8 +38,8 @@ func AvatarLink(email string) string {
 	sum := fmt.Sprintf("%x", md5.Sum([]byte(lowerEmail)))
 	_, _ = cache.GetString("Avatar:"+sum, func() (string, error) {
 		emailHash := &EmailHash{
-			Email:  lowerEmail,
-			MD5Sum: sum,
+			Email: lowerEmail,
+			Hash:  sum,
 		}
 		_, _ = x.Insert(emailHash)
 		return lowerEmail, nil

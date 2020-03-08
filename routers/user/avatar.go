@@ -44,8 +44,8 @@ func Avatar(ctx *context.Context) {
 	ctx.Redirect(user.RealSizedAvatarLink(size))
 }
 
-// AvatarByEmail redirects the browser to the appropriate Avatar link
-func AvatarByEmail(ctx *context.Context) {
+// AvatarByEmailHash redirects the browser to the appropriate Avatar link
+func AvatarByEmailHash(ctx *context.Context) {
 	hash := ctx.Params(":hash")
 	if len(hash) == 0 {
 		ctx.ServerError("invalid avatar hash", errors.New("hash cannot be empty"))
