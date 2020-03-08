@@ -16,7 +16,7 @@ import (
 
 // EmailHash represents a pre-generated hash map
 type EmailHash struct {
-	Hash  string `xorm:"pk hash UNIQUE NOT NULL"`
+	Hash  string `xorm:"pk varchar(32)"`
 	Email string `xorm:"UNIQUE NOT NULL"`
 }
 
