@@ -27,17 +27,21 @@ const (
 	ReviewTypeComment
 	// ReviewTypeReject gives feedback blocking merge
 	ReviewTypeReject
+	// ReviewTypeRequest request review from others
+	ReviewTypeRequest
 )
 
 // Icon returns the corresponding icon for the review type
 func (rt ReviewType) Icon() string {
 	switch rt {
 	case ReviewTypeApprove:
-		return "eye"
+		return "check"
 	case ReviewTypeReject:
-		return "x"
-	case ReviewTypeComment, ReviewTypeUnknown:
+		return "request-changes"
+	case ReviewTypeComment:
 		return "comment"
+	case ReviewTypeRequest:
+		return "primitive-dot"
 	default:
 		return "comment"
 	}
