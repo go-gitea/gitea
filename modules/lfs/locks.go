@@ -90,7 +90,17 @@ func GetListLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	//TODO handle query cursor and limit
+
+	cursor := ctx.QueryInt("cursor")
+	if cursor < 0 {
+		cursor = 0
+	}
+	limit := ctx.QueryInt("limit")
+	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
+		limit = setting.LFS.LocksPagingNum
+	} else if limit < 0 {
+		limit = 0
+	}
 	id := ctx.Query("id")
 	if id != "" { //Case where we request a specific id
 		v, err := strconv.ParseInt(id, 10, 64)
@@ -119,7 +129,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 
 	//If no query params path or id
-	lockList, err := models.GetLFSLockByRepoID(repository.ID, 0, 0)
+	lockList, err := models.GetLFSLockByRepoID(repository.ID, cursor, limit)
 	if err != nil {
 		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)
 		ctx.JSON(500, api.LFSLockError{
@@ -128,11 +138,16 @@ func GetListLockHandler(ctx *context.Context) {
 		return
 	}
 	lockListAPI := make([]*api.LFSLock, len(lockList))
+	next := ""
 	for i, l := range lockList {
 		lockListAPI[i] = l.APIFormat()
 	}
+	if limit > 0 && len(lockList) == limit {
+		next = strconv.Itoa(cursor + 1)
+	}
 	ctx.JSON(200, api.LFSLockList{
 		Locks: lockListAPI,
+		Next:  next,
 	})
 }
 
@@ -233,14 +248,27 @@ func VerifyLockHandler(ctx *context.Context) {
 		return
 	}
 
-	//TODO handle body json cursor and limit
-	lockList, err := models.GetLFSLockByRepoID(repository.ID, 0, 0)
+	cursor := ctx.QueryInt("cursor")
+	if cursor < 0 {
+		cursor = 0
+	}
+	limit := ctx.QueryInt("limit")
+	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
+		limit = setting.LFS.LocksPagingNum
+	} else if limit < 0 {
+		limit = 0
+	}
+	lockList, err := models.GetLFSLockByRepoID(repository.ID, cursor, limit)
 	if err != nil {
 		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)
 		ctx.JSON(500, api.LFSLockError{
 			Message: "unable to list locks : Internal Server Error",
 		})
 		return
+	}
+	next := ""
+	if limit > 0 && len(lockList) == limit {
+		next = strconv.Itoa(cursor + 1)
 	}
 	lockOursListAPI := make([]*api.LFSLock, 0, len(lockList))
 	lockTheirsListAPI := make([]*api.LFSLock, 0, len(lockList))
@@ -254,6 +282,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	ctx.JSON(200, api.LFSLockListVerify{
 		Ours:   lockOursListAPI,
 		Theirs: lockTheirsListAPI,
+		Next:   next,
 	})
 }
 
