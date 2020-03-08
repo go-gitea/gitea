@@ -65,6 +65,14 @@ type ObjectError struct {
 	Message string `json:"message"`
 }
 
+// Claims is a JWT Token Claims
+type Claims struct {
+	RepoID int64
+	Op     string
+	UserID int64
+	jwt.StandardClaims
+}
+
 // ObjectLink builds a URL linking to the object.
 func (v *RequestVars) ObjectLink() string {
 	return setting.AppURL + path.Join(v.User, v.Repo+".git", "info/lfs/objects", v.Oid)
@@ -591,7 +599,7 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 		return nil, nil, "unknown", fmt.Errorf("No token")
 	}
 	if strings.HasPrefix(authorization, "Bearer ") {
-		token, err := jwt.Parse(authorization[7:], func(t *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(authorization[7:], &Claims{}, func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 			}
@@ -601,33 +609,21 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 			// The error here is WARN level because it is caused by bad authorization rather than an internal server error
 			return nil, nil, "unknown", err
 		}
-		claims, claimsOk := token.Claims.(jwt.MapClaims)
+		claims, claimsOk := token.Claims.(*Claims)
 		if !token.Valid || !claimsOk {
 			return nil, nil, "unknown", fmt.Errorf("Token claim invalid")
 		}
-		opStr, ok := claims["op"].(string)
-		if !ok {
-			return nil, nil, "unknown", fmt.Errorf("Token operation invalid")
-		}
-		repoID, ok := claims["repo"].(float64)
-		if !ok {
-			return nil, nil, opStr, fmt.Errorf("Token repository id invalid")
-		}
-		r, err := models.GetRepositoryByID(int64(repoID))
+		r, err := models.GetRepositoryByID(claims.RepoID)
 		if err != nil {
-			log.Error("Unable to GetRepositoryById[%d]: Error: %v", repoID, err)
-			return nil, nil, opStr, err
+			log.Error("Unable to GetRepositoryById[%d]: Error: %v", claims.RepoID, err)
+			return nil, nil, claims.Op, err
 		}
-		userID, ok := claims["user"].(float64)
-		if !ok {
-			return nil, r, opStr, fmt.Errorf("Token user id invalid")
-		}
-		u, err := models.GetUserByID(int64(userID))
+		u, err := models.GetUserByID(claims.UserID)
 		if err != nil {
-			log.Error("Unable to GetUserById[%d]: Error: %v", int64(userID), err)
-			return nil, r, opStr, err
+			log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
+			return nil, r, claims.Op, err
 		}
-		return u, r, opStr, nil
+		return u, r, claims.Op, nil
 	}
 
 	if strings.HasPrefix(authorization, "Basic ") {
