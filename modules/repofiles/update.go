@@ -698,7 +698,7 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 			return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 		}
 		var commits = &repo_module.PushCommits{}
-		if opts.IsNewTag() {
+		if opts.IsTag() {
 			// If is tag reference
 			tagName := opts.TagName()
 			if opts.IsDelRef() {
