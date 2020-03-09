@@ -8,7 +8,9 @@
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.review.reviewers"}}</strong>
-				{{svg "octicon-gear" 16}}
+				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+					{{svg "octicon-gear" 16}}
+				{{end}}
 			</span>
 			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 				{{range .Assignees}}
@@ -34,7 +36,7 @@
 			</div>
 		</div>
 		<div class="ui assignees list">
-			<span class="no-select item {{if .Issue.Assignees}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_assignees"}}</span>
+			<span class="no-select item {{if .PullReviewers}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_reviewers"}}</span>
 			<div class="selected">
 				{{range .PullReviewers}}
 					<div class="item" style="margin-bottom: 10px;">
@@ -53,10 +55,14 @@
 
 		{{end}}
 
+		<div class="ui divider"></div>
+
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
-				{{svg "octicon-gear" 16}}
+				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+					{{svg "octicon-gear" 16}}
+				{{end}}
 			</span>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
@@ -81,7 +87,9 @@
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
-				{{svg "octicon-gear" 16}}
+				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+					{{svg "octicon-gear" 16}}
+				{{end}}
 			</span>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_milestone"}}</div>
@@ -122,7 +130,9 @@
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
-				{{svg "octicon-gear" 16}}
+				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+					{{svg "octicon-gear" 16}}
+				{{end}}
 			</span>
 			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
