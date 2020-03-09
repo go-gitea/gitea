@@ -562,6 +562,7 @@ github.com/xanzy/ssh-agent
 ## explicit
 github.com/yohcop/openid-go
 # github.com/yuin/goldmark v1.1.25
+## explicit
 github.com/yuin/goldmark
 github.com/yuin/goldmark/ast
 github.com/yuin/goldmark/extension
