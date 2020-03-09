@@ -296,7 +296,7 @@ func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *Disco
 	var text, title string
 	var color int
 	switch p.Action {
-	case api.HookIssueSynchronized:
+	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
 			return nil, err
@@ -306,9 +306,9 @@ func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *Disco
 		text = p.Review.Content
 
 		switch event {
-		case models.HookEventPullRequestApproved:
+		case models.HookEventPullRequestReviewApproved:
 			color = greenColor
-		case models.HookEventPullRequestRejected:
+		case models.HookEventPullRequestReviewRejected:
 			color = redColor
 		case models.HookEventPullRequestComment:
 			color = greyColor
@@ -405,15 +405,16 @@ func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string)
 		return getDiscordDeletePayload(p.(*api.DeletePayload), discord)
 	case models.HookEventFork:
 		return getDiscordForkPayload(p.(*api.ForkPayload), discord)
-	case models.HookEventIssues:
+	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getDiscordIssuesPayload(p.(*api.IssuePayload), discord)
-	case models.HookEventIssueComment:
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
 		return getDiscordIssueCommentPayload(p.(*api.IssueCommentPayload), discord)
 	case models.HookEventPush:
 		return getDiscordPushPayload(p.(*api.PushPayload), discord)
-	case models.HookEventPullRequest:
+	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
+		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
-	case models.HookEventPullRequestRejected, models.HookEventPullRequestApproved, models.HookEventPullRequestComment:
+	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
 		return getDiscordPullRequestApprovalPayload(p.(*api.PullRequestPayload), discord, event)
 	case models.HookEventRepository:
 		return getDiscordRepositoryPayload(p.(*api.RepositoryPayload), discord)
@@ -428,9 +429,9 @@ func parseHookPullRequestEventType(event models.HookEventType) (string, error) {
 
 	switch event {
 
-	case models.HookEventPullRequestApproved:
+	case models.HookEventPullRequestReviewApproved:
 		return "approved", nil
-	case models.HookEventPullRequestRejected:
+	case models.HookEventPullRequestReviewRejected:
 		return "rejected", nil
 	case models.HookEventPullRequestComment:
 		return "comment", nil

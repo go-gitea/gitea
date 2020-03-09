@@ -870,7 +870,9 @@ MAX_GIT_DIFF_FILES = 100
 ; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
 ; If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
-EnableAutoGitWireProtocol = true
+ENABLE_AUTO_GIT_WIRE_PROTOCOL = true
+; Respond to pushes to a non-default branch with a URL for creating a Pull Request (if the repository has them enabled)
+PULL_REQUEST_PUSH_MESSAGE = true
 
 ; Operation timeout in seconds
 [git.timeout]
