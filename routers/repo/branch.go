@@ -16,8 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 const (
@@ -253,7 +251,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 					repoIDToGitRepo[pr.BaseRepoID] = baseGitRepo
 				}
 				pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
-				if err != nil && err != plumbing.ErrReferenceNotFound {
+				if err != nil && !git.IsErrNotExist(err) {
 					ctx.ServerError("GetBranchCommitID", err)
 					return nil
 				}
