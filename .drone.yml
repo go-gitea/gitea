@@ -389,7 +389,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:latest
+    image: techknowlogick/xgo:go-1.13.x
     commands:
       - export PATH=$PATH:$GOPATH/bin
       - make generate
@@ -491,7 +491,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:latest
+    image: techknowlogick/xgo:go-1.13.x
     commands:
       - export PATH=$PATH:$GOPATH/bin
       - make generate
