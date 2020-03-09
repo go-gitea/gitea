@@ -356,6 +356,16 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return nil
 	}
 	defer baseGitRepo.Close()
+
+	if !baseGitRepo.IsBranchExist(pull.BaseBranch) {
+		ctx.Data["IsPullRequestBroken"] = true
+		ctx.Data["BaseTarget"] = pull.BaseBranch
+		ctx.Data["HeadTarget"] = pull.HeadBranch
+		ctx.Data["NumCommits"] = 0
+		ctx.Data["NumFiles"] = 0
+		return nil
+	}
+
 	var headBranchExist bool
 	var headBranchSha string
 	// HeadRepo may be missing
@@ -612,6 +622,8 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 	getBranchData(ctx, issue)
+	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
+	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.HTML(200, tplPullFiles)
 }
 

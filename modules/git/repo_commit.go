@@ -21,6 +21,11 @@ import (
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	ref, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
 	if err != nil {
+		if err == plumbing.ErrReferenceNotFound {
+			return "", ErrNotExist{
+				ID: name,
+			}
+		}
 		return "", err
 	}
 

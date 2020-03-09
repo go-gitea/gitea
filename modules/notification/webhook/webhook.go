@@ -48,7 +48,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *model
 			return
 		}
 
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestLabel, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelCleared,
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
@@ -56,7 +56,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *model
 			Sender:      doer.APIFormat(),
 		})
 	} else {
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueLabel, &api.IssuePayload{
 			Action:     api.HookIssueLabelCleared,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(issue),
@@ -147,7 +147,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 			apiPullRequest.Action = api.HookIssueAssigned
 		}
 		// Assignee comment triggers a webhook
-		if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, apiPullRequest); err != nil {
+		if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestAssign, apiPullRequest); err != nil {
 			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return
 		}
@@ -165,7 +165,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 			apiIssue.Action = api.HookIssueAssigned
 		}
 		// Assignee comment triggers a webhook
-		if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, apiIssue); err != nil {
+		if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueAssign, apiIssue); err != nil {
 			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return
 		}
@@ -338,34 +338,54 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 }
 
 func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
-	if err := c.LoadPoster(); err != nil {
+	var err error
+
+	if err = c.LoadPoster(); err != nil {
 		log.Error("LoadPoster: %v", err)
 		return
 	}
-	if err := c.LoadIssue(); err != nil {
+	if err = c.LoadIssue(); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
 	}
 
-	if err := c.Issue.LoadAttributes(); err != nil {
+	if err = c.Issue.LoadAttributes(); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
 	}
 
 	mode, _ := models.AccessLevel(doer, c.Issue.Repo)
-	if err := webhook_module.PrepareWebhooks(c.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
-		Action:  api.HookIssueCommentEdited,
-		Issue:   convert.ToAPIIssue(c.Issue),
-		Comment: c.APIFormat(),
-		Changes: &api.ChangesPayload{
-			Body: &api.ChangesFromPayload{
-				From: oldContent,
+	if c.Issue.IsPull {
+		err = webhook_module.PrepareWebhooks(c.Issue.Repo, models.HookEventPullRequestComment, &api.IssueCommentPayload{
+			Action:  api.HookIssueCommentEdited,
+			Issue:   convert.ToAPIIssue(c.Issue),
+			Comment: c.APIFormat(),
+			Changes: &api.ChangesPayload{
+				Body: &api.ChangesFromPayload{
+					From: oldContent,
+				},
 			},
-		},
-		Repository: c.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-		IsPull:     c.Issue.IsPull,
-	}); err != nil {
+			Repository: c.Issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+			IsPull:     true,
+		})
+	} else {
+		err = webhook_module.PrepareWebhooks(c.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+			Action:  api.HookIssueCommentEdited,
+			Issue:   convert.ToAPIIssue(c.Issue),
+			Comment: c.APIFormat(),
+			Changes: &api.ChangesPayload{
+				Body: &api.ChangesFromPayload{
+					From: oldContent,
+				},
+			},
+			Repository: c.Issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+			IsPull:     false,
+		})
+	}
+
+	if err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
 	}
 }
@@ -373,45 +393,76 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
 	mode, _ := models.AccessLevel(doer, repo)
-	if err := webhook_module.PrepareWebhooks(repo, models.HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentCreated,
-		Issue:      convert.ToAPIIssue(issue),
-		Comment:    comment.APIFormat(),
-		Repository: repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-		IsPull:     issue.IsPull,
-	}); err != nil {
+
+	var err error
+	if issue.IsPull {
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestComment, &api.IssueCommentPayload{
+			Action:     api.HookIssueCommentCreated,
+			Issue:      convert.ToAPIIssue(issue),
+			Comment:    comment.APIFormat(),
+			Repository: repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+			IsPull:     true,
+		})
+	} else {
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+			Action:     api.HookIssueCommentCreated,
+			Issue:      convert.ToAPIIssue(issue),
+			Comment:    comment.APIFormat(),
+			Repository: repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+			IsPull:     false,
+		})
+	}
+
+	if err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	}
 }
 
 func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
-	if err := comment.LoadPoster(); err != nil {
+	var err error
+
+	if err = comment.LoadPoster(); err != nil {
 		log.Error("LoadPoster: %v", err)
 		return
 	}
-	if err := comment.LoadIssue(); err != nil {
+	if err = comment.LoadIssue(); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
 	}
 
-	if err := comment.Issue.LoadAttributes(); err != nil {
+	if err = comment.Issue.LoadAttributes(); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
 	}
 
 	mode, _ := models.AccessLevel(doer, comment.Issue.Repo)
 
-	if err := webhook_module.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentDeleted,
-		Issue:      convert.ToAPIIssue(comment.Issue),
-		Comment:    comment.APIFormat(),
-		Repository: comment.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-		IsPull:     comment.Issue.IsPull,
-	}); err != nil {
+	if comment.Issue.IsPull {
+		err = webhook_module.PrepareWebhooks(comment.Issue.Repo, models.HookEventPullRequestComment, &api.IssueCommentPayload{
+			Action:     api.HookIssueCommentDeleted,
+			Issue:      convert.ToAPIIssue(comment.Issue),
+			Comment:    comment.APIFormat(),
+			Repository: comment.Issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+			IsPull:     true,
+		})
+	} else {
+		err = webhook_module.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+			Action:     api.HookIssueCommentDeleted,
+			Issue:      convert.ToAPIIssue(comment.Issue),
+			Comment:    comment.APIFormat(),
+			Repository: comment.Issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+			IsPull:     false,
+		})
+	}
+
+	if err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	}
+
 }
 
 func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
@@ -438,7 +489,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *mode
 			log.Error("LoadIssue: %v", err)
 			return
 		}
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestLabel, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelUpdated,
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
@@ -446,7 +497,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *mode
 			Sender:      doer.APIFormat(),
 		})
 	} else {
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueLabel, &api.IssuePayload{
 			Action:     api.HookIssueLabelUpdated,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(issue),
@@ -480,7 +531,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 			log.Error("LoadIssue: %v", err)
 			return
 		}
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestMilestone, &api.PullRequestPayload{
 			Action:      hookAction,
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
@@ -488,7 +539,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 			Sender:      doer.APIFormat(),
 		})
 	} else {
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueMilestone, &api.IssuePayload{
 			Action:     hookAction,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(issue),
@@ -597,11 +648,11 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 
 	switch review.Type {
 	case models.ReviewTypeApprove:
-		reviewHookType = models.HookEventPullRequestApproved
+		reviewHookType = models.HookEventPullRequestReviewApproved
 	case models.ReviewTypeComment:
 		reviewHookType = models.HookEventPullRequestComment
 	case models.ReviewTypeReject:
-		reviewHookType = models.HookEventPullRequestRejected
+		reviewHookType = models.HookEventPullRequestReviewRejected
 	default:
 		// unsupported review webhook type here
 		log.Error("Unsupported review webhook type")
@@ -619,7 +670,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 		return
 	}
 	if err := webhook_module.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
-		Action:      api.HookIssueSynchronized,
+		Action:      api.HookIssueReviewed,
 		Index:       review.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(pr),
 		Repository:  review.Issue.Repo.APIFormat(mode),
@@ -673,7 +724,7 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *m
 		return
 	}
 
-	if err := webhook_module.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+	if err := webhook_module.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequestSync, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       pr.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(pr),
