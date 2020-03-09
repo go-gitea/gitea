@@ -7,6 +7,7 @@ GO ?= go
 SED_INPLACE := sed -i
 SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
+COMMA := ,
 
 ifeq ($(HAS_GO), GO)
 	GOPATH ?= $(shell $(GO) env GOPATH)
@@ -16,22 +17,14 @@ endif
 
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE ?= gitea.exe
-	FIND_PWD_REGEXP := find . -regextype posix-egrep
 else
 	EXECUTABLE ?= gitea
 	UNAME_S := $(shell uname -s)
-	FIND_PWD_REGEXP := find . -regextype posix-egrep
-	BUSYBOX := $(shell find --help 2>&1 | grep -o BusyBox)
 	ifeq ($(UNAME_S),Darwin)
 		SED_INPLACE := sed -i ''
-		FIND_PWD_REGEXP := find -E .
 	endif
 	ifeq ($(UNAME_S),FreeBSD)
 		SED_INPLACE := sed -i ''
-		FIND_PWD_REGEXP := find -E .
-	endif
-	ifeq ($(BUSYBOX),BusyBox)
-		FIND_PWD_REGEXP := find .
 	endif
 endif
 
@@ -71,9 +64,6 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
-GO_SOURCES ?= $(shell $(FIND_PWD_REGEXP) -regex '\./(node_modules|docs|public|options|contrib|data)' -prune -o -name "*.go" -type f -print)
-GO_SOURCES_OWN := $(filter-out ./vendor/% %/bindata.go, $(GO_SOURCES))
-
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
 WEBPACK_CONFIGS := webpack.config.js .eslintrc .stylelintrc
 WEBPACK_DEST := public/js/index.js public/css/index.css
@@ -82,12 +72,23 @@ WEBPACK_DEST_DIRS := public/js public/css
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
+TAGS ?=
+TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
+TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
+
+GO_DIRS := cmd integrations models modules routers scripts services vendor
+GO_SOURCES := $(wildcard *.go)
+GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
+
+ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
+	GO_SOURCES += $(BINDATA_DEST)
+endif
+
+GO_SOURCES_OWN := $(filter-out vendor/% %/bindata.go, $(GO_SOURCES))
+
 FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
 FOMANTIC_DEST := public/fomantic/semantic.min.js public/fomantic/semantic.min.css
 FOMANTIC_DEST_DIR := public/fomantic
-
-TAGS ?=
-TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 #To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
 SWAGGER := GO111MODULE=on $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
