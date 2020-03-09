@@ -86,7 +86,7 @@ const (
 	CommentTypeChangeTargetBranch
 	// Delete time manual for time tracking
 	CommentTypeDeleteTimeManual
-	// Request 
+	// add or remove Request from one
 	CommentTypeReviewRequest
 )
 

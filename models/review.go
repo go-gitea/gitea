@@ -476,5 +476,19 @@ func SwithchRewiewRequest(issue *Issue, reviewer *User, doer *User) (isRequest b
 		}
 		isRequest = true
 	}
+
+	_, err = CreateComment(&CreateCommentOptions{
+		Type:            CommentTypeReviewRequest,
+		Doer:            doer,
+		Repo:            issue.Repo,
+		Issue:           issue,
+		RemovedAssignee: !isRequest,  // Use RemovedAssignee as !isRequest
+		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
+	})
+
+	if err != nil {
+		return isRequest, err
+	}
+
 	return isRequest, nil
 }

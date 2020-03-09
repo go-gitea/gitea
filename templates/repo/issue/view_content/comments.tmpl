@@ -7,7 +7,7 @@
 	 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE,
 	 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
 	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED,
-	 26 = DELETE_TIME_MANUAL -->
+	 26 = DELETE_TIME_MANUAL 27 = REVIEW_REQUEST -->
 	{{if eq .Type 0}}
 		<div class="comment" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
@@ -321,7 +321,6 @@
 			<span class="issue-symbol {{if eq .Review.Type 1}}green
 			{{else if eq .Review.Type 2}}grey
 			{{else if eq .Review.Type 3}}red
-			{{else if eq .Review.Type 4}}yellow
 			{{else}}grey{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon) 16}}</span>
 			{{if .OriginalAuthor }}
 			{{else}}
@@ -342,8 +341,6 @@
 					{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 				{{else if eq .Review.Type 3}}
 					{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
-				{{else if eq .Review.Type 4}}
-					{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
 				{{else}}
 					{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 				{{end}}
@@ -470,6 +467,21 @@
 				{{svg "octicon-clock" 16}}
 				<span class="text grey">{{.Content}}</span>
 			</div>
+		</div>
+	{{else if eq .Type 27}}
+		<div class="event" id="{{.HashTag}}">
+			{{svg "octicon-primitive-dot" 16}}
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey">
+				<a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{if .RemovedAssignee}}
+					{{$.i18n.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+				{{else}}
+					{{$.i18n.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+				{{end}}
+			</span>
 		</div>
 	{{end}}
 {{end}}
