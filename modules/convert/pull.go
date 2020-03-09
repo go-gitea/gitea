@@ -114,7 +114,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		if git.IsErrBranchNotExist(err) {
 			headCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
 			if err != nil && !git.IsErrNotExist(err) {
-				log.Error("GetCommit[%s]: %v", headBranch.Name, err)
+				log.Error("GetCommit[%s]: %v", pr.HeadBranch, err)
 				return nil
 			}
 			if err == nil {
