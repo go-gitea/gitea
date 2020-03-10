@@ -15,15 +15,27 @@ menu:
 
 # Email setup
 
-- To use Gitea's built-in Email support, update the `app.ini` config file [mailer] section:
+To use Gitea's built-in Email support, update the `app.ini` config file [mailer] section:
 
+- Sendmail version - Use the operating system’s sendmail command instead of SMTP. This is common on linux servers.
 ```ini
 [mailer]
-ENABLED = true
-HOST    = mail.mydomain.com:587
-FROM    = gitea@mydomain.com
-USER    = gitea@mydomain.com
-PASSWD  = `password`
+ENABLED       = true
+FROM          = gitea@mydomain.com
+MAILER_TYPE   = sendmail
+SENDMAIL_PATH = sendmail
+```
+
+- SMTP version
+```ini
+[mailer]
+ENABLED        = true
+FROM           = gitea@mydomain.com
+MAILER_TYPE    = smtp
+HOST           = mail.mydomain.com:587
+IS_TLS_ENABLED = true
+USER           = gitea@mydomain.com
+PASSWD         = `password`
 ```
 
 - Restart Gitea for the configuration changes to take effect.
