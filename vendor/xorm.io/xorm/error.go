@@ -6,7 +6,6 @@ package xorm
 
 import (
 	"errors"
-	"fmt"
 )
 
 var (
@@ -23,13 +22,3 @@ var (
 	// ErrConditionType condition type unsupported
 	ErrConditionType = errors.New("Unsupported condition type")
 )
-
-// ErrFieldIsNotExist columns does not exist
-type ErrFieldIsNotExist struct {
-	FieldName string
-	TableName string
-}
-
-func (e ErrFieldIsNotExist) Error() string {
-	return fmt.Sprintf("field %s is not valid on table %s", e.FieldName, e.TableName)
-}

@@ -9,7 +9,6 @@ import (
 	"reflect"
 
 	"xorm.io/xorm/core"
-	"xorm.io/xorm/internal/statements"
 )
 
 func (session *Session) queryPreprocess(sqlStr *string, paramStr ...interface{}) {
@@ -172,7 +171,7 @@ func (session *Session) Exec(sqlOrArgs ...interface{}) (sql.Result, error) {
 		return nil, ErrUnSupportedType
 	}
 
-	sqlStr, args, err := statements.ConvertSQLOrArgs(sqlOrArgs...)
+	sqlStr, args, err := session.statement.ConvertSQLOrArgs(sqlOrArgs...)
 	if err != nil {
 		return nil, err
 	}

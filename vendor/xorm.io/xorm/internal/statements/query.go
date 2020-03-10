@@ -16,11 +16,11 @@ import (
 
 func (statement *Statement) GenQuerySQL(sqlOrArgs ...interface{}) (string, []interface{}, error) {
 	if len(sqlOrArgs) > 0 {
-		return ConvertSQLOrArgs(sqlOrArgs...)
+		return statement.ConvertSQLOrArgs(sqlOrArgs...)
 	}
 
 	if statement.RawSQL != "" {
-		return statement.RawSQL, statement.RawParams, nil
+		return statement.GenRawSQL(), statement.RawParams, nil
 	}
 
 	if len(statement.TableName()) <= 0 {
@@ -74,7 +74,7 @@ func (statement *Statement) GenQuerySQL(sqlOrArgs ...interface{}) (string, []int
 
 func (statement *Statement) GenSumSQL(bean interface{}, columns ...string) (string, []interface{}, error) {
 	if statement.RawSQL != "" {
-		return statement.RawSQL, statement.RawParams, nil
+		return statement.GenRawSQL(), statement.RawParams, nil
 	}
 
 	statement.SetRefBean(bean)
@@ -83,6 +83,8 @@ func (statement *Statement) GenSumSQL(bean interface{}, columns ...string) (stri
 	for _, colName := range columns {
 		if !strings.Contains(colName, " ") && !strings.Contains(colName, "(") {
 			colName = statement.quote(colName)
+		} else {
+			colName = statement.ReplaceQuote(colName)
 		}
 		sumStrs = append(sumStrs, fmt.Sprintf("COALESCE(sum(%s),0)", colName))
 	}
@@ -153,7 +155,7 @@ func (statement *Statement) GenGetSQL(bean interface{}) (string, []interface{}, 
 
 func (statement *Statement) GenCountSQL(beans ...interface{}) (string, []interface{}, error) {
 	if statement.RawSQL != "" {
-		return statement.RawSQL, statement.RawParams, nil
+		return statement.GenRawSQL(), statement.RawParams, nil
 	}
 
 	var condArgs []interface{}
@@ -193,7 +195,7 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 		distinct = "DISTINCT "
 	}
 
-	condSQL, condArgs, err := builder.ToSQL(statement.cond)
+	condSQL, condArgs, err := statement.GenCondSQL(statement.cond)
 	if err != nil {
 		return "", nil, err
 	}
@@ -201,14 +203,14 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 		whereStr = " WHERE " + condSQL
 	}
 
-	if dialect.DBType() == schemas.MSSQL && strings.Contains(statement.TableName(), "..") {
+	if dialect.URI().DBType == schemas.MSSQL && strings.Contains(statement.TableName(), "..") {
 		fromStr += statement.TableName()
 	} else {
 		fromStr += quote(statement.TableName())
 	}
 
 	if statement.TableAlias != "" {
-		if dialect.DBType() == schemas.ORACLE {
+		if dialect.URI().DBType == schemas.ORACLE {
 			fromStr += " " + quote(statement.TableAlias)
 		} else {
 			fromStr += " AS " + quote(statement.TableAlias)
@@ -219,7 +221,7 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 	}
 
 	pLimitN := statement.LimitN
-	if dialect.DBType() == schemas.MSSQL {
+	if dialect.URI().DBType == schemas.MSSQL {
 		if pLimitN != nil {
 			LimitNValue := *pLimitN
 			top = fmt.Sprintf("TOP %d ", LimitNValue)
@@ -281,7 +283,7 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 		fmt.Fprint(&buf, " ORDER BY ", statement.OrderStr)
 	}
 	if needLimit {
-		if dialect.DBType() != schemas.MSSQL && dialect.DBType() != schemas.ORACLE {
+		if dialect.URI().DBType != schemas.MSSQL && dialect.URI().DBType != schemas.ORACLE {
 			if statement.Start > 0 {
 				if pLimitN != nil {
 					fmt.Fprintf(&buf, " LIMIT %v OFFSET %v", *pLimitN, statement.Start)
@@ -291,7 +293,7 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 			} else if pLimitN != nil {
 				fmt.Fprint(&buf, " LIMIT ", *pLimitN)
 			}
-		} else if dialect.DBType() == schemas.ORACLE {
+		} else if dialect.URI().DBType == schemas.ORACLE {
 			if statement.Start != 0 || pLimitN != nil {
 				oldString := buf.String()
 				buf.Reset()
@@ -313,7 +315,7 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 
 func (statement *Statement) GenExistSQL(bean ...interface{}) (string, []interface{}, error) {
 	if statement.RawSQL != "" {
-		return statement.RawSQL, statement.RawParams, nil
+		return statement.GenRawSQL(), statement.RawParams, nil
 	}
 
 	var sqlStr string
@@ -332,23 +334,23 @@ func (statement *Statement) GenExistSQL(bean ...interface{}) (string, []interfac
 		}
 
 		if statement.Conds().IsValid() {
-			condSQL, condArgs, err := builder.ToSQL(statement.Conds())
+			condSQL, condArgs, err := statement.GenCondSQL(statement.Conds())
 			if err != nil {
 				return "", nil, err
 			}
 
-			if statement.dialect.DBType() == schemas.MSSQL {
+			if statement.dialect.URI().DBType == schemas.MSSQL {
 				sqlStr = fmt.Sprintf("SELECT TOP 1 * FROM %s %s WHERE %s", tableName, joinStr, condSQL)
-			} else if statement.dialect.DBType() == schemas.ORACLE {
+			} else if statement.dialect.URI().DBType == schemas.ORACLE {
 				sqlStr = fmt.Sprintf("SELECT * FROM %s WHERE (%s) %s AND ROWNUM=1", tableName, joinStr, condSQL)
 			} else {
 				sqlStr = fmt.Sprintf("SELECT * FROM %s %s WHERE %s LIMIT 1", tableName, joinStr, condSQL)
 			}
 			args = condArgs
 		} else {
-			if statement.dialect.DBType() == schemas.MSSQL {
+			if statement.dialect.URI().DBType == schemas.MSSQL {
 				sqlStr = fmt.Sprintf("SELECT TOP 1 * FROM %s %s", tableName, joinStr)
-			} else if statement.dialect.DBType() == schemas.ORACLE {
+			} else if statement.dialect.URI().DBType == schemas.ORACLE {
 				sqlStr = fmt.Sprintf("SELECT * FROM  %s %s WHERE ROWNUM=1", tableName, joinStr)
 			} else {
 				sqlStr = fmt.Sprintf("SELECT * FROM %s %s LIMIT 1", tableName, joinStr)
@@ -382,7 +384,7 @@ func (statement *Statement) GenExistSQL(bean ...interface{}) (string, []interfac
 
 func (statement *Statement) GenFindSQL(autoCond builder.Cond) (string, []interface{}, error) {
 	if statement.RawSQL != "" {
-		return statement.RawSQL, statement.RawParams, nil
+		return statement.GenRawSQL(), statement.RawParams, nil
 	}
 
 	var sqlStr string

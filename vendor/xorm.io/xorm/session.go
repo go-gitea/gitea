@@ -22,6 +22,16 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
+// ErrFieldIsNotExist columns does not exist
+type ErrFieldIsNotExist struct {
+	FieldName string
+	TableName string
+}
+
+func (e ErrFieldIsNotExist) Error() string {
+	return fmt.Sprintf("field %s is not valid on table %s", e.FieldName, e.TableName)
+}
+
 // ErrFieldIsNotValid is not valid
 type ErrFieldIsNotValid struct {
 	FieldName string

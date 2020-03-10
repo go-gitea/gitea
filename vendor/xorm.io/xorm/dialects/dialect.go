@@ -34,7 +34,6 @@ type Dialect interface {
 	Init(*core.DB, *URI) error
 	URI() *URI
 	DB() *core.DB
-	DBType() schemas.DBType
 	SQLType(*schemas.Column) string
 	FormatBytes(b []byte) string
 	DefaultSchema() string
@@ -45,31 +44,22 @@ type Dialect interface {
 
 	AutoIncrStr() string
 
-	SupportInsertMany() bool
-	SupportEngine() bool
-	SupportCharset() bool
-	SupportDropIfExists() bool
-	IndexOnTable() bool
-	ShowCreateNull() bool
-
+	GetIndexes(ctx context.Context, tableName string) (map[string]*schemas.Index, error)
 	IndexCheckSQL(tableName, idxName string) (string, []interface{})
-	TableCheckSQL(tableName string) (string, []interface{})
-
-	IsColumnExist(ctx context.Context, tableName string, colName string) (bool, error)
-
-	CreateTableSQL(table *schemas.Table, tableName, storeEngine, charset string) string
-	DropTableSQL(tableName string) string
 	CreateIndexSQL(tableName string, index *schemas.Index) string
 	DropIndexSQL(tableName string, index *schemas.Index) string
 
+	GetTables(ctx context.Context) ([]*schemas.Table, error)
+	IsTableExist(ctx context.Context, tableName string) (bool, error)
+	CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool)
+	DropTableSQL(tableName string) (string, bool)
+
+	GetColumns(ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error)
+	IsColumnExist(ctx context.Context, tableName string, colName string) (bool, error)
 	AddColumnSQL(tableName string, col *schemas.Column) string
 	ModifyColumnSQL(tableName string, col *schemas.Column) string
 
 	ForUpdateSQL(query string) string
-
-	GetColumns(ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error)
-	GetTables(ctx context.Context) ([]*schemas.Table, error)
-	GetIndexes(ctx context.Context, tableName string) (map[string]*schemas.Index, error)
 
 	Filters() []Filter
 	SetParams(params map[string]string)
@@ -125,12 +115,10 @@ func (b *Base) String(col *schemas.Column) string {
 		sql += "DEFAULT " + col.Default + " "
 	}
 
-	if b.dialect.ShowCreateNull() {
-		if col.Nullable {
-			sql += "NULL "
-		} else {
-			sql += "NOT NULL "
-		}
+	if col.Nullable {
+		sql += "NULL "
+	} else {
+		sql += "NOT NULL "
 	}
 
 	return sql
@@ -146,12 +134,10 @@ func (b *Base) StringNoPk(col *schemas.Column) string {
 		sql += "DEFAULT " + col.Default + " "
 	}
 
-	if b.dialect.ShowCreateNull() {
-		if col.Nullable {
-			sql += "NULL "
-		} else {
-			sql += "NOT NULL "
-		}
+	if col.Nullable {
+		sql += "NULL "
+	} else {
+		sql += "NOT NULL "
 	}
 
 	return sql
@@ -161,17 +147,9 @@ func (b *Base) FormatBytes(bs []byte) string {
 	return fmt.Sprintf("0x%x", bs)
 }
 
-func (b *Base) ShowCreateNull() bool {
-	return true
-}
-
-func (db *Base) SupportDropIfExists() bool {
-	return true
-}
-
-func (db *Base) DropTableSQL(tableName string) string {
+func (db *Base) DropTableSQL(tableName string) (string, bool) {
 	quote := db.dialect.Quoter().Quote
-	return fmt.Sprintf("DROP TABLE IF EXISTS %s", quote(tableName))
+	return fmt.Sprintf("DROP TABLE IF EXISTS %s", quote(tableName)), true
 }
 
 func (db *Base) HasRecords(ctx context.Context, query string, args ...interface{}) (bool, error) {
@@ -232,59 +210,6 @@ func (db *Base) DropIndexSQL(tableName string, index *schemas.Index) string {
 
 func (db *Base) ModifyColumnSQL(tableName string, col *schemas.Column) string {
 	return fmt.Sprintf("alter table %s MODIFY COLUMN %s", tableName, db.StringNoPk(col))
-}
-
-func (b *Base) CreateTableSQL(table *schemas.Table, tableName, storeEngine, charset string) string {
-	var sql string
-	sql = "CREATE TABLE IF NOT EXISTS "
-	if tableName == "" {
-		tableName = table.Name
-	}
-
-	quoter := b.dialect.Quoter()
-	sql += quoter.Quote(tableName)
-	sql += " ("
-
-	if len(table.ColumnsSeq()) > 0 {
-		pkList := table.PrimaryKeys
-
-		for _, colName := range table.ColumnsSeq() {
-			col := table.GetColumn(colName)
-			if col.IsPrimaryKey && len(pkList) == 1 {
-				sql += b.String(col)
-			} else {
-				sql += b.StringNoPk(col)
-			}
-			sql = strings.TrimSpace(sql)
-			if b.DBType() == schemas.MYSQL && len(col.Comment) > 0 {
-				sql += " COMMENT '" + col.Comment + "'"
-			}
-			sql += ", "
-		}
-
-		if len(pkList) > 1 {
-			sql += "PRIMARY KEY ( "
-			sql += quoter.Join(pkList, ",")
-			sql += " ), "
-		}
-
-		sql = sql[:len(sql)-2]
-	}
-	sql += ")"
-
-	if b.dialect.SupportEngine() && storeEngine != "" {
-		sql += " ENGINE=" + storeEngine
-	}
-	if b.dialect.SupportCharset() {
-		if len(charset) == 0 {
-			charset = b.dialect.URI().Charset
-		}
-		if len(charset) > 0 {
-			sql += " DEFAULT CHARSET " + charset
-		}
-	}
-
-	return sql
 }
 
 func (b *Base) ForUpdateSQL(query string) string {

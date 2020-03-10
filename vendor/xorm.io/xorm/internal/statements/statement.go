@@ -35,9 +35,8 @@ var (
 
 // Statement save all the sql info for executing SQL
 type Statement struct {
-	RefTable *schemas.Table
-	dialect  dialects.Dialect
-	//Engine          *Engine
+	RefTable        *schemas.Table
+	dialect         dialects.Dialect
 	defaultTimeZone *time.Location
 	tagParser       *tags.Parser
 	Start           int
@@ -97,6 +96,27 @@ func (statement *Statement) SetTableName(tableName string) {
 
 func (statement *Statement) omitStr() string {
 	return statement.dialect.Quoter().Join(statement.OmitColumnMap, " ,")
+}
+
+// GenRawSQL generates correct raw sql
+func (statement *Statement) GenRawSQL() string {
+	return statement.ReplaceQuote(statement.RawSQL)
+}
+
+func (statement *Statement) GenCondSQL(condOrBuilder interface{}) (string, []interface{}, error) {
+	condSQL, condArgs, err := builder.ToSQL(condOrBuilder)
+	if err != nil {
+		return "", nil, err
+	}
+	return statement.ReplaceQuote(condSQL), condArgs, nil
+}
+
+func (statement *Statement) ReplaceQuote(sql string) string {
+	if sql == "" || statement.dialect.URI().DBType == schemas.MYSQL ||
+		statement.dialect.URI().DBType == schemas.SQLITE {
+		return sql
+	}
+	return statement.dialect.Quoter().Replace(sql)
 }
 
 func (statement *Statement) SetContextCache(ctxCache contexts.ContextCache) {
@@ -349,7 +369,11 @@ func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
 
 // SetExpr Generate  "Update ... Set column = {expression}" statement
 func (statement *Statement) SetExpr(column string, expression interface{}) *Statement {
-	statement.ExprColumns.addParam(column, expression)
+	if e, ok := expression.(string); ok {
+		statement.ExprColumns.addParam(column, statement.dialect.Quoter().Replace(e))
+	} else {
+		statement.ExprColumns.addParam(column, expression)
+	}
 	return statement
 }
 
@@ -368,7 +392,7 @@ func (statement *Statement) ForUpdate() *Statement {
 
 // Select replace select
 func (statement *Statement) Select(str string) *Statement {
-	statement.SelectStr = str
+	statement.SelectStr = statement.ReplaceQuote(str)
 	return statement
 }
 
@@ -459,7 +483,7 @@ func (statement *Statement) OrderBy(order string) *Statement {
 	if len(statement.OrderStr) > 0 {
 		statement.OrderStr += ", "
 	}
-	statement.OrderStr += order
+	statement.OrderStr += statement.ReplaceQuote(order)
 	return statement
 }
 
@@ -538,7 +562,7 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 		aliasName := statement.dialect.Quoter().Trim(fields[len(fields)-1])
 		aliasName = schemas.CommonQuoter.Trim(aliasName)
 
-		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, aliasName, condition)
+		fmt.Fprintf(&buf, "(%s) %s ON %v", statement.ReplaceQuote(subSQL), aliasName, statement.ReplaceQuote(condition))
 		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
 	case *builder.Builder:
 		subSQL, subQueryArgs, err := tp.ToSQL()
@@ -551,7 +575,7 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 		aliasName := statement.dialect.Quoter().Trim(fields[len(fields)-1])
 		aliasName = schemas.CommonQuoter.Trim(aliasName)
 
-		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, aliasName, condition)
+		fmt.Fprintf(&buf, "(%s) %s ON %v", statement.ReplaceQuote(subSQL), aliasName, statement.ReplaceQuote(condition))
 		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
 	default:
 		tbName := dialects.FullTableName(statement.dialect, statement.tagParser.GetTableMapper(), tablename, true)
@@ -560,7 +584,7 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 			statement.dialect.Quoter().QuoteTo(&buf, tbName)
 			tbName = buf.String()
 		}
-		fmt.Fprintf(&buf, "%s ON %v", tbName, condition)
+		fmt.Fprintf(&buf, "%s ON %v", tbName, statement.ReplaceQuote(condition))
 	}
 
 	statement.JoinStr = buf.String()
@@ -579,13 +603,13 @@ func (statement *Statement) tbNameNoSchema(table *schemas.Table) string {
 
 // GroupBy generate "Group By keys" statement
 func (statement *Statement) GroupBy(keys string) *Statement {
-	statement.GroupByStr = keys
+	statement.GroupByStr = statement.ReplaceQuote(keys)
 	return statement
 }
 
 // Having generate "Having conditions" statement
 func (statement *Statement) Having(conditions string) *Statement {
-	statement.HavingStr = fmt.Sprintf("HAVING %v", conditions)
+	statement.HavingStr = fmt.Sprintf("HAVING %v", statement.ReplaceQuote(conditions))
 	return statement
 }
 
@@ -640,9 +664,11 @@ func (statement *Statement) genColumnStr() string {
 	return buf.String()
 }
 
-func (statement *Statement) GenCreateTableSQL() string {
-	return statement.dialect.CreateTableSQL(statement.RefTable, statement.TableName(),
-		statement.StoreEngine, statement.Charset)
+func (statement *Statement) GenCreateTableSQL() []string {
+	statement.RefTable.StoreEngine = statement.StoreEngine
+	statement.RefTable.Charset = statement.Charset
+	s, _ := statement.dialect.CreateTableSQL(statement.RefTable, statement.TableName())
+	return s
 }
 
 func (statement *Statement) GenIndexSQL() []string {
@@ -680,20 +706,8 @@ func (statement *Statement) GenDelIndexSQL() []string {
 	if idx > -1 {
 		tbName = tbName[idx+1:]
 	}
-	idxPrefixName := strings.Replace(tbName, `"`, "", -1)
-	idxPrefixName = strings.Replace(idxPrefixName, `.`, "_", -1)
-	for idxName, index := range statement.RefTable.Indexes {
-		var rIdxName string
-		if index.Type == schemas.UniqueType {
-			rIdxName = uniqueName(idxPrefixName, idxName)
-		} else if index.Type == schemas.IndexType {
-			rIdxName = utils.IndexName(idxPrefixName, idxName)
-		}
-		sql := fmt.Sprintf("DROP INDEX %v", statement.quote(dialects.FullTableName(statement.dialect, statement.tagParser.GetTableMapper(), rIdxName, true)))
-		if statement.dialect.IndexOnTable() {
-			sql += fmt.Sprintf(" ON %v", statement.quote(tbName))
-		}
-		sqls = append(sqls, sql)
+	for _, index := range statement.RefTable.Indexes {
+		sqls = append(sqls, statement.dialect.DropIndexSQL(tbName, index))
 	}
 	return sqls
 }
@@ -714,7 +728,8 @@ func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
 			continue
 		}
 
-		if statement.dialect.DBType() == schemas.MSSQL && (col.SQLType.Name == schemas.Text || col.SQLType.IsBlob() || col.SQLType.Name == schemas.TimeStampz) {
+		if statement.dialect.URI().DBType == schemas.MSSQL && (col.SQLType.Name == schemas.Text ||
+			col.SQLType.IsBlob() || col.SQLType.Name == schemas.TimeStampz) {
 			continue
 		}
 		if col.SQLType.IsJson() {
@@ -823,7 +838,7 @@ func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
 				continue
 			} else if valNul, ok := fieldValue.Interface().(driver.Valuer); ok {
 				val, _ = valNul.Value()
-				if val == nil {
+				if val == nil && !requiredField {
 					continue
 				}
 			} else {
@@ -936,7 +951,7 @@ func (statement *Statement) GenConds(bean interface{}) (string, []interface{}, e
 		return "", nil, err
 	}
 
-	return builder.ToSQL(statement.cond)
+	return statement.GenCondSQL(statement.cond)
 }
 
 func (statement *Statement) quoteColumnStr(columnStr string) string {
@@ -944,7 +959,15 @@ func (statement *Statement) quoteColumnStr(columnStr string) string {
 	return statement.dialect.Quoter().Join(columns, ",")
 }
 
-func ConvertSQLOrArgs(sqlOrArgs ...interface{}) (string, []interface{}, error) {
+func (statement *Statement) ConvertSQLOrArgs(sqlOrArgs ...interface{}) (string, []interface{}, error) {
+	sql, args, err := convertSQLOrArgs(sqlOrArgs...)
+	if err != nil {
+		return "", nil, err
+	}
+	return statement.ReplaceQuote(sql), args, nil
+}
+
+func convertSQLOrArgs(sqlOrArgs ...interface{}) (string, []interface{}, error) {
 	switch sqlOrArgs[0].(type) {
 	case string:
 		return sqlOrArgs[0].(string), sqlOrArgs[1:], nil
@@ -994,15 +1017,20 @@ func (statement *Statement) joinColumns(cols []*schemas.Column, includeTableName
 func (statement *Statement) CondDeleted(col *schemas.Column) builder.Cond {
 	var colName = col.Name
 	if statement.JoinStr != "" {
-		colName = statement.quote(statement.TableName()) +
-			"." + statement.quote(col.Name)
+		var prefix string
+		if statement.TableAlias != "" {
+			prefix = statement.TableAlias
+		} else {
+			prefix = statement.TableName()
+		}
+		colName = statement.quote(prefix) + "." + statement.quote(col.Name)
 	}
 	var cond = builder.NewCond()
 	if col.SQLType.IsNumeric() {
 		cond = builder.Eq{colName: 0}
 	} else {
 		// FIXME: mssql: The conversion of a nvarchar data type to a datetime data type resulted in an out-of-range value.
-		if statement.dialect.DBType() != schemas.MSSQL {
+		if statement.dialect.URI().DBType != schemas.MSSQL {
 			cond = builder.Eq{colName: utils.ZeroTime1}
 		}
 	}

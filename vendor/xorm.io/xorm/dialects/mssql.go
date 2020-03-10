@@ -281,10 +281,6 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 	return res
 }
 
-func (db *mssql) SupportInsertMany() bool {
-	return true
-}
-
 func (db *mssql) IsReserved(name string) bool {
 	_, ok := mssqlReservedWords[strings.ToUpper(name)]
 	return ok
@@ -307,26 +303,14 @@ func (db *mssql) SetQuotePolicy(quotePolicy QuotePolicy) {
 	}
 }
 
-func (db *mssql) SupportEngine() bool {
-	return false
-}
-
 func (db *mssql) AutoIncrStr() string {
 	return "IDENTITY"
 }
 
-func (db *mssql) DropTableSQL(tableName string) string {
+func (db *mssql) DropTableSQL(tableName string) (string, bool) {
 	return fmt.Sprintf("IF EXISTS (SELECT * FROM sysobjects WHERE id = "+
 		"object_id(N'%s') and OBJECTPROPERTY(id, N'IsUserTable') = 1) "+
-		"DROP TABLE \"%s\"", tableName, tableName)
-}
-
-func (db *mssql) SupportCharset() bool {
-	return false
-}
-
-func (db *mssql) IndexOnTable() bool {
-	return true
+		"DROP TABLE \"%s\"", tableName, tableName), true
 }
 
 func (db *mssql) IndexCheckSQL(tableName, idxName string) (string, []interface{}) {
@@ -335,22 +319,15 @@ func (db *mssql) IndexCheckSQL(tableName, idxName string) (string, []interface{}
 	return sql, args
 }
 
-/*func (db *mssql) ColumnCheckSql(tableName, colName string) (string, []interface{}) {
-	args := []interface{}{tableName, colName}
-	sql := `SELECT "COLUMN_NAME" FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_NAME" = ? AND "COLUMN_NAME" = ?`
-	return sql, args
-}*/
-
 func (db *mssql) IsColumnExist(ctx context.Context, tableName, colName string) (bool, error) {
 	query := `SELECT "COLUMN_NAME" FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_NAME" = ? AND "COLUMN_NAME" = ?`
 
 	return db.HasRecords(ctx, query, tableName, colName)
 }
 
-func (db *mssql) TableCheckSQL(tableName string) (string, []interface{}) {
-	args := []interface{}{}
+func (db *mssql) IsTableExist(ctx context.Context, tableName string) (bool, error) {
 	sql := "select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1"
-	return sql, args
+	return db.HasRecords(ctx, sql)
 }
 
 func (db *mssql) GetColumns(ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error) {
@@ -358,14 +335,15 @@ func (db *mssql) GetColumns(ctx context.Context, tableName string) ([]string, ma
 	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale,a.is_nullable as nullable,
 		  "default_is_null" = (CASE WHEN c.text is null THEN 1 ELSE 0 END),
 	      replace(replace(isnull(c.text,''),'(',''),')','') as vdefault,
-		  ISNULL(i.is_primary_key, 0), a.is_identity as is_identity
+		  ISNULL(p.is_primary_key, 0), a.is_identity as is_identity
           from sys.columns a 
 		  left join sys.types b on a.user_type_id=b.user_type_id
           left join sys.syscomments c on a.default_object_id=c.id
-		  LEFT OUTER JOIN 
-    sys.index_columns ic ON ic.object_id = a.object_id AND ic.column_id = a.column_id
-		  LEFT OUTER JOIN 
-    sys.indexes i ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+		  LEFT OUTER JOIN (SELECT i.object_id, ic.column_id, i.is_primary_key
+			FROM sys.indexes i
+		  LEFT JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+			WHERE i.is_primary_key = 1
+		) as p on p.object_id = a.object_id AND p.column_id = a.column_id
           where a.object_id=object_id('` + tableName + `')`
 
 	rows, err := db.DB().QueryContext(ctx, s, args...)
@@ -509,7 +487,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 	return indexes, nil
 }
 
-func (db *mssql) CreateTableSQL(table *schemas.Table, tableName, storeEngine, charset string) string {
+func (db *mssql) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
 	var sql string
 	if tableName == "" {
 		tableName = table.Name
@@ -540,7 +518,7 @@ func (db *mssql) CreateTableSQL(table *schemas.Table, tableName, storeEngine, ch
 
 	sql = sql[:len(sql)-2] + ")"
 	sql += ";"
-	return sql
+	return []string{sql}, true
 }
 
 func (db *mssql) ForUpdateSQL(query string) string {
@@ -548,7 +526,7 @@ func (db *mssql) ForUpdateSQL(query string) string {
 }
 
 func (db *mssql) Filters() []Filter {
-	return []Filter{&QuoteFilter{db.Quoter()}}
+	return []Filter{}
 }
 
 type odbcDriver struct {

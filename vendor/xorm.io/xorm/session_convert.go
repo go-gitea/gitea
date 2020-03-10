@@ -6,7 +6,6 @@ package xorm
 
 import (
 	"database/sql"
-	"database/sql/driver"
 	"errors"
 	"fmt"
 	"reflect"
@@ -15,7 +14,6 @@ import (
 	"time"
 
 	"xorm.io/xorm/convert"
-	"xorm.io/xorm/dialects"
 	"xorm.io/xorm/internal/json"
 	"xorm.io/xorm/internal/utils"
 	"xorm.io/xorm/schemas"
@@ -65,7 +63,7 @@ func (session *Session) str2Time(col *schemas.Column, data string) (outTime time
 		}
 
 		sdata = strings.TrimSpace(sdata)
-		if session.engine.dialect.DBType() == schemas.MYSQL && len(sdata) > 8 {
+		if session.engine.dialect.URI().DBType == schemas.MYSQL && len(sdata) > 8 {
 			sdata = sdata[len(sdata)-8:]
 		}
 
@@ -87,10 +85,6 @@ func (session *Session) str2Time(col *schemas.Column, data string) (outTime time
 func (session *Session) byte2Time(col *schemas.Column, data []byte) (outTime time.Time, outErr error) {
 	return session.str2Time(col, string(data))
 }
-
-var (
-	nullFloatType = reflect.TypeOf(sql.NullFloat64{})
-)
 
 // convert a db data([]byte) to a field value
 func (session *Session) bytes2Value(col *schemas.Column, fieldValue *reflect.Value, data []byte) error {
@@ -159,7 +153,7 @@ func (session *Session) bytes2Value(col *schemas.Column, fieldValue *reflect.Val
 		var err error
 		// for mysql, when use bit, it returned \x01
 		if col.SQLType.Name == schemas.Bit &&
-			session.engine.dialect.DBType() == schemas.MYSQL { // !nashtsai! TODO dialect needs to provide conversion interface API
+			session.engine.dialect.URI().DBType == schemas.MYSQL { // !nashtsai! TODO dialect needs to provide conversion interface API
 			if len(data) == 1 {
 				x = int64(data[0])
 			} else {
@@ -399,7 +393,7 @@ func (session *Session) bytes2Value(col *schemas.Column, fieldValue *reflect.Val
 			var err error
 			// for mysql, when use bit, it returned \x01
 			if col.SQLType.Name == schemas.Bit &&
-				session.engine.dialect.DBType() == schemas.MYSQL {
+				session.engine.dialect.URI().DBType == schemas.MYSQL {
 				if len(data) == 1 {
 					x = int32(data[0])
 				} else {
@@ -532,134 +526,4 @@ func (session *Session) bytes2Value(col *schemas.Column, fieldValue *reflect.Val
 	}
 
 	return nil
-}
-
-// convert a field value of a struct to interface for put into db
-func (session *Session) value2Interface(col *schemas.Column, fieldValue reflect.Value) (interface{}, error) {
-	if fieldValue.CanAddr() {
-		if fieldConvert, ok := fieldValue.Addr().Interface().(convert.Conversion); ok {
-			data, err := fieldConvert.ToDB()
-			if err != nil {
-				return 0, err
-			}
-			if col.SQLType.IsBlob() {
-				return data, nil
-			}
-			return string(data), nil
-		}
-	}
-
-	if fieldConvert, ok := fieldValue.Interface().(convert.Conversion); ok {
-		data, err := fieldConvert.ToDB()
-		if err != nil {
-			return 0, err
-		}
-		if col.SQLType.IsBlob() {
-			return data, nil
-		}
-		return string(data), nil
-	}
-
-	fieldType := fieldValue.Type()
-	k := fieldType.Kind()
-	if k == reflect.Ptr {
-		if fieldValue.IsNil() {
-			return nil, nil
-		} else if !fieldValue.IsValid() {
-			session.engine.logger.Warnf("the field [%s] is invalid", col.FieldName)
-			return nil, nil
-		} else {
-			// !nashtsai! deference pointer type to instance type
-			fieldValue = fieldValue.Elem()
-			fieldType = fieldValue.Type()
-			k = fieldType.Kind()
-		}
-	}
-
-	switch k {
-	case reflect.Bool:
-		return fieldValue.Bool(), nil
-	case reflect.String:
-		return fieldValue.String(), nil
-	case reflect.Struct:
-		if fieldType.ConvertibleTo(schemas.TimeType) {
-			t := fieldValue.Convert(schemas.TimeType).Interface().(time.Time)
-			tf := dialects.FormatColumnTime(session.engine.dialect, session.engine.DatabaseTZ, col, t)
-			return tf, nil
-		} else if fieldType.ConvertibleTo(nullFloatType) {
-			t := fieldValue.Convert(nullFloatType).Interface().(sql.NullFloat64)
-			if !t.Valid {
-				return nil, nil
-			}
-			return t.Float64, nil
-		}
-
-		if !col.SQLType.IsJson() {
-			// !<winxxp>! 增加支持driver.Valuer接口的结构，如sql.NullString
-			if v, ok := fieldValue.Interface().(driver.Valuer); ok {
-				return v.Value()
-			}
-
-			fieldTable, err := session.engine.tagParser.ParseWithCache(fieldValue)
-			if err != nil {
-				return nil, err
-			}
-			if len(fieldTable.PrimaryKeys) == 1 {
-				pkField := reflect.Indirect(fieldValue).FieldByName(fieldTable.PKColumns()[0].FieldName)
-				return pkField.Interface(), nil
-			}
-			return 0, fmt.Errorf("no primary key for col %v", col.Name)
-		}
-
-		if col.SQLType.IsText() {
-			bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
-			if err != nil {
-				return 0, err
-			}
-			return string(bytes), nil
-		} else if col.SQLType.IsBlob() {
-			bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
-			if err != nil {
-				return 0, err
-			}
-			return bytes, nil
-		}
-		return nil, fmt.Errorf("Unsupported type %v", fieldValue.Type())
-	case reflect.Complex64, reflect.Complex128:
-		bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
-		if err != nil {
-			return 0, err
-		}
-		return string(bytes), nil
-	case reflect.Array, reflect.Slice, reflect.Map:
-		if !fieldValue.IsValid() {
-			return fieldValue.Interface(), nil
-		}
-
-		if col.SQLType.IsText() {
-			bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
-			if err != nil {
-				return 0, err
-			}
-			return string(bytes), nil
-		} else if col.SQLType.IsBlob() {
-			var bytes []byte
-			var err error
-			if (k == reflect.Slice) &&
-				(fieldValue.Type().Elem().Kind() == reflect.Uint8) {
-				bytes = fieldValue.Bytes()
-			} else {
-				bytes, err = json.DefaultJSONHandler.Marshal(fieldValue.Interface())
-				if err != nil {
-					return 0, err
-				}
-			}
-			return bytes, nil
-		}
-		return nil, ErrUnSupportedType
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		return int64(fieldValue.Uint()), nil
-	default:
-		return fieldValue.Interface(), nil
-	}
 }

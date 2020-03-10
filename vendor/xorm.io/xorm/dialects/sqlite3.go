@@ -211,10 +211,6 @@ func (db *sqlite3) FormatBytes(bs []byte) string {
 	return fmt.Sprintf("X'%x'", bs)
 }
 
-func (db *sqlite3) SupportInsertMany() bool {
-	return true
-}
-
 func (db *sqlite3) IsReserved(name string) bool {
 	_, ok := sqlite3ReservedWords[strings.ToUpper(name)]
 	return ok
@@ -224,26 +220,13 @@ func (db *sqlite3) AutoIncrStr() string {
 	return "AUTOINCREMENT"
 }
 
-func (db *sqlite3) SupportEngine() bool {
-	return false
-}
-
-func (db *sqlite3) SupportCharset() bool {
-	return false
-}
-
-func (db *sqlite3) IndexOnTable() bool {
-	return false
-}
-
 func (db *sqlite3) IndexCheckSQL(tableName, idxName string) (string, []interface{}) {
 	args := []interface{}{idxName}
 	return "SELECT name FROM sqlite_master WHERE type='index' and name = ?", args
 }
 
-func (db *sqlite3) TableCheckSQL(tableName string) (string, []interface{}) {
-	args := []interface{}{tableName}
-	return "SELECT name FROM sqlite_master WHERE type='table' and name = ?", args
+func (db *sqlite3) IsTableExist(ctx context.Context, tableName string) (bool, error) {
+	return db.HasRecords(ctx, "SELECT name FROM sqlite_master WHERE type='table' and name = ?", tableName)
 }
 
 func (db *sqlite3) DropIndexSQL(tableName string, index *schemas.Index) string {
@@ -259,6 +242,44 @@ func (db *sqlite3) DropIndexSQL(tableName string, index *schemas.Index) string {
 		}
 	}
 	return fmt.Sprintf("DROP INDEX %v", db.Quoter().Quote(idxName))
+}
+
+func (db *sqlite3) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
+	var sql string
+	sql = "CREATE TABLE IF NOT EXISTS "
+	if tableName == "" {
+		tableName = table.Name
+	}
+
+	quoter := db.Quoter()
+	sql += quoter.Quote(tableName)
+	sql += " ("
+
+	if len(table.ColumnsSeq()) > 0 {
+		pkList := table.PrimaryKeys
+
+		for _, colName := range table.ColumnsSeq() {
+			col := table.GetColumn(colName)
+			if col.IsPrimaryKey && len(pkList) == 1 {
+				sql += db.String(col)
+			} else {
+				sql += db.StringNoPk(col)
+			}
+			sql = strings.TrimSpace(sql)
+			sql += ", "
+		}
+
+		if len(pkList) > 1 {
+			sql += "PRIMARY KEY ( "
+			sql += quoter.Join(pkList, ",")
+			sql += " ), "
+		}
+
+		sql = sql[:len(sql)-2]
+	}
+	sql += ")"
+
+	return []string{sql}, true
 }
 
 func (db *sqlite3) ForUpdateSQL(query string) string {

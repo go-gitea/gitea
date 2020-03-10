@@ -80,7 +80,7 @@ const insertSelectPlaceHolder = true
 func (statement *Statement) WriteArg(w *builder.BytesWriter, arg interface{}) error {
 	switch argv := arg.(type) {
 	case bool:
-		if statement.dialect.DBType() == schemas.MSSQL {
+		if statement.dialect.URI().DBType == schemas.MSSQL {
 			if argv {
 				if _, err := w.WriteString("1"); err != nil {
 					return err
@@ -119,7 +119,7 @@ func (statement *Statement) WriteArg(w *builder.BytesWriter, arg interface{}) er
 			w.Append(arg)
 		} else {
 			var convertFunc = convertStringSingleQuote
-			if statement.dialect.DBType() == schemas.MYSQL {
+			if statement.dialect.URI().DBType == schemas.MYSQL {
 				convertFunc = convertString
 			}
 			if _, err := w.WriteString(convertArg(arg, convertFunc)); err != nil {

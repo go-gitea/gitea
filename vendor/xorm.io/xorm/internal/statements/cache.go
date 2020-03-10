@@ -27,7 +27,7 @@ func (statement *Statement) ConvertIDSQL(sqlStr string) string {
 
 		var top string
 		pLimitN := statement.LimitN
-		if pLimitN != nil && statement.dialect.DBType() == schemas.MSSQL {
+		if pLimitN != nil && statement.dialect.URI().DBType == schemas.MSSQL {
 			top = fmt.Sprintf("TOP %d ", *pLimitN)
 		}
 
@@ -56,9 +56,9 @@ func (statement *Statement) ConvertUpdateSQL(sqlStr string) (string, string) {
 
 	// TODO: for postgres only, if any other database?
 	var paraStr string
-	if statement.dialect.DBType() == schemas.POSTGRES {
+	if statement.dialect.URI().DBType == schemas.POSTGRES {
 		paraStr = "$"
-	} else if statement.dialect.DBType() == schemas.MSSQL {
+	} else if statement.dialect.URI().DBType == schemas.MSSQL {
 		paraStr = ":"
 	}
 

@@ -135,7 +135,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 	}
 
 	if len(orderSQL) > 0 {
-		switch session.engine.dialect.DBType() {
+		switch session.engine.dialect.URI().DBType {
 		case schemas.POSTGRES:
 			inSQL := fmt.Sprintf("ctid IN (SELECT ctid FROM %s%s)", tableName, orderSQL)
 			if len(condSQL) > 0 {
@@ -176,7 +176,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 			condSQL)
 
 		if len(orderSQL) > 0 {
-			switch session.engine.dialect.DBType() {
+			switch session.engine.dialect.URI().DBType {
 			case schemas.POSTGRES:
 				inSQL := fmt.Sprintf("ctid IN (SELECT ctid FROM %s%s)", tableName, orderSQL)
 				if len(condSQL) > 0 {

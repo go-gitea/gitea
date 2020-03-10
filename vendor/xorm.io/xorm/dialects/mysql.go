@@ -270,29 +270,13 @@ func (db *mysql) SQLType(c *schemas.Column) string {
 	return res
 }
 
-func (db *mysql) SupportInsertMany() bool {
-	return true
-}
-
 func (db *mysql) IsReserved(name string) bool {
 	_, ok := mysqlReservedWords[strings.ToUpper(name)]
 	return ok
 }
 
-func (db *mysql) SupportEngine() bool {
-	return true
-}
-
 func (db *mysql) AutoIncrStr() string {
 	return "AUTO_INCREMENT"
-}
-
-func (db *mysql) SupportCharset() bool {
-	return true
-}
-
-func (db *mysql) IndexOnTable() bool {
-	return true
 }
 
 func (db *mysql) IndexCheckSQL(tableName, idxName string) (string, []interface{}) {
@@ -302,10 +286,9 @@ func (db *mysql) IndexCheckSQL(tableName, idxName string) (string, []interface{}
 	return sql, args
 }
 
-func (db *mysql) TableCheckSQL(tableName string) (string, []interface{}) {
-	args := []interface{}{db.uri.DBName, tableName}
+func (db *mysql) IsTableExist(ctx context.Context, tableName string) (bool, error) {
 	sql := "SELECT `TABLE_NAME` from `INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA`=? and `TABLE_NAME`=?"
-	return sql, args
+	return db.HasRecords(ctx, sql, db.uri.DBName, tableName)
 }
 
 func (db *mysql) AddColumnSQL(tableName string, col *schemas.Column) string {
@@ -430,7 +413,7 @@ func (db *mysql) GetColumns(ctx context.Context, tableName string) ([]string, ma
 
 func (db *mysql) GetTables(ctx context.Context) ([]*schemas.Table, error) {
 	args := []interface{}{db.uri.DBName}
-	s := "SELECT `TABLE_NAME`, `ENGINE`, `TABLE_ROWS`, `AUTO_INCREMENT`, `TABLE_COMMENT` from " +
+	s := "SELECT `TABLE_NAME`, `ENGINE`, `AUTO_INCREMENT`, `TABLE_COMMENT` from " +
 		"`INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA`=? AND (`ENGINE`='MyISAM' OR `ENGINE` = 'InnoDB' OR `ENGINE` = 'TokuDB')"
 
 	rows, err := db.DB().QueryContext(ctx, s, args...)
@@ -442,15 +425,17 @@ func (db *mysql) GetTables(ctx context.Context) ([]*schemas.Table, error) {
 	tables := make([]*schemas.Table, 0)
 	for rows.Next() {
 		table := schemas.NewEmptyTable()
-		var name, engine, tableRows, comment string
-		var autoIncr *string
-		err = rows.Scan(&name, &engine, &tableRows, &autoIncr, &comment)
+		var name, engine string
+		var autoIncr, comment *string
+		err = rows.Scan(&name, &engine, &autoIncr, &comment)
 		if err != nil {
 			return nil, err
 		}
 
 		table.Name = name
-		table.Comment = comment
+		if comment != nil {
+			table.Comment = *comment
+		}
 		table.StoreEngine = engine
 		tables = append(tables, table)
 	}
@@ -524,7 +509,7 @@ func (db *mysql) GetIndexes(ctx context.Context, tableName string) (map[string]*
 	return indexes, nil
 }
 
-func (db *mysql) CreateTableSQL(table *schemas.Table, tableName, storeEngine, charset string) string {
+func (db *mysql) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
 	var sql = "CREATE TABLE IF NOT EXISTS "
 	if tableName == "" {
 		tableName = table.Name
@@ -562,10 +547,11 @@ func (db *mysql) CreateTableSQL(table *schemas.Table, tableName, storeEngine, ch
 	}
 	sql += ")"
 
-	if storeEngine != "" {
-		sql += " ENGINE=" + storeEngine
+	if table.StoreEngine != "" {
+		sql += " ENGINE=" + table.StoreEngine
 	}
 
+	var charset = table.Charset
 	if len(charset) == 0 {
 		charset = db.URI().Charset
 	}
@@ -576,7 +562,7 @@ func (db *mysql) CreateTableSQL(table *schemas.Table, tableName, storeEngine, ch
 	if db.rowFormat != "" {
 		sql += " ROW_FORMAT=" + db.rowFormat
 	}
-	return sql
+	return []string{sql}, true
 }
 
 func (db *mysql) Filters() []Filter {

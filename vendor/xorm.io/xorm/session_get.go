@@ -59,7 +59,7 @@ func (session *Session) get(bean interface{}) (bool, error) {
 			return false, err
 		}
 	} else {
-		sqlStr = session.statement.RawSQL
+		sqlStr = session.statement.GenRawSQL()
 		args = session.statement.RawParams
 	}
 

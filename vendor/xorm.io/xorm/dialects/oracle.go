@@ -547,36 +547,16 @@ func (db *oracle) AutoIncrStr() string {
 	return "AUTO_INCREMENT"
 }
 
-func (db *oracle) SupportInsertMany() bool {
-	return true
-}
-
 func (db *oracle) IsReserved(name string) bool {
 	_, ok := oracleReservedWords[strings.ToUpper(name)]
 	return ok
 }
 
-func (db *oracle) SupportEngine() bool {
-	return false
+func (db *oracle) DropTableSQL(tableName string) (string, bool) {
+	return fmt.Sprintf("DROP TABLE `%s`", tableName), false
 }
 
-func (db *oracle) SupportCharset() bool {
-	return false
-}
-
-func (db *oracle) SupportDropIfExists() bool {
-	return false
-}
-
-func (db *oracle) IndexOnTable() bool {
-	return false
-}
-
-func (db *oracle) DropTableSQL(tableName string) string {
-	return fmt.Sprintf("DROP TABLE `%s`", tableName)
-}
-
-func (db *oracle) CreateTableSQL(table *schemas.Table, tableName, storeEngine, charset string) string {
+func (db *oracle) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
 	var sql = "CREATE TABLE "
 	if tableName == "" {
 		tableName = table.Name
@@ -605,18 +585,7 @@ func (db *oracle) CreateTableSQL(table *schemas.Table, tableName, storeEngine, c
 	}
 
 	sql = sql[:len(sql)-2] + ")"
-	if db.SupportEngine() && storeEngine != "" {
-		sql += " ENGINE=" + storeEngine
-	}
-	if db.SupportCharset() {
-		if len(charset) == 0 {
-			charset = db.URI().Charset
-		}
-		if len(charset) > 0 {
-			sql += " DEFAULT CHARSET " + charset
-		}
-	}
-	return sql
+	return []string{sql}, false
 }
 
 func (db *oracle) SetQuotePolicy(quotePolicy QuotePolicy) {
@@ -642,26 +611,15 @@ func (db *oracle) IndexCheckSQL(tableName, idxName string) (string, []interface{
 		`WHERE TABLE_NAME = :1 AND INDEX_NAME = :2`, args
 }
 
-func (db *oracle) TableCheckSQL(tableName string) (string, []interface{}) {
-	args := []interface{}{tableName}
-	return `SELECT table_name FROM user_tables WHERE table_name = :1`, args
+func (db *oracle) IsTableExist(ctx context.Context, tableName string) (bool, error) {
+	return db.HasRecords(ctx, `SELECT table_name FROM user_tables WHERE table_name = :1`, tableName)
 }
 
 func (db *oracle) IsColumnExist(ctx context.Context, tableName, colName string) (bool, error) {
 	args := []interface{}{tableName, colName}
 	query := "SELECT column_name FROM USER_TAB_COLUMNS WHERE table_name = :1" +
 		" AND column_name = :2"
-
-	rows, err := db.DB().QueryContext(ctx, query, args...)
-	if err != nil {
-		return false, err
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		return true, nil
-	}
-	return false, nil
+	return db.HasRecords(ctx, query, args...)
 }
 
 func (db *oracle) GetColumns(ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error) {
@@ -835,7 +793,6 @@ func (db *oracle) GetIndexes(ctx context.Context, tableName string) (map[string]
 
 func (db *oracle) Filters() []Filter {
 	return []Filter{
-		&QuoteFilter{db.Quoter()},
 		&SeqFilter{Prefix: ":", Start: 1},
 	}
 }

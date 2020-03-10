@@ -196,3 +196,41 @@ func (q Quoter) Strings(s []string) []string {
 	}
 	return res
 }
+
+// Replace replaces common quote(`) as the quotes on the sql
+func (q Quoter) Replace(sql string) string {
+	if q.IsEmpty() {
+		return sql
+	}
+
+	var buf strings.Builder
+	buf.Grow(len(sql))
+
+	var beginSingleQuote bool
+	for i := 0; i < len(sql); i++ {
+		if !beginSingleQuote && sql[i] == CommanQuoteMark {
+			var j = i + 1
+			for ; j < len(sql); j++ {
+				if sql[j] == CommanQuoteMark {
+					break
+				}
+			}
+			word := sql[i+1 : j]
+			isReserved := q.IsReserved(word)
+			if isReserved {
+				buf.WriteByte(q.Prefix)
+			}
+			buf.WriteString(word)
+			if isReserved {
+				buf.WriteByte(q.Suffix)
+			}
+			i = j
+		} else {
+			if sql[i] == '\'' {
+				beginSingleQuote = !beginSingleQuote
+			}
+			buf.WriteByte(sql[i])
+		}
+	}
+	return buf.String()
+}

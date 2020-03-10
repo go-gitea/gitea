@@ -884,10 +884,6 @@ func (db *postgres) SQLType(c *schemas.Column) string {
 	return res
 }
 
-func (db *postgres) SupportInsertMany() bool {
-	return true
-}
-
 func (db *postgres) IsReserved(name string) bool {
 	_, ok := postgresReservedWords[strings.ToUpper(name)]
 	return ok
@@ -897,16 +893,42 @@ func (db *postgres) AutoIncrStr() string {
 	return ""
 }
 
-func (db *postgres) SupportEngine() bool {
-	return false
-}
+func (db *postgres) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
+	var sql string
+	sql = "CREATE TABLE IF NOT EXISTS "
+	if tableName == "" {
+		tableName = table.Name
+	}
 
-func (db *postgres) SupportCharset() bool {
-	return false
-}
+	quoter := db.Quoter()
+	sql += quoter.Quote(tableName)
+	sql += " ("
 
-func (db *postgres) IndexOnTable() bool {
-	return false
+	if len(table.ColumnsSeq()) > 0 {
+		pkList := table.PrimaryKeys
+
+		for _, colName := range table.ColumnsSeq() {
+			col := table.GetColumn(colName)
+			if col.IsPrimaryKey && len(pkList) == 1 {
+				sql += db.String(col)
+			} else {
+				sql += db.StringNoPk(col)
+			}
+			sql = strings.TrimSpace(sql)
+			sql += ", "
+		}
+
+		if len(pkList) > 1 {
+			sql += "PRIMARY KEY ( "
+			sql += quoter.Join(pkList, ",")
+			sql += " ), "
+		}
+
+		sql = sql[:len(sql)-2]
+	}
+	sql += ")"
+
+	return []string{sql}, true
 }
 
 func (db *postgres) IndexCheckSQL(tableName, idxName string) (string, []interface{}) {
@@ -920,14 +942,13 @@ func (db *postgres) IndexCheckSQL(tableName, idxName string) (string, []interfac
 		`WHERE schemaname = ? AND tablename = ? AND indexname = ?`, args
 }
 
-func (db *postgres) TableCheckSQL(tableName string) (string, []interface{}) {
+func (db *postgres) IsTableExist(ctx context.Context, tableName string) (bool, error) {
 	if len(db.uri.Schema) == 0 {
-		args := []interface{}{tableName}
-		return `SELECT tablename FROM pg_tables WHERE tablename = ?`, args
+		return db.HasRecords(ctx, `SELECT tablename FROM pg_tables WHERE tablename = $1`, tableName)
 	}
 
-	args := []interface{}{db.uri.Schema, tableName}
-	return `SELECT tablename FROM pg_tables WHERE schemaname = ? AND tablename = ?`, args
+	return db.HasRecords(ctx, `SELECT tablename FROM pg_tables WHERE schemaname = $1 AND tablename = $2`,
+		db.uri.Schema, tableName)
 }
 
 func (db *postgres) ModifyColumnSQL(tableName string, col *schemas.Column) string {
@@ -1210,7 +1231,7 @@ func (db *postgres) GetIndexes(ctx context.Context, tableName string) (map[strin
 }
 
 func (db *postgres) Filters() []Filter {
-	return []Filter{&QuoteFilter{db.Quoter()}, &SeqFilter{Prefix: "$", Start: 1}}
+	return []Filter{&SeqFilter{Prefix: "$", Start: 1}}
 }
 
 type pqDriver struct {

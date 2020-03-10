@@ -37,9 +37,14 @@ func (session *Session) createTable(bean interface{}) error {
 		return err
 	}
 
-	sqlStr := session.statement.GenCreateTableSQL()
-	_, err := session.exec(sqlStr)
-	return err
+	sqlStrs := session.statement.GenCreateTableSQL()
+	for _, s := range sqlStrs {
+		_, err := session.exec(s)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // CreateIndexes create indexes
@@ -124,18 +129,16 @@ func (session *Session) DropTable(beanOrTableName interface{}) error {
 
 func (session *Session) dropTable(beanOrTableName interface{}) error {
 	tableName := session.engine.TableName(beanOrTableName)
-	var needDrop = true
-	if !session.engine.dialect.SupportDropIfExists() {
-		sqlStr, args := session.engine.dialect.TableCheckSQL(tableName)
-		results, err := session.queryBytes(sqlStr, args...)
+	sqlStr, checkIfExist := session.engine.dialect.DropTableSQL(session.engine.TableName(tableName, true))
+	if !checkIfExist {
+		exist, err := session.engine.dialect.IsTableExist(session.ctx, tableName)
 		if err != nil {
 			return err
 		}
-		needDrop = len(results) > 0
+		checkIfExist = exist
 	}
 
-	if needDrop {
-		sqlStr := session.engine.Dialect().DropTableSQL(session.engine.TableName(tableName, true))
+	if checkIfExist {
 		_, err := session.exec(sqlStr)
 		return err
 	}
@@ -154,9 +157,7 @@ func (session *Session) IsTableExist(beanOrTableName interface{}) (bool, error) 
 }
 
 func (session *Session) isTableExist(tableName string) (bool, error) {
-	sqlStr, args := session.engine.dialect.TableCheckSQL(tableName)
-	results, err := session.queryBytes(sqlStr, args...)
-	return len(results) > 0, err
+	return session.engine.dialect.IsTableExist(session.ctx, tableName)
 }
 
 // IsTableEmpty if table have any records
@@ -313,8 +314,8 @@ func (session *Session) Sync2(beans ...interface{}) error {
 				if expectedType == schemas.Text &&
 					strings.HasPrefix(curType, schemas.Varchar) {
 					// currently only support mysql & postgres
-					if engine.dialect.DBType() == schemas.MYSQL ||
-						engine.dialect.DBType() == schemas.POSTGRES {
+					if engine.dialect.URI().DBType == schemas.MYSQL ||
+						engine.dialect.URI().DBType == schemas.POSTGRES {
 						engine.logger.Infof("Table %s column %s change type from %s to %s\n",
 							tbNameWithSchema, col.Name, curType, expectedType)
 						_, err = session.exec(engine.dialect.ModifyColumnSQL(tbNameWithSchema, col))
@@ -323,7 +324,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 							tbNameWithSchema, col.Name, curType, expectedType)
 					}
 				} else if strings.HasPrefix(curType, schemas.Varchar) && strings.HasPrefix(expectedType, schemas.Varchar) {
-					if engine.dialect.DBType() == schemas.MYSQL {
+					if engine.dialect.URI().DBType == schemas.MYSQL {
 						if oriCol.Length < col.Length {
 							engine.logger.Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
 								tbNameWithSchema, col.Name, oriCol.Length, col.Length)
@@ -337,7 +338,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 					}
 				}
 			} else if expectedType == schemas.Varchar {
-				if engine.dialect.DBType() == schemas.MYSQL {
+				if engine.dialect.URI().DBType == schemas.MYSQL {
 					if oriCol.Length < col.Length {
 						engine.logger.Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
 							tbNameWithSchema, col.Name, oriCol.Length, col.Length)

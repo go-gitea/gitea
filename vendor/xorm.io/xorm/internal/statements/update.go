@@ -186,6 +186,9 @@ func (statement *Statement) BuildUpdates(bean interface{},
 				val = dialects.FormatColumnTime(statement.dialect, statement.defaultTimeZone, col, t)
 			} else if nulType, ok := fieldValue.Interface().(driver.Valuer); ok {
 				val, _ = nulType.Value()
+				if val == nil && !requiredField {
+					continue
+				}
 			} else {
 				if !col.SQLType.IsJson() {
 					table, err := statement.tagParser.ParseWithCache(fieldValue)

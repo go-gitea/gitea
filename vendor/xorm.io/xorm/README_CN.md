@@ -2,15 +2,15 @@
 
 [English](https://gitea.com/xorm/xorm/src/branch/master/README.md)
 
-xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作非常简便。
+xorm 是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作非常简便。
 
-[![Build Status](https://drone.gitea.com/api/badges/xorm/builder/status.svg)](https://drone.gitea.com/xorm/builder) [![](http://gocover.io/_badge/xorm.io/xorm)](https://gocover.io/xorm.io/xorm)
+[![Build Status](https://drone.gitea.com/api/badges/xorm/xorm/status.svg)](https://drone.gitea.com/xorm/xorm) [![](http://gocover.io/_badge/xorm.io/xorm)](https://gocover.io/xorm.io/xorm)
 [![](https://goreportcard.com/badge/xorm.io/xorm)](https://goreportcard.com/report/xorm.io/xorm)
 [![Join the chat at https://img.shields.io/discord/323460943201959939.svg](https://img.shields.io/discord/323460943201959939.svg)](https://discord.gg/HuR2CF3)
 
 ## 特性
 
-* 支持Struct和数据库表之间的灵活映射，并支持自动同步
+* 支持 Struct 和数据库表之间的灵活映射，并支持自动同步
 
 * 事务支持
 
@@ -18,7 +18,7 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * 使用连写来简化调用
 
-* 支持使用Id, In, Where, Limit, Join, Having, Table, Sql, Cols等函数和结构体等方式作为条件
+* 支持使用ID, In, Where, Limit, Join, Having, Table, SQL, Cols等函数和结构体等方式作为条件
 
 * 支持级联加载Struct
 
@@ -26,11 +26,11 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * 支持缓存
 
-* 支持根据数据库自动生成xorm的结构体
+* 通过 [xorm.io/reverse](https://xorm.io/reverse) 支持根据数据库自动生成 xorm 结构体
 
 * 支持记录版本（即乐观锁）
 
-* 内置SQL Builder支持
+* 通过 [xorm.io/builder](https://xorm.io/builder) 内置 SQL Builder 支持
 
 * 上下文缓存支持
 
@@ -38,21 +38,21 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 目前支持的Go数据库驱动和对应的数据库如下：
 
-* Mysql: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
+* [Mysql5.*](https://github.com/mysql/mysql-server/tree/5.7) / [Mysql8.*](https://github.com/mysql/mysql-server) / [Mariadb](https://github.com/MariaDB/server) / [Tidb](https://github.com/pingcap/tidb)
+  - [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
+  - [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
 
-* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
+* [Postgres](https://github.com/postgres/postgres) / [Cockroach](https://github.com/cockroachdb/cockroach)
+  - [github.com/lib/pq](https://github.com/lib/pq)
 
-* Postgres: [github.com/lib/pq](https://github.com/lib/pq)
+* [SQLite](https://sqlite.org)
+  - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
-* Tidb: [github.com/pingcap/tidb](https://github.com/pingcap/tidb)
+* MsSql
+  - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-* SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
-
-* MsSql: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
-
-* MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
-
-* Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (试验性支持)
+* Oracle
+  - [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (试验性支持)
 
 ## 安装
 

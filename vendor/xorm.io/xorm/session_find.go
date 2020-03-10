@@ -99,10 +99,11 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 		}
 	}
 
-	var table = session.statement.RefTable
-
-	var addedTableName = (len(session.statement.JoinStr) > 0)
-	var autoCond builder.Cond
+	var (
+		table          = session.statement.RefTable
+		addedTableName = (len(session.statement.JoinStr) > 0)
+		autoCond       builder.Cond
+	)
 	if tp == tpStruct {
 		if !session.statement.NoAutoCondition && len(condiBean) > 0 {
 			var err error
@@ -111,23 +112,13 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 				return err
 			}
 		} else {
-			// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
-			// See https://gitea.com/xorm/xorm/issues/179
 			if col := table.DeletedColumn(); col != nil && !session.statement.GetUnscoped() { // tag "deleted" is enabled
-				var colName = session.engine.Quote(col.Name)
-				if addedTableName {
-					var nm = session.statement.TableName()
-					if len(session.statement.TableAlias) > 0 {
-						nm = session.statement.TableAlias
-					}
-					colName = session.engine.Quote(nm) + "." + colName
-				}
-
 				autoCond = session.statement.CondDeleted(col)
 			}
 		}
 	}
 
+	// if it's a map with Cols but primary key not in column list, we still need the primary key
 	if isMap && !session.statement.ColumnMap.IsEmpty() {
 		for _, k := range session.statement.RefTable.PrimaryKeys {
 			session.statement.ColumnMap.Add(k)

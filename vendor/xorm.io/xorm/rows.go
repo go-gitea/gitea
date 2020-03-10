@@ -80,7 +80,7 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 			return nil, err
 		}
 	} else {
-		sqlStr = rows.session.statement.RawSQL
+		sqlStr = rows.session.statement.GenRawSQL()
 		args = rows.session.statement.RawParams
 	}
 

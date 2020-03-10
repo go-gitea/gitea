@@ -13,7 +13,14 @@ type Zeroable interface {
 	IsZero() bool
 }
 
+var nilTime *time.Time
+
+// IsZero returns false if k is nil or has a zero value
 func IsZero(k interface{}) bool {
+	if k == nil {
+		return true
+	}
+
 	switch k.(type) {
 	case int:
 		return k.(int) == 0
@@ -43,26 +50,55 @@ func IsZero(k interface{}) bool {
 		return k.(bool) == false
 	case string:
 		return k.(string) == ""
+	case *time.Time:
+		return k.(*time.Time) == nilTime || IsTimeZero(*k.(*time.Time))
+	case time.Time:
+		return IsTimeZero(k.(time.Time))
 	case Zeroable:
-		return k.(Zeroable).IsZero()
+		return k.(Zeroable) == nil || k.(Zeroable).IsZero()
+	case reflect.Value: // for go version less than 1.13 because reflect.Value has no method IsZero
+		return IsValueZero(k.(reflect.Value))
 	}
-	return false
+
+	return IsValueZero(reflect.ValueOf(k))
 }
 
+var zeroType = reflect.TypeOf((*Zeroable)(nil)).Elem()
+
 func IsValueZero(v reflect.Value) bool {
-	if IsZero(v.Interface()) {
-		return true
-	}
 	switch v.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Slice:
 		return v.IsNil()
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint, reflect.Uint64:
+		return v.Uint() == 0
+	case reflect.String:
+		return v.Len() == 0
+	case reflect.Ptr:
+		if v.IsNil() {
+			return true
+		}
+		return IsValueZero(v.Elem())
+	case reflect.Struct:
+		return IsStructZero(v)
+	case reflect.Array:
+		return IsArrayZero(v)
 	}
 	return false
 }
 
 func IsStructZero(v reflect.Value) bool {
-	if !v.IsValid() {
+	if !v.IsValid() || v.NumField() == 0 {
 		return true
+	}
+
+	if v.Type().Implements(zeroType) {
+		f := v.MethodByName("IsZero")
+		if f.IsValid() {
+			res := f.Call(nil)
+			return len(res) == 1 && res[0].Bool()
+		}
 	}
 
 	for i := 0; i < v.NumField(); i++ {

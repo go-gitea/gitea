@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.8
+// +build go1.11
 
 package xorm
 
@@ -18,11 +18,6 @@ import (
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 	"xorm.io/xorm/tags"
-)
-
-const (
-	// Version show the xorm's version
-	Version string = "0.8.0.1015"
 )
 
 func close(engine *Engine) {

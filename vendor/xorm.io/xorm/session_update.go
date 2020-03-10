@@ -240,7 +240,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			}
 			colNames = append(colNames, session.engine.Quote(colName)+"="+tp)
 		case *builder.Builder:
-			subQuery, subArgs, err := builder.ToSQL(tp)
+			subQuery, subArgs, err := session.statement.GenCondSQL(tp)
 			if err != nil {
 				return 0, err
 			}
@@ -317,7 +317,11 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
-	condSQL, condArgs, err = builder.ToSQL(cond)
+	if len(colNames) <= 0 {
+		return 0, errors.New("No content found to be updated")
+	}
+
+	condSQL, condArgs, err = session.statement.GenCondSQL(cond)
 	if err != nil {
 		return 0, err
 	}
@@ -335,24 +339,25 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	var top string
 	if st.LimitN != nil {
 		limitValue := *st.LimitN
-		if session.engine.dialect.DBType() == schemas.MYSQL {
+		switch session.engine.dialect.URI().DBType {
+		case schemas.MYSQL:
 			condSQL = condSQL + fmt.Sprintf(" LIMIT %d", limitValue)
-		} else if session.engine.dialect.DBType() == schemas.SQLITE {
+		case schemas.SQLITE:
 			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", limitValue)
 			cond = cond.And(builder.Expr(fmt.Sprintf("rowid IN (SELECT rowid FROM %v %v)",
 				session.engine.Quote(tableName), tempCondSQL), condArgs...))
-			condSQL, condArgs, err = builder.ToSQL(cond)
+			condSQL, condArgs, err = session.statement.GenCondSQL(cond)
 			if err != nil {
 				return 0, err
 			}
 			if len(condSQL) > 0 {
 				condSQL = "WHERE " + condSQL
 			}
-		} else if session.engine.dialect.DBType() == schemas.POSTGRES {
+		case schemas.POSTGRES:
 			tempCondSQL := condSQL + fmt.Sprintf(" LIMIT %d", limitValue)
 			cond = cond.And(builder.Expr(fmt.Sprintf("CTID IN (SELECT CTID FROM %v %v)",
 				session.engine.Quote(tableName), tempCondSQL), condArgs...))
-			condSQL, condArgs, err = builder.ToSQL(cond)
+			condSQL, condArgs, err = session.statement.GenCondSQL(cond)
 			if err != nil {
 				return 0, err
 			}
@@ -360,14 +365,13 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			if len(condSQL) > 0 {
 				condSQL = "WHERE " + condSQL
 			}
-		} else if session.engine.dialect.DBType() == schemas.MSSQL {
-			if st.OrderStr != "" && session.engine.dialect.DBType() == schemas.MSSQL &&
-				table != nil && len(table.PrimaryKeys) == 1 {
+		case schemas.MSSQL:
+			if st.OrderStr != "" && table != nil && len(table.PrimaryKeys) == 1 {
 				cond = builder.Expr(fmt.Sprintf("%s IN (SELECT TOP (%d) %s FROM %v%v)",
 					table.PrimaryKeys[0], limitValue, table.PrimaryKeys[0],
 					session.engine.Quote(tableName), condSQL), condArgs...)
 
-				condSQL, condArgs, err = builder.ToSQL(cond)
+				condSQL, condArgs, err = session.statement.GenCondSQL(cond)
 				if err != nil {
 					return 0, err
 				}
@@ -380,14 +384,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
-	if len(colNames) <= 0 {
-		return 0, errors.New("No content found to be updated")
-	}
-
 	var tableAlias = session.engine.Quote(tableName)
 	var fromSQL string
 	if session.statement.TableAlias != "" {
-		switch session.engine.dialect.DBType() {
+		switch session.engine.dialect.URI().DBType {
 		case schemas.MSSQL:
 			fromSQL = fmt.Sprintf("FROM %s %s ", tableAlias, session.statement.TableAlias)
 			tableAlias = session.statement.TableAlias
@@ -473,25 +473,8 @@ func (session *Session) genUpdateColumns(bean interface{}) ([]string, []interfac
 		}
 		fieldValue := *fieldValuePtr
 
-		if col.IsAutoIncrement {
-			switch fieldValue.Type().Kind() {
-			case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int, reflect.Int64:
-				if fieldValue.Int() == 0 {
-					continue
-				}
-			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint, reflect.Uint64:
-				if fieldValue.Uint() == 0 {
-					continue
-				}
-			case reflect.String:
-				if len(fieldValue.String()) == 0 {
-					continue
-				}
-			case reflect.Ptr:
-				if fieldValue.Pointer() == 0 {
-					continue
-				}
-			}
+		if col.IsAutoIncrement && utils.IsValueZero(fieldValue) {
+			continue
 		}
 
 		if (col.IsDeleted && !session.statement.GetUnscoped()) || col.IsCreated {
@@ -532,7 +515,7 @@ func (session *Session) genUpdateColumns(bean interface{}) ([]string, []interfac
 		} else if col.IsVersion && session.statement.CheckVersion {
 			args = append(args, 1)
 		} else {
-			arg, err := session.value2Interface(col, fieldValue)
+			arg, err := session.statement.Value2Interface(col, fieldValue)
 			if err != nil {
 				return colNames, args, err
 			}
