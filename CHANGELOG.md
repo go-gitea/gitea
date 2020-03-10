@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * Prevent panic in stopwatch (#10670) (#10673)
   * Fix bug on pull view when required status check no ci result (#10648) (#10651)
+  * Build explicitly with Go 1.13
 
 ## [1.11.2](https://github.com/go-gitea/gitea/releases/tag/v1.11.2) - 2020-03-06
 
