@@ -560,8 +560,6 @@ func ActionIcon(opType models.ActionType) string {
 		return "check"
 	case models.ActionRejectPullRequest:
 		return "request-changes"
-	case models.ActionRequestReview:
-		return "primitive-dot"
 	default:
 		return "invalid type"
 	}

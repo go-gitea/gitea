@@ -240,8 +240,6 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 			action.OpType = models.ActionApprovePullRequest
 		case models.ReviewTypeReject:
 			action.OpType = models.ActionRejectPullRequest
-		case models.ReviewTypeRequest:
-			action.OpType = models.ActionRequestReview
 		default:
 			action.OpType = models.ActionCommentPull
 		}
