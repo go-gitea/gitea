@@ -4,6 +4,12 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.3](https://github.com/go-gitea/gitea/releases/tag/v1.11.3) - 2020-03-10
+
+* BUGFIXES
+  * Prevent panic in stopwatch (#10670) (#10673)
+  * Fix bug on pull view when required status check no ci result (#10648) (#10651)
+
 ## [1.11.2](https://github.com/go-gitea/gitea/releases/tag/v1.11.2) - 2020-03-06
 
 * BREAKING
