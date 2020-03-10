@@ -34,6 +34,7 @@ const (
 	BLOB_TYPE
 	TIME_TYPE
 	NUMERIC_TYPE
+	ARRAY_TYPE
 )
 
 func (s *SQLType) IsType(st int) bool {
@@ -57,6 +58,10 @@ func (s *SQLType) IsTime() bool {
 
 func (s *SQLType) IsNumeric() bool {
 	return s.IsType(NUMERIC_TYPE)
+}
+
+func (s *SQLType) IsArray() bool {
+	return s.IsType(ARRAY_TYPE)
 }
 
 func (s *SQLType) IsJson() bool {
@@ -123,6 +128,8 @@ var (
 	Json  = "JSON"
 	Jsonb = "JSONB"
 
+	Array = "ARRAY"
+
 	SqlTypes = map[string]int{
 		Bit:       NUMERIC_TYPE,
 		TinyInt:   NUMERIC_TYPE,
@@ -180,6 +187,8 @@ var (
 
 		Serial:    NUMERIC_TYPE,
 		BigSerial: NUMERIC_TYPE,
+
+		Array: ARRAY_TYPE,
 	}
 
 	intTypes  = sort.StringSlice{"*int", "*int16", "*int32", "*int8"}

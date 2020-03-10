@@ -1099,6 +1099,8 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 			col.SQLType = schemas.SQLType{Name: schemas.Binary, DefaultLength: 0, DefaultLength2: 0}
 		case "oid":
 			col.SQLType = schemas.SQLType{Name: schemas.BigInt, DefaultLength: 0, DefaultLength2: 0}
+		case "array":
+			col.SQLType = schemas.SQLType{Name: schemas.Array, DefaultLength: 0, DefaultLength2: 0}
 		default:
 			startIdx := strings.Index(strings.ToLower(dataType), "string(")
 			if startIdx != -1 && strings.HasSuffix(dataType, ")") {
