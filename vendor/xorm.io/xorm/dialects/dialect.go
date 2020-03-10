@@ -14,6 +14,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
+// URI represents an uri to visit database
 type URI struct {
 	DBType  schemas.DBType
 	Proto   string
@@ -27,6 +28,13 @@ type URI struct {
 	Raddr   string
 	Timeout time.Duration
 	Schema  string
+}
+
+// SetSchema set schema
+func (uri URI) SetSchema(schema string) {
+	if uri.DBType == schemas.POSTGRES {
+		uri.Schema = schema
+	}
 }
 
 // Dialect represents a kind of database
