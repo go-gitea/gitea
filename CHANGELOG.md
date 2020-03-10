@@ -512,6 +512,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update CodeMirror to version 5.49.0 (#8381)
   * Wiki editor: enable side-by-side button (#7242)
 
+## [1.10.6](https://github.com/go-gitea/gitea/releases/tag/v1.10.6) - 2020-03-10
+
+This is a re-tag version of v1.10.5 and also explicitly built with Go 1.13.
+
+WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be used.
+
 ## [1.10.5](https://github.com/go-gitea/gitea/releases/tag/v1.10.5) - 2020-03-06
 
 * BUGFIXES
