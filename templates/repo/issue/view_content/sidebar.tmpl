@@ -14,24 +14,25 @@
 			</span>
 			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 				{{range .Assignees}}
-
-					{{$AssigneesID := .ID}}
-					<a class="item{{range $.PullReviewers}}
-						{{if and (eq .ReviewerID $AssigneesID) (eq .Type 4) }}
-						 checked
-						{{end}}
-					{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}">
-						{{$checked := false}}
-						{{range $.PullReviewers}}
+					{{if not (eq .ID $.Issue.PosterID) }}
+						{{$AssigneesID := .ID}}
+						<a class="item{{range $.PullReviewers}}
 							{{if and (eq .ReviewerID $AssigneesID) (eq .Type 4) }}
-								{{$checked = true}}
+							checked
 							{{end}}
-						{{end}}
-						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
-						<span class="text">
-							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
-						</span>
-					</a>
+						{{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}">
+							{{$checked := false}}
+							{{range $.PullReviewers}}
+								{{if and (eq .ReviewerID $AssigneesID) (eq .Type 4) }}
+									{{$checked = true}}
+								{{end}}
+							{{end}}
+							<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
+							<span class="text">
+								<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
+							</span>
+						</a>
+					{{end}}
 				{{end}}
 			</div>
 		</div>
