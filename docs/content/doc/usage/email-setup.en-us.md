@@ -28,7 +28,7 @@ MAILER_TYPE   = sendmail
 SENDMAIL_PATH = /usr/sbin/sendmail
 ```
 
-- SMTP version
+## SMTP version
 ```ini
 [mailer]
 ENABLED        = true
