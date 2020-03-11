@@ -1,5 +1,5 @@
-/* This sets up webpack's chunk loading to load resources from the 'public'
-  directory. This file must be imported before any lazy-loading is being attempted. */
+// This sets up webpack's chunk loading to load resources from the 'public'
+// directory. This file must be imported before any lazy-loading is being attempted.
 
 if (document.currentScript && document.currentScript.src) {
   const url = new URL(document.currentScript.src);
