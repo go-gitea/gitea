@@ -16,6 +16,7 @@ import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import createDropzone from './features/dropzone.js';
+import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
@@ -2559,6 +2560,7 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups();
+  initTableSort();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
