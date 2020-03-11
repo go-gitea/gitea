@@ -1,5 +1,6 @@
 const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
+const CopyPlugin = require('copy-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -191,6 +192,10 @@ module.exports = {
     new SpriteLoaderPlugin({
       plainSprite: true,
     }),
+    new CopyPlugin([
+      // workaround for https://github.com/go-gitea/gitea/issues/10653
+      { from: 'node_modules/fomantic-ui/dist/semantic.min.css', to: 'fomantic/semantic.min.css' },
+    ]),
   ],
   performance: {
     hints: isProduction ? 'warning' : false,
@@ -198,7 +203,7 @@ module.exports = {
     maxAssetSize: 512000,
     assetFilter: (filename) => {
       if (filename.endsWith('.map')) return false;
-      if (['js/swagger.js', 'js/highlight.js'].includes(filename)) return false;
+      if (['js/swagger.js', 'js/highlight.js', 'fomantic/semantic.min.css'].includes(filename)) return false;
       return true;
     },
   },

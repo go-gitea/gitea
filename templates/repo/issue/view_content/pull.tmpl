@@ -158,26 +158,6 @@
 							{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 						</div>
 					{{end}}
-					{{if and .Divergence (gt .Divergence.Behind 0)}}
-					<div class="ui very compact branch-update grid">
-  						<div class="row">
-							<div class="item text gray eleven wide left floated column">
-								<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
-								{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
-							</div>
-							{{if .UpdateAllowed}}
-								<div class="item text five wide right floated column">
-									<form action="{{.Link}}/update" method="post">
-										{{.CsrfTokenHtml}}
-										<button class="ui button" data-do="update">
-											<span class="item text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
-										</button>
-									</form>
-								</div>
-							{{end}}
-						</div>
-					</div>
-					{{end}}
 					{{if .AllowMerge}}
 						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 						{{$approvers := .Issue.PullRequest.GetApprovers}}
@@ -306,6 +286,26 @@
 							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
 						</div>
 					{{end}}
+				{{end}}
+				{{if and .Divergence (gt .Divergence.Behind 0)}}
+				<div class="ui very compact branch-update grid">
+						<div class="row">
+						<div class="item text gray eleven wide left floated column">
+							<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+							{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
+						</div>
+						{{if .UpdateAllowed}}
+							<div class="item text five wide right floated column">
+								<form action="{{.Link}}/update" method="post">
+									{{.CsrfTokenHtml}}
+									<button class="ui button" data-do="update">
+										<span class="item text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+									</button>
+								</form>
+							</div>
+						{{end}}
+					</div>
+				</div>
 				{{end}}
 			{{else}}
 				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
