@@ -153,6 +153,7 @@ func (statement *Statement) GenGetSQL(bean interface{}) (string, []interface{}, 
 	return sqlStr, append(statement.joinArgs, condArgs...), nil
 }
 
+// GenCountSQL generates the SQL for counting
 func (statement *Statement) GenCountSQL(beans ...interface{}) (string, []interface{}, error) {
 	if statement.RawSQL != "" {
 		return statement.GenRawSQL(), statement.RawParams, nil
@@ -171,6 +172,8 @@ func (statement *Statement) GenCountSQL(beans ...interface{}) (string, []interfa
 	if len(selectSQL) <= 0 {
 		if statement.IsDistinct {
 			selectSQL = fmt.Sprintf("count(DISTINCT %s)", statement.ColumnStr())
+		} else if statement.ColumnStr() != "" {
+			selectSQL = fmt.Sprintf("count(%s)", statement.ColumnStr())
 		} else {
 			selectSQL = "count(*)"
 		}

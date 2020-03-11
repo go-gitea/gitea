@@ -363,7 +363,10 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 		if dialect == nil {
 			return errors.New("Unsupported database type")
 		}
-		dialect.Init(nil, engine.dialect.URI())
+		var destURI dialects.URI
+		uri := engine.dialect.URI()
+		destURI = *uri
+		dialect.Init(nil, &destURI)
 		distDBName = string(tp[0])
 	}
 
