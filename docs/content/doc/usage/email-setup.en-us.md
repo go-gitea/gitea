@@ -23,7 +23,7 @@ To use Gitea's built-in Email support, update the `app.ini` config file [mailer]
 ENABLED       = true
 FROM          = gitea@mydomain.com
 MAILER_TYPE   = sendmail
-SENDMAIL_PATH = sendmail
+SENDMAIL_PATH = /usr/sbin/sendmail
 ```
 
 - SMTP version
