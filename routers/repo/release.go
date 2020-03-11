@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -129,6 +130,63 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplReleases)
+}
+
+// SingleRelease renders a single release's page
+func SingleRelease(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
+	ctx.Data["PageIsReleaseList"] = true
+
+	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
+	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
+
+	release, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("tag"))
+	if err != nil {
+		ctx.ServerError("GetReleasesByRepoID", err)
+		return
+	}
+
+	err = models.GetReleaseAttachments(release)
+	if err != nil {
+		ctx.ServerError("GetReleaseAttachments", err)
+		return
+	}
+
+	release.Publisher, err = models.GetUserByID(release.PublisherID)
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			release.Publisher = models.NewGhostUser()
+		} else {
+			ctx.ServerError("GetUserByID", err)
+			return
+		}
+	}
+	if err := calReleaseNumCommitsBehind(ctx.Repo, release, make(map[string]int64)); err != nil {
+		ctx.ServerError("calReleaseNumCommitsBehind", err)
+		return
+	}
+	release.Note = markdown.RenderString(release.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
+
+	ctx.Data["Releases"] = []*models.Release{release}
+	ctx.HTML(200, tplReleases)
+}
+
+// LatestRelease redirects to the latest release
+func LatestRelease(ctx *context.Context) {
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+		ListOptions: models.ListOptions{Page: 1, PageSize: 1},
+	})
+	if err != nil {
+		ctx.ServerError("GetReleasesByRepoID", err)
+		return
+	}
+
+	if len(releases) < 1 {
+		ctx.NotFound("LatestRelease", errors.New("no latest release found"))
+		return
+	}
+
+	ctx.Redirect(ctx.Repo.RepoLink + "/releases/tag/" + releases[0].LowerTagName)
 }
 
 // NewRelease render creating release page
