@@ -19,7 +19,7 @@ To use Gitea's built-in Email support, update the `app.ini` config file [mailer]
 
 ## Sendmail version 
 Use the operating system’s sendmail command instead of SMTP. This is common on Linux servers.  
-Note: For use in the official gitea docker image, please configure with the SMTP version.
+Note: For use in the official Gitea Docker image, please configure with the SMTP version.
 ```ini
 [mailer]
 ENABLED       = true
