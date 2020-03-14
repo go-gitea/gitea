@@ -1,12 +1,12 @@
 import Vue from 'vue';
 
-const { AppSubUrl, heatmapUser } = window.config;
+const {AppSubUrl, heatmapUser} = window.config;
 
 export default async function initHeatmap() {
   const el = document.getElementById('user-heatmap');
   if (!el) return;
 
-  const { CalendarHeatmap } = await import(/* webpackChunkName: "userheatmap" */'vue-calendar-heatmap');
+  const {CalendarHeatmap} = await import(/* webpackChunkName: "userheatmap" */'vue-calendar-heatmap');
   Vue.component('calendarHeatmap', CalendarHeatmap);
 
   const vueDelimeters = ['${', '}'];
@@ -59,7 +59,7 @@ export default async function initHeatmap() {
           const chartData = [];
           for (let i = 0; i < chartRawData.length; i++) {
             self.totalContributions += chartRawData[i].contributions;
-            chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
+            chartData[i] = {date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions};
           }
           self.values = chartData;
           self.isLoading = false;

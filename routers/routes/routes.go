@@ -413,7 +413,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/recover_account", user.ResetPasswdPost)
 		m.Get("/forgot_password", user.ForgotPasswd)
 		m.Post("/forgot_password", user.ForgotPasswdPost)
-		m.Get("/logout", user.SignOut)
+		m.Post("/logout", user.SignOut)
 	})
 	// ***** END: User *****
 
@@ -422,6 +422,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	// ***** START: Admin *****
 	m.Group("/admin", func() {
 		m.Get("", adminReq, admin.Dashboard)
+		m.Post("", adminReq, bindIgnErr(auth.AdminDashboardForm{}), admin.DashboardPost)
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
 		m.Group("/monitor", func() {
@@ -443,6 +444,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/:userid/delete", admin.DeleteUser)
 		})
 
+		m.Group("/emails", func() {
+			m.Get("", admin.Emails)
+			m.Post("/activate", admin.ActivateEmail)
+		})
+
 		m.Group("/orgs", func() {
 			m.Get("", admin.Organizations)
 		})
@@ -452,11 +458,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
-		m.Group("/hooks", func() {
-			m.Get("", admin.DefaultWebhooks)
-			m.Post("/delete", admin.DeleteDefaultWebhook)
+		m.Group("/^:configType(hooks|system-hooks)$", func() {
+			m.Get("", admin.DefaultOrSystemWebhooks)
+			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
 			m.Get("/:type/new", repo.WebhooksNew)
-			m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
+			m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.GiteaHooksNewPost)
 			m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
 			m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 			m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
@@ -486,7 +492,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/notices", func() {
 			m.Get("", admin.Notices)
 			m.Post("/delete", admin.DeleteNotices)
-			m.Get("/empty", admin.EmptyNotices)
+			m.Post("/empty", admin.EmptyNotices)
 		})
 	}, adminReq)
 	// ***** END: Admin *****
@@ -502,7 +508,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}, reqSignIn)
 
 	m.Group("/:username", func() {
-		m.Get("/action/:action", user.Action)
+		m.Post("/action/:action", user.Action)
 	}, reqSignIn)
 
 	if macaron.Env == macaron.DEV {
@@ -535,7 +541,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/^:type(issues|pulls)$", user.Issues)
 			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/members", org.Members)
-			m.Get("/members/action/:action", org.MembersAction)
+			m.Post("/members/action/:action", org.MembersAction)
 
 			m.Get("/teams", org.Teams)
 		}, context.OrgAssignment(true))
@@ -543,8 +549,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/:org", func() {
 			m.Get("/teams/:team", org.TeamMembers)
 			m.Get("/teams/:team/repositories", org.TeamRepositories)
-			m.Route("/teams/:team/action/:action", "GET,POST", org.TeamsAction)
-			m.Route("/teams/:team/action/repo/:action", "GET,POST", org.TeamsRepoAction)
+			m.Post("/teams/:team/action/:action", org.TeamsAction)
+			m.Post("/teams/:team/action/repo/:action", org.TeamsRepoAction)
 		}, context.OrgAssignment(true, false, true))
 
 		m.Group("/:org", func() {
@@ -564,7 +570,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", org.Webhooks)
 					m.Post("/delete", org.DeleteWebhook)
 					m.Get("/:type/new", repo.WebhooksNew)
-					m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
+					m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.GiteaHooksNewPost)
 					m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
 					m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 					m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
@@ -643,7 +649,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Get("", repo.Webhooks)
 				m.Post("/delete", repo.DeleteWebhook)
 				m.Get("/:type/new", repo.WebhooksNew)
-				m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
+				m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.GiteaHooksNewPost)
 				m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
 				m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 				m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
@@ -695,7 +701,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
-	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
+	m.Post("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
 
 	m.Group("/:username/:reponame", func() {
 		m.Group("/issues", func() {
@@ -750,7 +756,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				Post(bindIgnErr(auth.CreateMilestoneForm{}), repo.NewMilestonePost)
 			m.Get("/:id/edit", repo.EditMilestone)
 			m.Post("/:id/edit", bindIgnErr(auth.CreateMilestoneForm{}), repo.EditMilestonePost)
-			m.Get("/:id/:action", repo.ChangeMilestonStatus)
+			m.Post("/:id/:action", repo.ChangeMilestonStatus)
 			m.Post("/delete", repo.DeleteMilestone)
 		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
 		m.Group("/milestone", func() {

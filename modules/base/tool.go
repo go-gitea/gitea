@@ -6,13 +6,11 @@ package base
 
 import (
 	"crypto/md5"
-	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -73,18 +71,6 @@ func BasicAuthDecode(encoded string) (string, string, error) {
 // BasicAuthEncode encode basic auth string
 func BasicAuthEncode(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-}
-
-// GetRandomBytesAsBase64 generates a random base64 string from n bytes
-func GetRandomBytesAsBase64(n int) string {
-	bytes := make([]byte, 32)
-	_, err := io.ReadFull(rand.Reader, bytes)
-
-	if err != nil {
-		log.Fatal("Error reading random bytes: %v", err)
-	}
-
-	return base64.RawURLEncoding.EncodeToString(bytes)
 }
 
 // VerifyTimeLimitCode verify time limit code

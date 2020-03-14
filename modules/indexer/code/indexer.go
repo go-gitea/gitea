@@ -64,6 +64,17 @@ func Init() {
 	go func() {
 		start := time.Now()
 		log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoPath)
+		defer func() {
+			if err := recover(); err != nil {
+				log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
+				log.Error("The indexer files are likely corrupted and may need to be deleted")
+				log.Error("You can completely remove the \"%s\" directory to make Gitea recreate the indexes", setting.Indexer.RepoPath)
+				cancel()
+				indexer.Close()
+				close(waitChannel)
+				log.Fatal("PID: %d Unable to initialize the Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
+			}
+		}()
 		bleveIndexer, created, err := NewBleveIndexer(setting.Indexer.RepoPath)
 		if err != nil {
 			if bleveIndexer != nil {

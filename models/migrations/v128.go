@@ -5,127 +5,93 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"fmt"
+	"path/filepath"
+	"strings"
 
-	"xorm.io/core"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+
 	"xorm.io/xorm"
 )
 
-func addProjectsInfo(x *xorm.Engine) error {
-
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	type (
-		ProjectType      uint8
-		ProjectBoardType uint8
-	)
-
-	type Project struct {
-		ID              int64  `xorm:"pk autoincr"`
-		Title           string `xorm:"INDEX NOT NULL"`
-		Description     string `xorm:"TEXT"`
-		RepoID          int64  `xorm:"NOT NULL"`
-		CreatorID       int64  `xorm:"NOT NULL"`
-		IsClosed        bool   `xorm:"INDEX"`
-		NumIssues       int
-		NumClosedIssues int
-
-		BoardType ProjectBoardType
-		Type      ProjectType
-
-		ClosedDateUnix timeutil.TimeStamp
-		CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-
-	if err := sess.Sync2(new(Project)); err != nil {
-		return err
-	}
-
-	type Comment struct {
-		OldProjectID int64
-		ProjectID    int64
-	}
-
-	if err := sess.Sync2(new(Comment)); err != nil {
-		return err
-	}
-
+func fixMergeBase(x *xorm.Engine) error {
 	type Repository struct {
-		ID                int64
-		NumProjects       int `xorm:"NOT NULL DEFAULT 0"`
-		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
-		NumOpenProjects   int `xorm:"-"`
-	}
-
-	if err := sess.Sync2(new(Repository)); err != nil {
-		return err
-	}
-
-	type Issue struct {
-		ProjectID      int64 `xorm:"INDEX"`
-		ProjectBoardID int64 `xorm:"INDEX"`
-	}
-
-	if err := sess.Sync2(new(Issue)); err != nil {
-		return err
-	}
-
-	type ProjectBoard struct {
 		ID        int64 `xorm:"pk autoincr"`
-		ProjectID int64 `xorm:"INDEX NOT NULL"`
-		Title     string
-		RepoID    int64 `xorm:"INDEX NOT NULL"`
-
-		// Not really needed but helpful
-		CreatorID int64 `xorm:"NOT NULL"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+		OwnerID   int64 `xorm:"UNIQUE(s) index"`
+		OwnerName string
+		LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Name      string `xorm:"INDEX NOT NULL"`
 	}
 
-	if err := sess.Sync2(new(ProjectBoard)); err != nil {
-		return err
+	type PullRequest struct {
+		ID         int64 `xorm:"pk autoincr"`
+		Index      int64
+		HeadRepoID int64 `xorm:"INDEX"`
+		BaseRepoID int64 `xorm:"INDEX"`
+		HeadBranch string
+		BaseBranch string
+		MergeBase  string `xorm:"VARCHAR(40)"`
+
+		HasMerged      bool   `xorm:"INDEX"`
+		MergedCommitID string `xorm:"VARCHAR(40)"`
 	}
 
-	type RepoUnit struct {
-		ID          int64
-		RepoID      int64              `xorm:"INDEX(s)"`
-		Type        int                `xorm:"INDEX(s)"`
-		Config      core.Conversion    `xorm:"TEXT"`
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
+	var limit = setting.Database.IterateBufferSize
+	if limit <= 0 {
+		limit = 50
 	}
 
-	const batchSize = 100
-
-	const unitTypeProject int = 8 // see UnitTypeProjects in models/units.go
-
-	for start := 0; ; start += batchSize {
-		repos := make([]*Repository, 0, batchSize)
-
-		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
-			return err
+	i := 0
+	for {
+		prs := make([]PullRequest, 0, 50)
+		if err := x.Limit(limit, i).Asc("id").Find(&prs); err != nil {
+			return fmt.Errorf("Find: %v", err)
 		}
-
-		if len(repos) == 0 {
+		if len(prs) == 0 {
 			break
 		}
 
-		for _, r := range repos {
-			if _, err := sess.ID(r.ID).Insert(&RepoUnit{
-				RepoID:      r.ID,
-				Type:        unitTypeProject,
-				CreatedUnix: timeutil.TimeStampNow(),
-			}); err != nil {
-				return err
+		i += 50
+		for _, pr := range prs {
+			baseRepo := &Repository{ID: pr.BaseRepoID}
+			has, err := x.Table("repository").Get(baseRepo)
+			if err != nil {
+				return fmt.Errorf("Unable to get base repo %d %v", pr.BaseRepoID, err)
 			}
+			if !has {
+				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
+				continue
+			}
+			userPath := filepath.Join(setting.RepoRootPath, strings.ToLower(baseRepo.OwnerName))
+			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
+
+			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
+
+			if !pr.HasMerged {
+				var err error
+				pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.BaseBranch, gitRefName).RunInDir(repoPath)
+				if err != nil {
+					var err2 error
+					pr.MergeBase, err2 = git.NewCommand("rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
+					if err2 != nil {
+						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err, err2)
+						continue
+					}
+				}
+			} else {
+				var err error
+				pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.MergedCommitID+"^", gitRefName).RunInDir(repoPath)
+				if err != nil {
+					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
+					continue
+				}
+			}
+			pr.MergeBase = strings.TrimSpace(pr.MergeBase)
+			x.ID(pr.ID).Cols("merge_base").Update(pr)
 		}
 	}
 
-	return sess.Commit()
+	return nil
 }

@@ -739,9 +739,11 @@ func (u *User) DisplayName() string {
 // GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
 // returns username otherwise.
 func (u *User) GetDisplayName() string {
-	trimmed := strings.TrimSpace(u.FullName)
-	if len(trimmed) > 0 && setting.UI.DefaultShowFullName {
-		return trimmed
+	if setting.UI.DefaultShowFullName {
+		trimmed := strings.TrimSpace(u.FullName)
+		if len(trimmed) > 0 {
+			return trimmed
+		}
 	}
 	return u.Name
 }
@@ -1313,21 +1315,6 @@ func UserPath(userName string) string {
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
 
-// GetUserByKeyID get user information by user's public key id
-func GetUserByKeyID(keyID int64) (*User, error) {
-	var user User
-	has, err := x.Join("INNER", "public_key", "`public_key`.owner_id = `user`.id").
-		Where("`public_key`.id=?", keyID).
-		Get(&user)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, ErrUserNotExist{0, "", keyID}
-	}
-	return &user, nil
-}
-
 func getUserByID(e Engine, id int64) (*User, error) {
 	u := new(User)
 	has, err := e.ID(id).Get(u)
@@ -1409,7 +1396,7 @@ func GetUserNamesByIDs(ids []int64) ([]string, error) {
 }
 
 // GetUsersByIDs returns all resolved users from a list of Ids.
-func GetUsersByIDs(ids []int64) ([]*User, error) {
+func GetUsersByIDs(ids []int64) (UserList, error) {
 	ous := make([]*User, 0, len(ids))
 	if len(ids) == 0 {
 		return ous, nil
@@ -1888,15 +1875,16 @@ func SyncExternalUsers(ctx context.Context) {
 					log.Trace("SyncExternalUsers[%s]: Creating user %s", s.Name, su.Username)
 
 					usr = &User{
-						LowerName:   strings.ToLower(su.Username),
-						Name:        su.Username,
-						FullName:    fullName,
-						LoginType:   s.Type,
-						LoginSource: s.ID,
-						LoginName:   su.Username,
-						Email:       su.Mail,
-						IsAdmin:     su.IsAdmin,
-						IsActive:    true,
+						LowerName:    strings.ToLower(su.Username),
+						Name:         su.Username,
+						FullName:     fullName,
+						LoginType:    s.Type,
+						LoginSource:  s.ID,
+						LoginName:    su.Username,
+						Email:        su.Mail,
+						IsAdmin:      su.IsAdmin,
+						IsRestricted: su.IsRestricted,
+						IsActive:     true,
 					}
 
 					err = CreateUser(usr)
@@ -1919,6 +1907,7 @@ func SyncExternalUsers(ctx context.Context) {
 
 					// Check if user data has changed
 					if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
+						(len(s.LDAP().RestrictedFilter) > 0 && usr.IsRestricted != su.IsRestricted) ||
 						!strings.EqualFold(usr.Email, su.Mail) ||
 						usr.FullName != fullName ||
 						!usr.IsActive {
@@ -1931,9 +1920,13 @@ func SyncExternalUsers(ctx context.Context) {
 						if len(s.LDAP().AdminFilter) > 0 {
 							usr.IsAdmin = su.IsAdmin
 						}
+						// Change existing restricted flag only if RestrictedFilter option is set
+						if !usr.IsAdmin && len(s.LDAP().RestrictedFilter) > 0 {
+							usr.IsRestricted = su.IsRestricted
+						}
 						usr.IsActive = true
 
-						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_active")
+						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
 						if err != nil {
 							log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
 						}

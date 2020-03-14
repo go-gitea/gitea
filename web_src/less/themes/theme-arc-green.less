@@ -1156,6 +1156,64 @@ a.ui.labels .label:hover {
     border-left-color: #888;
 }
 
+.repository .ui.attached.message.isSigned.isVerified {
+    background-color: #394829;
+    color: #9e9e9e;
+
+    &.message {
+        color: #87ab63;
+        .ui.text {
+            color: #9e9e9e;
+        }
+        .pull-right {
+            color: #87ab63;
+        }
+    }
+}
+
+.repository .ui.attached.message.isSigned.isVerifiedUntrusted {
+    background-color: #4a3903;
+    color: #9e9e9e;
+    &.message {
+        color: #c2c193;
+        .ui.text {
+            color: #9e9e9e;
+        }
+        .pull-right,
+        a {
+            color: #c2c193;
+        }
+    }
+}
+
+.repository .ui.attached.message.isSigned.isVerifiedUnmatched {
+    background-color: #4e3321;
+    color: #9e9e9e;
+    &.message {
+        color: #c2a893;
+        .ui.text {
+            color: #9e9e9e;
+        }
+        .pull-right,
+        a {
+            color: #c2a893;
+        }
+    }
+}
+
+.repository .ui.attached.message.isSigned.isWarning {
+    background-color: rgba(80, 23, 17, .6);
+    &.message {
+        color: #d07d7d;
+        .ui.text {
+            color: #d07d7d;
+        }
+        .pull-right {
+            color: #9e9e9e;
+        }
+    }
+}
+
 .repository .label.list .item {
     border-bottom: 1px dashed #4c505c;
 }
@@ -1164,6 +1222,11 @@ a.ui.labels .label:hover {
 .ui.basic.blue.buttons .button {
     box-shadow: 0 0 0 1px #87ab63 inset !important;
     color: #87ab63 !important;
+}
+
+.ui.text.yellow,
+.yellow.icon.icon.icon {
+    color: #e4ac07 !important;
 }
 
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(1),

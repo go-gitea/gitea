@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/repofiles"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -90,10 +91,8 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 				if err != nil {
 					return err
 				}
-				log.Info("have commit %s", commit.ID.String())
 				verification := models.ParseCommitWithSignature(commit)
 				if !verification.Verified {
-					log.Info("unverified commit %s", commit.ID.String())
 					cancel()
 					return &errUnverifiedCommit{
 						commit.ID.String(),
@@ -430,14 +429,14 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
 				}
 				results = append(results, private.HookPostReceiveBranchResult{
-					Message: true,
+					Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(),
 					Create:  true,
 					Branch:  branch,
 					URL:     fmt.Sprintf("%s/compare/%s...%s", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch)),
 				})
 			} else {
 				results = append(results, private.HookPostReceiveBranchResult{
-					Message: true,
+					Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(),
 					Create:  false,
 					Branch:  branch,
 					URL:     fmt.Sprintf("%s/pulls/%d", baseRepo.HTMLURL(), pr.Index),

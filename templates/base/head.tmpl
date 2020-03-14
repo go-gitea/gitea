@@ -86,8 +86,8 @@
 		window.config = {
 			AppSubUrl: '{{AppSubUrl}}',
 			StaticUrlPrefix: '{{StaticUrlPrefix}}',
+			csrf: '{{.CsrfToken}}',
 			Datetimepicker: {{if .RequireDatetimepicker}}true{{else}}false{{end}},
-			Dropzone: {{if .RequireDropzone}}true{{else}}false{{end}},
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
@@ -100,10 +100,10 @@
 	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">
 	<link rel="mask-icon" href="{{StaticUrlPrefix}}/img/gitea-safari.svg" color="#609926">
+	<link rel="fluid-icon" href="{{StaticUrlPrefix}}/img/gitea-lg.png" title="{{AppName}}">
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css">
 	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/icons.woff2" type="font/woff2" crossorigin="anonymous">
 	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/outline-icons.woff2" type="font/woff2" crossorigin="anonymous">
-	<link rel="preload" as="image" href="{{StaticUrlPrefix}}/img/svg/icons.svg">
 {{if .RequireSimpleMDE}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.css">
 {{end}}
@@ -124,9 +124,6 @@
 {{end}}
 {{if .RequireDatetimepicker}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css">
-{{end}}
-{{if .RequireDropzone}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/dropzone/dropzone.css">
 {{end}}
 	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
@@ -156,7 +153,7 @@
 {{else}}
 	<meta property="og:title" content="{{AppName}}">
 	<meta property="og:type" content="website" />
-	<meta property="og:image" content="{{StaticUrlPrefix}}img/gitea-lg.png" />
+	<meta property="og:image" content="{{StaticUrlPrefix}}/img/gitea-lg.png" />
 	<meta property="og:url" content="{{AppUrl}}" />
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
