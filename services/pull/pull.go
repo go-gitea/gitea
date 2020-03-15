@@ -49,6 +49,39 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 
 	notification.NotifyNewPullRequest(pr)
 
+	// add first push codes command
+	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		return nil // just return , It's not important
+	}
+	defer baseGitRepo.Close()
+
+	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
+		pr.BaseBranch, pr.GetGitRefName())
+
+	if compareInfo.Commits.Len() > 0 {
+		comitIDs := ""
+		for e := compareInfo.Commits.Front(); e != nil; e = e.Next() {
+			commitID := e.Value.(*git.Commit).ID.String()
+			comitIDs = commitID + ":" + comitIDs
+		}
+
+		comitIDs = comitIDs[0 : len(comitIDs)-1]
+
+		ops := &models.CreateCommentOptions{
+			Type:            models.CommentTypePullPush,
+			Doer:            pull.Poster,
+			Repo:            repo,
+			RefIsPull:       true,
+			LineNum:         int64(compareInfo.Commits.Len()),
+			Issue:           pr.Issue,
+			RemovedAssignee: false,
+			Content:         comitIDs,
+		}
+
+		_, _ = models.CreateComment(ops)
+	}
+
 	return nil
 }
 
