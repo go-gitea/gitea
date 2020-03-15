@@ -26,7 +26,22 @@
 
             <div class="ui segment board-column">
 		<div class="ui label board-label" style="style">{{.Board.Title}}</div>
-		<span class="ui right small">{{svg "octicon-lock" 16}}</span>
+			<div class="ui dropdown jump item poping up right" data-variation="tiny inverted">
+				<span class="ui text">
+					<img class="ui tiny avatar image" width="24" height="24" >
+					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-kebab-horizontal" 24}}</span>
+				</span>
+				<div class="menu user-menu" tabindex="-1">
+					<a class="item" href="{{AppSubUrl}}/">
+						{{svg "octicon-pencil" 16}}
+						{{$.i18n.Tr "repo.projects.board.edit"}}
+					</a>
+					<a class="item" href="{{AppSubUrl}}/">
+						{{svg "octicon-star" 16}}
+						{{$.i18n.Tr "repo.projects.board.delete"}}
+					</a>
+				</div>
+			</div>
                 <div class="ui divider"></div>
 
                 <div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{.Board.ProjectID}}/{{.Board.ID}}" data-project="{{.Board.ProjectID}}" data-board="{{.Board.ID}}" id="board_{{.Board.ID}}">

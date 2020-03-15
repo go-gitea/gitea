@@ -1,7 +1,7 @@
 <template>
     <div>
-        <div class="activity-bar-graph" ref="style" style="width:0px;height:0px"></div>
-        <div class="activity-bar-graph-alt" ref="altStyle" style="width:0px;height:0px"></div>
+        <div class="activity-bar-graph" ref="style" style="width: 0; height: 0;"></div>
+        <div class="activity-bar-graph-alt" ref="altStyle" style="width: 0; height: 0;"></div>
         <vue-bar-graph
             :points="graphData"
             :show-x-axis="true"

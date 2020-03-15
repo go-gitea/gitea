@@ -3,7 +3,7 @@ export default async function initProject(csrf) {
     return;
   }
 
-  const { Sortable } = await import(
+  const {Sortable} = await import(
     /* webpackChunkName: "sortable" */ 'sortablejs'
   );
 

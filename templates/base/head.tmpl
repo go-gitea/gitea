@@ -95,7 +95,7 @@
 			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
 			Heatmap: {{if .EnableHeatmap}}true{{else}}false{{end}},
 			heatmapUser: {{if .HeatmapUser}}'{{.HeatmapUser}}'{{else}}null{{end}},
-			PageIsProjects: {{if .PageIsProjects }}true{{ end }},
+			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{ end }},
 		};
 	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">

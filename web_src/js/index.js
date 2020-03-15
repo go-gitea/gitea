@@ -14,7 +14,7 @@ import initContextPopups from './features/contextpopup.js';
 import initHighlight from './features/highlight.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
-import initUserHeatmap from './features/userHeatmap.js';
+import initUserHeatmap from './features/userheatmap.js';
 import initProject from './features/projects.js';
 import createDropzone from './features/dropzone.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
