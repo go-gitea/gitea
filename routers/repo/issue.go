@@ -921,6 +921,11 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("Review.LoadCodeComments", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypePullPush {
+			if err = comment.LoadPushCommits(); err != nil {
+				ctx.ServerError("LoadPushCommits", err)
+				return
+			}
 		}
 	}
 

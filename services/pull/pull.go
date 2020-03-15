@@ -220,6 +220,9 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 		}
 
 		addHeadRepoTasks(prs)
+		for _, pr := range prs {
+			models.CreatePushPullCommend(doer, pr.HeadRepo, pr, oldCommitID, newCommitID)
+		}
 
 		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
 		prs, err = models.GetUnmergedPullRequestsByBaseInfo(repoID, branch)

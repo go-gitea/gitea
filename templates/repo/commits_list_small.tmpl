@@ -1,0 +1,78 @@
+<div class="ui attached table segment">
+	<table class="ui very basic striped fixed table single line" id="commits-table">
+		<tbody class="commit-list">
+			{{ $r:= List .Commits}}
+			{{range $r}}
+				<tr>
+					<td class="message">
+						{{svg "octicon-git-commit" 16}}
+						{{if .User}}
+							<a href="{{AppSubUrl}}/{{.User.Name}}"><img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/></a>
+						{{else}}
+							<img class="ui avatar image" src="{{AvatarLink .Author.Email}}" alt=""/>
+						{{end}}&nbsp;
+						<span class="message-wrapper">
+							{{ $commitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl  $.Issue.PullRequest.BaseRepo.OwnerName $.Issue.PullRequest.BaseRepo.Name .ID }}
+							<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message ($.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink $.Issue.PullRequest.BaseRepo.ComposeMetas}}</span>
+						</span>
+						{{if IsMultilineCommitMessage .Message}}
+						<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+						{{end}}
+						{{if eq (CommitType .) "SignCommitWithStatuses"}}
+							{{template "repo/commit_status" .Status}}
+						{{end}}
+						{{if IsMultilineCommitMessage .Message}}
+						<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message ($.Issue.PullRequest.BaseRepo.Link|Escape) $.Issue.PullRequest.BaseRepo.ComposeMetas}}</pre>
+						{{end}}
+					</td>
+					<td class="sha">
+						{{$class := "ui sha label"}}
+						{{if .Signature}}
+							{{$class = (printf "%s%s" $class " isSigned")}}
+							{{if .Verification.Verified}}
+								{{if eq .Verification.TrustStatus "trusted"}}
+									{{$class = (printf "%s%s" $class " isVerified")}}
+								{{else if eq .Verification.TrustStatus "untrusted"}}
+									{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+								{{else}}
+									{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+								{{end}}
+							{{else if .Verification.Warning}}
+								{{$class = (printf "%s%s" $class " isWarning")}}
+							{{end}}
+						{{end}}
+						{{if $.Issue.PullRequest.BaseRepo.Name}}
+							<a href="{{AppSubUrl}}/{{$.Issue.PullRequest.BaseRepo.OwnerName}}/{{$.Issue.PullRequest.BaseRepo.Name}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+						{{else}}
+							<span class="{{$class}}">
+						{{end}}
+							<span class="shortsha">{{ShortSha .ID.String}}</span>
+							{{if .Signature}}
+								<div class="ui detail icon button">
+									{{if .Verification.Verified}}
+										<div title="{{if eq .Verification.TrustStatus "trusted"}}{{else if eq .Verification.TrustStatus "untrusted"}}{{$.i18n.Tr "repo.commits.signed_by_untrusted_user"}}: {{else}}{{$.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}: {{end}}{{.Verification.Reason}}">
+											{{if ne .Verification.SigningUser.ID 0}}
+												<i class="lock icon"></i>
+											{{else}}
+												<i title="{{.Verification.Reason}}" class="icons">
+													<i class="lock icon"></i>
+													<i class="tiny inverted cog icon centerlock"></i>
+												</i>
+											{{end}}
+										</div>
+									{{else}}
+										<i title="{{$.i18n.Tr .Verification.Reason}}" class="unlock icon"></i>
+									{{end}}
+								</div>
+							{{end}}
+						{{if $.Issue.PullRequest.BaseRepo.Name}}
+							</a>
+						{{else}}
+							</span>
+						{{end}}
+					</td>
+				</tr>
+			{{end}}
+ 		</tbody>
+	</table>
+</div>
