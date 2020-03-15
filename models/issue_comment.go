@@ -1023,19 +1023,20 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 }
 
 // CreatePushPullCommend create push code to pull base commend
-func CreatePushPullCommend(pusher *User, repo *Repository, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
+func CreatePushPullCommend(pusher *User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
 	ops := &CreateCommentOptions{
 		Type:      CommentTypePullPush,
 		Doer:      pusher,
-		Repo:      repo,
+		Repo:      pr.BaseRepo,
 		RefIsPull: true,
 	}
 
 	var commitIDs []string
+	messages := ""
 
 	var isForcePush bool
 	if oldCommitID != "" && newCommitID != "" {
-		commitIDs, isForcePush, err = getCommitsFromRepo(repo, oldCommitID, newCommitID)
+		commitIDs, messages, isForcePush, err = getCommitsFromRepo(pr.BaseRepo, oldCommitID, newCommitID)
 		if err != nil {
 			return nil, err
 		}
@@ -1055,38 +1056,58 @@ func CreatePushPullCommend(pusher *User, repo *Repository, pr *PullRequest, oldC
 
 	ops.Content = commitIDlist[0 : len(commitIDlist)-1]
 
-	return CreateComment(ops)
+	comment, err = CreateComment(ops)
+	if err != nil {
+		return
+	}
+
+	// Prepare the contents of the notice
+	prmessages := "@" + ops.Doer.Name
+	if ops.RemovedAssignee {
+		prmessages += " force-pushed the " + pr.HeadBranch + " branch from " + oldCommitID + " to " + newCommitID
+	} else {
+		prmessages += fmt.Sprintf(" pushed %d commits to %s:  \n ", ops.LineNum, pr.HeadBranch)
+		prmessages += messages
+	}
+
+	comment.Content = prmessages
+
+	return
 }
 
 // getCommitsFromRepo get commit IDs from repo in betwern oldCommitID and newCommitID
 // isForcePush will be true if newCommitID is older than oldCommitID
-func getCommitsFromRepo(repo *Repository, oldCommitID, newCommitID string) (commitIDs []string, isForcePush bool, err error) {
+func getCommitsFromRepo(repo *Repository, oldCommitID, newCommitID string) (commitIDs []string, messages string, isForcePush bool, err error) {
 	if oldCommitID == "" || oldCommitID == git.EmptySHA || newCommitID == "" || newCommitID == git.EmptySHA {
-		return nil, false, nil
+		return nil, "", false, nil
 	}
 
 	repoPath := repo.RepoPath()
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
-		return nil, false, err
+		return nil, "", false, err
 	}
 	defer gitRepo.Close()
 
 	newCommit, err := gitRepo.GetCommit(newCommitID)
 	if err != nil {
-		return nil, false, err
+		return nil, "", false, err
 	}
 
 	var commits *list.List
 	commits, err = newCommit.CommitsBeforeUntil(oldCommitID)
 	if err != nil {
-		return nil, false, err
+		return nil, "", false, err
 	}
 
 	commitIDs = make([]string, 0, commits.Len())
+	messages = ""
 
 	for e := commits.Front(); e != nil; e = e.Next() {
 		commitID := e.Value.(*git.Commit).ID.String()
+		commitMsg := e.Value.(*git.Commit).Message()
+		commitMsgs := strings.Split(commitMsg, "\n")
+		messages = "* " + commitID[0:10] + " - " + commitMsgs[0] + "  \n " + messages
 		commitIDs = append(commitIDs, commitID)
 	}
 
@@ -1094,7 +1115,7 @@ func getCommitsFromRepo(repo *Repository, oldCommitID, newCommitID string) (comm
 	isForcePush = true
 	checkCommit, err := gitRepo.GetCommit(commitIDs[commits.Len()-1])
 	if err != nil {
-		return nil, false, err
+		return nil, "", false, err
 	}
 
 	var parentCommit *git.Commit

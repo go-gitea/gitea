@@ -37,6 +37,8 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 		act = models.ActionCommentIssue
 	} else if comment.Type == models.CommentTypeCode {
 		act = models.ActionCommentIssue
+	} else if comment.Type == models.CommentTypePullPush{
+		act = models.ActionCommentIssue
 	}
 
 	if err := mailer.MailParticipantsComment(comment, act, issue); err != nil {
@@ -102,7 +104,8 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 
 func (m *mailNotifier) NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool) {
 	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() == models.EmailNotificationsEnabled {
-		// TODO
+		ct := fmt.Sprintf("Requested to review #%d.", issue.Index)
+		mailer.SenPullRequesgtReviewMail(issue, doer, ct, []string{reviewer.Email})
 	}
 }
 

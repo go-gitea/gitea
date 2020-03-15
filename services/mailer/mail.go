@@ -280,6 +280,17 @@ func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content strin
 	}, tos, false, "issue assigned"))
 }
 
+// SenPullRequesgtReviewMail send mail to requested reviewer
+func SenPullRequesgtReviewMail(issue *models.Issue, doer *models.User, content string, tos []string) {
+	SendAsyncs(composeIssueCommentMessages(&mailCommentContext{
+		Issue:      issue,
+		Doer:       doer,
+		ActionType: models.ActionType(0),
+		Content:    content,
+		Comment:    nil,
+	}, tos, false, "pull review requested"))
+}
+
 // actionToTemplate returns the type and name of the action facing the user
 // (slightly different from models.ActionType) and the name of the template to use (based on availability)
 func actionToTemplate(issue *models.Issue, actionType models.ActionType,

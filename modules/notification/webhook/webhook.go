@@ -394,6 +394,10 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 	issue *models.Issue, comment *models.Comment) {
 	mode, _ := models.AccessLevel(doer, repo)
 
+	if comment.Type == models.CommentTypePullPush {
+		return
+	}
+
 	var err error
 	if issue.IsPull {
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestComment, &api.IssueCommentPayload{

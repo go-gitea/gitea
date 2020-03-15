@@ -254,7 +254,10 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 
 		addHeadRepoTasks(prs)
 		for _, pr := range prs {
-			models.CreatePushPullCommend(doer, pr.HeadRepo, pr, oldCommitID, newCommitID)
+			comment, err := models.CreatePushPullCommend(doer, pr, oldCommitID, newCommitID)
+			if err == nil {
+				notification.NotifyCreateIssueComment(doer, pr.BaseRepo, pr.Issue, comment)
+			}
 		}
 
 		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
