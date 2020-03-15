@@ -485,15 +485,17 @@ func (c *Comment) LoadPushCommits() error {
 			len(commitIDs),
 			c.Line)
 	}
-	c.Commits, err = getCommitsFromCommitIDs(c.Issue.PullRequest.BaseRepo, commitIDs)
-	c.Commits = ValidateCommitsWithEmails(c.Commits)
-	c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.PullRequest.BaseRepo)
-	c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.PullRequest.BaseRepo)
 
 	if c.RemovedAssignee {
 		c.OldCommit = commitIDs[0]
 		c.NewCommit = commitIDs[1]
+	} else {
+		c.Commits, err = getCommitsFromCommitIDs(c.Issue.PullRequest.BaseRepo, commitIDs)
+		c.Commits = ValidateCommitsWithEmails(c.Commits)
+		c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.PullRequest.BaseRepo)
+		c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.PullRequest.BaseRepo)
 	}
+
 	return err
 }
 
@@ -1048,7 +1050,7 @@ func CreatePushPullCommend(pusher *User, repo *Repository, pr *PullRequest, oldC
 	commitIDlist := ""
 
 	for _, commitID := range commitIDs {
-		commitIDlist += commitID + ":"
+		commitIDlist = commitID + ":" + commitIDlist
 	}
 
 	ops.Content = commitIDlist[0 : len(commitIDlist)-1]
