@@ -2738,7 +2738,8 @@ function showAddAllPopup() {
   return false;
 }
 
-function linkAction() {
+function linkAction(e) {
+  e.preventDefault();
   const $this = $(this);
   const redirect = $this.data('redirect');
   $.post($this.data('url'), {
