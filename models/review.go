@@ -450,6 +450,9 @@ func InsertReviews(reviews []*Review) error {
 // SwithchRewiewRequest switch Rewiew Request status
 func SwithchRewiewRequest(issue *Issue, reviewer *User, doer *User) (isRequest bool, err error) {
 	reviews, err := GetReviewersByIssueID(issue.ID)
+	if err != nil {
+		return
+	}
 	var get *Review
 	for _, rev := range reviews {
 		if rev.ReviewerID == reviewer.ID {
