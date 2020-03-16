@@ -122,22 +122,6 @@ func updateSystemStatus() {
 	sysStatus.NumGC = m.NumGC
 }
 
-// Operation Operation types.
-type Operation int
-
-const (
-	cleanInactivateUser Operation = iota + 1
-	cleanRepoArchives
-	cleanMissingRepos
-	gitGCRepos
-	syncSSHAuthorizedKey
-	syncRepositoryUpdateHook
-	reinitMissingRepository
-	syncExternalUsers
-	gitFsck
-	deleteGeneratedRepositoryAvatars
-)
-
 // Dashboard show admin panel dashboard
 func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")

@@ -15,16 +15,6 @@ import (
 	"github.com/gogs/cron"
 )
 
-const (
-	mirrorUpdate            = "mirror_update"
-	gitFsck                 = "git_fsck"
-	checkRepos              = "check_repos"
-	archiveCleanup          = "archive_cleanup"
-	syncExternalUsers       = "sync_external_users"
-	deletedBranchesCleanup  = "deleted_branches_cleanup"
-	updateMigrationPosterID = "update_migration_post_id"
-)
-
 var c = cron.New()
 
 // Prevent duplicate running tasks.

@@ -88,13 +88,19 @@ func (t *Task) RunWithUser(doer *models.User, config Config) {
 		if err := t.fun(ctx, doer, config); err != nil {
 			if models.IsErrCancelled(err) {
 				message := err.(models.ErrCancelled).Message
-				models.CreateNotice(models.NoticeTask, config.FormatMessage(t.Name, "aborted", doer, message))
+				if err := models.CreateNotice(models.NoticeTask, config.FormatMessage(t.Name, "aborted", doer, message)); err != nil {
+					log.Error("CreateNotice: %v", err)
+				}
 				return
 			}
-			models.CreateNotice(models.NoticeTask, config.FormatMessage(t.Name, "error", doer, err))
+			if err := models.CreateNotice(models.NoticeTask, config.FormatMessage(t.Name, "error", doer, err)); err != nil {
+				log.Error("CreateNotice: %v", err)
+			}
 			return
 		}
-		models.CreateNotice(models.NoticeTask, config.FormatMessage(t.Name, "finished", doer))
+		if err := models.CreateNotice(models.NoticeTask, config.FormatMessage(t.Name, "finished", doer)); err != nil {
+			log.Error("CreateNotice: %v", err)
+		}
 	})
 }
 
