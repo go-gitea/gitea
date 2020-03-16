@@ -769,7 +769,7 @@ strk.kbt.io/projects/go/libravatar
 # xorm.io/builder v0.3.6
 ## explicit
 xorm.io/builder
-# xorm.io/xorm v0.8.3-0.20200311233035-367b15879e4c
+# xorm.io/xorm v0.8.3-0.20200315020237-b7b2b21a40ef
 xorm.io/xorm
 xorm.io/xorm/caches
 xorm.io/xorm/contexts

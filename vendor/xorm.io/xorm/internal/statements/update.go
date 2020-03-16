@@ -18,58 +18,73 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
+func (statement *Statement) ifAddColUpdate(col *schemas.Column, includeVersion, includeUpdated, includeNil,
+	includeAutoIncr, update bool) (bool, error) {
+	columnMap := statement.ColumnMap
+	omitColumnMap := statement.OmitColumnMap
+	unscoped := statement.unscoped
+
+	if !includeVersion && col.IsVersion {
+		return false, nil
+	}
+	if col.IsCreated && !columnMap.Contain(col.Name) {
+		return false, nil
+	}
+	if !includeUpdated && col.IsUpdated {
+		return false, nil
+	}
+	if !includeAutoIncr && col.IsAutoIncrement {
+		return false, nil
+	}
+	if col.IsDeleted && !unscoped {
+		return false, nil
+	}
+	if omitColumnMap.Contain(col.Name) {
+		return false, nil
+	}
+	if len(columnMap) > 0 && !columnMap.Contain(col.Name) {
+		return false, nil
+	}
+
+	if col.MapType == schemas.ONLYFROMDB {
+		return false, nil
+	}
+
+	if statement.IncrColumns.IsColExist(col.Name) {
+		return false, nil
+	} else if statement.DecrColumns.IsColExist(col.Name) {
+		return false, nil
+	} else if statement.ExprColumns.IsColExist(col.Name) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 // BuildUpdates auto generating update columnes and values according a struct
-func (statement *Statement) BuildUpdates(bean interface{},
+func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 	includeVersion, includeUpdated, includeNil,
 	includeAutoIncr, update bool) ([]string, []interface{}, error) {
-	//engine := statement.Engine
 	table := statement.RefTable
 	allUseBool := statement.allUseBool
 	useAllCols := statement.useAllCols
 	mustColumnMap := statement.MustColumnMap
 	nullableMap := statement.NullableMap
-	columnMap := statement.ColumnMap
-	omitColumnMap := statement.OmitColumnMap
-	unscoped := statement.unscoped
 
 	var colNames = make([]string, 0)
 	var args = make([]interface{}, 0)
+
 	for _, col := range table.Columns() {
-		if !includeVersion && col.IsVersion {
-			continue
+		ok, err := statement.ifAddColUpdate(col, includeVersion, includeUpdated, includeNil,
+			includeAutoIncr, update)
+		if err != nil {
+			return nil, nil, err
 		}
-		if col.IsCreated && !columnMap.Contain(col.Name) {
-			continue
-		}
-		if !includeUpdated && col.IsUpdated {
-			continue
-		}
-		if !includeAutoIncr && col.IsAutoIncrement {
-			continue
-		}
-		if col.IsDeleted && !unscoped {
-			continue
-		}
-		if omitColumnMap.Contain(col.Name) {
-			continue
-		}
-		if len(columnMap) > 0 && !columnMap.Contain(col.Name) {
+		if !ok {
 			continue
 		}
 
-		if col.MapType == schemas.ONLYFROMDB {
-			continue
-		}
-
-		if statement.IncrColumns.IsColExist(col.Name) {
-			continue
-		} else if statement.DecrColumns.IsColExist(col.Name) {
-			continue
-		} else if statement.ExprColumns.IsColExist(col.Name) {
-			continue
-		}
-
-		fieldValuePtr, err := col.ValueOf(bean)
+		fieldValuePtr, err := col.ValueOfV(&tableValue)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -273,9 +288,6 @@ func (statement *Statement) BuildUpdates(bean interface{},
 
 	APPEND:
 		args = append(args, val)
-		if col.IsPrimaryKey {
-			continue
-		}
 		colNames = append(colNames, fmt.Sprintf("%v = ?", statement.quote(col.Name)))
 	}
 

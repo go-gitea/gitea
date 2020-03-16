@@ -92,6 +92,7 @@ type EngineInterface interface {
 	GetTableMapper() names.Mapper
 	GetTZDatabase() *time.Location
 	GetTZLocation() *time.Location
+	ImportFile(fp string) ([]sql.Result, error)
 	MapCacher(interface{}, caches.Cacher) error
 	NewSession() *Session
 	NoAutoTime() *Session

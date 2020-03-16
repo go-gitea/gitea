@@ -41,7 +41,7 @@ type Statement struct {
 	tagParser       *tags.Parser
 	Start           int
 	LimitN          *int
-	idParam         *schemas.PK
+	idParam         schemas.PK
 	OrderStr        string
 	JoinStr         string
 	joinArgs        []interface{}
@@ -317,34 +317,6 @@ func (statement *Statement) TableName() string {
 	}
 
 	return statement.tableName
-}
-
-// ID generate "where id = ? " statement or for composite key "where key1 = ? and key2 = ?"
-func (statement *Statement) ID(id interface{}) *Statement {
-	idValue := reflect.ValueOf(id)
-	idType := reflect.TypeOf(idValue.Interface())
-
-	switch idType {
-	case ptrPkType:
-		if pkPtr, ok := (id).(*schemas.PK); ok {
-			statement.idParam = pkPtr
-			return statement
-		}
-	case pkType:
-		if pk, ok := (id).(schemas.PK); ok {
-			statement.idParam = &pk
-			return statement
-		}
-	}
-
-	switch idType.Kind() {
-	case reflect.String:
-		statement.idParam = &schemas.PK{idValue.Convert(reflect.TypeOf("")).Interface()}
-		return statement
-	}
-
-	statement.idParam = &schemas.PK{id}
-	return statement
 }
 
 // Incr Generate  "Update ... Set column = column + arg" statement
@@ -979,25 +951,6 @@ func convertSQLOrArgs(sqlOrArgs ...interface{}) (string, []interface{}, error) {
 	}
 
 	return "", nil, ErrUnSupportedType
-}
-
-func (statement *Statement) ProcessIDParam() error {
-	if statement.idParam == nil || statement.RefTable == nil {
-		return nil
-	}
-
-	if len(statement.RefTable.PrimaryKeys) != len(*statement.idParam) {
-		return fmt.Errorf("ID condition is error, expect %d primarykeys, there are %d",
-			len(statement.RefTable.PrimaryKeys),
-			len(*statement.idParam),
-		)
-	}
-
-	for i, col := range statement.RefTable.PKColumns() {
-		var colName = statement.colName(col, statement.TableName())
-		statement.cond = statement.cond.And(builder.Eq{colName: (*(statement.idParam))[i]})
-	}
-	return nil
 }
 
 func (statement *Statement) joinColumns(cols []*schemas.Column, includeTableName bool) string {

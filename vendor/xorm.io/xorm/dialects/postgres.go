@@ -1071,6 +1071,8 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 			col.DefaultIsEmpty = false
 			if strings.HasPrefix(col.Default, "nextval(") {
 				col.IsAutoIncrement = true
+				col.Default = ""
+				col.DefaultIsEmpty = true
 			}
 		} else {
 			col.DefaultIsEmpty = true

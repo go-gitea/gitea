@@ -122,7 +122,13 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 
 	for i := 0; i < size; i++ {
 		v := sliceValue.Index(i)
-		vv := reflect.Indirect(v)
+		var vv reflect.Value
+		switch v.Kind() {
+		case reflect.Interface:
+			vv = reflect.Indirect(v.Elem())
+		default:
+			vv = reflect.Indirect(v)
+		}
 		elemValue := v.Interface()
 		var colPlaces []string
 

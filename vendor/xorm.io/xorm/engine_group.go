@@ -161,17 +161,17 @@ func (eg *EngineGroup) SetMapper(mapper names.Mapper) {
 
 // SetMaxIdleConns set the max idle connections on pool, default is 2
 func (eg *EngineGroup) SetMaxIdleConns(conns int) {
-	eg.Engine.db.SetMaxIdleConns(conns)
+	eg.Engine.dialect.DB().SetMaxIdleConns(conns)
 	for i := 0; i < len(eg.slaves); i++ {
-		eg.slaves[i].db.SetMaxIdleConns(conns)
+		eg.slaves[i].dialect.DB().SetMaxIdleConns(conns)
 	}
 }
 
 // SetMaxOpenConns is only available for go 1.2+
 func (eg *EngineGroup) SetMaxOpenConns(conns int) {
-	eg.Engine.db.SetMaxOpenConns(conns)
+	eg.Engine.dialect.DB().SetMaxOpenConns(conns)
 	for i := 0; i < len(eg.slaves); i++ {
-		eg.slaves[i].db.SetMaxOpenConns(conns)
+		eg.slaves[i].dialect.DB().SetMaxOpenConns(conns)
 	}
 }
 

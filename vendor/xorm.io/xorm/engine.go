@@ -5,8 +5,6 @@
 package xorm
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -32,7 +30,6 @@ import (
 // Commonly, an application only need one engine
 type Engine struct {
 	cacherMgr      *caches.Manager
-	db             *core.DB
 	defaultContext context.Context
 	dialect        dialects.Dialect
 	engineGroup    *EngineGroup
@@ -390,6 +387,10 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 				return err
 			}
 		}
+		if len(table.PKColumns()) > 0 && engine.dialect.URI().DBType == schemas.MSSQL {
+			fmt.Fprintf(w, "SET IDENTITY_INSERT [%s] ON;\n", table.Name)
+		}
+
 		for _, index := range table.Indexes {
 			_, err = io.WriteString(w, dialect.CreateIndexSQL(table.Name, index)+";\n")
 			if err != nil {
@@ -1161,49 +1162,16 @@ func (engine *Engine) SumsInt(bean interface{}, colNames ...string) ([]int64, er
 
 // ImportFile SQL DDL file
 func (engine *Engine) ImportFile(ddlPath string) ([]sql.Result, error) {
-	file, err := os.Open(ddlPath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	return engine.Import(file)
+	session := engine.NewSession()
+	defer session.Close()
+	return session.ImportFile(ddlPath)
 }
 
 // Import SQL DDL from io.Reader
 func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
-	var results []sql.Result
-	var lastError error
-	scanner := bufio.NewScanner(r)
-
-	semiColSpliter := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		if atEOF && len(data) == 0 {
-			return 0, nil, nil
-		}
-		if i := bytes.IndexByte(data, ';'); i >= 0 {
-			return i + 1, data[0:i], nil
-		}
-		// If we're at EOF, we have a final, non-terminated line. Return it.
-		if atEOF {
-			return len(data), data, nil
-		}
-		// Request more data.
-		return 0, nil, nil
-	}
-
-	scanner.Split(semiColSpliter)
-
-	for scanner.Scan() {
-		query := strings.Trim(scanner.Text(), " \t\n\r")
-		if len(query) > 0 {
-			result, err := engine.DB().ExecContext(engine.defaultContext, query)
-			results = append(results, result)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return results, lastError
+	session := engine.NewSession()
+	defer session.Close()
+	return session.Import(r)
 }
 
 // nowTime return current time

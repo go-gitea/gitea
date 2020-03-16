@@ -177,7 +177,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 
 		if session.statement.ColumnStr() == "" {
-			colNames, args, err = session.statement.BuildUpdates(bean, false, false,
+			colNames, args, err = session.statement.BuildUpdates(v, false, false,
 				false, false, true)
 		} else {
 			colNames, args, err = session.genUpdateColumns(bean)

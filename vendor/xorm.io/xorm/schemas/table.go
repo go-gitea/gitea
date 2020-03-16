@@ -53,13 +53,9 @@ func (table *Table) ColumnsSeq() []string {
 }
 
 func (table *Table) columnsByName(name string) []*Column {
-	n := len(name)
-	for k := range table.columnsMap {
-		if len(k) != n {
-			continue
-		}
+	for k, cols := range table.columnsMap {
 		if strings.EqualFold(k, name) {
-			return table.columnsMap[k]
+			return cols
 		}
 	}
 	return nil
