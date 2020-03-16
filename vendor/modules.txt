@@ -146,6 +146,61 @@ github.com/fsnotify/fsnotify
 github.com/gliderlabs/ssh
 # github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
 github.com/glycerine/go-unsnap-stream
+# github.com/go-git/gcfg v1.5.0
+github.com/go-git/gcfg
+github.com/go-git/gcfg/scanner
+github.com/go-git/gcfg/token
+github.com/go-git/gcfg/types
+# github.com/go-git/go-billy/v5 v5.0.0
+github.com/go-git/go-billy/v5
+github.com/go-git/go-billy/v5/helper/chroot
+github.com/go-git/go-billy/v5/helper/polyfill
+github.com/go-git/go-billy/v5/osfs
+github.com/go-git/go-billy/v5/util
+# github.com/go-git/go-git/v5 v5.0.0
+github.com/go-git/go-git/v5
+github.com/go-git/go-git/v5/config
+github.com/go-git/go-git/v5/internal/revision
+github.com/go-git/go-git/v5/internal/url
+github.com/go-git/go-git/v5/plumbing
+github.com/go-git/go-git/v5/plumbing/cache
+github.com/go-git/go-git/v5/plumbing/filemode
+github.com/go-git/go-git/v5/plumbing/format/commitgraph
+github.com/go-git/go-git/v5/plumbing/format/config
+github.com/go-git/go-git/v5/plumbing/format/diff
+github.com/go-git/go-git/v5/plumbing/format/gitignore
+github.com/go-git/go-git/v5/plumbing/format/idxfile
+github.com/go-git/go-git/v5/plumbing/format/index
+github.com/go-git/go-git/v5/plumbing/format/objfile
+github.com/go-git/go-git/v5/plumbing/format/packfile
+github.com/go-git/go-git/v5/plumbing/format/pktline
+github.com/go-git/go-git/v5/plumbing/object
+github.com/go-git/go-git/v5/plumbing/object/commitgraph
+github.com/go-git/go-git/v5/plumbing/protocol/packp
+github.com/go-git/go-git/v5/plumbing/protocol/packp/capability
+github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband
+github.com/go-git/go-git/v5/plumbing/revlist
+github.com/go-git/go-git/v5/plumbing/storer
+github.com/go-git/go-git/v5/plumbing/transport
+github.com/go-git/go-git/v5/plumbing/transport/client
+github.com/go-git/go-git/v5/plumbing/transport/file
+github.com/go-git/go-git/v5/plumbing/transport/git
+github.com/go-git/go-git/v5/plumbing/transport/http
+github.com/go-git/go-git/v5/plumbing/transport/internal/common
+github.com/go-git/go-git/v5/plumbing/transport/server
+github.com/go-git/go-git/v5/plumbing/transport/ssh
+github.com/go-git/go-git/v5/storage
+github.com/go-git/go-git/v5/storage/filesystem
+github.com/go-git/go-git/v5/storage/filesystem/dotgit
+github.com/go-git/go-git/v5/storage/memory
+github.com/go-git/go-git/v5/utils/binary
+github.com/go-git/go-git/v5/utils/diff
+github.com/go-git/go-git/v5/utils/ioutil
+github.com/go-git/go-git/v5/utils/merkletrie
+github.com/go-git/go-git/v5/utils/merkletrie/filesystem
+github.com/go-git/go-git/v5/utils/merkletrie/index
+github.com/go-git/go-git/v5/utils/merkletrie/internal/frame
+github.com/go-git/go-git/v5/utils/merkletrie/noder
 # github.com/go-openapi/analysis v0.19.5
 github.com/go-openapi/analysis
 github.com/go-openapi/analysis/internal
@@ -274,7 +329,7 @@ github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 # github.com/kr/pretty v0.1.0
 github.com/kr/pretty
-# github.com/kr/text v0.1.0
+# github.com/kr/text v0.2.0
 github.com/kr/text
 # github.com/lafriks/xormstore v1.3.2
 github.com/lafriks/xormstore
@@ -376,7 +431,7 @@ github.com/quasoft/websspi
 github.com/quasoft/websspi/secctx
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
-# github.com/sergi/go-diff v1.0.0
+# github.com/sergi/go-diff v1.1.0
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b
 github.com/shurcooL/httpfs/vfsutil
@@ -402,11 +457,6 @@ github.com/src-d/enry/v2/data/rule
 github.com/src-d/enry/v2/internal/tokenizer
 github.com/src-d/enry/v2/internal/tokenizer/flex
 github.com/src-d/enry/v2/regex
-# github.com/src-d/gcfg v1.4.0
-github.com/src-d/gcfg
-github.com/src-d/gcfg/scanner
-github.com/src-d/gcfg/token
-github.com/src-d/gcfg/types
 # github.com/src-d/go-oniguruma v1.1.0
 github.com/src-d/go-oniguruma
 # github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2
@@ -469,7 +519,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+# golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/argon2
@@ -496,7 +546,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
+# golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
@@ -511,7 +561,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20200219091948-cb0a6d8edb6c
+# golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -576,63 +626,13 @@ gopkg.in/gomail.v2
 gopkg.in/ini.v1
 # gopkg.in/ldap.v3 v3.0.2
 gopkg.in/ldap.v3
-# gopkg.in/src-d/go-billy.v4 v4.3.2
-gopkg.in/src-d/go-billy.v4
-gopkg.in/src-d/go-billy.v4/helper/chroot
-gopkg.in/src-d/go-billy.v4/helper/polyfill
-gopkg.in/src-d/go-billy.v4/osfs
-gopkg.in/src-d/go-billy.v4/util
-# gopkg.in/src-d/go-git.v4 v4.13.1
-gopkg.in/src-d/go-git.v4
-gopkg.in/src-d/go-git.v4/config
-gopkg.in/src-d/go-git.v4/internal/revision
-gopkg.in/src-d/go-git.v4/internal/url
-gopkg.in/src-d/go-git.v4/plumbing
-gopkg.in/src-d/go-git.v4/plumbing/cache
-gopkg.in/src-d/go-git.v4/plumbing/filemode
-gopkg.in/src-d/go-git.v4/plumbing/format/commitgraph
-gopkg.in/src-d/go-git.v4/plumbing/format/config
-gopkg.in/src-d/go-git.v4/plumbing/format/diff
-gopkg.in/src-d/go-git.v4/plumbing/format/gitignore
-gopkg.in/src-d/go-git.v4/plumbing/format/idxfile
-gopkg.in/src-d/go-git.v4/plumbing/format/index
-gopkg.in/src-d/go-git.v4/plumbing/format/objfile
-gopkg.in/src-d/go-git.v4/plumbing/format/packfile
-gopkg.in/src-d/go-git.v4/plumbing/format/pktline
-gopkg.in/src-d/go-git.v4/plumbing/object
-gopkg.in/src-d/go-git.v4/plumbing/object/commitgraph
-gopkg.in/src-d/go-git.v4/plumbing/protocol/packp
-gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/capability
-gopkg.in/src-d/go-git.v4/plumbing/protocol/packp/sideband
-gopkg.in/src-d/go-git.v4/plumbing/revlist
-gopkg.in/src-d/go-git.v4/plumbing/storer
-gopkg.in/src-d/go-git.v4/plumbing/transport
-gopkg.in/src-d/go-git.v4/plumbing/transport/client
-gopkg.in/src-d/go-git.v4/plumbing/transport/file
-gopkg.in/src-d/go-git.v4/plumbing/transport/git
-gopkg.in/src-d/go-git.v4/plumbing/transport/http
-gopkg.in/src-d/go-git.v4/plumbing/transport/internal/common
-gopkg.in/src-d/go-git.v4/plumbing/transport/server
-gopkg.in/src-d/go-git.v4/plumbing/transport/ssh
-gopkg.in/src-d/go-git.v4/storage
-gopkg.in/src-d/go-git.v4/storage/filesystem
-gopkg.in/src-d/go-git.v4/storage/filesystem/dotgit
-gopkg.in/src-d/go-git.v4/storage/memory
-gopkg.in/src-d/go-git.v4/utils/binary
-gopkg.in/src-d/go-git.v4/utils/diff
-gopkg.in/src-d/go-git.v4/utils/ioutil
-gopkg.in/src-d/go-git.v4/utils/merkletrie
-gopkg.in/src-d/go-git.v4/utils/merkletrie/filesystem
-gopkg.in/src-d/go-git.v4/utils/merkletrie/index
-gopkg.in/src-d/go-git.v4/utils/merkletrie/internal/frame
-gopkg.in/src-d/go-git.v4/utils/merkletrie/noder
 # gopkg.in/testfixtures.v2 v2.5.0
 gopkg.in/testfixtures.v2
 # gopkg.in/toqueteos/substring.v1 v1.0.2
 gopkg.in/toqueteos/substring.v1
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
-# gopkg.in/yaml.v2 v2.2.2
+# gopkg.in/yaml.v2 v2.2.4
 gopkg.in/yaml.v2
 # mvdan.cc/xurls/v2 v2.1.0
 mvdan.cc/xurls/v2
