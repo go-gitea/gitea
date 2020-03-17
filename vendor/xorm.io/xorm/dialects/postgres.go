@@ -1000,7 +1000,7 @@ func (db *postgres) IsColumnExist(ctx context.Context, tableName, colName string
 }
 
 func (db *postgres) GetColumns(ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error) {
-	args := []interface{}{tableName}
+	args := []interface{}{db.uri.Schema, tableName, db.uri.Schema}
 	s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length,
     CASE WHEN p.contype = 'p' THEN true ELSE false END AS primarykey,
     CASE WHEN p.contype = 'u' THEN true ELSE false END AS uniquekey
@@ -1011,14 +1011,7 @@ FROM pg_attribute f
     LEFT JOIN pg_constraint p ON p.conrelid = c.oid AND f.attnum = ANY (p.conkey)
     LEFT JOIN pg_class AS g ON p.confrelid = g.oid
     LEFT JOIN INFORMATION_SCHEMA.COLUMNS s ON s.column_name=f.attname AND c.relname=s.table_name
-WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.attnum;`
-
-	var f string
-	if len(db.uri.Schema) != 0 {
-		args = append(args, db.uri.Schema)
-		f = " AND s.table_schema = $2"
-	}
-	s = fmt.Sprintf(s, f)
+WHERE n.nspname= $1 AND c.relkind = 'r'::char AND c.relname = $2 AND s.table_schema = $3 AND f.attnum > 0 ORDER BY f.attnum;`
 
 	rows, err := db.DB().QueryContext(ctx, s, args...)
 	if err != nil {

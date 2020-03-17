@@ -31,7 +31,7 @@ type URI struct {
 }
 
 // SetSchema set schema
-func (uri URI) SetSchema(schema string) {
+func (uri *URI) SetSchema(schema string) {
 	if uri.DBType == schemas.POSTGRES {
 		uri.Schema = schema
 	}
