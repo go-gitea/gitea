@@ -1893,18 +1893,11 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      if (!$('#oauth2_token_url').val()) {
-        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-      }
-      if (!$('#oauth2_auth_url').val()) {
-        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-      }
-      if (!$('#oauth2_profile_url').val()) {
-        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-      }
-      if (!$('#oauth2_email_url').val()) {
-        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
-      }
+      $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
+      $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
+      $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
+      $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+
       switch (provider) {
         case 'github':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
@@ -1924,7 +1917,7 @@ function initAdmin() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').change(function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size .sspi').hide();
+      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi').hide();
 
       $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
