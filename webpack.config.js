@@ -86,6 +86,10 @@ module.exports = {
         loader: 'vue-loader',
       },
       {
+        test: require.resolve('jquery-datetimepicker'),
+        use: 'imports-loader?define=>false,exports=>false',
+      },
+      {
         test: /\.js$/,
         exclude: /node_modules/,
         use: [
