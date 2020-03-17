@@ -87,7 +87,6 @@
 			AppSubUrl: '{{AppSubUrl}}',
 			StaticUrlPrefix: '{{StaticUrlPrefix}}',
 			csrf: '{{.CsrfToken}}',
-			Datetimepicker: {{if .RequireDatetimepicker}}true{{else}}false{{end}},
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
@@ -120,9 +119,6 @@
 	</noscript>
 {{if .RequireMinicolors}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
-{{end}}
-{{if .RequireDatetimepicker}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css">
 {{end}}
 	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
