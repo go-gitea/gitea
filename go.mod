@@ -41,6 +41,8 @@ require (
 	github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 // indirect
 	github.com/gliderlabs/ssh v0.2.2
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
+	github.com/go-git/go-billy/v5 v5.0.0
+	github.com/go-git/go-git/v5 v5.0.0
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
@@ -82,7 +84,7 @@ require (
 	github.com/quasoft/websspi v1.0.0
 	github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001 // indirect
 	github.com/satori/go.uuid v1.2.0
-	github.com/sergi/go-diff v1.0.0
+	github.com/sergi/go-diff v1.1.0
 	github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
 	github.com/src-d/enry/v2 v2.1.0
@@ -98,10 +100,10 @@ require (
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	github.com/yuin/goldmark v1.1.25
 	go.etcd.io/bbolt v1.3.3 // indirect
-	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
-	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
+	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sys v0.0.0-20200219091948-cb0a6d8edb6c
+	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
 	golang.org/x/text v0.3.2
 	golang.org/x/tools v0.0.0-20191213221258-04c2e8eff935 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
@@ -109,8 +111,6 @@ require (
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.52.0
 	gopkg.in/ldap.v3 v3.0.2
-	gopkg.in/src-d/go-billy.v4 v4.3.2
-	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/testfixtures.v2 v2.5.0
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251

@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	pull_service "code.gitea.io/gitea/services/pull"
-	"gopkg.in/src-d/go-git.v4/plumbing"
+	"github.com/go-git/go-git/v5/plumbing"
 
 	"gitea.com/macaron/macaron"
 )
