@@ -16,7 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
-	"gopkg.in/src-d/go-git.v4/plumbing"
+
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 const (

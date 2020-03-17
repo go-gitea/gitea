@@ -18,11 +18,11 @@ import (
 	"time"
 
 	gitealog "code.gitea.io/gitea/modules/log"
+	"github.com/go-git/go-billy/v5/osfs"
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/unknwon/com"
-	"gopkg.in/src-d/go-billy.v4/osfs"
-	gogit "gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing/cache"
-	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
 
 // Repository represents a Git repository.
