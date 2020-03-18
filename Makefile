@@ -159,7 +159,7 @@ git-check:
 
 .PHONY: node-check
 node-check:
-	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | grep -Eo '[0-9]+(\.[0-9]+){0,2}' | tr '.' ' ');))
+	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -p process.versions.node | tr '.' ' ');))
 	$(eval NPM_MISSING := $(shell hash npm > /dev/null 2>&1 || echo 1))
 	@if [ "$(NODE_VERSION)" -lt "010000000" -o "$(NPM_MISSING)" = "1" ]; then \
 		echo "Gitea requires Node.js 10 or greater and npm to build. You can get it at https://nodejs.org/en/download/"; \
