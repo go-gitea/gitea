@@ -144,7 +144,7 @@ help:
 
 .PHONY: go-check
 go-check:
-	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | tr '.' ' ');))
+	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+(\.[0-9]+){0,2}[[:space:]]' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "001011000" ]; then \
 		echo "Gitea requires Go 1.11 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
