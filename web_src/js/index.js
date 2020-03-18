@@ -15,6 +15,7 @@ import initHighlight from './features/highlight.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
+import initDateTimePicker from './features/datetimepicker.js';
 import createDropzone from './features/dropzone.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
@@ -633,7 +634,7 @@ function initIssueComments() {
   });
 }
 
-function initRepository() {
+async function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -731,15 +732,16 @@ function initRepository() {
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
     const $datepicker = $('.milestone.datepicker');
+
+    await initDateTimePicker($datepicker.data('lang'));
+
     $datepicker.datetimepicker({
-      lang: $datepicker.data('lang'),
       inline: true,
       timepicker: false,
       startDate: $datepicker.data('start-date'),
-      formatDate: 'Y-m-d',
-      onSelectDate(ct) {
-        $('#deadline').val(ct.dateFormat('Y-m-d'));
-      }
+      onSelectDate(date) {
+        $('#deadline').val(date.toISOString().substring(0, 10));
+      },
     });
     $('#clear-date').click(() => {
       $('#deadline').val('');
