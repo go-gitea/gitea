@@ -103,7 +103,7 @@ development and testing easier, but is not ideal for a production deployment.
 To include assets, add the `bindata` tag:
 
 ```bash
-TAGS="bindata" make build
+NODE_ENV="development" TAGS="bindata" make build
 ```
 
 In the default release build of our continuous integration system, the build
