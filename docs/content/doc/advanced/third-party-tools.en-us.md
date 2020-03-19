@@ -16,25 +16,27 @@ menu:
 # List of third-party tools
 **NOTE:** These tools are not endorsed by Gitea. They are listed here for convenience only.
 
-*This is by no means a complete list, so feel free to ask about adding more!*
+## Hey! This page may be out of date or even removed in the future! :scream:
+Instead, check out [awesome-gitea](https://gitea.com/gitea/awesome-gitea/src/branch/master/README.md)!
 
 ### Continuous Integration
 
 Check our [CI/CD page]({{< relref "doc/advanced/ci-cd.en-us.md" >}})
 
 ### Internationalization 
-[Weblate](https://docs.weblate.org/en/latest/admin/continuous.html#gitea-setup)
+- [Weblate](https://docs.weblate.org/en/latest/admin/continuous.html#gitea-setup)
 
 ### Migrating
-[Installation script for Gitea](https://git.coolaj86.com/coolaj86/gitea-installer.sh)  
-[GitHub Migrator](https://gitea.com/gitea/migrator)
+- [Installation script for Gitea](https://git.coolaj86.com/coolaj86/gitea-installer.sh)  
+- [GitHub Migrator](https://gitea.com/gitea/migrator)
 
 
 ### Mobile
-[GitNex for Android](https://gitlab.com/mmarif4u/gitnex)
+- [GitNex for Android](https://gitlab.com/mmarif4u/gitnex)
 
 ###  Editor Extensions
- - [Gitea Extension for Visual Studio](https://github.com/maikebing/Gitea.VisualStudio)   Download from   [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=MysticBoy.GiteaExtensionforVisualStudio)
+- [Gitea Extension for Visual Studio](https://github.com/maikebing/Gitea.VisualStudio)
+   - Download from [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=MysticBoy.GiteaExtensionforVisualStudio)
  
- ### Project Management
- - [YouTrack by JetBrains](https://blog.jetbrains.com/youtrack/2019/12/whats-new-in-youtrack-2019-3/)
+### Project Management
+- [YouTrack by JetBrains](https://blog.jetbrains.com/youtrack/2019/12/whats-new-in-youtrack-2019-3/)

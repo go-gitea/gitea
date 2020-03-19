@@ -86,8 +86,7 @@
 		window.config = {
 			AppSubUrl: '{{AppSubUrl}}',
 			StaticUrlPrefix: '{{StaticUrlPrefix}}',
-			Datetimepicker: {{if .RequireDatetimepicker}}true{{else}}false{{end}},
-			Dropzone: {{if .RequireDropzone}}true{{else}}false{{end}},
+			csrf: '{{.CsrfToken}}',
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
@@ -103,7 +102,6 @@
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css">
 	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/icons.woff2" type="font/woff2" crossorigin="anonymous">
 	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/outline-icons.woff2" type="font/woff2" crossorigin="anonymous">
-	<link rel="preload" as="image" href="{{StaticUrlPrefix}}/img/svg/icons.svg">
 {{if .RequireSimpleMDE}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.css">
 {{end}}
@@ -121,12 +119,6 @@
 	</noscript>
 {{if .RequireMinicolors}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
-{{end}}
-{{if .RequireDatetimepicker}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css">
-{{end}}
-{{if .RequireDropzone}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/dropzone/dropzone.css">
 {{end}}
 	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}

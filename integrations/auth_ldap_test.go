@@ -18,13 +18,14 @@ import (
 )
 
 type ldapUser struct {
-	UserName    string
-	Password    string
-	FullName    string
-	Email       string
-	OtherEmails []string
-	IsAdmin     bool
-	SSHKeys     []string
+	UserName     string
+	Password     string
+	FullName     string
+	Email        string
+	OtherEmails  []string
+	IsAdmin      bool
+	IsRestricted bool
+	SSHKeys      []string
 }
 
 var gitLDAPUsers = []ldapUser{
@@ -55,10 +56,11 @@ var gitLDAPUsers = []ldapUser{
 		Email:    "fry@planetexpress.com",
 	},
 	{
-		UserName: "leela",
-		Password: "leela",
-		FullName: "Leela Turanga",
-		Email:    "leela@planetexpress.com",
+		UserName:     "leela",
+		Password:     "leela",
+		FullName:     "Leela Turanga",
+		Email:        "leela@planetexpress.com",
+		IsRestricted: true,
 	},
 	{
 		UserName: "bender",
@@ -109,6 +111,7 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string) {
 		"user_base":                "ou=people,dc=planetexpress,dc=com",
 		"filter":                   "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
 		"admin_filter":             "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
+		"restricted_filter":        "(uid=leela)",
 		"attribute_username":       "uid",
 		"attribute_name":           "givenName",
 		"attribute_surname":        "sn",
@@ -172,6 +175,11 @@ func TestLDAPUserSync(t *testing.T) {
 			assert.True(t, tds.Find("td:nth-child(5) i").HasClass("fa-check-square-o"))
 		} else {
 			assert.True(t, tds.Find("td:nth-child(5) i").HasClass("fa-square-o"))
+		}
+		if u.IsRestricted {
+			assert.True(t, tds.Find("td:nth-child(6) i").HasClass("fa-check-square-o"))
+		} else {
+			assert.True(t, tds.Find("td:nth-child(6) i").HasClass("fa-square-o"))
 		}
 	}
 

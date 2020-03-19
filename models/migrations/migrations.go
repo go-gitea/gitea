@@ -188,6 +188,14 @@ var migrations = []Migration{
 	NewMigration("Fix topic repository count", fixTopicRepositoryCount),
 	// v127 -> v128
 	NewMigration("add repository code language statistics", addLanguageStats),
+	// v128 -> v129
+	NewMigration("fix merge base for pull requests", fixMergeBase),
+	// v129 -> v130
+	NewMigration("remove dependencies from deleted repositories", purgeUnusedDependencies),
+	// v130 -> v131
+	NewMigration("Expand webhooks for more granularity", expandWebhooks),
+	// v131 -> v132
+	NewMigration("Add IsSystemWebhook column to webhooks table", addSystemWebhookColumn),
 }
 
 // Migrate database to current version

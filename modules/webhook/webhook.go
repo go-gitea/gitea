@@ -181,6 +181,13 @@ func prepareWebhooks(repo *models.Repository, event models.HookEventType, p api.
 		ws = append(ws, orgHooks...)
 	}
 
+	// Add any admin-defined system webhooks
+	systemHooks, err := models.GetSystemWebhooks()
+	if err != nil {
+		return fmt.Errorf("GetSystemWebhooks: %v", err)
+	}
+	ws = append(ws, systemHooks...)
+
 	if len(ws) == 0 {
 		return nil
 	}
