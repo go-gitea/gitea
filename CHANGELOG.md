@@ -4,6 +4,13 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.3](https://github.com/go-gitea/gitea/releases/tag/v1.11.3) - 2020-03-10
+
+* BUGFIXES
+  * Prevent panic in stopwatch (#10670) (#10673)
+  * Fix bug on pull view when required status check no ci result (#10648) (#10651)
+  * Build explicitly with Go 1.13 (#10684)
+
 ## [1.11.2](https://github.com/go-gitea/gitea/releases/tag/v1.11.2) - 2020-03-06
 
 * BREAKING
@@ -511,6 +518,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Upgrade gopkg.in/ini.v1 (#8500)
   * Update CodeMirror to version 5.49.0 (#8381)
   * Wiki editor: enable side-by-side button (#7242)
+
+## [1.10.6](https://github.com/go-gitea/gitea/releases/tag/v1.10.6) - 2020-03-10
+
+This is a re-tag version of v1.10.5 and also explicitly built with Go 1.13.
+
+WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be used.
 
 ## [1.10.5](https://github.com/go-gitea/gitea/releases/tag/v1.10.5) - 2020-03-06
 

@@ -348,7 +348,7 @@ steps:
 
 ---
 kind: pipeline
-name: release-master
+name: release-latest
 
 platform:
   os: linux
@@ -404,7 +404,7 @@ steps:
       GPGSIGN_PASSPHRASE:
         from_secret: gpgsign_passphrase
 
-  - name: release-branch-release
+  - name: release-branch
     pull: always
     image: plugins/s3:1
     settings:
@@ -426,7 +426,7 @@ steps:
       event:
         - push
 
-  - name: release
+  - name: release-master
     pull: always
     image: plugins/s3:1
     settings:
@@ -502,7 +502,7 @@ steps:
       GPGSIGN_PASSPHRASE:
         from_secret: gpgsign_passphrase
 
-  - name: release
+  - name: release-tag
     pull: always
     image: plugins/s3:1
     settings:
@@ -742,7 +742,7 @@ depends_on:
   - testing-arm64
   - translations
   - release-version
-  - release-master
+  - release-latest
   - docker-linux-amd64-release
   - docker-linux-arm64-release
   - docker-manifest
