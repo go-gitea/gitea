@@ -31,28 +31,32 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
 func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User) *api.Branch {
+	var branch *api.Branch
 	if bp == nil {
-		return &api.Branch{
+		branch = &api.Branch{
 			Name:                b.Name,
 			Commit:              ToCommit(repo, c),
 			Protected:           false,
 			RequiredApprovals:   0,
 			EnableStatusCheck:   false,
 			StatusCheckContexts: []string{},
-			UserCanPush:         true,
-			UserCanMerge:        true,
+		}
+	} else {
+		branch = &api.Branch{
+			Name:                b.Name,
+			Commit:              ToCommit(repo, c),
+			Protected:           true,
+			RequiredApprovals:   bp.RequiredApprovals,
+			EnableStatusCheck:   bp.EnableStatusCheck,
+			StatusCheckContexts: bp.StatusCheckContexts,
 		}
 	}
-	return &api.Branch{
-		Name:                b.Name,
-		Commit:              ToCommit(repo, c),
-		Protected:           true,
-		RequiredApprovals:   bp.RequiredApprovals,
-		EnableStatusCheck:   bp.EnableStatusCheck,
-		StatusCheckContexts: bp.StatusCheckContexts,
-		UserCanPush:         bp.CanUserPush(user.ID),
-		UserCanMerge:        bp.CanUserMerge(user.ID),
+
+	if user != nil {
+		branch.UserCanPush = bp.CanUserPush(user.ID)
+		branch.UserCanMerge = bp.IsUserMergeWhitelisted(user.ID)
 	}
+	return branch
 }
 
 // ToTag convert a git.Tag to an api.Tag
