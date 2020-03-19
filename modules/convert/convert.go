@@ -49,17 +49,21 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 		branchProtectionName = bp.BranchName
 	}
 
-	return &api.Branch{
+	branch := &api.Branch{
 		Name:                          b.Name,
 		Commit:                        ToCommit(repo, c),
 		Protected:                     true,
 		RequiredApprovals:             bp.RequiredApprovals,
 		EnableStatusCheck:             bp.EnableStatusCheck,
 		StatusCheckContexts:           bp.StatusCheckContexts,
-		UserCanPush:                   bp.CanUserPush(user.ID),
-		UserCanMerge:                  bp.IsUserMergeWhitelisted(user.ID),
 		EffectiveBranchProtectionName: branchProtectionName,
 	}
+
+	if user != nil {
+		branch.UserCanPush = bp.CanUserPush(user.ID)
+		branch.UserCanMerge = bp.IsUserMergeWhitelisted(user.ID)
+	}
+	return branch
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
