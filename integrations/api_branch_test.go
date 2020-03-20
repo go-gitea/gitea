@@ -28,6 +28,8 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 	var branch api.Branch
 	DecodeJSON(t, resp, &branch)
 	assert.EqualValues(t, branchName, branch.Name)
+	assert.True(t, branch.UserCanPush)
+	assert.True(t, branch.UserCanMerge)
 }
 
 func TestAPIGetBranch(t *testing.T) {
