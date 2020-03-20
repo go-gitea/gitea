@@ -1,6 +1,6 @@
 module code.gitea.io/gitea
 
-go 1.13
+go 1.14
 
 require (
 	cloud.google.com/go v0.45.0 // indirect
@@ -50,6 +50,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
+	github.com/golang/protobuf v1.3.4 // indirect
 	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
 	github.com/huandu/xstrings v1.3.0
@@ -91,6 +92,7 @@ require (
 	github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
+	github.com/tinylib/msgp v1.1.1 // indirect
 	github.com/tstranex/u2f v1.0.0
 	github.com/unknwon/cae v1.0.0
 	github.com/unknwon/com v1.0.1
