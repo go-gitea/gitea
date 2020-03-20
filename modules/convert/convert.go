@@ -30,8 +30,17 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User) *api.Branch {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User) (*api.Branch, error) {
 	if bp == nil {
+		var hasPerm bool
+		var err error
+		if user != nil {
+			hasPerm, err = models.HasAccessUnit(user, repo, models.UnitTypeCode, models.AccessModeWrite)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return &api.Branch{
 			Name:                b.Name,
 			Commit:              ToCommit(repo, c),
@@ -39,20 +48,25 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 			RequiredApprovals:   0,
 			EnableStatusCheck:   false,
 			StatusCheckContexts: []string{},
-			UserCanPush:         true,
-			UserCanMerge:        true,
-		}
+			UserCanPush:         hasPerm,
+			UserCanMerge:        hasPerm,
+		}, nil
 	}
-	return &api.Branch{
+
+	branch := &api.Branch{
 		Name:                b.Name,
 		Commit:              ToCommit(repo, c),
 		Protected:           true,
 		RequiredApprovals:   bp.RequiredApprovals,
 		EnableStatusCheck:   bp.EnableStatusCheck,
 		StatusCheckContexts: bp.StatusCheckContexts,
-		UserCanPush:         bp.CanUserPush(user.ID),
-		UserCanMerge:        bp.CanUserMerge(user.ID),
 	}
+
+	if user != nil {
+		branch.UserCanPush = bp.CanUserPush(user.ID)
+		branch.UserCanMerge = bp.IsUserMergeWhitelisted(user.ID)
+	}
+	return branch, nil
 }
 
 // ToTag convert a git.Tag to an api.Tag

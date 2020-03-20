@@ -113,6 +113,28 @@ func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
 	return in
 }
 
+// IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
+func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64) bool {
+	if !protectBranch.EnableMergeWhitelist {
+		return true
+	}
+
+	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
+		return true
+	}
+
+	if len(protectBranch.MergeWhitelistTeamIDs) == 0 {
+		return false
+	}
+
+	in, err := IsUserInTeams(userID, protectBranch.MergeWhitelistTeamIDs)
+	if err != nil {
+		log.Error("IsUserInTeams: %v", err)
+		return false
+	}
+	return in
+}
+
 // IsUserOfficialReviewer check if user is official reviewer for the branch (counts towards required approvals)
 func (protectBranch *ProtectedBranch) IsUserOfficialReviewer(user *User) (bool, error) {
 	return protectBranch.isUserOfficialReviewer(x, user)
