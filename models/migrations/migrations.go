@@ -196,6 +196,8 @@ var migrations = []Migration{
 	NewMigration("Expand webhooks for more granularity", expandWebhooks),
 	// v131 -> v132
 	NewMigration("Add IsSystemWebhook column to webhooks table", addSystemWebhookColumn),
+	// v132 -> v133
+	NewMigration("Refix merge base for merged pull requests", refixMergeBase),
 }
 
 // Migrate database to current version
