@@ -8,9 +8,9 @@
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<span class="type-icon text {{if eq .Type 1}}green
-							{{else if eq .Type 2}}grey
-							{{else if eq .Type 3}}red
-							{{else}}grey{{end}}">
+							{{- else if eq .Type 2}}grey
+							{{- else if eq .Type 3}}red
+							{{- else}}grey{{end}}">
 							{{svg (printf "octicon-%s" .Type.Icon) 16}}
 						</span>
 						{{if .Stale}}
@@ -40,19 +40,19 @@
 {{end}}
 <div class="comment merge box">
 	<a class="avatar text
-	{{if .Issue.PullRequest.HasMerged}}purple
-	{{else if .Issue.IsClosed}}grey
-	{{else if .IsPullWorkInProgress}}grey
-	{{else if .IsFilesConflicted}}grey
-	{{else if .IsPullRequestBroken}}red
-	{{else if .IsBlockedByApprovals}}red
-	{{else if .IsBlockedByRejection}}red
-	{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
-	{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
-	{{else if and .RequireSigned (not .WillSign)}}}red
-	{{else if .Issue.PullRequest.IsChecking}}yellow
-	{{else if .Issue.PullRequest.CanAutoMerge}}green
-	{{else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
+	{{- if .Issue.PullRequest.HasMerged}}purple
+	{{- else if .Issue.IsClosed}}grey
+	{{- else if .IsPullWorkInProgress}}grey
+	{{- else if .IsFilesConflicted}}grey
+	{{- else if .IsPullRequestBroken}}red
+	{{- else if .IsBlockedByApprovals}}red
+	{{- else if .IsBlockedByRejection}}red
+	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
+	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
+	{{- else if and .RequireSigned (not .WillSign)}}}red
+	{{- else if .Issue.PullRequest.IsChecking}}yellow
+	{{- else if .Issue.PullRequest.CanAutoMerge}}green
+	{{- else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
 	<div class="content">
 		{{template "repo/pulls/status" .}}
 		<div class="ui {{if not $.LatestCommitStatus}}top attached header{{else}}attached merge-section segment{{end}}">
