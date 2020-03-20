@@ -1423,7 +1423,7 @@ func (err *ErrPushRejected) GenerateMessage() {
 		}
 		i += 8
 		nl := strings.IndexByte(err.StdErr[i:], '\n')
-		if nl > 0 {
+		if nl >= 0 {
 			messageBuilder.WriteString(err.StdErr[i : i+nl+1])
 			i = i + nl + 1
 		} else {
