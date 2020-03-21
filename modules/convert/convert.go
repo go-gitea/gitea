@@ -30,40 +30,48 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) *api.Branch {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
-		return &api.Branch{
-			Name:                          b.Name,
-			Commit:                        ToCommit(repo, c),
-			Protected:                     false,
-			RequiredApprovals:             0,
-			EnableStatusCheck:             false,
-			StatusCheckContexts:           []string{},
-			UserCanPush:                   true,
-			UserCanMerge:                  true,
-			EffectiveBranchProtectionName: "",
+		var hasPerm bool
+		var err error
+		if user != nil {
+			hasPerm, err = models.HasAccessUnit(user, repo, models.UnitTypeCode, models.AccessModeWrite)
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
-	branchProtectionName := ""
-	if isRepoAdmin {
-		branchProtectionName = bp.BranchName
+
+		return &api.Branch{
+			Name:                b.Name,
+			Commit:              ToCommit(repo, c),
+			Protected:           false,
+			RequiredApprovals:   0,
+			EnableStatusCheck:   false,
+			StatusCheckContexts: []string{},
+			UserCanPush:         hasPerm,
+			UserCanMerge:        hasPerm,
+		}, nil
 	}
 
 	branch := &api.Branch{
-		Name:                          b.Name,
-		Commit:                        ToCommit(repo, c),
-		Protected:                     true,
-		RequiredApprovals:             bp.RequiredApprovals,
-		EnableStatusCheck:             bp.EnableStatusCheck,
-		StatusCheckContexts:           bp.StatusCheckContexts,
-		EffectiveBranchProtectionName: branchProtectionName,
+		Name:                b.Name,
+		Commit:              ToCommit(repo, c),
+		Protected:           true,
+		RequiredApprovals:   bp.RequiredApprovals,
+		EnableStatusCheck:   bp.EnableStatusCheck,
+		StatusCheckContexts: bp.StatusCheckContexts,
+	}
+
+	if isRepoAdmin {
+		branch.EffectiveBranchProtectionName = bp.BranchName
 	}
 
 	if user != nil {
 		branch.UserCanPush = bp.CanUserPush(user.ID)
 		branch.UserCanMerge = bp.IsUserMergeWhitelisted(user.ID)
 	}
-	return branch
+
+	return branch, nil
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
