@@ -375,6 +375,10 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 		if dstDialect.URI().Schema != "" {
 			tableName = fmt.Sprintf("%s.%s", dstDialect.URI().Schema, table.Name)
 		}
+		originalTableName := table.Name
+		if engine.dialect.URI().Schema != "" {
+			originalTableName = fmt.Sprintf("%s.%s", engine.dialect.URI().Schema, table.Name)
+		}
 		if i > 0 {
 			_, err = io.WriteString(w, "\n")
 			if err != nil {
@@ -403,7 +407,7 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 		colNames := engine.dialect.Quoter().Join(cols, ", ")
 		destColNames := dstDialect.Quoter().Join(cols, ", ")
 
-		rows, err := engine.DB().QueryContext(engine.defaultContext, "SELECT "+colNames+" FROM "+engine.Quote(tableName))
+		rows, err := engine.DB().QueryContext(engine.defaultContext, "SELECT "+colNames+" FROM "+engine.Quote(originalTableName))
 		if err != nil {
 			return err
 		}
