@@ -53,7 +53,7 @@ func refixMergeBase(x *xorm.Engine) error {
 			break
 		}
 
-		i += 50
+		i += len(prs)
 		for _, pr := range prs {
 			baseRepo := &Repository{ID: pr.BaseRepoID}
 			has, err := x.Table("repository").Get(baseRepo)
