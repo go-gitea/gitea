@@ -9,6 +9,10 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
+XGO_VERSION := go-1.14.x
+MIN_GO_VERSION := 001012000
+MIN_NODE_VERSION := 010000000
+
 ifeq ($(HAS_GO), GO)
 	GOPATH ?= $(shell $(GO) env GOPATH)
 	export PATH := $(GOPATH)/bin:$(PATH)
@@ -62,7 +66,7 @@ endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
-PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
+GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
 WEBPACK_CONFIGS := webpack.config.js .eslintrc .stylelintrc
@@ -145,8 +149,8 @@ help:
 .PHONY: go-check
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?[[:space:]]' | tr '.' ' ');))
-	@if [ "$(GO_VERSION)" -lt "001011000" ]; then \
-		echo "Gitea requires Go 1.11 or greater to build. You can get it at https://golang.org/dl/"; \
+	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
+		echo "Gitea requires Go 1.12 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
@@ -161,7 +165,7 @@ git-check:
 node-check:
 	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?' | tr '.' ' ');))
 	$(eval NPM_MISSING := $(shell hash npm > /dev/null 2>&1 || echo 1))
-	@if [ "$(NODE_VERSION)" -lt "010000000" -o "$(NPM_MISSING)" = "1" ]; then \
+	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" -o "$(NPM_MISSING)" = "1" ]; then \
 		echo "Gitea requires Node.js 10 or greater and npm to build. You can get it at https://nodejs.org/en/download/"; \
 		exit 1; \
 	fi
@@ -185,7 +189,7 @@ fmt:
 
 .PHONY: vet
 vet:
-	$(GO) vet $(PACKAGES)
+	$(GO) vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
@@ -222,7 +226,7 @@ errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/kisielk/errcheck; \
 	fi
-	errcheck $(PACKAGES)
+	errcheck $(GO_PACKAGES)
 
 .PHONY: revive
 revive:
@@ -257,7 +261,7 @@ fmt-check:
 
 .PHONY: test
 test:
-	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES)
 
 .PHONY: test-check
 test-check:
@@ -273,7 +277,7 @@ test-check:
 
 .PHONY: test\#%
 test\#%:
-	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -run $* $(PACKAGES)
+	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -run $* $(GO_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -284,7 +288,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -424,7 +428,7 @@ integrations.sqlite.test: git-check $(GO_SOURCES)
 	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
 
 integrations.cover.test: git-check $(GO_SOURCES)
-	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(PACKAGES) | tr ' ' ',') -o integrations.cover.test
+	GO111MODULE=on $(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: migrations.mysql.test
 migrations.mysql.test: $(GO_SOURCES)
@@ -464,7 +468,7 @@ backend: go-check generate $(EXECUTABLE)
 
 .PHONY: generate
 generate: $(TAGS_PREREQ)
-	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(PACKAGES)
+	GO111MODULE=on $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
@@ -480,7 +484,7 @@ release-windows: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -490,7 +494,7 @@ release-linux: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
+	xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -500,7 +504,7 @@ release-darwin: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
+	xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif

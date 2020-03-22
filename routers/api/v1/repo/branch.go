@@ -72,7 +72,13 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToBranch(ctx.Repo.Repository, branch, c, branchProtection, ctx.User, ctx.Repo.IsAdmin()))
+	br, err := convert.ToBranch(ctx.Repo.Repository, branch, c, branchProtection, ctx.User, ctx.Repo.IsAdmin())
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, br)
 }
 
 // ListBranches list all the branches of a repository
@@ -115,7 +121,11 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return
 		}
-		apiBranches[i] = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.User, ctx.Repo.IsAdmin())
+		apiBranches[i], err = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.User, ctx.Repo.IsAdmin())
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusOK, &apiBranches)
