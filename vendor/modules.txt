@@ -766,12 +766,21 @@ mvdan.cc/xurls/v2
 # strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 ## explicit
 strk.kbt.io/projects/go/libravatar
-# xorm.io/builder v0.3.6
+# xorm.io/builder v0.3.7
 ## explicit
 xorm.io/builder
-# xorm.io/core v0.7.3
-## explicit
-xorm.io/core
-# xorm.io/xorm v0.8.2-0.20200120024500-c37aff9b3a4a
+# xorm.io/xorm v1.0.0
 ## explicit
 xorm.io/xorm
+xorm.io/xorm/caches
+xorm.io/xorm/contexts
+xorm.io/xorm/convert
+xorm.io/xorm/core
+xorm.io/xorm/dialects
+xorm.io/xorm/internal/json
+xorm.io/xorm/internal/statements
+xorm.io/xorm/internal/utils
+xorm.io/xorm/log
+xorm.io/xorm/names
+xorm.io/xorm/schemas
+xorm.io/xorm/tags
