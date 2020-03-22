@@ -238,8 +238,6 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 	
-	time.Sleep(1500*time.Millisecond) //wait language stat indexer finish
-	
 	log.Trace("Repository forked[%d]: %s/%s", forkRepo.ID, ctxUser.Name, repo.Name)
 	ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 }
