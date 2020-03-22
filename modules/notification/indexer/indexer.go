@@ -139,9 +139,3 @@ func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 func (r *indexerNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
-
-func (r *indexerNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
-	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
-		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
-	}
-}
