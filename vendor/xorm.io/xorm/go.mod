@@ -12,5 +12,5 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/ziutek/mymysql v1.5.4
 	google.golang.org/appengine v1.6.0 // indirect
-	xorm.io/builder v0.3.6
+	xorm.io/builder v0.3.7
 )

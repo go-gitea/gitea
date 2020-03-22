@@ -37,10 +37,6 @@ groups:
     labels:
       - kind/testing
   -
-    name: TRANSLATION
-    labels:
-      - kind/translation
-  -
     name: BUILD
     labels:
       - kind/build

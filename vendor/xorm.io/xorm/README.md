@@ -8,33 +8,30 @@ Xorm is a simple and powerful ORM for Go.
 [![](https://goreportcard.com/badge/xorm.io/xorm)](https://goreportcard.com/report/xorm.io/xorm)
 [![Join the chat at https://img.shields.io/discord/323460943201959939.svg](https://img.shields.io/discord/323460943201959939.svg)](https://discord.gg/HuR2CF3)
 
+## Notice
+
+v1.0.0 has some break changes from v0.8.2.
+
+- Removed some non gonic function name `Id`, `Sql`, please use `ID`, `SQL` instead.
+- Removed the dependent from `xorm.io/core` and moved the codes to `xorm.io/xorm/core`, `xorm.io/xorm/names`, `xorm.io/xorm/schemas` and others.
+- Renamed some interface names. i.e. `core.IMapper` -> `names.Mapper`, `core.ILogger` -> `log.Logger`.
+
 ## Features
 
 * Struct <-> Table Mapping Support
-
 * Chainable APIs
-
 * Transaction Support
-
 * Both ORM and raw SQL operation Support
-
 * Sync database schema Support
-
 * Query Cache speed up
-
 * Database Reverse support via [xorm.io/reverse](https://xorm.io/reverse)
-
 * Simple cascade loading support
-
 * Optimistic Locking support
-
 * SQL Builder support via [xorm.io/builder](https://xorm.io/builder)
-
 * Automatical Read/Write seperatelly
-
 * Postgres schema support
-
 * Context Cache support
+* Support log/SQLLog context
 
 ## Drivers Support
 
@@ -64,7 +61,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * [Manual](http://xorm.io/docs)
 
-* [GoDoc](http://godoc.org/xorm.io/xorm)
+* [GoDoc](http://pkg.go.dev/xorm.io/xorm)
 
 ## Quick Start
 

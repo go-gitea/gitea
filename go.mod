@@ -116,6 +116,6 @@ require (
 	gopkg.in/testfixtures.v2 v2.5.0
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.6
-	xorm.io/xorm v0.8.3-0.20200321160512-af30c17b0de4
+	xorm.io/builder v0.3.7
+	xorm.io/xorm v1.0.0
 )

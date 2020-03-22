@@ -8,31 +8,29 @@ xorm 是一个简单而强大的Go语言ORM库. 通过它可以使数据库操�
 [![](https://goreportcard.com/badge/xorm.io/xorm)](https://goreportcard.com/report/xorm.io/xorm)
 [![Join the chat at https://img.shields.io/discord/323460943201959939.svg](https://img.shields.io/discord/323460943201959939.svg)](https://discord.gg/HuR2CF3)
 
+## Notice
+
+v1.0.0 相对于 v0.8.2 有以下不兼容的变更：
+
+- 移除了部分不符合Go语言命名的函数，如 `Id`, `Sql`，请使用 `ID`, `SQL` 替代。
+- 删除了对 `xorm.io/core` 的依赖。大部分代码迁移到了 `xorm.io/xorm/core`, `xorm.io/xorm/names`, `xorm.io/xorm/schemas` 等等几个包中.
+- 重命名了几个结构体，如： `core.IMapper` -> `names.Mapper`, `core.ILogger` -> `log.Logger`.
+
 ## 特性
 
 * 支持 Struct 和数据库表之间的灵活映射，并支持自动同步
-
 * 事务支持
-
 * 同时支持原始SQL语句和ORM操作的混合执行
-
 * 使用连写来简化调用
-
 * 支持使用ID, In, Where, Limit, Join, Having, Table, SQL, Cols等函数和结构体等方式作为条件
-
 * 支持级联加载Struct
-
 * Schema支持（仅Postgres）
-
 * 支持缓存
-
 * 通过 [xorm.io/reverse](https://xorm.io/reverse) 支持根据数据库自动生成 xorm 结构体
-
 * 支持记录版本（即乐观锁）
-
 * 通过 [xorm.io/builder](https://xorm.io/builder) 内置 SQL Builder 支持
-
 * 上下文缓存支持
+* 支持日志上下文
 
 ## 驱动支持
 
@@ -62,7 +60,7 @@ xorm 是一个简单而强大的Go语言ORM库. 通过它可以使数据库操�
 
 * [操作指南](http://xorm.io/docs)
 
-* [Godoc代码文档](http://godoc.org/xorm.io/xorm)
+* [Godoc代码文档](http://pkg.go.dev/xorm.io/xorm)
 
 # 快速开始
 

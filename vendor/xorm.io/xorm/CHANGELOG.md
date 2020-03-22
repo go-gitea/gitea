@@ -3,14 +3,53 @@
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log.
 
-## [1.0.0](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1242) - to be released
+## [1.0.0](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1242) - 2020-03-22
 
+* BREAKING
+  * Add context for dialects (#1558)
+  * Move zero functions to a standalone package (#1548)
+  * Merge core package back into the main repository and split into serval sub packages. (#1543)
+* FEATURES
+  * Use a new ContextLogger interface to implement logger (#1557)
 * BUGFIXES
+  * Fix setschema (#1606)
+  * Fix dump/import bug (#1603)
+  * Fix pk bug (#1602)
+  * Fix master/slave bug (#1601)
+  * Fix bug when dump (#1597)
+  * Ignore schema when dbtype is not postgres (#1593)
+  * Fix table name (#1590)
+  * Fix find alias bug (#1581)
+  * Fix rows bug (#1576)
+  * Fix map with cols (#1575)
+  * Fix bug on deleted with join (#1570)
+  * Improve quote policy (#1567)
+  * Fix break session sql enable feature (#1566)
   * Fix mssql quote (#1535)
   * Fix join table name quote bug (#1534)
+  * Fix mssql issue with duplicate columns. (#1225)
+  * Fix mysql8.0 sync failed (#808)
 * ENHANCEMENTS
+  * Fix batch insert interface slice be panic (#1598)
+  * Move some codes to statement sub package (#1574)
+  * Remove circle file (#1569)
+  * Move statement as a sub package (#1564)
+  * Move maptype to tag parser (#1561)
+  * Move caches to manager (#1553)
+  * Improve code (#1552)
+  * Improve some codes (#1551)
+  * Improve statement (#1549)
+  * Move tag parser related codes as a standalone sub package (#1547)
   * Move reserve words related files into dialects sub package (#1544)
-  * Merge core package back into the main repository and split into serval sub packages. (#1543)
+  * Fix `Conversion` method `ToDB() ([]byte, error)` return type is nil (#1296)
+  * Check driver.Valuer response, and skip the column if nil (#1167)
+  * Add cockroach support and tests (#896)
+* TESTING
+  * Improve tests (#1572)
+* BUILD
+  * Add changelog file and tool configuration (#1546)
+* DOCS
+  * Fix outdate changelog (#1565)
 
 ## old changelog
 
@@ -106,16 +145,29 @@ without substantial changes to our git log.
 
 
 * **v0.2.3** : Improved documents; Optimistic Locking support; Timestamp with time zone support; Mapper change to tableMapper and columnMapper & added PrefixMapper & SuffixMapper support custom table or column name's prefix and suffix;Insert now return affected, err instead of id, err; Added UseBool & Distinct;
+
 * **v0.2.2** : Postgres drivers now support lib/pq; Added method Iterate for record by record to handler；Added SetMaxConns(go1.2+) support; some bugs fixed.
+
 * **v0.2.1** : Added database reverse tool, now support generate go & c++ codes, see [Xorm Tool README](https://github.com/go-xorm/xorm/blob/master/xorm/README.md); some bug fixed.
+
 * **v0.2.0** : Added Cache supported, select is speeder up 3~5x; Added SameMapper for same name between struct and table; Added Sync method for auto added tables, columns, indexes;
+
 * **v0.1.9** : Added postgres and mymysql supported; Added ` and ? supported on Raw SQL even if postgres; Added Cols, StoreEngine, Charset function, Added many column data type supported, please see [Mapping Rules](#mapping).
+
 * **v0.1.8** : Added union index and union unique supported, please see [Mapping Rules](#mapping).
+
 * **v0.1.7** : Added IConnectPool interface and NoneConnectPool, SysConnectPool, SimpleConnectPool the three implements. You can choose one of them and the default is SysConnectPool. You can customrize your own connection pool. struct Engine added Close method, It should be invoked before system exit.
+
 * **v0.1.6** : Added conversion interface support; added struct derive support; added single mapping support
+
 * **v0.1.5** : Added multi threads support; added Sql() function for struct query; Get function changed return inteface; MakeSession and Create are instead with NewSession and NewEngine.
+
 * **v0.1.4** : Added simple cascade load support; added more data type supports.
+
 * **v0.1.3** : Find function now supports both slice and map; Add Table function for multi tables and temperory tables support
+
 * **v0.1.2** : Insert function now supports both struct and slice pointer parameters, batch inserting and auto transaction
+
 * **v0.1.1** : Add Id, In functions and improved README
+
 * **v0.1.0** : Initial release.

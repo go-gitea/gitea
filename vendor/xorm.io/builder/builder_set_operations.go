@@ -9,19 +9,19 @@ import (
 	"strings"
 )
 
-func (b *Builder) unionWriteTo(w Writer) error {
+func (b *Builder) setOpWriteTo(w Writer) error {
 	if b.limitation != nil || b.cond.IsValid() ||
 		b.orderBy != "" || b.having != "" || b.groupBy != "" {
 		return ErrNotUnexpectedUnionConditions
 	}
 
-	for idx, u := range b.unions {
-		current := u.builder
+	for idx, o := range b.setOps {
+		current := o.builder
 		if current.optype != selectType {
 			return ErrUnsupportedUnionMembers
 		}
 
-		if len(b.unions) == 1 {
+		if len(b.setOps) == 1 {
 			if err := current.selectWriteTo(w); err != nil {
 				return err
 			}
@@ -31,7 +31,11 @@ func (b *Builder) unionWriteTo(w Writer) error {
 			}
 
 			if idx != 0 {
-				fmt.Fprint(w, fmt.Sprintf(" UNION %v ", strings.ToUpper(u.unionType)))
+				if o.distinctType == "" {
+					fmt.Fprint(w, fmt.Sprintf(" %s ", strings.ToUpper(o.opType)))
+				} else {
+					fmt.Fprint(w, fmt.Sprintf(" %s %s ", strings.ToUpper(o.opType), strings.ToUpper(o.distinctType)))
+				}
 			}
 			fmt.Fprint(w, "(")
 
