@@ -85,7 +85,7 @@ func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, 
 		case *ast.List:
 			if v.HasChildren() && v.FirstChild().HasChildren() && v.FirstChild().FirstChild().HasChildren() {
 				if _, ok := v.FirstChild().FirstChild().FirstChild().(*east.TaskCheckBox); ok {
-					v.SetAttribute([]byte("class"), []byte("task-list"))
+					v.SetAttributeString("class", "task-list")
 				}
 			}
 		}
