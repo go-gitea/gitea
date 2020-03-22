@@ -237,7 +237,7 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 		return
 	}
-	
+
 	log.Trace("Repository forked[%d]: %s/%s", forkRepo.ID, ctxUser.Name, repo.Name)
 	ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 }
