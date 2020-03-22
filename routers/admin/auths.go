@@ -18,9 +18,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"xorm.io/xorm/convert"
 
 	"github.com/unknwon/com"
+	"xorm.io/xorm/convert"
 )
 
 const (
