@@ -180,7 +180,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 		return fmt.Errorf("git remote add: %v", err)
 	}
 
-	return initRepoCommit(tmpDir, repo, repo.Owner)
+	return initRepoCommit(tmpDir, repo, repo.Owner, "master")
 }
 
 func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *models.Repository) (err error) {
