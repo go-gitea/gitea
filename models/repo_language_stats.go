@@ -145,7 +145,7 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]fl
 	return sess.Commit()
 }
 
-//CopyLanguageStat copy originalRepo language stat information to destRepo
+// CopyLanguageStat copy originalRepo language stat information to destRepo
 func CopyLanguageStat(originalRepo, destRepo *Repository) error {
 	sess:=x.NewSession()
 	if err := sess.Begin(); err != nil {
