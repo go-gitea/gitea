@@ -196,6 +196,8 @@ var migrations = []Migration{
 	NewMigration("Expand webhooks for more granularity", expandWebhooks),
 	// v131 -> v132
 	NewMigration("Add IsSystemWebhook column to webhooks table", addSystemWebhookColumn),
+	// v132 -> v133
+	NewMigration("Add Branch Protection Protected Files Column", addBranchProtectionProtectedFilesColumn),
 }
 
 // Migrate database to current version
