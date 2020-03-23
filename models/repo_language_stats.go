@@ -145,35 +145,36 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]fl
 	return sess.Commit()
 }
 
-func CopyLanguageStat(oldRepo,Repo *Repository) error {
+//Copy originalRepo language stat information to destRepo
+func CopyLanguageStat(originalRepo, destRepo *Repository) error {
 	sess:=x.NewSession()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 	defer sess.Close()
-	oldRepoLang:=make(LanguageStatList, 0, 6)
-	if err := sess.Where("`repo_id` = ?", oldRepo.ID).Desc("`percentage`").Find(&oldRepoLang); err != nil {
+	originalRepoLang:=make(LanguageStatList, 0, 6)
+	if err := sess.Where("`repo_id` = ?", originalRepo.ID).Desc("`percentage`").Find(&originalRepoLang); err != nil {
 		return err
 	}
-	oldRepoLang.loadAttributes()
-	RepoCommitID:=oldRepoLang[0].CommitID
-	for r :=range oldRepoLang{
+	originalRepoLang.loadAttributes()
+	for r :=range originalRepoLang{
 		if _, err:= sess.Insert(&LanguageStat{
-			RepoID:Repo.ID,
-			CommitID:oldRepoLang[r].CommitID,
-			IsPrimary:oldRepoLang[r].IsPrimary,
-			Language:oldRepoLang[r].Language,
-			Percentage:oldRepoLang[r].Percentage,
+			RepoID:destRepo.ID,
+			CommitID:originalRepoLang[r].CommitID,
+			IsPrimary:originalRepoLang[r].IsPrimary,
+			Language:originalRepoLang[r].Language,
+			Percentage:originalRepoLang[r].Percentage,
 			CreatedUnix: timeutil.TimeStampNow(),
 		});err!=nil{
 			return err
 		}
 	}
-	if err := Repo.updateIndexerStatus(sess, RepoIndexerTypeStats, RepoCommitID); err != nil {
-		return err
+	//update destRepo's indexer status
+	if len(originalRepoLang) > 0 {
+		tmpCommitID:=originalRepoLang[0].CommitID
+		if err := destRepo.updateIndexerStatus(sess, RepoIndexerTypeStats, tmpCommitID); err != nil {
+			return err
+		}
 	}
-	if err:=sess.Commit();err!=nil{
-		return err
-	}
-	return nil
+	return sess.Commit()
 }
