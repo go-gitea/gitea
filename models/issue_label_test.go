@@ -209,7 +209,7 @@ func TestGetLabelsByOrgID(t *testing.T) {
 		}
 	}
 	testSuccess(1, "leastissues", []int64{3, 4})
-	testSuccess(1, "mostissues", []int64{3, 4})
+	testSuccess(1, "mostissues", []int64{4, 3})
 	testSuccess(1, "reversealphabetically", []int64{4, 3})
 	testSuccess(1, "default", []int64{3, 4})
 }
