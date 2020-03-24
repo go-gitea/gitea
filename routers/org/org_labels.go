@@ -5,15 +5,9 @@
 package org
 
 import (
-	//"strings"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
-	//"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	//"code.gitea.io/gitea/modules/log"
-	//"code.gitea.io/gitea/modules/setting"
-	// userSetting "code.gitea.io/gitea/routers/user/setting"
 )
 
 // RetrieveLabels find all the labels of an organization
@@ -33,7 +27,6 @@ func RetrieveLabels(ctx *context.Context) {
 
 // NewLabel create new label for repository
 func NewLabel(ctx *context.Context, form auth.CreateLabelForm) {
-	println("are we here???")
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsLabels"] = true
 
