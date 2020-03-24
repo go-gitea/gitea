@@ -69,13 +69,13 @@
 @default-fonts: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial;
 @monospaced-fonts: 'SF Mono', Consolas, Menlo, 'Liberation Mono', Monaco, 'Lucida Console';
 
-.override-fonts(@fonts) {
+.override-fonts(@default-fonts) {
     textarea {
-        font-family: @fonts, sans-serif;
+        font-family: @default-fonts, sans-serif;
     }
 
     .markdown:not(code) {
-        font-family: @fonts, sans-serif;
+        font-family: @default-fonts, sans-serif;
     }
 
     /* We're going to just override the semantic fonts here */
@@ -84,12 +84,12 @@
     h3,
     h4,
     h5 {
-        font-family: @fonts, Roboto, sans-serif;
+        font-family: @default-fonts, Roboto, sans-serif;
     }
 
     .home .hero h1,
     .home .hero h2 {
-        font-family: 'PT Sans Narrow', @fonts, Roboto, sans-serif;
+        font-family: 'PT Sans Narrow', @default-fonts, Roboto, sans-serif;
     }
 
     .ui.accordion .title:not(.ui),
@@ -128,11 +128,9 @@
     .ui.steps .step .title,
     .ui.text.container,
     .ui.language > .menu > .item& {
-        font-family: @fonts, Roboto, sans-serif;
+        font-family: @default-fonts, Roboto, sans-serif;
     }
 }
-
-.override-fonts(@default-fonts);
 
 body {
     background-color: #ffffff;
