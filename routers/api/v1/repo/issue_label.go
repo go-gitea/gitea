@@ -173,7 +173,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 
 	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrLabelNotExist(err) {
+		if models.IsErrRepoLabelNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetLabelInRepoByID", err)

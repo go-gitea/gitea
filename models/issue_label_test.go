@@ -55,7 +55,7 @@ func TestGetLabelByID(t *testing.T) {
 	assert.EqualValues(t, 1, label.ID)
 
 	_, err = GetLabelByID(NonexistentID)
-	assert.True(t, IsErrLabelNotExist(err))
+	assert.True(t, IsErrRepoLabelNotExist(err))
 }
 
 func TestGetLabelInRepoByName(t *testing.T) {
@@ -66,10 +66,10 @@ func TestGetLabelInRepoByName(t *testing.T) {
 	assert.Equal(t, "label1", label.Name)
 
 	_, err = GetLabelInRepoByName(1, "")
-	assert.True(t, IsErrLabelNotExist(err))
+	assert.True(t, IsErrRepoLabelNotExist(err))
 
 	_, err = GetLabelInRepoByName(NonexistentID, "nonexistent")
-	assert.True(t, IsErrLabelNotExist(err))
+	assert.True(t, IsErrRepoLabelNotExist(err))
 }
 
 func TestGetLabelInRepoByNames(t *testing.T) {
@@ -103,10 +103,10 @@ func TestGetLabelInRepoByID(t *testing.T) {
 	assert.EqualValues(t, 1, label.ID)
 
 	_, err = GetLabelInRepoByID(1, -1)
-	assert.True(t, IsErrLabelNotExist(err))
+	assert.True(t, IsErrRepoLabelNotExist(err))
 
 	_, err = GetLabelInRepoByID(NonexistentID, NonexistentID)
-	assert.True(t, IsErrLabelNotExist(err))
+	assert.True(t, IsErrRepoLabelNotExist(err))
 }
 
 func TestGetLabelsInRepoByIDs(t *testing.T) {
@@ -135,6 +135,87 @@ func TestGetLabelsByRepoID(t *testing.T) {
 	testSuccess(1, "default", []int64{1, 2})
 }
 
+// Org vrsions
+
+func TestGetLabelInOrgByName(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	label, err := GetLabelInOrgByName(1, "orglabel3")
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, label.ID)
+	assert.Equal(t, "orglabel3", label.Name)
+
+	_, err = GetLabelInOrgByName(1, "")
+	assert.True(t, IsErrOrgLabelNotExist(err))
+
+	_, err = GetLabelInOrgByName(NonexistentID, "nonexistent")
+	assert.True(t, IsErrOrgLabelNotExist(err))
+}
+
+func TestGetLabelInOrgByNames(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	labelIDs, err := GetLabelIDsInOrgByNames(1, []string{"orglabel3", "orglabel4"})
+	assert.NoError(t, err)
+
+	assert.Len(t, labelIDs, 2)
+
+	assert.Equal(t, int64(3), labelIDs[0])
+	assert.Equal(t, int64(4), labelIDs[1])
+}
+
+func TestGetLabelInOrgByNamesDiscardsNonExistentLabels(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	// orglabel99 doesn't exists.. See labels.yml
+	labelIDs, err := GetLabelIDsInOrgByNames(1, []string{"orglabel3", "orglabel4", "orglabel99"})
+	assert.NoError(t, err)
+
+	assert.Len(t, labelIDs, 2)
+
+	assert.Equal(t, int64(3), labelIDs[0])
+	assert.Equal(t, int64(4), labelIDs[1])
+	assert.NoError(t, err)
+}
+
+func TestGetLabelInOrgByID(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	label, err := GetLabelInOrgByID(1, 3)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, label.ID)
+
+	_, err = GetLabelInOrgByID(1, -1)
+	assert.True(t, IsErrOrgLabelNotExist(err))
+
+	_, err = GetLabelInOrgByID(NonexistentID, NonexistentID)
+	assert.True(t, IsErrOrgLabelNotExist(err))
+}
+
+func TestGetLabelsInOrgByIDs(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	labels, err := GetLabelsInOrgByIDs(1, []int64{3, 4, NonexistentID})
+	assert.NoError(t, err)
+	if assert.Len(t, labels, 2) {
+		assert.EqualValues(t, 3, labels[0].ID)
+		assert.EqualValues(t, 4, labels[1].ID)
+	}
+}
+
+func TestGetLabelsByOrgID(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	testSuccess := func(orgID int64, sortType string, expectedIssueIDs []int64) {
+		labels, err := GetLabelsByOrgID(orgID, sortType, ListOptions{})
+		assert.NoError(t, err)
+		assert.Len(t, labels, len(expectedIssueIDs))
+		for i, label := range labels {
+			assert.EqualValues(t, expectedIssueIDs[i], label.ID)
+		}
+	}
+	testSuccess(1, "leastissues", []int64{3, 4})
+	testSuccess(1, "mostissues", []int64{3, 4})
+	testSuccess(1, "reversealphabetically", []int64{4, 3})
+	testSuccess(1, "default", []int64{3, 4})
+}
+
+//
+
 func TestGetLabelsByIssueID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	labels, err := GetLabelsByIssueID(1)
@@ -162,13 +243,13 @@ func TestUpdateLabel(t *testing.T) {
 func TestDeleteLabel(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	label := AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
-	assert.NoError(t, DeleteLabel(label.RepoID, label.ID))
+	assert.NoError(t, DeleteLabel(label.RepoID, label.ID, false))
 	AssertNotExistsBean(t, &Label{ID: label.ID, RepoID: label.RepoID})
 
-	assert.NoError(t, DeleteLabel(label.RepoID, label.ID))
+	assert.NoError(t, DeleteLabel(label.RepoID, label.ID, false))
 	AssertNotExistsBean(t, &Label{ID: label.ID, RepoID: label.RepoID})
 
-	assert.NoError(t, DeleteLabel(NonexistentID, NonexistentID))
+	assert.NoError(t, DeleteLabel(NonexistentID, NonexistentID, false))
 	CheckConsistencyFor(t, &Label{}, &Repository{})
 }
 

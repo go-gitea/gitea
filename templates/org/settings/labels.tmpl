@@ -1,0 +1,29 @@
+{{template "base/head" .}}
+<div class="organization settings labels">
+	{{template "org/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			{{template "org/settings/navbar" .}}
+				<div class="ui twelve wide column content">
+					<div class="ui grid">
+						<div class="left floated twelve wide column">
+							{{$.i18n.Tr "org.settings.labels_desc" | Str2html}}
+						</div>
+						<div class="right floated three wide column">
+							<div class="ui right">
+								<div class="ui green new-label button">{{.i18n.Tr "repo.issues.new_label"}}</div>
+							</div>
+						</div>
+					</div>
+					<div class="ui divider"></div>
+					{{template "repo/issue/labels/label_new" .}}
+					{{template "base/alert" .}}
+					{{template "repo/issue/labels/label_list" .}}
+				</div>
+			</div>	
+		</div>
+	</div>
+</div>
+
+{{template "repo/issue/labels/edit_delete_label" .}}
+{{template "base/footer" .}}

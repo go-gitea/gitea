@@ -377,6 +377,17 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull boo
 		return nil
 	}
 	ctx.Data["Labels"] = labels
+	if repo.Owner.IsOrganization() {
+		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.Query("sort"), models.ListOptions{})
+		if err != nil {
+			return nil
+		}
+
+		ctx.Data["OrgLabels"] = orgLabels
+		for _, v := range orgLabels {
+			labels = append(labels, v)
+		}
+	}
 
 	RetrieveRepoMilestonesAndAssignees(ctx, repo)
 	if ctx.Written() {
@@ -593,6 +604,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
+
 	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
@@ -761,6 +773,24 @@ func ViewIssue(ctx *context.Context) {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+	ctx.Data["Labels"] = labels
+
+	if repo.Owner.IsOrganization() {
+		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.Query("sort"), models.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetLabelsByOrgID", err)
+			return
+		}
+		for _, l := range orgLabels {
+			l.CalOpenIssues()
+		}
+		ctx.Data["OrgLabels"] = orgLabels
+
+		for _, v := range orgLabels {
+			labels = append(labels, v)
+		}
+	}
+
 	hasSelected := false
 	for i := range labels {
 		if labelIDMark[labels[i].ID] {
@@ -769,7 +799,6 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["HasSelectedLabel"] = hasSelected
-	ctx.Data["Labels"] = labels
 
 	// Check milestone and assignee.
 	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
