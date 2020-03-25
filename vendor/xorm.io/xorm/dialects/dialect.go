@@ -32,8 +32,9 @@ type URI struct {
 
 // SetSchema set schema
 func (uri *URI) SetSchema(schema string) {
+	// hack me
 	if uri.DBType == schemas.POSTGRES {
-		uri.Schema = schema
+		uri.Schema = strings.TrimSpace(schema)
 	}
 }
 
