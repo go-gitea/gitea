@@ -82,6 +82,12 @@ func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, 
 				link = []byte("#user-content-" + string(link)[1:])
 			}
 			v.Destination = link
+		case *ast.List:
+			if v.HasChildren() && v.FirstChild().HasChildren() && v.FirstChild().FirstChild().HasChildren() {
+				if _, ok := v.FirstChild().FirstChild().FirstChild().(*east.TaskCheckBox); ok {
+					v.SetAttributeString("class", "task-list")
+				}
+			}
 		}
 		return ast.WalkContinue, nil
 	})

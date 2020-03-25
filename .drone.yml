@@ -19,7 +19,7 @@ steps:
 
   - name: build-without-gcc
     pull: always
-    image: golang:1.11 # this step is kept as the lowest version of golang that we support
+    image: golang:1.12 # this step is kept as the lowest version of golang that we support
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -28,7 +28,7 @@ steps:
 
   - name: build-linux-386
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -39,7 +39,7 @@ steps:
 
   - name: check
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     commands:
       - make clean golangci-lint revive swagger-check swagger-validate test-vendor
     environment:
@@ -105,7 +105,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     commands:
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - make build
@@ -122,7 +122,7 @@ steps:
 
   - name: unit-test
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -133,7 +133,7 @@ steps:
 
   - name: test-mysql
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -147,7 +147,7 @@ steps:
 
   - name: test-mysql8
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -161,7 +161,7 @@ steps:
 
   - name: test-mssql
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -175,7 +175,7 @@ steps:
 
   - name: generate-coverage
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     commands:
       - make coverage
     environment:
@@ -248,7 +248,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     commands:
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - make build
@@ -259,7 +259,7 @@ steps:
 
   - name: test-sqlite
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -272,7 +272,7 @@ steps:
 
   - name: test-pgsql
     pull: always
-    image: golang:1.13
+    image: golang:1.14
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -379,7 +379,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.13.x
+    image: techknowlogick/xgo:go-1.14.x
     commands:
       - apt update && apt -y install curl
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
@@ -477,7 +477,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.13.x
+    image: techknowlogick/xgo:go-1.14.x
     commands:
       - apt update && apt -y install curl
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
