@@ -524,7 +524,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	key := new(PublicKey)
 	has, err := x.
-		Id(keyID).
+		ID(keyID).
 		Get(key)
 	if err != nil {
 		return nil, err
