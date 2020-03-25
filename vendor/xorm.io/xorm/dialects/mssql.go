@@ -212,9 +212,9 @@ type mssql struct {
 	Base
 }
 
-func (db *mssql) Init(d *core.DB, uri *URI) error {
+func (db *mssql) Init(uri *URI) error {
 	db.quoter = mssqlQuoter
-	return db.Base.Init(d, db, uri)
+	return db.Base.Init(db, uri)
 }
 
 func (db *mssql) SQLType(c *schemas.Column) string {
@@ -319,18 +319,18 @@ func (db *mssql) IndexCheckSQL(tableName, idxName string) (string, []interface{}
 	return sql, args
 }
 
-func (db *mssql) IsColumnExist(ctx context.Context, tableName, colName string) (bool, error) {
+func (db *mssql) IsColumnExist(queryer core.Queryer, ctx context.Context, tableName, colName string) (bool, error) {
 	query := `SELECT "COLUMN_NAME" FROM "INFORMATION_SCHEMA"."COLUMNS" WHERE "TABLE_NAME" = ? AND "COLUMN_NAME" = ?`
 
-	return db.HasRecords(ctx, query, tableName, colName)
+	return db.HasRecords(queryer, ctx, query, tableName, colName)
 }
 
-func (db *mssql) IsTableExist(ctx context.Context, tableName string) (bool, error) {
+func (db *mssql) IsTableExist(queryer core.Queryer, ctx context.Context, tableName string) (bool, error) {
 	sql := "select * from sysobjects where id = object_id(N'" + tableName + "') and OBJECTPROPERTY(id, N'IsUserTable') = 1"
-	return db.HasRecords(ctx, sql)
+	return db.HasRecords(queryer, ctx, sql)
 }
 
-func (db *mssql) GetColumns(ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error) {
+func (db *mssql) GetColumns(queryer core.Queryer, ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error) {
 	args := []interface{}{}
 	s := `select a.name as name, b.name as ctype,a.max_length,a.precision,a.scale,a.is_nullable as nullable,
 		  "default_is_null" = (CASE WHEN c.text is null THEN 1 ELSE 0 END),
@@ -346,7 +346,7 @@ func (db *mssql) GetColumns(ctx context.Context, tableName string) ([]string, ma
 		) as p on p.object_id = a.object_id AND p.column_id = a.column_id
           where a.object_id=object_id('` + tableName + `')`
 
-	rows, err := db.DB().QueryContext(ctx, s, args...)
+	rows, err := queryer.QueryContext(ctx, s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -401,11 +401,11 @@ func (db *mssql) GetColumns(ctx context.Context, tableName string) ([]string, ma
 	return colSeq, cols, nil
 }
 
-func (db *mssql) GetTables(ctx context.Context) ([]*schemas.Table, error) {
+func (db *mssql) GetTables(queryer core.Queryer, ctx context.Context) ([]*schemas.Table, error) {
 	args := []interface{}{}
 	s := `select name from sysobjects where xtype ='U'`
 
-	rows, err := db.DB().QueryContext(ctx, s, args...)
+	rows, err := queryer.QueryContext(ctx, s, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -425,7 +425,7 @@ func (db *mssql) GetTables(ctx context.Context) ([]*schemas.Table, error) {
 	return tables, nil
 }
 
-func (db *mssql) GetIndexes(ctx context.Context, tableName string) (map[string]*schemas.Index, error) {
+func (db *mssql) GetIndexes(queryer core.Queryer, ctx context.Context, tableName string) (map[string]*schemas.Index, error) {
 	args := []interface{}{tableName}
 	s := `SELECT
 IXS.NAME                    AS  [INDEX_NAME],
@@ -439,7 +439,7 @@ AND IXCS.COLUMN_ID=C.COLUMN_ID
 WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 `
 
-	rows, err := db.DB().QueryContext(ctx, s, args...)
+	rows, err := queryer.QueryContext(ctx, s, args...)
 	if err != nil {
 		return nil, err
 	}

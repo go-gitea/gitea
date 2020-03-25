@@ -99,7 +99,7 @@ func (session *Session) Init() {
 		session.engine.tagParser,
 		session.engine.DatabaseTZ,
 	)
-
+	session.db = session.engine.db
 	session.isAutoCommit = true
 	session.isCommitedOrRollbacked = false
 	session.isAutoClose = false
@@ -138,6 +138,13 @@ func (session *Session) Close() {
 		session.stmtCache = nil
 		session.db = nil
 	}
+}
+
+func (session *Session) getQueryer() core.Queryer {
+	if session.tx != nil {
+		return session.tx
+	}
+	return session.db
 }
 
 // ContextCache enable context cache or not

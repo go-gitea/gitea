@@ -770,22 +770,22 @@ var (
 	postgresQuoter = schemas.Quoter{'"', '"', schemas.AlwaysReserve}
 )
 
-const postgresPublicSchema = "public"
+var (
+	// DefaultPostgresSchema default postgres schema
+	DefaultPostgresSchema = "public"
+)
 
 type postgres struct {
 	Base
 }
 
-func (db *postgres) Init(d *core.DB, uri *URI) error {
+func (db *postgres) Init(uri *URI) error {
 	db.quoter = postgresQuoter
-	err := db.Base.Init(d, db, uri)
-	if err != nil {
-		return err
+	if uri.Schema == "" {
+		uri.Schema = DefaultPostgresSchema
 	}
-	if db.uri.Schema == "" {
-		db.uri.Schema = postgresPublicSchema
-	}
-	return nil
+
+	return db.Base.Init(db, uri)
 }
 
 func (db *postgres) needQuote(name string) bool {
@@ -815,10 +815,6 @@ func (db *postgres) SetQuotePolicy(quotePolicy QuotePolicy) {
 	default:
 		db.quoter = postgresQuoter
 	}
-}
-
-func (db *postgres) DefaultSchema() string {
-	return postgresPublicSchema
 }
 
 func (db *postgres) SQLType(c *schemas.Column) string {
@@ -942,12 +938,12 @@ func (db *postgres) IndexCheckSQL(tableName, idxName string) (string, []interfac
 		`WHERE schemaname = ? AND tablename = ? AND indexname = ?`, args
 }
 
-func (db *postgres) IsTableExist(ctx context.Context, tableName string) (bool, error) {
+func (db *postgres) IsTableExist(queryer core.Queryer, ctx context.Context, tableName string) (bool, error) {
 	if len(db.uri.Schema) == 0 {
-		return db.HasRecords(ctx, `SELECT tablename FROM pg_tables WHERE tablename = $1`, tableName)
+		return db.HasRecords(queryer, ctx, `SELECT tablename FROM pg_tables WHERE tablename = $1`, tableName)
 	}
 
-	return db.HasRecords(ctx, `SELECT tablename FROM pg_tables WHERE schemaname = $1 AND tablename = $2`,
+	return db.HasRecords(queryer, ctx, `SELECT tablename FROM pg_tables WHERE schemaname = $1 AND tablename = $2`,
 		db.uri.Schema, tableName)
 }
 
@@ -980,7 +976,7 @@ func (db *postgres) DropIndexSQL(tableName string, index *schemas.Index) string 
 	return fmt.Sprintf("DROP INDEX %v", db.Quoter().Quote(idxName))
 }
 
-func (db *postgres) IsColumnExist(ctx context.Context, tableName, colName string) (bool, error) {
+func (db *postgres) IsColumnExist(queryer core.Queryer, ctx context.Context, tableName, colName string) (bool, error) {
 	args := []interface{}{db.uri.Schema, tableName, colName}
 	query := "SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = $1 AND table_name = $2" +
 		" AND column_name = $3"
@@ -990,7 +986,7 @@ func (db *postgres) IsColumnExist(ctx context.Context, tableName, colName string
 			" AND column_name = $2"
 	}
 
-	rows, err := db.DB().QueryContext(ctx, query, args...)
+	rows, err := queryer.QueryContext(ctx, query, args...)
 	if err != nil {
 		return false, err
 	}
@@ -999,8 +995,8 @@ func (db *postgres) IsColumnExist(ctx context.Context, tableName, colName string
 	return rows.Next(), nil
 }
 
-func (db *postgres) GetColumns(ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error) {
-	args := []interface{}{db.uri.Schema, tableName, db.uri.Schema}
+func (db *postgres) GetColumns(queryer core.Queryer, ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error) {
+	args := []interface{}{tableName}
 	s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length,
     CASE WHEN p.contype = 'p' THEN true ELSE false END AS primarykey,
     CASE WHEN p.contype = 'u' THEN true ELSE false END AS uniquekey
@@ -1011,9 +1007,17 @@ FROM pg_attribute f
     LEFT JOIN pg_constraint p ON p.conrelid = c.oid AND f.attnum = ANY (p.conkey)
     LEFT JOIN pg_class AS g ON p.confrelid = g.oid
     LEFT JOIN INFORMATION_SCHEMA.COLUMNS s ON s.column_name=f.attname AND c.relname=s.table_name
-WHERE n.nspname= $1 AND c.relkind = 'r'::char AND c.relname = $2 AND s.table_schema = $3 AND f.attnum > 0 ORDER BY f.attnum;`
+WHERE n.nspname= s.table_schema AND c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.attnum;`
 
-	rows, err := db.DB().QueryContext(ctx, s, args...)
+	schema := db.uri.Schema
+	if schema != "" {
+		s = fmt.Sprintf(s, "AND s.table_schema = $2")
+		args = append(args, schema)
+	} else {
+		s = fmt.Sprintf(s, "")
+	}
+
+	rows, err := queryer.QueryContext(ctx, s, args...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1132,15 +1136,16 @@ WHERE n.nspname= $1 AND c.relkind = 'r'::char AND c.relname = $2 AND s.table_sch
 	return colSeq, cols, nil
 }
 
-func (db *postgres) GetTables(ctx context.Context) ([]*schemas.Table, error) {
+func (db *postgres) GetTables(queryer core.Queryer, ctx context.Context) ([]*schemas.Table, error) {
 	args := []interface{}{}
 	s := "SELECT tablename FROM pg_tables"
-	if len(db.uri.Schema) != 0 {
-		args = append(args, db.uri.Schema)
+	schema := db.uri.Schema
+	if schema != "" {
+		args = append(args, schema)
 		s = s + " WHERE schemaname = $1"
 	}
 
-	rows, err := db.DB().QueryContext(ctx, s, args...)
+	rows, err := queryer.QueryContext(ctx, s, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1171,7 +1176,7 @@ func getIndexColName(indexdef string) []string {
 	return colNames
 }
 
-func (db *postgres) GetIndexes(ctx context.Context, tableName string) (map[string]*schemas.Index, error) {
+func (db *postgres) GetIndexes(queryer core.Queryer, ctx context.Context, tableName string) (map[string]*schemas.Index, error) {
 	args := []interface{}{tableName}
 	s := fmt.Sprintf("SELECT indexname, indexdef FROM pg_indexes WHERE tablename=$1")
 	if len(db.uri.Schema) != 0 {
@@ -1179,7 +1184,7 @@ func (db *postgres) GetIndexes(ctx context.Context, tableName string) (map[strin
 		s = s + " AND schemaname=$2"
 	}
 
-	rows, err := db.DB().QueryContext(ctx, s, args...)
+	rows, err := queryer.QueryContext(ctx, s, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -1318,4 +1323,23 @@ func (pgx *pqDriverPgx) Parse(driverName, dataSourceName string) (*URI, error) {
 		dataSourceName = dataSourceName[9:]
 	}
 	return pgx.pqDriver.Parse(driverName, dataSourceName)
+}
+
+// QueryDefaultPostgresSchema returns the default postgres schema
+func QueryDefaultPostgresSchema(ctx context.Context, queryer core.Queryer) (string, error) {
+	rows, err := queryer.QueryContext(ctx, "SHOW SEARCH_PATH")
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	if rows.Next() {
+		var defaultSchema string
+		if err = rows.Scan(&defaultSchema); err != nil {
+			return "", err
+		}
+		parts := strings.Split(defaultSchema, ",")
+		return strings.TrimSpace(parts[len(parts)-1]), nil
+	}
+
+	return "", errors.New("No default schema")
 }
