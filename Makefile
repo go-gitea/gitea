@@ -148,7 +148,7 @@ help:
 
 .PHONY: go-check
 go-check:
-	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?[[:space:]]' | tr '.' ' ');))
+	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
 		echo "Gitea requires Go 1.12 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
@@ -163,7 +163,7 @@ git-check:
 
 .PHONY: node-check
 node-check:
-	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?' | tr '.' ' ');))
+	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | cut -c2- | tr '.' ' ');))
 	$(eval NPM_MISSING := $(shell hash npm > /dev/null 2>&1 || echo 1))
 	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" -o "$(NPM_MISSING)" = "1" ]; then \
 		echo "Gitea requires Node.js 10 or greater and npm to build. You can get it at https://nodejs.org/en/download/"; \
