@@ -18,7 +18,6 @@ func TableNameWithSchema(dialect Dialect, tableName string) string {
 	// Add schema name as prefix of table name.
 	// Only for postgres database.
 	if dialect.URI().Schema != "" &&
-		dialect.URI().Schema != dialect.DefaultSchema() &&
 		strings.Index(tableName, ".") == -1 {
 		return fmt.Sprintf("%s.%s", dialect.URI().Schema, tableName)
 	}
