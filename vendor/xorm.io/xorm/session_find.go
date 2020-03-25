@@ -8,10 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 
 	"xorm.io/builder"
-	"xorm.io/core"
+	"xorm.io/xorm/caches"
+	"xorm.io/xorm/internal/utils"
+	"xorm.io/xorm/schemas"
 )
 
 const (
@@ -52,8 +53,8 @@ func (session *Session) FindAndCount(rowsSlicePtr interface{}, condiBean ...inte
 	}
 	session.autoResetStatement = true
 
-	if session.statement.selectStr != "" {
-		session.statement.selectStr = ""
+	if session.statement.SelectStr != "" {
+		session.statement.SelectStr = ""
 	}
 	if session.statement.OrderStr != "" {
 		session.statement.OrderStr = ""
@@ -64,13 +65,14 @@ func (session *Session) FindAndCount(rowsSlicePtr interface{}, condiBean ...inte
 
 func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
 	defer session.resetStatement()
-
-	if session.statement.lastError != nil {
-		return session.statement.lastError
+	if session.statement.LastError != nil {
+		return session.statement.LastError
 	}
 
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
-	if sliceValue.Kind() != reflect.Slice && sliceValue.Kind() != reflect.Map {
+	var isSlice = sliceValue.Kind() == reflect.Slice
+	var isMap = sliceValue.Kind() == reflect.Map
+	if !isSlice && !isMap {
 		return errors.New("needs a pointer to a slice or a map")
 	}
 
@@ -81,7 +83,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 		if sliceElementType.Kind() == reflect.Ptr {
 			if sliceElementType.Elem().Kind() == reflect.Struct {
 				pv := reflect.New(sliceElementType.Elem())
-				if err := session.statement.setRefValue(pv); err != nil {
+				if err := session.statement.SetRefValue(pv); err != nil {
 					return err
 				}
 			} else {
@@ -89,7 +91,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 			}
 		} else if sliceElementType.Kind() == reflect.Struct {
 			pv := reflect.New(sliceElementType)
-			if err := session.statement.setRefValue(pv); err != nil {
+			if err := session.statement.SetRefValue(pv); err != nil {
 				return err
 			}
 		} else {
@@ -97,107 +99,54 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 		}
 	}
 
-	var table = session.statement.RefTable
-
-	var addedTableName = (len(session.statement.JoinStr) > 0)
-	var autoCond builder.Cond
+	var (
+		table          = session.statement.RefTable
+		addedTableName = (len(session.statement.JoinStr) > 0)
+		autoCond       builder.Cond
+	)
 	if tp == tpStruct {
-		if !session.statement.noAutoCondition && len(condiBean) > 0 {
+		if !session.statement.NoAutoCondition && len(condiBean) > 0 {
 			var err error
-			autoCond, err = session.statement.buildConds(table, condiBean[0], true, true, false, true, addedTableName)
+			autoCond, err = session.statement.BuildConds(table, condiBean[0], true, true, false, true, addedTableName)
 			if err != nil {
 				return err
 			}
 		} else {
-			// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
-			// See https://gitea.com/xorm/xorm/issues/179
-			if col := table.DeletedColumn(); col != nil && !session.statement.unscoped { // tag "deleted" is enabled
-				var colName = session.engine.Quote(col.Name)
-				if addedTableName {
-					var nm = session.statement.TableName()
-					if len(session.statement.TableAlias) > 0 {
-						nm = session.statement.TableAlias
-					}
-					colName = session.engine.Quote(nm) + "." + colName
-				}
-
-				autoCond = session.engine.CondDeleted(colName)
+			if col := table.DeletedColumn(); col != nil && !session.statement.GetUnscoped() { // tag "deleted" is enabled
+				autoCond = session.statement.CondDeleted(col)
 			}
 		}
 	}
 
-	var sqlStr string
-	var args []interface{}
-	var err error
-	if session.statement.RawSQL == "" {
-		if len(session.statement.TableName()) <= 0 {
-			return ErrTableNotFound
+	// if it's a map with Cols but primary key not in column list, we still need the primary key
+	if isMap && !session.statement.ColumnMap.IsEmpty() {
+		for _, k := range session.statement.RefTable.PrimaryKeys {
+			session.statement.ColumnMap.Add(k)
 		}
-
-		var columnStr = session.statement.ColumnStr
-		if len(session.statement.selectStr) > 0 {
-			columnStr = session.statement.selectStr
-		} else {
-			if session.statement.JoinStr == "" {
-				if columnStr == "" {
-					if session.statement.GroupByStr != "" {
-						columnStr = session.engine.quoteColumns(session.statement.GroupByStr)
-					} else {
-						columnStr = session.statement.genColumnStr()
-					}
-				}
-			} else {
-				if columnStr == "" {
-					if session.statement.GroupByStr != "" {
-						columnStr = session.engine.quoteColumns(session.statement.GroupByStr)
-					} else {
-						columnStr = "*"
-					}
-				}
-			}
-			if columnStr == "" {
-				columnStr = "*"
-			}
-		}
-
-		session.statement.cond = session.statement.cond.And(autoCond)
-		condSQL, condArgs, err := builder.ToSQL(session.statement.cond)
-		if err != nil {
-			return err
-		}
-
-		args = append(session.statement.joinArgs, condArgs...)
-		sqlStr, err = session.statement.genSelectSQL(columnStr, condSQL, true, true)
-		if err != nil {
-			return err
-		}
-		// for mssql and use limit
-		qs := strings.Count(sqlStr, "?")
-		if len(args)*2 == qs {
-			args = append(args, args...)
-		}
-	} else {
-		sqlStr = session.statement.RawSQL
-		args = session.statement.RawParams
 	}
 
-	if session.canCache() {
-		if cacher := session.engine.getCacher(session.statement.TableName()); cacher != nil &&
+	sqlStr, args, err := session.statement.GenFindSQL(autoCond)
+	if err != nil {
+		return err
+	}
+
+	if session.statement.ColumnMap.IsEmpty() && session.canCache() {
+		if cacher := session.engine.GetCacher(session.statement.TableName()); cacher != nil &&
 			!session.statement.IsDistinct &&
-			!session.statement.unscoped {
+			!session.statement.GetUnscoped() {
 			err = session.cacheFind(sliceElementType, sqlStr, rowsSlicePtr, args...)
 			if err != ErrCacheFailed {
 				return err
 			}
 			err = nil // !nashtsai! reset err to nil for ErrCacheFailed
-			session.engine.logger.Warn("Cache Find Failed")
+			session.engine.logger.Warnf("Cache Find Failed")
 		}
 	}
 
 	return session.noCacheFind(table, sliceValue, sqlStr, args...)
 }
 
-func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Value, sqlStr string, args ...interface{}) error {
+func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect.Value, sqlStr string, args ...interface{}) error {
 	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {
 		return err
@@ -236,10 +185,10 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 		return reflect.New(elemType)
 	}
 
-	var containerValueSetFunc func(*reflect.Value, core.PK) error
+	var containerValueSetFunc func(*reflect.Value, schemas.PK) error
 
 	if containerValue.Kind() == reflect.Slice {
-		containerValueSetFunc = func(newValue *reflect.Value, pk core.PK) error {
+		containerValueSetFunc = func(newValue *reflect.Value, pk schemas.PK) error {
 			if isPointer {
 				containerValue.Set(reflect.Append(containerValue, newValue.Elem().Addr()))
 			} else {
@@ -256,7 +205,7 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 			return errors.New("don't support multiple primary key's map has non-slice key type")
 		}
 
-		containerValueSetFunc = func(newValue *reflect.Value, pk core.PK) error {
+		containerValueSetFunc = func(newValue *reflect.Value, pk schemas.PK) error {
 			keyValue := reflect.New(keyType)
 			err := convertPKToValue(table, keyValue.Interface(), pk)
 			if err != nil {
@@ -273,8 +222,8 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 
 	if elemType.Kind() == reflect.Struct {
 		var newValue = newElemFunc(fields)
-		dataStruct := rValue(newValue.Interface())
-		tb, err := session.engine.autoMapType(dataStruct)
+		dataStruct := utils.ReflectValue(newValue.Interface())
+		tb, err := session.engine.tagParser.ParseWithCache(dataStruct)
 		if err != nil {
 			return err
 		}
@@ -310,7 +259,7 @@ func (session *Session) noCacheFind(table *core.Table, containerValue reflect.Va
 	return nil
 }
 
-func convertPKToValue(table *core.Table, dst interface{}, pk core.PK) error {
+func convertPKToValue(table *schemas.Table, dst interface{}, pk schemas.PK) error {
 	cols := table.PKColumns()
 	if len(cols) == 1 {
 		return convertAssign(dst, pk[0])
@@ -322,28 +271,28 @@ func convertPKToValue(table *core.Table, dst interface{}, pk core.PK) error {
 
 func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr interface{}, args ...interface{}) (err error) {
 	if !session.canCache() ||
-		indexNoCase(sqlStr, "having") != -1 ||
-		indexNoCase(sqlStr, "group by") != -1 {
+		utils.IndexNoCase(sqlStr, "having") != -1 ||
+		utils.IndexNoCase(sqlStr, "group by") != -1 {
 		return ErrCacheFailed
 	}
 
 	tableName := session.statement.TableName()
-	cacher := session.engine.getCacher(tableName)
+	cacher := session.engine.cacherMgr.GetCacher(tableName)
 	if cacher == nil {
 		return nil
 	}
 
 	for _, filter := range session.engine.dialect.Filters() {
-		sqlStr = filter.Do(sqlStr, session.engine.dialect, session.statement.RefTable)
+		sqlStr = filter.Do(sqlStr)
 	}
 
-	newsql := session.statement.convertIDSQL(sqlStr)
+	newsql := session.statement.ConvertIDSQL(sqlStr)
 	if newsql == "" {
 		return ErrCacheFailed
 	}
 
 	table := session.statement.RefTable
-	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
+	ids, err := caches.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
 		rows, err := session.queryRows(newsql, args...)
 		if err != nil {
@@ -352,11 +301,11 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		defer rows.Close()
 
 		var i int
-		ids = make([]core.PK, 0)
+		ids = make([]schemas.PK, 0)
 		for rows.Next() {
 			i++
 			if i > 500 {
-				session.engine.logger.Debug("[cacheFind] ids length > 500, no cache")
+				session.engine.logger.Debugf("[cacheFind] ids length > 500, no cache")
 				return ErrCacheFailed
 			}
 			var res = make([]string, len(table.PrimaryKeys))
@@ -364,7 +313,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			if err != nil {
 				return err
 			}
-			var pk core.PK = make([]interface{}, len(table.PrimaryKeys))
+			var pk schemas.PK = make([]interface{}, len(table.PrimaryKeys))
 			for i, col := range table.PKColumns() {
 				pk[i], err = session.engine.idTypeAssertion(col, res[i])
 				if err != nil {
@@ -375,19 +324,19 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			ids = append(ids, pk)
 		}
 
-		session.engine.logger.Debug("[cacheFind] cache sql:", ids, tableName, sqlStr, newsql, args)
-		err = core.PutCacheSql(cacher, ids, tableName, newsql, args)
+		session.engine.logger.Debugf("[cache] cache sql: %v, %v, %v, %v, %v", ids, tableName, sqlStr, newsql, args)
+		err = caches.PutCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
 			return err
 		}
 	} else {
-		session.engine.logger.Debug("[cacheFind] cache hit sql:", tableName, sqlStr, newsql, args)
+		session.engine.logger.Debugf("[cache] cache hit sql: %v, %v, %v, %v", tableName, sqlStr, newsql, args)
 	}
 
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 
 	ididxes := make(map[string]int)
-	var ides []core.PK
+	var ides []schemas.PK
 	var temps = make([]interface{}, len(ids))
 
 	for idx, id := range ids {
@@ -396,20 +345,38 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			return err
 		}
 		bean := cacher.GetBean(tableName, sid)
-		if bean == nil || reflect.ValueOf(bean).Elem().Type() != t {
+
+		// fix issue #894
+		isHit := func() (ht bool) {
+			if bean == nil {
+				ht = false
+				return
+			}
+			ckb := reflect.ValueOf(bean).Elem().Type()
+			ht = ckb == t
+			if !ht && t.Kind() == reflect.Ptr {
+				ht = t.Elem() == ckb
+			}
+			return
+		}
+		if !isHit() {
 			ides = append(ides, id)
 			ididxes[sid] = idx
 		} else {
-			session.engine.logger.Debug("[cacheFind] cache hit bean:", tableName, id, bean)
+			session.engine.logger.Debugf("[cache] cache hit bean: %v, %v, %v", tableName, id, bean)
 
-			pk := session.engine.IdOf(bean)
+			pk, err := session.engine.IDOf(bean)
+			if err != nil {
+				return err
+			}
+
 			xid, err := pk.ToString()
 			if err != nil {
 				return err
 			}
 
 			if sid != xid {
-				session.engine.logger.Error("[cacheFind] error cache", xid, sid, bean)
+				session.engine.logger.Errorf("[cache] error cache: %v, %v, %v", xid, sid, bean)
 				return ErrCacheFailed
 			}
 			temps[idx] = bean
@@ -459,7 +426,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 
 			bean := rv.Interface()
 			temps[ididxes[sid]] = bean
-			session.engine.logger.Debug("[cacheFind] cache bean:", tableName, id, bean, temps)
+			session.engine.logger.Debugf("[cache] cache bean: %v, %v, %v, %v", tableName, id, bean, temps)
 			cacher.PutBean(tableName, sid, bean)
 		}
 	}
@@ -467,7 +434,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 	for j := 0; j < len(temps); j++ {
 		bean := temps[j]
 		if bean == nil {
-			session.engine.logger.Warn("[cacheFind] cache no hit:", tableName, ids[j], temps)
+			session.engine.logger.Warnf("[cache] cache no hit: %v, %v, %v", tableName, ids[j], temps)
 			// return errors.New("cache error") // !nashtsai! no need to return error, but continue instead
 			continue
 		}
@@ -488,7 +455,7 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 				}
 			} else {
 				if keyType.Kind() != reflect.Slice {
-					return errors.New("table have multiple primary keys, key is not core.PK or slice")
+					return errors.New("table have multiple primary keys, key is not schemas.PK or slice")
 				}
 				ikey = key
 			}

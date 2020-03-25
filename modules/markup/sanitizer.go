@@ -53,6 +53,9 @@ func ReplaceSanitizer() {
 	// Allow classes for anchors
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`ref-issue`)).OnElements("a")
 
+	// Allow classes for task lists
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list`)).OnElements("ul")
+
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",
 		"accesskey", "action", "align", "alt",
