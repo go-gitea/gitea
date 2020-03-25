@@ -9,11 +9,11 @@ const PostCSSSafeParser = require('postcss-safe-parser');
 const SpriteLoaderPlugin = require('svg-sprite-loader/plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
-const { statSync } = require('fs');
-const { resolve, parse } = require('path');
-const { SourceMapDevToolPlugin } = require('webpack');
+const {statSync} = require('fs');
+const {resolve, parse} = require('path');
+const {SourceMapDevToolPlugin} = require('webpack');
 
-const glob = (pattern) => fastGlob.sync(pattern, { cwd: __dirname, absolute: true });
+const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
 const themes = {};
 for (const path of glob('web_src/less/themes/*.less')) {
@@ -84,6 +84,10 @@ module.exports = {
         test: /\.vue$/,
         exclude: /node_modules/,
         loader: 'vue-loader',
+      },
+      {
+        test: require.resolve('jquery-datetimepicker'),
+        use: 'imports-loader?define=>false,exports=>false',
       },
       {
         test: /\.js$/,
@@ -157,7 +161,7 @@ module.exports = {
               extract: true,
               spriteFilename: 'img/svg/icons.svg',
               symbolId: (path) => {
-                const { name } = parse(path);
+                const {name} = parse(path);
                 if (/@primer[/\\]octicons/.test(path)) {
                   return `octicon-${name}`;
                 }
@@ -194,18 +198,11 @@ module.exports = {
     }),
     new CopyPlugin([
       // workaround for https://github.com/go-gitea/gitea/issues/10653
-      { from: 'node_modules/fomantic-ui/dist/semantic.min.css', to: 'fomantic/semantic.min.css' },
+      {from: 'node_modules/fomantic-ui/dist/semantic.min.css', to: 'fomantic/semantic.min.css'},
     ]),
   ],
   performance: {
-    hints: isProduction ? 'warning' : false,
-    maxEntrypointSize: 512000,
-    maxAssetSize: 512000,
-    assetFilter: (filename) => {
-      if (filename.endsWith('.map')) return false;
-      if (['js/swagger.js', 'js/highlight.js', 'fomantic/semantic.min.css'].includes(filename)) return false;
-      return true;
-    },
+    hints: false,
   },
   resolve: {
     symlinks: false,
