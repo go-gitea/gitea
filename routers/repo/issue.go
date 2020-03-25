@@ -259,6 +259,20 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+
+	if repo.Owner.IsOrganization() {
+		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.Query("sort"), models.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetLabelsByOrgID", err)
+			return
+		}
+
+		ctx.Data["OrgLabels"] = orgLabels
+		for _, v := range orgLabels {
+			labels = append(labels, v)
+		}
+	}
+
 	for _, l := range labels {
 		l.LoadSelectedLabelsAfterClick(labelIDs)
 	}
