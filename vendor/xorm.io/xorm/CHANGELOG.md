@@ -3,6 +3,16 @@
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log.
 
+## [1.0.1](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1253) - 2020-03-25
+
+* BUGFIXES
+  * Oracle : Local Naming Method (#1515)
+  * Fix find and count bug (#1618)
+  * Fix duplicated deleted condition on FindAndCount (#1619)
+  * Fix find and count bug with cache (#1622)
+  * Fix postgres schema problem (#1624)
+  * Fix quote with blank (#1626)
+
 ## [1.0.0](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1242) - 2020-03-22
 
 * BREAKING

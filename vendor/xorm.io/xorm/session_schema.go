@@ -134,7 +134,7 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 	tableName := session.engine.TableName(beanOrTableName)
 	sqlStr, checkIfExist := session.engine.dialect.DropTableSQL(session.engine.TableName(tableName, true))
 	if !checkIfExist {
-		exist, err := session.engine.dialect.IsTableExist(session.ctx, tableName)
+		exist, err := session.engine.dialect.IsTableExist(session.getQueryer(), session.ctx, tableName)
 		if err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ func (session *Session) IsTableExist(beanOrTableName interface{}) (bool, error) 
 }
 
 func (session *Session) isTableExist(tableName string) (bool, error) {
-	return session.engine.dialect.IsTableExist(session.ctx, tableName)
+	return session.engine.dialect.IsTableExist(session.getQueryer(), session.ctx, tableName)
 }
 
 // IsTableEmpty if table have any records
@@ -187,7 +187,7 @@ func (session *Session) isTableEmpty(tableName string) (bool, error) {
 
 // find if index is exist according cols
 func (session *Session) isIndexExist2(tableName string, cols []string, unique bool) (bool, error) {
-	indexes, err := session.engine.dialect.GetIndexes(session.ctx, tableName)
+	indexes, err := session.engine.dialect.GetIndexes(session.getQueryer(), session.ctx, tableName)
 	if err != nil {
 		return false, err
 	}
@@ -233,7 +233,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 		defer session.Close()
 	}
 
-	tables, err := engine.dialect.GetTables(session.ctx)
+	tables, err := engine.dialect.GetTables(session.getQueryer(), session.ctx)
 	if err != nil {
 		return err
 	}
