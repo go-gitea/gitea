@@ -27,15 +27,16 @@ import (
 
 // CreateRepoForm form for creating repository
 type CreateRepoForm struct {
-	UID         int64  `binding:"Required"`
-	RepoName    string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Private     bool
-	Description string `binding:"MaxSize(255)"`
-	AutoInit    bool
-	Gitignores  string
-	IssueLabels string
-	License     string
-	Readme      string
+	UID           int64  `binding:"Required"`
+	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Private       bool
+	Description   string `binding:"MaxSize(255)"`
+	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
+	AutoInit      bool
+	Gitignores    string
+	IssueLabels   string
+	License       string
+	Readme        string
 
 	RepoTemplate int64
 	GitContent   bool
