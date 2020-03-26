@@ -11,6 +11,7 @@ import (
 
 	"xorm.io/builder"
 	"xorm.io/xorm/caches"
+	"xorm.io/xorm/internal/statements"
 	"xorm.io/xorm/internal/utils"
 	"xorm.io/xorm/schemas"
 )
@@ -60,7 +61,8 @@ func (session *Session) FindAndCount(rowsSlicePtr interface{}, condiBean ...inte
 		session.statement.OrderStr = ""
 	}
 
-	return session.Count(reflect.New(sliceElementType).Interface())
+	// session has stored the conditions so we use `unscoped` to avoid duplicated condition.
+	return session.Unscoped().Count(reflect.New(sliceElementType).Interface())
 }
 
 func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
@@ -387,6 +389,12 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		slices := reflect.New(reflect.SliceOf(t))
 		beans := slices.Interface()
 
+		statement := session.statement
+		session.statement = statements.NewStatement(
+			session.engine.dialect,
+			session.engine.tagParser,
+			session.engine.DatabaseTZ,
+		)
 		if len(table.PrimaryKeys) == 1 {
 			ff := make([]interface{}, 0, len(ides))
 			for _, ie := range ides {
@@ -408,6 +416,8 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		if err != nil {
 			return err
 		}
+
+		session.statement = statement
 
 		vs := reflect.Indirect(reflect.ValueOf(beans))
 		for i := 0; i < vs.Len(); i++ {

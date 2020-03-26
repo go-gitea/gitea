@@ -6,8 +6,6 @@ package dialects
 
 import (
 	"fmt"
-
-	"xorm.io/xorm/core"
 )
 
 type Driver interface {
@@ -53,11 +51,7 @@ func OpenDialect(driverName, connstr string) (Dialect, error) {
 		return nil, fmt.Errorf("Unsupported dialect type: %v", uri.DBType)
 	}
 
-	db, err := core.Open(driverName, connstr)
-	if err != nil {
-		return nil, err
-	}
-	dialect.Init(db, uri)
+	dialect.Init(uri)
 
 	return dialect, nil
 }

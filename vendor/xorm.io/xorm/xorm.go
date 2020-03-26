@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"xorm.io/xorm/caches"
+	"xorm.io/xorm/core"
 	"xorm.io/xorm/dialects"
 	"xorm.io/xorm/log"
 	"xorm.io/xorm/names"
@@ -32,6 +33,11 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		return nil, err
 	}
 
+	db, err := core.Open(driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+
 	cacherMgr := caches.NewManager()
 	mapper := names.NewCacheMapper(new(names.SnakeMapper))
 	tagParser := tags.NewParser("xorm", dialect, mapper, mapper, cacherMgr)
@@ -44,6 +50,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		tagParser:      tagParser,
 		driverName:     driverName,
 		dataSourceName: dataSourceName,
+		db:             db,
 	}
 
 	if dialect.URI().DBType == schemas.SQLITE {
