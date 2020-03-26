@@ -138,9 +138,12 @@ func getEngine() (*xorm.Engine, error) {
 		return nil, err
 	}
 
-	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
+	engine, err := xorm.NewEngineWithParams(setting.Database.Type, connStr)
 	if err != nil {
 		return nil, err
+	}
+	if setting.Database.Type == "mysql" {
+		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
 	}
 	engine.SetSchema(setting.Database.Schema)
 	return engine, nil
