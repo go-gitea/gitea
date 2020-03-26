@@ -138,7 +138,7 @@ func getEngine() (*xorm.Engine, error) {
 		return nil, err
 	}
 
-	engine, err := xorm.NewEngineWithParams(setting.Database.Type, connStr)
+	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
 	if err != nil {
 		return nil, err
 	}
