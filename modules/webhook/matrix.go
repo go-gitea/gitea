@@ -168,7 +168,7 @@ func getMatrixPushPayload(p *api.PushPayload, matrix *MatrixMeta) (*MatrixPayloa
 
 	// for each commit, generate a new line text
 	for i, commit := range p.Commits {
-		text += fmt.Sprintf("%s : %s - %s", MatrixLinkFormatter(commit.URL, commit.ID[:7]), commit.Message, commit.Author.Name)
+		text += fmt.Sprintf("%s: %s - %s", MatrixLinkFormatter(commit.URL, commit.ID[:7]), commit.Message, commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			text += "<br>"
