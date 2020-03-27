@@ -10,12 +10,12 @@ import (
 	"xorm.io/xorm"
 )
 
-func addOrgIDLabelColumn(x *xorm.Engine) error {
-	type Label struct {
-		OrgID int64 `xorm:"INDEX"`
+func addBranchProtectionProtectedFilesColumn(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		ProtectedFilePatterns string `xorm:"TEXT"`
 	}
 
-	if err := x.Sync2(new(Label)); err != nil {
+	if err := x.Sync2(new(ProtectedBranch)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil
