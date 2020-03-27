@@ -916,6 +916,25 @@ func (err ErrFilePathInvalid) Error() string {
 	return fmt.Sprintf("path is invalid [path: %s]", err.Path)
 }
 
+// ErrFilePathProtected represents a "FilePathProtected" kind of error.
+type ErrFilePathProtected struct {
+	Message string
+	Path    string
+}
+
+// IsErrFilePathProtected checks if an error is an ErrFilePathProtected.
+func IsErrFilePathProtected(err error) bool {
+	_, ok := err.(ErrFilePathProtected)
+	return ok
+}
+
+func (err ErrFilePathProtected) Error() string {
+	if err.Message != "" {
+		return err.Message
+	}
+	return fmt.Sprintf("path is protected and can not be changed [path: %s]", err.Path)
+}
+
 // ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo.
 type ErrUserDoesNotHaveAccessToRepo struct {
 	UserID   int64
