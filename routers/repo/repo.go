@@ -221,14 +221,15 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	} else {
 		repo, err = repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
-			Name:        form.RepoName,
-			Description: form.Description,
-			Gitignores:  form.Gitignores,
-			IssueLabels: form.IssueLabels,
-			License:     form.License,
-			Readme:      form.Readme,
-			IsPrivate:   form.Private || setting.Repository.ForcePrivate,
-			AutoInit:    form.AutoInit,
+			Name:          form.RepoName,
+			Description:   form.Description,
+			Gitignores:    form.Gitignores,
+			IssueLabels:   form.IssueLabels,
+			License:       form.License,
+			Readme:        form.Readme,
+			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
+			DefaultBranch: form.DefaultBranch,
+			AutoInit:      form.AutoInit,
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)

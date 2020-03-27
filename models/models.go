@@ -124,6 +124,7 @@ func init() {
 		new(OAuth2Grant),
 		new(Task),
 		new(LanguageStat),
+		new(EmailHash),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -141,6 +142,9 @@ func getEngine() (*xorm.Engine, error) {
 	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
 	if err != nil {
 		return nil, err
+	}
+	if setting.Database.Type == "mysql" {
+		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
 	}
 	engine.SetSchema(setting.Database.Schema)
 	return engine, nil

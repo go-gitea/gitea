@@ -41,6 +41,7 @@ type BranchProtection struct {
 	BlockOnRejectedReviews      bool     `json:"block_on_rejected_reviews"`
 	DismissStaleApprovals       bool     `json:"dismiss_stale_approvals"`
 	RequireSignedCommits        bool     `json:"require_signed_commits"`
+	ProtectedFilePatterns       string   `json:"protected_file_patterns"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -67,6 +68,7 @@ type CreateBranchProtectionOption struct {
 	BlockOnRejectedReviews      bool     `json:"block_on_rejected_reviews"`
 	DismissStaleApprovals       bool     `json:"dismiss_stale_approvals"`
 	RequireSignedCommits        bool     `json:"require_signed_commits"`
+	ProtectedFilePatterns       string   `json:"protected_file_patterns"`
 }
 
 // EditBranchProtectionOption options for editing a branch protection
@@ -88,4 +90,5 @@ type EditBranchProtectionOption struct {
 	BlockOnRejectedReviews      *bool    `json:"block_on_rejected_reviews"`
 	DismissStaleApprovals       *bool    `json:"dismiss_stale_approvals"`
 	RequireSignedCommits        *bool    `json:"require_signed_commits"`
+	ProtectedFilePatterns       *string  `json:"protected_file_patterns"`
 }
