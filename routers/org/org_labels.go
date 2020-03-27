@@ -25,7 +25,7 @@ func RetrieveLabels(ctx *context.Context) {
 	ctx.Data["SortType"] = ctx.Query("sort")
 }
 
-// NewLabel create new label for repository
+// NewLabel create new label for organization
 func NewLabel(ctx *context.Context, form auth.CreateLabelForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsLabels"] = true

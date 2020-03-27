@@ -547,7 +547,7 @@ func DeleteLabel(id, labelID int64, isOrg bool) error {
 func DeleteOrgLabel(orgID, labelID int64) error {
 	_, err := GetLabelInOrgByID(orgID, labelID)
 	if err != nil {
-		if IsErrRepoLabelNotExist(err) {
+		if IsErrOrgLabelNotExist(err) {
 			return nil
 		}
 		return err
