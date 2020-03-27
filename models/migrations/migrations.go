@@ -197,6 +197,8 @@ var migrations = []Migration{
 	// v131 -> v132
 	NewMigration("Add IsSystemWebhook column to webhooks table", addSystemWebhookColumn),
 	// v132 -> v133
+	NewMigration("Add Branch Protection Protected Files Column", addBranchProtectionProtectedFilesColumn),
+	// v133 -> v134
 	NewMigration("Refix merge base for merged pull requests", refixMergeBase),
 }
 
