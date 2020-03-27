@@ -347,8 +347,9 @@ func getLabelInOrgByName(e Engine, orgID int64, labelName string) (*Label, error
 	}
 
 	l := &Label{
-		Name:  labelName,
-		OrgID: orgID,
+		Name:   labelName,
+		RepoID: 0,
+		OrgID:  orgID,
 	}
 	has, err := e.Get(l)
 	if err != nil {
@@ -369,8 +370,9 @@ func getLabelInOrgByID(e Engine, orgID, labelID int64) (*Label, error) {
 	}
 
 	l := &Label{
-		ID:    labelID,
-		OrgID: orgID,
+		ID:      labelID,
+		RepoID: 0,
+		OrgID:   orgID,
 	}
 	has, err := e.Get(l)
 	if err != nil {
