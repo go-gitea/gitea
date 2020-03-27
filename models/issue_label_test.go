@@ -225,7 +225,6 @@ func TestGetLabelsByOrgID(t *testing.T) {
 	testSuccess(1, "reversealphabetically", []int64{4, 3})
 	testSuccess(1, "default", []int64{3, 4})
 
-
 	var err error
 	_, err = GetLabelsByOrgID(0, "leastissues", ListOptions{})
 	assert.True(t, IsErrOrgLabelNotExist(err))
