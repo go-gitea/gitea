@@ -427,6 +427,8 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(true)
+
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + "..." + base.ShortSha(afterCommitID)
 
 	ctx.Data["IsRepoToolbarCommits"] = true
