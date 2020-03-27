@@ -156,19 +156,29 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil {
 			return nil, err
 		}
-		if protectedBranch != nil && !protectedBranch.CanUserPush(doer.ID) {
-			return nil, models.ErrUserCannotCommit{
-				UserName: doer.LowerName,
-			}
-		}
-		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
-			_, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
-			if err != nil {
-				if !models.IsErrWontSign(err) {
-					return nil, err
-				}
+		if protectedBranch != nil {
+			if !protectedBranch.CanUserPush(doer.ID) {
 				return nil, models.ErrUserCannotCommit{
 					UserName: doer.LowerName,
+				}
+			}
+			if protectedBranch.RequireSignedCommits {
+				_, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
+				if err != nil {
+					if !models.IsErrWontSign(err) {
+						return nil, err
+					}
+					return nil, models.ErrUserCannotCommit{
+						UserName: doer.LowerName,
+					}
+				}
+			}
+			patterns := protectedBranch.GetProtectedFilePatterns()
+			for _, pat := range patterns {
+				if pat.Match(strings.ToLower(opts.TreePath)) {
+					return nil, models.ErrFilePathProtected{
+						Path: opts.TreePath,
+					}
 				}
 			}
 		}

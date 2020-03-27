@@ -120,6 +120,7 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 		BlockOnRejectedReviews:      bp.BlockOnRejectedReviews,
 		DismissStaleApprovals:       bp.DismissStaleApprovals,
 		RequireSignedCommits:        bp.RequireSignedCommits,
+		ProtectedFilePatterns:       bp.ProtectedFilePatterns,
 		Created:                     bp.CreatedUnix.AsTime(),
 		Updated:                     bp.UpdatedUnix.AsTime(),
 	}
