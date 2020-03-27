@@ -795,9 +795,6 @@ func ViewIssue(ctx *context.Context) {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
 		}
-		for _, l := range orgLabels {
-			l.CalOpenIssues()
-		}
 		ctx.Data["OrgLabels"] = orgLabels
 
 		for _, v := range orgLabels {
