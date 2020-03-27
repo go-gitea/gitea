@@ -217,16 +217,16 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
   (e.g. `ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;`).
 - `SSL_MODE`: **disable**: SSL/TLS encryption mode for connecting to the database. This option is only applied for PostgreSQL and MySQL.
   - Valid values for MySQL:
-     - `true`: Enable TLS and verify that database server certificate chained up to CA certificate. Ensure that CA certificate chain that signed certificate database server certificate is on system certificate store of both database and Gitea server. See documentation of your system for how to add CA certificate chain to certificate store.
+     - `true`: Enable TLS with verification of the database server certificate against its root certificate. When selecting this option make sure that the root certificate required to validate the database server certificate (e.g. the CA certificate) is on the system certificate store of both the database and Gitea servers. See your system documentation for instructions on how to add a CA certificate to the certificate store.
      - `false`: Disable TLS.
-     - `disable`: Alias to `false`, for compatibility with PostgreSQL.
-     - `skip-verify`: Enable TLS without database server certificate verification. Use this option if you have self-signed or invalid certificate on database server.
+     - `disable`: Alias for `false`, for compatibility with PostgreSQL.
+     - `skip-verify`: Enable TLS without database server certificate verification. Use this option if you have self-signed or invalid certificate on the database server.
      - `prefer`: Enable TLS with fallback to non-TLS connection.
   - Valid values for PostgreSQL:
      - `disable`: Disable TLS.
      - `require`: Enable TLS without any verifications.
-     - `verify-ca`: Enable TLS and verify that database server certificate chained up to CA certificate.
-     - `verify-full`: Enable TLS and verify that host name of database server matches either `Subject Alternative Name` or `Common Name` field on database server certificate.
+     - `verify-ca`: Enable TLS with verification of the database server certificate against its root certificate.
+     - `verify-full`: Enable TLS and verify the database server name matches the given certificate in either the `Common Name` or `Subject Alternative Name` fields.
 - `CHARSET`: **utf8**: For MySQL only, either "utf8" or "utf8mb4", default is "utf8". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
