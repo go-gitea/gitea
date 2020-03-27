@@ -4,19 +4,13 @@
 
 package migrations
 
-import (
-	"fmt"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
-
-func addOrgIDLabelColumn(x *xorm.Engine) error {
-	type Label struct {
-		OrgID int64 `xorm:"INDEX"`
+func addEmailHashTable(x *xorm.Engine) error {
+	// EmailHash represents a pre-generated hash map
+	type EmailHash struct {
+		Hash  string `xorm:"pk varchar(32)"`
+		Email string `xorm:"UNIQUE NOT NULL"`
 	}
-
-	if err := x.Sync2(new(Label)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(EmailHash))
 }

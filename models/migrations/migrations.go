@@ -199,7 +199,9 @@ var migrations = []Migration{
 	// v132 -> v133
 	NewMigration("Add Branch Protection Protected Files Column", addBranchProtectionProtectedFilesColumn),
 	// v133 -> v134
-	NewMigration("Add OrgID column to Labels table", addOrgIDLabelColumn),
+	NewMigration("Add EmailHash Table", addEmailHashTable),
+  // v134 -> v135
+  NewMigration("Add OrgID column to Labels table", addOrgIDLabelColumn),
 }
 
 // Migrate database to current version
