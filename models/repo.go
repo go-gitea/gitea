@@ -929,6 +929,7 @@ type CreateRepoOptions struct {
 	IssueLabels    string
 	License        string
 	Readme         string
+	DefaultBranch  string
 	IsPrivate      bool
 	IsMirror       bool
 	AutoInit       bool
