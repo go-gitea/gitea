@@ -21,10 +21,10 @@
 
 <div class="ui attached segment">
 	<div class="labelspage">
-		{{if and (not $.IsOrg) (or $.CanWriteIssues $.CanWritePulls) (eq .NumLabels 0) (not $.Repository.IsArchived) }}
+		{{if and (not $.PageIsOrgSettingsLabels) (or $.CanWriteIssues $.CanWritePulls) (eq .NumLabels 0) (not $.Repository.IsArchived) }}
 			{{template "repo/issue/labels/label_load_template" .}}
 			<div class="ui divider"></div>
-		{{else if and ($.IsOrg) (eq .NumLabels 0)}}
+		{{else if and ($.PageIsOrgSettingsLabels) (eq .NumLabels 0)}}
 			{{template "repo/issue/labels/label_load_template" .}}
 		{{end}}
 		{{range .Labels}}
@@ -39,17 +39,17 @@
 					</div>
 				</div>
 				<div class="three wide column">
-					{{if $.IsOrg}}
+					{{if $.PageIsOrgSettingsLabels}}
 						<a class="ui right open-issues" href="/issues?labels={{.ID}}">{{svg "octicon-issue-opened" 16}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 					{{else}}
 						<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened" 16}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 					{{end}}
 				</div>
 				<div class="three wide column">
-					{{if and (not $.IsOrg ) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
+					{{if and (not $.PageIsOrgSettingsLabels ) (not $.Repository.IsArchived) (or $.CanWriteIssues $.CanWritePulls)}}
 						<a class="ui right delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan" 16}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 						<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil" 16}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
-					{{else if $.IsOrg}}
+					{{else if $.PageIsOrgSettingsLabels}}
 						<a class="ui right delete-button" href="#" data-url="{{$.Link}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan" 16}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 						<a class="ui right edit-label-button" href="#" data-id="{{.ID}}" data-title="{{.Name}}" data-description="{{.Description}}" data-color={{.Color}}>{{svg "octicon-pencil" 16}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 					{{end}}
@@ -57,7 +57,7 @@
 			</div>
 			</li>
 		{{end}}
-		{{if not .IsOrg}}
+		{{if and (not .PageIsOrgSettingsLabels) (.OrgLabels) }}
 			<li class="item">
 				<div class="ui grid middle aligned">
 					<div class="ten wide column">
@@ -68,7 +68,7 @@
 					</div>
 				</div>
 			</li>
-			{{if (not $.IsOrg)}}
+			{{if (not $.PageIsOrgSettingsLabels)}}
 				<div class="orglabel">
 					{{range .OrgLabels}}
 					<li class="item">

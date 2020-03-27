@@ -183,9 +183,7 @@ func DeleteWebhook(ctx *context.Context) {
 // Labels render organization labels page
 func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
-	ctx.Data["IsOrg"] = true
-	ctx.Data["PageIsSettingsLabels"] = true
-	ctx.Data["PageIsLabels"] = true
+	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["RequireMinicolors"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
