@@ -276,7 +276,7 @@ func GetMatrixPayload(p api.Payloader, event models.HookEventType, meta string) 
 	return s, nil
 }
 
-var urlRegex = regexp.MustCompile(`<a.*?href="(.*?)">(.*?)</a>`)
+var urlRegex = regexp.MustCompile(`<a [^>]*?href="([^">]*?)">(.*?)</a>`)
 
 func getMessageBody(htmlText string) string {
 	htmlText = urlRegex.ReplaceAllString(htmlText, "[$2]($1)")
