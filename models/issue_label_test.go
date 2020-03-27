@@ -147,6 +147,12 @@ func TestGetLabelInOrgByName(t *testing.T) {
 	_, err = GetLabelInOrgByName(1, "")
 	assert.True(t, IsErrOrgLabelNotExist(err))
 
+	_, err = GetLabelInOrgByName(0, "orglabel3")
+	assert.True(t, IsErrOrgLabelNotExist(err))
+
+	_, err = GetLabelInOrgByName(-1, "orglabel3")
+	assert.True(t, IsErrOrgLabelNotExist(err))
+
 	_, err = GetLabelInOrgByName(NonexistentID, "nonexistent")
 	assert.True(t, IsErrOrgLabelNotExist(err))
 }
@@ -184,6 +190,12 @@ func TestGetLabelInOrgByID(t *testing.T) {
 	_, err = GetLabelInOrgByID(1, -1)
 	assert.True(t, IsErrOrgLabelNotExist(err))
 
+	_, err = GetLabelInOrgByID(0, 3)
+	assert.True(t, IsErrOrgLabelNotExist(err))
+
+	_, err = GetLabelInOrgByID(-1, 3)
+	assert.True(t, IsErrOrgLabelNotExist(err))
+
 	_, err = GetLabelInOrgByID(NonexistentID, NonexistentID)
 	assert.True(t, IsErrOrgLabelNotExist(err))
 }
@@ -212,6 +224,15 @@ func TestGetLabelsByOrgID(t *testing.T) {
 	testSuccess(1, "mostissues", []int64{4, 3})
 	testSuccess(1, "reversealphabetically", []int64{4, 3})
 	testSuccess(1, "default", []int64{3, 4})
+
+
+	var err error
+	_, err = GetLabelsByOrgID(0, "leastissues", ListOptions{})
+	assert.True(t, IsErrOrgLabelNotExist(err))
+
+	_, err = GetLabelsByOrgID(-1, "leastissues", ListOptions{})
+	assert.True(t, IsErrOrgLabelNotExist(err))
+
 }
 
 //

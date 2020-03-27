@@ -338,11 +338,12 @@ func GetLabelsByRepoID(repoID int64, sortType string, listOptions ListOptions) (
 //         \/     /_____/
 
 // getLabelInOrgByName returns a label by Name in given organization
-// If pass orgID as 0, then ORM will ignore limitation of organization
-// and can return arbitrary label with any valid ID.
 func getLabelInOrgByName(e Engine, orgID int64, labelName string) (*Label, error) {
 	if len(labelName) == 0 {
-		return nil, ErrOrgLabelNotExist{0, orgID} // FIX ME!
+		return nil, ErrOrgLabelNotExist{0, orgID}
+	}
+	if orgID <= 0 {
+		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
 
 	l := &Label{
@@ -359,10 +360,11 @@ func getLabelInOrgByName(e Engine, orgID int64, labelName string) (*Label, error
 }
 
 // getLabelInOrgByID returns a label by ID in given organization.
-// If pass orgID as 0, then ORM will ignore limitation of organization
-// and can return arbitrary label with any valid ID.
 func getLabelInOrgByID(e Engine, orgID, labelID int64) (*Label, error) {
 	if labelID <= 0 {
+		return nil, ErrOrgLabelNotExist{labelID, orgID}
+	}
+	if orgID <= 0 {
 		return nil, ErrOrgLabelNotExist{labelID, orgID}
 	}
 
@@ -386,9 +388,12 @@ func GetLabelInOrgByName(orgID int64, labelName string) (*Label, error) {
 
 // GetLabelIDsInOrgByNames returns a list of labelIDs by names in a given
 // organization.
-// it silently ignores label names that do not belong to the organization.
 func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) {
+	if orgID <= 0 {
+		return nil, ErrOrgLabelNotExist{0, orgID}
+	}
 	labelIDs := make([]int64, 0, len(labelNames))
+
 	return labelIDs, x.Table("label").
 		Where("org_id = ?", orgID).
 		In("name", labelNames).
@@ -427,6 +432,9 @@ func GetLabelsInOrgByIDs(orgID int64, labelIDs []int64) ([]*Label, error) {
 }
 
 func getLabelsByOrgID(e Engine, orgID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
+	if orgID <= 0 {
+		return nil, ErrOrgLabelNotExist{0, orgID}
+	}
 	labels := make([]*Label, 0, 10)
 	sess := e.Where("org_id = ?", orgID)
 
