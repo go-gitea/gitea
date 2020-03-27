@@ -2181,13 +2181,14 @@
     }
 
     .repository-summary {
-        height: 48px;
-        overflow: hidden;
-
         .segment.language-stats-details,
         .segment.repository-summary {
             border-top: none;
             background: none;
+        }
+
+        .segment.language-stats-details .item {
+            white-space: nowrap;
         }
 
         .segment.language-stats {
@@ -2790,4 +2791,10 @@ td.blob-excerpt {
 
 .diff-file-box[data-folded="true"] .diff-file-header {
     border-radius: .28571429rem !important;
+}
+
+/* prevent page shaking on language bar click */
+.repository.file .repository-summary {
+    height: 48px;
+    overflow: hidden;
 }

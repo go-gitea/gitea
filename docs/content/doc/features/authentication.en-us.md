@@ -13,10 +13,6 @@ menu:
     identifier: "authentication"
 ---
 
----
-name: Authentication
----
-
 # Authentication
 
 ## LDAP (Lightweight Directory Access Protocol)
