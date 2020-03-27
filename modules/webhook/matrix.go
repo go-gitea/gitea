@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"regexp"
 	"strings"
 
@@ -62,7 +63,7 @@ func (p *MatrixPayload) JSONPayload() ([]byte, error) {
 
 // MatrixLinkFormatter creates a link compatible with Matrix
 func MatrixLinkFormatter(url string, text string) string {
-	return fmt.Sprintf(`<a href="%s">%s</a>`, url, text)
+	return fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(url), html.EscapeString(text))
 }
 
 // MatrixLinkToRef Matrix-formatter link to a repo ref
