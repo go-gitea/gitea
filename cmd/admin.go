@@ -163,13 +163,8 @@ var (
 				Value: 1,
 			},
 			cli.StringFlag{
-				Name: "pad-char",
-				Usage: `ASCII char used for padding
-				if padchar == '\\t', the Writer will assume that the
-				width of a '\\t' in the formatted output is tabwidth,
-				and cells are left-aligned independent of align_left
-				(for correct-looking results, tabwidth must correspond
-				to the tab width in the viewer displaying the result)`,
+				Name:  "pad-char",
+				Usage: `ASCII char used for padding if padchar == '\\t', the Writer will assume that the width of a '\\t' in the formatted output is tabwidth, and cells are left-aligned independent of align_left (for correct-looking results, tabwidth must correspond to the tab width in the viewer displaying the result)`,
 				Value: "\t",
 			},
 			cli.BoolFlag{
