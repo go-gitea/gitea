@@ -422,10 +422,6 @@ func CompareDiff(ctx *context.Context) {
 	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
 	afterCommitID := ctx.Data["AfterCommitID"].(string)
 
-	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
-		ctx.ServerError("GetAssignees", err)
-		return
-	}
 
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + "..." + base.ShortSha(afterCommitID)
 

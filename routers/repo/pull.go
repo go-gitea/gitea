@@ -10,7 +10,6 @@ import (
 	"container/list"
 	"crypto/subtle"
 	"fmt"
-	"html"
 	"net/http"
 	"path"
 	"strings"
@@ -668,18 +667,9 @@ func UpdatePullRequest(ctx *context.Context) {
 	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
 
 	if err = pull_service.Update(issue.PullRequest, ctx.User, message); err != nil {
-		sanitize := func(x string) string {
-			runes := []rune(x)
-
-			if len(runes) > 512 {
-				x = "..." + string(runes[len(runes)-512:])
-			}
-
-			return strings.Replace(html.EscapeString(x), "\n", "<br>", -1)
-		}
 		if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
-			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_conflict", sanitize(conflictError.StdErr), sanitize(conflictError.StdOut)))
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_conflict", utils.SanitizeFlashErrorString(conflictError.StdErr), utils.SanitizeFlashErrorString(conflictError.StdOut)))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 			return
 		}
@@ -814,14 +804,14 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
-		} else if models.IsErrMergePushOutOfDate(err) {
+		} else if git.IsErrPushOutOfDate(err) {
 			log.Debug("MergePushOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
-		} else if models.IsErrPushRejected(err) {
+		} else if git.IsErrPushRejected(err) {
 			log.Debug("MergePushRejected error: %v", err)
-			pushrejErr := err.(models.ErrPushRejected)
+			pushrejErr := err.(*git.ErrPushRejected)
 			message := pushrejErr.Message
 			if len(message) == 0 {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))

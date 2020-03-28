@@ -22,7 +22,7 @@ import (
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
 
-	// Needed for the MSSSQL driver
+	// Needed for the MSSQL driver
 	_ "github.com/denisenkom/go-mssqldb"
 )
 

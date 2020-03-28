@@ -678,11 +678,11 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		} else if models.IsErrMergeUnrelatedHistories(err) {
 			conflictError := err.(models.ErrMergeUnrelatedHistories)
 			ctx.JSON(http.StatusConflict, conflictError)
-		} else if models.IsErrMergePushOutOfDate(err) {
+		} else if git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "Merge", "merge push out of date")
 			return
-		} else if models.IsErrPushRejected(err) {
-			errPushRej := err.(models.ErrPushRejected)
+		} else if git.IsErrPushRejected(err) {
+			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
 				ctx.Error(http.StatusConflict, "Merge", "PushRejected without remote error message")
 				return
