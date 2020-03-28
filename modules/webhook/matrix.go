@@ -20,6 +20,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
+const matrixPayloadSizeLimit = 1024 * 64
+
 // MatrixMeta contains the Matrix metadata
 type MatrixMeta struct {
 	HomeserverURL string `json:"homeserver_url"`
@@ -55,15 +57,17 @@ func (p *MatrixPayloadUnsafe) safePayload() *MatrixPayloadSafe {
 		MsgType:       p.MsgType,
 		Format:        p.Format,
 		FormattedBody: p.FormattedBody,
+		Commits:       p.Commits,
 	}
 }
 
 // MatrixPayloadSafe contains (safe) payload for a Matrix room
 type MatrixPayloadSafe struct {
-	Body          string `json:"body"`
-	MsgType       string `json:"msgtype"`
-	Format        string `json:"format"`
-	FormattedBody string `json:"formatted_body"`
+	Body          string               `json:"body"`
+	MsgType       string               `json:"msgtype"`
+	Format        string               `json:"format"`
+	FormattedBody string               `json:"formatted_body"`
+	Commits       []*api.PayloadCommit `json:"io.gitea.commits,omitempty"`
 }
 
 // SetSecret sets the Matrix secret
@@ -101,7 +105,7 @@ func getMatrixCreatePayload(p *api.CreatePayload, matrix *MatrixMeta) (*MatrixPa
 	refLink := MatrixLinkToRef(p.Repo.HTMLURL, p.Ref)
 	text := fmt.Sprintf("[%s:%s] %s created by %s", repoLink, refLink, p.RefType, p.Sender.UserName)
 
-	return getMatrixPayloadUnsafe(text, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, matrix), nil
 }
 
 // getMatrixDeletePayload composes Matrix payload for delete a branch or tag.
@@ -110,7 +114,7 @@ func getMatrixDeletePayload(p *api.DeletePayload, matrix *MatrixMeta) (*MatrixPa
 	repoLink := MatrixLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, refName, p.RefType, p.Sender.UserName)
 
-	return getMatrixPayloadUnsafe(text, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, matrix), nil
 }
 
 // getMatrixForkPayload composes Matrix payload for forked by a repository.
@@ -119,25 +123,25 @@ func getMatrixForkPayload(p *api.ForkPayload, matrix *MatrixMeta) (*MatrixPayloa
 	forkLink := MatrixLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("%s is forked to %s", baseLink, forkLink)
 
-	return getMatrixPayloadUnsafe(text, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, matrix), nil
 }
 
 func getMatrixIssuesPayload(p *api.IssuePayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
 	text, _, _, _ := getIssuesPayloadInfo(p, MatrixLinkFormatter, true)
 
-	return getMatrixPayloadUnsafe(text, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, matrix), nil
 }
 
 func getMatrixIssueCommentPayload(p *api.IssueCommentPayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
 	text, _, _ := getIssueCommentPayloadInfo(p, MatrixLinkFormatter, true)
 
-	return getMatrixPayloadUnsafe(text, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, matrix), nil
 }
 
 func getMatrixReleasePayload(p *api.ReleasePayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
 	text, _ := getReleasePayloadInfo(p, MatrixLinkFormatter, true)
 
-	return getMatrixPayloadUnsafe(text, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, matrix), nil
 }
 
 func getMatrixPushPayload(p *api.PushPayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
@@ -163,13 +167,13 @@ func getMatrixPushPayload(p *api.PushPayload, matrix *MatrixMeta) (*MatrixPayloa
 
 	}
 
-	return getMatrixPayloadUnsafe(text, matrix), nil
+	return getMatrixPayloadUnsafe(text, p.Commits, matrix), nil
 }
 
 func getMatrixPullRequestPayload(p *api.PullRequestPayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
 	text, _, _, _ := getPullRequestPayloadInfo(p, MatrixLinkFormatter, true)
 
-	return getMatrixPayloadUnsafe(text, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, matrix), nil
 }
 
 func getMatrixPullRequestApprovalPayload(p *api.PullRequestPayload, matrix *MatrixMeta, event models.HookEventType) (*MatrixPayloadUnsafe, error) {
@@ -189,7 +193,7 @@ func getMatrixPullRequestApprovalPayload(p *api.PullRequestPayload, matrix *Matr
 		text = fmt.Sprintf("[%s] Pull request review %s: [%s](%s) by %s", repoLink, action, title, titleLink, senderLink)
 	}
 
-	return getMatrixPayloadUnsafe(text, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, matrix), nil
 }
 
 func getMatrixRepositoryPayload(p *api.RepositoryPayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
@@ -204,7 +208,7 @@ func getMatrixRepositoryPayload(p *api.RepositoryPayload, matrix *MatrixMeta) (*
 		text = fmt.Sprintf("[%s] Repository deleted by %s", repoLink, senderLink)
 	}
 
-	return getMatrixPayloadUnsafe(text, matrix), nil
+	return getMatrixPayloadUnsafe(text, nil, matrix), nil
 }
 
 // GetMatrixPayload converts a Matrix webhook into a MatrixPayloadUnsafe
@@ -243,13 +247,14 @@ func GetMatrixPayload(p api.Payloader, event models.HookEventType, meta string) 
 	return s, nil
 }
 
-func getMatrixPayloadUnsafe(text string, matrix *MatrixMeta) *MatrixPayloadUnsafe {
+func getMatrixPayloadUnsafe(text string, commits []*api.PayloadCommit, matrix *MatrixMeta) *MatrixPayloadUnsafe {
 	p := MatrixPayloadUnsafe{}
 	p.AccessToken = matrix.AccessToken
 	p.FormattedBody = text
 	p.Body = getMessageBody(text)
 	p.Format = "org.matrix.custom.html"
 	p.MsgType = messageTypeText[matrix.MessageType]
+	p.Commits = commits
 	return &p
 }
 
@@ -276,6 +281,9 @@ func getMatrixHookRequest(t *models.HookTask) (*http.Request, error) {
 	var err error
 	if payload, err = json.MarshalIndent(payloadsafe, "", "  "); err != nil {
 		return nil, err
+	}
+	if len(payload) >= matrixPayloadSizeLimit {
+		return nil, fmt.Errorf("getMatrixHookRequest: payload size %d > %d", len(payload), matrixPayloadSizeLimit)
 	}
 	t.PayloadContent = string(payload)
 
