@@ -70,6 +70,9 @@ func NewFuncMap() []template.FuncMap {
 		"AppDomain": func() string {
 			return setting.Domain
 		},
+		"WebPushPublicKey": func() string {
+			return setting.WebPushPublicKey
+		},
 		"DisableGravatar": func() bool {
 			return setting.DisableGravatar
 		},
