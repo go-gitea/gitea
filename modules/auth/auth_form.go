@@ -30,6 +30,11 @@ type AuthenticationForm struct {
 	SearchPageSize                int
 	Filter                        string
 	AdminFilter                   string
+	GroupsEnabled                 bool
+	GroupDN                       string
+	GroupFilter                   string
+	GroupMemberUID                string
+	UserUID                       string
 	RestrictedFilter              string
 	AllowDeactivateAll            bool
 	IsActive                      bool
