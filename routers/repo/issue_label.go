@@ -120,7 +120,7 @@ func NewLabel(ctx *context.Context, form auth.CreateLabelForm) {
 
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context, form auth.CreateLabelForm) {
-	l, err := models.GetLabelByID(form.ID)
+	l, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, form.ID)
 	if err != nil {
 		switch {
 		case models.IsErrRepoLabelNotExist(err):
@@ -143,7 +143,7 @@ func UpdateLabel(ctx *context.Context, form auth.CreateLabelForm) {
 
 // DeleteLabel delete a label
 func DeleteLabel(ctx *context.Context) {
-	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.QueryInt64("id"), false); err != nil {
+	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.QueryInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteLabel: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))

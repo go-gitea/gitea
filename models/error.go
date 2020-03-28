@@ -1568,13 +1568,13 @@ func (err ErrTrackedTimeNotExist) Error() string {
 // |_______ (____  /___  /\___  >____/
 //         \/    \/    \/     \/
 
-// ErrRepoLabelNotExist represents a "LabelNotExist" kind of error.
+// ErrRepoLabelNotExist represents a "RepoLabelNotExist" kind of error.
 type ErrRepoLabelNotExist struct {
 	LabelID int64
 	RepoID  int64
 }
 
-// IsErrRepoLabelNotExist checks if an error is a ErrLabelNotExist.
+// IsErrRepoLabelNotExist checks if an error is a RepoErrLabelNotExist.
 func IsErrRepoLabelNotExist(err error) bool {
 	_, ok := err.(ErrRepoLabelNotExist)
 	return ok
@@ -1584,13 +1584,13 @@ func (err ErrRepoLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d, repo_id: %d]", err.LabelID, err.RepoID)
 }
 
-// ErrOrgLabelNotExist represents a "LabelNotExist" kind of error.
+// ErrOrgLabelNotExist represents a "OrgLabelNotExist" kind of error.
 type ErrOrgLabelNotExist struct {
 	LabelID int64
 	OrgID   int64
 }
 
-// IsErrOrgLabelNotExist checks if an error is a ErrLabelNotExist.
+// IsErrOrgLabelNotExist checks if an error is a OrgErrLabelNotExist.
 func IsErrOrgLabelNotExist(err error) bool {
 	_, ok := err.(ErrOrgLabelNotExist)
 	return ok
@@ -1598,6 +1598,21 @@ func IsErrOrgLabelNotExist(err error) bool {
 
 func (err ErrOrgLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d, org_id: %d]", err.LabelID, err.OrgID)
+}
+
+// ErrLabelNotExist represents a "LabelNotExist" kind of error.
+type ErrLabelNotExist struct {
+	LabelID int64
+}
+
+// IsErrLabelNotExist checks if an error is a ErrLabelNotExist.
+func IsErrLabelNotExist(err error) bool {
+	_, ok := err.(ErrLabelNotExist)
+	return ok
+}
+
+func (err ErrLabelNotExist) Error() string {
+	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
 }
 
 //    _____  .__.__                   __

@@ -894,7 +894,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 		for _, label := range labels {
 			// Silently drop invalid labels.
-			if label.RepoID != opts.Repo.ID && label.OrgID != opts.Repo.Owner.ID {
+			if label.RepoID != opts.Repo.ID && label.OrgID != opts.Repo.OwnerID {
 				continue
 			}
 
@@ -1057,6 +1057,8 @@ type IssuesOptions struct {
 	IssueIDs    []int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
+	//Search for issues that contain any of the label ids above rather than all
+	HasAnyLabel bool
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1144,12 +1146,19 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if opts.LabelIDs != nil {
-		for i, labelID := range opts.LabelIDs {
-			if labelID > 0 {
-				sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-					fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
-			} else {
-				sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
+		// API Issues Search
+		if opts.HasAnyLabel {
+			sess.Join("INNER", []string{"issue_label", "il"}, "il.issue_id = issue.id").
+				In("il.label_id", opts.LabelIDs)
+		} else {
+			// Repo Issue List Search
+			for i, labelID := range opts.LabelIDs {
+				if labelID > 0 {
+					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+				} else {
+					sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
+				}
 			}
 		}
 	}

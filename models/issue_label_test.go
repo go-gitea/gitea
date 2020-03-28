@@ -55,7 +55,7 @@ func TestGetLabelByID(t *testing.T) {
 	assert.EqualValues(t, 1, label.ID)
 
 	_, err = GetLabelByID(NonexistentID)
-	assert.True(t, IsErrRepoLabelNotExist(err))
+	assert.True(t, IsErrLabelNotExist(err))
 }
 
 func TestGetLabelInRepoByName(t *testing.T) {
@@ -263,13 +263,13 @@ func TestUpdateLabel(t *testing.T) {
 func TestDeleteLabel(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	label := AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
-	assert.NoError(t, DeleteLabel(label.RepoID, label.ID, false))
+	assert.NoError(t, DeleteLabel(label.RepoID, label.ID))
 	AssertNotExistsBean(t, &Label{ID: label.ID, RepoID: label.RepoID})
 
-	assert.NoError(t, DeleteLabel(label.RepoID, label.ID, false))
-	AssertNotExistsBean(t, &Label{ID: label.ID, RepoID: label.RepoID})
+	assert.NoError(t, DeleteLabel(label.RepoID, label.ID))
+	AssertNotExistsBean(t, &Label{ID: label.ID})
 
-	assert.NoError(t, DeleteLabel(NonexistentID, NonexistentID, false))
+	assert.NoError(t, DeleteLabel(NonexistentID, NonexistentID))
 	CheckConsistencyFor(t, &Label{}, &Repository{})
 }
 

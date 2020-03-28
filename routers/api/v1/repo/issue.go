@@ -161,6 +161,7 @@ func SearchIssues(ctx *context.APIContext) {
 			SortType:       "priorityrepo",
 			PriorityRepoID: ctx.QueryInt64("priority_repo_id"),
 			IsPull:         isPull,
+			HasAnyLabel:    true,
 		})
 	}
 

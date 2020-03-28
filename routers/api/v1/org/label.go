@@ -1,5 +1,4 @@
-// Copyright 2016 The Gogs Authors. All rights reserved.
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -229,7 +228,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := models.DeleteLabel(ctx.Org.Organization.ID, ctx.ParamsInt64(":id"), true); err != nil {
+	if err := models.DeleteLabel(ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}

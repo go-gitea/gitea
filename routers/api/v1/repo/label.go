@@ -254,7 +254,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"), false); err != nil {
+	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}
