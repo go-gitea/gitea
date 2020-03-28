@@ -94,9 +94,15 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	gogitCommit, err := repo.gogitRepo.CommitObject(id)
 	if err == plumbing.ErrObjectNotFound {
 		tagObject, err = repo.gogitRepo.TagObject(id)
+		if err == plumbing.ErrObjectNotFound {
+			return nil, ErrNotExist{
+				ID: id.String(),
+			}
+		}
 		if err == nil {
 			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
 		}
+		// if we get a plumbing.ErrObjectNotFound here then the repository is broken and it should be 500
 	}
 	if err != nil {
 		return nil, err
