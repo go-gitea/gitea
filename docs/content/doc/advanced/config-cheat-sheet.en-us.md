@@ -289,6 +289,8 @@ set name for unique queues. Individual queues will default to
 
 - `INSTALL_LOCK`: **false**: Disallow access to the install page.
 - `SECRET_KEY`: **\<random at every install\>**: Global secret key. This should be changed.
+- `WEB_PUSH_PUBLIC_KEY`: **\<random at every install\>**: VAPID key pair used for Web Push notifications
+- `WEB_PUSH_PRIVATE_KEY`: **\<random at every install\>**: VAPID key pair used for Web Push notifications
 - `LOGIN_REMEMBER_DAYS`: **7**: Cookie lifetime, in days.
 - `COOKIE_USERNAME`: **gitea\_awesome**: Name of the cookie used to store the current username.
 - `COOKIE_REMEMBER_NAME`: **gitea\_incredible**: Name of cookie used to store authentication

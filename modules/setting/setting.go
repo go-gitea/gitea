@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 
+	webpush "github.com/SherClockHolmes/webpush-go"
 	shellquote "github.com/kballard/go-shellquote"
 	version "github.com/mcuadros/go-version"
 	"github.com/unknwon/cae/zip"
@@ -147,6 +148,8 @@ var (
 	// Security settings
 	InstallLock                        bool
 	SecretKey                          string
+	WebPushPublicKey                   string
+	WebPushPrivateKey                  string
 	LogInRememberDays                  int
 	CookieUserName                     string
 	CookieRememberName                 string
@@ -815,6 +818,36 @@ func NewContext() {
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
+
+	WebPushPublicKey = sec.Key("WEB_PUSH_PUBLIC_KEY").String()
+	WebPushPrivateKey = sec.Key("WEB_PUSH_PRIVATE_KEY").String()
+	if WebPushPrivateKey == "" || WebPushPublicKey == "" {
+		log.Info("No VAPID (Web Push) keypair detected. Generating and saving to app.ini")
+		WebPushPrivateKey, WebPushPublicKey, err = webpush.GenerateVAPIDKeys()
+		if err != nil {
+			log.Fatal("error generating VAPID keypair: %v", err)
+			return
+		}
+
+		cfg := ini.Empty()
+		if com.IsFile(CustomConf) {
+			if err := cfg.Append(CustomConf); err != nil {
+				log.Error("failed to load custom conf %s: %v", CustomConf, err)
+				return
+			}
+		}
+		cfg.Section("security").Key("WEB_PUSH_PUBLIC_KEY").SetValue(WebPushPublicKey)
+		cfg.Section("security").Key("WEB_PUSH_PRIVATE_KEY").SetValue(WebPushPrivateKey)
+
+		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+			log.Fatal("failed to create '%s': %v", CustomConf, err)
+			return
+		}
+		if err := cfg.SaveTo(CustomConf); err != nil {
+			log.Fatal("error saving generated VAPID keypair to custom config: %v", err)
+			return
+		}
+	}
 
 	InternalToken = loadInternalToken(sec)
 
