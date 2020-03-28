@@ -190,12 +190,8 @@ const (
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
 
-// SearchRepository returns repositories based on search options,
-// it returns results in given range and number of total results.
-func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
+// SearchRepositoryCondition creates a query condition according search repository options
+func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	var cond = builder.NewCond()
 
 	if opts.Private {
@@ -297,6 +293,17 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 
 	if opts.Actor != nil && opts.Actor.IsRestricted {
 		cond = cond.And(accessibleRepositoryCondition(opts.Actor))
+	}
+	return cond
+}
+
+// SearchRepository returns repositories based on search options,
+// it returns results in given range and number of total results.
+func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+	cond := SearchRepositoryCondition(opts)
+
+	if opts.Page <= 0 {
+		opts.Page = 1
 	}
 
 	if len(opts.OrderBy) == 0 {
