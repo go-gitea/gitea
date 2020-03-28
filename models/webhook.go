@@ -559,6 +559,7 @@ const (
 	TELEGRAM
 	MSTEAMS
 	FEISHU
+	MATRIX
 )
 
 var hookTaskTypes = map[string]HookTaskType{
@@ -570,6 +571,7 @@ var hookTaskTypes = map[string]HookTaskType{
 	"telegram": TELEGRAM,
 	"msteams":  MSTEAMS,
 	"feishu":   FEISHU,
+	"matrix":   MATRIX,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -596,6 +598,8 @@ func (t HookTaskType) Name() string {
 		return "msteams"
 	case FEISHU:
 		return "feishu"
+	case MATRIX:
+		return "matrix"
 	}
 	return ""
 }
