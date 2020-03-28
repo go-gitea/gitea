@@ -385,15 +385,13 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	// Push back to upstream.
 	if err := git.NewCommand("push", "origin", baseBranch+":"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
-			return "", models.ErrMergePushOutOfDate{
-				Style:  mergeStyle,
+			return "", &git.ErrPushOutOfDate{
 				StdOut: outbuf.String(),
 				StdErr: errbuf.String(),
 				Err:    err,
 			}
 		} else if strings.Contains(errbuf.String(), "! [remote rejected]") {
-			err := models.ErrPushRejected{
-				Style:  mergeStyle,
+			err := &git.ErrPushRejected{
 				StdOut: outbuf.String(),
 				StdErr: errbuf.String(),
 				Err:    err,
