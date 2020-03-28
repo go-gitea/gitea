@@ -61,9 +61,9 @@
 			<li class="item">
 				<div class="ui grid middle aligned">
 					<div class="ten wide column">
-						{{$.i18n.Tr "repo.org.labels" | Str2html}}
+						{{$.i18n.Tr "repo.org_labels_desc" | Str2html}}
 						{{if .IsOrganizationOwner}}
-							<a class="ui" href="{{.OrganizationLink}}/settings/labels">({{$.i18n.Tr "repo.org.labels.manage"}})</a>:
+							<a class="ui" href="{{.OrganizationLink}}/settings/labels">({{$.i18n.Tr "repo.org_labels_desc_manage"}})</a>:
 						{{end}}
 					</div>
 				</div>
