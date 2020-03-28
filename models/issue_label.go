@@ -107,6 +107,7 @@ func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) 
 	label.QueryString = strings.Join(labelQuerySlice, ",")
 }
 
+// BelongsToOrg returns true if label is an organization label
 func (label *Label) BelongsToOrg() bool {
 	if label.OrgID > 0 {
 		return true
@@ -114,6 +115,7 @@ func (label *Label) BelongsToOrg() bool {
 	return false
 }
 
+// BelongsToRepo returns true if label is a repository label
 func (label *Label) BelongsToRepo() bool {
 	if label.RepoID > 0 {
 		return true
@@ -265,7 +267,7 @@ func DeleteLabel(id, labelID int64) error {
 	}
 
 	// Clear label id in comment table //FIX LOOK INTO
-	if _, err = sess.Where("label_id = ?", labelID).Cols("label_id").Update(&Comment{}); err != nil {
+	if _, err = sess.Where("label_id = ?", labelID).Cols("label_id").Delete(&Comment{}); err != nil {
 		return err
 	}
 
