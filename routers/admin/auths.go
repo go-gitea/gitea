@@ -132,7 +132,7 @@ func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
 			GroupsEnabled:         form.GroupsEnabled,
 			GroupDN:               form.GroupDN,
 			GroupFilter:           form.GroupFilter,
-			GroupMemberUid:        form.GroupMemberUid,
+			GroupMemberUID:        form.GroupMemberUID,
 			UserUID:               form.UserUID,
 			AdminFilter:           form.AdminFilter,
 			RestrictedFilter:      form.RestrictedFilter,

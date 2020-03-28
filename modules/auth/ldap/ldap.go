@@ -349,10 +349,10 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 			return nil
 		}
 
-		log.Trace("Fetching groups '%v' with filter '%s' and base '%s'", ls.GroupMemberUid, groupFilter, groupDN)
+		log.Trace("Fetching groups '%v' with filter '%s' and base '%s'", ls.GroupMemberUID, groupFilter, groupDN)
 		groupSearch := ldap.NewSearchRequest(
 			groupDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, groupFilter,
-			[]string{ls.GroupMemberUid},
+			[]string{ls.GroupMemberUID},
 			nil)
 
 		srg, err := l.Search(groupSearch)
@@ -366,7 +366,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 		isMember := false
 		for _, group := range srg.Entries {
-			for _, member := range group.GetAttributeValues(ls.GroupMemberUid) {
+			for _, member := range group.GetAttributeValues(ls.GroupMemberUID) {
 				if member == uid {
 					isMember = true
 				}

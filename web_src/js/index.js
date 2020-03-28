@@ -1798,6 +1798,15 @@ function initAdmin() {
     }
   }
 
+  function onVerifyGroupMembershipChange() {
+    const $groupsEnabled = $('#groups_enabled');
+    if ($groupsEnabled.is(':checked')) {
+      $('#groups_enabled_change').show();
+    } else {
+      $('#groups_enabled_change').hide();
+    }
+  }
+
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').on('change', function () {
@@ -1838,6 +1847,7 @@ function initAdmin() {
       }
       if (authType === '2' || authType === '5') {
         onSecurityProtocolChange();
+        onVerifyGroupMembershipChange();
       }
       if (authType === '2') {
         onUsePagedSearchChange();
@@ -1848,12 +1858,15 @@ function initAdmin() {
     $('#use_paged_search').on('change', onUsePagedSearchChange);
     $('#oauth2_provider').on('change', onOAuth2Change);
     $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
+    $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
   }
   // Edit authentication
   if ($('.admin.edit.authentication').length > 0) {
     const authType = $('#auth_type').val();
     if (authType === '2' || authType === '5') {
       $('#security_protocol').on('change', onSecurityProtocolChange);
+      $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
+      onVerifyGroupMembershipChange();
       if (authType === '2') {
         $('#use_paged_search').on('change', onUsePagedSearchChange);
       }
