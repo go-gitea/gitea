@@ -74,3 +74,25 @@ self.addEventListener('fetch', function (event) {
       )
   );
 });
+
+self.addEventListener('push', function (event) {
+  var eventPayload = event.data.json();
+  var options = {
+    body: eventPayload.text,
+    vibrate: [100, 50, 100],
+    data: {
+      url: eventPayload.url
+    }
+  };
+
+  event.waitUntil(self.registration.showNotification(eventPayload.title, options));
+});
+
+self.addEventListener('notificationclick', function (event) {
+  var notification = event.notification;
+  var url = notification.data.url;
+
+  clients.openWindow(url);
+  notification.close();
+});
+
