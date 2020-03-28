@@ -1799,8 +1799,7 @@ function initAdmin() {
   }
 
   function onVerifyGroupMembershipChange() {
-    const $groupsEnabled = $('#groups_enabled');
-    if ($groupsEnabled.is(':checked')) {
+    if ($('#groups_enabled').is(':checked')) {
       $('#groups_enabled_change').show();
     } else {
       $('#groups_enabled_change').hide();
