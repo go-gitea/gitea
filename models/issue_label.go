@@ -266,7 +266,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	// Clear label id in comment table //FIX LOOK INTO
+	// delete comments about now deleted label_id
 	if _, err = sess.Where("label_id = ?", labelID).Cols("label_id").Delete(&Comment{}); err != nil {
 		return err
 	}
