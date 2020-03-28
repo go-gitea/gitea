@@ -215,7 +215,18 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SCHEMA`: **\<empty\>**: For PostgreSQL only, schema to use if different from "public". The schema must exist beforehand,
   the user must have creation privileges on it, and the user search path must be set to the look into the schema first 
   (e.g. `ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;`).
-- `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
+- `SSL_MODE`: **disable**: SSL/TLS encryption mode for connecting to the database. This option is only applied for PostgreSQL and MySQL.
+  - Valid values for MySQL:
+     - `true`: Enable TLS with verification of the database server certificate against its root certificate. When selecting this option make sure that the root certificate required to validate the database server certificate (e.g. the CA certificate) is on the system certificate store of both the database and Gitea servers. See your system documentation for instructions on how to add a CA certificate to the certificate store.
+     - `false`: Disable TLS.
+     - `disable`: Alias for `false`, for compatibility with PostgreSQL.
+     - `skip-verify`: Enable TLS without database server certificate verification. Use this option if you have self-signed or invalid certificate on the database server.
+     - `prefer`: Enable TLS with fallback to non-TLS connection.
+  - Valid values for PostgreSQL:
+     - `disable`: Disable TLS.
+     - `require`: Enable TLS without any verifications.
+     - `verify-ca`: Enable TLS with verification of the database server certificate against its root certificate.
+     - `verify-full`: Enable TLS and verify the database server name matches the given certificate in either the `Common Name` or `Subject Alternative Name` fields.
 - `CHARSET`: **utf8**: For MySQL only, either "utf8" or "utf8mb4", default is "utf8". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
