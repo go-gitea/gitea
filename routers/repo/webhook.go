@@ -448,7 +448,7 @@ func MatrixHooksNewPost(ctx *context.Context, form auth.NewMatrixHookForm) {
 
 	w := &models.Webhook{
 		RepoID:          orCtx.RepoID,
-		URL:             fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message?access_token=%s", form.HomeserverURL, form.RoomID, form.AccessToken),
+		URL:             fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, form.RoomID),
 		ContentType:     models.ContentTypeJSON,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
@@ -942,7 +942,8 @@ func MatrixHooksEditPost(ctx *context.Context, form auth.NewMatrixHookForm) {
 		return
 	}
 	w.Meta = string(meta)
-	w.URL = fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message?access_token=%s", form.HomeserverURL, form.RoomID, form.AccessToken)
+	w.URL = fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, form.RoomID)
+
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
 	if err := w.UpdateEvent(); err != nil {

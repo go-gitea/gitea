@@ -7,6 +7,7 @@ package webhook
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -82,4 +83,30 @@ func TestMatrixPullRequestPayload(t *testing.T) {
 
 	assert.Equal(t, "[[test/repo](http://localhost:3000/test/repo)] Pull request opened: [#2 Fix bug](http://localhost:3000/test/repo/pulls/12) by [user1](https://try.gitea.io/user1)", pl.Body)
 	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Pull request opened: <a href=\"http://localhost:3000/test/repo/pulls/12\">#2 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>", pl.FormattedBody)
+}
+
+func TestMatrixHookRequest(t *testing.T) {
+	h := &models.HookTask{
+		PayloadContent: `{
+  "body": "[[user1/test](http://localhost:3000/user1/test)] user1 pushed 1 commit to [master](http://localhost:3000/user1/test/src/branch/master):\n[5175ef2](http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee): Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n - user1",
+  "msgtype": "m.notice",
+  "format": "org.matrix.custom.html",
+  "formatted_body": "[\u003ca href=\"http://localhost:3000/user1/test\"\u003euser1/test\u003c/a\u003e] user1 pushed 1 commit to \u003ca href=\"http://localhost:3000/user1/test/src/branch/master\"\u003emaster\u003c/a\u003e:\u003cbr\u003e\u003ca href=\"http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee\"\u003e5175ef2\u003c/a\u003e: Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n - user1",
+  "access_token": "dummy_access_token"
+}`,
+	}
+
+	wantPayloadContent := `{
+  "body": "[[user1/test](http://localhost:3000/user1/test)] user1 pushed 1 commit to [master](http://localhost:3000/user1/test/src/branch/master):\n[5175ef2](http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee): Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n - user1",
+  "msgtype": "m.notice",
+  "format": "org.matrix.custom.html",
+  "formatted_body": "[\u003ca href=\"http://localhost:3000/user1/test\"\u003euser1/test\u003c/a\u003e] user1 pushed 1 commit to \u003ca href=\"http://localhost:3000/user1/test/src/branch/master\"\u003emaster\u003c/a\u003e:\u003cbr\u003e\u003ca href=\"http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee\"\u003e5175ef2\u003c/a\u003e: Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n - user1"
+}`
+
+	req, err := getMatrixHookRequest(h)
+	require.Nil(t, err)
+	require.NotNil(t, req)
+
+	assert.Equal(t, "Bearer dummy_access_token", req.Header.Get("Authorization"))
+	assert.Equal(t, wantPayloadContent, h.PayloadContent)
 }
