@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/utils"
 )
 
 const (
@@ -335,15 +336,24 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return
 		}
-		if models.IsErrBranchAlreadyExists(err) {
-			e := err.(models.ErrBranchAlreadyExists)
-			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", e.BranchName))
+		if models.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
+			ctx.Flash.Error(ctx.Tr("repo.branch.branch_already_exists", form.NewBranchName))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return
 		}
 		if models.IsErrBranchNameConflict(err) {
 			e := err.(models.ErrBranchNameConflict)
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			return
+		}
+		if git.IsErrPushRejected(err) {
+			e := err.(*git.ErrPushRejected)
+			if len(e.Message) == 0 {
+				ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected_no_message"))
+			} else {
+				ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(e.Message)))
+			}
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 			return
 		}
