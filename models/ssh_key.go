@@ -425,6 +425,9 @@ func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 	defer os.Remove(tmpPath)
 	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
 	if err != nil {
+		if strings.Contains(stderr, "is not a public key file") {
+			return "", ErrKeyUnableVerify{stderr}
+		}
 		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
 	} else if len(stdout) < 2 {
 		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
@@ -455,6 +458,10 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 		fp, err = calcFingerprintSSHKeygen(publicKeyContent)
 	}
 	if err != nil {
+		if IsErrKeyUnableVerify(err) {
+			log.Info("%s", publicKeyContent)
+			return "", err
+		}
 		return "", fmt.Errorf("%s: %v", fnName, err)
 	}
 	return fp, nil
