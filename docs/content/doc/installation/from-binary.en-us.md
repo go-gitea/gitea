@@ -122,9 +122,9 @@ It is recommended you do a [backup]({{< relref "doc/usage/backup-and-restore.en-
 If you have carried out the installation steps as described above, the binary should
 have the generic name `gitea`. Do not change this, i.e. to include the version number.
 
-To restart your gitea instance, we recommand to use if you know your gitea PID ```kill -1 $GITEA_PID``` otherwise you can use ```killall -1 gitea``` or ```pkill -1 gitea```
+To restart your gitea instance, we recommend to use if you know your gitea PID ```kill -1 $GITEA_PID``` otherwise you can use ```killall -1 gitea``` or ```pkill -1 gitea```
 
-Note : We don't recommand to use SIGKILL signal, you could broke some gitea behaviors as it will not gracefully stop (task in queue, indexers processes, ...)
+**NOTE:** We don't recommend to use SIGKILL signal, you could broke some gitea behaviors as it will not gracefully stop (task in queue, indexers processes, ...)
 
 See below for troubleshooting instructions to repair broken repositories after
 an update of your Gitea version.
