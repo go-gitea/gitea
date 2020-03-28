@@ -105,7 +105,6 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 		// if we get a plumbing.ErrObjectNotFound here then the repository is broken and it should be 500
 	}
 	if err != nil {
-
 		return nil, err
 	}
 
