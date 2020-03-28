@@ -18,6 +18,7 @@ require (
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/RoaringBitmap/roaring v0.4.21 // indirect
+	github.com/SherClockHolmes/webpush-go v1.1.0
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/blevesearch/bleve v0.8.1
 	github.com/blevesearch/blevex v0.0.0-20180227211930-4b158bb555a3 // indirect
@@ -102,7 +103,7 @@ require (
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	github.com/yuin/goldmark v1.1.25
 	go.etcd.io/bbolt v1.3.3 // indirect
-	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
