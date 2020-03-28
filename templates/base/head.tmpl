@@ -12,6 +12,7 @@
 			navigator.serviceWorker.register('{{AppSubUrl}}/serviceworker.js').then(function(registration) {
 				// Registration was successful
 				console.info('ServiceWorker registration successful with scope: ', registration.scope);
+				window.serviceWorkerRegistration = registration;
 			}, function(err) {
 				// registration failed :(
 				console.info('ServiceWorker registration failed: ', err);
@@ -87,6 +88,7 @@
 			AppSubUrl: '{{AppSubUrl}}',
 			StaticUrlPrefix: '{{StaticUrlPrefix}}',
 			WebPushPublicKey: '{{WebPushPublicKey}}',
+			ServiceWorkerEnabled: {{if UseServiceWorker}}true{{else}}false{{end}},
 			csrf: '{{.CsrfToken}}',
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},

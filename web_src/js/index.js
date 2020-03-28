@@ -16,6 +16,7 @@ import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initDateTimePicker from './features/datetimepicker.js';
+import initPushNotificationsOptIn from './features/pushnotifications.js';
 import createDropzone from './features/dropzone.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
@@ -2554,6 +2555,7 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups();
+  initPushNotificationsOptIn();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
