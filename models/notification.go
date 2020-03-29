@@ -746,10 +746,15 @@ func sendWebPushNotification(userID int64, issue *Issue, commentID int64) error 
 		issueType = "pull request"
 	}
 
+	anchorURL := ""
+	if commentID != 0 {
+		anchorURL = "#issuecomment-" + strconv.FormatInt(commentID, 10)
+	}
+
 	notificationPayload := &webpush.NotificationPayload{
 		Title: setting.AppName + " - " + issue.Repo.MustOwner().Name + "/" + issue.Repo.Name,
 		Text:  "New activity on " + issueType + " #" + strconv.FormatInt(issue.Index, 10) + " " + issue.Title + ".\nClick to open.",
-		URL:   issue.HTMLURL(),
+		URL:   issue.HTMLURL() + anchorURL,
 	}
 	err := webpush.SendWebPushNotification(userID, notificationPayload)
 	return err
