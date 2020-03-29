@@ -125,6 +125,7 @@ func init() {
 		new(Task),
 		new(LanguageStat),
 		new(EmailHash),
+		new(WebPushSubscription),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
