@@ -175,7 +175,7 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
-	assert.Len(t, apiLabels, 2)
+	assert.Len(t, apiLabels, 4)
 
 	//GetLabel
 	singleURLStr := fmt.Sprintf("/api/v1/orgs/%s/labels/%d?token=%s", owner.Name, dbLabel.ID, token)
