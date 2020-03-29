@@ -11,13 +11,37 @@ workspace:
   path: src/code.gitea.io/gitea
 
 steps:
-  - name: pre-build
+  - name: deps-frontend
+    pull: always
+    image: node:12
+    commands:
+      - make node_modules
+
+  - name: lint-frontend
+    pull: always
+    image: node:12
+    commands:
+      - make lint-frontend
+    depends_on: [deps-frontend]
+
+  - name: lint-backend
+    pull: always
+    image: golang:1.14
+    commands:
+      - make lint-backend
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: build-frontend
     pull: always
     image: node:10 # this step is kept at the lowest version of node that we support
     commands:
-      - make webpack
+      - make frontend
+    depends_on: [lint-frontend]
 
-  - name: build-without-gcc
+  - name: build-backend-no-gcc
     pull: always
     image: golang:1.12 # this step is kept as the lowest version of golang that we support
     environment:
@@ -25,8 +49,9 @@ steps:
       GOPROXY: off
     commands:
       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+    depends_on: [lint-backend]
 
-  - name: build-linux-386
+  - name: build-backend-386
     pull: always
     image: golang:1.14
     environment:
@@ -36,16 +61,7 @@ steps:
       GOARCH: 386
     commands:
       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
-
-  - name: check
-    pull: always
-    image: golang:1.14
-    commands:
-      - make clean golangci-lint revive swagger-check swagger-validate test-vendor
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
+    depends_on: [lint-backend]
 
 ---
 kind: pipeline
@@ -54,6 +70,9 @@ name: testing-amd64
 platform:
   os: linux
   arch: amd64
+
+depends_on:
+  - compliance
 
 workspace:
   base: /go
@@ -209,8 +228,6 @@ steps:
         - push
         - pull_request
 
-
-
 ---
 kind: pipeline
 name: testing-arm64
@@ -218,6 +235,9 @@ name: testing-arm64
 platform:
   os: linux
   arch: arm64
+
+depends_on:
+  - compliance
 
 workspace:
   base: /go
@@ -536,6 +556,9 @@ name: docs
 platform:
   os: linux
   arch: arm64
+
+depends_on:
+  - compliance
 
 steps:
   - name: build-docs
