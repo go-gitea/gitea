@@ -31,3 +31,18 @@ type NotificationSubject struct {
 type NotificationCount struct {
 	New int64 `json:"new"`
 }
+
+// NotificationWebPushSubscription represents a HTML5 Web Push Subscription used for background notifications.
+type NotificationWebPushSubscription struct {
+	Endpoint string `json:"endpoint"`
+	Auth     string `json:"auth"`
+	P256DH   string `json:"p256dh"`
+}
+
+// NotificationPayload marks a JSON payload sent in a push event to the JS service worker.
+// This is used for background notifications.
+type NotificationPayload struct {
+	Title string `json:"title"`
+	Text  string `json:"text"`
+	URL   string `json:"url"`
+}

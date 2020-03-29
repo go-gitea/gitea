@@ -11,9 +11,9 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/webpush"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -195,7 +195,7 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notifi
 			continue
 		}
 
-		err := sendWebPushNotification(userID, issue, commentID)
+		err := notificationSendWebPushNotification(userID, issue, commentID)
 		if err != nil {
 			log.Error("problem sending webhook notification: %v", err)
 		}
@@ -740,7 +740,7 @@ func UpdateNotificationStatuses(user *User, currentStatus NotificationStatus, de
 	return err
 }
 
-func sendWebPushNotification(userID int64, issue *Issue, commentID int64) error {
+func notificationSendWebPushNotification(userID int64, issue *Issue, commentID int64) error {
 	issueType := "issue"
 	if issue.IsPull {
 		issueType = "pull request"
@@ -751,11 +751,11 @@ func sendWebPushNotification(userID int64, issue *Issue, commentID int64) error 
 		anchorURL = "#issuecomment-" + strconv.FormatInt(commentID, 10)
 	}
 
-	notificationPayload := &webpush.NotificationPayload{
+	notificationPayload := &structs.NotificationPayload{
 		Title: setting.AppName + " - " + issue.Repo.MustOwner().Name + "/" + issue.Repo.Name,
 		Text:  "New activity on " + issueType + " #" + strconv.FormatInt(issue.Index, 10) + " " + issue.Title + ".\nClick to open.",
 		URL:   issue.HTMLURL() + anchorURL,
 	}
-	err := webpush.SendWebPushNotification(userID, notificationPayload)
+	err := SendWebPushNotificationToUser(userID, notificationPayload)
 	return err
 }
