@@ -1053,6 +1053,7 @@ type IssuesOptions struct {
 	IsClosed    util.OptionalBool
 	IsPull      util.OptionalBool
 	LabelIDs    []int64
+	LabelNames  []string
 	SortType    string
 	IssueIDs    []int64
 	// prioritize issues from this repo
@@ -1152,6 +1153,10 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 				sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
 			}
 		}
+	}
+
+	if len(opts.LabelNames) > 0 {
+		sess.In("issue.id", BuildLabelNamesIssueIDsCondition(opts.LabelNames))
 	}
 }
 
