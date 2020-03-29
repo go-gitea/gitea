@@ -180,7 +180,7 @@ Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration
 If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite as reverse proxy.
 
 1. Setup an empty website in IIS, named let's say, `Gitea Proxy`.
-3. Follow the first two steps in [Microsoft's Technical Community Guide to Setup IIS with URL Rewrite](https://techcommunity.microsoft.com/t5/iis-support-blog/setup-iis-with-url-rewrite-as-a-reverse-proxy-for-real-world/ba-p/846222#M343). That is:
+2. Follow the first two steps in [Microsoft's Technical Community Guide to Setup IIS with URL Rewrite](https://techcommunity.microsoft.com/t5/iis-support-blog/setup-iis-with-url-rewrite-as-a-reverse-proxy-for-real-world/ba-p/846222#M343). That is:
   - Install Application Request Routing (ARR for short) either by using the Microsoft Web Platform Installer 5.1 (WebPI) or downloading the extension from [IIS.net]( https://www.iis.net/downloads/microsoft/application-request-routing)
   - Once the module is installed in IIS, you will see a new Icon in the IIS Administration Console called URL Rewrite.
   - Open the IIS Manager Console and click on the `Gitea Proxy` Website from the tree view on the left. Select and double click the URL Rewrite Icon from the middle pane to load the URL Rewrite interface.
