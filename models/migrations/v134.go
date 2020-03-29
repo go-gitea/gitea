@@ -14,7 +14,7 @@ func addWebPushSubcriptionTable(x *xorm.Engine) error {
 		ID     int64 `xorm:"pk autoincr"`
 		UserID int64 `xorm:"INDEX"`
 
-		Endpoint string
+		Endpoint string `xorm:"UNIQUE"`
 		Auth     string
 		P256DH   string
 
