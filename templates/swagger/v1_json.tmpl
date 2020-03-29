@@ -537,6 +537,35 @@
         }
       }
     },
+    "/notifications/subscription": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "Create a Web Push subscription for the current user to receieve push notifications. This will also produce a test notification to ensure the given details are valid.",
+        "operationId": "notifyNewWebPushSubscription",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/NotificationWebPushSubscription"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The Web Push subscription was tested and saved sucessfully."
+          },
+          "422": {
+            "description": "Required fields were missing or the provided subscription could not be tested successfully."
+          }
+        }
+      }
+    },
     "/notifications/threads/{id}": {
       "get": {
         "consumes": [
@@ -12316,6 +12345,25 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "NotificationWebPushSubscription": {
+      "type": "object",
+      "title": "NotificationWebPushSubscription represents a HTML5 Web Push Subscription used for background notifications.",
+      "properties": {
+        "auth": {
+          "type": "string",
+          "x-go-name": "Auth"
+        },
+        "endpoint": {
+          "type": "string",
+          "x-go-name": "Endpoint"
+        },
+        "p256dh": {
+          "type": "string",
+          "x-go-name": "P256DH"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "OAuth2Application": {
       "type": "object",
       "title": "OAuth2Application represents an OAuth2 application.",
@@ -14140,7 +14188,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
+        "$ref": "#/definitions/NotificationWebPushSubscription"
       }
     },
     "redirect": {

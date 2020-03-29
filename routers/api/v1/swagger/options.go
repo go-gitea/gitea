@@ -137,4 +137,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateOAuth2ApplicationOptions api.CreateOAuth2ApplicationOptions
+
+	// in:body
+	NotificationWebPushSubscription api.NotificationWebPushSubscription
 }

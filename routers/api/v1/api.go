@@ -519,6 +519,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				Get(notify.ListNotifications).
 				Put(notify.ReadNotifications)
 			m.Get("/new", notify.NewAvailable)
+			m.Post("/subscription", bind(api.NotificationWebPushSubscription{}), notify.NewWebPushSubscription)
 			m.Combo("/threads/:id").
 				Get(notify.GetThread).
 				Patch(notify.ReadThread)
