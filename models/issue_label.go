@@ -385,22 +385,19 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 // based on name. This will check for organization labels the repo has access to as well
 // and include them in the results
 func GetLabelIDsInReposByNames(repoIDs []int64, labelNames []string) ([]int64, error) {
-
-	ownerIDs := make([]int64, 0, len(repoIDs))
-	x.Table("repository").
-		In("repository.id", repoIDs).
-		Cols("owner_id").
-		Distinct("owner_id").
-		Join("INNER", "org_user", "`org_user`.org_id = `repository`.owner_id").
-		Find(&ownerIDs)
+	var subQuery = builder.
+		Select("org_id").
+		From("org_user").
+		Join("INNER", "repository", "org_user.org_id = repository.owner_id").
+		Where(builder.In("repository.id", repoIDs))
 
 	labelIDs := make([]int64, 0, len(labelNames))
 	return labelIDs, x.Table("label").
 		In("repo_id", repoIDs).
-		Or(builder.In("org_id", ownerIDs)).
+		Or(builder.In("org_id", subQuery)).
 		In("name", labelNames).
 		Asc("name").
-		Cols("id").
+		Cols("label.id").
 		Find(&labelIDs)
 }
 
