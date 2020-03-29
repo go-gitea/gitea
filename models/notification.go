@@ -481,9 +481,9 @@ func (nl NotificationList) getPendingRepoIDs() []int64 {
 }
 
 // LoadRepos loads repositories from database
-func (nl NotificationList) LoadRepos() (RepositoryList, error) {
+func (nl NotificationList) LoadRepos() (RepositoryList, []int, error) {
 	if len(nl) == 0 {
-		return RepositoryList{}, nil
+		return RepositoryList{}, []int{}, nil
 	}
 
 	var repoIDs = nl.getPendingRepoIDs()
@@ -498,7 +498,7 @@ func (nl NotificationList) LoadRepos() (RepositoryList, error) {
 			In("id", repoIDs[:limit]).
 			Rows(new(Repository))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		for rows.Next() {
@@ -506,7 +506,7 @@ func (nl NotificationList) LoadRepos() (RepositoryList, error) {
 			err = rows.Scan(&repo)
 			if err != nil {
 				rows.Close()
-				return nil, err
+				return nil, nil, err
 			}
 
 			repos[repo.ID] = &repo
@@ -517,14 +517,21 @@ func (nl NotificationList) LoadRepos() (RepositoryList, error) {
 		repoIDs = repoIDs[limit:]
 	}
 
+	failed := []int{}
+
 	var reposList = make(RepositoryList, 0, len(repoIDs))
-	for _, notification := range nl {
+	for i, notification := range nl {
 		if notification.Repository == nil {
 			notification.Repository = repos[notification.RepoID]
 		}
+		if notification.Repository == nil {
+			log.Error("Notification[%d]: RepoID: %d not found", notification.ID, notification.RepoID)
+			failed = append(failed, i)
+			continue
+		}
 		var found bool
 		for _, r := range reposList {
-			if r.ID == notification.Repository.ID {
+			if r.ID == notification.RepoID {
 				found = true
 				break
 			}
@@ -533,7 +540,7 @@ func (nl NotificationList) LoadRepos() (RepositoryList, error) {
 			reposList = append(reposList, notification.Repository)
 		}
 	}
-	return reposList, nil
+	return reposList, failed, nil
 }
 
 func (nl NotificationList) getPendingIssueIDs() []int64 {
@@ -550,9 +557,9 @@ func (nl NotificationList) getPendingIssueIDs() []int64 {
 }
 
 // LoadIssues loads issues from database
-func (nl NotificationList) LoadIssues() error {
+func (nl NotificationList) LoadIssues() ([]int, error) {
 	if len(nl) == 0 {
-		return nil
+		return []int{}, nil
 	}
 
 	var issueIDs = nl.getPendingIssueIDs()
@@ -567,7 +574,7 @@ func (nl NotificationList) LoadIssues() error {
 			In("id", issueIDs[:limit]).
 			Rows(new(Issue))
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		for rows.Next() {
@@ -575,7 +582,7 @@ func (nl NotificationList) LoadIssues() error {
 			err = rows.Scan(&issue)
 			if err != nil {
 				rows.Close()
-				return err
+				return nil, err
 			}
 
 			issues[issue.ID] = &issue
@@ -586,13 +593,38 @@ func (nl NotificationList) LoadIssues() error {
 		issueIDs = issueIDs[limit:]
 	}
 
-	for _, notification := range nl {
+	failures := []int{}
+
+	for i, notification := range nl {
 		if notification.Issue == nil {
 			notification.Issue = issues[notification.IssueID]
+			if notification.Issue == nil {
+				log.Error("Notification[%d]: IssueID: %d Not Found", notification.ID, notification.IssueID)
+				failures = append(failures, i)
+				continue
+			}
 			notification.Issue.Repo = notification.Repository
 		}
 	}
-	return nil
+	return failures, nil
+}
+
+// Without returns the notification list without the failures
+func (nl NotificationList) Without(failures []int) NotificationList {
+	if failures == nil || len(failures) == 0 {
+		return nl
+	}
+	remaining := make([]*Notification, 0, len(nl))
+	last := -1
+	var i int
+	for _, i = range failures {
+		remaining = append(remaining, nl[last+1:i]...)
+		last = i
+	}
+	if len(nl) > i {
+		remaining = append(remaining, nl[i+1:]...)
+	}
+	return remaining
 }
 
 func (nl NotificationList) getPendingCommentIDs() []int64 {
@@ -609,9 +641,9 @@ func (nl NotificationList) getPendingCommentIDs() []int64 {
 }
 
 // LoadComments loads comments from database
-func (nl NotificationList) LoadComments() error {
+func (nl NotificationList) LoadComments() ([]int, error) {
 	if len(nl) == 0 {
-		return nil
+		return []int{}, nil
 	}
 
 	var commentIDs = nl.getPendingCommentIDs()
@@ -626,7 +658,7 @@ func (nl NotificationList) LoadComments() error {
 			In("id", commentIDs[:limit]).
 			Rows(new(Comment))
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		for rows.Next() {
@@ -634,7 +666,7 @@ func (nl NotificationList) LoadComments() error {
 			err = rows.Scan(&comment)
 			if err != nil {
 				rows.Close()
-				return err
+				return nil, err
 			}
 
 			comments[comment.ID] = &comment
@@ -645,13 +677,19 @@ func (nl NotificationList) LoadComments() error {
 		commentIDs = commentIDs[limit:]
 	}
 
-	for _, notification := range nl {
+	failures := []int{}
+	for i, notification := range nl {
 		if notification.CommentID > 0 && notification.Comment == nil && comments[notification.CommentID] != nil {
 			notification.Comment = comments[notification.CommentID]
+			if notification.Comment == nil {
+				log.Error("Notification[%d]: CommentID[%d] failed to load", notification.ID, notification.CommentID)
+				failures = append(failures, i)
+				continue
+			}
 			notification.Comment.Issue = notification.Issue
 		}
 	}
-	return nil
+	return failures, nil
 }
 
 // GetNotificationCount returns the notification count for user
