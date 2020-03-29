@@ -149,13 +149,13 @@ func SearchIssues(ctx *context.APIContext) {
 				Page:     ctx.QueryInt("page"),
 				PageSize: setting.UI.IssuePagingNum,
 			},
-			RepoIDs:        repoIDs,
-			IsClosed:       isClosed,
-			IssueIDs:       issueIDs,
-			LabelNames:     splitted,
-			SortType:       "priorityrepo",
-			PriorityRepoID: ctx.QueryInt64("priority_repo_id"),
-			IsPull:         isPull,
+			RepoIDs:            repoIDs,
+			IsClosed:           isClosed,
+			IssueIDs:           issueIDs,
+			IncludedLabelNames: splitted,
+			SortType:           "priorityrepo",
+			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
+			IsPull:             isPull,
 		})
 	}
 
