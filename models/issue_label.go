@@ -21,19 +21,20 @@ var LabelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 
 // Label represents a label of repository for issues.
 type Label struct {
-	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"`
-	OrgID           int64 `xorm:"INDEX"`
-	Name            string
-	Description     string
-	Color           string `xorm:"VARCHAR(7)"`
-	NumIssues       int
-	NumClosedIssues int
-	NumOpenIssues   int    `xorm:"-"`
-	IsChecked       bool   `xorm:"-"`
-	QueryString     string `xorm:"-"`
-	IsSelected      bool   `xorm:"-"`
-	IsExcluded      bool   `xorm:"-"`
+	ID                int64 `xorm:"pk autoincr"`
+	RepoID            int64 `xorm:"INDEX"`
+	OrgID             int64 `xorm:"INDEX"`
+	Name              string
+	Description       string
+	Color             string `xorm:"VARCHAR(7)"`
+	NumIssues         int
+	NumClosedIssues   int
+	NumOpenIssues     int    `xorm:"-"`
+	NumOpenRepoIssues int64  `xorm:"-"`
+	IsChecked         bool   `xorm:"-"`
+	QueryString       string `xorm:"-"`
+	IsSelected        bool   `xorm:"-"`
+	IsExcluded        bool   `xorm:"-"`
 }
 
 // GetLabelTemplateFile loads the label template file by given name,
@@ -80,8 +81,28 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 	return list, nil
 }
 
-// CalOpenIssues calculates the open issues of label.
+// CalOpenIssues returns the open issues of label.
 func (label *Label) CalOpenIssues() {
+	label.NumOpenIssues = label.NumIssues - label.NumClosedIssues
+}
+
+// CalOpenOrgIssues calculates the open issues of a label for a specific repo
+func (label *Label) CalOpenOrgIssues(repoID, labelID int64) {
+	repoIDs := []int64{repoID}
+	labelIDs := []int64{labelID}
+
+	counts, _ := CountIssuesByRepo(&IssuesOptions{
+		RepoIDs:  repoIDs,
+		LabelIDs: labelIDs,
+	})
+
+	for _, count := range counts {
+		label.NumOpenRepoIssues = count
+	}
+}
+
+// CalOpenIssuesInRepo calculates the open issues of label inside a repo.
+func (label *Label) CalOpenIssuesInRepo(repoID int64) {
 	label.NumOpenIssues = label.NumIssues - label.NumClosedIssues
 }
 
