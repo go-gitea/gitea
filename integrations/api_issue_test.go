@@ -204,7 +204,7 @@ func TestAPISearchIssueWithLabel(t *testing.T) {
 	assert.Len(t, apiIssues, 2)
 
 	// multiple labels
-	query.Add("labels", "label1%2Clabel2")
+	query.Set("labels", "label1,label2")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -212,18 +212,18 @@ func TestAPISearchIssueWithLabel(t *testing.T) {
 	assert.Len(t, apiIssues, 2)
 
 	// an org label
-	query.Add("labels", "orglabel4")
+	query.Set("labels", "orglabel4")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 2)
+	assert.Len(t, apiIssues, 1)
 
 	// org and repo label
-	query.Add("labels", "label1%2Corglabel4")
+	query.Set("labels", "label1,orglabel4")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 2)
+	assert.Len(t, apiIssues, 3)
 }

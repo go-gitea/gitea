@@ -18,7 +18,7 @@
 -
   id: 3
   repo_id: 0
-  org_id:  1
+  org_id:  3
   name: orglabel3
   color: '#abcdef'
   num_issues: 0
@@ -27,7 +27,7 @@
 -
   id: 4
   repo_id: 0
-  org_id: 1
+  org_id: 3
   name: orglabel4
   color: '#000000'
   num_issues: 1

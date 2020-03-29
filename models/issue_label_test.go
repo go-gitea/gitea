@@ -139,12 +139,12 @@ func TestGetLabelsByRepoID(t *testing.T) {
 
 func TestGetLabelInOrgByName(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	label, err := GetLabelInOrgByName(1, "orglabel3")
+	label, err := GetLabelInOrgByName(3, "orglabel3")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, label.ID)
 	assert.Equal(t, "orglabel3", label.Name)
 
-	_, err = GetLabelInOrgByName(1, "")
+	_, err = GetLabelInOrgByName(3, "")
 	assert.True(t, IsErrOrgLabelNotExist(err))
 
 	_, err = GetLabelInOrgByName(0, "orglabel3")
@@ -159,7 +159,7 @@ func TestGetLabelInOrgByName(t *testing.T) {
 
 func TestGetLabelInOrgByNames(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	labelIDs, err := GetLabelIDsInOrgByNames(1, []string{"orglabel3", "orglabel4"})
+	labelIDs, err := GetLabelIDsInOrgByNames(3, []string{"orglabel3", "orglabel4"})
 	assert.NoError(t, err)
 
 	assert.Len(t, labelIDs, 2)
@@ -171,7 +171,7 @@ func TestGetLabelInOrgByNames(t *testing.T) {
 func TestGetLabelInOrgByNamesDiscardsNonExistentLabels(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	// orglabel99 doesn't exists.. See labels.yml
-	labelIDs, err := GetLabelIDsInOrgByNames(1, []string{"orglabel3", "orglabel4", "orglabel99"})
+	labelIDs, err := GetLabelIDsInOrgByNames(3, []string{"orglabel3", "orglabel4", "orglabel99"})
 	assert.NoError(t, err)
 
 	assert.Len(t, labelIDs, 2)
@@ -183,11 +183,11 @@ func TestGetLabelInOrgByNamesDiscardsNonExistentLabels(t *testing.T) {
 
 func TestGetLabelInOrgByID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	label, err := GetLabelInOrgByID(1, 3)
+	label, err := GetLabelInOrgByID(3, 3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, label.ID)
 
-	_, err = GetLabelInOrgByID(1, -1)
+	_, err = GetLabelInOrgByID(3, -1)
 	assert.True(t, IsErrOrgLabelNotExist(err))
 
 	_, err = GetLabelInOrgByID(0, 3)
@@ -202,7 +202,7 @@ func TestGetLabelInOrgByID(t *testing.T) {
 
 func TestGetLabelsInOrgByIDs(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	labels, err := GetLabelsInOrgByIDs(1, []int64{3, 4, NonexistentID})
+	labels, err := GetLabelsInOrgByIDs(3, []int64{3, 4, NonexistentID})
 	assert.NoError(t, err)
 	if assert.Len(t, labels, 2) {
 		assert.EqualValues(t, 3, labels[0].ID)
@@ -220,10 +220,10 @@ func TestGetLabelsByOrgID(t *testing.T) {
 			assert.EqualValues(t, expectedIssueIDs[i], label.ID)
 		}
 	}
-	testSuccess(1, "leastissues", []int64{3, 4})
-	testSuccess(1, "mostissues", []int64{4, 3})
-	testSuccess(1, "reversealphabetically", []int64{4, 3})
-	testSuccess(1, "default", []int64{3, 4})
+	testSuccess(3, "leastissues", []int64{3, 4})
+	testSuccess(3, "mostissues", []int64{4, 3})
+	testSuccess(3, "reversealphabetically", []int64{4, 3})
+	testSuccess(3, "default", []int64{3, 4})
 
 	var err error
 	_, err = GetLabelsByOrgID(0, "leastissues", ListOptions{})
