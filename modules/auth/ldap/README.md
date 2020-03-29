@@ -112,7 +112,7 @@ share the following fields:
 
 * Group Name Filter (optional)
     * An LDAP filter declaring how to find valid groups in the above DN.
-    * Example: (|(cn=gogs_users)(cn=admins))
+    * Example: (|(cn=gitea_users)(cn=admins))
 
 * User Attribute in Group (optional)
     * Which user LDAP attribute is listed in the group.

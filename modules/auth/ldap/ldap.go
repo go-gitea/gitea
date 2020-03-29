@@ -306,7 +306,10 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
 
-	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.UserUID}
+	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
+	if len(strings.TrimSpace(ls.UserUID)) > 0 {
+		attribs = append(attribs, ls.UserUID)
+	}
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, ls.AttributeSSHPublicKey)
 	}
