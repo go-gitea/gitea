@@ -11,7 +11,7 @@ export default async function initPushNotificationsOptIn() {
 
 async function subscribe() {
   const canNotify = await hasNotificationPermission();
-  if (!canNotify) return alert('Denied.');
+  if (!canNotify) return false;
 
   /** @type {ServiceWorkerRegistration} */
   const registration = window.serviceWorkerRegistration;
@@ -19,8 +19,28 @@ async function subscribe() {
     userVisibleOnly: true,
     applicationServerKey: window.config.WebPushPublicKey
   });
-  // eslint-disable-next-line no-console
-  console.log(JSON.stringify(subscriptionResults.toJSON()));
+  await createGiteaServerSubscription(subscriptionResults.toJSON());
+}
+
+async function createGiteaServerSubscription(subscriptionJSON) {
+  try {
+    const request = await fetch(`${window.config.AppSubUrl}/api/v1/notifications/subscription`, {
+      credentials: 'include',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify({
+        endpoint: subscriptionJSON.endpoint,
+        auth: subscriptionJSON.keys.auth,
+        p256dh: subscriptionJSON.keys.p256dh
+      })
+    });
+    if (request.status === 201) return true;
+  } catch (error) {
+    console.error(error);
+  }
+  return false;
 }
 
 async function hasNotificationPermission() {
