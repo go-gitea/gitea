@@ -69,7 +69,7 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
-WEBPACK_CONFIGS := webpack.config.js .eslintrc .stylelintrc
+WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
 WEBPACK_DEST_DIRS := public/js public/css
 
@@ -133,14 +133,18 @@ help:
 	@echo " - backend           build backend files"
 	@echo " - clean             delete backend and integration files"
 	@echo " - clean-all         delete backend, frontend and integration files"
+	@echo " - lint              lint everything"
+	@echo " - lint-frontend     lint frontend files"
+	@echo " - lint-backend      lint backend files"
 	@echo " - webpack           build webpack files"
 	@echo " - fomantic          build fomantic files"
 	@echo " - generate          run \"go generate\""
 	@echo " - fmt               format the Go code"
 	@echo " - generate-swagger  generate the swagger spec from code comments"
 	@echo " - swagger-validate  check if the swagger spec is valid"
-	@echo " - revive            run code linter revive"
-	@echo " - misspell          check if a word is written wrong"
+	@echo " - golangci-lint     run golangci-lint linter"
+	@echo " - revive            run revive linter"
+	@echo " - misspell          check for misspellings"
 	@echo " - vet               examines Go source code and reports suspicious constructs"
 	@echo " - test              run unit test"
 	@echo " - test-sqlite       run integration test for sqlite"
@@ -258,6 +262,17 @@ fmt-check:
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
+
+.PHONY: lint
+lint: lint-backend lint-frontend
+
+.PHONY: lint-backend
+lint-backend: golangci-lint revive swagger-check swagger-validate test-vendor
+
+.PHONY: lint-frontend
+lint-frontend: node_modules
+	npx eslint web_src/js webpack.config.js
+	npx stylelint web_src/less
 
 .PHONY: test
 test:
@@ -540,16 +555,6 @@ npm-update: node-check | node_modules
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
 
-.PHONY: js
-js:
-	@echo "'make js' is deprecated, please use 'make webpack'"
-	$(MAKE) webpack
-
-.PHONY: css
-css:
-	@echo "'make css' is deprecated, please use 'make webpack'"
-	$(MAKE) webpack
-
 .PHONY: fomantic
 fomantic: $(FOMANTIC_DEST)
 
@@ -564,8 +569,6 @@ $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
 webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
-	npx eslint web_src/js webpack.config.js
-	npx stylelint web_src/less
 	npx webpack --hide-modules --display-entrypoints=false
 	@touch $(WEBPACK_DEST)
 
