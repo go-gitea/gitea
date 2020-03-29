@@ -359,16 +359,18 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		if err != nil {
 			log.Error("LDAP group search failed: %v", err)
 			return nil
-		} else if len(sr.Entries) < 1 {
+		} else if len(srg.Entries) < 1 {
 			log.Error("LDAP group search failed: 0 entries")
 			return nil
 		}
 
 		isMember := false
+	Entries:
 		for _, group := range srg.Entries {
 			for _, member := range group.GetAttributeValues(ls.GroupMemberUID) {
-				if member == uid {
+				if (ls.UserUID == "dn" && member == sr.Entries[0].DN) || member == uid {
 					isMember = true
+					break Entries
 				}
 			}
 		}
