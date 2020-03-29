@@ -54,6 +54,11 @@ func NewWebPushSubscription(ctx *context.APIContext, input api.NotificationWebPu
 	//   "422":
 	//     description: Required fields were missing or the provided subscription could not be tested successfully.
 
+	if !ctx.IsSigned {
+		ctx.Context.Error(http.StatusUnauthorized)
+		return
+	}
+
 	if input.Endpoint == "" || input.Auth == "" || input.P256DH == "" {
 		ctx.Status(http.StatusUnprocessableEntity)
 		return
@@ -61,8 +66,8 @@ func NewWebPushSubscription(ctx *context.APIContext, input api.NotificationWebPu
 
 	testPayload := &api.NotificationPayload{
 		Title: setting.AppName,
-		Text:  "This is a test notification from Gitea.",
-		URL:   setting.AppSubURL,
+		Text:  "This is a test notification from Gitea. If you're reading this notifications are working. Hooray!",
+		URL:   setting.AppURL,
 	}
 	resp, err := models.SendWebPushNotification(&input, testPayload)
 	if err != nil {
