@@ -381,7 +381,7 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 		Find(&labelIDs)
 }
 
-// GetLabelIDsInReposByNames returns a list of labelIDs that are availabble to repositories
+// GetLabelIDsInReposByNames returns a list of labelIDs that are available to repositories
 // based on name. This will check for organization labels the repo has access to as well
 // and include them in the results
 func GetLabelIDsInReposByNames(repoIDs []int64, labelNames []string) ([]int64, error) {
