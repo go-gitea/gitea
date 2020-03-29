@@ -354,7 +354,7 @@ func accessibleRepositoryCondition(user *User) builder.Cond {
 		cond = cond.Or(builder.And(
 			builder.Eq{"`repository`.is_private": false},
 			builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(
-				builder.Or(
+				builder.And(
 					//   A. Aren't in organisations  __OR__
 					builder.Eq{"type": UserTypeOrganization},
 					//   B. Isn't a private organisation. Limited is OK as long as we're logged in.
