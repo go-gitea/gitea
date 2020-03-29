@@ -101,11 +101,6 @@ func (label *Label) CalOpenOrgIssues(repoID, labelID int64) {
 	}
 }
 
-// CalOpenIssuesInRepo calculates the open issues of label inside a repo.
-func (label *Label) CalOpenIssuesInRepo(repoID int64) {
-	label.NumOpenIssues = label.NumIssues - label.NumClosedIssues
-}
-
 // LoadSelectedLabelsAfterClick calculates the set of selected labels when a label is clicked
 func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) {
 	var labelQuerySlice []string
