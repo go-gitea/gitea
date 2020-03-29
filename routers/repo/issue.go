@@ -487,6 +487,8 @@ func NewIssue(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
+
 	ctx.HTML(200, tplIssueNew)
 }
 

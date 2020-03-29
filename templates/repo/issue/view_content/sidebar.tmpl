@@ -10,15 +10,26 @@
 				{{end}}
 			</span>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
-				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
-				{{range .Labels}}
-					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
-					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_labels_title"}}</div>
+				{{if or .Labels .OrgLabels}}
+				<div class="ui icon search input">
+					<i class="search icon"></i>
+					<input type="text" placeholder="...">
+				</div>
 				{{end}}
-				<div class="ui divider"></div>
-				{{range .OrgLabels}}
-					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
-					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
+				{{if or .Labels .OrgLabels}}
+					{{range .Labels}}
+						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+					{{end}}
+					<div class="ui divider"></div>
+					{{range .OrgLabels}}
+						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+					{{end}}
+				{{else}}
+					<div class="header" style="text-transform: none;font-size:14px;">{{.i18n.Tr "repo.issues.new.no_items"}}</div>
 				{{end}}
 			</div>
 		</div>
@@ -47,25 +58,38 @@
 				{{end}}
 			</span>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
-				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_milestone"}}</div>
-				{{if .OpenMilestones}}
-					<div class="divider"></div>
-					<div class="header">
-						{{svg "octicon-milestone" 16}}
-						{{.i18n.Tr "repo.issues.new.open_milestone"}}
-					</div>
-					{{range .OpenMilestones}}
-						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</div>
-					{{end}}
+				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_milestone_title"}}</div>
+				{{if or .OpenMilestones .ClosedMilestones}}
+				<div class="ui icon search input">
+					<i class="search icon"></i>
+					<input type="text" placeholder="...">
+				</div>
 				{{end}}
-				{{if .ClosedMilestones}}
-					<div class="divider"></div>
-					<div class="header">
-						{{svg "octicon-milestone" 16}}
-						{{.i18n.Tr "repo.issues.new.closed_milestone"}}
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_milestone"}}</div>
+				{{if and (not .OpenMilestones) (not .ClosedMilestones)}}
+					<div class="header" style="text-transform: none;font-size:14px;">
+						{{.i18n.Tr "repo.issues.new.no_items"}}
 					</div>
-					{{range .ClosedMilestones}}
-						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</a>
+				{{else}}
+					{{if .OpenMilestones}}
+						<div class="divider"></div>
+						<div class="header">
+							{{svg "octicon-milestone" 16}}
+							{{.i18n.Tr "repo.issues.new.open_milestone"}}
+						</div>
+						{{range .OpenMilestones}}
+							<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</div>
+						{{end}}
+					{{end}}
+					{{if .ClosedMilestones}}
+						<div class="divider"></div>
+						<div class="header">
+							{{svg "octicon-milestone" 16}}
+							{{.i18n.Tr "repo.issues.new.closed_milestone"}}
+						</div>
+						{{range .ClosedMilestones}}
+							<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</a>
+						{{end}}
 					{{end}}
 				{{end}}
 			</div>
@@ -90,6 +114,11 @@
 				{{end}}
 			</span>
 			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
+				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_assignees_title"}}</div>
+				<div class="ui icon search input">
+					<i class="search icon"></i>
+					<input type="text" placeholder="...">
+				</div>
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 				{{range .Assignees}}
 
