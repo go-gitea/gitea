@@ -301,7 +301,11 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 // it returns results in given range and number of total results.
 func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	cond := SearchRepositoryCondition(opts)
+	return SearchRepositoryByCondition(opts, cond, true)
+}
 
+// SearchRepositoryByCondition search repositories by condition
+func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
@@ -326,16 +330,18 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	}
 
 	repos := make(RepositoryList, 0, opts.PageSize)
-	if err = sess.
-		Where(cond).
-		OrderBy(opts.OrderBy.String()).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Find(&repos); err != nil {
+	sess.Where(cond).OrderBy(opts.OrderBy.String())
+	if opts.PageSize > 0 {
+		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+	if err = sess.Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
-	if err = repos.loadAttributes(sess); err != nil {
-		return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
+	if loadAttributes {
+		if err = repos.loadAttributes(sess); err != nil {
+			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
+		}
 	}
 
 	return repos, count, nil
