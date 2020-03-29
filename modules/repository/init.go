@@ -98,7 +98,7 @@ func prepareRepoCommit(ctx models.DBContext, repo *models.Repository, tmpDir, re
 }
 
 // initRepoCommit temporarily changes with work directory.
-func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User) (err error) {
+func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, defaultBranch string) (err error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	sig := u.NewGitSig()
@@ -145,7 +145,11 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User) (er
 		return fmt.Errorf("git commit: %v", err)
 	}
 
-	if stdout, err := git.NewCommand("push", "origin", "master").
+	if len(defaultBranch) == 0 {
+		defaultBranch = "master"
+	}
+
+	if stdout, err := git.NewCommand("push", "origin", "master:"+defaultBranch).
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
 		RunInDirWithEnv(tmpPath, models.InternalPushingEnvironment(u, repo)); err != nil {
 		log.Error("Failed to push back to master: Stdout: %s\nError: %v", stdout, err)
@@ -190,7 +194,7 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 		}
 
 		// Apply changes and commit.
-		if err = initRepoCommit(tmpDir, repo, u); err != nil {
+		if err = initRepoCommit(tmpDir, repo, u, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("initRepoCommit: %v", err)
 		}
 	}
@@ -206,6 +210,10 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 	}
 
 	repo.DefaultBranch = "master"
+	if len(opts.DefaultBranch) > 0 {
+		repo.DefaultBranch = opts.DefaultBranch
+	}
+
 	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}

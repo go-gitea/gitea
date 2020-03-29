@@ -15,6 +15,7 @@ import initHighlight from './features/highlight.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
+import initDateTimePicker from './features/datetimepicker.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
@@ -634,7 +635,7 @@ function initIssueComments() {
   });
 }
 
-function initRepository() {
+async function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -732,15 +733,16 @@ function initRepository() {
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
     const $datepicker = $('.milestone.datepicker');
+
+    await initDateTimePicker($datepicker.data('lang'));
+
     $datepicker.datetimepicker({
-      lang: $datepicker.data('lang'),
       inline: true,
       timepicker: false,
       startDate: $datepicker.data('start-date'),
-      formatDate: 'Y-m-d',
-      onSelectDate(ct) {
-        $('#deadline').val(ct.dateFormat('Y-m-d'));
-      }
+      onSelectDate(date) {
+        $('#deadline').val(date.toISOString().substring(0, 10));
+      },
     });
     $('#clear-date').click(() => {
       $('#deadline').val('');
@@ -1894,18 +1896,11 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      if (!$('#oauth2_token_url').val()) {
-        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-      }
-      if (!$('#oauth2_auth_url').val()) {
-        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-      }
-      if (!$('#oauth2_profile_url').val()) {
-        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-      }
-      if (!$('#oauth2_email_url').val()) {
-        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
-      }
+      $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
+      $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
+      $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
+      $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+
       switch (provider) {
         case 'github':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
@@ -1925,7 +1920,7 @@ function initAdmin() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').change(function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size .sspi').hide();
+      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi').hide();
 
       $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
@@ -2722,7 +2717,8 @@ function showAddAllPopup() {
   return false;
 }
 
-function linkAction() {
+function linkAction(e) {
+  e.preventDefault();
   const $this = $(this);
   const redirect = $this.data('redirect');
   $.post($this.data('url'), {

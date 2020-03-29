@@ -90,17 +90,6 @@ func TestSizedAvatarLink(t *testing.T) {
 	)
 }
 
-func TestAvatarLink(t *testing.T) {
-	disableGravatar()
-	assert.Equal(t, "/img/avatar_default.png", AvatarLink("gitea@example.com"))
-
-	enableGravatar(t)
-	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon",
-		AvatarLink("gitea@example.com"),
-	)
-}
-
 func TestFileSize(t *testing.T) {
 	var size int64 = 512
 	assert.Equal(t, "512 B", FileSize(size))

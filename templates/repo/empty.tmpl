@@ -52,7 +52,7 @@ git init
 git add README.md
 git commit -m "first commit"
 git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
-git push -u origin master</code></pre>
+git push -u origin {{if ne .Repository.DefaultBranch "master"}}master:{{.Repository.DefaultBranch}}{{else}}master{{end}}</code></pre>
 								</div>
 							</div>
 							<div class="ui divider"></div>
@@ -61,7 +61,7 @@ git push -u origin master</code></pre>
 								<h3>{{.i18n.Tr "repo.push_exist_repo"}}</h3>
 								<div class="markdown">
 									<pre><code>git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
-git push -u origin master</code></pre>
+git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
 						{{end}}
