@@ -138,8 +138,11 @@ func SearchIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
-	labels := ctx.Query("labels")
-	splitted := strings.Split(labels, ",")
+	labels := strings.TrimSpace(ctx.Query("labels"))
+	var includedLabelNames []string
+	if len(labels) > 0 {
+		includedLabelNames = strings.Split(labels, ",")
+	}
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
@@ -152,7 +155,7 @@ func SearchIssues(ctx *context.APIContext) {
 			RepoIDs:            repoIDs,
 			IsClosed:           isClosed,
 			IssueIDs:           issueIDs,
-			IncludedLabelNames: splitted,
+			IncludedLabelNames: includedLabelNames,
 			SortType:           "priorityrepo",
 			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
 			IsPull:             isPull,
