@@ -130,7 +130,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, title, issueAfter.Title)
 }
 
-func TestAPISearchIssue(t *testing.T) {
+func TestAPISearchIssues(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
@@ -174,7 +174,7 @@ func TestAPISearchIssue(t *testing.T) {
 	assert.Len(t, apiIssues, 1)
 }
 
-func TestAPISearchIssueWithLabel(t *testing.T) {
+func TestAPISearchIssuesWithLabels(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
@@ -220,10 +220,19 @@ func TestAPISearchIssueWithLabel(t *testing.T) {
 	assert.Len(t, apiIssues, 1)
 
 	// org and repo label
+	query.Set("labels", "label2,orglabel4")
+	query.Add("state", "all")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+
+	// org and repo label which share the same issue
 	query.Set("labels", "label1,orglabel4")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 3)
+	assert.Len(t, apiIssues, 2)
 }

@@ -392,26 +392,6 @@ func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
 		GroupBy("issue_label.issue_id")
 }
 
-// GetLabelIDsInReposByNames returns a list of labelIDs that are available to repositories
-// based on name. This will check for organization labels the repo has access to as well
-// and include them in the results
-func GetLabelIDsInReposByNames(repoIDs []int64, labelNames []string) ([]int64, error) {
-	var subQuery = builder.
-		Select("org_id").
-		From("org_user").
-		Join("INNER", "repository", "org_user.org_id = repository.owner_id").
-		Where(builder.In("repository.id", repoIDs))
-
-	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, x.Table("label").
-		In("repo_id", repoIDs).
-		Or(builder.In("org_id", subQuery)).
-		In("name", labelNames).
-		Asc("name").
-		Cols("label.id").
-		Find(&labelIDs)
-}
-
 // GetLabelInRepoByID returns a label by ID in given repository.
 func GetLabelInRepoByID(repoID, labelID int64) (*Label, error) {
 	return getLabelInRepoByID(x, repoID, labelID)
