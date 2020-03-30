@@ -1148,12 +1148,12 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if opts.LabelIDs != nil {
-		// API Issues Search
+		// API Issues Search should return issues with any provided label
 		if opts.HasAnyLabel {
 			sess.Join("INNER", []string{"issue_label", "il"}, "il.issue_id = issue.id").
 				In("il.label_id", opts.LabelIDs)
 		} else {
-			// Repo Issue List Search
+			// Repo Issue List Search only returns issues that have all provided labels
 			for i, labelID := range opts.LabelIDs {
 				if labelID > 0 {
 					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
