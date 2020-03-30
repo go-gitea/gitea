@@ -67,7 +67,7 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "member-group-filter",
-			Usage: "An LDAP filter specifying if a group should be given administrator privileges.",
+			Usage: "An LDAP filter specifying if a group should be allowed to login.",
 		},
 		cli.StringFlag{
 			Name:  "admin-group-filter",
