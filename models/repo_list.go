@@ -190,12 +190,8 @@ const (
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
 
-// SearchRepository returns repositories based on search options,
-// it returns results in given range and number of total results.
-func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
+// SearchRepositoryCondition creates a query condition according search repository options
+func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	var cond = builder.NewCond()
 
 	if opts.Private {
@@ -298,6 +294,17 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	if opts.Actor != nil && opts.Actor.IsRestricted {
 		cond = cond.And(accessibleRepositoryCondition(opts.Actor))
 	}
+	return cond
+}
+
+// SearchRepository returns repositories based on search options,
+// it returns results in given range and number of total results.
+func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+	cond := SearchRepositoryCondition(opts)
+
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
 
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = SearchOrderByAlphabetically
@@ -346,11 +353,12 @@ func accessibleRepositoryCondition(user *User) builder.Cond {
 		// 1. Be able to see all non-private repositories that either:
 		cond = cond.Or(builder.And(
 			builder.Eq{"`repository`.is_private": false},
-			builder.Or(
-				//   A. Aren't in organisations  __OR__
-				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
-				//   B. Isn't a private organisation. Limited is OK as long as we're logged in.
-				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.In("visibility", orgVisibilityLimit))))))
+			// 2. Aren't in an private organisation or limited organisation if we're not logged in
+			builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(
+				builder.And(
+					builder.Eq{"type": UserTypeOrganization},
+					builder.In("visibility", orgVisibilityLimit)),
+			))))
 	}
 
 	if user != nil {
