@@ -13,12 +13,14 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -38,10 +40,6 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
 	//   type: string
-	// - name: page
-	//   in: query
-	//   description: page number of requested issues
-	//   type: integer
 	// - name: q
 	//   in: query
 	//   description: search string
@@ -51,6 +49,14 @@ func SearchIssues(ctx *context.APIContext) {
 	//   description: repository to prioritize in the results
 	//   type: integer
 	//   format: int64
+	// - name: type
+	//   in: query
+	//   description: filter by type (issues / pulls) if set
+	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of requested issues
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -68,7 +74,9 @@ func SearchIssues(ctx *context.APIContext) {
 	// find repos user can access (for issue search)
 	repoIDs := make([]int64, 0)
 	opts := &models.SearchRepoOptions{
-		PageSize:    15,
+		ListOptions: models.ListOptions{
+			PageSize: 15,
+		},
 		Private:     false,
 		AllPublic:   true,
 		TopicOnly:   false,
@@ -80,6 +88,7 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.Private = true
 		opts.AllLimited = true
 	}
+
 	issueCount := 0
 	for page := 1; ; page++ {
 		opts.Page = page
@@ -119,27 +128,37 @@ func SearchIssues(ctx *context.APIContext) {
 		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword)
 	}
 
-	labels := ctx.Query("labels")
-	if splitted := strings.Split(labels, ","); labels != "" && len(splitted) > 0 {
-		labelIDs, err = models.GetLabelIDsInReposByNames(repoIDs, splitted)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
-			return
-		}
+	var isPull util.OptionalBool
+	switch ctx.Query("type") {
+	case "pulls":
+		isPull = util.OptionalBoolTrue
+	case "issues":
+		isPull = util.OptionalBoolFalse
+	default:
+		isPull = util.OptionalBoolNone
+	}
+
+	labels := strings.TrimSpace(ctx.Query("labels"))
+	var includedLabelNames []string
+	if len(labels) > 0 {
+		includedLabelNames = strings.Split(labels, ",")
 	}
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
-			RepoIDs:        repoIDs,
-			Page:           ctx.QueryInt("page"),
-			PageSize:       setting.UI.IssuePagingNum,
-			IsClosed:       isClosed,
-			IssueIDs:       issueIDs,
-			LabelIDs:       labelIDs,
-			SortType:       "priorityrepo",
-			PriorityRepoID: ctx.QueryInt64("priority_repo_id"),
+			ListOptions: models.ListOptions{
+				Page:     ctx.QueryInt("page"),
+				PageSize: setting.UI.IssuePagingNum,
+			},
+			RepoIDs:            repoIDs,
+			IsClosed:           isClosed,
+			IssueIDs:           issueIDs,
+			IncludedLabelNames: includedLabelNames,
+			SortType:           "priorityrepo",
+			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
+			IsPull:             isPull,
 		})
 	}
 
@@ -148,13 +167,8 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 
-	apiIssues := make([]*api.Issue, len(issues))
-	for i := range issues {
-		apiIssues[i] = issues[i].APIFormat()
-	}
-
 	ctx.SetLinkHeader(issueCount, setting.UI.IssuePagingNum)
-	ctx.JSON(http.StatusOK, &apiIssues)
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
 // ListIssues list the issues of a repository
@@ -183,14 +197,22 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
 	//   type: string
-	// - name: page
-	//   in: query
-	//   description: page number of requested issues
-	//   type: integer
 	// - name: q
 	//   in: query
 	//   description: search string
 	//   type: string
+	// - name: type
+	//   in: query
+	//   description: filter by type (issues / pulls) if set
+	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -226,16 +248,31 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
+	listOptions := utils.GetListOptions(ctx)
+	if ctx.QueryInt("limit") == 0 {
+		listOptions.PageSize = setting.UI.IssuePagingNum
+	}
+
+	var isPull util.OptionalBool
+	switch ctx.Query("type") {
+	case "pulls":
+		isPull = util.OptionalBoolTrue
+	case "issues":
+		isPull = util.OptionalBoolFalse
+	default:
+		isPull = util.OptionalBoolNone
+	}
+
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
-			RepoIDs:  []int64{ctx.Repo.Repository.ID},
-			Page:     ctx.QueryInt("page"),
-			PageSize: setting.UI.IssuePagingNum,
-			IsClosed: isClosed,
-			IssueIDs: issueIDs,
-			LabelIDs: labelIDs,
+			ListOptions: listOptions,
+			RepoIDs:     []int64{ctx.Repo.Repository.ID},
+			IsClosed:    isClosed,
+			IssueIDs:    issueIDs,
+			LabelIDs:    labelIDs,
+			IsPull:      isPull,
 		})
 	}
 
@@ -244,13 +281,8 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
-	apiIssues := make([]*api.Issue, len(issues))
-	for i := range issues {
-		apiIssues[i] = issues[i].APIFormat()
-	}
-
-	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, setting.UI.IssuePagingNum)
-	ctx.JSON(http.StatusOK, &apiIssues)
+	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, listOptions.PageSize)
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
 // GetIssue get an issue of a repository
@@ -292,7 +324,7 @@ func GetIssue(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.JSON(http.StatusOK, issue.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(issue))
 }
 
 // CreateIssue create an issue of a repository
@@ -407,7 +439,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, issue.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(issue))
 }
 
 // EditIssue modify an issue of a repository
@@ -460,6 +492,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 	issue.Repo = ctx.Repo.Repository
+	canWrite := ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 
 	err = issue.LoadAttributes()
 	if err != nil {
@@ -467,7 +500,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if !issue.IsPoster(ctx.User.ID) && !canWrite {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -480,7 +513,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 
 	// Update or remove the deadline, only if set and allowed
-	if (form.Deadline != nil || form.RemoveDeadline != nil) && ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if (form.Deadline != nil || form.RemoveDeadline != nil) && canWrite {
 		var deadlineUnix timeutil.TimeStamp
 
 		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
@@ -504,7 +537,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.CanWrite(models.UnitTypeIssues) && (form.Assignees != nil || form.Assignee != nil) {
+	if canWrite && (form.Assignees != nil || form.Assignee != nil) {
 		oneAssignee := ""
 		if form.Assignee != nil {
 			oneAssignee = *form.Assignee
@@ -517,7 +550,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 	}
 
-	if ctx.Repo.CanWrite(models.UnitTypeIssues) && form.Milestone != nil &&
+	if canWrite && form.Milestone != nil &&
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
@@ -552,7 +585,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		ctx.InternalServerError(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, issue.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(issue))
 }
 
 // UpdateIssueDeadline updates an issue deadline
@@ -603,7 +636,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "", "Not repo writer")
 		return
 	}

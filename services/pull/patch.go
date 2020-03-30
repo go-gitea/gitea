@@ -19,16 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// DownloadDiff will write the patch for the pr to the writer
-func DownloadDiff(pr *models.PullRequest, w io.Writer, patch bool) error {
-	return DownloadDiffOrPatch(pr, w, false)
-}
-
-// DownloadPatch will write the patch for the pr to the writer
-func DownloadPatch(pr *models.PullRequest, w io.Writer, patch bool) error {
-	return DownloadDiffOrPatch(pr, w, true)
-}
-
 // DownloadDiffOrPatch will write the patch for the pr to the writer
 func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error {
 	// Clone base repo.

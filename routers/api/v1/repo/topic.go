@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListTopics returns list of current topics for repo
@@ -33,12 +34,21 @@ func ListTopics(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicNames"
 
 	topics, err := models.FindTopics(&models.FindTopicOptions{
-		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
 		log.Error("ListTopics failed: %v", err)
@@ -231,7 +241,7 @@ func DeleteTopic(ctx *context.APIContext) {
 }
 
 // TopicSearch search for creating topic
-func TopicSearch(ctx *context.Context) {
+func TopicSearch(ctx *context.APIContext) {
 	// swagger:operation GET /topics/search repository topicSearch
 	// ---
 	// summary: search topics via keyword
@@ -243,6 +253,14 @@ func TopicSearch(ctx *context.Context) {
 	//     description: keywords to search
 	//     required: true
 	//     type: string
+	//   - name: page
+	//     in: query
+	//     description: page number of results to return (1-based)
+	//     type: integer
+	//   - name: limit
+	//     in: query
+	//     description: page size of results, maximum page size is 50
+	//     type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicListResponse"
@@ -256,9 +274,17 @@ func TopicSearch(ctx *context.Context) {
 
 	kw := ctx.Query("q")
 
+	listOptions := utils.GetListOptions(ctx)
+	if listOptions.Page < 1 {
+		listOptions.Page = 1
+	}
+	if listOptions.PageSize < 1 {
+		listOptions.PageSize = 10
+	}
+
 	topics, err := models.FindTopics(&models.FindTopicOptions{
-		Keyword: kw,
-		Limit:   10,
+		Keyword:     kw,
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		log.Error("SearchTopics failed: %v", err)

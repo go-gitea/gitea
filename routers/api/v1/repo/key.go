@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
@@ -60,6 +62,14 @@ func ListDeployKeys(ctx *context.APIContext) {
 	//   in: query
 	//   description: fingerprint of the key
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/DeployKeyList"
@@ -72,7 +82,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 	if fingerprint != "" || keyID != 0 {
 		keys, err = models.SearchDeployKeys(ctx.Repo.Repository.ID, keyID, fingerprint)
 	} else {
-		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID)
+		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	}
 
 	if err != nil {

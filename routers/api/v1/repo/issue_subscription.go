@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // AddIssueSubscription Subscribe user to issue
@@ -158,6 +159,14 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
@@ -175,15 +184,20 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	iwl, err := models.GetIssueWatchers(issue.ID)
+	iwl, err := models.GetIssueWatchers(issue.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueWatchers", err)
 		return
 	}
 
-	users, err := iwl.LoadWatchUsers()
+	var userIDs = make([]int64, 0, len(iwl))
+	for _, iw := range iwl {
+		userIDs = append(userIDs, iw.UserID)
+	}
+
+	users, err := models.GetUsersByIDs(userIDs)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadWatchUsers", err)
+		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
 		return
 	}
 

@@ -43,12 +43,14 @@ DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH = false
 ENABLE_PUSH_CREATE_USER = false
 ENABLE_PUSH_CREATE_ORG = false
 ; Comma separated list of globally disabled repo units. Allowed values: repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki
-DISABLED_REPO_UNITS = 
+DISABLED_REPO_UNITS =
 ; Comma separated list of default repo units. Allowed values: repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki.
 ; Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility.
 ; External wiki and issue tracker can't be enabled by default as it requires additional settings.
 ; Disabled repo units will not be added to new repositories regardless if it is in the default list.
 DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
+; Prefix archive files by placing them in a directory named after the repository
+PREFIX_ARCHIVE_FILES = true
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor
@@ -215,7 +217,7 @@ FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd
 PROTOCOL = http
 DOMAIN = localhost
 ROOT_URL = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
-; when STATIC_URL_PREFIX is empty it will follow APP_URL
+; when STATIC_URL_PREFIX is empty it will follow ROOT_URL
 STATIC_URL_PREFIX =
 ; The address to listen on. Either a IPv4/IPv6 address or the path to a unix socket.
 HTTP_ADDR = 0.0.0.0
@@ -282,8 +284,9 @@ DISABLE_ROUTER_LOG = false
 ; not forget to export the private key):
 ; $ openssl pkcs12 -in cert.pfx -out cert.pem -nokeys
 ; $ openssl pkcs12 -in cert.pfx -out key.pem -nocerts -nodes
-CERT_FILE = custom/https/cert.pem
-KEY_FILE = custom/https/key.pem
+; Paths are relative to CUSTOM_PATH
+CERT_FILE = https/cert.pem
+KEY_FILE = https/key.pem
 ; Root directory containing templates and static files.
 ; default is the path where Gitea is executed
 STATIC_ROOT_PATH =
@@ -308,6 +311,10 @@ LFS_CONTENT_PATH = data/lfs
 LFS_JWT_SECRET =
 ; LFS authentication validity period (in time.Duration), pushes taking longer than this may fail.
 LFS_HTTP_AUTH_EXPIRY = 20m
+; Maximum allowed LFS file size in bytes (Set to 0 for no limit).
+LFS_MAX_FILE_SIZE = 0
+; Maximum number of locks returned per page
+LFS_LOCKS_PAGING_NUM = 50
 ; Allow graceful restarts using SIGHUP to fork
 ALLOW_GRACEFUL_RESTARTS = true
 ; After a restart the parent will finish ongoing requests before
@@ -335,6 +342,10 @@ NAME = gitea
 USER = root
 ; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
+; For Postgres, schema to use if different from "public". The schema must exist beforehand,
+; the user must have creation privileges on it, and the user search path must be set
+; to the look into the schema first. e.g.:ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;
+SCHEMA =
 ; For Postgres, either "disable" (default), "require", or "verify-full"
 ; For MySQL, either "false" (default), "true", or "skip-verify"
 SSL_MODE = disable
@@ -361,8 +372,12 @@ CONN_MAX_LIFETIME = 3s
 MAX_OPEN_CONNS = 0
 
 [indexer]
-; Issue indexer type, currently support: bleve or db, default is bleve
+; Issue indexer type, currently support: bleve, db or elasticsearch, default is bleve
 ISSUE_INDEXER_TYPE = bleve
+; Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch
+ISSUE_INDEXER_CONN_STR = http://elastic:changeme@localhost:9200
+; Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
+ISSUE_INDEXER_NAME = gitea_issues
 ; Issue indexer storage path, available when ISSUE_INDEXER_TYPE is bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
 ; Issue indexer queue, currently support: channel, levelqueue or redis, default is levelqueue
@@ -625,6 +640,8 @@ SENDMAIL_PATH = sendmail
 SENDMAIL_ARGS =
 
 [cache]
+; if the cache enabled
+ENABLED = true
 ; Either "memory", "redis", or "memcache", default is "memory"
 ADAPTER = memory
 ; For "memory" only, GC interval in seconds, default is 60
@@ -636,6 +653,16 @@ HOST =
 ; Time to keep items in cache if not used, default is 16 hours.
 ; Setting it to 0 disables caching
 ITEM_TTL = 16h
+
+; Last commit cache
+[cache.last_commit]
+; if the cache enabled
+ENABLED = true
+; Time to keep items in cache if not used, default is 8760 hours.
+; Setting it to 0 disables caching
+ITEM_TTL = 8760h
+; Only enable the cache when repository's commits count great than
+COMMITS_COUNT = 1000
 
 [session]
 ; Either "memory", "file", or "redis", default is "memory"
@@ -845,7 +872,9 @@ MAX_GIT_DIFF_FILES = 100
 ; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
 ; If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
-EnableAutoGitWireProtocol = true
+ENABLE_AUTO_GIT_WIRE_PROTOCOL = true
+; Respond to pushes to a non-default branch with a URL for creating a Pull Request (if the repository has them enabled)
+PULL_REQUEST_PUSH_MESSAGE = true
 
 ; Operation timeout in seconds
 [git.timeout]

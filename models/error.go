@@ -56,6 +56,21 @@ func (err ErrNamePatternNotAllowed) Error() string {
 	return fmt.Sprintf("name pattern is not allowed [pattern: %s]", err.Pattern)
 }
 
+// ErrNameCharsNotAllowed represents a "character not allowed in name" error.
+type ErrNameCharsNotAllowed struct {
+	Name string
+}
+
+// IsErrNameCharsNotAllowed checks if an error is an ErrNameCharsNotAllowed.
+func IsErrNameCharsNotAllowed(err error) bool {
+	_, ok := err.(ErrNameCharsNotAllowed)
+	return ok
+}
+
+func (err ErrNameCharsNotAllowed) Error() string {
+	return fmt.Sprintf("User name is invalid [%s]: must be valid alpha or numeric or dash(-_) or dot characters", err.Name)
+}
+
 // ErrSSHDisabled represents an "SSH disabled" error.
 type ErrSSHDisabled struct {
 }
@@ -900,6 +915,25 @@ func (err ErrFilePathInvalid) Error() string {
 	return fmt.Sprintf("path is invalid [path: %s]", err.Path)
 }
 
+// ErrFilePathProtected represents a "FilePathProtected" kind of error.
+type ErrFilePathProtected struct {
+	Message string
+	Path    string
+}
+
+// IsErrFilePathProtected checks if an error is an ErrFilePathProtected.
+func IsErrFilePathProtected(err error) bool {
+	_, ok := err.(ErrFilePathProtected)
+	return ok
+}
+
+func (err ErrFilePathProtected) Error() string {
+	if err.Message != "" {
+		return err.Message
+	}
+	return fmt.Sprintf("path is protected and can not be changed [path: %s]", err.Path)
+}
+
 // ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo.
 type ErrUserDoesNotHaveAccessToRepo struct {
 	UserID   int64
@@ -1351,24 +1385,6 @@ func IsErrMergeUnrelatedHistories(err error) bool {
 
 func (err ErrMergeUnrelatedHistories) Error() string {
 	return fmt.Sprintf("Merge UnrelatedHistories Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
-}
-
-// ErrMergePushOutOfDate represents an error if merging fails due to unrelated histories
-type ErrMergePushOutOfDate struct {
-	Style  MergeStyle
-	StdOut string
-	StdErr string
-	Err    error
-}
-
-// IsErrMergePushOutOfDate checks if an error is a ErrMergePushOutOfDate.
-func IsErrMergePushOutOfDate(err error) bool {
-	_, ok := err.(ErrMergePushOutOfDate)
-	return ok
-}
-
-func (err ErrMergePushOutOfDate) Error() string {
-	return fmt.Sprintf("Merge PushOutOfDate Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
 }
 
 // ErrRebaseConflicts represents an error if rebase fails with a conflict

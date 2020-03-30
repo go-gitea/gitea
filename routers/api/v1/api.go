@@ -576,6 +576,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/:id").Get(user.GetPublicKey).
 					Delete(user.DeletePublicKey)
 			})
+			m.Group("/applications", func() {
+				m.Combo("/oauth2").
+					Get(user.ListOauth2Applications).
+					Post(bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application)
+				m.Delete("/oauth2/:id", user.DeleteOauth2Application)
+			}, reqToken())
 
 			m.Group("/gpg_keys", func() {
 				m.Combo("").Get(user.ListMyGPGKeys).
@@ -620,6 +626,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), context.RepoRef(), repo.Edit)
+				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
 					Put(reqToken(), notify.ReadRepoNotifications)
@@ -655,6 +662,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", context.RepoRefByType(context.RepoRefBranch), repo.GetBranch)
 				}, reqRepoReader(models.UnitTypeCode))
+				m.Group("/branch_protections", func() {
+					m.Get("", repo.ListBranchProtections)
+					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateBranchProtection)
+					m.Group("/:name", func() {
+						m.Get("", repo.GetBranchProtection)
+						m.Patch("", bind(api.EditBranchProtectionOption{}), repo.EditBranchProtection)
+						m.Delete("", repo.DeleteBranchProtection)
+					})
+				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
 				}, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(true))

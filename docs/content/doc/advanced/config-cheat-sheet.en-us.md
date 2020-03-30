@@ -68,6 +68,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
+- `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
 
 ### Repository - Pull Request (`repository.pull-request`)
 
@@ -181,8 +182,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
-- `CERT_FILE`: **custom/https/cert.pem**: Cert file path used for HTTPS.
-- `KEY_FILE`: **custom/https/key.pem**: Key file path used for HTTPS.
+- `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. From 1.11 paths are relative to `CUSTOM_PATH`.
+- `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. From 1.11 paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars.
 - `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
@@ -191,6 +192,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
+- `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
+- `LFS_LOCK_PAGING_NUM`: **50**: Maximum number of LFS Locks returned per page.
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
@@ -209,7 +212,21 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
-- `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
+- `SCHEMA`: **\<empty\>**: For PostgreSQL only, schema to use if different from "public". The schema must exist beforehand,
+  the user must have creation privileges on it, and the user search path must be set to the look into the schema first 
+  (e.g. `ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;`).
+- `SSL_MODE`: **disable**: SSL/TLS encryption mode for connecting to the database. This option is only applied for PostgreSQL and MySQL.
+  - Valid values for MySQL:
+     - `true`: Enable TLS with verification of the database server certificate against its root certificate. When selecting this option make sure that the root certificate required to validate the database server certificate (e.g. the CA certificate) is on the system certificate store of both the database and Gitea servers. See your system documentation for instructions on how to add a CA certificate to the certificate store.
+     - `false`: Disable TLS.
+     - `disable`: Alias for `false`, for compatibility with PostgreSQL.
+     - `skip-verify`: Enable TLS without database server certificate verification. Use this option if you have self-signed or invalid certificate on the database server.
+     - `prefer`: Enable TLS with fallback to non-TLS connection.
+  - Valid values for PostgreSQL:
+     - `disable`: Disable TLS.
+     - `require`: Enable TLS without any verifications.
+     - `verify-ca`: Enable TLS with verification of the database server certificate against its root certificate.
+     - `verify-full`: Enable TLS and verify the database server name matches the given certificate in either the `Common Name` or `Subject Alternative Name` fields.
 - `CHARSET`: **utf8**: For MySQL only, either "utf8" or "utf8mb4", default is "utf8". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
@@ -224,8 +241,10 @@ relation to port exhaustion.
 
 ## Indexer (`indexer`)
 
-- `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently support: bleve or db, if it's db, below issue indexer item will be invalid.
-- `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search.
+- `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently supported: `bleve`, `db` or `elasticsearch`.
+- `ISSUE_INDEXER_CONN_STR`: ****: Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch. i.e. http://elastic:changeme@localhost:9200
+- `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
+- `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch.
 - The next 4 configuration values are deprecated and should be set in `queue.issue_indexer` however are kept for backwards compatibility:
 - `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`.
 - `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the queue will be saved path.
@@ -236,6 +255,7 @@ relation to port exhaustion.
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `REPO_INDEXER_INCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **include** in the index. Use `**.txt` to match any files with .txt extension. An empty list means include all files.
 - `REPO_INDEXER_EXCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **exclude** from the index. Files that match this list will not be indexed, even if they match in `REPO_INDEXER_INCLUDE`.
+- `REPO_INDEXER_EXCLUDE_VENDORED`: **true**: Exclude vendored files from index.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 - `STARTUP_TIMEOUT`: **30s**: If the indexer takes longer than this timeout to start - fail. (This timeout will be added to the hammer time above for child processes - as bleve will not start until the previous parent is shutdown.) Set to zero to never timeout.
@@ -248,6 +268,10 @@ relation to port exhaustion.
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
 - `CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Connection string for the redis queue type.
 - `QUEUE_NAME`: **_queue**: The suffix for default redis queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overriden in the specific `queue.name` section.
+- `SET_NAME`: **_unique**: The suffix that will added to the default redis
+set name for unique queues. Individual queues will default to
+**`name`**`QUEUE_NAME`_`SET_NAME`_ but can be overridden in the specific
+`queue.name` section.
 - `WRAP_IF_NECESSARY`: **true**: Will wrap queues with a timeoutable queue if the selected queue is not ready to be created - (Only relevant for the level queue.)
 - `MAX_ATTEMPTS`: **10**: Maximum number of attempts to create the wrapped queue
 - `TIMEOUT`: **GRACEFUL_HAMMER_TIME + 30s**: Timeout the creation of the wrapped queue if it takes longer than this to create.
@@ -379,12 +403,19 @@ relation to port exhaustion.
 
 ## Cache (`cache`)
 
+- `ENABLED`: **true**: Enable the cache.
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
    - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
 - `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
+
+## Cache - LastCommitCache settings (`cache.last_commit`)
+
+- `ENABLED`: **true**: Enable the cache.
+- `ITEM_TTL`: **8760h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
+- `COMMITS_COUNT`: **1000**: Only enable the cache when repository's commits count great than.
 
 ## Session (`session`)
 
@@ -501,7 +532,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ### Cron - Repository Health Check (`cron.repo_health_check`)
 
-- `SCHEDULE`: **every 24h**: Cron syntax for scheduling repository health check.
+- `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository health check.
 - `TIMEOUT`: **60s**: Time duration syntax for health check execution timeout.
 - `ARGS`: **\<empty\>**: Arguments for command `git fsck`, e.g. `--unreachable --tags`. See more on http://git-scm.com/docs/git-fsck
 
@@ -522,6 +553,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
 - `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
+- `PULL_REQUEST_PUSH_MESSAGE`: **true**: Respond to pushes to a non-default branch with a URL for creating a Pull Request (if the repository has them enabled)
 - `VERBOSE_PUSH`: **true**: Print status information about pushes as they are being processed.
 - `VERBOSE_PUSH_DELAY`: **5s**: Only print verbose information if push takes longer than this delay.
 

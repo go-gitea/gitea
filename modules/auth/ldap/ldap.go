@@ -42,6 +42,7 @@ type Source struct {
 	UserAttributeInGroup  string // User attribute inserted into group filter
 	MemberGroupFilter     string // Query group filter to check if user is allowed to log in
 	AdminGroupFilter      string // Query group filter to check if user is admin
+	RestrictedGroupFilter string // Query group filter to check if user is restricted
 	AttributeUsername     string // Username attribute
 	AttributeName         string // First name attribute
 	AttributeSurname      string // Surname attribute
@@ -51,7 +52,9 @@ type Source struct {
 	SearchPageSize        uint32 // Search with paging page size
 	Filter                string // Query filter to validate entry
 	AdminFilter           string // Query filter to check if user is admin
+	RestrictedFilter      string // Query filter to check if user is restricted
 	Enabled               bool   // if this source is disabled
+	AllowDeactivateAll    bool   // Allow an empty search response to deactivate all users from this source
 }
 
 // SearchResult : user data
@@ -62,6 +65,7 @@ type SearchResult struct {
 	Mail         string   // E-mail address
 	SSHPublicKey []string // SSH Public Key
 	IsAdmin      bool     // if user is administrator
+	IsRestricted bool     // if user is restricted
 }
 
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
@@ -168,22 +172,48 @@ func bindUser(l *ldap.Conn, userDN, passwd string) error {
 }
 
 func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
-	if len(ls.AdminFilter) > 0 {
-		log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
-		search := ldap.NewSearchRequest(
-			userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
-			[]string{ls.AttributeName},
-			nil)
+	if len(ls.AdminFilter) == 0 {
+		return false
+	}
+	log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
+	search := ldap.NewSearchRequest(
+		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
+		[]string{ls.AttributeName},
+		nil)
 
-		sr, err := l.Search(search)
+	sr, err := l.Search(search)
 
-		if err != nil {
-			log.Error("LDAP Admin Search failed unexpectedly! (%v)", err)
-		} else if len(sr.Entries) < 1 {
-			log.Trace("LDAP Admin Search found no matching entries.")
-		} else {
-			return true
-		}
+	if err != nil {
+		log.Error("LDAP Admin Search failed unexpectedly! (%v)", err)
+	} else if len(sr.Entries) < 1 {
+		log.Trace("LDAP Admin Search found no matching entries.")
+	} else {
+		return true
+	}
+	return false
+}
+
+func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
+	if len(ls.RestrictedFilter) == 0 {
+		return false
+	}
+	if ls.RestrictedFilter == "*" {
+		return true
+	}
+	log.Trace("Checking restricted with filter %s and base %s", ls.RestrictedFilter, userDN)
+	search := ldap.NewSearchRequest(
+		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.RestrictedFilter,
+		[]string{ls.AttributeName},
+		nil)
+
+	sr, err := l.Search(search)
+
+	if err != nil {
+		log.Error("LDAP Restrictred Search failed unexpectedly! (%v)", err)
+	} else if len(sr.Entries) < 1 {
+		log.Trace("LDAP Restricted Search found no matching entries.")
+	} else {
+		return true
 	}
 	return false
 }
@@ -214,6 +244,7 @@ func (ls *Source) ProcessUserEntry(entry *ldap.Entry, l *ldap.Conn) *SearchResul
 	}
 
 	var hasAdminGroup = false
+	var hasRestrictedGroup = false
 	if len(strings.TrimSpace(ls.GroupSearchBase)) > 0 && len(strings.TrimSpace(ls.GroupSearchFilter)) > 0 {
 		var groupUID string
 		if len(strings.TrimSpace(ls.UserAttributeInGroup)) > 0 {
@@ -246,11 +277,25 @@ func (ls *Source) ProcessUserEntry(entry *ldap.Entry, l *ldap.Conn) *SearchResul
 
 		if len(strings.TrimSpace(ls.AdminGroupFilter)) > 0 {
 			hasAdminGroup = ls.CheckGroupFilter(l, sr, ls.AdminGroupFilter)
-			log.Info("LDAP user is in admin group!")
+			if hasAdminGroup {
+				log.Info("LDAP user %s is in admin group!", username)
+			}
+		}
+
+		if len(strings.TrimSpace(ls.RestrictedGroupFilter)) > 0 {
+			hasRestrictedGroup = ls.CheckGroupFilter(l, sr, ls.RestrictedFilter)
+			if hasRestrictedGroup && !hasAdminGroup {
+				log.Info("LDAP user %s is in restricted group!", username)
+			}
 		}
 	}
 
+	var isRestricted = false
+
 	isAdmin := hasAdminGroup || checkAdmin(l, ls, entry.DN)
+	if !isAdmin {
+		isRestricted = hasRestrictedGroup || checkRestricted(l, ls, entry.DN)
+	}
 
 	return &SearchResult{
 		Username:     username,
@@ -259,6 +304,7 @@ func (ls *Source) ProcessUserEntry(entry *ldap.Entry, l *ldap.Conn) *SearchResul
 		Mail:         mail,
 		SSHPublicKey: sshPublicKey,
 		IsAdmin:      isAdmin,
+		IsRestricted: isRestricted,
 	}
 }
 

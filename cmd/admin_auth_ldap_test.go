@@ -39,6 +39,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-search-base", "ou=Users,dc=full-domain-bind,dc=org",
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=full-domain-bind,dc=org)",
 				"--admin-filter", "(memberOf=cn=admin-group,ou=example,dc=full-domain-bind,dc=org)",
+				"--restricted-filter", "(memberOf=cn=restricted-group,ou=example,dc=full-domain-bind,dc=org)",
 				"--username-attribute", "uid-bind full",
 				"--firstname-attribute", "givenName-bind full",
 				"--surname-attribute", "sn-bind full",
@@ -54,6 +55,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-attribute-in-group", "uid",
 				"--member-group-filter", "(cn=user-group)",
 				"--admin-group-filter", "(cn=admin-group)",
+				"--restricted-group-filter", "(cn=restricted-group)",
 			},
 			loginSource: &models.LoginSource{
 				Type:          models.LoginLDAP,
@@ -75,6 +77,7 @@ func TestAddLdapBindDn(t *testing.T) {
 						UserAttributeInGroup:  "uid",
 						MemberGroupFilter:     "(cn=user-group)",
 						AdminGroupFilter:      "(cn=admin-group)",
+						RestrictedGroupFilter: "(cn=restricted-group)",
 						AttributeUsername:     "uid-bind full",
 						AttributeName:         "givenName-bind full",
 						AttributeSurname:      "sn-bind full",
@@ -84,6 +87,7 @@ func TestAddLdapBindDn(t *testing.T) {
 						SearchPageSize:        99,
 						Filter:                "(memberOf=cn=user-group,ou=example,dc=full-domain-bind,dc=org)",
 						AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-bind,dc=org)",
+						RestrictedFilter:      "(memberOf=cn=restricted-group,ou=example,dc=full-domain-bind,dc=org)",
 						Enabled:               true,
 					},
 				},
@@ -275,6 +279,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--user-search-base", "ou=Users,dc=full-domain-simple,dc=org",
 				"--user-filter", "(&(objectClass=posixAccount)(full-simple-cn=%s))",
 				"--admin-filter", "(memberOf=cn=admin-group,ou=example,dc=full-domain-simple,dc=org)",
+				"--restricted-filter", "(memberOf=cn=restricted-group,ou=example,dc=full-domain-simple,dc=org)",
 				"--username-attribute", "uid-simple full",
 				"--firstname-attribute", "givenName-simple full",
 				"--surname-attribute", "sn-simple full",
@@ -286,6 +291,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--user-attribute-in-group", "uid",
 				"--member-group-filter", "(cn=user-group)",
 				"--admin-group-filter", "(cn=admin-group)",
+				"--restricted-group-filter", "(cn=restricted-group)",
 			},
 			loginSource: &models.LoginSource{
 				Type:      models.LoginDLDAP,
@@ -305,6 +311,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 						UserAttributeInGroup:  "uid",
 						MemberGroupFilter:     "(cn=user-group)",
 						AdminGroupFilter:      "(cn=admin-group)",
+						RestrictedGroupFilter: "(cn=restricted-group)",
 						AttributeUsername:     "uid-simple full",
 						AttributeName:         "givenName-simple full",
 						AttributeSurname:      "sn-simple full",
@@ -312,6 +319,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 						AttributeSSHPublicKey: "publickey-simple full",
 						Filter:                "(&(objectClass=posixAccount)(full-simple-cn=%s))",
 						AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-simple,dc=org)",
+						RestrictedFilter:      "(memberOf=cn=restricted-group,ou=example,dc=full-domain-simple,dc=org)",
 						Enabled:               true,
 					},
 				},
@@ -519,6 +527,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--user-search-base", "ou=Users,dc=full-domain-bind,dc=org",
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=full-domain-bind,dc=org)",
 				"--admin-filter", "(memberOf=cn=admin-group,ou=example,dc=full-domain-bind,dc=org)",
+				"--restricted-filter", "(memberOf=cn=restricted-group,ou=example,dc=full-domain-bind,dc=org)",
 				"--username-attribute", "uid-bind full",
 				"--firstname-attribute", "givenName-bind full",
 				"--surname-attribute", "sn-bind full",
@@ -533,6 +542,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--user-attribute-in-group", "uid",
 				"--member-group-filter", "(cn=user-group)",
 				"--admin-group-filter", "(cn=admin-group)",
+				"--restricted-group-filter", "(cn=restricted-group)",
 			},
 			id: 23,
 			existingLoginSource: &models.LoginSource{
@@ -564,6 +574,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 						UserAttributeInGroup:  "uid",
 						MemberGroupFilter:     "(cn=user-group)",
 						AdminGroupFilter:      "(cn=admin-group)",
+						RestrictedGroupFilter: "(cn=restricted-group)",
 						AttributeUsername:     "uid-bind full",
 						AttributeName:         "givenName-bind full",
 						AttributeSurname:      "sn-bind full",
@@ -573,6 +584,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 						SearchPageSize:        99,
 						Filter:                "(memberOf=cn=user-group,ou=example,dc=full-domain-bind,dc=org)",
 						AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-bind,dc=org)",
+						RestrictedFilter:      "(memberOf=cn=restricted-group,ou=example,dc=full-domain-bind,dc=org)",
 						Enabled:               true,
 					},
 				},
@@ -1011,6 +1023,22 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				},
 			},
 		},
+		// case 29
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--restricted-group-filter", "(cn=restricted-group)",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						RestrictedGroupFilter: "(cn=restricted-group)",
+					},
+				},
+			},
+		},
 	}
 
 	for n, c := range cases {
@@ -1088,6 +1116,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--user-search-base", "ou=Users,dc=full-domain-simple,dc=org",
 				"--user-filter", "(&(objectClass=posixAccount)(full-simple-cn=%s))",
 				"--admin-filter", "(memberOf=cn=admin-group,ou=example,dc=full-domain-simple,dc=org)",
+				"--restricted-filter", "(memberOf=cn=restricted-group,ou=example,dc=full-domain-simple,dc=org)",
 				"--username-attribute", "uid-simple full",
 				"--firstname-attribute", "givenName-simple full",
 				"--surname-attribute", "sn-simple full",
@@ -1099,6 +1128,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--user-attribute-in-group", "uid",
 				"--member-group-filter", "(cn=user-group)",
 				"--admin-group-filter", "(cn=admin-group)",
+				"--restricted-group-filter", "(cn=restricted-group)",
 			},
 			id: 7,
 			loginSource: &models.LoginSource{
@@ -1119,6 +1149,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 						UserAttributeInGroup:  "uid",
 						MemberGroupFilter:     "(cn=user-group)",
 						AdminGroupFilter:      "(cn=admin-group)",
+						RestrictedGroupFilter: "(cn=restricted-group)",
 						AttributeUsername:     "uid-simple full",
 						AttributeName:         "givenName-simple full",
 						AttributeSurname:      "sn-simple full",
@@ -1126,6 +1157,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 						AttributeSSHPublicKey: "publickey-simple full",
 						Filter:                "(&(objectClass=posixAccount)(full-simple-cn=%s))",
 						AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-simple,dc=org)",
+						RestrictedFilter:      "(memberOf=cn=restricted-group,ou=example,dc=full-domain-simple,dc=org)",
 					},
 				},
 			},
@@ -1496,6 +1528,22 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				Cfg: &models.LDAPConfig{
 					Source: &ldap.Source{
 						AdminGroupFilter: "(cn=admin-group)",
+					},
+				},
+			},
+		},
+		// case 25
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--restricted-group-filter", "(cn=restricted-group)",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginDLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						RestrictedGroupFilter: "(cn=restricted-group)",
 					},
 				},
 			},

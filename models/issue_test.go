@@ -61,15 +61,17 @@ func TestGetIssuesByIDs(t *testing.T) {
 	testSuccess([]int64{1, 2, 3}, []int64{NonexistentID})
 }
 
-func TestGetParticipantsByIssueID(t *testing.T) {
+func TestGetParticipantIDsByIssue(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	checkParticipants := func(issueID int64, userIDs []int) {
-		participants, err := GetParticipantsByIssueID(issueID)
+		issue, err := GetIssueByID(issueID)
+		assert.NoError(t, err)
+		participants, err := issue.getParticipantIDsByIssue(x)
 		if assert.NoError(t, err) {
 			participantsIDs := make([]int, len(participants))
-			for i, u := range participants {
-				participantsIDs[i] = int(u.ID)
+			for i, uid := range participants {
+				participantsIDs[i] = int(uid)
 			}
 			sort.Ints(participantsIDs)
 			sort.Ints(userIDs)
@@ -81,7 +83,7 @@ func TestGetParticipantsByIssueID(t *testing.T) {
 	// User 2 only labeled issue1 (see fixtures/comment.yml)
 	// Users 3 and 5 made actual comments (see fixtures/comment.yml)
 	// User 3 is inactive, thus not active participant
-	checkParticipants(1, []int{5})
+	checkParticipants(1, []int{1, 5})
 }
 
 func TestIssue_ClearLabels(t *testing.T) {
@@ -139,24 +141,30 @@ func TestIssues(t *testing.T) {
 			IssuesOptions{
 				RepoIDs:  []int64{1, 3},
 				SortType: "oldest",
-				Page:     1,
-				PageSize: 4,
+				ListOptions: ListOptions{
+					Page:     1,
+					PageSize: 4,
+				},
 			},
 			[]int64{1, 2, 3, 5},
 		},
 		{
 			IssuesOptions{
 				LabelIDs: []int64{1},
-				Page:     1,
-				PageSize: 4,
+				ListOptions: ListOptions{
+					Page:     1,
+					PageSize: 4,
+				},
 			},
 			[]int64{2, 1},
 		},
 		{
 			IssuesOptions{
 				LabelIDs: []int64{1, 2},
-				Page:     1,
-				PageSize: 4,
+				ListOptions: ListOptions{
+					Page:     1,
+					PageSize: 4,
+				},
 			},
 			[]int64{}, // issues with **both** label 1 and 2, none of these issues matches, TODO: add more tests
 		},
@@ -245,6 +253,20 @@ func TestGetUserIssueStats(t *testing.T) {
 				ClosedCount:           0,
 			},
 		},
+		{
+			UserIssueStatsOptions{
+				UserID:     1,
+				FilterMode: FilterModeCreate,
+				IssueIDs:   []int64{1},
+			},
+			IssueStats{
+				YourRepositoriesCount: 0,
+				AssignCount:           1,
+				CreateCount:           1,
+				OpenCount:             1,
+				ClosedCount:           0,
+			},
+		},
 	} {
 		stats, err := GetUserIssueStats(test.Opts)
 		if !assert.NoError(t, err) {
@@ -284,6 +306,36 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, []int64{1}, ids)
+}
+
+func TestGetRepoIDsForIssuesOptions(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	for _, test := range []struct {
+		Opts            IssuesOptions
+		ExpectedRepoIDs []int64
+	}{
+		{
+			IssuesOptions{
+				AssigneeID: 2,
+			},
+			[]int64{3},
+		},
+		{
+			IssuesOptions{
+				RepoIDs: []int64{1, 2},
+			},
+			[]int64{1, 2},
+		},
+	} {
+		repoIDs, err := GetRepoIDsForIssuesOptions(&test.Opts, user)
+		assert.NoError(t, err)
+		if assert.Len(t, repoIDs, len(test.ExpectedRepoIDs)) {
+			for i, repoID := range repoIDs {
+				assert.EqualValues(t, test.ExpectedRepoIDs[i], repoID)
+			}
+		}
+	}
 }
 
 func testInsertIssue(t *testing.T, title, content string) {

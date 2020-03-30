@@ -12,9 +12,7 @@
 
 	{{template "base/footer_content" .}}
 
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/jquery/jquery.min.js?v=3.4.1"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/jquery-migrate/jquery-migrate.min.js?v=3.0.1"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/jquery.areyousure/jquery.are-you-sure.js"></script>
+	<script src="{{StaticUrlPrefix}}/js/jquery.js?v={{MD5 AppVer}}"></script>
 {{if .RequireSimpleMDE}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.js"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
@@ -25,17 +23,8 @@
 {{end}}
 
 <!-- Third-party libraries -->
-{{if .RequireHighlightJS}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/highlight/highlight.pack.js"></script>
-{{end}}
 {{if .RequireMinicolors}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.min.js"></script>
-{{end}}
-{{if .RequireDatetimepicker}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.js"></script>
-{{end}}
-{{if .RequireDropzone}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/dropzone/dropzone.js"></script>
 {{end}}
 {{if .RequireU2F}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/u2f/index.js"></script>
@@ -113,19 +102,8 @@
 	</script>
 {{end}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/emojify/emojify.custom.js"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/clipboard/clipboard.min.js"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/vue/vue.min.js"></script>
-
-	<!-- JavaScript -->
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/fomantic/semantic.min.js?v={{MD5 AppVer}}"></script>
+	<script src="{{StaticUrlPrefix}}/fomantic/semantic.min.js?v={{MD5 AppVer}}"></script>
 	<script src="{{StaticUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>
-{{if .EnableHeatmap}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/moment/moment.min.js" charset="utf-8"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.browser.js" charset="utf-8"></script>
-	<script type="text/javascript">
-		window.initHeatmap('user-heatmap', '{{.HeatmapUser}}');
-	</script>
-{{end}}
 {{template "custom/footer" .}}
 </body>
 </html>

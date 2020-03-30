@@ -1,26 +1,35 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
+/* exported timeAddManual, toggleStopwatch, cancelStopwatch */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
-import './publicPath.js';
-import './gitGraphLoader.js';
-import './semanticDropdown.js';
+import './publicpath.js';
+import './polyfills.js';
+
+import Vue from 'vue';
+import 'jquery.are-you-sure';
+import './vendor/semanticdropdown.js';
+import {svg} from './utils.js';
+
+import initContextPopups from './features/contextpopup.js';
+import initHighlight from './features/highlight.js';
+import initGitGraph from './features/gitgraph.js';
+import initClipboard from './features/clipboard.js';
+import initUserHeatmap from './features/userheatmap.js';
+import initDateTimePicker from './features/datetimepicker.js';
+import createDropzone from './features/dropzone.js';
+import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+
+const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
 
-let csrf;
-let suburl;
 let previewFileModes;
 let simpleMDEditor;
 const commentMDEditors = {};
 let codeMirrorEditor;
-
-// Disable Dropzone auto-discover because it's manually initialized
-if (typeof (Dropzone) !== 'undefined') {
-  Dropzone.autoDiscover = false;
-}
+let hljs;
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -90,7 +99,6 @@ function initEditDiffTab($form) {
   });
 }
 
-
 function initEditForm() {
   if ($('.edit.form').length === 0) {
     return;
@@ -143,7 +151,7 @@ function initRepoStatusChecker() {
     }
     $.ajax({
       type: 'GET',
-      url: `${suburl}/${repo_name}/status`,
+      url: `${AppSubUrl}/${repo_name}/status`,
       data: {
         _csrf: csrf,
       },
@@ -175,7 +183,7 @@ function initReactionSelector(parent) {
     reactions = '.reactions > ';
   }
 
-  parent.find(`${reactions}a.label`).popup({ position: 'bottom left', metadata: { content: 'title', title: 'none' } });
+  parent.find(`${reactions}a.label`).popup({position: 'bottom left', metadata: {content: 'title', title: 'none'}});
 
   parent.find(`.select-reaction > .menu > .item, ${reactions}a.label`).on('click', function (e) {
     const vm = this;
@@ -183,9 +191,7 @@ function initReactionSelector(parent) {
 
     if ($(this).hasClass('disabled')) return;
 
-    const actionURL = $(this).hasClass('item')
-      ? $(this).closest('.select-reaction').data('action-url')
-      : $(this).data('action-url');
+    const actionURL = $(this).hasClass('item') ? $(this).closest('.select-reaction').data('action-url') : $(this).data('action-url');
     const url = `${actionURL}/${$(this).hasClass('blue') ? 'unreact' : 'react'}`;
     $.ajax({
       type: 'POST',
@@ -226,9 +232,7 @@ function insertAtCursor(field, value) {
   if (field.selectionStart || field.selectionStart === 0) {
     const startPos = field.selectionStart;
     const endPos = field.selectionEnd;
-    field.value = field.value.substring(0, startPos)
-            + value
-            + field.value.substring(endPos, field.value.length);
+    field.value = field.value.substring(0, startPos) + value + field.value.substring(endPos, field.value.length);
     field.selectionStart = startPos + value.length;
     field.selectionEnd = startPos + value.length;
   } else {
@@ -253,13 +257,13 @@ function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
     return;
   }
 
-  const { items } = pasteEvent.clipboardData;
+  const {items} = pasteEvent.clipboardData;
   if (typeof items === 'undefined') {
     return;
   }
 
   for (let i = 0; i < items.length; i++) {
-    if (items[i].type.indexOf('image') === -1) continue;
+    if (!items[i].type.includes('image')) continue;
     const blob = items[i].getAsFile();
 
     if (typeof (callback) === 'function') {
@@ -273,13 +277,13 @@ function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
 function uploadFile(file, callback) {
   const xhr = new XMLHttpRequest();
 
-  xhr.onload = function () {
+  xhr.addEventListener('load', () => {
     if (xhr.status === 200) {
       callback(xhr.responseText);
     }
-  };
+  });
 
-  xhr.open('post', `${suburl}/attachments`, true);
+  xhr.open('post', `${AppSubUrl}/attachments`, true);
   xhr.setRequestHeader('X-Csrf-Token', csrf);
   const formData = new FormData();
   formData.append('file', file, file.name);
@@ -299,7 +303,7 @@ function initImagePaste(target) {
         insertAtCursor(field, `![${name}]()`);
         uploadFile(img, (res) => {
           const data = JSON.parse(res);
-          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${suburl}/attachments/${data.uuid})`);
+          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $('.files').append(input);
         });
@@ -315,7 +319,7 @@ function initSimpleMDEImagePaste(simplemde, files) {
       uploadFile(img, (res) => {
         const data = JSON.parse(res);
         const pos = simplemde.codemirror.getCursor();
-        simplemde.codemirror.replaceRange(`![${name}](${suburl}/attachments/${data.uuid})`, pos);
+        simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
         const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
         files.append(input);
       });
@@ -368,10 +372,10 @@ function initCommentForm() {
         // adding/removing labels
         if ($(this).hasClass('checked')) {
           $(this).removeClass('checked');
-          $(this).find('.octicon').removeClass('octicon-check');
+          $(this).find('.octicon-check').addClass('invisible');
         } else {
           $(this).addClass('checked');
-          $(this).find('.octicon').addClass('octicon-check');
+          $(this).find('.octicon-check').removeClass('invisible');
         }
 
         updateIssuesMeta(
@@ -386,7 +390,7 @@ function initCommentForm() {
 
       if ($(this).hasClass('checked')) {
         $(this).removeClass('checked');
-        $(this).find('.octicon').removeClass('octicon-check');
+        $(this).find('.octicon-check').addClass('invisible');
         if (hasLabelUpdateAction) {
           if (!($(this).data('id') in labels)) {
             labels[$(this).data('id')] = {
@@ -400,7 +404,7 @@ function initCommentForm() {
         }
       } else {
         $(this).addClass('checked');
-        $(this).find('.octicon').addClass('octicon-check');
+        $(this).find('.octicon-check').removeClass('invisible');
         if (hasLabelUpdateAction) {
           if (!($(this).data('id') in labels)) {
             labels[$(this).data('id')] = {
@@ -443,7 +447,7 @@ function initCommentForm() {
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
-        $(this).find('.octicon').removeClass('octicon-check');
+        $(this).find('.octicon').addClass('invisible');
       });
 
       $list.find('.item').each(function () {
@@ -484,8 +488,8 @@ function initCommentForm() {
             htmlEncode($(this).text())}</a>`);
           break;
         case '#assignee_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>`
-                        + `<img class="ui avatar image" src=${$(this).data('avatar')}>${
+          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
+                        `<img class="ui avatar image" src=${$(this).data('avatar')}>${
                           htmlEncode($(this).text())}</a>`);
       }
       $(`.ui${select_id}.list .no-select`).addClass('hide');
@@ -630,7 +634,7 @@ function initIssueComments() {
   });
 }
 
-function initRepository() {
+async function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -645,7 +649,7 @@ function initRepository() {
           window.location.href = $choice.data('url');
         }
       },
-      message: { noResults: $dropdown.data('no-results') }
+      message: {noResults: $dropdown.data('no-results')}
     });
   }
 
@@ -728,15 +732,16 @@ function initRepository() {
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
     const $datepicker = $('.milestone.datepicker');
+
+    await initDateTimePicker($datepicker.data('lang'));
+
     $datepicker.datetimepicker({
-      lang: $datepicker.data('lang'),
       inline: true,
       timepicker: false,
       startDate: $datepicker.data('start-date'),
-      formatDate: 'Y-m-d',
-      onSelectDate(ct) {
-        $('#deadline').val(ct.dateFormat('Y-m-d'));
-      }
+      onSelectDate(date) {
+        $('#deadline').val(date.toISOString().substring(0, 10));
+      },
     });
     $('#clear-date').click(() => {
       $('#deadline').val('');
@@ -788,13 +793,11 @@ function initRepository() {
         $.post(update_url, {
           _csrf: csrf,
           target_branch: targetBranch
-        })
-          .success((data) => {
-            $branchTarget.text(data.base_branch);
-          })
-          .always(() => {
-            reload();
-          });
+        }).success((data) => {
+          $branchTarget.text(data.base_branch);
+        }).always(() => {
+          reload();
+        });
       };
 
       const pullrequest_target_update_url = $(this).data('target-update-url');
@@ -805,8 +808,7 @@ function initRepository() {
         $.post($(this).data('update-url'), {
           _csrf: csrf,
           title: $editInput.val()
-        },
-        (data) => {
+        }, (data) => {
           $editInput.val(data.title);
           $issueTitle.text(data.title);
           pullrequest_targetbranch_change(pullrequest_target_update_url);
@@ -853,7 +855,7 @@ function initRepository() {
     });
 
     // Edit issue or comment content
-    $('.edit-content').click(function (event) {
+    $('.edit-content').click(async function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
@@ -869,14 +871,16 @@ function initRepository() {
         issuesTribute.attach($textarea.get());
         emojiTribute.attach($textarea.get());
 
+        let dz;
         const $dropzone = $editContentZone.find('.dropzone');
-        $dropzone.data('saved', false);
         const $files = $editContentZone.find('.comment-files');
         if ($dropzone.length > 0) {
+          $dropzone.data('saved', false);
+
           const filenameDict = {};
-          $dropzone.dropzone({
+          dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
-            headers: { 'X-Csrf-Token': csrf },
+            headers: {'X-Csrf-Token': csrf},
             maxFiles: $dropzone.data('max-file'),
             maxFilesize: $dropzone.data('max-size'),
             acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
@@ -913,15 +917,14 @@ function initRepository() {
               });
               this.on('reload', () => {
                 $.getJSON($editContentZone.data('attachment-url'), (data) => {
-                  const drop = $dropzone.get(0).dropzone;
-                  drop.removeAllFiles(true);
+                  dz.removeAllFiles(true);
                   $files.empty();
                   $.each(data, function () {
                     const imgSrc = `${$dropzone.data('upload-url')}/${this.uuid}`;
-                    drop.emit('addedfile', this);
-                    drop.emit('thumbnail', this, imgSrc);
-                    drop.emit('complete', this);
-                    drop.files.push(this);
+                    dz.emit('addedfile', this);
+                    dz.emit('thumbnail', this, imgSrc);
+                    dz.emit('complete', this);
+                    dz.files.push(this);
                     filenameDict[this.name] = {
                       submitted: true,
                       uuid: this.uuid
@@ -934,7 +937,7 @@ function initRepository() {
               });
             }
           });
-          $dropzone.get(0).dropzone.emit('reload');
+          dz.emit('reload');
         }
         // Give new write/preview data-tab name to distinguish from others
         const $editContentForm = $editContentZone.find('.ui.comment.form');
@@ -953,7 +956,7 @@ function initRepository() {
         $editContentZone.find('.cancel.button').click(() => {
           $renderContent.show();
           $editContentZone.hide();
-          $dropzone.get(0).dropzone.emit('reload');
+          dz.emit('reload');
         });
         $editContentZone.find('.save.button').click(() => {
           $renderContent.show();
@@ -989,8 +992,8 @@ function initRepository() {
             } else {
               $content.find('.ui.small.images').html(data.attachments);
             }
-            $dropzone.get(0).dropzone.emit('submit');
-            $dropzone.get(0).dropzone.emit('reload');
+            dz.emit('submit');
+            dz.emit('reload');
           });
         });
       } else {
@@ -1105,7 +1108,7 @@ function initRepository() {
   // Branches
   if ($('.repository.settings.branches').length > 0) {
     initFilterSearchDropdown('.protected-branches .dropdown');
-    $('.enable-protection, .enable-whitelist').change(function () {
+    $('.enable-protection, .enable-whitelist, .enable-statuscheck').change(function () {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
@@ -1118,14 +1121,22 @@ function initRepository() {
       }
     });
   }
+
+  // Language stats
+  if ($('.language-stats').length > 0) {
+    $('.language-stats').on('click', (e) => {
+      e.preventDefault();
+      $('.language-stats-details, .repository-menu').slideToggle();
+    });
+  }
 }
 
 function initMigration() {
   const toggleMigrations = function () {
     const authUserName = $('#auth_username').val();
     const cloneAddr = $('#clone_addr').val();
-    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0)
-        && (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com')))) {
+    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0) &&
+        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com')))) {
       $('#migrate_items').show();
     } else {
       $('#migrate_items').hide();
@@ -1185,8 +1196,7 @@ function initPullRequestReview() {
     .on('mouseenter', function () {
       const parent = $(this).closest('td');
       $(this).closest('tr').addClass(
-        parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
-          ? 'focus-lines-old' : 'focus-lines-new'
+        parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old') ? 'focus-lines-old' : 'focus-lines-new'
       );
     })
     .on('mouseleave', function () {
@@ -1207,8 +1217,8 @@ function initPullRequestReview() {
     let ntr = tr.next();
     if (!ntr.hasClass('add-comment')) {
       ntr = $(`<tr class="add-comment">${
-        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>'
-          : '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>'
+        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>' :
+          '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>'
       }</tr>`);
       tr.after(ntr);
     }
@@ -1279,7 +1289,7 @@ function initWikiForm() {
           // FIXME: still send render request when return back to edit mode
           const render = function () {
             sideBySideChanges = 0;
-            if (sideBySideTimeout != null) {
+            if (sideBySideTimeout !== null) {
               clearTimeout(sideBySideTimeout);
               sideBySideTimeout = null;
             }
@@ -1288,8 +1298,7 @@ function initWikiForm() {
               mode: 'gfm',
               context: $editArea.data('context'),
               text: plainText
-            },
-            (data) => {
+            }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
               emojify.run($('.editor-preview')[0]);
               $(preview).find('pre code').each((_, e) => {
@@ -1306,7 +1315,7 @@ function initWikiForm() {
               render();
             }
             // or delay preview by timeout
-            if (sideBySideTimeout != null) {
+            if (sideBySideTimeout !== null) {
               clearTimeout(sideBySideTimeout);
               sideBySideTimeout = null;
             }
@@ -1362,7 +1371,16 @@ function initWikiForm() {
         }, '|',
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
-        'clean-block', 'preview', 'fullscreen', 'side-by-side']
+        'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
+        {
+          name: 'revert-to-textarea',
+          action(e) {
+            e.toTextArea();
+          },
+          className: 'fa fa-file',
+          title: 'Revert to simple textarea',
+        },
+      ]
     });
     $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
 
@@ -1452,8 +1470,7 @@ function setSimpleMDE($editArea) {
           mode: 'gfm',
           context: $editArea.data('context'),
           text: plainText
-        },
-        (data) => {
+        }, (data) => {
           preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
           emojify.run($('.editor-preview')[0]);
         });
@@ -1466,7 +1483,16 @@ function setSimpleMDE($editArea) {
       'code', 'quote', '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block', 'preview', 'fullscreen', 'side-by-side']
+      'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
+      {
+        name: 'revert-to-textarea',
+        action(e) {
+          e.toTextArea();
+        },
+        className: 'fa fa-file',
+        title: 'Revert to simple textarea',
+      },
+    ]
   });
 
   return true;
@@ -1488,7 +1514,16 @@ function setCommentSimpleMDE($editArea) {
       'code', 'quote', '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block']
+      'clean-block', '|',
+      {
+        name: 'revert-to-textarea',
+        action(e) {
+          e.toTextArea();
+        },
+        className: 'fa fa-file',
+        title: 'Revert to simple textarea',
+      },
+    ]
   });
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
@@ -1613,7 +1648,7 @@ function initEditor() {
       apiCall = extension;
     }
 
-    if (previewLink.length && apiCall && previewFileModes && previewFileModes.length && previewFileModes.indexOf(apiCall) >= 0) {
+    if (previewLink.length && apiCall && previewFileModes && previewFileModes.length && previewFileModes.includes(apiCall)) {
       dataUrl = previewLink.data('url');
       previewLink.data('url', dataUrl.replace(/(.*)\/.*/i, `$1/${mode}`));
       previewLink.show();
@@ -1622,7 +1657,7 @@ function initEditor() {
     }
 
     // If this file is a Markdown extensions, we will load that editor and return
-    if (markdownFileExts.indexOf(extWithDot) >= 0) {
+    if (markdownFileExts.includes(extWithDot)) {
       if (setSimpleMDE($editArea)) {
         return;
       }
@@ -1638,7 +1673,7 @@ function initEditor() {
       CodeMirror.autoLoadMode(codeMirrorEditor, mode);
     }
 
-    if (lineWrapExtensions.indexOf(extWithDot) >= 0) {
+    if (lineWrapExtensions.includes(extWithDot)) {
       codeMirrorEditor.setOption('lineWrapping', true);
     } else {
       codeMirrorEditor.setOption('lineWrapping', false);
@@ -1663,7 +1698,7 @@ function initEditor() {
         // - https://codemirror.net/doc/manual.html#keymaps
         codeMirrorEditor.setOption('extraKeys', {
           Tab(cm) {
-            const spaces = Array(parseInt(cm.getOption('indentUnit')) + 1).join(' ');
+            const spaces = new Array(parseInt(cm.getOption('indentUnit')) + 1).join(' ');
             cm.replaceSelection(spaces);
           }
         });
@@ -1843,6 +1878,7 @@ function initAdmin() {
       case 'github':
       case 'gitlab':
       case 'gitea':
+      case 'nextcloud':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1859,23 +1895,17 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      if (!$('#oauth2_token_url').val()) {
-        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-      }
-      if (!$('#oauth2_auth_url').val()) {
-        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-      }
-      if (!$('#oauth2_profile_url').val()) {
-        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-      }
-      if (!$('#oauth2_email_url').val()) {
-        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
-      }
+      $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
+      $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
+      $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
+      $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+
       switch (provider) {
         case 'github':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
           break;
+        case 'nextcloud':
         case 'gitea':
         case 'gitlab':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
@@ -1889,7 +1919,7 @@ function initAdmin() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').change(function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size .sspi').hide();
+      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi').hide();
 
       $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
@@ -2010,7 +2040,7 @@ function searchUsers() {
   $searchUserBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/users/search?q={query}`,
+      url: `${AppSubUrl}/api/v1/users/search?q={query}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2024,7 +2054,7 @@ function searchUsers() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['login', 'full_name'],
@@ -2037,8 +2067,8 @@ function searchTeams() {
   $searchTeamBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
-      headers: { 'X-Csrf-Token': csrf },
+      url: `${AppSubUrl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
+      headers: {'X-Csrf-Token': csrf},
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2048,7 +2078,7 @@ function searchTeams() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['name', 'description'],
@@ -2061,7 +2091,7 @@ function searchRepositories() {
   $searchRepoBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
+      url: `${AppSubUrl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2071,7 +2101,7 @@ function searchRepositories() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['full_name'],
@@ -2106,28 +2136,23 @@ function initCodeView() {
       }
     }).trigger('hashchange');
   }
-  $('.ui.fold-code').on('click', (e) => {
-    const $foldButton = $(e.target);
-    if ($foldButton.hasClass('fa-chevron-down')) {
-      $(e.target).parent().next().slideUp('fast', () => {
-        $foldButton.removeClass('fa-chevron-down').addClass('fa-chevron-right');
-      });
-    } else {
-      $(e.target).parent().next().slideDown('fast', () => {
-        $foldButton.removeClass('fa-chevron-right').addClass('fa-chevron-down');
-      });
-    }
+  $('.fold-code').on('click', ({target}) => {
+    const box = target.closest('.file-content');
+    const folded = box.dataset.folded !== 'true';
+    target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
+    target.classList.remove(`fa-chevron-${folded ? 'down' : 'right'}`);
+    box.dataset.folded = String(folded);
   });
   function insertBlobExcerpt(e) {
     const $blob = $(e.target);
     const $row = $blob.parent().parent();
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
-      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e); });
+      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
       $('.diff-detail-box.ui.sticky').sticky();
     });
   }
-  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e); });
+  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
 }
 
 function initU2FAuth() {
@@ -2136,7 +2161,7 @@ function initU2FAuth() {
   }
   u2fApi.ensureSupport()
     .then(() => {
-      $.getJSON(`${suburl}/user/u2f/challenge`).success((req) => {
+      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).success((req) => {
         u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
           .then(u2fSigned)
           .catch((err) => {
@@ -2149,14 +2174,14 @@ function initU2FAuth() {
       });
     }).catch(() => {
       // Fallback in case browser do not support U2F
-      window.location.href = `${suburl}/user/two_factor`;
+      window.location.href = `${AppSubUrl}/user/two_factor`;
     });
 }
 function u2fSigned(resp) {
   $.ajax({
-    url: `${suburl}/user/u2f/sign`,
+    url: `${AppSubUrl}/user/u2f/sign`,
     type: 'POST',
-    headers: { 'X-Csrf-Token': csrf },
+    headers: {'X-Csrf-Token': csrf},
     data: JSON.stringify(resp),
     contentType: 'application/json; charset=utf-8',
   }).done((res) => {
@@ -2171,9 +2196,9 @@ function u2fRegistered(resp) {
     return;
   }
   $.ajax({
-    url: `${suburl}/user/settings/security/u2f/register`,
+    url: `${AppSubUrl}/user/settings/security/u2f/register`,
     type: 'POST',
-    headers: { 'X-Csrf-Token': csrf },
+    headers: {'X-Csrf-Token': csrf},
     data: JSON.stringify(resp),
     contentType: 'application/json; charset=utf-8',
     success() {
@@ -2196,7 +2221,6 @@ function checkError(resp) {
   return true;
 }
 
-
 function u2fError(errorType) {
   const u2fErrors = {
     browser: $('#unsupported-browser'),
@@ -2217,8 +2241,8 @@ function u2fError(errorType) {
 }
 
 function initU2FRegister() {
-  $('#register-device').modal({ allowMultiple: false });
-  $('#u2f-error').modal({ allowMultiple: false });
+  $('#register-device').modal({allowMultiple: false});
+  $('#u2f-error').modal({allowMultiple: false});
   $('#register-security-key').on('click', (e) => {
     e.preventDefault();
     u2fApi.ensureSupport()
@@ -2230,7 +2254,7 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-  $.post(`${suburl}/user/settings/security/u2f/request_register`, {
+  $.post(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
     _csrf: csrf,
     name: $('#nickname').val()
   }).success((req) => {
@@ -2293,9 +2317,9 @@ function initTemplateSearch() {
     $('#repo_template_search')
       .dropdown({
         apiSettings: {
-          url: `${suburl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
+          url: `${AppSubUrl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
           onResponse(response) {
-            const filteredResponse = { success: true, results: [] };
+            const filteredResponse = {success: true, results: []};
             filteredResponse.results.push({
               name: '',
               value: ''
@@ -2319,10 +2343,7 @@ function initTemplateSearch() {
   changeOwner();
 }
 
-$(document).ready(() => {
-  csrf = $('meta[name=_csrf]').attr('content');
-  suburl = $('meta[name=_suburl]').attr('content');
-
+$(document).ready(async () => {
   // Show exact time
   $('.time-since').each(function () {
     $(this)
@@ -2371,22 +2392,14 @@ $(document).ready(() => {
     window.location = $(this).data('href');
   });
 
-  // Highlight JS
-  if (typeof hljs !== 'undefined') {
-    const nodes = [].slice.call(document.querySelectorAll('pre code') || []);
-    for (let i = 0; i < nodes.length; i++) {
-      hljs.highlightBlock(nodes[i]);
-    }
-  }
-
   // Dropzone
   const $dropzone = $('#dropzone');
   if ($dropzone.length > 0) {
     const filenameDict = {};
 
-    new Dropzone('#dropzone', {
+    await createDropzone('#dropzone', {
       url: $dropzone.data('upload-url'),
-      headers: { 'X-Csrf-Token': csrf },
+      headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
       maxFilesize: $dropzone.data('max-size'),
       acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
@@ -2418,7 +2431,7 @@ $(document).ready(() => {
 
   // Emojify
   emojify.setConfig({
-    img_dir: `${suburl}/vendor/plugins/emojify/images`,
+    img_dir: `${AppSubUrl}/vendor/plugins/emojify/images`,
     ignore_emoticons: true
   });
   const hasEmoji = document.getElementsByClassName('has-emoji');
@@ -2431,27 +2444,11 @@ $(document).ready(() => {
     }
   }
 
-  // Clipboard JS
-  const clipboard = new Clipboard('.clipboard');
-  clipboard.on('success', (e) => {
-    e.clearSelection();
-
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-success'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
-  clipboard.on('error', (e) => {
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-error'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
   // Helpers.
   $('.delete-button').click(showDeletePopup);
   $('.add-all-button').click(showAddAllPopup);
+  $('.link-action').click(linkAction);
+  $('.link-email-action').click(linkEmailAction);
 
   $('.delete-branch-button').click(showDeletePopup);
 
@@ -2484,7 +2481,7 @@ $(document).ready(() => {
     $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
       let node = $(this);
       node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}"><span class="octicon octicon-link"></span></a>`);
+      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
     });
   });
 
@@ -2500,12 +2497,12 @@ $(document).ready(() => {
   });
 
   $('.issue-action').click(function () {
-    let { action } = this.dataset;
-    let { elementId } = this.dataset;
+    let {action} = this.dataset;
+    let {elementId} = this.dataset;
     const issueIDs = $('.issue-checkbox').children('input:checked').map(function () {
       return this.dataset.issueId;
     }).get().join();
-    const { url } = this.dataset;
+    const {url} = this.dataset;
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
@@ -2514,7 +2511,7 @@ $(document).ready(() => {
       // NOTICE: This reset of checkbox state targets Firefox caching behaviour, as the checkboxes stay checked after reload
       if (action === 'close' || action === 'open') {
         // uncheck all checkboxes
-        $('.issue-checkbox input[type="checkbox"]').each((_, e) => { e.checked = false; });
+        $('.issue-checkbox input[type="checkbox"]').each((_, e) => { e.checked = false });
       }
       reload();
     });
@@ -2556,6 +2553,7 @@ $(document).ready(() => {
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
+  initContextPopups();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2591,6 +2589,14 @@ $(document).ready(() => {
       $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
     }
   });
+
+  // parallel init of lazy-loaded features
+  [hljs] = await Promise.all([
+    initHighlight(),
+    initGitGraph(),
+    initClipboard(),
+    initUserHeatmap(),
+  ]);
 });
 
 function changeHash(hash) {
@@ -2709,6 +2715,34 @@ function showAddAllPopup() {
   return false;
 }
 
+function linkAction(e) {
+  e.preventDefault();
+  const $this = $(this);
+  const redirect = $this.data('redirect');
+  $.post($this.data('url'), {
+    _csrf: csrf
+  }).done((data) => {
+    if (data.redirect) {
+      window.location.href = data.redirect;
+    } else if (redirect) {
+      window.location.href = redirect;
+    } else {
+      window.location.reload();
+    }
+  });
+}
+
+function linkEmailAction(e) {
+  const $this = $(this);
+  $('#form-uid').val($this.data('uid'));
+  $('#form-email').val($this.data('email'));
+  $('#form-primary').val($this.data('primary'));
+  $('#form-activate').val($this.data('activate'));
+  $('#form-uid').val($this.data('uid'));
+  $('#change-email-modal').modal('show');
+  e.preventDefault();
+}
+
 function initVueComponents() {
   const vueDelimeters = ['${', '}'];
 
@@ -2758,6 +2792,7 @@ function initVueComponents() {
         reposFilter: 'all',
         searchQuery: '',
         isLoading: false,
+        staticPrefix: StaticUrlPrefix,
         repoTypes: {
           all: {
             count: 0,
@@ -2860,13 +2895,15 @@ function initVueComponents() {
 
       repoClass(repo) {
         if (repo.fork) {
-          return 'octicon octicon-repo-forked';
+          return 'octicon-repo-forked';
         } if (repo.mirror) {
-          return 'octicon octicon-repo-clone';
+          return 'octicon-repo-clone';
+        } if (repo.template) {
+          return `octicon-repo-template${repo.private ? '-private' : ''}`;
         } if (repo.private) {
-          return 'octicon octicon-lock';
+          return 'octicon-lock';
         }
-        return 'octicon octicon-repo';
+        return 'octicon-repo';
       }
     }
   });
@@ -2892,9 +2929,13 @@ function initVueApp() {
     delimiters: ['${', '}'],
     el,
     data: {
-      searchLimit: document.querySelector('meta[name=_search_limit]').content,
-      suburl: document.querySelector('meta[name=_suburl]').content,
-      uid: Number(document.querySelector('meta[name=_context_uid]').content),
+      searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
+      suburl: AppSubUrl,
+      uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
+      activityTopAuthors: window.ActivityTopAuthors || [],
+    },
+    components: {
+      ActivityTopAuthors,
     },
   });
 }
@@ -2914,102 +2955,6 @@ window.toggleStopwatch = function () {
 };
 window.cancelStopwatch = function () {
   $('#cancel_stopwatch_form').submit();
-};
-
-window.initHeatmap = function (appElementId, heatmapUser, locale) {
-  const el = document.getElementById(appElementId);
-  if (!el) {
-    return;
-  }
-
-  locale = locale || {};
-
-  locale.contributions = locale.contributions || 'contributions';
-  locale.no_contributions = locale.no_contributions || 'No contributions';
-
-  const vueDelimeters = ['${', '}'];
-
-  Vue.component('activity-heatmap', {
-    delimiters: vueDelimeters,
-
-    props: {
-      user: {
-        type: String,
-        required: true
-      },
-      suburl: {
-        type: String,
-        required: true
-      },
-      locale: {
-        type: Object,
-        required: true
-      }
-    },
-
-    data() {
-      return {
-        isLoading: true,
-        colorRange: [],
-        endDate: null,
-        values: [],
-        totalContributions: 0,
-      };
-    },
-
-    mounted() {
-      this.colorRange = [
-        this.getColor(0),
-        this.getColor(1),
-        this.getColor(2),
-        this.getColor(3),
-        this.getColor(4),
-        this.getColor(5)
-      ];
-      this.endDate = new Date();
-      this.loadHeatmap(this.user);
-    },
-
-    methods: {
-      loadHeatmap(userName) {
-        const self = this;
-        $.get(`${this.suburl}/api/v1/users/${userName}/heatmap`, (chartRawData) => {
-          const chartData = [];
-          for (let i = 0; i < chartRawData.length; i++) {
-            self.totalContributions += chartRawData[i].contributions;
-            chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
-          }
-          self.values = chartData;
-          self.isLoading = false;
-        });
-      },
-
-      getColor(idx) {
-        const el = document.createElement('div');
-        el.className = `heatmap-color-${idx}`;
-        document.body.appendChild(el);
-
-        const color = getComputedStyle(el).backgroundColor;
-
-        document.body.removeChild(el);
-
-        return color;
-      }
-    },
-
-    template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><h4 class="total-contributions" v-if="!isLoading"><span v-html="totalContributions"></span> total contributions in the last 12 months</h4><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
-  });
-
-  new Vue({
-    delimiters: vueDelimeters,
-    el,
-
-    data: {
-      suburl: document.querySelector('meta[name=_suburl]').content,
-      heatmapUser,
-      locale
-    },
-  });
 };
 
 function initFilterBranchTagDropdown(selector) {
@@ -3069,8 +3014,8 @@ function initFilterBranchTagDropdown(selector) {
           const vm = this;
 
           const items = vm.items.filter((item) => {
-            return ((vm.mode === 'branches' && item.branch) || (vm.mode === 'tags' && item.tag))
-              && (!vm.searchTerm || item.name.toLowerCase().indexOf(vm.searchTerm.toLowerCase()) >= 0);
+            return ((vm.mode === 'branches' && item.branch) || (vm.mode === 'tags' && item.tag)) &&
+              (!vm.searchTerm || item.name.toLowerCase().includes(vm.searchTerm.toLowerCase()));
           });
 
           vm.active = (items.length === 0 && vm.showCreateNewBranch ? 0 : -1);
@@ -3251,7 +3196,7 @@ function initTopicbar() {
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
             const link = $('<a class="ui repo-topic small label topic"></a>');
-            link.attr('href', `${suburl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
+            link.attr('href', `${AppSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
             link.insertBefore(last);
           }
@@ -3264,7 +3209,7 @@ function initTopicbar() {
         if (xhr.responseJSON.invalidTopics.length > 0) {
           topicPrompts.formatPrompt = xhr.responseJSON.message;
 
-          const { invalidTopics } = xhr.responseJSON;
+          const {invalidTopics} = xhr.responseJSON;
           const topicLables = topicDropdown.children('a.ui.label');
 
           topics.split(',').forEach((value, index) => {
@@ -3286,7 +3231,7 @@ function initTopicbar() {
   topicDropdown.dropdown({
     allowAdditions: true,
     forceSelection: false,
-    fields: { name: 'description', value: 'data-value' },
+    fields: {name: 'description', value: 'data-value'},
     saveRemoteData: false,
     label: {
       transition: 'horizontal flip',
@@ -3299,7 +3244,7 @@ function initTopicbar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${suburl}/api/v1/topics/search?q={encodeURIComponent(query)}`,
+      url: `${AppSubUrl}/api/v1/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {
@@ -3314,20 +3259,20 @@ function initTopicbar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, e) => { current_topics.push(e.dataset.value); });
+        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, e) => { current_topics.push(e.dataset.value) });
 
         if (res.topics) {
           let found = false;
           for (let i = 0; i < res.topics.length; i++) {
             // skip currently added tags
-            if (current_topics.indexOf(res.topics[i].topic_name) !== -1) {
+            if (current_topics.includes(res.topics[i].topic_name)) {
               continue;
             }
 
             if (res.topics[i].topic_name.toLowerCase() === query.toLowerCase()) {
               found_query = true;
             }
-            formattedResponse.results.push({ description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name });
+            formattedResponse.results.push({description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name});
             found = true;
           }
           formattedResponse.success = found;
@@ -3335,7 +3280,7 @@ function initTopicbar() {
 
         if (query.length > 0 && !found_query) {
           formattedResponse.success = true;
-          formattedResponse.results.unshift({ description: query, 'data-value': query });
+          formattedResponse.results.unshift({description: query, 'data-value': query});
         } else if (query.length > 0 && found_query) {
           formattedResponse.results.sort((a, b) => {
             if (a.description.toLowerCase() === query.toLowerCase()) return -1;
@@ -3345,7 +3290,6 @@ function initTopicbar() {
             return 0;
           });
         }
-
 
         return formattedResponse;
       },
@@ -3455,16 +3399,17 @@ function initIssueList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
-  let issueSearchUrl = `${suburl}/api/v1/repos/${repolink}/issues?q={query}`;
+  const tp = $('#type').val();
+  let issueSearchUrl = `${AppSubUrl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${suburl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}`;
+    issueSearchUrl = `${AppSubUrl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
       apiSettings: {
         url: issueSearchUrl,
         onResponse(response) {
-          const filteredResponse = { success: true, results: [] };
+          const filteredResponse = {success: true, results: []};
           const currIssueId = $('#new-dependency-drop-list').data('issue-id');
           // Parse the response from the api to work with our dropdown
           $.each(response, (_i, issue) => {
@@ -3529,6 +3474,14 @@ window.cancelCodeComment = function (btn) {
     form.closest('.comment-code-cloud').remove();
   }
 };
+
+window.submitReply = function (btn) {
+  const form = $(btn).closest('form');
+  if (form.length > 0 && form.hasClass('comment-form')) {
+    form.submit();
+  }
+};
+
 window.onOAuthLoginClick = function () {
   const oauthLoader = $('#oauth2-login-loader');
   const oauthNav = $('#oauth2-login-navigator');
@@ -3543,3 +3496,12 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
+
+// Pull SVGs via AJAX to workaround CORS issues with <use> tags
+// https://css-tricks.com/ajaxing-svg-sprite/
+$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
+  const div = document.createElement('div');
+  div.style.display = 'none';
+  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
+  document.body.insertBefore(div, document.body.childNodes[0]);
+});

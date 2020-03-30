@@ -71,7 +71,11 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "admin-group-filter",
-			Usage: "An LDAP filter specifying if a group is allowed to log in.",
+			Usage: "An LDAP filter specifying an admin user group.",
+		},
+		cli.StringFlag{
+			Name:  "restricted-group-filter",
+			Usage: "An LDAP filter specifying a restricted user group.",
 		},
 		cli.StringFlag{
 			Name:  "user-filter",
@@ -80,6 +84,14 @@ var (
 		cli.StringFlag{
 			Name:  "admin-filter",
 			Usage: "An LDAP filter specifying if a user should be given administrator privileges.",
+		},
+		cli.StringFlag{
+			Name:  "restricted-filter",
+			Usage: "An LDAP filter specifying if a user should be given restricted status.",
+		},
+		cli.BoolFlag{
+			Name:  "allow-deactivate-all",
+			Usage: "Allow empty search results to deactivate all users.",
 		},
 		cli.StringFlag{
 			Name:  "username-attribute",
@@ -239,6 +251,9 @@ func parseLdapConfig(c *cli.Context, config *models.LDAPConfig) error {
 	if c.IsSet("admin-group-filter") {
 		config.Source.AdminGroupFilter = c.String("admin-group-filter")
 	}
+	if c.IsSet("restricted-group-filter") {
+		config.Source.RestrictedGroupFilter = c.String("restricted-group-filter")
+	}
 	if c.IsSet("username-attribute") {
 		config.Source.AttributeUsername = c.String("username-attribute")
 	}
@@ -265,6 +280,12 @@ func parseLdapConfig(c *cli.Context, config *models.LDAPConfig) error {
 	}
 	if c.IsSet("admin-filter") {
 		config.Source.AdminFilter = c.String("admin-filter")
+	}
+	if c.IsSet("restricted-filter") {
+		config.Source.RestrictedFilter = c.String("restricted-filter")
+	}
+	if c.IsSet("allow-deactivate-all") {
+		config.Source.AllowDeactivateAll = c.Bool("allow-deactivate-all")
 	}
 	return nil
 }

@@ -75,6 +75,11 @@
 						<input id="admin_filter" name="admin_filter" value="{{$cfg.AdminFilter}}">
 					</div>
 					<div class="field">
+					</div>
+						<label for="restricted_filter">{{.i18n.Tr "admin.auths.restricted_filter"}}</label>
+						<input id="restricted_filter" name="restricted_filter" value="{{$cfg.RestrictedFilter}}">
+						<p class="help">{{.i18n.Tr "admin.auths.restricted_filter_helper"}}</p>
+					<div class="field">
 						<label for="group_search_base">{{.i18n.Tr "admin.auths.group_search_base"}}</label>
 						<input id="group_search_base" name="group_search_base" value="{{$cfg.GroupSearchBase}}" placeholder="e.g. ou=groups,dc=mydomain,dc=com">
 					</div>
@@ -94,6 +99,10 @@
 					<div class="field">
 						<label for="admin_group_filter">{{.i18n.Tr "admin.auths.admin_group_filter"}}</label>
 						<input id="admin_group_filter" name="admin_group_filter" value="{{$cfg.AdminGroupFilter}}" placeholder="e.g. (cn=admins)">
+					</div>
+					<div class="field">
+						<label for="restricted_group_filter">{{.i18n.Tr "admin.auths.restricted_group_filter"}}</label>
+						<input id="restricted_group_filter" name="restricted_group_filter" value="{{$cfg.RestrictedGroupFilter}}" placeholder="e.g. (cn=restricted)">
 					</div>
 					<div class="field">
 						<label for="attribute_username">{{.i18n.Tr "admin.auths.attribute_username"}}</label>
@@ -133,6 +142,12 @@
 							</div>
 						</div>
 					{{end}}
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label for="allow_deactivate_all"><strong>{{.i18n.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
+							<input id="allow_deactivate_all" name="allow_deactivate_all" type="checkbox" {{if $cfg.AllowDeactivateAll}}checked{{end}}>
+						</div>
+					</div>
 				{{end}}
 
 				<!-- SMTP -->

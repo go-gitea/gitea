@@ -11,7 +11,7 @@
 				<p>{{.i18n.Tr "install.docker_helper" "https://docs.gitea.io/en-us/install-with-docker/" | Safe}}</p>
 
 				<form class="ui form" action="{{AppSubUrl}}/install" method="post">
-					<!-- Dtabase Settings -->
+					<!-- Database Settings -->
 					<h4 class="ui dividing header">{{.i18n.Tr "install.db_title"}}</h4>
 					<p>{{.i18n.Tr "install.requite_db_desc"}}</p>
 					<div class="inline required field {{if .Err_DbType}}error{{end}}">
@@ -61,6 +61,11 @@
 									<div class="item" data-value="verify-full">Verify Full</div>
 								</div>
 							</div>
+						</div>
+						<div class="inline field {{if .Err_DbSetting}}error{{end}}">
+							<label for="db_schema">{{.i18n.Tr "install.db_schema"}}</label>
+							<input id="db_schema" name="db_schema" value="{{.db_schema}}">
+							<span class="help">{{.i18n.Tr "install.db_schema_helper"}}</span>
 						</div>
 					</div>
 
