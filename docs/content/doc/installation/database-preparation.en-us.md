@@ -267,7 +267,7 @@ In one-way TLS, database client verifies certificate sent from server during con
 
 4.  Restart MySQL to apply the setting.
 
-5.  Gitea database user have been created before, but it authenticates only against IP addresses of Gitea instance. To authenticate against domain name, recreate user. This also require TLS to connect to the database:
+5.  Gitea database user have been created earlier, but it authenticates only against IP addresses of Gitea instance. To authenticate against domain name, recreate user, and this time also require TLS to connect to the database:
 
     ```sql
     DROP USER 'gitea'@'192.0.2.10';
