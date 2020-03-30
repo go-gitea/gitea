@@ -1045,16 +1045,18 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
 	ListOptions
-	RepoIDs     []int64 // include all repos if empty
-	AssigneeID  int64
-	PosterID    int64
-	MentionedID int64
-	MilestoneID int64
-	IsClosed    util.OptionalBool
-	IsPull      util.OptionalBool
-	LabelIDs    []int64
-	SortType    string
-	IssueIDs    []int64
+	RepoIDs            []int64 // include all repos if empty
+	AssigneeID         int64
+	PosterID           int64
+	MentionedID        int64
+	MilestoneID        int64
+	IsClosed           util.OptionalBool
+	IsPull             util.OptionalBool
+	LabelIDs           []int64
+	IncludedLabelNames []string
+	ExcludedLabelNames []string
+	SortType           string
+	IssueIDs           []int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	//Search for issues that contain any of the label ids above rather than all
@@ -1161,6 +1163,14 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 				}
 			}
 		}
+	}
+
+	if len(opts.IncludedLabelNames) > 0 {
+		sess.In("issue.id", BuildLabelNamesIssueIDsCondition(opts.IncludedLabelNames))
+	}
+
+	if len(opts.ExcludedLabelNames) > 0 {
+		sess.And(builder.NotIn("issue.id", BuildLabelNamesIssueIDsCondition(opts.ExcludedLabelNames)))
 	}
 }
 
