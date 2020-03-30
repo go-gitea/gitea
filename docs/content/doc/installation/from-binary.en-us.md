@@ -33,15 +33,6 @@ gpg --keyserver pgp.mit.edu --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
 gpg --verify gitea-{{< version >}}-linux-amd64.asc gitea-{{< version >}}-linux-amd64
 ```
 
-## Test
-
-After getting a binary, it can be tested with `./gitea web` or moved to a permanent
-location. When launched manually, Gitea can be killed using `Ctrl+C`.
-
-```
-./gitea web
-```
-
 ## Recommended server configuration
 
 **NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/specific-variables.en-us.md" >}}) as well!

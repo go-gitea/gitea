@@ -313,6 +313,20 @@ func (f *NewTelegramHookForm) Validate(ctx *macaron.Context, errs binding.Errors
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewMatrixHookForm form for creating Matrix hook
+type NewMatrixHookForm struct {
+	HomeserverURL string `binding:"Required;ValidUrl"`
+	RoomID        string `binding:"Required"`
+	AccessToken   string `binding:"Required"`
+	MessageType   int
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewMatrixHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // NewMSTeamsHookForm form for creating MS Teams hook
 type NewMSTeamsHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`

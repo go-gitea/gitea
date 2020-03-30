@@ -320,7 +320,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 		return
-	} else if !isMember {
+	} else if !isMember && !ctx.User.IsAdmin {
 		ctx.NotFound()
 		return
 	}
