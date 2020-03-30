@@ -268,9 +268,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 
 		ctx.Data["OrgLabels"] = orgLabels
-		for _, v := range orgLabels {
-			labels = append(labels, v)
-		}
+		labels = append(labels, orgLabels...)
 	}
 
 	for _, l := range labels {
@@ -398,9 +396,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull boo
 		}
 
 		ctx.Data["OrgLabels"] = orgLabels
-		for _, v := range orgLabels {
-			labels = append(labels, v)
-		}
+		labels = append(labels, orgLabels...)
 	}
 
 	RetrieveRepoMilestonesAndAssignees(ctx, repo)
@@ -797,9 +793,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 
-		for _, v := range orgLabels {
-			labels = append(labels, v)
-		}
+		labels = append(labels, orgLabels...)
 	}
 
 	hasSelected := false

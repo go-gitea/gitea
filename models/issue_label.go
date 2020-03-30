@@ -125,18 +125,12 @@ func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) 
 
 // BelongsToOrg returns true if label is an organization label
 func (label *Label) BelongsToOrg() bool {
-	if label.OrgID > 0 {
-		return true
-	}
-	return false
+	return label.OrgID > 0
 }
 
 // BelongsToRepo returns true if label is a repository label
 func (label *Label) BelongsToRepo() bool {
-	if label.RepoID > 0 {
-		return true
-	}
-	return false
+	return label.RepoID > 0
 }
 
 // ForegroundColor calculates the text color for labels based

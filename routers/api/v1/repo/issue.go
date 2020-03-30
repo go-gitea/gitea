@@ -82,9 +82,9 @@ func SearchIssues(ctx *context.APIContext) {
 		TopicOnly:   false,
 		Collaborate: util.OptionalBoolNone,
 		// This needs to be a column that is not nil in fixtures or
-		// MySQL will return different results when sorting by null in some cases 
-		OrderBy:     models.SearchOrderByAlphabetically,
-		Actor:       ctx.User,
+		// MySQL will return different results when sorting by null in some cases
+		OrderBy: models.SearchOrderByAlphabetically,
+		Actor:   ctx.User,
 	}
 	if ctx.IsSigned {
 		opts.Private = true
