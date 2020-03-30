@@ -611,7 +611,7 @@ func (nl NotificationList) LoadIssues() ([]int, error) {
 
 // Without returns the notification list without the failures
 func (nl NotificationList) Without(failures []int) NotificationList {
-	if failures == nil || len(failures) == 0 {
+	if len(failures) == 0 {
 		return nl
 	}
 	remaining := make([]*Notification, 0, len(nl))

@@ -227,7 +227,7 @@ func IsErrUserNotAllowedCreateOrg(err error) bool {
 }
 
 func (err ErrUserNotAllowedCreateOrg) Error() string {
-	return fmt.Sprintf("user is not allowed to create organizations")
+	return "user is not allowed to create organizations"
 }
 
 // ErrReachLimitOfRepo represents a "ReachLimitOfRepo" kind of error.
@@ -561,7 +561,7 @@ func IsErrAccessTokenEmpty(err error) bool {
 }
 
 func (err ErrAccessTokenEmpty) Error() string {
-	return fmt.Sprintf("access token is empty")
+	return "access token is empty"
 }
 
 // ________                            .__                __  .__
@@ -1107,7 +1107,7 @@ func IsErrSHAOrCommitIDNotProvided(err error) bool {
 }
 
 func (err ErrSHAOrCommitIDNotProvided) Error() string {
-	return fmt.Sprintf("a SHA or commmit ID must be proved when updating a file")
+	return "a SHA or commmit ID must be proved when updating a file"
 }
 
 //  __      __      ___.   .__                   __
