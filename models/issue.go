@@ -1059,8 +1059,6 @@ type IssuesOptions struct {
 	IssueIDs           []int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
-	//Search for issues that contain any of the label ids above rather than all
-	HasAnyLabel bool
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
