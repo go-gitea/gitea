@@ -172,6 +172,8 @@ func HTTP(ctx *context.Context) {
 			// Assume username is token
 			authToken := authUsername
 			if !isUsernameToken {
+				// we need change status if use format as 'oauth2:<token>'
+				isUsernameToken = authUsername == "oauth2"
 				// Assume password is token
 				authToken = authPasswd
 			}
