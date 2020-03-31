@@ -47,7 +47,7 @@ func checkAndUpdateStatus(pr *models.PullRequest) {
 
 	// Make sure there is no waiting test to process before leaving the checking status.
 	if !pullRequestQueue.Exist(pr.ID) {
-		if err := pr.UpdateCols("merge_base", "status", "conflicted_files"); err != nil {
+		if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files"); err != nil {
 			log.Error("Update[%d]: %v", pr.ID, err)
 		}
 	}
