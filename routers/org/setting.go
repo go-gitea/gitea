@@ -24,7 +24,7 @@ const (
 	tplSettingsDelete base.TplName = "org/settings/delete"
 	// tplSettingsHooks template path for render hook settings
 	tplSettingsHooks base.TplName = "org/settings/hooks"
-	//
+	// tplSettingsLabels template path for render labels settings
 	tplSettingsLabels base.TplName = "org/settings/labels"
 )
 
