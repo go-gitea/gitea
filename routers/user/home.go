@@ -214,6 +214,8 @@ func Milestones(ctx *context.Context) {
 				}
 			}
 			if len(repoIDs) > 0 {
+				// Don't just let repoCond = builder.In("id", repoIDs) because user may has no permission on repoIDs
+				// But the original repoCond has a limitation
 				repoCond = repoCond.And(builder.In("id", repoIDs))
 			}
 		} else {
@@ -233,15 +235,15 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	userRepos, _, err := models.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
+	showRepos, _, err := models.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
 	}
+	sort.Sort(showRepos)
 
-	var showRepos = userRepos /*make(models.RepositoryList, 0, len(userRepos))*/
 	for i := 0; i < len(milestones); {
-		for _, repo := range userRepos {
+		for _, repo := range showRepos {
 			if milestones[i].RepoID == repo.ID {
 				milestones[i].Repo = repo
 				break
@@ -253,17 +255,6 @@ func Milestones(ctx *context.Context) {
 			continue
 		}
 
-		/*var found bool
-		for _, repo := range showRepos {
-			if milestones[i].Repo.ID == repo.ID {
-				found = true
-				break
-			}
-		}
-		if !found {
-			showRepos = append(showRepos, milestones[i].Repo)
-		}*/
-
 		milestones[i].RenderedContent = string(markdown.Render([]byte(milestones[i].Content), milestones[i].Repo.Link(), milestones[i].Repo.ComposeMetas()))
 		if milestones[i].Repo.IsTimetrackerEnabled() {
 			err := milestones[i].LoadTotalTrackedTime()
@@ -274,8 +265,6 @@ func Milestones(ctx *context.Context) {
 		}
 		i++
 	}
-
-	sort.Sort(showRepos)
 
 	milestoneStats, err := models.GetMilestonesStats(repoCond)
 	if err != nil {
