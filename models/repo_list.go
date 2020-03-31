@@ -144,6 +144,10 @@ type SearchRepoOptions struct {
 	TopicOnly bool
 	// include description in keyword search
 	IncludeDescription bool
+	// None -> include has milestones AND has no milestone
+	// True -> include just has milestones
+	// False -> include just has no milestone
+	HasMilestones util.OptionalBool
 }
 
 //SearchOrderBy is used to sort the result
@@ -171,12 +175,9 @@ const (
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
 
-// SearchRepository returns repositories based on search options,
+// SearchRepositoryCondition returns repositories based on search options,
 // it returns results in given range and number of total results.
-func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
+func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	var cond = builder.NewCond()
 
 	if opts.Private {
@@ -276,6 +277,29 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 		cond = cond.And(builder.Eq{"is_mirror": opts.Mirror == util.OptionalBoolTrue})
 	}
 
+	switch opts.HasMilestones {
+	case util.OptionalBoolTrue:
+		cond = cond.And(builder.Gt{"num_milestones": 0})
+	case util.OptionalBoolFalse:
+		cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+	}
+
+	return cond
+}
+
+// SearchRepository returns repositories based on search options,
+// it returns results in given range and number of total results.
+func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+	cond := SearchRepositoryCondition(opts)
+	return SearchRepositoryByCondition(opts, cond)
+}
+
+// SearchRepositoryByCondition search repositories by condition
+func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (RepositoryList, int64, error) {
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
@@ -296,11 +320,11 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	}
 
 	repos := make(RepositoryList, 0, opts.PageSize)
-	if err = sess.
-		Where(cond).
-		OrderBy(opts.OrderBy.String()).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Find(&repos); err != nil {
+	sess.Where(cond).OrderBy(opts.OrderBy.String())
+	if opts.PageSize > 0 {
+		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+	if err = sess.Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
