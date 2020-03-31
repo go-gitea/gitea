@@ -153,7 +153,11 @@ func (label *Label) ForegroundColor() template.CSS {
 	return template.CSS("#000")
 }
 
-// LABEL
+// .____          ___.          .__
+// |    |   _____ \_ |__   ____ |  |
+// |    |   \__  \ | __ \_/ __ \|  |
+// |    |___ / __ \| \_\ \  ___/|  |__
+// >_______ (____  /___  /\___  >____/
 
 func loadLabels(labelTemplate string) ([]string, error) {
 	list, err := GetLabelTemplateFile(labelTemplate)
@@ -318,7 +322,12 @@ func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
 		Find(&labels)
 }
 
-// REPO
+// __________                           .__  __
+// \______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
+//  |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
+//  |    |   \  ___/|  |_> >  <_> )___ \|  ||  | (  <_> )  | \/\___  |
+//  |____|_  /\___  >   __/ \____/____  >__||__|  \____/|__|   / ____|
+//         \/     \/|__|              \/                       \/
 
 // getLabelInRepoByName returns a label by Name in given repository.
 func getLabelInRepoByName(e Engine, repoID int64, labelName string) (*Label, error) {
@@ -558,7 +567,12 @@ func GetLabelsByOrgID(orgID int64, sortType string, listOptions ListOptions) ([]
 	return getLabelsByOrgID(x, orgID, sortType, listOptions)
 }
 
-//ISSUE
+// .___
+// |   | ______ ________ __   ____
+// |   |/  ___//  ___/  |  \_/ __ \
+// |   |\___ \ \___ \|  |  /\  ___/
+// |___/____  >____  >____/  \___ |
+//          \/     \/            \/
 
 func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
 	var labels []*Label
