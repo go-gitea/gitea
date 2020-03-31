@@ -172,11 +172,13 @@ func HTTP(ctx *context.Context) {
 			// Assume username is token
 			authToken := authUsername
 			if !isUsernameToken {
-				// we need change status if use format as 'oauth2:<token>'
-				isUsernameToken = authUsername == "oauth2"
 				// Assume password is token
 				authToken = authPasswd
 			}
+
+			// we need change status if use format as 'oauth2:<token>'
+			isPassWordToken := authUsername == "oauth2"
+
 			uid := sso.CheckOAuthAccessToken(authToken)
 			if uid != 0 {
 				ctx.Data["IsApiToken"] = true
@@ -190,7 +192,7 @@ func HTTP(ctx *context.Context) {
 			// Assume password is a token.
 			token, err := models.GetAccessTokenBySHA(authToken)
 			if err == nil {
-				if isUsernameToken {
+				if isUsernameToken || isPassWordToken{
 					authUser, err = models.GetUserByID(token.UID)
 					if err != nil {
 						ctx.ServerError("GetUserByID", err)
