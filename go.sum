@@ -574,10 +574,10 @@ github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141 h1:Z79lyIznnziKA
 github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141/go.mod h1:TBwoao3Q4Eb/cp+dHbXDfRTrZSsj/k7kLr2j1oWRWC0=
 github.com/urfave/cli v1.20.0 h1:fDqGv3UG/4jbVl/QkFwEdddtEDjh/5Ov6X+0B/3bPaw=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
-github.com/xanzy/go-gitlab v0.22.1 h1:TVxgHmoa35jQL+9FCkG0nwPDxU9dQZXknBTDtGaSFno=
-github.com/xanzy/go-gitlab v0.22.1/go.mod h1:t4Bmvnxj7k37S4Y17lfLx+nLqkf/oQwT2HagfWKv5Og=
 github.com/willf/bitset v1.1.10 h1:NotGKqX0KwQ72NUzqrjZq5ipPNDQex9lo3WpaS8L2sc=
 github.com/willf/bitset v1.1.10/go.mod h1:RjeCKbqT1RxIR/KWY6phxZiaY1IyutSBfGjNPySAYV4=
+github.com/xanzy/go-gitlab v0.22.1 h1:TVxgHmoa35jQL+9FCkG0nwPDxU9dQZXknBTDtGaSFno=
+github.com/xanzy/go-gitlab v0.22.1/go.mod h1:t4Bmvnxj7k37S4Y17lfLx+nLqkf/oQwT2HagfWKv5Og=
 github.com/xanzy/ssh-agent v0.2.1 h1:TCbipTQL2JiiCprBWx9frJ2eJlCYT00NmctrHxVAr70=
 github.com/xanzy/ssh-agent v0.2.1/go.mod h1:mLlQY/MoOhWBj+gOGMQkOeiEvkx+8pJSI+0Bx9h2kr4=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
