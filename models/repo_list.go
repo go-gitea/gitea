@@ -163,6 +163,10 @@ type SearchRepoOptions struct {
 	TopicOnly bool
 	// include description in keyword search
 	IncludeDescription bool
+	// None -> include has milestones AND has no milestone
+	// True -> include just has milestones
+	// False -> include just has no milestone
+	HasMilestones util.OptionalBool
 }
 
 //SearchOrderBy is used to sort the result
@@ -294,6 +298,14 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	if opts.Actor != nil && opts.Actor.IsRestricted {
 		cond = cond.And(accessibleRepositoryCondition(opts.Actor))
 	}
+
+	switch opts.HasMilestones {
+	case util.OptionalBoolTrue:
+		cond = cond.And(builder.Gt{"num_milestones": 0})
+	case util.OptionalBoolFalse:
+		cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+	}
+
 	return cond
 }
 

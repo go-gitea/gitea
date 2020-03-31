@@ -175,11 +175,12 @@ func Milestones(ctx *context.Context) {
 
 	var (
 		repoOpts = models.SearchRepoOptions{
-			Actor:      ctxUser,
-			OwnerID:    ctxUser.ID,
-			Private:    true,
-			AllPublic:  false, // Include also all public repositories of users and public organisations
-			AllLimited: false, // Include also all public repositories of limited organisations
+			Actor:         ctxUser,
+			OwnerID:       ctxUser.ID,
+			Private:       true,
+			AllPublic:     false,                 // Include also all public repositories of users and public organisations
+			AllLimited:    false,                 // Include also all public repositories of limited organisations
+			HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
 		}
 
 		userRepoCond = models.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
@@ -232,16 +233,15 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	showRepos, _, err := models.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
+	userRepos, _, err := models.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
 	}
 
-	sort.Sort(showRepos)
-
+	var showRepos = userRepos /*make(models.RepositoryList, 0, len(userRepos))*/
 	for i := 0; i < len(milestones); {
-		for _, repo := range showRepos {
+		for _, repo := range userRepos {
 			if milestones[i].RepoID == repo.ID {
 				milestones[i].Repo = repo
 				break
@@ -253,6 +253,17 @@ func Milestones(ctx *context.Context) {
 			continue
 		}
 
+		/*var found bool
+		for _, repo := range showRepos {
+			if milestones[i].Repo.ID == repo.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			showRepos = append(showRepos, milestones[i].Repo)
+		}*/
+
 		milestones[i].RenderedContent = string(markdown.Render([]byte(milestones[i].Content), milestones[i].Repo.Link(), milestones[i].Repo.ComposeMetas()))
 		if milestones[i].Repo.IsTimetrackerEnabled() {
 			err := milestones[i].LoadTotalTrackedTime()
@@ -263,6 +274,8 @@ func Milestones(ctx *context.Context) {
 		}
 		i++
 	}
+
+	sort.Sort(showRepos)
 
 	milestoneStats, err := models.GetMilestonesStats(repoCond)
 	if err != nil {
