@@ -19,7 +19,7 @@ import (
 
 	"github.com/unknwon/cae/zip"
 	"github.com/unknwon/com"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdDump represents the available dump sub-command.
@@ -30,25 +30,25 @@ var CmdDump = cli.Command{
 It can be used for backup and capture Gitea server image to send to maintainer`,
 	Action: runDump,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "file, f",
 			Value: fmt.Sprintf("gitea-dump-%d.zip", time.Now().Unix()),
 			Usage: "Name of the dump file which will be created.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "verbose, V",
 			Usage: "Show process details",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "tempdir, t",
 			Value: os.TempDir(),
 			Usage: "Temporary dir path",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "database, d",
 			Usage: "Specify the database SQL syntax",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-repository, R",
 			Usage: "Skip the repository dumping",
 		},

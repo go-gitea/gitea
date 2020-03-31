@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -33,10 +33,10 @@ var (
 		Name:        "hook",
 		Usage:       "Delegate commands to corresponding Git hooks",
 		Description: "This should only be called by Git",
-		Subcommands: []cli.Command{
-			subcmdHookPreReceive,
-			subcmdHookUpdate,
-			subcmdHookPostReceive,
+		Subcommands: []*cli.Command{
+			&subcmdHookPreReceive,
+			&subcmdHookUpdate,
+			&subcmdHookPostReceive,
 		},
 	}
 

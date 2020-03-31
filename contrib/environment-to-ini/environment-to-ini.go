@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/unknwon/com"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -51,31 +51,31 @@ func main() {
 	and "GITEA__LOG_0x2E_CONSOLE__STDERR=false". Other examples can be found
 	on the configuration cheat sheet.`
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "custom-path, C",
 			Value: setting.CustomPath,
 			Usage: "Custom path file path",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "config, c",
 			Value: setting.CustomConf,
 			Usage: "Custom configuration file path",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "work-path, w",
 			Value: setting.AppWorkPath,
 			Usage: "Set the gitea working path",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "out, o",
 			Value: "",
 			Usage: "Destination file to write to",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "clear",
 			Usage: "Clears the matched variables from the environment",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "prefix, p",
 			Value: EnvironmentPrefix,
 			Usage: "Environment prefix to look for - will be suffixed by __ (2 underscores)",

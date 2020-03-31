@@ -144,6 +144,9 @@ github.com/couchbase/vellum/regexp
 github.com/couchbase/vellum/utf8
 # github.com/couchbaselabs/go-couchbase v0.0.0-20190708161019-23e7ca2ce2b7
 github.com/couchbaselabs/go-couchbase
+# github.com/cpuguy83/go-md2man/v2 v2.0.0
+## explicit
+github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d
 ## explicit
 # github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
@@ -547,6 +550,8 @@ github.com/quasoft/websspi
 github.com/quasoft/websspi/secctx
 # github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001
 ## explicit
+# github.com/russross/blackfriday/v2 v2.0.1
+github.com/russross/blackfriday/v2
 # github.com/satori/go.uuid v1.2.0
 ## explicit
 github.com/satori/go.uuid
@@ -556,6 +561,8 @@ github.com/sergi/go-diff/diffmatchpatch
 # github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b
 ## explicit
 github.com/shurcooL/httpfs/vfsutil
+# github.com/shurcooL/sanitized_anchor_name v1.0.0
+github.com/shurcooL/sanitized_anchor_name
 # github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
 ## explicit
 github.com/shurcooL/vfsgen
@@ -627,9 +634,9 @@ github.com/unknwon/i18n
 # github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 ## explicit
 github.com/unknwon/paginater
-# github.com/urfave/cli v1.20.0
+# github.com/urfave/cli/v2 v2.2.0
 ## explicit
-github.com/urfave/cli
+github.com/urfave/cli/v2
 # github.com/willf/bitset v1.1.10
 github.com/willf/bitset
 # github.com/xanzy/ssh-agent v0.2.1

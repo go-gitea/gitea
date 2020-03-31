@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/private"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -21,10 +21,10 @@ var (
 		Name:        "manager",
 		Usage:       "Manage the running gitea process",
 		Description: "This is a command for managing the running gitea process",
-		Subcommands: []cli.Command{
-			subcmdShutdown,
-			subcmdRestart,
-			subcmdFlushQueues,
+		Subcommands: []*cli.Command{
+			&subcmdShutdown,
+			&subcmdRestart,
+			&subcmdFlushQueues,
 		},
 	}
 	subcmdShutdown = cli.Command{
@@ -42,12 +42,12 @@ var (
 		Usage:  "Flush queues in the running process",
 		Action: runFlushQueues,
 		Flags: []cli.Flag{
-			cli.DurationFlag{
+			&cli.DurationFlag{
 				Name:  "timeout",
 				Value: 60 * time.Second,
 				Usage: "Timeout for the flushing process",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "non-blocking",
 				Usage: "Set to true to not wait for flush to complete before returning",
 			},

@@ -26,7 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"xorm.io/builder"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // CmdDoctor represents the available doctor sub-command.

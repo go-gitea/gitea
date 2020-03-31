@@ -20,7 +20,7 @@ import (
 
 	context2 "github.com/gorilla/context"
 	"github.com/unknwon/com"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"
 )
@@ -33,12 +33,12 @@ var CmdWeb = cli.Command{
 and it takes care of all the other things for you`,
 	Action: runWeb,
 	Flags: []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "port, p",
 			Value: "3000",
 			Usage: "Temporary port number to prevent conflict",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "pid, P",
 			Value: "/var/run/gitea.pid",
 			Usage: "Custom pid file path",
