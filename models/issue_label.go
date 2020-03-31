@@ -262,10 +262,11 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	if label.BelongsToOrg() {
-		sess.And("org_id = ?", id)
-	} else {
-		sess.And("repo_id = ?", id)
+	if label.BelongsToOrg() && label.OrgID != id {
+		return nil
+	}
+	if label.BelongsToRepo() && label.RepoID != id {
+		return nil
 	}
 
 	if _, err = sess.ID(labelID).Delete(new(Label)); err != nil {
