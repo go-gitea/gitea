@@ -395,7 +395,7 @@ func runListUsers(c *cli.Context) error {
 	} else {
 		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\tIsAdmin\n")
 		for _, u := range users {
-			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsAdmin, u.IsActive)
+			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsActive, u.IsAdmin)
 		}
 
 	}
