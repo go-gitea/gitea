@@ -97,7 +97,7 @@ func (label *Label) CalOpenOrgIssues(repoID, labelID int64) {
 	})
 
 	for _, count := range counts {
-		label.NumOpenRepoIssues = count
+		label.NumOpenRepoIssues += count
 	}
 }
 
