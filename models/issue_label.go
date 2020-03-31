@@ -81,7 +81,7 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 	return list, nil
 }
 
-// CalOpenIssues returns the open issues of label.
+// CalOpenIssues sets the number of open issues of a label based on the already stored number of closed issues.
 func (label *Label) CalOpenIssues() {
 	label.NumOpenIssues = label.NumIssues - label.NumClosedIssues
 }
