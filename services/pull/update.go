@@ -76,6 +76,11 @@ func GetDiverging(pr *models.PullRequest) (*git.DivergeObject, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err := models.RemoveTemporaryPath(tmpRepo); err != nil {
+			log.Error("Merge: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
 	diff, err := git.GetDivergingCommits(tmpRepo, "base", "tracking")
 	return &diff, err
