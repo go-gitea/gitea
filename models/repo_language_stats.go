@@ -162,12 +162,12 @@ func CopyLanguageStat(originalRepo, destRepo *Repository) error {
 			RepoLang[i].RepoID = destRepo.ID
 			RepoLang[i].CreatedUnix = timeutil.TimeStampNow()
 		}
-		if _, err := sess.Insert(&RepoLang); err != nil {
-			return err
-		}
 		//update destRepo's indexer status
 		tmpCommitID := RepoLang[0].CommitID
 		if err := destRepo.updateIndexerStatus(sess, RepoIndexerTypeStats, tmpCommitID); err != nil {
+			return err
+		}
+		if _, err := sess.Insert(&RepoLang); err != nil {
 			return err
 		}
 	}
