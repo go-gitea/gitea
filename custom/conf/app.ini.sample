@@ -505,7 +505,7 @@ BLACKLISTED_URIS =
 [oauth2_client]
 ; Whether a new auto registered oauth2 user needs to confirm their email.
 ; Do not include to use the REGISTER_EMAIL_CONFIRM setting from the `[service]` section.
-;REGISTER_EMAIL_CONFIRM =
+REGISTER_EMAIL_CONFIRM =
 ; Scopes for the openid connect oauth2 provider (seperated by space, the openid scope is implicitly added).
 ; Typical values are profile and email.
 ; For more information about the possible values see https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims
