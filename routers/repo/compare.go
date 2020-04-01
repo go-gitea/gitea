@@ -316,7 +316,7 @@ func PrepareCompareDiff(
 	}
 
 	compareInfo.Commits = models.ValidateCommitsWithEmails(compareInfo.Commits)
-	compareInfo.Commits = models.ParseCommitsWithSignature(compareInfo.Commits)
+	compareInfo.Commits = models.ParseCommitsWithSignature(compareInfo.Commits, headRepo)
 	compareInfo.Commits = models.ParseCommitsWithStatus(compareInfo.Commits, headRepo)
 	ctx.Data["Commits"] = compareInfo.Commits
 	ctx.Data["CommitCount"] = compareInfo.Commits.Len()
@@ -335,7 +335,6 @@ func PrepareCompareDiff(
 	} else {
 		title = headBranch
 	}
-
 	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
@@ -421,11 +420,6 @@ func CompareDiff(ctx *context.Context) {
 	}
 	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
 	afterCommitID := ctx.Data["AfterCommitID"].(string)
-
-	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
-		ctx.ServerError("GetAssignees", err)
-		return
-	}
 
 	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + "..." + base.ShortSha(afterCommitID)
 
