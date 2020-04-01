@@ -162,7 +162,7 @@ If the communication between Gitea and your database instance is performed throu
 ### Prerequisites
 
 - You need two valid TLS certificates, one for the database instance (database server) and one for the Gitea instance (database client). Both certificates must be signed by a trusted CA.
-- The database certificate must contain `TLS Web Server Authentication` in the `X509v3 Extended Key Usage` extension attribute, while the client certificat needs `TLS Web Client Authentication` in the corresponding attribute.
+- The database certificate must contain `TLS Web Server Authentication` in the `X509v3 Extended Key Usage` extension attribute, while the client certificate needs `TLS Web Client Authentication` in the corresponding attribute.
 - On the database server certificate, one of `Subject Alternative Name` or `Common Name` entries must be the fully-qualified domain name (FQDN) of the database instance (e.g. `db.example.com`). On the database client certificate, one of the entries mentioned above must contain the database username that Gitea will be using to connect.
 - You need domain name mappings of both Gitea and database servers to their respective IP addresses. Either set up DNS records for them or add local mappings to `/etc/hosts` (`%WINDIR%\System32\drivers\etc\hosts` in Windows) on each system. This allows the database connections to be performed by domain name instead of IP address. See documentation of your system for details.
 
