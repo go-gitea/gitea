@@ -798,14 +798,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/commits", func() {
 					m.Get("", repo.GetAllCommits)
 					m.Group("/:ref", func() {
-						// TODO: Add m.Get("") for single commit (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
+						m.Get("", repo.GetSingleCommitByRef)
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
 					})
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
-						m.Get("/:sha", repo.GetSingleCommit)
+						m.Get("/:sha", repo.GetSingleCommitBySHA)
 					})
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
