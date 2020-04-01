@@ -74,6 +74,7 @@ func GetDiverging(pr *models.PullRequest) (*git.DivergeObject, error) {
 
 	tmpRepo, err := createTemporaryRepo(pr)
 	if err != nil {
+		log.Error("CreateTemporaryPath: %v", err)
 		return nil, err
 	}
 	defer func() {
