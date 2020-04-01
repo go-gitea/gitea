@@ -64,7 +64,7 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User) (bool, e
 
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch
 func GetDiverging(pr *models.PullRequest) (*git.DivergeObject, error) {
-	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
+	log.Trace("GetDiverging[%d]: compare commits", pr.ID)
 	if err := pr.LoadBaseRepo(); err != nil {
 		return nil, err
 	}
