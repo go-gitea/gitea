@@ -204,6 +204,9 @@ var migrations = []Migration{
 	NewMigration("Refix merge base for merged pull requests", refixMergeBase),
 	// v135 -> 136
 	NewMigration("Add OrgID column to Labels table", addOrgIDLabelColumn),
+
+	// v999 not finalized
+	NewMigration("Add CommitsAhead and CommitsBehind Column to PullRequest Table", addCommitDivergenceToPulls),
 }
 
 // Migrate database to current version

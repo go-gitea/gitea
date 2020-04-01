@@ -426,13 +426,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			return nil
 		}
 		ctx.Data["UpdateAllowed"] = allowUpdate
-
-		divergence, err := pull_service.GetDiverging(pull)
-		if err != nil {
-			ctx.ServerError("GetDiverging", err)
-			return nil
-		}
-		ctx.Data["Divergence"] = divergence
+		ctx.Data["Divergence"] = pull.GetCommitDivergence()
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())

@@ -32,7 +32,13 @@ func AddToTaskQueue(pr *models.PullRequest) {
 	go func() {
 		err := prQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
 			pr.Status = models.PullRequestStatusChecking
-			err := pr.UpdateColsIfNotMerged("status")
+			divergence, err := GetDiverging(pr)
+			if err != nil {
+				log.Error("AddToTaskQueue.GetDiverging[%d]: %v", pr.ID, err)
+			}
+			pr.CommitsAhead = divergence.Ahead
+			pr.CommitsBehind = divergence.Behind
+			err = pr.UpdateColsIfNotMerged("status", "commits_ahead", "commits_behind")
 			if err != nil {
 				log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
 			} else {
