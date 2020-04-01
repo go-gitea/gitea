@@ -202,6 +202,7 @@
 		</div>
 
 		<div class="issue list">
+			{{ $approvalCounts := .ApprovalCounts}}
 			{{range .Issues}}
 				<li class="item">
 					{{if $.CanWriteIssuesOrPulls}}
@@ -268,6 +269,16 @@
 							</a>
 						{{end}}
 						{{if .IsPull}}
+							{{$approveOfficial := call $approvalCounts .ID "approve"}}
+							{{$rejectOfficial := call $approvalCounts .ID "reject"}}
+							{{if or (gt $approveOfficial 0) (gt $rejectOfficial 0)}}
+								<span class="approvals">{{svg "octicon-check" 16}}
+									{{$.i18n.Tr (TrN $.i18n.Lang $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n") $approveOfficial}}
+								{{if or (gt $rejectOfficial 0)}}
+									<span class="rejects">{{svg "octicon-x" 16}}
+										{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
+								{{end}}
+							{{end}}
 							{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
 								<span class="conflicting">{{svg "octicon-mirror" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
 							{{end}}

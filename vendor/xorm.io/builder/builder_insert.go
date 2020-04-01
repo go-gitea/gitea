@@ -58,6 +58,8 @@ func (b *Builder) insertWriteTo(w Writer) error {
 		if e, ok := value.(expr); ok {
 			fmt.Fprintf(valBuffer, "(%s)", e.sql)
 			args = append(args, e.args...)
+		} else if value == nil {
+			fmt.Fprintf(valBuffer, `null`)
 		} else {
 			fmt.Fprint(valBuffer, "?")
 			args = append(args, value)

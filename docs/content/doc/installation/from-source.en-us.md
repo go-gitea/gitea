@@ -23,7 +23,7 @@ environment variable and to add the go bin directory or directories
 
 Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
 required to build the JavaScript and CSS files. The minimum supported Node.js
-version is 10 and the latest LTS version is recommended.
+version is {{< min-node-version >}} and the latest LTS version is recommended.
 
 **Note**: When executing make tasks that require external tools, like
 `make misspell-check`, Gitea will automatically download and build these as
@@ -31,7 +31,7 @@ necessary. To be able to use these, you must have the `"$GOPATH/bin"` directory
 on the executable path. If you don't add the go bin directory to the
 executable path, you will have to manage this yourself.
 
-**Note 2**: Go version 1.11 or higher is required. However, it is recommended to
+**Note 2**: Go version {{< min-go-version >}} or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
 <a href='{{< relref "doc/advanced/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>
@@ -81,8 +81,8 @@ git checkout v{{< version >}}  # or git checkout pr-xyz
 
 To build from source, the following programs must be present on the system:
 
-- `go` 1.11.0 or higher, see [here](https://golang.org/dl/)
-- `node` 10.0.0 or higher with `npm`, see [here](https://nodejs.org/en/download/)
+- `go` {{< min-go-version >}} or higher, see [here](https://golang.org/dl/)
+- `node` {{< min-node-version >}} or higher with `npm`, see [here](https://nodejs.org/en/download/)
 - `make`, see <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>here</a>
 
 Various [make tasks](https://github.com/go-gitea/gitea/blob/master/Makefile)
@@ -116,8 +116,8 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go 1.11](https://golang.org/dl/) or greater.
-- `make frontend` which requires [Node.js 10.0.0](https://nodejs.org/en/download/) or greater.
+- `make backend` which requires [Go {{< min-go-version >}}](https://golang.org/dl/) or greater.
+- `make frontend` which requires [Node.js {{< min-node-version >}}](https://nodejs.org/en/download/) or greater.
 
 If pre-built frontend files are present it is possible to only build the backend:
 
