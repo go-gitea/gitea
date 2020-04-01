@@ -1,4 +1,7 @@
 * text=auto eol=lf
+/vendor/** -text -eol
+/public/vendor/** -text -eol
+
 conf/* linguist-vendored
 docker/* linguist-vendored
 options/* linguist-vendored
