@@ -594,6 +594,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/feishu/:id", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 				})
 
+				m.Group("/labels", func() {
+					m.Get("", org.RetrieveLabels, org.Labels)
+					m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), org.NewLabel)
+					m.Post("/edit", bindIgnErr(auth.CreateLabelForm{}), org.UpdateLabel)
+					m.Post("/delete", org.DeleteLabel)
+					m.Post("/initialize", bindIgnErr(auth.InitializeLabelsForm{}), org.InitializeLabels)
+				})
+
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
 			})
 		}, context.OrgAssignment(true, true))

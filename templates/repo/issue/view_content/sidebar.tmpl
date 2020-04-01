@@ -15,11 +15,21 @@
 					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 				{{end}}
+				<div class="ui divider"></div>
+				{{range .OrgLabels}}
+					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+				{{end}}
 			</div>
 		</div>
 		<div class="ui labels list">
 			<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
 			{{range .Labels}}
+				<div class="item">
+					<a class="ui label has-emoji {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+				</div>
+			{{end}}
+			{{range .OrgLabels}}
 				<div class="item">
 					<a class="ui label has-emoji {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 				</div>
