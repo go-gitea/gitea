@@ -202,6 +202,8 @@ var migrations = []Migration{
 	NewMigration("Add EmailHash Table", addEmailHashTable),
 	// v134 -> v135
 	NewMigration("Refix merge base for merged pull requests", refixMergeBase),
+	// v135 -> 136
+	NewMigration("Add OrgID column to Labels table", addOrgIDLabelColumn),
 }
 
 // Migrate database to current version

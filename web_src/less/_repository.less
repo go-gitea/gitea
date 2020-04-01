@@ -1045,14 +1045,17 @@
         }
     }
 
-    .label.list {
+    .labelspage {
         list-style: none;
-        padding-top: 15px;
+        padding-top: 0;
 
         .item {
-            padding-top: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed #aaaaaa;
+            margin-top: 0;
+            margin-right: -14px;
+            margin-left: -14px;
+            padding: 10px;
+            border-bottom: 1px solid #e1e4e8;
+            border-top: none;
 
             a {
                 font-size: 15px;
@@ -1073,6 +1076,16 @@
                 font-size: 1em;
             }
         }
+
+        .item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .orglabel {
+            opacity: .7;
+        }
+
     }
 
     .milestone.list {

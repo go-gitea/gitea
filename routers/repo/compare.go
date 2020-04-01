@@ -335,7 +335,6 @@ func PrepareCompareDiff(
 	} else {
 		title = headBranch
 	}
-
 	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
