@@ -159,15 +159,13 @@ func CopyLanguageStat(originalRepo, destRepo *Repository) error {
 	}
 	if len(originalRepoLang) > 0 {
 		originalRepoLang.loadAttributes()
+		copy(destRepoLang, originalRepoLang)
 		for i := range originalRepoLang {
-			destRepoLangItem := new(LanguageStat)
+			var destRepoLangItem = *(originalRepoLang[i])
+			destRepoLangItem.ID = 0
 			destRepoLangItem.RepoID = destRepo.ID
-			destRepoLangItem.CommitID = originalRepoLang[i].CommitID
-			destRepoLangItem.IsPrimary = originalRepoLang[i].IsPrimary
-			destRepoLangItem.Language = originalRepoLang[i].Language
-			destRepoLangItem.Percentage = originalRepoLang[i].Percentage
 			destRepoLangItem.CreatedUnix = timeutil.TimeStampNow()
-			destRepoLang = append(destRepoLang, destRepoLangItem)
+			destRepoLang = append(destRepoLang, &destRepoLangItem)
 		}
 		if _, err := sess.Insert(&destRepoLang); err != nil {
 			return err
