@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/log"
 	
 	"github.com/src-d/enry/v2"
 )
@@ -178,9 +177,6 @@ func CopyLanguageStat(originalRepo, destRepo *Repository) error {
 		if err := destRepo.updateIndexerStatus(sess, RepoIndexerTypeStats, tmpCommitID); err != nil {
 			return err
 		}
-		return sess.Commit()
-	} else {
-		log.Error("original Repo language stat is null")
-		return nil
 	}
+	return sess.Commit()
 }
