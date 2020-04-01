@@ -152,24 +152,21 @@ func CopyLanguageStat(originalRepo, destRepo *Repository) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	originalRepoLang := make(LanguageStatList, 0, 6)
-	if err := sess.Where("`repo_id` = ?", originalRepo.ID).Desc("`percentage`").Find(&originalRepoLang); err != nil {
+	RepoLang := make(LanguageStatList, 0, 6)
+	if err := sess.Where("`repo_id` = ?", originalRepo.ID).Desc("`percentage`").Find(&RepoLang); err != nil {
 		return err
 	}
-	destRepoLang := make(LanguageStatList, 0, len(originalRepoLang))
-	if len(originalRepoLang) > 0 {
-		originalRepoLang.loadAttributes()
-		copy(destRepoLang, originalRepoLang)
-		for i := range originalRepoLang {
-			destRepoLangItem.ID[i] = 0
-			destRepoLangItem.RepoID[i] = destRepo.ID
-			destRepoLangItem.CreatedUnix[i] = timeutil.TimeStampNow()
+	if len(RepoLang) > 0 {
+		for i := range RepoLang {
+			RepoLang[i].ID = 0
+			RepoLang[i].RepoID = destRepo.ID
+			RepoLang[i].CreatedUnix = timeutil.TimeStampNow()
 		}
-		if _, err := sess.Insert(&destRepoLang); err != nil {
+		if _, err := sess.Insert(&RepoLang); err != nil {
 			return err
 		}
 		//update destRepo's indexer status
-		tmpCommitID := originalRepoLang[0].CommitID
+		tmpCommitID := RepoLang[0].CommitID
 		if err := destRepo.updateIndexerStatus(sess, RepoIndexerTypeStats, tmpCommitID); err != nil {
 			return err
 		}
