@@ -269,6 +269,17 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 		Find(&labelIDs)
 }
 
+// BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names
+func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
+	return builder.Select("issue_label.issue_id").
+		From("issue_label").
+		InnerJoin("label", "label.id = issue_label.label_id").
+		Where(
+			builder.In("label.name", labelNames),
+		).
+		GroupBy("issue_label.issue_id")
+}
+
 // GetLabelIDsInReposByNames returns a list of labelIDs by names in one of the given
 // repositories.
 // it silently ignores label names that do not belong to the repository.

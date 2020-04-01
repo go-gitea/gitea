@@ -7,6 +7,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/gobwas/glob"
 	"github.com/unknwon/com"
 )
 
@@ -47,6 +49,7 @@ type ProtectedBranch struct {
 	BlockOnRejectedReviews    bool     `xorm:"NOT NULL DEFAULT false"`
 	DismissStaleApprovals     bool     `xorm:"NOT NULL DEFAULT false"`
 	RequireSignedCommits      bool     `xorm:"NOT NULL DEFAULT false"`
+	ProtectedFilePatterns     string   `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
@@ -188,6 +191,22 @@ func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullReque
 	}
 
 	return rejectExist
+}
+
+// GetProtectedFilePatterns parses a semicolon separated list of protected file patterns and returns a glob.Glob slice
+func (protectBranch *ProtectedBranch) GetProtectedFilePatterns() []glob.Glob {
+	extarr := make([]glob.Glob, 0, 10)
+	for _, expr := range strings.Split(strings.ToLower(protectBranch.ProtectedFilePatterns), ";") {
+		expr = strings.TrimSpace(expr)
+		if expr != "" {
+			if g, err := glob.Compile(expr, '.', '/'); err != nil {
+				log.Info("Invalid glob expresion '%s' (skipped): %v", expr, err)
+			} else {
+				extarr = append(extarr, g)
+			}
+		}
+	}
+	return extarr
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID

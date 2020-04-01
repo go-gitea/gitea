@@ -944,6 +944,7 @@ type CreateRepoOptions struct {
 	IssueLabels    string
 	License        string
 	Readme         string
+	DefaultBranch  string
 	IsPrivate      bool
 	IsMirror       bool
 	AutoInit       bool
@@ -1432,8 +1433,10 @@ func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes [
 		return err
 	}
 
-	if _, err = sess.Insert(units); err != nil {
-		return err
+	if len(units) > 0 {
+		if _, err = sess.Insert(units); err != nil {
+			return err
+		}
 	}
 
 	return sess.Commit()

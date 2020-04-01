@@ -156,19 +156,29 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil {
 			return nil, err
 		}
-		if protectedBranch != nil && !protectedBranch.CanUserPush(doer.ID) {
-			return nil, models.ErrUserCannotCommit{
-				UserName: doer.LowerName,
-			}
-		}
-		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
-			_, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
-			if err != nil {
-				if !models.IsErrWontSign(err) {
-					return nil, err
-				}
+		if protectedBranch != nil {
+			if !protectedBranch.CanUserPush(doer.ID) {
 				return nil, models.ErrUserCannotCommit{
 					UserName: doer.LowerName,
+				}
+			}
+			if protectedBranch.RequireSignedCommits {
+				_, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
+				if err != nil {
+					if !models.IsErrWontSign(err) {
+						return nil, err
+					}
+					return nil, models.ErrUserCannotCommit{
+						UserName: doer.LowerName,
+					}
+				}
+			}
+			patterns := protectedBranch.GetProtectedFilePatterns()
+			for _, pat := range patterns {
+				if pat.Match(strings.ToLower(opts.TreePath)) {
+					return nil, models.ErrFilePathProtected{
+						Path: opts.TreePath,
+					}
 				}
 			}
 		}
@@ -436,6 +446,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	// Then push this tree to NewBranch
 	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
+		log.Error("%T %v", err, err)
 		return nil, err
 	}
 
@@ -698,7 +709,7 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 			return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 		}
 		var commits = &repo_module.PushCommits{}
-		if opts.IsNewTag() {
+		if opts.IsTag() {
 			// If is tag reference
 			tagName := opts.TagName()
 			if opts.IsDelRef() {

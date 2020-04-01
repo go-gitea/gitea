@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/unknwon/com"
-	"xorm.io/core"
 	"xorm.io/xorm"
+	"xorm.io/xorm/convert"
 )
 
 // LoginType represents an login type.
@@ -60,11 +60,11 @@ var SecurityProtocolNames = map[ldap.SecurityProtocol]string{
 
 // Ensure structs implemented interface.
 var (
-	_ core.Conversion = &LDAPConfig{}
-	_ core.Conversion = &SMTPConfig{}
-	_ core.Conversion = &PAMConfig{}
-	_ core.Conversion = &OAuth2Config{}
-	_ core.Conversion = &SSPIConfig{}
+	_ convert.Conversion = &LDAPConfig{}
+	_ convert.Conversion = &SMTPConfig{}
+	_ convert.Conversion = &PAMConfig{}
+	_ convert.Conversion = &OAuth2Config{}
+	_ convert.Conversion = &SSPIConfig{}
 )
 
 // LDAPConfig holds configuration for LDAP login source.
@@ -165,10 +165,10 @@ func (cfg *SSPIConfig) ToDB() ([]byte, error) {
 type LoginSource struct {
 	ID            int64 `xorm:"pk autoincr"`
 	Type          LoginType
-	Name          string          `xorm:"UNIQUE"`
-	IsActived     bool            `xorm:"INDEX NOT NULL DEFAULT false"`
-	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
-	Cfg           core.Conversion `xorm:"TEXT"`
+	Name          string             `xorm:"UNIQUE"`
+	IsActived     bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsSyncEnabled bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	Cfg           convert.Conversion `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`

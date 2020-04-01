@@ -9818,6 +9818,10 @@
           },
           "x-go-name": "MergeWhitelistUsernames"
         },
+        "protected_file_patterns": {
+          "type": "string",
+          "x-go-name": "ProtectedFilePatterns"
+        },
         "push_whitelist_deploy_keys": {
           "type": "boolean",
           "x-go-name": "PushWhitelistDeployKeys"
@@ -10128,6 +10132,10 @@
             "type": "string"
           },
           "x-go-name": "MergeWhitelistUsernames"
+        },
+        "protected_file_patterns": {
+          "type": "string",
+          "x-go-name": "ProtectedFilePatterns"
         },
         "push_whitelist_deploy_keys": {
           "type": "boolean",
@@ -10600,6 +10608,11 @@
           "type": "boolean",
           "x-go-name": "AutoInit"
         },
+        "default_branch": {
+          "description": "DefaultBranch of the repository (used when initializes and in template)",
+          "type": "string",
+          "x-go-name": "DefaultBranch"
+        },
         "description": {
           "description": "Description of the repository to create",
           "type": "string",
@@ -10927,6 +10940,10 @@
             "type": "string"
           },
           "x-go-name": "MergeWhitelistUsernames"
+        },
+        "protected_file_patterns": {
+          "type": "string",
+          "x-go-name": "ProtectedFilePatterns"
         },
         "push_whitelist_deploy_keys": {
           "type": "boolean",

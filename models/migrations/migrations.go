@@ -192,6 +192,16 @@ var migrations = []Migration{
 	NewMigration("fix merge base for pull requests", fixMergeBase),
 	// v129 -> v130
 	NewMigration("remove dependencies from deleted repositories", purgeUnusedDependencies),
+	// v130 -> v131
+	NewMigration("Expand webhooks for more granularity", expandWebhooks),
+	// v131 -> v132
+	NewMigration("Add IsSystemWebhook column to webhooks table", addSystemWebhookColumn),
+	// v132 -> v133
+	NewMigration("Add Branch Protection Protected Files Column", addBranchProtectionProtectedFilesColumn),
+	// v133 -> v134
+	NewMigration("Add EmailHash Table", addEmailHashTable),
+	// v134 -> v135
+	NewMigration("Refix merge base for merged pull requests", refixMergeBase),
 }
 
 // Migrate database to current version
