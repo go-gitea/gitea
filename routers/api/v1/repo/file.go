@@ -424,7 +424,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 		}
 		ctx.Error(http.StatusInternalServerError, "DeleteFile", err)
 	} else {
-		ctx.JSON(http.StatusOK, fileResponse)
+		ctx.JSON(http.StatusOK, fileResponse) // FIXME on APIv2: return http.StatusNoContent
 	}
 }
 

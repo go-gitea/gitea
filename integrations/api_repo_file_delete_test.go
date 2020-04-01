@@ -113,14 +113,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		deleteFileOptions.SHA = "badsha"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
-		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
-		expectedAPIError := context.APIError{
-			Message: "sha does not match [given: " + deleteFileOptions.SHA + ", expected: " + correctSHA + "]",
-			URL:     setting.API.SwaggerURL,
-		}
-		var apiError context.APIError
-		DecodeJSON(t, resp, &apiError)
-		assert.Equal(t, expectedAPIError, apiError)
+		resp = session.MakeRequest(t, req, http.StatusNotFound)
 
 		// Test creating a file in repo16 by user4 who does not have write access
 		fileID++
