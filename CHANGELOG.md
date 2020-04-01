@@ -12,10 +12,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Protect against NPEs in notifications list (#10879) (#10883)
   * Convert plumbing.ErrObjectNotFound to git.ErrNotExist in getCommit (#10862) (#10868)
   * Convert plumbing.ErrReferenceNotFound to git.ErrNotExist in GetRefCommitID (#10676) (#10797)
-  * account for empty lines in receive-hook message (#10773) (#10784)
+  * Account for empty lines in receive-hook message (#10773) (#10784)
   * Fix bug on branch API (#10767) (#10775)
   * Migrate to go-git/go-git v5.0.0 (#10735) (#10753)
-  * FIx hiding of fields in authorization source page (#10734) (#10752)
+  * Fix hiding of fields in authorization source page (#10734) (#10752)
   * Prevent default for linkAction (#10742) (#10743)
 
 
