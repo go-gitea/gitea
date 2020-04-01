@@ -38,7 +38,7 @@
 			{{template "repo/issue/branch_selector_field" .}}
 
 			<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
-			<div class="ui {{if not .Labels}}disabled{{end}} floating jump select-label dropdown">
+			<div class="ui {{if and (not .Labels) (not .OrgLabels)}}disabled{{end}} floating jump select-label dropdown">
 				<span class="text">
 					<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
 					{{svg "octicon-gear" 16}}
@@ -49,12 +49,20 @@
 						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 					{{end}}
+					<div class="ui divider"></div>
+					{{range .OrgLabels}}
+						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+					{{end}}
 				</div>
 			</div>
 			<div class="ui labels list">
 				<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
 				{{range .Labels}}
 					<a class="{{if not .IsChecked}}hide{{end}} item" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}"><span class="label color" style="background-color: {{.Color}}"></span> <span class="text has-emoji">{{.Name}}</span></a>
+				{{end}}
+				{{range .OrgLabels}}
+					<a class="{{if not .IsChecked}}hide{{end}} item" id="label_{{.ID}}" href="/issues?labels={{.ID}}"><span class="label color" style="background-color: {{.Color}}"></span> <span class="text has-emoji">{{.Name}}</span></a>
 				{{end}}
 			</div>
 

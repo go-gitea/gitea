@@ -120,7 +120,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	if pr.Status == models.PullRequestStatusChecking {
 		pr.Status = models.PullRequestStatusMergeable
 	}
-	if err := pr.UpdateCols("status, conflicted_files, base_branch"); err != nil {
+	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "base_branch"); err != nil {
 		return err
 	}
 
@@ -236,16 +236,15 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
 func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
-
-	if err = pr.GetHeadRepo(); err != nil {
-		return false, fmt.Errorf("GetHeadRepo: %v", err)
+	if err = pr.LoadHeadRepo(); err != nil {
+		return false, fmt.Errorf("LoadHeadRepo: %v", err)
 	} else if pr.HeadRepo == nil {
 		// corrupt data assumed changed
 		return true, nil
 	}
 
-	if err = pr.GetBaseRepo(); err != nil {
-		return false, fmt.Errorf("GetBaseRepo: %v", err)
+	if err = pr.LoadBaseRepo(); err != nil {
+		return false, fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
 	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())

@@ -71,9 +71,9 @@
 						<div class="ui right operate">
 							<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-pencil" 16}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 							{{if .IsClosed}}
-								<a href="{{$.Link}}/{{.ID}}/open" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-check" 16}} {{$.i18n.Tr "repo.milestones.open"}}</a>
+								<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 16}} {{$.i18n.Tr "repo.milestones.open"}}</a>
 							{{else}}
-								<a href="{{$.Link}}/{{.ID}}/close" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-x" 16}} {{$.i18n.Tr "repo.milestones.close"}}</a>
+								<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 16}} {{$.i18n.Tr "repo.milestones.close"}}</a>
 							{{end}}
 							<a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trashcan" 16}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 						</div>

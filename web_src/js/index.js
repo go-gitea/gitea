@@ -2,39 +2,34 @@
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
-import './publicPath.js';
+import './publicpath.js';
 import './polyfills.js';
 
 import Vue from 'vue';
 import 'jquery.are-you-sure';
-import './vendor/semanticDropdown.js';
-import { svg } from './utils.js';
+import './vendor/semanticdropdown.js';
+import {svg} from './utils.js';
 
-import initContextPopups from './features/contextPopup.js';
+import initContextPopups from './features/contextpopup.js';
 import initHighlight from './features/highlight.js';
-import initGitGraph from './features/gitGraph.js';
+import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
-import initUserHeatmap from './features/userHeatmap.js';
-
+import initUserHeatmap from './features/userheatmap.js';
+import initDateTimePicker from './features/datetimepicker.js';
+import createDropzone from './features/dropzone.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
-const { AppSubUrl, StaticUrlPrefix } = window.config;
+const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
 
-let csrf;
 let previewFileModes;
 let simpleMDEditor;
 const commentMDEditors = {};
 let codeMirrorEditor;
 let hljs;
-
-// Disable Dropzone auto-discover because it's manually initialized
-if (typeof (Dropzone) !== 'undefined') {
-  Dropzone.autoDiscover = false;
-}
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -104,7 +99,6 @@ function initEditDiffTab($form) {
   });
 }
 
-
 function initEditForm() {
   if ($('.edit.form').length === 0) {
     return;
@@ -127,6 +121,39 @@ function initBranchSelector() {
     $selectBranch.find('.reference .text').removeClass('black');
     $($(this).data('target')).css('display', 'block');
     $(this).find('.text').addClass('black');
+    return false;
+  });
+}
+
+function initLabelEdit() {
+// Create label
+  const $newLabelPanel = $('.new-label.segment');
+  $('.new-label.button').click(() => {
+    $newLabelPanel.show();
+  });
+  $('.new-label.segment .cancel').click(() => {
+    $newLabelPanel.hide();
+  });
+
+  $('.color-picker').each(function () {
+    $(this).minicolors();
+  });
+  $('.precolors .color').click(function () {
+    const color_hex = $(this).data('color-hex');
+    $('.color-picker').val(color_hex);
+    $('.minicolors-swatch-color').css('background-color', color_hex);
+  });
+  $('.edit-label-button').click(function () {
+    $('#label-modal-id').val($(this).data('id'));
+    $('.edit-label .new-label-input').val($(this).data('title'));
+    $('.edit-label .new-label-desc-input').val($(this).data('description'));
+    $('.edit-label .color-picker').val($(this).data('color'));
+    $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
+    $('.edit-label.modal').modal({
+      onApprove() {
+        $('.edit-label.form').submit();
+      }
+    }).modal('show');
     return false;
   });
 }
@@ -189,7 +216,7 @@ function initReactionSelector(parent) {
     reactions = '.reactions > ';
   }
 
-  parent.find(`${reactions}a.label`).popup({ position: 'bottom left', metadata: { content: 'title', title: 'none' } });
+  parent.find(`${reactions}a.label`).popup({position: 'bottom left', metadata: {content: 'title', title: 'none'}});
 
   parent.find(`.select-reaction > .menu > .item, ${reactions}a.label`).on('click', function (e) {
     const vm = this;
@@ -197,9 +224,7 @@ function initReactionSelector(parent) {
 
     if ($(this).hasClass('disabled')) return;
 
-    const actionURL = $(this).hasClass('item')
-      ? $(this).closest('.select-reaction').data('action-url')
-      : $(this).data('action-url');
+    const actionURL = $(this).hasClass('item') ? $(this).closest('.select-reaction').data('action-url') : $(this).data('action-url');
     const url = `${actionURL}/${$(this).hasClass('blue') ? 'unreact' : 'react'}`;
     $.ajax({
       type: 'POST',
@@ -240,9 +265,7 @@ function insertAtCursor(field, value) {
   if (field.selectionStart || field.selectionStart === 0) {
     const startPos = field.selectionStart;
     const endPos = field.selectionEnd;
-    field.value = field.value.substring(0, startPos)
-            + value
-            + field.value.substring(endPos, field.value.length);
+    field.value = field.value.substring(0, startPos) + value + field.value.substring(endPos, field.value.length);
     field.selectionStart = startPos + value.length;
     field.selectionEnd = startPos + value.length;
   } else {
@@ -267,13 +290,13 @@ function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
     return;
   }
 
-  const { items } = pasteEvent.clipboardData;
+  const {items} = pasteEvent.clipboardData;
   if (typeof items === 'undefined') {
     return;
   }
 
   for (let i = 0; i < items.length; i++) {
-    if (items[i].type.indexOf('image') === -1) continue;
+    if (!items[i].type.includes('image')) continue;
     const blob = items[i].getAsFile();
 
     if (typeof (callback) === 'function') {
@@ -287,11 +310,11 @@ function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
 function uploadFile(file, callback) {
   const xhr = new XMLHttpRequest();
 
-  xhr.onload = function () {
+  xhr.addEventListener('load', () => {
     if (xhr.status === 200) {
       callback(xhr.responseText);
     }
-  };
+  });
 
   xhr.open('post', `${AppSubUrl}/attachments`, true);
   xhr.setRequestHeader('X-Csrf-Token', csrf);
@@ -498,8 +521,8 @@ function initCommentForm() {
             htmlEncode($(this).text())}</a>`);
           break;
         case '#assignee_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>`
-                        + `<img class="ui avatar image" src=${$(this).data('avatar')}>${
+          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
+                        `<img class="ui avatar image" src=${$(this).data('avatar')}>${
                           htmlEncode($(this).text())}</a>`);
       }
       $(`.ui${select_id}.list .no-select`).addClass('hide');
@@ -644,7 +667,7 @@ function initIssueComments() {
   });
 }
 
-function initRepository() {
+async function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -659,7 +682,7 @@ function initRepository() {
           window.location.href = $choice.data('url');
         }
       },
-      message: { noResults: $dropdown.data('no-results') }
+      message: {noResults: $dropdown.data('no-results')}
     });
   }
 
@@ -707,50 +730,22 @@ function initRepository() {
 
   // Labels
   if ($('.repository.labels').length > 0) {
-    // Create label
-    const $newLabelPanel = $('.new-label.segment');
-    $('.new-label.button').click(() => {
-      $newLabelPanel.show();
-    });
-    $('.new-label.segment .cancel').click(() => {
-      $newLabelPanel.hide();
-    });
-
-    $('.color-picker').each(function () {
-      $(this).minicolors();
-    });
-    $('.precolors .color').click(function () {
-      const color_hex = $(this).data('color-hex');
-      $('.color-picker').val(color_hex);
-      $('.minicolors-swatch-color').css('background-color', color_hex);
-    });
-    $('.edit-label-button').click(function () {
-      $('#label-modal-id').val($(this).data('id'));
-      $('.edit-label .new-label-input').val($(this).data('title'));
-      $('.edit-label .new-label-desc-input').val($(this).data('description'));
-      $('.edit-label .color-picker').val($(this).data('color'));
-      $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
-      $('.edit-label.modal').modal({
-        onApprove() {
-          $('.edit-label.form').submit();
-        }
-      }).modal('show');
-      return false;
-    });
+    initLabelEdit();
   }
 
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
     const $datepicker = $('.milestone.datepicker');
+
+    await initDateTimePicker($datepicker.data('lang'));
+
     $datepicker.datetimepicker({
-      lang: $datepicker.data('lang'),
       inline: true,
       timepicker: false,
       startDate: $datepicker.data('start-date'),
-      formatDate: 'Y-m-d',
-      onSelectDate(ct) {
-        $('#deadline').val(ct.dateFormat('Y-m-d'));
-      }
+      onSelectDate(date) {
+        $('#deadline').val(date.toISOString().substring(0, 10));
+      },
     });
     $('#clear-date').click(() => {
       $('#deadline').val('');
@@ -802,13 +797,11 @@ function initRepository() {
         $.post(update_url, {
           _csrf: csrf,
           target_branch: targetBranch
-        })
-          .success((data) => {
-            $branchTarget.text(data.base_branch);
-          })
-          .always(() => {
-            reload();
-          });
+        }).success((data) => {
+          $branchTarget.text(data.base_branch);
+        }).always(() => {
+          reload();
+        });
       };
 
       const pullrequest_target_update_url = $(this).data('target-update-url');
@@ -819,8 +812,7 @@ function initRepository() {
         $.post($(this).data('update-url'), {
           _csrf: csrf,
           title: $editInput.val()
-        },
-        (data) => {
+        }, (data) => {
           $editInput.val(data.title);
           $issueTitle.text(data.title);
           pullrequest_targetbranch_change(pullrequest_target_update_url);
@@ -867,7 +859,7 @@ function initRepository() {
     });
 
     // Edit issue or comment content
-    $('.edit-content').click(function (event) {
+    $('.edit-content').click(async function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
@@ -883,14 +875,16 @@ function initRepository() {
         issuesTribute.attach($textarea.get());
         emojiTribute.attach($textarea.get());
 
+        let dz;
         const $dropzone = $editContentZone.find('.dropzone');
-        $dropzone.data('saved', false);
         const $files = $editContentZone.find('.comment-files');
         if ($dropzone.length > 0) {
+          $dropzone.data('saved', false);
+
           const filenameDict = {};
-          $dropzone.dropzone({
+          dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
-            headers: { 'X-Csrf-Token': csrf },
+            headers: {'X-Csrf-Token': csrf},
             maxFiles: $dropzone.data('max-file'),
             maxFilesize: $dropzone.data('max-size'),
             acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
@@ -927,15 +921,14 @@ function initRepository() {
               });
               this.on('reload', () => {
                 $.getJSON($editContentZone.data('attachment-url'), (data) => {
-                  const drop = $dropzone.get(0).dropzone;
-                  drop.removeAllFiles(true);
+                  dz.removeAllFiles(true);
                   $files.empty();
                   $.each(data, function () {
                     const imgSrc = `${$dropzone.data('upload-url')}/${this.uuid}`;
-                    drop.emit('addedfile', this);
-                    drop.emit('thumbnail', this, imgSrc);
-                    drop.emit('complete', this);
-                    drop.files.push(this);
+                    dz.emit('addedfile', this);
+                    dz.emit('thumbnail', this, imgSrc);
+                    dz.emit('complete', this);
+                    dz.files.push(this);
                     filenameDict[this.name] = {
                       submitted: true,
                       uuid: this.uuid
@@ -948,7 +941,7 @@ function initRepository() {
               });
             }
           });
-          $dropzone.get(0).dropzone.emit('reload');
+          dz.emit('reload');
         }
         // Give new write/preview data-tab name to distinguish from others
         const $editContentForm = $editContentZone.find('.ui.comment.form');
@@ -967,7 +960,7 @@ function initRepository() {
         $editContentZone.find('.cancel.button').click(() => {
           $renderContent.show();
           $editContentZone.hide();
-          $dropzone.get(0).dropzone.emit('reload');
+          dz.emit('reload');
         });
         $editContentZone.find('.save.button').click(() => {
           $renderContent.show();
@@ -1003,8 +996,8 @@ function initRepository() {
             } else {
               $content.find('.ui.small.images').html(data.attachments);
             }
-            $dropzone.get(0).dropzone.emit('submit');
-            $dropzone.get(0).dropzone.emit('reload');
+            dz.emit('submit');
+            dz.emit('reload');
           });
         });
       } else {
@@ -1146,8 +1139,8 @@ function initMigration() {
   const toggleMigrations = function () {
     const authUserName = $('#auth_username').val();
     const cloneAddr = $('#clone_addr').val();
-    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0)
-        && (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com')))) {
+    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0) &&
+        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com')))) {
       $('#migrate_items').show();
     } else {
       $('#migrate_items').hide();
@@ -1207,8 +1200,7 @@ function initPullRequestReview() {
     .on('mouseenter', function () {
       const parent = $(this).closest('td');
       $(this).closest('tr').addClass(
-        parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
-          ? 'focus-lines-old' : 'focus-lines-new'
+        parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old') ? 'focus-lines-old' : 'focus-lines-new'
       );
     })
     .on('mouseleave', function () {
@@ -1229,8 +1221,8 @@ function initPullRequestReview() {
     let ntr = tr.next();
     if (!ntr.hasClass('add-comment')) {
       ntr = $(`<tr class="add-comment">${
-        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>'
-          : '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>'
+        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>' :
+          '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>'
       }</tr>`);
       tr.after(ntr);
     }
@@ -1301,7 +1293,7 @@ function initWikiForm() {
           // FIXME: still send render request when return back to edit mode
           const render = function () {
             sideBySideChanges = 0;
-            if (sideBySideTimeout != null) {
+            if (sideBySideTimeout !== null) {
               clearTimeout(sideBySideTimeout);
               sideBySideTimeout = null;
             }
@@ -1310,8 +1302,7 @@ function initWikiForm() {
               mode: 'gfm',
               context: $editArea.data('context'),
               text: plainText
-            },
-            (data) => {
+            }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
               emojify.run($('.editor-preview')[0]);
               $(preview).find('pre code').each((_, e) => {
@@ -1328,7 +1319,7 @@ function initWikiForm() {
               render();
             }
             // or delay preview by timeout
-            if (sideBySideTimeout != null) {
+            if (sideBySideTimeout !== null) {
               clearTimeout(sideBySideTimeout);
               sideBySideTimeout = null;
             }
@@ -1483,8 +1474,7 @@ function setSimpleMDE($editArea) {
           mode: 'gfm',
           context: $editArea.data('context'),
           text: plainText
-        },
-        (data) => {
+        }, (data) => {
           preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
           emojify.run($('.editor-preview')[0]);
         });
@@ -1662,7 +1652,7 @@ function initEditor() {
       apiCall = extension;
     }
 
-    if (previewLink.length && apiCall && previewFileModes && previewFileModes.length && previewFileModes.indexOf(apiCall) >= 0) {
+    if (previewLink.length && apiCall && previewFileModes && previewFileModes.length && previewFileModes.includes(apiCall)) {
       dataUrl = previewLink.data('url');
       previewLink.data('url', dataUrl.replace(/(.*)\/.*/i, `$1/${mode}`));
       previewLink.show();
@@ -1671,7 +1661,7 @@ function initEditor() {
     }
 
     // If this file is a Markdown extensions, we will load that editor and return
-    if (markdownFileExts.indexOf(extWithDot) >= 0) {
+    if (markdownFileExts.includes(extWithDot)) {
       if (setSimpleMDE($editArea)) {
         return;
       }
@@ -1687,7 +1677,7 @@ function initEditor() {
       CodeMirror.autoLoadMode(codeMirrorEditor, mode);
     }
 
-    if (lineWrapExtensions.indexOf(extWithDot) >= 0) {
+    if (lineWrapExtensions.includes(extWithDot)) {
       codeMirrorEditor.setOption('lineWrapping', true);
     } else {
       codeMirrorEditor.setOption('lineWrapping', false);
@@ -1712,7 +1702,7 @@ function initEditor() {
         // - https://codemirror.net/doc/manual.html#keymaps
         codeMirrorEditor.setOption('extraKeys', {
           Tab(cm) {
-            const spaces = Array(parseInt(cm.getOption('indentUnit')) + 1).join(' ');
+            const spaces = new Array(parseInt(cm.getOption('indentUnit')) + 1).join(' ');
             cm.replaceSelection(spaces);
           }
         });
@@ -1770,6 +1760,11 @@ function initOrganization() {
         $prompt.hide();
       }
     });
+  }
+
+  // Labels
+  if ($('.organization.settings.labels').length > 0) {
+    initLabelEdit();
   }
 }
 
@@ -1892,6 +1887,7 @@ function initAdmin() {
       case 'github':
       case 'gitlab':
       case 'gitea':
+      case 'nextcloud':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1908,23 +1904,17 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      if (!$('#oauth2_token_url').val()) {
-        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-      }
-      if (!$('#oauth2_auth_url').val()) {
-        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-      }
-      if (!$('#oauth2_profile_url').val()) {
-        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-      }
-      if (!$('#oauth2_email_url').val()) {
-        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
-      }
+      $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
+      $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
+      $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
+      $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+
       switch (provider) {
         case 'github':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
           break;
+        case 'nextcloud':
         case 'gitea':
         case 'gitlab':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
@@ -1938,7 +1928,7 @@ function initAdmin() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').change(function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size .sspi').hide();
+      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi').hide();
 
       $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
@@ -2073,7 +2063,7 @@ function searchUsers() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['login', 'full_name'],
@@ -2087,7 +2077,7 @@ function searchTeams() {
     minCharacters: 2,
     apiSettings: {
       url: `${AppSubUrl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
-      headers: { 'X-Csrf-Token': csrf },
+      headers: {'X-Csrf-Token': csrf},
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2097,7 +2087,7 @@ function searchTeams() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['name', 'description'],
@@ -2120,7 +2110,7 @@ function searchRepositories() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['full_name'],
@@ -2155,7 +2145,7 @@ function initCodeView() {
       }
     }).trigger('hashchange');
   }
-  $('.fold-code').on('click', ({ target }) => {
+  $('.fold-code').on('click', ({target}) => {
     const box = target.closest('.file-content');
     const folded = box.dataset.folded !== 'true';
     target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
@@ -2167,11 +2157,11 @@ function initCodeView() {
     const $row = $blob.parent().parent();
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
-      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e); });
+      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
       $('.diff-detail-box.ui.sticky').sticky();
     });
   }
-  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e); });
+  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
 }
 
 function initU2FAuth() {
@@ -2200,7 +2190,7 @@ function u2fSigned(resp) {
   $.ajax({
     url: `${AppSubUrl}/user/u2f/sign`,
     type: 'POST',
-    headers: { 'X-Csrf-Token': csrf },
+    headers: {'X-Csrf-Token': csrf},
     data: JSON.stringify(resp),
     contentType: 'application/json; charset=utf-8',
   }).done((res) => {
@@ -2217,7 +2207,7 @@ function u2fRegistered(resp) {
   $.ajax({
     url: `${AppSubUrl}/user/settings/security/u2f/register`,
     type: 'POST',
-    headers: { 'X-Csrf-Token': csrf },
+    headers: {'X-Csrf-Token': csrf},
     data: JSON.stringify(resp),
     contentType: 'application/json; charset=utf-8',
     success() {
@@ -2240,7 +2230,6 @@ function checkError(resp) {
   return true;
 }
 
-
 function u2fError(errorType) {
   const u2fErrors = {
     browser: $('#unsupported-browser'),
@@ -2261,8 +2250,8 @@ function u2fError(errorType) {
 }
 
 function initU2FRegister() {
-  $('#register-device').modal({ allowMultiple: false });
-  $('#u2f-error').modal({ allowMultiple: false });
+  $('#register-device').modal({allowMultiple: false});
+  $('#u2f-error').modal({allowMultiple: false});
   $('#register-security-key').on('click', (e) => {
     e.preventDefault();
     u2fApi.ensureSupport()
@@ -2339,7 +2328,7 @@ function initTemplateSearch() {
         apiSettings: {
           url: `${AppSubUrl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
           onResponse(response) {
-            const filteredResponse = { success: true, results: [] };
+            const filteredResponse = {success: true, results: []};
             filteredResponse.results.push({
               name: '',
               value: ''
@@ -2364,8 +2353,6 @@ function initTemplateSearch() {
 }
 
 $(document).ready(async () => {
-  csrf = $('meta[name=_csrf]').attr('content');
-
   // Show exact time
   $('.time-since').each(function () {
     $(this)
@@ -2419,9 +2406,9 @@ $(document).ready(async () => {
   if ($dropzone.length > 0) {
     const filenameDict = {};
 
-    new Dropzone('#dropzone', {
+    await createDropzone('#dropzone', {
       url: $dropzone.data('upload-url'),
-      headers: { 'X-Csrf-Token': csrf },
+      headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
       maxFilesize: $dropzone.data('max-size'),
       acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
@@ -2469,6 +2456,8 @@ $(document).ready(async () => {
   // Helpers.
   $('.delete-button').click(showDeletePopup);
   $('.add-all-button').click(showAddAllPopup);
+  $('.link-action').click(linkAction);
+  $('.link-email-action').click(linkEmailAction);
 
   $('.delete-branch-button').click(showDeletePopup);
 
@@ -2517,12 +2506,12 @@ $(document).ready(async () => {
   });
 
   $('.issue-action').click(function () {
-    let { action } = this.dataset;
-    let { elementId } = this.dataset;
+    let {action} = this.dataset;
+    let {elementId} = this.dataset;
     const issueIDs = $('.issue-checkbox').children('input:checked').map(function () {
       return this.dataset.issueId;
     }).get().join();
-    const { url } = this.dataset;
+    const {url} = this.dataset;
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
@@ -2531,7 +2520,7 @@ $(document).ready(async () => {
       // NOTICE: This reset of checkbox state targets Firefox caching behaviour, as the checkboxes stay checked after reload
       if (action === 'close' || action === 'open') {
         // uncheck all checkboxes
-        $('.issue-checkbox input[type="checkbox"]').each((_, e) => { e.checked = false; });
+        $('.issue-checkbox input[type="checkbox"]').each((_, e) => { e.checked = false });
       }
       reload();
     });
@@ -2733,6 +2722,34 @@ function showAddAllPopup() {
     }
   }).modal('show');
   return false;
+}
+
+function linkAction(e) {
+  e.preventDefault();
+  const $this = $(this);
+  const redirect = $this.data('redirect');
+  $.post($this.data('url'), {
+    _csrf: csrf
+  }).done((data) => {
+    if (data.redirect) {
+      window.location.href = data.redirect;
+    } else if (redirect) {
+      window.location.href = redirect;
+    } else {
+      window.location.reload();
+    }
+  });
+}
+
+function linkEmailAction(e) {
+  const $this = $(this);
+  $('#form-uid').val($this.data('uid'));
+  $('#form-email').val($this.data('email'));
+  $('#form-primary').val($this.data('primary'));
+  $('#form-activate').val($this.data('activate'));
+  $('#form-uid').val($this.data('uid'));
+  $('#change-email-modal').modal('show');
+  e.preventDefault();
 }
 
 function initVueComponents() {
@@ -3006,8 +3023,8 @@ function initFilterBranchTagDropdown(selector) {
           const vm = this;
 
           const items = vm.items.filter((item) => {
-            return ((vm.mode === 'branches' && item.branch) || (vm.mode === 'tags' && item.tag))
-              && (!vm.searchTerm || item.name.toLowerCase().indexOf(vm.searchTerm.toLowerCase()) >= 0);
+            return ((vm.mode === 'branches' && item.branch) || (vm.mode === 'tags' && item.tag)) &&
+              (!vm.searchTerm || item.name.toLowerCase().includes(vm.searchTerm.toLowerCase()));
           });
 
           vm.active = (items.length === 0 && vm.showCreateNewBranch ? 0 : -1);
@@ -3201,7 +3218,7 @@ function initTopicbar() {
         if (xhr.responseJSON.invalidTopics.length > 0) {
           topicPrompts.formatPrompt = xhr.responseJSON.message;
 
-          const { invalidTopics } = xhr.responseJSON;
+          const {invalidTopics} = xhr.responseJSON;
           const topicLables = topicDropdown.children('a.ui.label');
 
           topics.split(',').forEach((value, index) => {
@@ -3223,7 +3240,7 @@ function initTopicbar() {
   topicDropdown.dropdown({
     allowAdditions: true,
     forceSelection: false,
-    fields: { name: 'description', value: 'data-value' },
+    fields: {name: 'description', value: 'data-value'},
     saveRemoteData: false,
     label: {
       transition: 'horizontal flip',
@@ -3251,20 +3268,20 @@ function initTopicbar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, e) => { current_topics.push(e.dataset.value); });
+        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, e) => { current_topics.push(e.dataset.value) });
 
         if (res.topics) {
           let found = false;
           for (let i = 0; i < res.topics.length; i++) {
             // skip currently added tags
-            if (current_topics.indexOf(res.topics[i].topic_name) !== -1) {
+            if (current_topics.includes(res.topics[i].topic_name)) {
               continue;
             }
 
             if (res.topics[i].topic_name.toLowerCase() === query.toLowerCase()) {
               found_query = true;
             }
-            formattedResponse.results.push({ description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name });
+            formattedResponse.results.push({description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name});
             found = true;
           }
           formattedResponse.success = found;
@@ -3272,7 +3289,7 @@ function initTopicbar() {
 
         if (query.length > 0 && !found_query) {
           formattedResponse.success = true;
-          formattedResponse.results.unshift({ description: query, 'data-value': query });
+          formattedResponse.results.unshift({description: query, 'data-value': query});
         } else if (query.length > 0 && found_query) {
           formattedResponse.results.sort((a, b) => {
             if (a.description.toLowerCase() === query.toLowerCase()) return -1;
@@ -3282,7 +3299,6 @@ function initTopicbar() {
             return 0;
           });
         }
-
 
         return formattedResponse;
       },
@@ -3402,7 +3418,7 @@ function initIssueList() {
       apiSettings: {
         url: issueSearchUrl,
         onResponse(response) {
-          const filteredResponse = { success: true, results: [] };
+          const filteredResponse = {success: true, results: []};
           const currIssueId = $('#new-dependency-drop-list').data('issue-id');
           // Parse the response from the api to work with our dropdown
           $.each(response, (_i, issue) => {
