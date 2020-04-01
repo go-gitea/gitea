@@ -145,36 +145,41 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]fl
 	return sess.Commit()
 }
 
-// CopyLanguageStat copy originalRepo language stat information to destRepo
+// CopyLanguageStat Copy originalRepo language stat information to destRepo (use for forked repo)
 func CopyLanguageStat(originalRepo, destRepo *Repository) error {
-	sess:=x.NewSession()
+	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	defer sess.Close()
-	originalRepoLang:=make(LanguageStatList, 0, 6)
+	originalRepoLang := make(LanguageStatList, 0, 6)
+	destRepoLang := make(LanguageStatList, 0, 6)
 	if err := sess.Where("`repo_id` = ?", originalRepo.ID).Desc("`percentage`").Find(&originalRepoLang); err != nil {
 		return err
 	}
-	originalRepoLang.loadAttributes()
-	for r :=range originalRepoLang{
-		if _, err:= sess.Insert(&LanguageStat{
-			RepoID:destRepo.ID,
-			CommitID:originalRepoLang[r].CommitID,
-			IsPrimary:originalRepoLang[r].IsPrimary,
-			Language:originalRepoLang[r].Language,
-			Percentage:originalRepoLang[r].Percentage,
-			CreatedUnix: timeutil.TimeStampNow(),
-		});err!=nil{
+	if len(originalRepoLang) > 0 {
+		originalRepoLang.loadAttributes()
+		for i := range originalRepoLang {
+			destRepoLangItem := new(LanguageStat)
+			destRepoLangItem.RepoID = destRepo.ID
+			destRepoLangItem.CommitID = originalRepoLang[i].CommitID
+			destRepoLangItem.IsPrimary = originalRepoLang[i].IsPrimary
+			destRepoLangItem.Language = originalRepoLang[i].Language
+			destRepoLangItem.Percentage = originalRepoLang[i].Percentage
+			destRepoLangItem.CreatedUnix = timeutil.TimeStampNow()
+			destRepoLang = append(destRepoLang, destRepoLangItem)
+		}
+		if _, err := sess.Insert(&destRepoLang); err != nil {
 			return err
 		}
-	}
-	//update destRepo's indexer status
-	if len(originalRepoLang) > 0 {
-		tmpCommitID:=originalRepoLang[0].CommitID
+		//update destRepo's indexer status
+		tmpCommitID := originalRepoLang[0].CommitID
 		if err := destRepo.updateIndexerStatus(sess, RepoIndexerTypeStats, tmpCommitID); err != nil {
 			return err
 		}
+		return sess.Commit()
+	} else {
+		log.Error("original Repo language stat is null")
+		return nil
 	}
-	return sess.Commit()
 }
