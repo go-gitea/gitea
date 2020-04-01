@@ -459,7 +459,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return err
 	}
 	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		return ErrLabelNotExist{}
+		return ErrRepoLabelNotExist{}
 	}
 
 	if err = issue.clearLabels(sess, doer); err != nil {
@@ -894,7 +894,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 		for _, label := range labels {
 			// Silently drop invalid labels.
-			if label.RepoID != opts.Repo.ID {
+			if label.RepoID != opts.Repo.ID && label.OrgID != opts.Repo.OwnerID {
 				continue
 			}
 
