@@ -1,9 +1,8 @@
-// Copyright 2016 The Gogs Authors. All rights reserved.
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package repo
+package org
 
 import (
 	"fmt"
@@ -18,22 +17,17 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-// ListLabels list all the labels of a repository
+// ListLabels list all the labels of an organization
 func ListLabels(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/labels issue issueListLabels
+	// swagger:operation GET /orgs/{org}/labels organization orgListLabels
 	// ---
-	// summary: Get all of a repository's labels
+	// summary: List an organization's labels
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: owner
+	// - name: org
 	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
+	//   description: name of the organization
 	//   type: string
 	//   required: true
 	// - name: page
@@ -48,83 +42,28 @@ func ListLabels(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
 
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"), utils.GetListOptions(ctx))
+	labels, err := models.GetLabelsByOrgID(ctx.Org.Organization.ID, ctx.Query("sort"), utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLabelsByRepoID", err)
+		ctx.Error(http.StatusInternalServerError, "GetLabelsByOrgID", err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
 }
 
-// GetLabel get label by repository and label id
-func GetLabel(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/labels/{id} issue issueGetLabel
-	// ---
-	// summary: Get a single label
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: id
-	//   in: path
-	//   description: id of the label to get
-	//   type: integer
-	//   format: int64
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/Label"
-
-	var (
-		label *models.Label
-		err   error
-	)
-	strID := ctx.Params(":id")
-	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
-		label, err = models.GetLabelInRepoByName(ctx.Repo.Repository.ID, strID)
-	} else {
-		label, err = models.GetLabelInRepoByID(ctx.Repo.Repository.ID, intID)
-	}
-	if err != nil {
-		if models.IsErrRepoLabelNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLabelByRepoID", err)
-		}
-		return
-	}
-
-	ctx.JSON(http.StatusOK, convert.ToLabel(label))
-}
-
 // CreateLabel create a label for a repository
 func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
-	// swagger:operation POST /repos/{owner}/{repo}/labels issue issueCreateLabel
+	// swagger:operation POST /orgs/{org}/labels organization orgCreateLabel
 	// ---
-	// summary: Create a label
+	// summary: Create a label for an organization
 	// consumes:
 	// - application/json
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: owner
+	// - name: org
 	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
+	//   description: name of the organization
 	//   type: string
 	//   required: true
 	// - name: body
@@ -149,7 +88,7 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	label := &models.Label{
 		Name:        form.Name,
 		Color:       form.Color,
-		RepoID:      ctx.Repo.Repository.ID,
+		OrgID:       ctx.Org.Organization.ID,
 		Description: form.Description,
 	}
 	if err := models.NewLabel(label); err != nil {
@@ -159,9 +98,54 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	ctx.JSON(http.StatusCreated, convert.ToLabel(label))
 }
 
-// EditLabel modify a label for a repository
+// GetLabel get label by organization and label id
+func GetLabel(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/labels/{id} organization orgGetLabel
+	// ---
+	// summary: Get a single label
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the label to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Label"
+
+	var (
+		label *models.Label
+		err   error
+	)
+	strID := ctx.Params(":id")
+	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
+		label, err = models.GetLabelInOrgByName(ctx.Org.Organization.ID, strID)
+	} else {
+		label, err = models.GetLabelInOrgByID(ctx.Org.Organization.ID, intID)
+	}
+	if err != nil {
+		if models.IsErrOrgLabelNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetLabelByOrgID", err)
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToLabel(label))
+}
+
+// EditLabel modify a label for an Organization
 func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/labels/{id} issue issueEditLabel
+	// swagger:operation PATCH /orgs/{org}/labels/{id} organization orgEditLabel
 	// ---
 	// summary: Update a label
 	// consumes:
@@ -169,14 +153,9 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: owner
+	// - name: org
 	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
+	//   description: name of the organization
 	//   type: string
 	//   required: true
 	// - name: id
@@ -195,9 +174,9 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	label, err := models.GetLabelInOrgByID(ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrRepoLabelNotExist(err) {
+		if models.IsErrOrgLabelNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetLabelByRepoID", err)
@@ -228,20 +207,15 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	ctx.JSON(http.StatusOK, convert.ToLabel(label))
 }
 
-// DeleteLabel delete a label for a repository
+// DeleteLabel delete a label for an organization
 func DeleteLabel(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/labels/{id} issue issueDeleteLabel
+	// swagger:operation DELETE /orgs/{org}/labels/{id} organization orgDeleteLabel
 	// ---
 	// summary: Delete a label
 	// parameters:
-	// - name: owner
+	// - name: org
 	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
+	//   description: name of the organization
 	//   type: string
 	//   required: true
 	// - name: id
@@ -254,7 +228,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := models.DeleteLabel(ctx.Org.Organization.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}
