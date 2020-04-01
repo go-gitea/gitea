@@ -157,20 +157,20 @@ Note: All steps below requires that the database engine of your choice is instal
 
 ## Database Connection over TLS
 
-If you have database instance on private network, this section can be omitted, since the security between Gitea and database instance is guaranteed. If instead the database instance is on public network, use TLS to encrypt connection to database, as it is possible for third-party to intercept database connection.
+If the communication between Gitea and your database instance is performed through a private network, or if Gitea and the database are running on the same server, this section can be omitted since the security between Gitea and the database instance is not critically exposed. If instead the database instance is on a public network, use TLS to encrypt the connection to the database, as it is possible for third-parties to intercept the traffic data.
 
 ### Prerequisites
 
-- You need two valid TLS certificate, one for database instance (database server) and one for Gitea instance (database client). Both certificates must be signed by trusted CA.
-- `X509v3 Extended Key Usage` extension attribute must have `TLS Web Server Authentication` for database server certificate, and `TLS Web Client Authentication` for database client certificate.
-- On database server certificate, `Subject Alternative Name` or `Common Name` entry must be fully-qualified domain name (FQDN) for database instance. On database client certificate, either entry above must be database username that Gitea instance will be used to connect.
-- You need mapping from domain name of both Gitea and database instances to their respective IP addresses. Either set up DNS records or add local mapping to `/etc/hosts`. This allows database connections to be performed by domain name instead of IP address. See documentation of your system for details.
+- You need two valid TLS certificates, one for the database instance (database server) and one for the Gitea instance (database client). Both certificates must be signed by a trusted CA.
+- The database certificate must contain `TLS Web Server Authentication` in the `X509v3 Extended Key Usage` extension attribute, while the client certificat needs `TLS Web Client Authentication` in the corresponding attribute.
+- On the database server certificate, one of `Subject Alternative Name` or `Common Name` entries must be the fully-qualified domain name (FQDN) of the database instance (e.g. `db.example.com`). On the database client certificate, one of the entries mentioned above must contain the database username that Gitea will be using to connect.
+- You need domain name mappings of both Gitea and database servers to their respective IP addresses. Either set up DNS records for them or add local mappings to `/etc/hosts` (`%WINDIR%\System32\drivers\etc\hosts` in Windows) on each system. This allows the database connections to be performed by domain name instead of IP address. See documentation of your system for details.
 
 ### PostgreSQL
 
-PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both database client and server authenticate each other by sending their respective certificate to their respective opposite for validation. In other words, the server verifies client certificate, and the client verifies server certificate.
+The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both database client and server authenticate each other by sending their respective certificates to their respective opposite for validation. In other words, the server verifies client certificate, and the client verifies server certificate.
 
-1.  On database instance, place following credentials:
+1.  On the server with the database instance, place the following credentials:
 
     -  `/path/to/postgresql.crt`: Database instance certificate
     -  `/path/to/postgresql.key`: Database instance private key
@@ -193,7 +193,7 @@ PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both datab
     chmod 0600 /path/to/root.crt /path/to/postgresql.crt /path/to/postgresql.key
     ```
 
-4.  Edit `pg_hba.conf` rule to only allow Gitea database user to connect over SSL, and requires client certificate verification.
+4.  Edit `pg_hba.conf` rule to only allow Gitea database user to connect over SSL, and to require client certificate verification.
 
     For PostgreSQL 12:
 
@@ -211,38 +211,38 @@ PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both datab
 
 5.  Restart PostgreSQL to apply configurations above.
 
-6.  On Gitea instance, place following credentials under home directory of user which run Gitea (ex. `git`):
+6.  On the server running the Gitea instance, place the following credentials under the home directory of the user who runs Gitea (e.g. `git`):
 
     -  `~/.postgresql/postgresql.crt`: Database client certificate
     -  `~/.postgresql/postgresql.key`: Database client private key
     -  `~/.postgresql/root.crt`: CA certificate chain to validate server certificate
 
-    Note: Those file names above are hardcoded on PostgreSQL, and it is not possible to alter those.
+    Note: Those file names above are hardcoded in PostgreSQL and it is not possible to change them.
 
-7.  Adjust credentials ownership and permission as required:
+7.  Adjust credentials, ownership and permission as required:
 
     ```
     chown git:git ~/.postgresql/postgresql.crt ~/.postgresql/postgresql.key ~/.postgresql/root.crt
     chown 0600 ~/.postgresql/postgresql.crt ~/.postgresql/postgresql.key ~/.postgresql/root.crt
     ```
 
-8.  Test connection to the database:
+8.  Test the connection to the database:
 
     ```
     psql "postgres://gitea@example.db/giteadb?sslmode=verify-full"
     ```
 
-    You should be prompted to enter password for the database user, and connected to the database.
+    You should be prompted to enter password for the database user, and then be connected to the database.
 
 
 ### MySQL
 
-While MySQL driver used by Gitea also supports two-way TLS, its current usage on Gitea only work for one-way TLS. See issue #10828 for details.
+While the MySQL driver used by Gitea also supports two-way TLS, Gitea currently supports only one-way TLS. See issue #10828 for details.
 
-In one-way TLS, database client verifies certificate sent from server during connection handshake, and the server assumes that the client connected is legitimate, since client verification doesn't take place.
+In one-way TLS, the database client verifies the certificate sent from server during the connection handshake, and the server assumes that the connected client is legitimate, since client certificate verification doesn't take place.
 
 
-1.  On database instance, place following credentials:
+1.  On the database instance, place the following credentials:
 
     -  `/path/to/mysql.crt`: Database instance certificate
     -  `/path/to/mysql.key`: Database instance key
@@ -267,7 +267,7 @@ In one-way TLS, database client verifies certificate sent from server during con
 
 4.  Restart MySQL to apply the setting.
 
-5.  Gitea database user have been created earlier, but it authenticates only against IP addresses of Gitea instance. To authenticate against domain name, recreate user, and this time also require TLS to connect to the database:
+5.  The database user for Gitea may have been created earlier, but it would authenticate only against the IP addresses of the server running Gitea. To authenticate against its domain name, recreate the user, and this time also set it to require TLS for connecting to the database:
 
     ```sql
     DROP USER 'gitea'@'192.0.2.10';
@@ -278,9 +278,9 @@ In one-way TLS, database client verifies certificate sent from server during con
 
     Replace database user name, password, and Gitea instance domain as appropriate.
 
-6.  Make sure that CA certificate chain required to validate the database server certificate is on the system certificate store of both the database and Gitea instances. Consult your system documentation for instructions on adding CA certificate to the certificate store.
+6.  Make sure that the CA certificate chain required to validate the database server certificate is on the system certificate store of both the database and Gitea servers. Consult your system documentation for instructions on adding a CA certificate to the certificate store.
 
-7.  On Gitea instance, test connection to the database:
+7.  On the server running Gitea, test connection to the database:
 
     ```
     mysql -u gitea -h example.db -p --ssl
