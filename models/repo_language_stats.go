@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
-	
+
 	"github.com/src-d/enry/v2"
 )
 
