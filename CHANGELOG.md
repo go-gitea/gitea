@@ -18,7 +18,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix hiding of fields in authorization source page (#10734) (#10752)
   * Prevent default for linkAction (#10742) (#10743)
 
-
 ## [1.11.3](https://github.com/go-gitea/gitea/releases/tag/v1.11.3) - 2020-03-10
 
 * BUGFIXES
