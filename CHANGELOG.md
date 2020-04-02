@@ -4,6 +4,20 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.4](https://github.com/go-gitea/gitea/releases/tag/v1.11.4) - 2020-04-01
+
+* BUGFIXES
+  * Only update merge_base if not already merged (#10909)
+  * Fix milestones too many SQL variables bug (#10880) (#10904)
+  * Protect against NPEs in notifications list (#10879) (#10883)
+  * Convert plumbing.ErrObjectNotFound to git.ErrNotExist in getCommit (#10862) (#10868)
+  * Convert plumbing.ErrReferenceNotFound to git.ErrNotExist in GetRefCommitID (#10676) (#10797)
+  * Account for empty lines in receive-hook message (#10773) (#10784)
+  * Fix bug on branch API (#10767) (#10775)
+  * Migrate to go-git/go-git v5.0.0 (#10735) (#10753)
+  * Fix hiding of fields in authorization source page (#10734) (#10752)
+  * Prevent default for linkAction (#10742) (#10743)
+
 ## [1.11.3](https://github.com/go-gitea/gitea/releases/tag/v1.11.3) - 2020-03-10
 
 * BUGFIXES

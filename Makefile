@@ -9,6 +9,10 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
+XGO_VERSION := go-1.14.x
+MIN_GO_VERSION := 001012000
+MIN_NODE_VERSION := 010000000
+
 ifeq ($(HAS_GO), GO)
 	GOPATH ?= $(shell $(GO) env GOPATH)
 	export PATH := $(GOPATH)/bin:$(PATH)
@@ -65,7 +69,7 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
-WEBPACK_CONFIGS := webpack.config.js .eslintrc .stylelintrc
+WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
 WEBPACK_DEST_DIRS := public/js public/css
 
@@ -129,14 +133,18 @@ help:
 	@echo " - backend           build backend files"
 	@echo " - clean             delete backend and integration files"
 	@echo " - clean-all         delete backend, frontend and integration files"
+	@echo " - lint              lint everything"
+	@echo " - lint-frontend     lint frontend files"
+	@echo " - lint-backend      lint backend files"
 	@echo " - webpack           build webpack files"
 	@echo " - fomantic          build fomantic files"
 	@echo " - generate          run \"go generate\""
 	@echo " - fmt               format the Go code"
 	@echo " - generate-swagger  generate the swagger spec from code comments"
 	@echo " - swagger-validate  check if the swagger spec is valid"
-	@echo " - revive            run code linter revive"
-	@echo " - misspell          check if a word is written wrong"
+	@echo " - golangci-lint     run golangci-lint linter"
+	@echo " - revive            run revive linter"
+	@echo " - misspell          check for misspellings"
 	@echo " - vet               examines Go source code and reports suspicious constructs"
 	@echo " - test              run unit test"
 	@echo " - test-sqlite       run integration test for sqlite"
@@ -144,9 +152,9 @@ help:
 
 .PHONY: go-check
 go-check:
-	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?[[:space:]]' | tr '.' ' ');))
-	@if [ "$(GO_VERSION)" -lt "001011000" ]; then \
-		echo "Gitea requires Go 1.11 or greater to build. You can get it at https://golang.org/dl/"; \
+	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
+	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
+		echo "Gitea requires Go 1.12 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
@@ -159,9 +167,9 @@ git-check:
 
 .PHONY: node-check
 node-check:
-	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?' | tr '.' ' ');))
+	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | cut -c2- | tr '.' ' ');))
 	$(eval NPM_MISSING := $(shell hash npm > /dev/null 2>&1 || echo 1))
-	@if [ "$(NODE_VERSION)" -lt "010000000" -o "$(NPM_MISSING)" = "1" ]; then \
+	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" -o "$(NPM_MISSING)" = "1" ]; then \
 		echo "Gitea requires Node.js 10 or greater and npm to build. You can get it at https://nodejs.org/en/download/"; \
 		exit 1; \
 	fi
@@ -254,6 +262,17 @@ fmt-check:
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
+
+.PHONY: lint
+lint: lint-backend lint-frontend
+
+.PHONY: lint-backend
+lint-backend: golangci-lint revive swagger-check swagger-validate test-vendor
+
+.PHONY: lint-frontend
+lint-frontend: node_modules
+	npx eslint web_src/js webpack.config.js
+	npx stylelint web_src/less
 
 .PHONY: test
 test:
@@ -480,7 +499,7 @@ release-windows: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -490,7 +509,7 @@ release-linux: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
+	xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -500,7 +519,7 @@ release-darwin: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
+	xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -536,16 +555,6 @@ npm-update: node-check | node_modules
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
 
-.PHONY: js
-js:
-	@echo "'make js' is deprecated, please use 'make webpack'"
-	$(MAKE) webpack
-
-.PHONY: css
-css:
-	@echo "'make css' is deprecated, please use 'make webpack'"
-	$(MAKE) webpack
-
 .PHONY: fomantic
 fomantic: $(FOMANTIC_DEST)
 
@@ -560,8 +569,6 @@ $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
 webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
-	npx eslint web_src/js webpack.config.js
-	npx stylelint web_src/less
 	npx webpack --hide-modules --display-entrypoints=false
 	@touch $(WEBPACK_DEST)
 
@@ -614,6 +621,6 @@ pr\#%: clean-all
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.20.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0; \
 	fi
-	golangci-lint run --timeout 5m
+	env GO111MODULE=on golangci-lint run --timeout 5m

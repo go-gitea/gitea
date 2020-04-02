@@ -120,7 +120,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	if pr.Status == models.PullRequestStatusChecking {
 		pr.Status = models.PullRequestStatusMergeable
 	}
-	if err := pr.UpdateCols("status, conflicted_files, base_branch"); err != nil {
+	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "base_branch"); err != nil {
 		return err
 	}
 

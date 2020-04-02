@@ -22,9 +22,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	pull_service "code.gitea.io/gitea/services/pull"
-	"github.com/go-git/go-git/v5/plumbing"
 
 	"gitea.com/macaron/macaron"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/gobwas/glob"
 )
 
 func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
@@ -53,6 +54,52 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 			})
 	if err != nil && !isErrUnverifiedCommit(err) {
 		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+	}
+	return err
+}
+
+func checkFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, repo *git.Repository, env []string) error {
+
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	if err != nil {
+		log.Error("Unable to create os.Pipe for %s", repo.Path)
+		return err
+	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+
+	err = git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+			stdoutWriter, nil, nil,
+			func(ctx context.Context, cancel context.CancelFunc) error {
+				_ = stdoutWriter.Close()
+
+				scanner := bufio.NewScanner(stdoutReader)
+				for scanner.Scan() {
+					path := strings.TrimSpace(scanner.Text())
+					if len(path) == 0 {
+						continue
+					}
+					lpath := strings.ToLower(path)
+					for _, pat := range patterns {
+						if pat.Match(lpath) {
+							cancel()
+							return models.ErrFilePathProtected{
+								Path: path,
+							}
+						}
+					}
+				}
+				if err := scanner.Err(); err != nil {
+					return err
+				}
+				_ = stdoutReader.Close()
+				return err
+			})
+	if err != nil && !models.IsErrFilePathProtected(err) {
+		log.Error("Unable to check file protection for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}
 	return err
 }
@@ -211,6 +258,26 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					log.Warn("Forbidden: Branch: %s in %-v is protected from unverified commit %s", branchName, repo, unverifiedCommit)
 					ctx.JSON(http.StatusForbidden, map[string]interface{}{
 						"err": fmt.Sprintf("branch %s is protected from unverified commit %s", branchName, unverifiedCommit),
+					})
+					return
+				}
+			}
+
+			globs := protectBranch.GetProtectedFilePatterns()
+			if len(globs) > 0 {
+				err := checkFileProtection(oldCommitID, newCommitID, globs, gitRepo, env)
+				if err != nil {
+					if !models.IsErrFilePathProtected(err) {
+						log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
+						ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+							"err": fmt.Sprintf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err),
+						})
+						return
+					}
+					protectedFilePath := err.(models.ErrFilePathProtected).Path
+					log.Warn("Forbidden: Branch: %s in %-v is protected from changing file %s", branchName, repo, protectedFilePath)
+					ctx.JSON(http.StatusForbidden, map[string]interface{}{
+						"err": fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedFilePath),
 					})
 					return
 				}
