@@ -5,10 +5,10 @@
 		{{if .Issue.IsPull }}
 
 		<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
-		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
+		<div class="ui {{if or (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.review.reviewers"}}</strong>
-				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+				{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
 					{{svg "octicon-gear" 16}}
 				{{end}}
 			</span>
@@ -72,13 +72,13 @@
 									{{$canChoose = true}}
 								{{end}}
 							{{else}}
-								{{if and (or $.IsIssuePoster $.IsIssueWriter) (not (eq $.SignedUserID .ReviewerID))}}
+								{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
 									{{$canChoose = true}}
 								{{end}}
 							{{end}}
 
 							{{if $canChoose}}
-								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/re_request_review">
+								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 									{{svg "octicon-sync" 16}}
 								</a>
 							{{end}}

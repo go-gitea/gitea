@@ -626,7 +626,7 @@ func (repo *Repository) getReviewersPrivate(e Engine, doerID, posterID int64) (u
 	users = make([]*User, 0, 20)
 
 	if err = e.
-		SQL("SELECT * FROM user WHERE id in (SELECT user_id FROM access WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?))",
+		SQL("SELECT * FROM `user` WHERE id in (SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?)) ORDER BY name",
 			repo.ID, AccessModeRead,
 			doerID, posterID).
 		Find(&users); err != nil {
@@ -636,46 +636,21 @@ func (repo *Repository) getReviewersPrivate(e Engine, doerID, posterID int64) (u
 	return users, nil
 }
 
-func (repo *Repository) getReviewersPublic(e Engine, doerID, posterID int64) (users []*User, err error) {
+func (repo *Repository) getReviewersPublic(e Engine, doerID, posterID int64) (_ []*User, err error) {
 
-	userIDs := make([]int64, 0, 20)
+	users := make([]*User, 0)
+
+	const SQLCmd = "SELECT * FROM `user` WHERE id IN ( " +
+		"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?) " +
+		"UNION " +
+		"SELECT user_id FROM `watch` WHERE repo_id = ? AND user_id NOT IN ( ?, ?) AND mode IN (?, ?) " +
+		") ORDER BY name"
 
 	if err = e.
-		SQL("SELECT user_id FROM access WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?)",
-			repo.ID, AccessModeRead,
-			doerID, posterID).
-		Find(&userIDs); err != nil {
-		return nil, err
-	}
-
-	getNum := len(userIDs)
-
-	watcherIDs := make([]int64, 0)
-
-	if err = e.SQL("SELECT user_id FROM watch WHERE repo_id = ? AND user_id NOT IN ( ?, ?)",
-		repo.ID, doerID, posterID).Find(&watcherIDs); err != nil {
-		return nil, err
-	}
-
-	for _, watcherID := range watcherIDs {
-		isHave := false
-		for index, userID := range userIDs {
-			if index >= getNum {
-				break
-			}
-			if userID == watcherID {
-				isHave = true
-				break
-			}
-		}
-
-		if !isHave {
-			userIDs = append(userIDs, watcherID)
-		}
-	}
-
-	users = make([]*User, 0, len(userIDs))
-	if err = e.In("id", userIDs).Find(&users); err != nil {
+		SQL(SQLCmd,
+			repo.ID, AccessModeRead, doerID, posterID,
+			repo.ID, doerID, posterID, RepoWatchModeNormal, RepoWatchModeAuto).
+		Find(&users); err != nil {
 		return nil, err
 	}
 

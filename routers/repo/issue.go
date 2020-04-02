@@ -818,9 +818,28 @@ func ViewIssue(ctx *context.Context) {
 	// Check milestone and assignee.
 	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		RetrieveRepoMilestonesAndAssignees(ctx, repo)
-		if issue.IsPull {
-			RetrieveRepoReviewers(ctx, repo, issue.PosterID)
+		if ctx.Written() {
+			return
 		}
+	}
+
+	if issue.IsPull {
+		canChooseReviewer := ctx.Repo.CanWrite(models.UnitTypePullRequests)
+		if !canChooseReviewer && ctx.User != nil && ctx.IsSigned {
+			canChooseReviewer, err = models.IsOfficialReviewer(issue, ctx.User)
+			if err != nil {
+				ctx.ServerError("IsOfficialReviewer", err)
+				return
+			}
+		}
+
+		if canChooseReviewer {
+			RetrieveRepoReviewers(ctx, repo, issue.PosterID)
+			ctx.Data["CanChooseReviewer"] = true
+		} else {
+			ctx.Data["CanChooseReviewer"] = false
+		}
+
 		if ctx.Written() {
 			return
 		}
@@ -1320,7 +1339,13 @@ func isLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 
 		pemResult = permDoer.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
 		if !pemResult {
-			return fmt.Errorf("Doer can't write [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
+			pemResult, err = models.IsOfficialReviewer(issue, doer)
+			if err != nil {
+				return err
+			}
+			if !pemResult {
+				return fmt.Errorf("Doer can't choose reviewer [user_id: %d, repo_name: %s, issue_id: %d]", doer.ID, issue.Repo.Name, issue.ID)
+			}
 		}
 
 		if doer.ID == reviewer.ID {
