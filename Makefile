@@ -136,6 +136,7 @@ help:
 	@echo " - lint              lint everything"
 	@echo " - lint-frontend     lint frontend files"
 	@echo " - lint-backend      lint backend files"
+	@echo " - watch-frontend    watch frontend files and continuously rebuild"
 	@echo " - webpack           build webpack files"
 	@echo " - fomantic          build fomantic files"
 	@echo " - generate          run \"go generate\""
@@ -273,6 +274,9 @@ lint-backend: golangci-lint revive swagger-check swagger-validate test-vendor
 lint-frontend: node_modules
 	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
+
+watch-frontend: node_modules
+	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch
 
 .PHONY: test
 test:
