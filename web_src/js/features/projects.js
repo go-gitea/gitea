@@ -3,34 +3,46 @@ export default async function initProject(csrf) {
     return;
   }
 
-  const {Sortable} = await import(
-    /* webpackChunkName: "sortable" */ 'sortablejs'
+  const { Sortable } = await import(
+    /* webpackChunkName: "sortable" */ "sortablejs"
   );
 
-  const boardColumns = document.getElementsByClassName('board-column');
+  const boardColumns = document.getElementsByClassName("board-column");
 
   for (let i = 0; i < boardColumns.length; i++) {
     new Sortable(
       document.getElementById(
-        boardColumns[i].getElementsByClassName('board')[0].id
+        boardColumns[i].getElementsByClassName("board")[0].id
       ),
       {
-        group: 'shared',
+        group: "shared",
         animation: 150,
-        onAdd: (e) => {
+        onAdd: e => {
           $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}`, {
             headers: {
-              'X-Csrf-Token': csrf,
-              'X-Remote': true,
+              "X-Csrf-Token": csrf,
+              "X-Remote": true
             },
-            contentType: 'application/json',
-            type: 'POST',
+            contentType: "application/json",
+            type: "POST",
             success: () => {
               // setTimeout(reload(),3000)
-            },
+            }
           });
-        },
+        }
       }
     );
+  }
+}
+
+function editProjectBoard(id) {
+  if (!window.config || !window.config.PageIsProjects) {
+    return;
+  }
+
+  const board = document.getElementById(id);
+
+  if (board === undefined) {
+	  return
   }
 }

@@ -32,7 +32,7 @@
 					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-kebab-horizontal" 24}}</span>
 				</span>
 				<div class="menu user-menu" tabindex="-1">
-					<a class="item" href="{{AppSubUrl}}/">
+					<a class="item show-modal button" data-modal="#edit-project-board-modal-{{.Board.ID}}">
 						{{svg "octicon-pencil" 16}}
 						{{$.i18n.Tr "repo.projects.board.edit"}}
 					</a>
@@ -40,6 +40,27 @@
 						{{svg "octicon-star" 16}}
 						{{$.i18n.Tr "repo.projects.board.delete"}}
 					</a>
+
+	<div class="ui small modal" id="edit-project-board-modal-{{.Board.ID}}">
+		<div class="header">
+			{{$.i18n.Tr "repo.projects.board.edit"}}
+		</div>
+		<div class="content">
+			<form class="ui form" action="" method="PUT">
+				{{$.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="edit">
+				<div class="required field">
+					<label for="new_board_title">{{$.i18n.Tr "repo.projects.board.edit_title"}}</label>
+					<input id="new_board_title" name="title" required>
+				</div>
+
+				<div class="text right actions">
+					<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
+					<button class="ui red button">{{$.i18n.Tr "repo.settings.make_transfer"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
 				</div>
 			</div>
                 <div class="ui divider"></div>
@@ -80,4 +101,6 @@
 	</div>
 
 </div>
+
+
 {{template "base/footer" .}}
