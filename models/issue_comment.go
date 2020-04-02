@@ -765,8 +765,12 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 
 // GetCommentByID returns the comment by given ID.
 func GetCommentByID(id int64) (*Comment, error) {
+	return getCommentByID(x, id)
+}
+
+func getCommentByID(e Engine, id int64) (*Comment, error) {
 	c := new(Comment)
-	has, err := x.ID(id).Get(c)
+	has, err := e.ID(id).Get(c)
 	if err != nil {
 		return nil, err
 	} else if !has {

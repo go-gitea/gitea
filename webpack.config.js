@@ -1,5 +1,6 @@
 const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
+const CopyPlugin = require('copy-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -8,19 +9,21 @@ const PostCSSSafeParser = require('postcss-safe-parser');
 const SpriteLoaderPlugin = require('svg-sprite-loader/plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
-const { statSync } = require('fs');
-const { resolve, parse } = require('path');
-const { SourceMapDevToolPlugin } = require('webpack');
+const {statSync} = require('fs');
+const {resolve, parse} = require('path');
+const {SourceMapDevToolPlugin} = require('webpack');
 
-const glob = (pattern) => fastGlob.sync(pattern, { cwd: __dirname, absolute: true });
+const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
 const themes = {};
 for (const path of glob('web_src/less/themes/*.less')) {
   themes[parse(path).name] = [path];
 }
 
+const isProduction = process.env.NODE_ENV !== 'development';
+
 module.exports = {
-  mode: 'production',
+  mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
       resolve(__dirname, 'web_src/js/index.js'),
@@ -42,7 +45,7 @@ module.exports = {
     chunkFilename: 'js/[name].js',
   },
   optimization: {
-    minimize: true,
+    minimize: isProduction,
     minimizer: [
       new TerserPlugin({
         sourceMap: true,
@@ -83,6 +86,10 @@ module.exports = {
         loader: 'vue-loader',
       },
       {
+        test: require.resolve('jquery-datetimepicker'),
+        use: 'imports-loader?define=>false,exports=>false',
+      },
+      {
         test: /\.js$/,
         exclude: /node_modules/,
         use: [
@@ -96,6 +103,7 @@ module.exports = {
                 resolve(__dirname, 'package-lock.json'),
                 resolve(__dirname, 'webpack.config.js'),
               ].map((path) => statSync(path).mtime.getTime()).join(':'),
+              sourceMaps: true,
               presets: [
                 [
                   '@babel/preset-env',
@@ -153,7 +161,7 @@ module.exports = {
               extract: true,
               spriteFilename: 'img/svg/icons.svg',
               symbolId: (path) => {
-                const { name } = parse(path);
+                const {name} = parse(path);
                 if (/@primer[/\\]octicons/.test(path)) {
                   return `octicon-${name}`;
                 }
@@ -188,17 +196,23 @@ module.exports = {
     new SpriteLoaderPlugin({
       plainSprite: true,
     }),
+    new CopyPlugin([
+      // workaround for https://github.com/go-gitea/gitea/issues/10653
+      {from: 'node_modules/fomantic-ui/dist/semantic.min.css', to: 'fomantic/semantic.min.css'},
+    ]),
   ],
   performance: {
-    maxEntrypointSize: 512000,
-    maxAssetSize: 512000,
-    assetFilter: (filename) => {
-      if (filename.endsWith('.map')) return false;
-      if (['js/swagger.js', 'js/highlight.js'].includes(filename)) return false;
-      return true;
-    },
+    hints: false,
   },
   resolve: {
     symlinks: false,
+    alias: {
+      vue$: 'vue/dist/vue.esm.js', // needed because vue's default export is the runtime only
+    },
+  },
+  watchOptions: {
+    ignored: [
+      'node_modules/**',
+    ],
   },
 };

@@ -28,7 +28,13 @@
 							{{if .Signature}}
 								{{$class = (printf "%s%s" $class " isSigned")}}
 								{{if .Verification.Verified}}
-									{{$class = (printf "%s%s" $class " isVerified")}}
+									{{if eq .Verification.TrustStatus "trusted"}}
+										{{$class = (printf "%s%s" $class " isVerified")}}
+									{{else if eq .Verification.TrustStatus "untrusted"}}
+										{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+									{{else}}
+										{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+									{{end}}
 								{{else if .Verification.Warning}}
 									{{$class = (printf "%s%s" $class " isWarning")}}
 								{{end}}
@@ -38,20 +44,22 @@
 							{{else}}
 								<span class="{{$class}}">
 							{{end}}
-								{{ShortSha .ID.String}}
+								<span class="shortsha">{{ShortSha .ID.String}}</span>
 								{{if .Signature}}
 									<div class="ui detail icon button">
 										{{if .Verification.Verified}}
-											{{if ne .Verification.SigningUser.ID 0}}
-												<i title="{{.Verification.Reason}}" class="lock green icon"></i>
-											{{else}}
-												<i title="{{.Verification.Reason}}" class="icons">
-													<i class="green lock icon"></i>
-													<i class="tiny inverted cog icon centerlock"></i>
-												</i>
-											{{end}}
-										{{else if .Verification.Warning}}
-											<i title="{{$.i18n.Tr .Verification.Reason}}" class="red unlock icon"></i>
+											<div title="{{if eq .Verification.TrustStatus "trusted"}}{{else if eq .Verification.TrustStatus "untrusted"}}{{$.i18n.Tr "repo.commits.signed_by_untrusted_user"}}: {{else}}{{$.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}: {{end}}{{.Verification.Reason}}">
+												{{if ne .Verification.SigningUser.ID 0}}
+													<i class="lock icon"></i>
+													<img class="ui signature avatar image" src="{{.Verification.SigningUser.RelAvatarLink}}" />
+												{{else}}
+													<i title="{{.Verification.Reason}}" class="icons">
+														<i class="lock icon"></i>
+														<i class="tiny inverted cog icon centerlock"></i>
+													</i>
+													<img class="ui signature avatar image" src="{{AvatarLink .Verification.SigningEmail}}" />
+												{{end}}
+											</div>
 										{{else}}
 											<i title="{{$.i18n.Tr .Verification.Reason}}" class="unlock icon"></i>
 										{{end}}

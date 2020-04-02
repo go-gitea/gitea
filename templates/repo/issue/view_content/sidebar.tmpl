@@ -5,11 +5,18 @@
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
-				{{svg "octicon-gear" 16}}
+				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+					{{svg "octicon-gear" 16}}
+				{{end}}
 			</span>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 				{{range .Labels}}
+					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+				{{end}}
+				<div class="ui divider"></div>
+				{{range .OrgLabels}}
 					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 				{{end}}
@@ -18,6 +25,11 @@
 		<div class="ui labels list">
 			<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
 			{{range .Labels}}
+				<div class="item">
+					<a class="ui label has-emoji {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+				</div>
+			{{end}}
+			{{range .OrgLabels}}
 				<div class="item">
 					<a class="ui label has-emoji {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 				</div>
@@ -30,7 +42,9 @@
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
-				{{svg "octicon-gear" 16}}
+				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+					{{svg "octicon-gear" 16}}
+				{{end}}
 			</span>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_milestone"}}</div>
@@ -71,7 +85,9 @@
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
-				{{svg "octicon-gear" 16}}
+				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+					{{svg "octicon-gear" 16}}
+				{{end}}
 			</span>
 			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>

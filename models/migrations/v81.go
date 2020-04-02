@@ -8,17 +8,18 @@ import (
 	"fmt"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 func changeU2FCounterType(x *xorm.Engine) error {
 	var err error
 
-	switch x.Dialect().DriverName() {
-	case "mysql":
+	switch x.Dialect().URI().DBType {
+	case schemas.MYSQL:
 		_, err = x.Exec("ALTER TABLE `u2f_registration` MODIFY `counter` BIGINT")
-	case "postgres":
+	case schemas.POSTGRES:
 		_, err = x.Exec("ALTER TABLE `u2f_registration` ALTER COLUMN `counter` SET DATA TYPE bigint")
-	case "mssql":
+	case schemas.MSSQL:
 		_, err = x.Exec("ALTER TABLE `u2f_registration` ALTER COLUMN `counter` BIGINT")
 	}
 

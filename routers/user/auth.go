@@ -928,6 +928,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		LoginName:   gothUser.(goth.User).UserID,
 	}
 
+	//nolint: dupl
 	if err := models.CreateUser(u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
@@ -942,6 +943,9 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		case models.IsErrNamePatternNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplLinkAccount, &form)
+		case models.IsErrNameCharsNotAllowed(err):
+			ctx.Data["Err_UserName"] = true
+			ctx.RenderWithErr(ctx.Tr("user.form.name_chars_not_allowed", err.(models.ErrNameCharsNotAllowed).Name), tplLinkAccount, &form)
 		default:
 			ctx.ServerError("CreateUser", err)
 		}
@@ -1213,9 +1217,19 @@ func ActivateEmail(ctx *context.Context) {
 
 		log.Trace("Email activated: %s", email.Email)
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
+
+		if u, err := models.GetUserByID(email.UID); err != nil {
+			log.Warn("GetUserByID: %d", email.UID)
+		} else {
+			// Allow user to validate more emails
+			_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
+		}
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/settings/email")
+	// FIXME: e-mail verification does not require the user to be logged in,
+	// so this could be redirecting to the login page.
+	// Should users be logged in automatically here? (consider 2FA requirements, etc.)
+	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // ForgotPasswd render the forget pasword page

@@ -64,6 +64,10 @@ func (eq Eq) OpWriteTo(op string, w Writer) error {
 				return err
 			}
 			w.Append(int(v.(Decr)))
+		case nil:
+			if _, err := fmt.Fprintf(w, "%s=null", k); err != nil {
+				return err
+			}
 		default:
 			if _, err := fmt.Fprintf(w, "%s=?", k); err != nil {
 				return err

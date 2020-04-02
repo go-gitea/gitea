@@ -929,6 +929,7 @@ type CreateRepoOptions struct {
 	IssueLabels    string
 	License        string
 	Readme         string
+	DefaultBranch  string
 	IsPrivate      bool
 	IsMirror       bool
 	AutoInit       bool
@@ -1288,8 +1289,10 @@ func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes [
 		return err
 	}
 
-	if _, err = sess.Insert(units); err != nil {
-		return err
+	if len(units) > 0 {
+		if _, err = sess.Insert(units); err != nil {
+			return err
+		}
 	}
 
 	return sess.Commit()
@@ -1388,6 +1391,18 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Delete comments and attachments
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	// Dependencies for issues in this repository
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueDependency{}); err != nil {
+		return err
+	}
+
+	// Delete dependencies for issues in other repositories
+	if _, err = sess.In("dependency_id", deleteCond).
+		Delete(&IssueDependency{}); err != nil {
 		return err
 	}
 
@@ -1490,6 +1505,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if err = sess.Commit(); err != nil {
+		sess.Close()
 		if len(deployKeys) > 0 {
 			// We need to rewrite the public keys because the commit failed
 			if err2 := RewriteAllPublicKeys(); err2 != nil {
