@@ -14,10 +14,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"text/tabwriter"
 
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
+	"xorm.io/builder"
 
 	"github.com/urfave/cli"
 )
@@ -28,10 +32,30 @@ var CmdDoctor = cli.Command{
 	Usage:       "Diagnose problems",
 	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration.",
 	Action:      runDoctor,
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "list",
+			Usage: "List the available checks",
+		},
+		cli.BoolFlag{
+			Name:  "default",
+			Usage: "Run the default checks (if neither run or all is set this is the default behaviour)",
+		},
+		cli.StringSliceFlag{
+			Name:  "run",
+			Usage: "Run the provided checks - if default is set the default checks will also run",
+		},
+		cli.BoolFlag{
+			Name:  "all",
+			Usage: "Run all the available checks",
+		},
+	},
 }
 
 type check struct {
 	title            string
+	name             string
+	isDefault        bool
 	f                func(ctx *cli.Context) ([]string, error)
 	abortIfFailed    bool
 	skipDatabaseInit bool
@@ -42,13 +66,23 @@ var checklist = []check{
 	{
 		// NOTE: this check should be the first in the list
 		title:            "Check paths and basic configuration",
+		name:             "paths",
+		isDefault:        true,
 		f:                runDoctorPathInfo,
 		abortIfFailed:    true,
 		skipDatabaseInit: true,
 	},
 	{
-		title: "Check if OpenSSH authorized_keys file id correct",
-		f:     runDoctorLocationMoved,
+		title:     "Check if OpenSSH authorized_keys file id correct",
+		name:      "authorized_keys",
+		isDefault: true,
+		f:         runDoctorLocationMoved,
+	},
+	{
+		title:     "Recalculate merge bases",
+		name:      "recalculate_merge_bases",
+		isDefault: false,
+		f:         runDoctorPRMergeBase,
 	},
 	// more checks please append here
 }
@@ -60,9 +94,55 @@ func runDoctor(ctx *cli.Context) error {
 	log.DelNamedLogger("console")
 	log.DelNamedLogger(log.DEFAULT)
 
+	if ctx.IsSet("list") {
+		w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
+		_, _ = w.Write([]byte("Default\tName\tTitle\n"))
+		for _, check := range checklist {
+			if check.isDefault {
+				_, _ = w.Write([]byte{'*'})
+			}
+			_, _ = w.Write([]byte{'\t'})
+			_, _ = w.Write([]byte(check.name))
+			_, _ = w.Write([]byte{'\t'})
+			_, _ = w.Write([]byte(check.title))
+			_, _ = w.Write([]byte{'\n'})
+		}
+		return w.Flush()
+	}
+
+	var checks []check
+	if ctx.IsSet("all") && ctx.Bool("all") {
+		checks = checklist
+	} else if ctx.IsSet("run") {
+		addDefault := ctx.IsSet("default") && ctx.Bool("default")
+		names := ctx.StringSlice("run")
+		for i, name := range names {
+			names[i] = strings.ToLower(strings.TrimSpace(name))
+		}
+
+		for _, check := range checklist {
+			if addDefault && check.isDefault {
+				checks = append(checks, check)
+				continue
+			}
+			for _, name := range names {
+				if name == check.name {
+					checks = append(checks, check)
+					break
+				}
+			}
+		}
+	} else {
+		for _, check := range checklist {
+			if check.isDefault {
+				checks = append(checks, check)
+			}
+		}
+	}
+
 	dbIsInit := false
 
-	for i, check := range checklist {
+	for i, check := range checks {
 		if !dbIsInit && !check.skipDatabaseInit {
 			// Only open database after the most basic configuration check
 			if err := initDB(); err != nil {
@@ -200,7 +280,7 @@ func runDoctorLocationMoved(ctx *cli.Context) ([]string, error) {
 		// command="/home/user/gitea --config='/home/user/etc/app.ini' serv key-999",option-1,option-2,option-n ssh-rsa public-key-value key-name
 		res := exp.FindStringSubmatch(firstline)
 		if res == nil {
-			return nil, errors.New("Unknow authorized_keys format")
+			return nil, errors.New("Unknown authorized_keys format")
 		}
 
 		giteaPath := res[1] // => /home/user/gitea
@@ -224,4 +304,100 @@ func runDoctorLocationMoved(ctx *cli.Context) ([]string, error) {
 	}
 
 	return nil, nil
+}
+
+func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
+	opts := &models.SearchRepoOptions{
+		ListOptions: models.ListOptions{
+			Page:     1,
+			PageSize: 50,
+		},
+	}
+	results := make([]string, 0, 10)
+	numRepos := 0
+	numPRs := 0
+	numPRsUpdated := 0
+	for {
+		repos, _, err := models.SearchRepositoryByCondition(opts, builder.NewCond(), false)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, repo := range repos {
+			prOpts := &models.PullRequestsOptions{
+				ListOptions: models.ListOptions{
+					Page:     1,
+					PageSize: 50,
+				},
+			}
+			for {
+				prs, _, err := models.PullRequests(repo.ID, prOpts)
+				if err != nil {
+					return nil, err
+				}
+				for _, pr := range prs {
+					pr.BaseRepo = repo
+					repoPath := repo.RepoPath()
+
+					oldMergeBase := pr.MergeBase
+
+					if !pr.HasMerged {
+						var err error
+						pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.BaseBranch, pr.GetGitRefName()).RunInDir(repoPath)
+						if err != nil {
+							var err2 error
+							pr.MergeBase, err2 = git.NewCommand("rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
+							if err2 != nil {
+								results = append(results, fmt.Sprintf("WARN: Unable to get merge base for PR ID %d, #%d in %s/%s\n  Error: %v\n  Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2))
+								log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)
+								continue
+							}
+						}
+					} else {
+						parentsString, err := git.NewCommand("rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
+						if err != nil {
+							results = append(results, fmt.Sprintf("WARN: Unable to get parents for merged PR ID %d, #%d in %s/%s\n  Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err))
+							log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
+							continue
+						}
+						parents := strings.Split(strings.TrimSpace(parentsString), " ")
+						if len(parents) < 2 {
+							continue
+						}
+
+						args := append([]string{"merge-base", "--"}, parents[1:]...)
+						args = append(args, pr.GetGitRefName())
+
+						pr.MergeBase, err = git.NewCommand(args...).RunInDir(repoPath)
+						if err != nil {
+							results = append(results, fmt.Sprintf("WARN: Unable to get merge base for merged PR ID %d, #%d in %s/%s\n  Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err))
+							log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
+							continue
+						}
+					}
+					pr.MergeBase = strings.TrimSpace(pr.MergeBase)
+					if pr.MergeBase != oldMergeBase {
+						if err := pr.UpdateCols("merge_base"); err != nil {
+							return results, err
+						}
+						numPRsUpdated++
+					}
+				}
+				numPRs += len(prs)
+				if len(prs) < 50 {
+					break
+				}
+			}
+			prOpts.Page++
+		}
+
+		numRepos += len(repos)
+		if len(repos) < 50 {
+			break
+		}
+		opts.Page++
+	}
+	results = append(results, fmt.Sprintf("%d PRs updated of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
+
+	return results, nil
 }
