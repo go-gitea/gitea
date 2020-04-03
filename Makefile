@@ -275,6 +275,7 @@ lint-frontend: node_modules
 	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
 
+.PHONY: watch-frontend
 watch-frontend: node_modules
 	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch
 
