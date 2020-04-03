@@ -55,9 +55,10 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 				pr.CommitsAhead = 0
 				pr.CommitsBehind = 0
 			}
-
-			pr.CommitsAhead = divergence.Ahead
-			pr.CommitsBehind = divergence.Behind
+			if divergence != nil {
+				pr.CommitsAhead = divergence.Ahead
+				pr.CommitsBehind = divergence.Behind
+			}
 			if _, err = sess.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr); err != nil {
 				return fmt.Errorf("Update Cols: %v", err)
 			}
