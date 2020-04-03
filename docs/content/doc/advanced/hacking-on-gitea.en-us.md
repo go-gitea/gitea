@@ -134,7 +134,7 @@ For simple changes, edit files in `web_src`, run the build and start the server 
 make build && ./gitea
 ```
 
-For more involved changes use the `watch-frontend` task to continuously rebuild files when their sources change. First, build and run the backend:
+For more involved changes use the `watch-frontend` task to continuously rebuild files when their sources change. The `bindata` tag must be absent to ensure the file system will be used for files in `public`. First, build and run the backend:
 
 ```bash
 make backend && ./gitea
