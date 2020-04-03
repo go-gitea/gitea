@@ -244,6 +244,15 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			return
 		}
 		for _, pr := range prs {
+			divergence, err := GetDiverging(pr)
+			if err != nil {
+				log.Error("GetDiverging: %v", err)
+			} else {
+				err = pr.UpdateCommitDivergence(divergence)
+				if err != nil {
+					log.Error("UpdateCommitDivergence: %v", err)
+				}
+			}
 			AddToTaskQueue(pr)
 		}
 	})
