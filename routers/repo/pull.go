@@ -1163,9 +1163,9 @@ func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 	pr := issue.PullRequest
 
 	if pr.HasMerged {
-		diffType := git.RawDiffType("diff")
+		diffType := git.RawDiffNormal
 		if patch {
-			diffType = git.RawDiffType("patch")
+			diffType = git.RawDiffPatch
 		}
 		if err := git.GetRawDiff(
 			models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
