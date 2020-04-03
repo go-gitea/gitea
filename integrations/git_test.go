@@ -71,7 +71,6 @@ func testGit(t *testing.T, u *url.URL) {
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
 		t.Run("MergeFork", func(t *testing.T) {
 			t.Run("CreatePRAndMerge", doMergeFork(httpContext, forkedUserCtx, "master", httpContext.Username+":master"))
-			t.Run("DeleteRepository", doAPIDeleteRepository(httpContext))
 			rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 		})
@@ -111,7 +110,6 @@ func testGit(t *testing.T, u *url.URL) {
 			t.Run("BranchProtectMerge", doBranchProtectPRMerge(&sshContext, dstPath))
 			t.Run("MergeFork", func(t *testing.T) {
 				t.Run("CreatePRAndMerge", doMergeFork(sshContext, forkedUserCtx, "master", sshContext.Username+":master"))
-				t.Run("DeleteRepository", doAPIDeleteRepository(sshContext))
 				rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 				mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			})
@@ -419,8 +417,48 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
 		})
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		var diffStr string
+		t.Run("GetDiff", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			diffStr = resp.Body.String()
+		})
 		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
-
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		t.Run("EnsureDiffNoChange", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, diffStr, resp.Body.String())
+		})
+		t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		t.Run("EnsureDiffNoChange", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, diffStr, resp.Body.String())
+		})
 	}
 }
 
