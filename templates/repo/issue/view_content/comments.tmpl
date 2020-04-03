@@ -318,7 +318,10 @@
 		</div>
 	{{else if eq .Type 22}}
 		<div class="event" id="{{.HashTag}}">
-			<span class="issue-symbol">{{svg (printf "octicon-%s" .Review.Type.Icon) 16}}</span>
+			<span class="issue-symbol {{if eq .Review.Type 1}}green
+			{{- else if eq .Review.Type 2}}grey
+			{{- else if eq .Review.Type 3}}red
+			{{- else}}grey{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon) 16}}</span>
 			{{if .OriginalAuthor }}
 			{{else}}
 				<a class="ui avatar image"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
