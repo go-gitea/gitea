@@ -35,10 +35,10 @@ const (
 func (rt ReviewType) Icon() string {
 	switch rt {
 	case ReviewTypeApprove:
-		return "eye"
+		return "check"
 	case ReviewTypeReject:
-		return "x"
-	case ReviewTypeComment, ReviewTypeUnknown:
+		return "request-changes"
+	case ReviewTypeComment:
 		return "comment"
 	case ReviewTypeRequest:
 		return "primitive-dot"
