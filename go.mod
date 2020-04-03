@@ -16,6 +16,7 @@ require (
 	gitea.com/macaron/macaron v1.4.0
 	gitea.com/macaron/session v0.0.0-20191207215012-613cebf0674d
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
+	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/RoaringBitmap/roaring v0.4.21 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
@@ -67,17 +68,20 @@ require (
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/markbates/goth v1.61.2
-	github.com/mattn/go-isatty v0.0.7
+	github.com/mattn/go-isatty v0.0.11
 	github.com/mattn/go-oci8 v0.0.0-20190320171441-14ba190cf52d // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
+	github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
+	github.com/mgechev/revive v1.0.2
 	github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
 	github.com/niklasfasching/go-org v0.1.9
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.9
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
@@ -107,7 +111,6 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
 	golang.org/x/text v0.3.2
-	golang.org/x/tools v0.0.0-20191213221258-04c2e8eff935 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df

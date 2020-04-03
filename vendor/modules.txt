@@ -46,6 +46,7 @@ gitea.com/macaron/session/redis
 ## explicit
 gitea.com/macaron/toolbox
 # github.com/BurntSushi/toml v0.3.1
+## explicit
 github.com/BurntSushi/toml
 # github.com/PuerkitoBio/goquery v1.5.0
 ## explicit
@@ -184,6 +185,10 @@ github.com/ethantkoenig/rupture
 ## explicit
 # github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870
 ## explicit
+# github.com/fatih/color v1.9.0
+github.com/fatih/color
+# github.com/fatih/structtag v1.2.0
+github.com/fatih/structtag
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
 # github.com/gliderlabs/ssh v0.2.2
@@ -445,11 +450,15 @@ github.com/markbates/goth/providers/nextcloud
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 github.com/markbates/goth/providers/yandex
-# github.com/mattn/go-isatty v0.0.7
+# github.com/mattn/go-colorable v0.1.4
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.11
 ## explicit
 github.com/mattn/go-isatty
 # github.com/mattn/go-oci8 v0.0.0-20190320171441-14ba190cf52d
 ## explicit
+# github.com/mattn/go-runewidth v0.0.7
+github.com/mattn/go-runewidth
 # github.com/mattn/go-sqlite3 v1.11.0
 ## explicit
 github.com/mattn/go-sqlite3
@@ -458,10 +467,19 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 ## explicit
 github.com/mcuadros/go-version
+# github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
+## explicit
+github.com/mgechev/dots
+# github.com/mgechev/revive v1.0.2
+## explicit
+github.com/mgechev/revive/formatter
+github.com/mgechev/revive/lint
+github.com/mgechev/revive/rule
 # github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
 ## explicit
 github.com/microcosm-cc/bluemonday
 # github.com/mitchellh/go-homedir v1.1.0
+## explicit
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
@@ -478,6 +496,8 @@ github.com/nfnt/resize
 # github.com/niklasfasching/go-org v0.1.9
 ## explicit
 github.com/niklasfasching/go-org/org
+# github.com/olekukonko/tablewriter v0.0.4
+github.com/olekukonko/tablewriter
 # github.com/oliamb/cutter v0.2.2
 ## explicit
 github.com/oliamb/cutter
@@ -490,7 +510,7 @@ github.com/olivere/elastic/v7/uritemplates
 github.com/pelletier/go-toml
 # github.com/philhofer/fwd v1.0.0
 github.com/philhofer/fwd
-# github.com/pkg/errors v0.8.1
+# github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
@@ -661,6 +681,9 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
+# golang.org/x/mod v0.1.1-0.20191105210325-c90efee705ee
+golang.org/x/mod/module
+golang.org/x/mod/semver
 # golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 ## explicit
 golang.org/x/net/context
@@ -708,8 +731,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/tools v0.0.0-20191213221258-04c2e8eff935
-## explicit
+# golang.org/x/tools v0.0.0-20200225230052-807dcd883420
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/buildutil
 golang.org/x/tools/go/gcexportdata
@@ -720,10 +742,13 @@ golang.org/x/tools/go/loader
 golang.org/x/tools/go/packages
 golang.org/x/tools/imports
 golang.org/x/tools/internal/fastwalk
+golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
-golang.org/x/tools/internal/module
-golang.org/x/tools/internal/semver
+golang.org/x/tools/internal/packagesinternal
+# golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898
+golang.org/x/xerrors
+golang.org/x/xerrors/internal
 # google.golang.org/appengine v1.6.4
 google.golang.org/appengine
 google.golang.org/appengine/cloudsql
