@@ -263,17 +263,34 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		if err := git.NewCommand("rebase", baseBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 			// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
 			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {
-				// The original commit SHA1 that is failing will be in .git/rebase-apply/original-commit
-				commitShaBytes, readErr := ioutil.ReadFile(filepath.Join(tmpBasePath, ".git", "rebase-apply", "original-commit"))
-				if readErr != nil {
-					// Abandon this attempt to handle the error
+				var commitSha string
+				ok := false
+				failingCommitPaths := []string{
+					filepath.Join(tmpBasePath, ".git", "rebase-apply", "original-commit"), // Git < 2.26
+					filepath.Join(tmpBasePath, ".git", "rebase-merge", "stopped-sha"),     // Git >= 2.26
+				}
+				for _, failingCommitPath := range failingCommitPaths {
+					if _, statErr := os.Stat(filepath.Join(failingCommitPath)); statErr == nil {
+						commitShaBytes, readErr := ioutil.ReadFile(filepath.Join(failingCommitPath))
+						if readErr != nil {
+							// Abandon this attempt to handle the error
+							log.Error("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+							return "", fmt.Errorf("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+						}
+						commitSha = strings.TrimSpace(string(commitShaBytes))
+						ok = true
+						break
+					}
+				}
+				if !ok {
+					log.Error("Unable to determine failing commit sha for this rebase message. Cannot cast as models.ErrRebaseConflicts.")
 					log.Error("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 					return "", fmt.Errorf("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 				}
-				log.Debug("RebaseConflict at %s [%s:%s -> %s:%s]: %v\n%s\n%s", strings.TrimSpace(string(commitShaBytes)), pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+				log.Debug("RebaseConflict at %s [%s:%s -> %s:%s]: %v\n%s\n%s", commitSha, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 				return "", models.ErrRebaseConflicts{
 					Style:     mergeStyle,
-					CommitSHA: strings.TrimSpace(string(commitShaBytes)),
+					CommitSHA: commitSha,
 					StdOut:    outbuf.String(),
 					StdErr:    errbuf.String(),
 					Err:       err,
