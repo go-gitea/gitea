@@ -1171,11 +1171,12 @@ func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 			models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
 			pr.MergedCommitID,
 			diffType,
-			ctx.Resp,
+			ctx,
 		); err != nil {
 			ctx.ServerError("GetRawDiff", err)
 			return
 		}
+	return
 	}
 
 	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
