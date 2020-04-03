@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -27,7 +28,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	var (
 		downloader = NewGithubDownloaderV3("", "", "go-xorm", "builder")
 		repoName   = "builder-" + time.Now().Format("2006-01-02-15-04-05")
-		uploader   = NewGiteaLocalUploader(user, user.Name, repoName)
+		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
 	err := migrateRepository(downloader, uploader, structs.MigrateRepoOption{
@@ -58,19 +59,27 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, len(milestones))
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "")
+	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 11, len(labels))
 
 	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+		ListOptions: models.ListOptions{
+			PageSize: 10,
+			Page:     0,
+		},
 		IncludeTags: true,
-	}, 0, 10)
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 8, len(releases))
 
 	releases, err = models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+		ListOptions: models.ListOptions{
+			PageSize: 10,
+			Page:     0,
+		},
 		IncludeTags: false,
-	}, 0, 10)
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(releases))
 

@@ -31,6 +31,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
   * [Only allow certain email domains](#only-allow-certain-email-domains)
   * [Only allow/block certain OpenID providers](#only-allow-block-certain-openid-providers)
   * [Issue only users](#issue-only-users)
+  * [Restricted users](#restricted-users)
   * [Enable Fail2ban](#enable-fail2ban)
 * [Adding custom themes](#how-to-add-use-custom-themes)
 * [SSHD vs built-in SSH](#sshd-vs-built-in-ssh)
@@ -45,6 +46,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [How can I create users before starting Gitea](#how-can-i-create-users-before-starting-gitea)
 * [How can I enable password reset](#how-can-i-enable-password-reset)
 * [How can a user's password be changed](#how-can-a-user-s-password-be-changed)
+* [Why is my markdown broken](#why-is-my-markdown-broken)
 
 
 ## Difference between 1.x and 1.x.x downloads
@@ -64,7 +66,9 @@ To migrate from Gogs to Gitea:
 * [Gogs version 0.9.146 or less]({{< relref "doc/upgrade/from-gogs.en-us.md" >}})
 * [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
-To migrate from GitHub to Gitea, you can use Gitea's [Migrator tool](https://gitea.com/gitea/migrator)
+To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.  
+In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.  
+[Example (requires login)](https://try.gitea.io/repo/migrate)
 
 To migrate from Gitlab to Gitea, you can use this non-affiliated tool:  
 https://github.com/loganinak/MigrateGitlabToGogs
@@ -146,6 +150,14 @@ You can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` under `[openid]` in y
 
 ### Issue only users
 The current way to achieve this is to create/modify a user with a max repo creation limit of 0.
+
+### Restricted users
+Restricted users are limited to a subset of the content based on their organization/team memberships and collaborations, ignoring the public flag on organizations/repos etc.__
+
+Example use case: A company runs a Gitea instance that requires login. Most repos are public (accessible/browseable by all co-workers).
+
+At some point, a customer or third party needs access to a specific repo and only that repo. Making such a customer account restricted and granting any needed access using team membership(s) and/or collaboration(s) is a simple way to achieve that without the need to make everything private.
+
 
 ### Enable Fail2ban
 
@@ -291,3 +303,8 @@ There is no setting for password resets. It is enabled when a [mail service]({{<
   - In your account `Settings -> Account` page (this method **requires** you to know your current password).
   - By using the `Forgot Password` link.  
    If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).
+   
+## Why is my markdown broken
+In Gitea version `1.11` we moved to [goldmark](https://github.com/yuin/goldmark) for markdown rendering, which is [CommonMark](https://commonmark.org/) compliant.  
+If you have markdown that worked as you expected prior to version `1.11` and after upgrading it's not working anymore, please look through the CommonMark spec to see whether the problem is due to a bug or non-compliant syntax.  
+If it is the latter, _usually_ there is a compliant alternative listed in the spec.

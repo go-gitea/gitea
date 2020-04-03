@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
@@ -120,25 +119,24 @@ func InsertRelease(rel *Release) error {
 	return err
 }
 
+// InsertReleasesContext insert releases
+func InsertReleasesContext(ctx DBContext, rels []*Release) error {
+	_, err := ctx.e.Insert(rels)
+	return err
+}
+
 // UpdateRelease updates all columns of a release
-func UpdateRelease(rel *Release) error {
-	_, err := x.ID(rel.ID).AllCols().Update(rel)
+func UpdateRelease(ctx DBContext, rel *Release) error {
+	_, err := ctx.e.ID(rel.ID).AllCols().Update(rel)
 	return err
 }
 
 // AddReleaseAttachments adds a release attachments
 func AddReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	var attachments = make([]*Attachment, 0)
-	for _, uuid := range attachmentUUIDs {
-		attach, err := getAttachmentByUUID(x, uuid)
-		if err != nil {
-			if IsErrAttachmentNotExist(err) {
-				continue
-			}
-			return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
-		}
-		attachments = append(attachments, attach)
+	attachments, err := GetAttachmentsByUUIDs(attachmentUUIDs)
+	if err != nil {
+		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 	}
 
 	for i := range attachments {
@@ -183,6 +181,7 @@ func GetReleaseByID(id int64) (*Release, error) {
 
 // FindReleasesOptions describes the conditions to Find releases
 type FindReleasesOptions struct {
+	ListOptions
 	IncludeDrafts bool
 	IncludeTags   bool
 	TagNames      []string
@@ -205,24 +204,24 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 }
 
 // GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions, page, pageSize int) (rels []*Release, err error) {
-	if page <= 0 {
-		page = 1
+func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, error) {
+	sess := x.
+		Desc("created_unix", "id").
+		Where(opts.toConds(repoID))
+
+	if opts.PageSize != 0 {
+		sess = opts.setSessionPagination(sess)
 	}
 
-	err = x.
-		Desc("created_unix", "id").
-		Limit(pageSize, (page-1)*pageSize).
-		Where(opts.toConds(repoID)).
-		Find(&rels)
-	return rels, err
+	rels := make([]*Release, 0, opts.PageSize)
+	return rels, sess.Find(&rels)
 }
 
 // GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
-func GetReleasesByRepoIDAndNames(repoID int64, tagNames []string) (rels []*Release, err error) {
-	err = x.
-		Desc("created_unix").
+func GetReleasesByRepoIDAndNames(ctx DBContext, repoID int64, tagNames []string) (rels []*Release, err error) {
+	err = ctx.e.
 		In("tag_name", tagNames).
+		Desc("created_unix").
 		Find(&rels, Release{RepoID: repoID})
 	return rels, err
 }
@@ -323,49 +322,6 @@ func SortReleases(rels []*Release) {
 func DeleteReleaseByID(id int64) error {
 	_, err := x.ID(id).Delete(new(Release))
 	return err
-}
-
-// SyncReleasesWithTags synchronizes release table with repository tags
-func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
-	existingRelTags := make(map[string]struct{})
-	opts := FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
-	for page := 1; ; page++ {
-		rels, err := GetReleasesByRepoID(repo.ID, opts, page, 100)
-		if err != nil {
-			return fmt.Errorf("GetReleasesByRepoID: %v", err)
-		}
-		if len(rels) == 0 {
-			break
-		}
-		for _, rel := range rels {
-			if rel.IsDraft {
-				continue
-			}
-			commitID, err := gitRepo.GetTagCommitID(rel.TagName)
-			if err != nil && !git.IsErrNotExist(err) {
-				return fmt.Errorf("GetTagCommitID: %v", err)
-			}
-			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := PushUpdateDeleteTag(repo, rel.TagName); err != nil {
-					return fmt.Errorf("PushUpdateDeleteTag: %v", err)
-				}
-			} else {
-				existingRelTags[strings.ToLower(rel.TagName)] = struct{}{}
-			}
-		}
-	}
-	tags, err := gitRepo.GetTags()
-	if err != nil {
-		return fmt.Errorf("GetTags: %v", err)
-	}
-	for _, tagName := range tags {
-		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
-			if err := PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
-				return fmt.Errorf("pushUpdateAddTag: %v", err)
-			}
-		}
-	}
-	return nil
 }
 
 // UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID

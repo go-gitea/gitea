@@ -128,6 +128,8 @@
 					<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
 				{{end}}
 				{{if eq .DbCfg.Type "postgres"}}
+					<dt>{{.i18n.Tr "admin.config.db_schema"}}</dt>
+					<dd>{{if .DbCfg.Schema}}{{.DbCfg.Schema}}{{else}}-{{end}}</dd>
 					<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
 					<dd>{{if .DbCfg.SSLMode}}{{.DbCfg.SSLMode}}{{else}}-{{end}}</dd>
 				{{end}}
@@ -270,7 +272,7 @@
 				<dt>{{.i18n.Tr "admin.config.session_provider"}}</dt>
 				<dd>{{.SessionConfig.Provider}}</dd>
 				<dt>{{.i18n.Tr "admin.config.provider_config"}}</dt>
-				<dd><pre>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig  | JsonPrettyPrint}}{{else}}-{{end}}</pre></dd>
+				<dd><code>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig}}{{else}}-{{end}}</code></dd>
 				<dt>{{.i18n.Tr "admin.config.cookie_name"}}</dt>
 				<dd>{{.SessionConfig.CookieName}}</dd>
 				<dt>{{.i18n.Tr "admin.config.gc_interval_time"}}</dt>
@@ -279,8 +281,6 @@
 				<dd>{{.SessionConfig.Maxlifetime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
 				<dt>{{.i18n.Tr "admin.config.https_only"}}</dt>
 				<dd><i class="fa fa{{if .SessionConfig.Secure}}-check{{end}}-square-o"></i></dd>
-				<dt>{{.i18n.Tr "admin.config.cookie_life_time"}}</dt>
-				<dd>{{.SessionConfig.CookieLifeTime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
 			</dl>
 		</div>
 

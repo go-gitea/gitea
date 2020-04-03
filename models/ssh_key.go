@@ -36,7 +36,8 @@ import (
 
 const (
 	tplCommentPrefix = `# gitea public key`
-	tplPublicKey     = tplCommentPrefix + "\n" + `command="%s --config='%s' serv key-%d",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+	tplCommand       = "%s --config=%q serv key-%d"
+	tplPublicKey     = tplCommentPrefix + "\n" + `command=%q,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
 )
 
 var sshOpLocker sync.Mutex
@@ -81,7 +82,7 @@ func (key *PublicKey) OmitEmail() string {
 
 // AuthorizedString returns formatted public key string for authorized_keys file.
 func (key *PublicKey) AuthorizedString() string {
-	return fmt.Sprintf(tplPublicKey, setting.AppPath, setting.CustomConf, key.ID, key.Content)
+	return fmt.Sprintf(tplPublicKey, fmt.Sprintf(tplCommand, setting.AppPath, setting.CustomConf, key.ID), key.Content)
 }
 
 func extractTypeFromBase64Key(key string) (string, error) {
@@ -424,6 +425,9 @@ func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 	defer os.Remove(tmpPath)
 	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
 	if err != nil {
+		if strings.Contains(stderr, "is not a public key file") {
+			return "", ErrKeyUnableVerify{stderr}
+		}
 		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
 	} else if len(stdout) < 2 {
 		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
@@ -454,6 +458,10 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 		fp, err = calcFingerprintSSHKeygen(publicKeyContent)
 	}
 	if err != nil {
+		if IsErrKeyUnableVerify(err) {
+			log.Info("%s", publicKeyContent)
+			return "", err
+		}
 		return "", fmt.Errorf("%s: %v", fnName, err)
 	}
 	return fp, nil
@@ -524,7 +532,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	key := new(PublicKey)
 	has, err := x.
-		Id(keyID).
+		ID(keyID).
 		Get(key)
 	if err != nil {
 		return nil, err
@@ -567,11 +575,17 @@ func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 }
 
 // ListPublicKeys returns a list of public keys belongs to given user.
-func ListPublicKeys(uid int64) ([]*PublicKey, error) {
+func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
+	sess := x.Where("owner_id = ?", uid)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*PublicKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
+	}
+
 	keys := make([]*PublicKey, 0, 5)
-	return keys, x.
-		Where("owner_id = ?", uid).
-		Find(&keys)
+	return keys, sess.Find(&keys)
 }
 
 // ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
@@ -970,15 +984,21 @@ func deleteDeployKey(sess Engine, doer *User, id int64) error {
 }
 
 // ListDeployKeys returns all deploy keys by given repository ID.
-func ListDeployKeys(repoID int64) ([]*DeployKey, error) {
-	return listDeployKeys(x, repoID)
+func ListDeployKeys(repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
+	return listDeployKeys(x, repoID, listOptions)
 }
 
-func listDeployKeys(e Engine, repoID int64) ([]*DeployKey, error) {
+func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
+	sess := e.Where("repo_id = ?", repoID)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*DeployKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
+	}
+
 	keys := make([]*DeployKey, 0, 5)
-	return keys, e.
-		Where("repo_id = ?", repoID).
-		Find(&keys)
+	return keys, sess.Find(&keys)
 }
 
 // SearchDeployKeys returns a list of deploy keys matching the provided arguments.

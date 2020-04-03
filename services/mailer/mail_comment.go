@@ -27,11 +27,18 @@ func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType mod
 	if err = models.UpdateIssueMentions(ctx, c.IssueID, userMentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
-	mentions := make([]string, len(userMentions))
+	mentions := make([]int64, len(userMentions))
 	for i, u := range userMentions {
-		mentions[i] = u.LowerName
+		mentions[i] = u.ID
 	}
-	if err = mailIssueCommentToParticipants(issue, c.Poster, opType, c.Content, c, mentions); err != nil {
+	if err = mailIssueCommentToParticipants(
+		&mailCommentContext{
+			Issue:      issue,
+			Doer:       c.Poster,
+			ActionType: opType,
+			Content:    c.Content,
+			Comment:    c,
+		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
 	return nil

@@ -43,7 +43,7 @@ func testGit(t *testing.T, u *url.URL) {
 	forkedUserCtx := NewAPITestContext(t, "user4", "repo1")
 
 	t.Run("HTTP", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		ensureAnonymousClone(t, u)
 		httpContext := baseAPITestContext
 		httpContext.Reponame = "repo-tmp-17"
@@ -71,13 +71,14 @@ func testGit(t *testing.T, u *url.URL) {
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
 		t.Run("MergeFork", func(t *testing.T) {
 			t.Run("CreatePRAndMerge", doMergeFork(httpContext, forkedUserCtx, "master", httpContext.Username+":master"))
-			t.Run("DeleteRepository", doAPIDeleteRepository(httpContext))
 			rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 		})
+
+		t.Run("PushCreate", doPushCreate(httpContext, u))
 	})
 	t.Run("SSH", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		sshContext := baseAPITestContext
 		sshContext.Reponame = "repo-tmp-18"
 		keyname := "my-testing-key"
@@ -109,10 +110,11 @@ func testGit(t *testing.T, u *url.URL) {
 			t.Run("BranchProtectMerge", doBranchProtectPRMerge(&sshContext, dstPath))
 			t.Run("MergeFork", func(t *testing.T) {
 				t.Run("CreatePRAndMerge", doMergeFork(sshContext, forkedUserCtx, "master", sshContext.Username+":master"))
-				t.Run("DeleteRepository", doAPIDeleteRepository(sshContext))
 				rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 				mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			})
+
+			t.Run("PushCreate", doPushCreate(sshContext, sshURL))
 		})
 	})
 }
@@ -127,7 +129,7 @@ func ensureAnonymousClone(t *testing.T, u *url.URL) {
 
 func standardCommitAndPushTest(t *testing.T, dstPath string) (little, big string) {
 	t.Run("Standard", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		little, big = commitAndPushTest(t, dstPath, "data-file-")
 	})
 	return
@@ -135,7 +137,7 @@ func standardCommitAndPushTest(t *testing.T, dstPath string) (little, big string
 
 func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS string) {
 	t.Run("LFS", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		setting.CheckLFSVersion()
 		if !setting.LFS.StartServer {
 			t.Skip()
@@ -148,8 +150,8 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 		assert.NoError(t, err)
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
-		oldGlobals := allowLFSFilters()
-		err = git.CommitChanges(dstPath, git.CommitChangesOptions{
+
+		err = git.CommitChangesWithArgs(dstPath, allowLFSFilters(), git.CommitChangesOptions{
 			Committer: &git.Signature{
 				Email: "user2@example.com",
 				Name:  "User Two",
@@ -162,12 +164,12 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 			},
 			Message: fmt.Sprintf("Testing commit @ %v", time.Now()),
 		})
-		git.GlobalCommandArgs = oldGlobals
+		assert.NoError(t, err)
 
 		littleLFS, bigLFS = commitAndPushTest(t, dstPath, prefix)
 
 		t.Run("Locks", func(t *testing.T) {
-			PrintCurrentTest(t)
+			defer PrintCurrentTest(t)()
 			lockTest(t, dstPath)
 		})
 	})
@@ -176,9 +178,9 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 
 func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string) {
 	t.Run("PushCommit", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		t.Run("Little", func(t *testing.T) {
-			PrintCurrentTest(t)
+			defer PrintCurrentTest(t)()
 			little = doCommitAndPush(t, littleSize, dstPath, prefix)
 		})
 		t.Run("Big", func(t *testing.T) {
@@ -186,7 +188,7 @@ func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string
 				t.Skip("Skipping test in short mode.")
 				return
 			}
-			PrintCurrentTest(t)
+			defer PrintCurrentTest(t)()
 			big = doCommitAndPush(t, bigSize, dstPath, prefix)
 		})
 	})
@@ -195,7 +197,7 @@ func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string
 
 func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS string) {
 	t.Run("Raw", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		username := ctx.Username
 		reponame := ctx.Reponame
 
@@ -231,7 +233,7 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 
 func mediaTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS string) {
 	t.Run("Media", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 
 		username := ctx.Username
 		reponame := ctx.Reponame
@@ -306,12 +308,12 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 
 	//Commit
 	// Now here we should explicitly allow lfs filters to run
-	oldGlobals := allowLFSFilters()
-	err = git.AddChanges(repoPath, false, filepath.Base(tmpFile.Name()))
+	globalArgs := allowLFSFilters()
+	err = git.AddChangesWithArgs(repoPath, globalArgs, false, filepath.Base(tmpFile.Name()))
 	if err != nil {
 		return "", err
 	}
-	err = git.CommitChanges(repoPath, git.CommitChangesOptions{
+	err = git.CommitChangesWithArgs(repoPath, globalArgs, git.CommitChangesOptions{
 		Committer: &git.Signature{
 			Email: email,
 			Name:  fullName,
@@ -324,13 +326,12 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 		},
 		Message: fmt.Sprintf("Testing commit @ %v", time.Now()),
 	})
-	git.GlobalCommandArgs = oldGlobals
 	return filepath.Base(tmpFile.Name()), err
 }
 
 func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 	return func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		t.Run("CreateBranchProtected", doGitCreateBranch(dstPath, "protected"))
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
@@ -348,6 +349,17 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected")(t)
 			assert.NoError(t, err)
 		})
+		t.Run("GenerateCommit", func(t *testing.T) {
+			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			assert.NoError(t, err)
+		})
+		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected-2"))
+		var pr2 api.PullRequest
+		t.Run("CreatePullRequest", func(t *testing.T) {
+			pr2, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "unprotected", "unprotected-2")(t)
+			assert.NoError(t, err)
+		})
+		t.Run("MergePR2", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr2.Index))
 		t.Run("MergePR", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", baseCtx.Username))
@@ -384,6 +396,7 @@ func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string) 
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
 				"_csrf":            csrf,
 				"protected":        "on",
+				"enable_push":      "whitelist",
 				"enable_whitelist": "on",
 				"whitelist_users":  strconv.FormatInt(user.ID, 10),
 			})
@@ -404,7 +417,142 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
 		})
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		var diffStr string
+		t.Run("GetDiff", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			diffStr = resp.Body.String()
+		})
 		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		t.Run("EnsureDiffNoChange", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, diffStr, resp.Body.String())
+		})
+		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		t.Run("EnsureDiffNoChange", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, diffStr, resp.Body.String())
+		})
+		t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		t.Run("EnsureDiffNoChange", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, diffStr, resp.Body.String())
+		})
+	}
+}
 
+func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
+	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+		ctx.Reponame = fmt.Sprintf("repo-tmp-push-create-%s", u.Scheme)
+		u.Path = ctx.GitPath()
+
+		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
+		assert.NoError(t, err)
+
+		_, err = git.NewCommand("clone", u.String()).RunInDir(tmpDir)
+		assert.Error(t, err)
+
+		err = git.InitRepository(tmpDir, false)
+		assert.NoError(t, err)
+
+		_, err = os.Create(filepath.Join(tmpDir, "test.txt"))
+		assert.NoError(t, err)
+
+		err = git.AddChanges(tmpDir, true)
+		assert.NoError(t, err)
+
+		err = git.CommitChanges(tmpDir, git.CommitChangesOptions{
+			Committer: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "User Two",
+				When:  time.Now(),
+			},
+			Author: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "User Two",
+				When:  time.Now(),
+			},
+			Message: fmt.Sprintf("Testing push create @ %v", time.Now()),
+		})
+		assert.NoError(t, err)
+
+		_, err = git.NewCommand("remote", "add", "origin", u.String()).RunInDir(tmpDir)
+		assert.NoError(t, err)
+
+		invalidCtx := ctx
+		invalidCtx.Reponame = fmt.Sprintf("invalid/repo-tmp-push-create-%s", u.Scheme)
+		u.Path = invalidCtx.GitPath()
+
+		_, err = git.NewCommand("remote", "add", "invalid", u.String()).RunInDir(tmpDir)
+		assert.NoError(t, err)
+
+		// Push to create disabled
+		setting.Repository.EnablePushCreateUser = false
+		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
+		assert.Error(t, err)
+
+		// Push to create enabled
+		setting.Repository.EnablePushCreateUser = true
+
+		// Invalid repo
+		_, err = git.NewCommand("push", "invalid", "master").RunInDir(tmpDir)
+		assert.Error(t, err)
+
+		// Valid repo
+		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
+		assert.NoError(t, err)
+
+		// Fetch repo from database
+		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		assert.NoError(t, err)
+		assert.False(t, repo.IsEmpty)
+		assert.True(t, repo.IsPrivate)
+	}
+}
+
+func doBranchDelete(ctx APITestContext, owner, repo, branch string) func(*testing.T) {
+	return func(t *testing.T) {
+		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/branches", url.PathEscape(owner), url.PathEscape(repo)))
+
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/branches/delete?name=%s", url.PathEscape(owner), url.PathEscape(repo), url.QueryEscape(branch)), map[string]string{
+			"_csrf": csrf,
+		})
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
 	}
 }

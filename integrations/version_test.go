@@ -15,7 +15,7 @@ import (
 )
 
 func TestVersion(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	setting.AppVer = "test-version-1"
 	req := NewRequest(t, "GET", "/api/v1/version")

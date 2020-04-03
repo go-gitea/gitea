@@ -6,7 +6,7 @@
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.users.user_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui black tiny button" href="{{AppSubUrl}}/admin/users/new">{{.i18n.Tr "admin.users.new_account"}}</a>
+				<a class="ui blue tiny button" href="{{AppSubUrl}}/admin/users/new">{{.i18n.Tr "admin.users.new_account"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -21,6 +21,7 @@
 						<th>{{.i18n.Tr "email"}}</th>
 						<th>{{.i18n.Tr "admin.users.activated"}}</th>
 						<th>{{.i18n.Tr "admin.users.admin"}}</th>
+						<th>{{.i18n.Tr "admin.users.restricted"}}</th>
 						<th>{{.i18n.Tr "admin.users.repos"}}</th>
 						<th>{{.i18n.Tr "admin.users.created"}}</th>
 						<th>{{.i18n.Tr "admin.users.last_login"}}</th>
@@ -35,6 +36,7 @@
 							<td><span class="text truncate email">{{.Email}}</span></td>
 							<td><i class="fa fa{{if .IsActive}}-check{{end}}-square-o"></i></td>
 							<td><i class="fa fa{{if .IsAdmin}}-check{{end}}-square-o"></i></td>
+							<td><i class="fa fa{{if .IsRestricted}}-check{{end}}-square-o"></i></td>
 							<td>{{.NumRepos}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
 							{{if .LastLoginUnix}}

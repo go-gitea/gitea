@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 )
 
 var prefix string
@@ -27,20 +29,23 @@ var writerCloser = &testLoggerWriterCloser{}
 
 type testLoggerWriterCloser struct {
 	sync.RWMutex
-	t testing.TB
+	t []*testing.TB
 }
 
 func (w *testLoggerWriterCloser) setT(t *testing.TB) {
 	w.Lock()
-	w.t = *t
+	w.t = append(w.t, t)
 	w.Unlock()
 }
 
 func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
 	w.RLock()
-	t := w.t
+	var t *testing.TB
+	if len(w.t) > 0 {
+		t = w.t[len(w.t)-1]
+	}
 	w.RUnlock()
-	if t != nil {
+	if t != nil && *t != nil {
 		if len(p) > 0 && p[len(p)-1] == '\n' {
 			p = p[:len(p)-1]
 		}
@@ -65,18 +70,23 @@ func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
 			}
 		}()
 
-		t.Log(string(p))
+		(*t).Log(string(p))
 		return len(p), nil
 	}
 	return len(p), nil
 }
 
 func (w *testLoggerWriterCloser) Close() error {
+	w.Lock()
+	if len(w.t) > 0 {
+		w.t = w.t[:len(w.t)-1]
+	}
+	w.Unlock()
 	return nil
 }
 
 // PrintCurrentTest prints the current test to os.Stdout
-func PrintCurrentTest(t testing.TB, skip ...int) {
+func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	actualSkip := 1
 	if len(skip) > 0 {
 		actualSkip = skip[0]
@@ -89,6 +99,12 @@ func PrintCurrentTest(t testing.TB, skip ...int) {
 		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
 	}
 	writerCloser.setT(&t)
+	return func() {
+		if err := queue.GetManager().FlushAll(context.Background(), -1); err != nil {
+			t.Errorf("Flushing queues failed with error %v", err)
+		}
+		_ = writerCloser.Close()
+	}
 }
 
 // Printf takes a format and args and prints the string to os.Stdout

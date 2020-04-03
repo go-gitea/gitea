@@ -1,0 +1,22 @@
+{{if .ctx.IsSigned}}
+<div class="item action ui pointing top right custom dropdown context-dropdown">
+	<a class="context-menu">
+		<i class="fa fa-ellipsis-h"></i>
+	</a>
+	<div class="menu">
+		{{if .diff}}
+			<div class="item context clipboard" data-clipboard-text="{{Printf "%s%s/pulls/%d/files#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
+		{{else}}
+			<div class="item context clipboard" data-clipboard-text="{{Printf "%s%s/issues/%d#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
+		{{end}}
+		<div class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.ID}}">{{.ctx.i18n.Tr "repo.issues.context.quote_reply"}}</div>
+		{{if or .ctx.Permission.IsAdmin .ctx.IsIssuePoster .ctx.IsIssueWriter}}
+			<div class="divider"></div>
+			<div class="item context edit-content">{{.ctx.i18n.Tr "repo.issues.context.edit"}}</div>
+			{{if .delete}}
+				<div class="item context delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctx.i18n.Tr "repo.issues.delete_comment_confirm"}}">{{.ctx.i18n.Tr "repo.issues.context.delete"}}</div>
+			{{end}}
+		{{end}}
+	</div>
+</div>
+{{end}}

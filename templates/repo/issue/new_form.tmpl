@@ -13,7 +13,7 @@
 				</a>
 				<div class="ui segment content">
 					<div class="field">
-						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" tabindex="3" autofocus required>
+						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" tabindex="3" autofocus required maxlength="255">
 						{{if .PageIsComparePull}}
 							<div class="title_wip_desc">{{.i18n.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
@@ -38,15 +38,21 @@
 			{{template "repo/issue/branch_selector_field" .}}
 
 			<input id="label_ids" name="label_ids" type="hidden" value="{{.label_ids}}">
-			<div class="ui {{if not .Labels}}disabled{{end}} floating jump select-label dropdown">
+			<div class="ui {{if and (not .Labels) (not .OrgLabels)}}disabled{{end}} floating jump select-label dropdown">
 				<span class="text">
 					<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
-					<span class="octicon octicon-gear"></span>
+					{{svg "octicon-gear" 16}}
 				</span>
 				<div class="filter menu" data-id="#label_ids">
 					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 					{{range .Labels}}
-						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon {{if .IsChecked}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+					{{end}}
+					<div class="ui divider"></div>
+					{{range .OrgLabels}}
+						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 					{{end}}
 				</div>
 			</div>
@@ -54,6 +60,9 @@
 				<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
 				{{range .Labels}}
 					<a class="{{if not .IsChecked}}hide{{end}} item" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}"><span class="label color" style="background-color: {{.Color}}"></span> <span class="text has-emoji">{{.Name}}</span></a>
+				{{end}}
+				{{range .OrgLabels}}
+					<a class="{{if not .IsChecked}}hide{{end}} item" id="label_{{.ID}}" href="/issues?labels={{.ID}}"><span class="label color" style="background-color: {{.Color}}"></span> <span class="text has-emoji">{{.Name}}</span></a>
 				{{end}}
 			</div>
 
@@ -63,14 +72,14 @@
 			<div class="ui {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}} floating jump select-milestone dropdown">
 				<span class="text">
 					<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
-					<span class="octicon octicon-gear"></span>
+					{{svg "octicon-gear" 16}}
 				</span>
 				<div class="menu">
 					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_milestone"}}</div>
 					{{if .OpenMilestones}}
 						<div class="divider"></div>
 						<div class="header">
-							<i class="octicon octicon-milestone"></i>
+							{{svg "octicon-milestone" 16}}
 							{{.i18n.Tr "repo.issues.new.open_milestone"}}
 						</div>
 						{{range .OpenMilestones}}
@@ -80,7 +89,7 @@
 					{{if .ClosedMilestones}}
 						<div class="divider"></div>
 						<div class="header">
-							<i class="octicon octicon-milestone"></i>
+							{{svg "octicon-milestone" 16}}
 							{{.i18n.Tr "repo.issues.new.closed_milestone"}}
 						</div>
 						{{range .ClosedMilestones}}
@@ -104,13 +113,13 @@
 				<div class="ui {{if not .Assignees}}disabled{{end}} floating jump select-assignees dropdown">
 					<span class="text">
 						<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
-						<span class="octicon octicon-gear"></span>
+						{{svg "octicon-gear" 16}}
 					</span>
 					<div class="filter menu" data-id="#assignee_ids">
 						<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 						{{range .Assignees}}
 							<a class="item" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-								<span class="octicon"></span>
+								<span class="octicon-check invisible">{{svg "octicon-check" 16}}</span>
 								<span class="text">
 									<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
 								</span>

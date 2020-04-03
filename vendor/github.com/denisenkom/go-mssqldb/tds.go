@@ -666,14 +666,14 @@ func dialConnection(ctx context.Context, c *Connector, p connectParams) (conn ne
 	}
 	if len(ips) == 1 {
 		d := c.getDialer(&p)
-		addr := net.JoinHostPort(ips[0].String(), strconv.Itoa(int(p.port)))
+		addr := net.JoinHostPort(ips[0].String(), strconv.Itoa(int(resolveServerPort(p.port))))
 		conn, err = d.DialContext(ctx, "tcp", addr)
 
 	} else {
 		//Try Dials in parallel to avoid waiting for timeouts.
 		connChan := make(chan net.Conn, len(ips))
 		errChan := make(chan error, len(ips))
-		portStr := strconv.Itoa(int(p.port))
+		portStr := strconv.Itoa(int(resolveServerPort(p.port)))
 		for _, ip := range ips {
 			go func(ip net.IP) {
 				d := c.getDialer(&p)
@@ -711,7 +711,7 @@ func dialConnection(ctx context.Context, c *Connector, p connectParams) (conn ne
 	// Can't do the usual err != nil check, as it is possible to have gotten an error before a successful connection
 	if conn == nil {
 		f := "Unable to open tcp connection with host '%v:%v': %v"
-		return nil, fmt.Errorf(f, p.host, p.port, err.Error())
+		return nil, fmt.Errorf(f, p.host, resolveServerPort(p.port), err.Error())
 	}
 	return conn, err
 }
@@ -724,7 +724,7 @@ func connect(ctx context.Context, c *Connector, log optionalLogger, p connectPar
 		defer cancel()
 	}
 	// if instance is specified use instance resolution service
-	if p.instance != "" {
+	if p.instance != "" && p.port == 0 {
 		p.instance = strings.ToUpper(p.instance)
 		d := c.getDialer(&p)
 		instances, err := getInstances(dialCtx, d, p.host)
@@ -737,11 +737,12 @@ func connect(ctx context.Context, c *Connector, log optionalLogger, p connectPar
 			f := "No instance matching '%v' returned from host '%v'"
 			return nil, fmt.Errorf(f, p.instance, p.host)
 		}
-		p.port, err = strconv.ParseUint(strport, 0, 16)
+		port, err := strconv.ParseUint(strport, 0, 16)
 		if err != nil {
 			f := "Invalid tcp port returned from Sql Server Browser '%v': %v"
 			return nil, fmt.Errorf(f, strport, err.Error())
 		}
+		p.port = port
 	}
 
 initiate_connection:

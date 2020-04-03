@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"reflect"
 	"sync"
+	"unsafe"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/blevesearch/bleve/index/scorch/segment"
@@ -35,7 +35,7 @@ var reflectStaticSizeSegmentBase int
 
 func init() {
 	var sb SegmentBase
-	reflectStaticSizeSegmentBase = int(reflect.TypeOf(sb).Size())
+	reflectStaticSizeSegmentBase = int(unsafe.Sizeof(sb))
 }
 
 // Open returns a zap impl of a segment
@@ -56,6 +56,7 @@ func Open(path string) (segment.Segment, error) {
 			mem:            mm[0 : len(mm)-FooterSize],
 			fieldsMap:      make(map[string]uint16),
 			fieldDvReaders: make(map[uint16]*docValueReader),
+			fieldFSTs:      make(map[uint16]*vellum.FST),
 		},
 		f:    f,
 		mm:   mm,
@@ -101,6 +102,9 @@ type SegmentBase struct {
 	fieldDvReaders    map[uint16]*docValueReader // naive chunk cache per field
 	fieldDvNames      []string                   // field names cached in fieldDvReaders
 	size              uint64
+
+	m         sync.Mutex
+	fieldFSTs map[uint16]*vellum.FST
 }
 
 func (sb *SegmentBase) Size() int {
@@ -258,19 +262,27 @@ func (sb *SegmentBase) dictionary(field string) (rv *Dictionary, err error) {
 
 		dictStart := sb.dictLocs[rv.fieldID]
 		if dictStart > 0 {
-			// read the length of the vellum data
-			vellumLen, read := binary.Uvarint(sb.mem[dictStart : dictStart+binary.MaxVarintLen64])
-			fstBytes := sb.mem[dictStart+uint64(read) : dictStart+uint64(read)+vellumLen]
-			if fstBytes != nil {
+			var ok bool
+			sb.m.Lock()
+			if rv.fst, ok = sb.fieldFSTs[rv.fieldID]; !ok {
+				// read the length of the vellum data
+				vellumLen, read := binary.Uvarint(sb.mem[dictStart : dictStart+binary.MaxVarintLen64])
+				fstBytes := sb.mem[dictStart+uint64(read) : dictStart+uint64(read)+vellumLen]
 				rv.fst, err = vellum.Load(fstBytes)
 				if err != nil {
+					sb.m.Unlock()
 					return nil, fmt.Errorf("dictionary field %s vellum err: %v", field, err)
 				}
-				rv.fstReader, err = rv.fst.Reader()
-				if err != nil {
-					return nil, fmt.Errorf("dictionary field %s vellum reader err: %v", field, err)
-				}
+
+				sb.fieldFSTs[rv.fieldID] = rv.fst
 			}
+
+			sb.m.Unlock()
+			rv.fstReader, err = rv.fst.Reader()
+			if err != nil {
+				return nil, fmt.Errorf("dictionary field %s vellum reader err: %v", field, err)
+			}
+
 		}
 	}
 
@@ -527,7 +539,7 @@ func (s *Segment) DictAddr(field string) (uint64, error) {
 }
 
 func (s *SegmentBase) loadDvReaders() error {
-	if s.docValueOffset == fieldNotUninverted {
+	if s.docValueOffset == fieldNotUninverted || s.numDocs == 0 {
 		return nil
 	}
 
@@ -546,7 +558,10 @@ func (s *SegmentBase) loadDvReaders() error {
 		}
 		read += uint64(n)
 
-		fieldDvReader, _ := s.loadFieldDocValueReader(field, fieldLocStart, fieldLocEnd)
+		fieldDvReader, err := s.loadFieldDocValueReader(field, fieldLocStart, fieldLocEnd)
+		if err != nil {
+			return err
+		}
 		if fieldDvReader != nil {
 			s.fieldDvReaders[uint16(fieldID)] = fieldDvReader
 			s.fieldDvNames = append(s.fieldDvNames, field)

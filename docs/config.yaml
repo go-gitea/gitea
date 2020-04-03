@@ -18,7 +18,16 @@ params:
   description: Git with a cup of tea
   author: The Gitea Authors
   website: https://docs.gitea.io
-  version: 1.9.5
+  version: 1.11.4
+  minGoVersion: 1.12
+  goVersion: 1.14
+  minNodeVersion: 10
+
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
 
 menu:
   page:
@@ -52,7 +61,7 @@ menu:
       weight: 60
       pre: github
     - name: Discord Chat
-      url: https://discord.gg/NsatcWJ
+      url: https://discord.gg/Gitea
       weight: 70
       pre: comment
     - name: Forum
@@ -100,7 +109,7 @@ languages:
           weight: 60
           pre: github
         - name: Discord Chat
-          url: https://discord.gg/NsatcWJ
+          url: https://discord.gg/Gitea
           weight: 70
           pre: comment
         - name: Forum
@@ -143,7 +152,7 @@ languages:
           weight: 60
           pre: github
         - name: Discord Chat
-          url: https://discord.gg/NsatcWJ
+          url: https://discord.gg/Gitea
           weight: 70
           pre: comment
         - name: Forum
@@ -186,7 +195,7 @@ languages:
           weight: 60
           pre: github
         - name: Chat no Discord
-          url: https://discord.gg/NsatcWJ
+          url: https://discord.gg/Gitea
           weight: 70
           pre: comment
         - name: Forum
@@ -229,7 +238,7 @@ languages:
           weight: 60
           pre: github
         - name: Discord Chat
-          url: https://discord.gg/NsatcWJ
+          url: https://discord.gg/Gitea
           weight: 70
           pre: comment
         - name: Forum
@@ -272,7 +281,7 @@ languages:
           weight: 60
           pre: github
         - name: Discord Chat
-          url: https://discord.gg/NsatcWJ
+          url: https://discord.gg/Gitea
           weight: 70
           pre: comment
         - name: Forum

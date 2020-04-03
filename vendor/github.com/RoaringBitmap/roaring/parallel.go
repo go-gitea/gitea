@@ -143,8 +143,8 @@ func toBitmapContainer(c container) container {
 func appenderRoutine(bitmapChan chan<- *Bitmap, resultChan <-chan keyedContainer, expectedKeysChan <-chan int) {
 	expectedKeys := -1
 	appendedKeys := 0
-	keys := make([]uint16, 0)
-	containers := make([]container, 0)
+	var keys []uint16
+	var containers []container
 	for appendedKeys != expectedKeys {
 		select {
 		case item := <-resultChan:
@@ -337,7 +337,7 @@ func ParAnd(parallelism int, bitmaps ...*Bitmap) *Bitmap {
 // (if it is set to 0, a default number of workers is chosen)
 func ParOr(parallelism int, bitmaps ...*Bitmap) *Bitmap {
 	var lKey uint16 = MaxUint16
-	var hKey uint16 = 0
+	var hKey uint16
 
 	bitmapsFiltered := bitmaps[:0]
 	for _, b := range bitmaps {

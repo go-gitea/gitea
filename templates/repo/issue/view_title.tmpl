@@ -3,7 +3,7 @@
 		<h1 class="twelve wide column">
 			<span class="index">#{{.Issue.Index}}</span> <span id="issue-title" class="has-emoji">{{.Issue.Title}}</span>
 			<div id="edit-title-input" class="ui input" style="display: none">
-				<input value="{{.Issue.Title}}">
+				<input value="{{.Issue.Title}}" maxlength="255">
 			</div>
 		</h1>
 		{{if and (or .IsIssueWriter .IsIssuePoster) (not .Repository.IsArchived)}}
@@ -11,17 +11,19 @@
 				<div class="edit-zone text right">
 					<div id="edit-title" class="ui basic green not-in-edit button">{{.i18n.Tr "repo.issues.edit"}}</div>
 					<div id="cancel-edit-title" class="ui basic blue in-edit button" style="display: none">{{.i18n.Tr "repo.issues.cancel"}}</div>
-					<div id="save-edit-title" class="ui green in-edit button" style="display: none" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">{{.i18n.Tr "repo.issues.save"}}</div>
+					<div id="save-edit-title" class="ui green in-edit button" style="display: none" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.i18n.Tr "repo.issues.save"}}</div>
 				</div>
 			</div>
 		{{end}}
 	</div>
 	{{if .HasMerged}}
-		<div class="ui purple large label"><i class="octicon octicon-git-pull-request"></i> {{.i18n.Tr "repo.pulls.merged"}}</div>
+		<div class="ui purple large label">{{svg "octicon-git-pull-request" 16}} {{.i18n.Tr "repo.pulls.merged"}}</div>
 	{{else if .Issue.IsClosed}}
-		<div class="ui red large label"><i class="octicon octicon-issue-closed"></i> {{.i18n.Tr "repo.issues.closed_title"}}</div>
+		<div class="ui red large label">{{svg "octicon-issue-closed" 16}} {{.i18n.Tr "repo.issues.closed_title"}}</div>
+	{{else if .Issue.IsPull}}
+		<div class="ui green large label">{{svg "octicon-git-pull-request" 16}} {{.i18n.Tr "repo.issues.open_title"}}</div>
 	{{else}}
-		<div class="ui green large label"><i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues.open_title"}}</div>
+		<div class="ui green large label">{{svg "octicon-issue-opened" 16}} {{.i18n.Tr "repo.issues.open_title"}}</div>
 	{{end}}
 
 	{{if .Issue.IsPull}}
@@ -36,12 +38,42 @@
 			{{end}}
 		{{else}}
 			{{if .Issue.OriginalAuthor }}
-				{{.Issue.OriginalAuthor}}
-				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
+				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
 			{{else}}
-				<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
+				<span id="pull-desc" class="pull-desc">
+				 <a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
+				 {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}
+			    </span>
 			{{end}}
+			<span id="pull-desc-edit" style="display: none">
+                <div class="ui floating filter dropdown">
+                	<div class="ui basic small button">
+                		<span class="text">{{.i18n.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
+                	</div>
+                </div>
+                {{svg "octicon-arrow-right" 16}}
+                 <div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
+                	<div class="ui basic small button">
+                		<span class="text" id="pull-target-branch" data-basename="{{$.BaseName}}" data-branch="{{$.BaseBranch}}">{{.i18n.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
+                		<i class="dropdown icon"></i>
+                	</div>
+                	<div class="menu">
+                		<div class="ui icon search input">
+                			<i class="filter icon"></i>
+                			<input name="search" placeholder="{{.i18n.Tr "repo.pulls.filter_branch"}}...">
+                		</div>
+                		<div class="scrolling menu" id="branch-select">
+                			{{range .Branches}}
+                				{{ $sameBase := ne $.BaseName $.HeadUserName }}
+                				{{ $differentBranch := ne . $.HeadBranch }}
+                				{{ if or $sameBase $differentBranch }}
+                					<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-branch="{{.}}">{{$.BaseName}}{{if $.HeadRepo}}/{{$.HeadRepo}}{{end}}:{{.}}</div>
+                				{{ end }}
+                			{{end}}
+                		</div>
+                	</div>
+                </div>
+           </span>
 		{{end}}
 	{{else}}
 		{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}

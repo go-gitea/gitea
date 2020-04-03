@@ -71,6 +71,30 @@ func (a *Attachment) DownloadURL() string {
 	return fmt.Sprintf("%sattachments/%s", setting.AppURL, a.UUID)
 }
 
+// LinkedRepository returns the linked repo if any
+func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
+	if a.IssueID != 0 {
+		iss, err := GetIssueByID(a.IssueID)
+		if err != nil {
+			return nil, UnitTypeIssues, err
+		}
+		repo, err := GetRepositoryByID(iss.RepoID)
+		unitType := UnitTypeIssues
+		if iss.IsPull {
+			unitType = UnitTypePullRequests
+		}
+		return repo, unitType, err
+	} else if a.ReleaseID != 0 {
+		rel, err := GetReleaseByID(a.ReleaseID)
+		if err != nil {
+			return nil, UnitTypeReleases, err
+		}
+		repo, err := GetRepositoryByID(rel.RepoID)
+		return repo, UnitTypeReleases, err
+	}
+	return nil, -1, nil
+}
+
 // NewAttachment creates a new attachment object.
 func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
 	attach.UUID = gouuid.NewV4().String()
@@ -133,6 +157,11 @@ func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 	return attach, nil
 }
 
+// GetAttachmentsByUUIDs returns attachment by given UUID list.
+func GetAttachmentsByUUIDs(uuids []string) ([]*Attachment, error) {
+	return getAttachmentsByUUIDs(x, uuids)
+}
+
 func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {
 	if len(uuids) == 0 {
 		return []*Attachment{}, nil
@@ -170,7 +199,7 @@ func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
 
 func getAttachmentsByCommentID(e Engine, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
-	return attachments, x.Where("comment_id=?", commentID).Find(&attachments)
+	return attachments, e.Where("comment_id=?", commentID).Find(&attachments)
 }
 
 // getAttachmentByReleaseIDFileName return a file based on the the following infos:

@@ -35,6 +35,9 @@ func Test_Sanitizer(t *testing.T) {
 <code class="language-lol&#32;ui&#32;container&#32;input&#32;massive&#32;basic&#32;segment">Hello there! Something has gone wrong, we are working on it.</code>
 <code class="language-lol&#32;ui&#32;container&#32;input&#32;huge&#32;basic&#32;segment">In the meantime, play a game with us at&nbsp;<a href="http://example.com/">example.com</a>.</code>
 </code>`, "<code>\n<code>\u00a0</code>\n<img src=\"https://try.gogs.io/img/favicon.png\" width=\"200\" height=\"200\">\n<code>Hello there! Something has gone wrong, we are working on it.</code>\n<code>In the meantime, play a game with us at\u00a0<a href=\"http://example.com/\" rel=\"nofollow\">example.com</a>.</code>\n</code>",
+
+		// <kbd> tags
+		`<kbd>Ctrl + C</kbd>`, `<kbd>Ctrl + C</kbd>`,
 	}
 
 	for i := 0; i < len(testCases); i += 2 {

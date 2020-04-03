@@ -1,10 +1,9 @@
 language: go
 
 go:
- - 1.4
+ - 1.7
 
 script:
-  - go get golang.org/x/tools/cmd/vet
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
   - go test -v -covermode=count -coverprofile=profile.out

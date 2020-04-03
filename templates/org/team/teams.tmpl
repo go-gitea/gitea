@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		{{if .IsOrganizationOwner}}
 			<div class="text right">
-				<a class="ui green button" href="{{.OrgLink}}/teams/new"><i class="octicon octicon-repo-create"></i> {{.i18n.Tr "org.create_new_team"}}</a>
+				<a class="ui green button" href="{{.OrgLink}}/teams/new">{{svg "octicon-plus" 16}} {{.i18n.Tr "org.create_new_team"}}</a>
 			</div>
 			<div class="ui divider"></div>
 		{{end}}
@@ -17,9 +17,15 @@
 						<a class="text black" href="{{$.OrgLink}}/teams/{{.LowerName}}"><strong>{{.Name}}</strong></a>
 						<div class="ui right">
 							{{if .IsMember $.SignedUser.ID}}
-								<a class="ui red small button" href="{{$.OrgLink}}/teams/{{.LowerName}}/action/leave?uid={{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.leave"}}</a>
+								<form method="post" action="{{$.OrgLink}}/teams/{{.LowerName}}/action/leave">
+									{{$.CsrfTokenHtml}}
+									<button type="submit" class="ui red small button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.leave"}}</button>
+								</form>
 							{{else if $.IsOrganizationOwner}}
-								<a class="ui blue small button" href="{{$.OrgLink}}/teams/{{.LowerName}}/action/join?uid={{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.join"}}</a>
+								<form method="post" action="{{$.OrgLink}}/teams/{{.LowerName}}/action/join">
+									{{$.CsrfTokenHtml}}
+									<button type="submit" class="ui blue small button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.join"}}</button>
+								</form>
 							{{end}}
 						</div>
 					</div>

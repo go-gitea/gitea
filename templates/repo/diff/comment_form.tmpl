@@ -4,6 +4,7 @@
 	{{end}}
 	<form class="ui form {{if $.hidden}}hide comment-form comment-form-reply{{end}}" action="{{$.root.Issue.HTMLURL}}/files/reviews/comments" method="post">
 	{{$.root.CsrfTokenHtml}}
+		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}"/>
 		<input type="hidden" name="side" value="{{if $.Side}}{{$.Side}}{{end}}">
 		<input type="hidden" name="line" value="{{if $.Line}}{{$.Line}}{{end}}">
 		<input type="hidden" name="path" value="{{if $.File}}{{$.File}}{{end}}">
@@ -23,10 +24,11 @@
 		{{.i18n.Tr "loading"}}
 		</div>
 		<div class="footer">
-			<span class="markdown-info"><i class="octicon octicon-markdown"></i> {{$.root.i18n.Tr "repo.diff.comment.markdown_info"}}</span>
+			<span class="markdown-info">{{svg "octicon-markdown" 16}} {{$.root.i18n.Tr "repo.diff.comment.markdown_info"}}</span>
 			<div class="ui right floated">
 				{{if $.reply}}
-					<button name="reply" value="{{$.reply}}" class="ui submit green tiny button btn-reply">{{$.root.i18n.Tr "repo.diff.comment.reply"}}</button>
+					<input type="hidden" name="reply" value="{{$.reply}}">
+					<button class="ui submit green tiny button btn-reply" onclick="window.submitReply(this);">{{$.root.i18n.Tr "repo.diff.comment.reply"}}</button>
 				{{else}}
 					{{if $.root.CurrentReview}}
 						<button name="is_review" value="true" type="submit"
@@ -39,7 +41,7 @@
 					{{end}}
 				{{end}}
 				{{if or (not $.HasComments) $.hidden}}
-					<button type="button" class="ui submit tiny basic button btn-cancel" onclick="cancelCodeComment(this);">{{$.root.i18n.Tr "cancel"}}</button>
+					<button type="button" class="ui submit tiny basic button btn-cancel" onclick="window.cancelCodeComment(this);">{{$.root.i18n.Tr "cancel"}}</button>
 				{{end}}
 			</div>
 		</div>

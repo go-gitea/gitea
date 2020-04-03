@@ -16,7 +16,7 @@ import (
 )
 
 func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 	keyOwner := models.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
@@ -46,7 +46,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 }
 
 func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 
@@ -56,7 +56,7 @@ func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {
 }
 
 func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
@@ -79,7 +79,7 @@ func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
 }
 
 func TestAPISudoUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
@@ -95,7 +95,7 @@ func TestAPISudoUser(t *testing.T) {
 }
 
 func TestAPISudoUserForbidden(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 
@@ -108,7 +108,7 @@ func TestAPISudoUserForbidden(t *testing.T) {
 }
 
 func TestAPIListUsers(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session)
@@ -131,13 +131,13 @@ func TestAPIListUsers(t *testing.T) {
 }
 
 func TestAPIListUsersNotLoggedIn(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/api/v1/admin/users")
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestAPIListUsersNonAdmin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	nonAdminUsername := "user2"
 	session := loginUser(t, nonAdminUsername)
 	token := getTokenForLoggedInUser(t, session)

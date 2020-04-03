@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListTags list all the tags of a repository
@@ -30,12 +31,23 @@ func ListTags(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, default maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TagList"
-	tags, err := ctx.Repo.GitRepo.GetTagInfos()
+
+	listOpts := utils.GetListOptions(ctx)
+
+	tags, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
 	if err != nil {
-		ctx.Error(500, "GetTags", err)
+		ctx.Error(http.StatusInternalServerError, "GetTags", err)
 		return
 	}
 
@@ -44,7 +56,7 @@ func ListTags(ctx *context.APIContext) {
 		apiTags[i] = convert.ToTag(ctx.Repo.Repository, tags[i])
 	}
 
-	ctx.JSON(200, &apiTags)
+	ctx.JSON(http.StatusOK, &apiTags)
 }
 
 // GetTag get the tag of a repository.
@@ -73,6 +85,8 @@ func GetTag(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AnnotatedTag"
+	//   "400":
+	//     "$ref": "#/responses/error"
 
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {

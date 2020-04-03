@@ -24,7 +24,7 @@ type Response struct {
 	ErrorCodes  []string  `json:"error-codes"`
 }
 
-const apiURL = "/api/siteverify"
+const apiURL = "api/siteverify"
 
 // Verify calls Google Recaptcha API to verify token
 func Verify(response string) (bool, error) {

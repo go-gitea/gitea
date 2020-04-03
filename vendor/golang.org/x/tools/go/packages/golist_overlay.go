@@ -1,13 +1,13 @@
 package packages
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"go/parser"
 	"go/token"
-	"path"
+	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -17,7 +17,7 @@ import (
 // sometimes incorrect.
 // TODO(matloob): Handle unsupported cases, including the following:
 // - determining the correct package to add given a new import path
-func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func() *goInfo) (modifiedPkgs, needPkgs []string, err error) {
+func (state *golistState) processGolistOverlay(response *responseDeduper) (modifiedPkgs, needPkgs []string, err error) {
 	havePkgs := make(map[string]string) // importPath -> non-test package ID
 	needPkgsSet := make(map[string]bool)
 	modifiedPkgsSet := make(map[string]bool)
@@ -35,13 +35,29 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 	// potentially modifying the transitive set of dependencies).
 	var overlayAddsImports bool
 
-	for opath, contents := range cfg.Overlay {
+	// If both a package and its test package are created by the overlay, we
+	// need the real package first. Process all non-test files before test
+	// files, and make the whole process deterministic while we're at it.
+	var overlayFiles []string
+	for opath := range state.cfg.Overlay {
+		overlayFiles = append(overlayFiles, opath)
+	}
+	sort.Slice(overlayFiles, func(i, j int) bool {
+		iTest := strings.HasSuffix(overlayFiles[i], "_test.go")
+		jTest := strings.HasSuffix(overlayFiles[j], "_test.go")
+		if iTest != jTest {
+			return !iTest // non-tests are before tests.
+		}
+		return overlayFiles[i] < overlayFiles[j]
+	})
+	for _, opath := range overlayFiles {
+		contents := state.cfg.Overlay[opath]
 		base := filepath.Base(opath)
 		dir := filepath.Dir(opath)
-		var pkg *Package
+		var pkg *Package           // if opath belongs to both a package and its test variant, this will be the test variant
 		var testVariantOf *Package // if opath is a test file, this is the package it is testing
 		var fileExists bool
-		isTest := strings.HasSuffix(opath, "_test.go")
+		isTestFile := strings.HasSuffix(opath, "_test.go")
 		pkgName, ok := extractPackageName(opath, contents)
 		if !ok {
 			// Don't bother adding a file that doesn't even have a parsable package statement
@@ -57,12 +73,19 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 				if !sameFile(filepath.Dir(f), dir) {
 					continue
 				}
-				if isTest && !hasTestFiles(p) {
+				// Make sure to capture information on the package's test variant, if needed.
+				if isTestFile && !hasTestFiles(p) {
 					// TODO(matloob): Are there packages other than the 'production' variant
 					// of a package that this can match? This shouldn't match the test main package
 					// because the file is generated in another directory.
 					testVariantOf = p
 					continue nextPackage
+				}
+				// We must have already seen the package of which this is a test variant.
+				if pkg != nil && p != pkg && pkg.PkgPath == p.PkgPath {
+					if hasTestFiles(p) {
+						testVariantOf = pkg
+					}
 				}
 				pkg = p
 				if filepath.Base(f) == base {
@@ -74,32 +97,19 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 		if pkg == nil {
 			// Try to find the module or gopath dir the file is contained in.
 			// Then for modules, add the module opath to the beginning.
-			var pkgPath string
-			for rdir, rpath := range rootDirs().rootDirs {
-				// TODO(matloob): This doesn't properly handle symlinks.
-				r, err := filepath.Rel(rdir, dir)
-				if err != nil {
-					continue
-				}
-				pkgPath = filepath.ToSlash(r)
-				if rpath != "" {
-					pkgPath = path.Join(rpath, pkgPath)
-				}
-				// We only create one new package even it can belong in multiple modules or GOPATH entries.
-				// This is okay because tools (such as the LSP) that use overlays will recompute the overlay
-				// once the file is saved, and golist will do the right thing.
-				// TODO(matloob): Implement module tiebreaking?
-				break
+			pkgPath, ok, err := state.getPkgPath(dir)
+			if err != nil {
+				return nil, nil, err
 			}
-			if pkgPath == "" {
-				continue
+			if !ok {
+				break
 			}
 			isXTest := strings.HasSuffix(pkgName, "_test")
 			if isXTest {
 				pkgPath += "_test"
 			}
 			id := pkgPath
-			if isTest && !isXTest {
+			if isTestFile && !isXTest {
 				id = fmt.Sprintf("%s [%s.test]", pkgPath, pkgPath)
 			}
 			// Try to reclaim a package with the same id if it exists in the response.
@@ -115,9 +125,14 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 				response.addPackage(pkg)
 				havePkgs[pkg.PkgPath] = id
 				// Add the production package's sources for a test variant.
-				if isTest && !isXTest && testVariantOf != nil {
+				if isTestFile && !isXTest && testVariantOf != nil {
 					pkg.GoFiles = append(pkg.GoFiles, testVariantOf.GoFiles...)
 					pkg.CompiledGoFiles = append(pkg.CompiledGoFiles, testVariantOf.CompiledGoFiles...)
+					// Add the package under test and its imports to the test variant.
+					pkg.forTest = testVariantOf.PkgPath
+					for k, v := range testVariantOf.Imports {
+						pkg.Imports[k] = &Package{ID: v.ID}
+					}
 				}
 			}
 		}
@@ -134,38 +149,45 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 			continue
 		}
 		for _, imp := range imports {
-			_, found := pkg.Imports[imp]
-			if !found {
-				overlayAddsImports = true
-				// TODO(matloob): Handle cases when the following block isn't correct.
-				// These include imports of test variants, imports of vendored packages, etc.
-				id, ok := havePkgs[imp]
-				if !ok {
-					id = imp
+			if _, found := pkg.Imports[imp]; found {
+				continue
+			}
+			overlayAddsImports = true
+			id, ok := havePkgs[imp]
+			if !ok {
+				var err error
+				id, err = state.resolveImport(dir, imp)
+				if err != nil {
+					return nil, nil, err
 				}
-				pkg.Imports[imp] = &Package{ID: id}
+			}
+			pkg.Imports[imp] = &Package{ID: id}
+			// Add dependencies to the non-test variant version of this package as well.
+			if testVariantOf != nil {
+				testVariantOf.Imports[imp] = &Package{ID: id}
 			}
 		}
-		continue
 	}
 
-	// toPkgPath tries to guess the package path given the id.
-	// This isn't always correct -- it's certainly wrong for
-	// vendored packages' paths.
-	toPkgPath := func(id string) string {
-		// TODO(matloob): Handle vendor paths.
-		i := strings.IndexByte(id, ' ')
-		if i >= 0 {
-			return id[:i]
+	// toPkgPath guesses the package path given the id.
+	toPkgPath := func(sourceDir, id string) (string, error) {
+		if i := strings.IndexByte(id, ' '); i >= 0 {
+			return state.resolveImport(sourceDir, id[:i])
 		}
-		return id
+		return state.resolveImport(sourceDir, id)
 	}
 
-	// Do another pass now that new packages have been created to determine the
-	// set of missing packages.
+	// Now that new packages have been created, do another pass to determine
+	// the new set of missing packages.
 	for _, pkg := range response.dr.Packages {
 		for _, imp := range pkg.Imports {
-			pkgPath := toPkgPath(imp.ID)
+			if len(pkg.GoFiles) == 0 {
+				return nil, nil, fmt.Errorf("cannot resolve imports for package %q with no Go files", pkg.PkgPath)
+			}
+			pkgPath, err := toPkgPath(filepath.Dir(pkg.GoFiles[0]), imp.ID)
+			if err != nil {
+				return nil, nil, err
+			}
 			if _, ok := havePkgs[pkgPath]; !ok {
 				needPkgsSet[pkgPath] = true
 			}
@@ -185,6 +207,52 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 	return modifiedPkgs, needPkgs, err
 }
 
+// resolveImport finds the the ID of a package given its import path.
+// In particular, it will find the right vendored copy when in GOPATH mode.
+func (state *golistState) resolveImport(sourceDir, importPath string) (string, error) {
+	env, err := state.getEnv()
+	if err != nil {
+		return "", err
+	}
+	if env["GOMOD"] != "" {
+		return importPath, nil
+	}
+
+	searchDir := sourceDir
+	for {
+		vendorDir := filepath.Join(searchDir, "vendor")
+		exists, ok := state.vendorDirs[vendorDir]
+		if !ok {
+			info, err := os.Stat(vendorDir)
+			exists = err == nil && info.IsDir()
+			state.vendorDirs[vendorDir] = exists
+		}
+
+		if exists {
+			vendoredPath := filepath.Join(vendorDir, importPath)
+			if info, err := os.Stat(vendoredPath); err == nil && info.IsDir() {
+				// We should probably check for .go files here, but shame on anyone who fools us.
+				path, ok, err := state.getPkgPath(vendoredPath)
+				if err != nil {
+					return "", err
+				}
+				if ok {
+					return path, nil
+				}
+			}
+		}
+
+		// We know we've hit the top of the filesystem when we Dir / and get /,
+		// or C:\ and get C:\, etc.
+		next := filepath.Dir(searchDir)
+		if next == searchDir {
+			break
+		}
+		searchDir = next
+	}
+	return importPath, nil
+}
+
 func hasTestFiles(p *Package) bool {
 	for _, f := range p.GoFiles {
 		if strings.HasSuffix(f, "_test.go") {
@@ -194,44 +262,59 @@ func hasTestFiles(p *Package) bool {
 	return false
 }
 
-// determineRootDirs returns a mapping from directories code can be contained in to the
-// corresponding import path prefixes of those directories.
-// Its result is used to try to determine the import path for a package containing
-// an overlay file.
-func determineRootDirs(cfg *Config) map[string]string {
-	// Assume modules first:
-	out, err := invokeGo(cfg, "list", "-m", "-json", "all")
+// determineRootDirs returns a mapping from absolute directories that could
+// contain code to their corresponding import path prefixes.
+func (state *golistState) determineRootDirs() (map[string]string, error) {
+	env, err := state.getEnv()
 	if err != nil {
-		return determineRootDirsGOPATH(cfg)
+		return nil, err
+	}
+	if env["GOMOD"] != "" {
+		state.rootsOnce.Do(func() {
+			state.rootDirs, state.rootDirsError = state.determineRootDirsModules()
+		})
+	} else {
+		state.rootsOnce.Do(func() {
+			state.rootDirs, state.rootDirsError = state.determineRootDirsGOPATH()
+		})
+	}
+	return state.rootDirs, state.rootDirsError
+}
+
+func (state *golistState) determineRootDirsModules() (map[string]string, error) {
+	out, err := state.invokeGo("list", "-m", "-json", "all")
+	if err != nil {
+		return nil, err
 	}
 	m := map[string]string{}
 	type jsonMod struct{ Path, Dir string }
 	for dec := json.NewDecoder(out); dec.More(); {
 		mod := new(jsonMod)
 		if err := dec.Decode(mod); err != nil {
-			return m // Give up and return an empty map. Package won't be found for overlay.
+			return nil, err
 		}
 		if mod.Dir != "" && mod.Path != "" {
 			// This is a valid module; add it to the map.
-			m[mod.Dir] = mod.Path
+			absDir, err := filepath.Abs(mod.Dir)
+			if err != nil {
+				return nil, err
+			}
+			m[absDir] = mod.Path
 		}
 	}
-	return m
+	return m, nil
 }
 
-func determineRootDirsGOPATH(cfg *Config) map[string]string {
+func (state *golistState) determineRootDirsGOPATH() (map[string]string, error) {
 	m := map[string]string{}
-	out, err := invokeGo(cfg, "env", "GOPATH")
-	if err != nil {
-		// Could not determine root dir mapping. Everything is best-effort, so just return an empty map.
-		// When we try to find the import path for a directory, there will be no root-dir match and
-		// we'll give up.
-		return m
+	for _, dir := range filepath.SplitList(state.mustGetEnv()["GOPATH"]) {
+		absDir, err := filepath.Abs(dir)
+		if err != nil {
+			return nil, err
+		}
+		m[filepath.Join(absDir, "src")] = ""
 	}
-	for _, p := range filepath.SplitList(string(bytes.TrimSpace(out.Bytes()))) {
-		m[filepath.Join(p, "src")] = ""
-	}
-	return m
+	return m, nil
 }
 
 func extractImports(filename string, contents []byte) ([]string, error) {

@@ -12,7 +12,7 @@ import (
 )
 
 func TestDownloadByID(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -24,7 +24,7 @@ func TestDownloadByID(t *testing.T) {
 }
 
 func TestDownloadByIDMedia(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 

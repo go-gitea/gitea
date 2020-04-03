@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -25,14 +26,44 @@ func Members(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgMembers"] = true
 
-	if err := org.GetMembers(); err != nil {
+	page := ctx.QueryInt("page")
+	if page <= 1 {
+		page = 1
+	}
+
+	var opts = models.FindOrgMembersOpts{
+		OrgID:      org.ID,
+		PublicOnly: true,
+	}
+
+	if ctx.User != nil {
+		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrgMember")
+			return
+		}
+		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
+	}
+
+	total, err := models.CountOrgMembers(opts)
+	if err != nil {
+		ctx.Error(500, "CountOrgMembers")
+		return
+	}
+
+	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
+	opts.ListOptions.Page = page
+	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
+	members, membersIsPublic, err := models.FindOrgMembers(&opts)
+	if err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
-	ctx.Data["Members"] = org.Members
-	ctx.Data["MembersIsPublicMember"] = org.MembersIsPublic
-	ctx.Data["MembersIsUserOrgOwner"] = org.Members.IsUserOrgOwner(org.ID)
-	ctx.Data["MembersTwoFaStatus"] = org.Members.GetTwoFaStatus()
+	ctx.Data["Page"] = pager
+	ctx.Data["Members"] = members
+	ctx.Data["MembersIsPublicMember"] = membersIsPublic
+	ctx.Data["MembersIsUserOrgOwner"] = members.IsUserOrgOwner(org.ID)
+	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
 
 	ctx.HTML(200, tplMembers)
 }

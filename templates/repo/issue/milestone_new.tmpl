@@ -26,7 +26,7 @@
 			<div class="eleven wide column">
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<label>{{.i18n.Tr "repo.milestones.title"}}</label>
-					<input name="title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required>
+					<input name="title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
 				</div>
 				<div class="field">
 					<label>{{.i18n.Tr "repo.milestones.desc"}}</label>

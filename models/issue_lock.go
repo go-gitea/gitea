@@ -45,14 +45,14 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 		return err
 	}
 
-	_, err := createComment(sess, &CreateCommentOptions{
+	var opt = &CreateCommentOptions{
 		Doer:    opts.Doer,
 		Issue:   opts.Issue,
 		Repo:    opts.Issue.Repo,
 		Type:    commentType,
 		Content: opts.Reason,
-	})
-	if err != nil {
+	}
+	if _, err := createComment(sess, opt); err != nil {
 		return err
 	}
 

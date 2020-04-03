@@ -5,6 +5,7 @@
 package mirror
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -13,8 +14,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -171,54 +174,77 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		gitArgs = append(gitArgs, "--prune")
 	}
 
-	_, stderr, err := process.GetManager().ExecDir(
-		timeout, repoPath, fmt.Sprintf("Mirror.runSync: %s", repoPath),
-		git.GitExecutable, gitArgs...)
-	if err != nil {
+	stdoutBuilder := strings.Builder{}
+	stderrBuilder := strings.Builder{}
+	if err := git.NewCommand(gitArgs...).
+		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
+		RunInDirTimeoutPipeline(timeout, repoPath, &stdoutBuilder, &stderrBuilder); err != nil {
+		stdout := stdoutBuilder.String()
+		stderr := stderrBuilder.String()
 		// sanitize the output, since it may contain the remote address, which may
 		// contain a password
-		message, err := sanitizeOutput(stderr, repoPath)
-		if err != nil {
-			log.Error("sanitizeOutput: %v", err)
+		stderrMessage, sanitizeErr := sanitizeOutput(stderr, repoPath)
+		if sanitizeErr != nil {
+			log.Error("sanitizeOutput failed on stderr: %v", sanitizeErr)
+			log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderr, err)
 			return nil, false
 		}
-		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, message)
-		log.Error(desc)
+		stdoutMessage, err := sanitizeOutput(stdout, repoPath)
+		if err != nil {
+			log.Error("sanitizeOutput failed: %v", sanitizeErr)
+			log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderrMessage, err)
+			return nil, false
+		}
+
+		log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
+		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, stderrMessage)
 		if err = models.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 		return nil, false
 	}
-	output := stderr
+	output := stderrBuilder.String()
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
 	}
-	if err = models.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
+	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
 		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
 	gitRepo.Close()
 
-	if err := m.Repo.UpdateSize(); err != nil {
+	if err := m.Repo.UpdateSize(models.DefaultDBContext()); err != nil {
 		log.Error("Failed to update size for mirror repository: %v", err)
 	}
 
 	if m.Repo.HasWiki() {
-		if _, stderr, err := process.GetManager().ExecDir(
-			timeout, wikiPath, fmt.Sprintf("Mirror.runSync: %s", wikiPath),
-			git.GitExecutable, "remote", "update", "--prune"); err != nil {
+		stderrBuilder.Reset()
+		stdoutBuilder.Reset()
+		if err := git.NewCommand("remote", "update", "--prune").
+			SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
+			RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
+			stdout := stdoutBuilder.String()
+			stderr := stderrBuilder.String()
 			// sanitize the output, since it may contain the remote address, which may
 			// contain a password
-			message, err := sanitizeOutput(stderr, wikiPath)
-			if err != nil {
-				log.Error("sanitizeOutput: %v", err)
+			stderrMessage, sanitizeErr := sanitizeOutput(stderr, repoPath)
+			if sanitizeErr != nil {
+				log.Error("sanitizeOutput failed on stderr: %v", sanitizeErr)
+				log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderr, err)
 				return nil, false
 			}
-			desc := fmt.Sprintf("Failed to update mirror wiki repository '%s': %s", wikiPath, message)
-			log.Error(desc)
+			stdoutMessage, err := sanitizeOutput(stdout, repoPath)
+			if err != nil {
+				log.Error("sanitizeOutput failed: %v", sanitizeErr)
+				log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderrMessage, err)
+				return nil, false
+			}
+
+			log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
+			desc := fmt.Sprintf("Failed to update mirror repository wiki '%s': %s", wikiPath, stderrMessage)
 			if err = models.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
@@ -226,7 +252,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		}
 	}
 
-	branches, err := m.Repo.GetBranches()
+	branches, err := repo_module.GetBranches(m.Repo)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		return nil, false
@@ -270,29 +296,38 @@ func Password(m *models.Mirror) string {
 }
 
 // Update checks and updates mirror repositories.
-func Update() {
+func Update(ctx context.Context) {
 	log.Trace("Doing: Update")
-
 	if err := models.MirrorsIterate(func(idx int, bean interface{}) error {
 		m := bean.(*models.Mirror)
 		if m.Repo == nil {
 			log.Error("Disconnected mirror repository found: %d", m.ID)
 			return nil
 		}
-
-		mirrorQueue.Add(m.RepoID)
-		return nil
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("Aborted due to shutdown")
+		default:
+			mirrorQueue.Add(m.RepoID)
+			return nil
+		}
 	}); err != nil {
 		log.Error("Update: %v", err)
 	}
 }
 
 // SyncMirrors checks and syncs mirrors.
-// TODO: sync more mirrors at same time.
-func SyncMirrors() {
+// FIXME: graceful: this should be a persistable queue
+func SyncMirrors(ctx context.Context) {
 	// Start listening on new sync requests.
-	for repoID := range mirrorQueue.Queue() {
-		syncMirror(repoID)
+	for {
+		select {
+		case <-ctx.Done():
+			mirrorQueue.Close()
+			return
+		case repoID := <-mirrorQueue.Queue():
+			syncMirror(repoID)
+		}
 	}
 }
 
@@ -336,19 +371,17 @@ func syncMirror(repoID string) {
 			continue
 		}
 
+		tp, _ := git.SplitRefName(result.refName)
+
 		// Create reference
 		if result.oldCommitID == gitShortEmptySha {
-			if err = SyncCreateAction(m.Repo, result.refName); err != nil {
-				log.Error("SyncCreateAction [repo_id: %d]: %v", m.RepoID, err)
-			}
+			notification.NotifySyncCreateRef(m.Repo.MustOwner(), m.Repo, tp, result.refName)
 			continue
 		}
 
 		// Delete reference
 		if result.newCommitID == gitShortEmptySha {
-			if err = SyncDeleteAction(m.Repo, result.refName); err != nil {
-				log.Error("SyncDeleteAction [repo_id: %d]: %v", m.RepoID, err)
-			}
+			notification.NotifySyncDeleteRef(m.Repo.MustOwner(), m.Repo, tp, result.refName)
 			continue
 		}
 
@@ -368,15 +401,15 @@ func syncMirror(repoID string) {
 			log.Error("CommitsBetweenIDs [repo_id: %d, new_commit_id: %s, old_commit_id: %s]: %v", m.RepoID, newCommitID, oldCommitID, err)
 			continue
 		}
-		if err = SyncPushAction(m.Repo, SyncPushActionOptions{
-			RefName:     result.refName,
-			OldCommitID: oldCommitID,
-			NewCommitID: newCommitID,
-			Commits:     models.ListToPushCommits(commits),
-		}); err != nil {
-			log.Error("SyncPushAction [repo_id: %d]: %v", m.RepoID, err)
-			continue
+
+		theCommits := repo_module.ListToPushCommits(commits)
+		if len(theCommits.Commits) > setting.UI.FeedMaxCommitNum {
+			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
 		}
+
+		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
+
+		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, result.refName, oldCommitID, newCommitID, theCommits)
 	}
 
 	// Get latest commit date and update to current repository updated time
@@ -394,7 +427,7 @@ func syncMirror(repoID string) {
 
 // InitSyncMirrors initializes a go routine to sync the mirrors
 func InitSyncMirrors() {
-	go SyncMirrors()
+	go graceful.GetManager().RunWithShutdownContext(SyncMirrors)
 }
 
 // StartToMirror adds repoID to mirror queue

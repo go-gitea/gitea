@@ -19,6 +19,11 @@ type IssueAssignees struct {
 	IssueID    int64 `xorm:"INDEX"`
 }
 
+// LoadAssignees load assignees of this issue.
+func (issue *Issue) LoadAssignees() error {
+	return issue.loadAssignees(x)
+}
+
 // This loads all assignees of an issue
 func (issue *Issue) loadAssignees(e Engine) (err error) {
 	// Reset maybe preexisting assignees
@@ -39,6 +44,18 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 	}
 
 	return
+}
+
+// GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
+// but skips joining with `user` for performance reasons.
+// User permissions must be verified elsewhere if required.
+func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
+	userIDs := make([]int64, 0, 5)
+	return userIDs, x.Table("issue_assignees").
+		Cols("assignee_id").
+		Where("issue_id = ?", issueID).
+		Distinct("assignee_id").
+		Find(&userIDs)
 }
 
 // GetAssigneesByIssue returns everyone assigned to that issue
@@ -62,23 +79,6 @@ func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error
 
 func isUserAssignedToIssue(e Engine, issue *Issue, user *User) (isAssigned bool, err error) {
 	return e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
-}
-
-// MakeAssigneeList concats a string with all names of the assignees. Useful for logs.
-func MakeAssigneeList(issue *Issue) (assigneeList string, err error) {
-	err = issue.loadAssignees(x)
-	if err != nil {
-		return "", err
-	}
-
-	for in, assignee := range issue.Assignees {
-		assigneeList += assignee.Name
-
-		if len(issue.Assignees) > (in + 1) {
-			assigneeList += ", "
-		}
-	}
-	return
 }
 
 // ClearAssigneeByUserID deletes all assignments of an user
@@ -119,10 +119,18 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 		return false, nil, fmt.Errorf("loadRepo: %v", err)
 	}
 
+	var opts = &CreateCommentOptions{
+		Type:            CommentTypeAssignees,
+		Doer:            doer,
+		Repo:            issue.Repo,
+		Issue:           issue,
+		RemovedAssignee: removed,
+		AssigneeID:      assigneeID,
+	}
 	// Comment
-	comment, err = createAssigneeComment(sess, doer, issue.Repo, issue, assigneeID, removed)
+	comment, err = createComment(sess, opts)
 	if err != nil {
-		return false, nil, fmt.Errorf("createAssigneeComment: %v", err)
+		return false, nil, fmt.Errorf("createComment: %v", err)
 	}
 
 	// if pull request is in the middle of creation - don't call webhook
