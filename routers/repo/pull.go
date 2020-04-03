@@ -1162,6 +1162,22 @@ func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 
 	pr := issue.PullRequest
 
+	if pr.HasMerged {
+		diffType := git.RawDiffType("diff")
+		if patch {
+			diffType = git.RawDiffType("patch")
+		}
+		if err := git.GetRawDiff(
+			models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
+			pr.MergedCommitID,
+			diffType,
+			ctx.Resp,
+		); err != nil {
+			ctx.ServerError("GetRawDiff", err)
+			return
+		}
+	}
+
 	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
 		ctx.ServerError("DownloadDiffOrPatch", err)
 		return
