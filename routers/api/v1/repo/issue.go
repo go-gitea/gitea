@@ -81,8 +81,10 @@ func SearchIssues(ctx *context.APIContext) {
 		AllPublic:   true,
 		TopicOnly:   false,
 		Collaborate: util.OptionalBoolNone,
-		OrderBy:     models.SearchOrderByRecentUpdated,
-		Actor:       ctx.User,
+		// This needs to be a column that is not nil in fixtures or
+		// MySQL will return different results when sorting by null in some cases
+		OrderBy: models.SearchOrderByAlphabetically,
+		Actor:   ctx.User,
 	}
 	if ctx.IsSigned {
 		opts.Private = true
@@ -152,6 +154,7 @@ func SearchIssues(ctx *context.APIContext) {
 				Page:     ctx.QueryInt("page"),
 				PageSize: setting.UI.IssuePagingNum,
 			},
+
 			RepoIDs:            repoIDs,
 			IsClosed:           isClosed,
 			IssueIDs:           issueIDs,
