@@ -939,6 +939,10 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadReview", err)
 				return
 			}
+			if err = comment.LoadIsOfficeReview(); err != nil {
+				ctx.ServerError("LoadIsOfficeReview", err)
+				return
+			}
 			participants = addParticipant(comment.Poster, participants)
 			if comment.Review == nil {
 				continue

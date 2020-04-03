@@ -158,9 +158,10 @@ type Comment struct {
 	RefAction    references.XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
 	RefIsPull    bool
 
-	RefRepo    *Repository `xorm:"-"`
-	RefIssue   *Issue      `xorm:"-"`
-	RefComment *Comment    `xorm:"-"`
+	RefRepo        *Repository `xorm:"-"`
+	RefIssue       *Issue      `xorm:"-"`
+	RefComment     *Comment    `xorm:"-"`
+	IsOfficeReview bool        `xorm:"-"`
 }
 
 // LoadIssue loads issue from database
@@ -500,6 +501,24 @@ func (c *Comment) UnsignedLine() uint64 {
 		return uint64(c.Line * -1)
 	}
 	return uint64(c.Line)
+}
+
+// LoadIsOfficeReview check if this is an office review
+func (c *Comment) LoadIsOfficeReview() (err error) {
+	if c.Type == CommentTypeReview {
+		c.IsOfficeReview, err = IsOfficialReviewer(c.Issue, c.Poster)
+		if err != nil {
+			return err
+		}
+		if !c.IsOfficeReview {
+			perm, err := GetUserRepoPermission(c.Issue.Repo, c.Poster)
+			if err != nil {
+				return err
+			}
+			c.IsOfficeReview = perm.CanAccessAny(AccessModeWrite, UnitTypePullRequests)
+		}
+	}
+	return
 }
 
 // CodeCommentURL returns the url to a comment in code

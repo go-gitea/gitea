@@ -901,6 +901,30 @@
                 margin: 15px 0 15px 79px;
                 padding-left: 25px;
 
+                .issue-symbol {
+                    position: relative;
+                    display: flex;
+                    width: 35px;
+                    height: 35px;
+                    background-color: #eee;
+                    border: 2px solid #fff;
+                    align-items: center;
+                    margin-left: -39px;
+                    border-radius: 50%;
+                }
+
+                .bg-green {
+                    background-color: #21ba45 !important;
+                }
+
+                .bg-red {
+                    background-color: #db2828 !important;
+                }
+
+                .bg-purple {
+                    background-color: #a333c8 !important;
+                }
+
                 & > .svg:not(.issue-symbol) {
                     text-shadow: -2px 0 #fff, 0 2px #fff, 2px 0 #fff, 0 -2px #fff;
                 }
@@ -946,36 +970,68 @@
                     text-align: center;
 
                     &.octicon-circle-slash {
-                        margin-top: 5px;
-                        margin-left: -35.5px;
                         height: 20px;
-                        color: #bd2c00;
+                    }
+
+                    &.octicon-comment {
+                        height: 20px;
+                    }
+
+                    &.octicon-git-merge {
+                        height: 20px;
+                    }
+
+                    &.octicon-tag {
+                        height: 20px;
+                    }
+
+                    &.octicon-request-changes {
+                        height: 20px;
+                    }
+
+                    &.octicon-check {
+                        height: 20px;
+                    }
+
+                    &.octicon-milestone {
+                        height: 20px;
+                    }
+
+                    &.octicon-person {
+                        height: 20px;
+                    }
+
+                    &.octicon-pencil {
+                        height: 20px;
+                    }
+
+                    &.octicon-clock {
+                        height: 20px;
+                    }
+
+                    &.octicon-dependent {
+                        height: 20px;
                     }
 
                     &.octicon-primitive-dot {
                         margin-top: -1px;
-                        margin-left: -35.5px;
                         margin-right: -1px;
-                        height: 30px;
-                        color: #6cc644;
+                        height: 20px;
                     }
 
                     &.octicon-bookmark {
                         margin-top: 2px;
-                        margin-left: -35.5px;
                         margin-right: -1px;
-                        height: 25px;
+                        height: 20px;
                     }
 
                     &.octicon-eye {
                         margin-top: 3px;
-                        margin-left: -35.5px;
                         margin-right: 0;
                         height: 22px;
                     }
 
                     &.octicon-x {
-                        margin-left: -35.5px;
                         height: 25px;
                     }
                 }
