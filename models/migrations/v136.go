@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 
@@ -44,13 +45,21 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 		for _, pr := range results {
 			divergence, err := pull_service.GetDiverging(pr)
 			if err != nil {
-				return fmt.Errorf("GetDiverging: %v", err)
-			} else {
-				pr.CommitsAhead = divergence.Ahead
-				pr.CommitsBehind = divergence.Behind
-				if _, err = sess.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr); err != nil {
-					return fmt.Errorf("Update Cols: %v", err)
+				if err = pr.LoadIssue(); err != nil {
+					return fmt.Errorf("pr.LoadIssue()[%d]: %v", pr.ID, err)
 				}
+				if !pr.Issue.IsClosed {
+					return fmt.Errorf("GetDiverging: %v", err)
+				}
+				log.Error("Could not recalculate Divergence for pull: %d", pr.ID)
+				pr.CommitsAhead = 0
+				pr.CommitsBehind = 0
+			}
+
+			pr.CommitsAhead = divergence.Ahead
+			pr.CommitsBehind = divergence.Behind
+			if _, err = sess.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr); err != nil {
+				return fmt.Errorf("Update Cols: %v", err)
 			}
 		}
 
