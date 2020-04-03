@@ -49,6 +49,10 @@ var CmdDoctor = cli.Command{
 			Name:  "all",
 			Usage: "Run all the available checks",
 		},
+		cli.BoolFlag{
+			Name:  "fix",
+			Usage: "Automatically fix if we can",
+		},
 	},
 }
 
@@ -111,10 +115,10 @@ func runDoctor(ctx *cli.Context) error {
 	}
 
 	var checks []check
-	if ctx.IsSet("all") && ctx.Bool("all") {
+	if ctx.Bool("all") {
 		checks = checklist
 	} else if ctx.IsSet("run") {
-		addDefault := ctx.IsSet("default") && ctx.Bool("default")
+		addDefault := ctx.Bool("default")
 		names := ctx.StringSlice("run")
 		for i, name := range names {
 			names[i] = strings.ToLower(strings.TrimSpace(name))
@@ -195,16 +199,31 @@ func runDoctorPathInfo(ctx *cli.Context) ([]string, error) {
 
 	check := func(name, path string, is_dir, required, is_write bool) {
 		res = append(res, fmt.Sprintf("%-25s  '%s'", name+":", path))
-		if fi, err := os.Stat(path); err != nil {
+		fi, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) && ctx.Bool("fix") && is_dir {
+				if err := os.MkdirAll(path, 0777); err != nil {
+					res = append(res, fmt.Sprintf("    ERROR: %v", err))
+					fail = true
+					return
+				}
+				fi, err = os.Stat(path)
+			}
+		}
+		if err != nil {
 			if required {
 				res = append(res, fmt.Sprintf("    ERROR: %v", err))
 				fail = true
-			} else {
-				res = append(res, fmt.Sprintf("    NOTICE: not accessible (%v)", err))
+				return
 			}
-		} else if is_dir && !fi.IsDir() {
+			res = append(res, fmt.Sprintf("    NOTICE: not accessible (%v)", err))
+			return
+		}
+
+		if is_dir && !fi.IsDir() {
 			res = append(res, "    ERROR: not a directory")
 			fail = true
+			return
 		} else if !is_dir && !fi.Mode().IsRegular() {
 			res = append(res, "    ERROR: not a regular file")
 			fail = true
@@ -251,6 +270,10 @@ func runDoctorWritableDir(path string) error {
 	return nil
 }
 
+const tplCommentPrefix = `# gitea public key`
+
+var giteaExpected = regexp.MustCompile(`^[ \t]*(?:command=")([^ ]+) --config='([^']+)' serv key-([^"]+)",(?:[^ ]+) ssh-rsa ([^ ]+) ([^ ]+)[ \t]*$`)
+
 func runDoctorLocationMoved(ctx *cli.Context) ([]string, error) {
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil, nil
@@ -263,47 +286,76 @@ func runDoctorLocationMoved(ctx *cli.Context) ([]string, error) {
 	}
 	defer f.Close()
 
-	var firstline string
+	runFix := 0
+	results := make([]string, 0, 10)
+
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		firstline = strings.TrimSpace(scanner.Text())
-		if len(firstline) == 0 || firstline[0] == '#' {
-			continue
-		}
-		break
-	}
-
-	// command="/Volumes/data/Projects/gitea/gitea/gitea --config
-	if len(firstline) > 0 {
-		exp := regexp.MustCompile(`^[ \t]*(?:command=")([^ ]+) --config='([^']+)' serv key-([^"]+)",(?:[^ ]+) ssh-rsa ([^ ]+) ([^ ]+)[ \t]*$`)
-
-		// command="/home/user/gitea --config='/home/user/etc/app.ini' serv key-999",option-1,option-2,option-n ssh-rsa public-key-value key-name
-		res := exp.FindStringSubmatch(firstline)
-		if res == nil {
-			return nil, errors.New("Unknown authorized_keys format")
-		}
-
-		giteaPath := res[1] // => /home/user/gitea
-		iniPath := res[2]   // => /home/user/etc/app.ini
-
-		p, err := exePath()
-		if err != nil {
-			return nil, err
-		}
-		p, err = filepath.Abs(p)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(giteaPath) > 0 && giteaPath != p {
-			return []string{fmt.Sprintf("Gitea exe path wants %s but %s on %s", p, giteaPath, fPath)}, nil
-		}
-		if len(iniPath) > 0 && iniPath != setting.CustomConf {
-			return []string{fmt.Sprintf("Gitea config path wants %s but %s on %s", setting.CustomConf, iniPath, fPath)}, nil
+		line := scanner.Text()
+		if strings.HasPrefix(line, tplCommentPrefix) {
+			res, err := checkGiteaLine(strings.TrimSpace(scanner.Text()))
+			if err != nil {
+				if ctx.Bool("fix") {
+					results = append(results, err.Error())
+					runFix++
+				} else {
+					return nil, err
+				}
+			}
+			if len(res) > 0 {
+				if ctx.Bool("fix") {
+					runFix++
+				} else {
+					results = append(results, res)
+				}
+			}
 		}
 	}
 
-	return nil, nil
+	if runFix > 0 {
+		err := models.RewriteAllPublicKeys()
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, fmt.Sprintf("%d keys needed to be rewritten", runFix))
+	}
+
+	return results, nil
+}
+
+func checkGiteaLine(line string) (string, error) {
+	if len(line) == 0 {
+		return "", nil
+	}
+
+	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
+
+	// command="/home/user/gitea --config='/home/user/etc/app.ini' serv key-999",option-1,option-2,option-n ssh-rsa public-key-value key-name
+	res := giteaExpected.FindStringSubmatch(line)
+	if res == nil {
+		return "", errors.New("Unknown authorized_keys format")
+	}
+
+	giteaPath := res[1] // => /home/user/gitea
+	iniPath := res[2]   // => /home/user/etc/app.ini
+
+	p, err := exePath()
+	if err != nil {
+		return "", err
+	}
+	p, err = filepath.Abs(p)
+	if err != nil {
+		return "", err
+	}
+
+	if len(giteaPath) > 0 && giteaPath != p {
+		return fmt.Sprintf("Gitea exe path wants %s but %s on %s", p, giteaPath, fPath), nil
+	}
+	if len(iniPath) > 0 && iniPath != setting.CustomConf {
+		return fmt.Sprintf("Gitea config path wants %s but %s on %s", setting.CustomConf, iniPath, fPath), nil
+	}
+
+	return "", nil
 }
 
 func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
@@ -348,7 +400,7 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 							var err2 error
 							pr.MergeBase, err2 = git.NewCommand("rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
 							if err2 != nil {
-								results = append(results, fmt.Sprintf("WARN: Unable to get merge base for PR ID %d, #%d in %s/%s\n  Error: %v\n  Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2))
+								results = append(results, fmt.Sprintf("WARN: Unable to get merge base for PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
 								log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)
 								continue
 							}
@@ -356,7 +408,7 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 					} else {
 						parentsString, err := git.NewCommand("rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
 						if err != nil {
-							results = append(results, fmt.Sprintf("WARN: Unable to get parents for merged PR ID %d, #%d in %s/%s\n  Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err))
+							results = append(results, fmt.Sprintf("WARN: Unable to get parents for merged PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
 							log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
 							continue
 						}
@@ -370,15 +422,19 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 
 						pr.MergeBase, err = git.NewCommand(args...).RunInDir(repoPath)
 						if err != nil {
-							results = append(results, fmt.Sprintf("WARN: Unable to get merge base for merged PR ID %d, #%d in %s/%s\n  Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err))
+							results = append(results, fmt.Sprintf("WARN: Unable to get merge base for merged PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
 							log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
 							continue
 						}
 					}
 					pr.MergeBase = strings.TrimSpace(pr.MergeBase)
 					if pr.MergeBase != oldMergeBase {
-						if err := pr.UpdateCols("merge_base"); err != nil {
-							return results, err
+						if ctx.Bool("fix") {
+							if err := pr.UpdateCols("merge_base"); err != nil {
+								return results, err
+							}
+						} else {
+							results = append(results, fmt.Sprintf("#%d onto %s in %s/%s: MergeBase should be %s but is %s", pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, oldMergeBase, pr.MergeBase))
 						}
 						numPRsUpdated++
 					}
@@ -397,7 +453,11 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 		}
 		opts.Page++
 	}
-	results = append(results, fmt.Sprintf("%d PRs updated of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
+	if ctx.Bool("fix") {
+		results = append(results, fmt.Sprintf("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
+	} else {
+		results = append(results, fmt.Sprintf("%d PRs updated of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
+	}
 
 	return results, nil
 }
