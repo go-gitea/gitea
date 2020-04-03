@@ -445,6 +445,20 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, diffStr, resp.Body.String())
 		})
+		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		t.Run("EnsureDiffNoChange", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, diffStr, resp.Body.String())
+		})
 		t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
 		t.Run("EnsureCanSeePull", func(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
@@ -529,5 +543,16 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
 		assert.True(t, repo.IsPrivate)
+	}
+}
+
+func doBranchDelete(ctx APITestContext, owner, repo, branch string) func(*testing.T) {
+	return func(t *testing.T) {
+		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/branches", url.PathEscape(owner), url.PathEscape(repo)))
+
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/branches/delete?name=%s", url.PathEscape(owner), url.PathEscape(repo), url.QueryEscape(branch)), map[string]string{
+			"_csrf": csrf,
+		})
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
 	}
 }
