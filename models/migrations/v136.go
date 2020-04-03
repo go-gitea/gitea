@@ -48,7 +48,7 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 				if !pr.Issue.IsClosed {
 					return fmt.Errorf("GetDiverging: %v", err)
 				}
-				log.Error("Could not recalculate Divergence for pull: %d", pr.ID)
+				log.Warn("Could not recalculate Divergence for pull: %d", pr.ID)
 				pr.CommitsAhead = 0
 				pr.CommitsBehind = 0
 			}
