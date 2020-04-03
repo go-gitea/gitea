@@ -432,7 +432,7 @@ func CompareDiff(ctx *context.Context) {
 	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
-	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
 	ctx.HTML(200, tplCompare)
 }

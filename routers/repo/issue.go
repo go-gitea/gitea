@@ -487,7 +487,7 @@ func NewIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
 
 	ctx.HTML(200, tplIssueNew)
 }
@@ -1078,7 +1078,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["ReadOnly"] = true
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
-	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.HTML(200, tplIssueView)
