@@ -385,7 +385,6 @@ type OauthUserInfo struct {
 // GetUserinfoOauth return json userinfo as in spec:
 func GetUserinfoOauth(ctx *context.Context) {
 	user := convert.ToUser(ctx.User, ctx.IsSigned, ctx.User != nil)
-		app_url = app_url + setting.AppSubURL + "/"
 	}
 	user_info := &OauthUserInfo{
 		Sub:               "",
