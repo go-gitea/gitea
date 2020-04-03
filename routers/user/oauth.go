@@ -389,7 +389,7 @@ func GetUserinfoOauth(ctx *context.Context) {
 		Sub:               "",
 		Name:              user.FullName,
 		PreferredUsername: user.UserName,
-		Profile:           app_url + user.UserName,
+		Profile:           user.HTMLURL()
 		Picture:           user.AvatarURL,
 		Email:             user.Email,
 		Language:          ctx.User.Language,
