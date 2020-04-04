@@ -293,10 +293,7 @@ test\#%:
 
 .PHONY: coverage
 coverage:
-	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/wadey/gocovmerge; \
-	fi
-	gocovmerge integration.coverage.out $(shell find . -type f -name "coverage.out") > coverage.all;\
+	GO111MODULE=on $(GO) run -mod=vendor build/gocovmerge.go integration.coverage.out $(shell find . -type f -name "coverage.out") > coverage.all
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
