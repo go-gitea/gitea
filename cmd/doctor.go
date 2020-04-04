@@ -39,11 +39,11 @@ var CmdDoctor = cli.Command{
 		},
 		cli.BoolFlag{
 			Name:  "default",
-			Usage: "Run the default checks (if neither run or all is set this is the default behaviour)",
+			Usage: "Run the default checks (if neither --run or --all is set, this is the default behaviour)",
 		},
 		cli.StringSliceFlag{
 			Name:  "run",
-			Usage: "Run the provided checks - if default is set the default checks will also run",
+			Usage: "Run the provided checks - (if --default is set, the default checks will also run)",
 		},
 		cli.BoolFlag{
 			Name:  "all",
@@ -51,7 +51,7 @@ var CmdDoctor = cli.Command{
 		},
 		cli.BoolFlag{
 			Name:  "fix",
-			Usage: "Automatically fix if we can",
+			Usage: "Automatically fix what we can",
 		},
 	},
 }
@@ -77,7 +77,7 @@ var checklist = []check{
 		skipDatabaseInit: true,
 	},
 	{
-		title:     "Check if OpenSSH authorized_keys file id correct",
+		title:     "Check if OpenSSH authorized_keys file is correct",
 		name:      "authorized_keys",
 		isDefault: true,
 		f:         runDoctorLocationMoved,
