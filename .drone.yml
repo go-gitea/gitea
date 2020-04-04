@@ -61,6 +61,7 @@ steps:
       GOARCH: arm64
       TAGS: bindata
     commands:
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - make build # test cross compile
       - rm ./gitea # clean
     depends_on: [lint-backend]
