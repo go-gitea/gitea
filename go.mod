@@ -111,6 +111,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
 	golang.org/x/text v0.3.2
+	golang.org/x/tools v0.0.0-20200225230052-807dcd883420
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
