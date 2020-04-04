@@ -15,4 +15,7 @@ import (
 
 	// for embed
 	_ "github.com/shurcooL/vfsgen"
+
+	// for cover merge
+	_ "golang.org/x/tools/cover"
 )

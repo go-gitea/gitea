@@ -6,7 +6,7 @@
 				<input value="{{.Issue.Title}}" maxlength="255">
 			</div>
 		</h1>
-		{{if and (or .IsIssueWriter .IsIssuePoster) (not .Repository.IsArchived)}}
+		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="four wide column">
 				<div class="edit-zone text right">
 					<div id="edit-title" class="ui basic green not-in-edit button">{{.i18n.Tr "repo.issues.edit"}}</div>
