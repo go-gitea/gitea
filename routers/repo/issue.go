@@ -737,21 +737,11 @@ func ViewIssue(ctx *context.Context) {
 
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 
-	var iw *models.IssueWatch
-	var exists bool
-	if ctx.User != nil {
-		iw, exists, err = models.GetIssueWatch(ctx.User.ID, issue.ID)
-		if err != nil {
-			ctx.ServerError("GetIssueWatch", err)
-			return
-		}
-		if !exists {
-			iw = &models.IssueWatch{
-				UserID:     ctx.User.ID,
-				IssueID:    issue.ID,
-				IsWatching: models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) || models.IsUserParticipantsOfIssue(ctx.User, issue),
-			}
-		}
+	iw := models.IssueWatch{UserID: ctx.User.ID, IssueID: issue.ID}
+	iw.IsWatching, err = models.CheckIssueWatch(ctx.User, issue)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
 	}
 	ctx.Data["IssueWatch"] = iw
 
