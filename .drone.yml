@@ -33,16 +33,6 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
-  
-  - name: cross_compile
-    pull: always
-    image: golang:1.14
-    commands:
-      - GOOS=linux GOARCH=arm64 make build
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata
 
   - name: build-frontend
     pull: always
@@ -59,6 +49,20 @@ steps:
       GOPROXY: off
     commands:
       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+    depends_on: [lint-backend]
+
+  - name: build-backend-arm64
+    pull: always
+    image: golang:1.14
+    environment:
+      GO111MODULE: on
+      GOPROXY: off
+      GOOS: linux
+      GOARCH: arm64
+      TAGS: bindata
+    commands:
+      - make build # test cross compile
+      - rm ./gitea # clean
     depends_on: [lint-backend]
 
   - name: build-backend-386
