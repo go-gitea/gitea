@@ -2,23 +2,34 @@
 	<div class="ui segment metas">
 		{{template "repo/issue/branch_selector_field" .}}
 
-		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
+		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
-				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 					{{svg "octicon-gear" 16}}
 				{{end}}
 			</span>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
-				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
-				{{range .Labels}}
-					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
-					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_labels_title"}}</div>
+				{{if or .Labels .OrgLabels}}
+				<div class="ui icon search input">
+					<i class="search icon"></i>
+					<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_labels"}}">
+				</div>
 				{{end}}
-				<div class="ui divider"></div>
-				{{range .OrgLabels}}
-					<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
-					{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
+				{{if or .Labels .OrgLabels}}
+					{{range .Labels}}
+						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+					{{end}}
+					<div class="ui divider"></div>
+					{{range .OrgLabels}}
+						<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+						{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
+					{{end}}
+				{{else}}
+					<div class="header" style="text-transform: none;font-size:14px;">{{.i18n.Tr "repo.issues.new.no_items"}}</div>
 				{{end}}
 			</div>
 		</div>
@@ -39,33 +50,46 @@
 
 		<div class="ui divider"></div>
 
-		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
+		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
-				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 					{{svg "octicon-gear" 16}}
 				{{end}}
 			</span>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
-				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_milestone"}}</div>
-				{{if .OpenMilestones}}
-					<div class="divider"></div>
-					<div class="header">
-						{{svg "octicon-milestone" 16}}
-						{{.i18n.Tr "repo.issues.new.open_milestone"}}
-					</div>
-					{{range .OpenMilestones}}
-						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</div>
-					{{end}}
+				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_milestone_title"}}</div>
+				{{if or .OpenMilestones .ClosedMilestones}}
+				<div class="ui icon search input">
+					<i class="search icon"></i>
+					<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_milestones"}}">
+				</div>
 				{{end}}
-				{{if .ClosedMilestones}}
-					<div class="divider"></div>
-					<div class="header">
-						{{svg "octicon-milestone" 16}}
-						{{.i18n.Tr "repo.issues.new.closed_milestone"}}
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_milestone"}}</div>
+				{{if and (not .OpenMilestones) (not .ClosedMilestones)}}
+					<div class="header" style="text-transform: none;font-size:14px;">
+						{{.i18n.Tr "repo.issues.new.no_items"}}
 					</div>
-					{{range .ClosedMilestones}}
-						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</a>
+				{{else}}
+					{{if .OpenMilestones}}
+						<div class="divider"></div>
+						<div class="header">
+							{{svg "octicon-milestone" 16}}
+							{{.i18n.Tr "repo.issues.new.open_milestone"}}
+						</div>
+						{{range .OpenMilestones}}
+							<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</div>
+						{{end}}
+					{{end}}
+					{{if .ClosedMilestones}}
+						<div class="divider"></div>
+						<div class="header">
+							{{svg "octicon-milestone" 16}}
+							{{.i18n.Tr "repo.issues.new.closed_milestone"}}
+						</div>
+						{{range .ClosedMilestones}}
+							<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?milestone={{.ID}}"> {{.Name}}</a>
+						{{end}}
 					{{end}}
 				{{end}}
 			</div>
@@ -82,14 +106,19 @@
 		<div class="ui divider"></div>
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
-		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
+		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
-				{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 					{{svg "octicon-gear" 16}}
 				{{end}}
 			</span>
 			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
+				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_assignees_title"}}</div>
+				<div class="ui icon search input">
+					<i class="search icon"></i>
+					<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_assignees"}}">
+				</div>
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 				{{range .Assignees}}
 
@@ -241,7 +270,7 @@
 					{{if .Issue.IsOverdue}}
 						<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
 					{{end}}
-					{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 						<br/>
 						<a style="cursor:pointer;" onclick="window.toggleDeadlineForm();"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
 						<a style="cursor:pointer;" onclick="window.updateDeadline('');"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
@@ -251,7 +280,7 @@
 				<p><i>{{.i18n.Tr "repo.issues.due_date_not_set"}}</i></p>
 			{{end}}
 
-			{{if and .IsIssueWriter (not .Repository.IsArchived)}}
+			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 				<div {{if ne .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
 					<form class="ui fluid action input" action="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/issues/{{.Issue.Index}}" method="post" id="update-issue-deadline-form" onsubmit="window.setDeadline();return false;">
 						{{$.CsrfTokenHtml}}
