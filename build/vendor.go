@@ -4,6 +4,8 @@
 
 package build
 
+//+build vendor
+
 import (
 	// for lint
 	_ "github.com/BurntSushi/toml"
