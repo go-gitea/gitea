@@ -17,7 +17,7 @@
 				{{if .Reviewers}}
 					<div class="ui icon search input">
 						<i class="search icon"></i>
-						<input type="text" placeholder="...">
+						<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_reviewers"}}">
 					</div>
 				{{end}}
 				{{range .Reviewers}}
