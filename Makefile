@@ -193,7 +193,11 @@ fmt:
 
 .PHONY: vet
 vet:
+	# Default vet
 	$(GO) vet $(GO_PACKAGES)
+	# Custom vet
+	GO111MODULE=on $(GO) build -mod=vendor gitea.com/jolheiser/gitea-vet
+	$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
@@ -264,7 +268,7 @@ fmt-check:
 lint: lint-backend lint-frontend
 
 .PHONY: lint-backend
-lint-backend: golangci-lint revive swagger-check swagger-validate test-vendor
+lint-backend: golangci-lint revive vet swagger-check swagger-validate test-vendor
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
