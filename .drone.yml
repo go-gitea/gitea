@@ -339,7 +339,7 @@ steps:
     pull: default
     image: alpine:3.11
     commands:
-      - ./scripts/update-locales.sh
+      - ./build/update-locales.sh
 
   - name: push
     pull: always

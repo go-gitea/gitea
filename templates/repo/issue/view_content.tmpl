@@ -66,7 +66,7 @@
 				{{ template "repo/issue/view_content/pull". }}
 			{{end}}
 			{{if .IsSigned}}
-				{{ if and (or .IsRepoAdmin .IsIssueWriter (or (not .Issue.IsLocked))) (not .Repository.IsArchived) }}
+				{{ if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (or (not .Issue.IsLocked))) (not .Repository.IsArchived) }}
 				<div class="comment form">
 					<a class="avatar" href="{{.SignedUser.HomeLink}}">
 						<img src="{{.SignedUser.RelAvatarLink}}">
@@ -77,7 +77,7 @@
 							{{.CsrfTokenHtml}}
 							<input id="status" name="status" type="hidden">
 							<div class="text right">
-								{{if and (or .IsIssueWriter .IsIssuePoster) (not .DisableStatusChange)}}
+								{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 									{{if .Issue.IsClosed}}
 										<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
 											{{.i18n.Tr "repo.issues.reopen_issue"}}
@@ -126,7 +126,7 @@
 								{{.CsrfTokenHtml}}
 								<input id="status" name="status" type="hidden">
 								<div class="text right">
-									{{if and (or .IsIssueWriter .IsIssuePoster) (not .DisableStatusChange)}}
+									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 										{{if .Issue.IsClosed}}
 											<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
 												{{.i18n.Tr "repo.issues.reopen_issue"}}

@@ -6,5 +6,5 @@ conf/* linguist-vendored
 docker/* linguist-vendored
 options/* linguist-vendored
 public/* linguist-vendored
-scripts/* linguist-vendored
+build/* linguist-vendored
 templates/* linguist-vendored
