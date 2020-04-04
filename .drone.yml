@@ -33,6 +33,16 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
+  
+  - name: cross_compile
+    pull: always
+    image: golang:1.14
+    commands:
+      - GOOS=linux GOARCH=arm64 make build
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata
 
   - name: build-frontend
     pull: always
