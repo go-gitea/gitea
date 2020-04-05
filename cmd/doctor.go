@@ -453,7 +453,7 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 	})
 
 	if ctx.Bool("fix") {
-		results = append(results, fmt.Sprintf("%d PRs updated of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
+		results = append(results, fmt.Sprintf("%d PR mergebases updated of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
 	} else {
 		results = append(results, fmt.Sprintf("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
 	}
