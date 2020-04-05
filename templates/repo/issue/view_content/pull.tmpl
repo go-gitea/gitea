@@ -39,8 +39,7 @@
 	</div>
 {{end}}
 <div class="comment merge box">
-	<a class="avatar text
-	{{- if .Issue.PullRequest.HasMerged}}purple
+	<a class="avatar text  {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
 	{{- else if .IsPullWorkInProgress}}grey
 	{{- else if .IsFilesConflicted}}grey
