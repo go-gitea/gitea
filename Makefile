@@ -305,7 +305,7 @@ unit-test-coverage:
 
 .PHONY: vendor
 vendor:
-	$(GO) mod tidy && TAGS="$(TAGS) vendor" $(GO) mod vendor
+	$(GO) mod tidy && $(GO) mod vendor
 
 .PHONY: test-vendor
 test-vendor: vendor
