@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
@@ -89,6 +90,12 @@ var checklist = []check{
 		name:      "authorized_keys",
 		isDefault: true,
 		f:         runDoctorAuthorizedKeys,
+	},
+	{
+		title:     "Check if SCRIPT_TYPE is available",
+		name:      "script-type",
+		isDefault: false,
+		f:         runDoctorScriptType,
 	},
 	{
 		title:     "Check if hook files are up-to-date and executable",
@@ -452,4 +459,12 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 	}
 
 	return results, err
+}
+
+func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
+	path, err := exec.LookPath(setting.ScriptType)
+	if err != nil {
+		return []string{fmt.Sprintf("ScriptType %s is not on the current PATH", setting.ScriptType)}, err
+	}
+	return []string{fmt.Sprintf("ScriptType %s is on the current PATH at %s", setting.ScriptType, path)}, nil
 }
