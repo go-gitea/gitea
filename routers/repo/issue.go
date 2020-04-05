@@ -289,6 +289,8 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		reviewTyp := models.ReviewTypeApprove
 		if typ == "reject" {
 			reviewTyp = models.ReviewTypeReject
+		} else if typ == "waiting" {
+			reviewTyp = models.ReviewTypeRequest
 		}
 		for _, count := range counts {
 			if count.Type == reviewTyp {
