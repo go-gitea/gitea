@@ -38,6 +38,8 @@ func TestAPIReposGitCommits(t *testing.T) {
 	for _, ref := range [...]string{
 		"master", // Branch
 		"v1.1",   // Tag
+		"65f1",   // short sha
+		"65f1bf27bc3bf70f64657658635e66094edbcb4d", // full sha
 	} {
 		req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/%s?token="+token, user.Name, ref)
 		resp := session.MakeRequest(t, req, http.StatusOK)
