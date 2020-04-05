@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -17,6 +18,7 @@ import (
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
@@ -81,6 +83,13 @@ var checklist = []check{
 		name:      "authorized_keys",
 		isDefault: true,
 		f:         runDoctorLocationMoved,
+	},
+	{
+		title:         "Check Database Version",
+		name:          "check-db",
+		isDefault:     true,
+		f:             runDoctorCheckDBVersion,
+		abortIfFailed: true,
 	},
 	{
 		title:     "Recalculate merge bases",
@@ -356,6 +365,16 @@ func checkGiteaLine(line string) (string, error) {
 	}
 
 	return "", nil
+}
+
+func runDoctorCheckDBVersion(ctx *cli.Context) ([]string, error) {
+	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+		if ctx.Bool("fix") {
+			return nil, models.NewEngine(context.Background(), migrations.Migrate)
+		}
+		return nil, err
+	}
+	return nil, nil
 }
 
 func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
