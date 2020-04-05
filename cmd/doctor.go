@@ -337,7 +337,7 @@ func runDoctorAuthorizedKeys(ctx *cli.Context) ([]string, error) {
 func runDoctorCheckDBVersion(ctx *cli.Context) ([]string, error) {
 	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
 		if ctx.Bool("fix") {
-			return nil, models.NewEngine(context.Background(), migrations.Migrate)
+			return []string{fmt.Sprintf("WARN: Got Error %v during ensure up to date", err), "Attempting to migrate to the latest DB version to fix this."}, models.NewEngine(context.Background(), migrations.Migrate)
 		}
 		return nil, err
 	}
