@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	cloud.google.com/go v0.45.0 // indirect
+	gitea.com/jolheiser/gitea-vet v0.1.0
 	gitea.com/lunny/levelqueue v0.2.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
@@ -111,7 +112,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
 	golang.org/x/text v0.3.2
-	golang.org/x/tools v0.0.0-20200225230052-807dcd883420
+	golang.org/x/tools v0.0.0-20200325010219-a49f79bcc224
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
