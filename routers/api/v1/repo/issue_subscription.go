@@ -136,7 +136,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 
 // CheckIssueSubscription check if user is subscribed to an issue
 func CheckIssueSubscription(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/subscriptions/{user} issue issueCheckSubscription
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/subscriptions/check issue issueCheckSubscription
 	// ---
 	// summary: Check if user is subscribed to an issue
 	// consumes:
@@ -160,11 +160,6 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: user
-	//   in: path
-	//   description: user to check
-	//   type: string
-	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
@@ -182,18 +177,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
-	user, err := models.GetUserByName(ctx.Params(":user"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
-		}
-
-		return
-	}
-
-	watching, err := models.CheckIssueWatch(user, issue)
+	watching, err := models.CheckIssueWatch(ctx.User, issue)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

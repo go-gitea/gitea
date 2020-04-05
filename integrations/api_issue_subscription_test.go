@@ -29,11 +29,11 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	testSubscription := func(issue *models.Issue, user string, isWatching bool) {
+	testSubscription := func(issue *models.Issue, isWatching bool) {
 
 		issueRepo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
 
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s?token=%s", issueRepo.OwnerName, issueRepo.Name, issue.Index, user, token)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/check?token=%s", issueRepo.OwnerName, issueRepo.Name, issue.Index, token)
 		req := NewRequest(t, "GET", urlStr)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		wi := new(api.WatchInfo)
@@ -46,21 +46,21 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 		assert.EqualValues(t, issueRepo.APIURL(), wi.RepositoryURL)
 	}
 
-	testSubscription(issue1, "user3", false)
-	testSubscription(issue2, owner.Name, true)
-	testSubscription(issue3, owner.Name, true)
-	testSubscription(issue4, owner.Name, false)
-	testSubscription(issue5, owner.Name, false)
+	testSubscription(issue1, true)
+	testSubscription(issue2, true)
+	testSubscription(issue3, true)
+	testSubscription(issue4, false)
+	testSubscription(issue5, false)
 
 	issue1Repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issue1.RepoID}).(*models.Repository)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s?token=%s", issue1Repo.OwnerName, issue1Repo.Name, issue1.Index, owner.Name, token)
 	req := NewRequest(t, "DELETE", urlStr)
 	session.MakeRequest(t, req, http.StatusCreated)
-	testSubscription(issue1, owner.Name, false)
+	testSubscription(issue1, false)
 
 	issue5Repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issue5.RepoID}).(*models.Repository)
 	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s?token=%s", issue5Repo.OwnerName, issue5Repo.Name, issue5.Index, owner.Name, token)
 	req = NewRequest(t, "PUT", urlStr)
 	session.MakeRequest(t, req, http.StatusCreated)
-	testSubscription(issue5, owner.Name, true)
+	testSubscription(issue5, true)
 }

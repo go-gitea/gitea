@@ -5115,7 +5115,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/issues/{index}/subscriptions/{user}": {
+    "/repos/{owner}/{repo}/issues/{index}/subscriptions/check": {
       "get": {
         "consumes": [
           "application/json"
@@ -5150,13 +5150,6 @@
             "name": "index",
             "in": "path",
             "required": true
-          },
-          {
-            "type": "string",
-            "description": "user to check",
-            "name": "user",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -5167,7 +5160,9 @@
             "$ref": "#/responses/notFound"
           }
         }
-      },
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/subscriptions/{user}": {
       "put": {
         "consumes": [
           "application/json"
