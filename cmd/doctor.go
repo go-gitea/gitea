@@ -6,14 +6,12 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"text/tabwriter"
 
@@ -82,7 +80,7 @@ var checklist = []check{
 		title:     "Check if OpenSSH authorized_keys file is correct",
 		name:      "authorized_keys",
 		isDefault: true,
-		f:         runDoctorLocationMoved,
+		f:         runDoctorAuthorizedKeys,
 	},
 	{
 		title:         "Check Database Version",
@@ -183,14 +181,6 @@ func runDoctor(ctx *cli.Context) error {
 	return nil
 }
 
-func exePath() (string, error) {
-	file, err := exec.LookPath(os.Args[0])
-	if err != nil {
-		return "", err
-	}
-	return filepath.Abs(file)
-}
-
 func runDoctorPathInfo(ctx *cli.Context) ([]string, error) {
 
 	res := make([]string, 0, 10)
@@ -281,9 +271,7 @@ func runDoctorWritableDir(path string) error {
 
 const tplCommentPrefix = `# gitea public key`
 
-var giteaExpected = regexp.MustCompile(`^[ \t]*(?:command=")([^ ]+) --config='([^']+)' serv key-([^"]+)",(?:[^ ]+) ssh-rsa ([^ ]+) ([^ ]+)[ \t]*$`)
-
-func runDoctorLocationMoved(ctx *cli.Context) ([]string, error) {
+func runDoctorAuthorizedKeys(ctx *cli.Context) ([]string, error) {
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil, nil
 	}
@@ -291,80 +279,45 @@ func runDoctorLocationMoved(ctx *cli.Context) ([]string, error) {
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	f, err := os.Open(fPath)
 	if err != nil {
+		if ctx.Bool("fix") {
+			return []string{fmt.Sprintf("Error whilst opening authorized_keys: %v. Attempting regeneration", err)}, models.RewriteAllPublicKeys()
+		}
 		return nil, err
 	}
 	defer f.Close()
 
-	runFix := 0
-	results := make([]string, 0, 10)
+	linesInAuthorizedKeys := map[string]bool{}
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, tplCommentPrefix) {
-			res, err := checkGiteaLine(strings.TrimSpace(scanner.Text()))
-			if err != nil {
-				if ctx.Bool("fix") {
-					results = append(results, err.Error())
-					runFix++
-				} else {
-					return nil, err
-				}
-			}
-			if len(res) > 0 {
-				if ctx.Bool("fix") {
-					runFix++
-				} else {
-					results = append(results, res)
-				}
-			}
+			continue
 		}
+		linesInAuthorizedKeys[line] = true
 	}
+	f.Close()
 
-	if runFix > 0 {
-		err := models.RewriteAllPublicKeys()
-		if err != nil {
-			return nil, err
+	// now we regenerate and check if there are any lines missing
+	regenerated := &bytes.Buffer{}
+	if err := models.RegeneratePublicKeys(regenerated); err != nil {
+		return nil, err
+	}
+	scanner = bufio.NewScanner(regenerated)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, tplCommentPrefix) {
+			continue
 		}
-		results = append(results, fmt.Sprintf("%d keys needed to be rewritten", runFix))
+		if ok := linesInAuthorizedKeys[line]; ok {
+			continue
+		}
+		if ctx.Bool("fix") {
+			return []string{"authorized_keys is out of date, attempting regeneration"}, models.RewriteAllPublicKeys()
+		}
+		return []string{"authorized_keys is out of date and should be regenerated with gitea admin regenerate keys"}, nil
 	}
-
-	return results, nil
-}
-
-func checkGiteaLine(line string) (string, error) {
-	if len(line) == 0 {
-		return "", nil
-	}
-
-	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-
-	// command="/home/user/gitea --config='/home/user/etc/app.ini' serv key-999",option-1,option-2,option-n ssh-rsa public-key-value key-name
-	res := giteaExpected.FindStringSubmatch(line)
-	if res == nil {
-		return "", errors.New("Unknown authorized_keys format")
-	}
-
-	giteaPath := res[1] // => /home/user/gitea
-	iniPath := res[2]   // => /home/user/etc/app.ini
-
-	p, err := exePath()
-	if err != nil {
-		return "", err
-	}
-	p, err = filepath.Abs(p)
-	if err != nil {
-		return "", err
-	}
-
-	if len(giteaPath) > 0 && giteaPath != p {
-		return fmt.Sprintf("Gitea exe path wants %s but %s on %s", p, giteaPath, fPath), nil
-	}
-	if len(iniPath) > 0 && iniPath != setting.CustomConf {
-		return fmt.Sprintf("Gitea config path wants %s but %s on %s", setting.CustomConf, iniPath, fPath), nil
-	}
-
-	return "", nil
+	return nil, nil
 }
 
 func runDoctorCheckDBVersion(ctx *cli.Context) ([]string, error) {
