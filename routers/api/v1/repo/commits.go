@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -45,12 +47,14 @@ func GetSingleCommitBySHA(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Commit"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params(":sha")
-	if len(sha) == 0 {
-		ctx.Error(http.StatusBadRequest, "ref not given", nil)
+	if !git.SHAPattern.MatchString(sha) {
+		ctx.Error(http.StatusUnprocessableEntity, "no valid sha", fmt.Sprintf("no valid sha: %s", sha))
 		return
 	}
 	getCommit(ctx, sha)
@@ -82,16 +86,18 @@ func GetSingleCommitByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Commit"
-	//   "400":
-	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
 	ref := ctx.Params("ref")
-	if len(ref) == 0 {
-		ctx.Error(http.StatusBadRequest, "ref not given", nil)
+
+	if validation.GitRefNamePatternInvalid.MatchString(ref) || !validation.CheckGitRefAdditionalRulesValid(ref) {
+		ctx.Error(http.StatusUnprocessableEntity, "no valid sha", fmt.Sprintf("no valid ref: %s", ref))
 		return
 	}
+
 	getCommit(ctx, ref)
 }
 
