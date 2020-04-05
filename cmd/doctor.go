@@ -77,17 +77,17 @@ var checklist = []check{
 		skipDatabaseInit: true,
 	},
 	{
-		title:     "Check if OpenSSH authorized_keys file is correct",
-		name:      "authorized_keys",
-		isDefault: true,
-		f:         runDoctorAuthorizedKeys,
-	},
-	{
 		title:         "Check Database Version",
 		name:          "check-db",
 		isDefault:     true,
 		f:             runDoctorCheckDBVersion,
 		abortIfFailed: true,
+	},
+	{
+		title:     "Check if OpenSSH authorized_keys file is correct",
+		name:      "authorized_keys",
+		isDefault: true,
+		f:         runDoctorAuthorizedKeys,
 	},
 	{
 		title:     "Recalculate merge bases",
