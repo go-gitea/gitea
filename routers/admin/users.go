@@ -244,7 +244,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	u.AllowImportLocal = form.AllowImportLocal
 	u.AllowCreateOrganization = form.AllowCreateOrganization
 
-	// skip slef Prohibit Login
+	// skip self Prohibit Login
 	if ctx.User.ID == u.ID {
 		u.ProhibitLogin = false
 	} else {
