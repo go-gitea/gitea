@@ -798,10 +798,6 @@ trigger:
   event:
     - pull_request
 
-depends_on:
-  - testing-amd64
-  - testing-arm64
-
 steps:
   - name: fetch-tags
     pull: default
