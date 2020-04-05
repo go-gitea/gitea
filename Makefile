@@ -196,7 +196,7 @@ vet:
 	# Default vet
 	$(GO) vet $(GO_PACKAGES)
 	# Custom vet
-	GO111MODULE=on $(GO) build -mod=vendor gitea.com/jolheiser/gitea-vet
+	$(GO) build -mod=vendor gitea.com/jolheiser/gitea-vet
 	$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
