@@ -4,8 +4,7 @@
             <slot name="loading"></slot>
         </div>
         <h4 class="total-contributions" v-if="!isLoading">
-            <span v-html="totalContributions"></span>
-            total contributions in the last 12 months
+            {{ totalContributions }} total contributions in the last 12 months
         </h4>
         <calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange"/>
     </div>
