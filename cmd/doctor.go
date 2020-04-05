@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"xorm.io/builder"
 
@@ -84,10 +85,16 @@ var checklist = []check{
 		abortIfFailed: true,
 	},
 	{
-		title:     "Check if OpenSSH authorized_keys file is correct",
+		title:     "Check if OpenSSH authorized_keys file is up-to-date",
 		name:      "authorized_keys",
 		isDefault: true,
 		f:         runDoctorAuthorizedKeys,
+	},
+	{
+		title:     "Check if hook files are up-to-date and executable",
+		name:      "hooks",
+		isDefault: false,
+		f:         runDoctorHooks,
 	},
 	{
 		title:     "Recalculate merge bases",
@@ -330,106 +337,119 @@ func runDoctorCheckDBVersion(ctx *cli.Context) ([]string, error) {
 	return nil, nil
 }
 
-func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
-	opts := &models.SearchRepoOptions{
-		ListOptions: models.ListOptions{
-			Page:     1,
-			PageSize: 50,
+func iterateRepositories(each func(*models.Repository) ([]string, error)) ([]string, error) {
+	results := []string{}
+	err := models.Iterate(
+		models.DefaultDBContext(),
+		new(models.Repository),
+		builder.Gt{"id": 0},
+		func(idx int, bean interface{}) error {
+			res, err := each(bean.(*models.Repository))
+			results = append(results, res...)
+			return err
 		},
-	}
-	results := make([]string, 0, 10)
-	numRepos := 0
-	numPRs := 0
-	numPRsUpdated := 0
-	for {
-		repos, _, err := models.SearchRepositoryByCondition(opts, builder.NewCond(), false)
+	)
+	return results, err
+}
+
+func iteratePRs(repo *models.Repository, each func(*models.Repository, *models.PullRequest) ([]string, error)) ([]string, error) {
+	results := []string{}
+	err := models.Iterate(
+		models.DefaultDBContext(),
+		new(models.PullRequest),
+		builder.Eq{"base_repo_id": repo.ID},
+		func(idx int, bean interface{}) error {
+			res, err := each(repo, bean.(*models.PullRequest))
+			results = append(results, res...)
+			return err
+		},
+	)
+	return results, err
+}
+
+func runDoctorHooks(ctx *cli.Context) ([]string, error) {
+	// Need to iterate across all of the repositories
+	return iterateRepositories(func(repo *models.Repository) ([]string, error) {
+		results, err := repository.CheckDelegateHooks(repo.RepoPath())
 		if err != nil {
 			return nil, err
 		}
+		if len(results) > 0 && ctx.Bool("fix") {
+			return []string{fmt.Sprintf("regenerated hooks for %s", repo.FullName())}, repository.CreateDelegateHooks(repo.RepoPath())
+		}
 
-		for _, repo := range repos {
-			prOpts := &models.PullRequestsOptions{
-				ListOptions: models.ListOptions{
-					Page:     1,
-					PageSize: 50,
-				},
-			}
-			for {
-				prs, _, err := models.PullRequests(repo.ID, prOpts)
+		return results, nil
+	})
+}
+
+func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
+	numRepos := 0
+	numPRs := 0
+	numPRsUpdated := 0
+	results, err := iterateRepositories(func(repo *models.Repository) ([]string, error) {
+		numRepos++
+		return iteratePRs(repo, func(repo *models.Repository, pr *models.PullRequest) ([]string, error) {
+			numPRs++
+			results := []string{}
+			pr.BaseRepo = repo
+			repoPath := repo.RepoPath()
+
+			oldMergeBase := pr.MergeBase
+
+			if !pr.HasMerged {
+				var err error
+				pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.BaseBranch, pr.GetGitRefName()).RunInDir(repoPath)
 				if err != nil {
-					return nil, err
-				}
-				for _, pr := range prs {
-					pr.BaseRepo = repo
-					repoPath := repo.RepoPath()
-
-					oldMergeBase := pr.MergeBase
-
-					if !pr.HasMerged {
-						var err error
-						pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.BaseBranch, pr.GetGitRefName()).RunInDir(repoPath)
-						if err != nil {
-							var err2 error
-							pr.MergeBase, err2 = git.NewCommand("rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
-							if err2 != nil {
-								results = append(results, fmt.Sprintf("WARN: Unable to get merge base for PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
-								log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)
-								continue
-							}
-						}
-					} else {
-						parentsString, err := git.NewCommand("rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
-						if err != nil {
-							results = append(results, fmt.Sprintf("WARN: Unable to get parents for merged PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
-							log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
-							continue
-						}
-						parents := strings.Split(strings.TrimSpace(parentsString), " ")
-						if len(parents) < 2 {
-							continue
-						}
-
-						args := append([]string{"merge-base", "--"}, parents[1:]...)
-						args = append(args, pr.GetGitRefName())
-
-						pr.MergeBase, err = git.NewCommand(args...).RunInDir(repoPath)
-						if err != nil {
-							results = append(results, fmt.Sprintf("WARN: Unable to get merge base for merged PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
-							log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
-							continue
-						}
-					}
-					pr.MergeBase = strings.TrimSpace(pr.MergeBase)
-					if pr.MergeBase != oldMergeBase {
-						if ctx.Bool("fix") {
-							if err := pr.UpdateCols("merge_base"); err != nil {
-								return results, err
-							}
-						} else {
-							results = append(results, fmt.Sprintf("#%d onto %s in %s/%s: MergeBase should be %s but is %s", pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, oldMergeBase, pr.MergeBase))
-						}
-						numPRsUpdated++
+					var err2 error
+					pr.MergeBase, err2 = git.NewCommand("rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
+					if err2 != nil {
+						results = append(results, fmt.Sprintf("WARN: Unable to get merge base for PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
+						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)
+						return results, nil
 					}
 				}
-				numPRs += len(prs)
-				if len(prs) < 50 {
-					break
+			} else {
+				parentsString, err := git.NewCommand("rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
+				if err != nil {
+					results = append(results, fmt.Sprintf("WARN: Unable to get parents for merged PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
+					log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
+					return results, nil
+				}
+				parents := strings.Split(strings.TrimSpace(parentsString), " ")
+				if len(parents) < 2 {
+					return results, nil
+				}
+
+				args := append([]string{"merge-base", "--"}, parents[1:]...)
+				args = append(args, pr.GetGitRefName())
+
+				pr.MergeBase, err = git.NewCommand(args...).RunInDir(repoPath)
+				if err != nil {
+					results = append(results, fmt.Sprintf("WARN: Unable to get merge base for merged PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
+					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
+					return results, nil
 				}
 			}
-			prOpts.Page++
-		}
+			pr.MergeBase = strings.TrimSpace(pr.MergeBase)
+			if pr.MergeBase != oldMergeBase {
+				if ctx.Bool("fix") {
+					if err := pr.UpdateCols("merge_base"); err != nil {
+						return results, err
+					}
+				} else {
+					results = append(results, fmt.Sprintf("#%d onto %s in %s/%s: MergeBase should be %s but is %s", pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, oldMergeBase, pr.MergeBase))
+				}
+				numPRsUpdated++
+			}
+			return results, nil
+		})
+	})
 
-		numRepos += len(repos)
-		if len(repos) < 50 {
-			break
-		}
-		opts.Page++
-	}
 	if ctx.Bool("fix") {
-		results = append(results, fmt.Sprintf("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
-	} else {
 		results = append(results, fmt.Sprintf("%d PRs updated of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
+	} else {
+		results = append(results, fmt.Sprintf("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
 	}
 
-	return results, nil
+	return results, err
 }
