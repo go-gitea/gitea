@@ -77,10 +77,9 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	return nil, ErrAccessTokenNotExist{token}
 }
 
-// AccessTokenByNameExists checks if a token name has been used already
-// by a user.
+// AccessTokenByNameExists checks if a token name has been used already by a user.
 func AccessTokenByNameExists(token *AccessToken) bool {
-	exists, _ := x.Get(token)
+	exists, _ := x.Table("token").Where("name=?", token.Name).Exist()
 	return exists
 }
 
