@@ -738,8 +738,19 @@
                 }
             }
 
+            .timeline-item,
+            .timeline-item-group {
+                padding: 12px 0;
+            }
+
+            .timeline-item-group {
+                .timeline-item {
+                    padding-top: 8px;
+                    padding-bottom: 8px;
+                }
+            }
+
             .timeline-item {
-                padding: 6px 0;
                 margin-left: 16px;
                 position: relative;
 
@@ -754,6 +765,10 @@
 
                 &:first-child {
                     padding-top: 0 !important;
+                }
+
+                &:last-child {
+                    padding-bottom: 0 !important;
                 }
 
                 .badge {
