@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	golog "log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -54,6 +55,10 @@ var CmdDoctor = cli.Command{
 		cli.BoolFlag{
 			Name:  "fix",
 			Usage: "Automatically fix what we can",
+		},
+		cli.StringFlag{
+			Name:  "log-file",
+			Usage: `Name of the log file (default: "doctor.log"). Set to "-" to output to stdout, set to "" to disable.`,
 		},
 	},
 }
@@ -114,10 +119,28 @@ var checklist = []check{
 
 func runDoctor(ctx *cli.Context) error {
 
-	// Silence the console logger
-	// TODO: Redirect all logs into `doctor.log` ignoring any other log configuration
+	// Silence the default loggers
 	log.DelNamedLogger("console")
 	log.DelNamedLogger(log.DEFAULT)
+
+	// Now setup our own
+	logFile := ctx.String("log-file")
+	if !ctx.IsSet("log-file") {
+		logFile = "doctor.log"
+	}
+
+	if len(logFile) == 0 {
+		log.NewLogger(1000, "doctor", "console", `{"level":"NONE","stacktracelevel":"NONE","colorize":"%t"}`)
+	} else if logFile == "-" {
+		log.NewLogger(1000, "doctor", "console", `{"level":"trace","stacktracelevel":"NONE"}`)
+	} else {
+		log.NewLogger(1000, "doctor", "file", fmt.Sprintf(`{"filename":%q,"level":"trace","stacktracelevel":"NONE"}`, logFile))
+	}
+
+	// Finally redirect the default golog to here
+	golog.SetFlags(0)
+	golog.SetPrefix("")
+	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 
 	if ctx.IsSet("list") {
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
@@ -170,7 +193,8 @@ func runDoctor(ctx *cli.Context) error {
 	for i, check := range checks {
 		if !dbIsInit && !check.skipDatabaseInit {
 			// Only open database after the most basic configuration check
-			if err := initDB(); err != nil {
+			setting.EnableXORMLog = false
+			if err := initDBDisableConsole(true); err != nil {
 				fmt.Println(err)
 				fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
 				return nil
