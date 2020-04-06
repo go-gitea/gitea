@@ -74,7 +74,7 @@
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.users.prohibit_login"}}</strong></label>
-						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}}>
+						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if (eq .User.ID .SignedUserID)}}disabled{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
