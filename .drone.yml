@@ -829,5 +829,4 @@ steps:
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
-      GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
