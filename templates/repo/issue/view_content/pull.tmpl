@@ -10,7 +10,25 @@
 						<span class="type-icon text {{if eq .Type 1}}green
 							{{- else if eq .Type 2}}grey
 							{{- else if eq .Type 3}}red
-							{{- else}}grey{{end}}">
+							{{- else if eq .Type 4}}yellow
+							{{else}}grey{{end}}">
+
+							{{$canChoose := false}}
+							{{if eq .Type 4}}
+								{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
+									{{$canChoose = true}}
+								{{end}}
+							{{else}}
+								{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
+									{{$canChoose = true}}
+								{{end}}
+							{{end}}
+
+							{{if $canChoose }}
+								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+									{{svg "octicon-sync" 16}}
+								</a>
+							{{end}}
 							{{svg (printf "octicon-%s" .Type.Icon) 16}}
 						</span>
 						{{if .Stale}}
@@ -28,6 +46,8 @@
 								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 							{{else if eq .Type 3}}
 								{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+							{{else if eq .Type 4}}
+								{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
 							{{else}}
 								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 							{{end}}
