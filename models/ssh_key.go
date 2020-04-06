@@ -697,13 +697,13 @@ func rewriteAllPublicKeys(e Engine) error {
 }
 
 // RegeneratePublicKeys regenerates the authorized_keys file
-func RegeneratePublicKeys(t io.StringWriter) error {
+func RegeneratePublicKeys(t io.Writer) error {
 	return regeneratePublicKeys(x, t)
 }
 
-func regeneratePublicKeys(e Engine, t io.StringWriter) error {
+func regeneratePublicKeys(e Engine, t io.Writer) error {
 	err := e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
-		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
+		_, err = t.Write([]byte((bean.(*PublicKey)).AuthorizedString()))
 		return err
 	})
 	if err != nil {
@@ -723,7 +723,7 @@ func regeneratePublicKeys(e Engine, t io.StringWriter) error {
 				scanner.Scan()
 				continue
 			}
-			_, err = t.WriteString(line + "\n")
+			_, err = t.Write([]byte(line + "\n"))
 			if err != nil {
 				f.Close()
 				return err
