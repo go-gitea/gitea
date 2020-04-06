@@ -142,6 +142,10 @@ func establishCustomPath(ctx *cli.Context) error {
 		if currentCtx.IsSet("work-path") && len(providedWorkPath) == 0 {
 			providedWorkPath = currentCtx.String("work-path")
 		}
+		if len(currentCtx.Lineage()) < 2 {
+			break
+		}
+		currentCtx = currentCtx.Lineage()[1]
 
 	}
 	setting.SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath)
