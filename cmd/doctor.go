@@ -6,18 +6,25 @@ package cmd
 
 import (
 	"bufio"
-	"errors"
+	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
+	golog "log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
+	"text/tabwriter"
 
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/migrations"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"xorm.io/builder"
 
 	"github.com/urfave/cli"
 )
@@ -28,10 +35,38 @@ var CmdDoctor = cli.Command{
 	Usage:       "Diagnose problems",
 	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration.",
 	Action:      runDoctor,
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "list",
+			Usage: "List the available checks",
+		},
+		cli.BoolFlag{
+			Name:  "default",
+			Usage: "Run the default checks (if neither --run or --all is set, this is the default behaviour)",
+		},
+		cli.StringSliceFlag{
+			Name:  "run",
+			Usage: "Run the provided checks - (if --default is set, the default checks will also run)",
+		},
+		cli.BoolFlag{
+			Name:  "all",
+			Usage: "Run all the available checks",
+		},
+		cli.BoolFlag{
+			Name:  "fix",
+			Usage: "Automatically fix what we can",
+		},
+		cli.StringFlag{
+			Name:  "log-file",
+			Usage: `Name of the log file (default: "doctor.log"). Set to "-" to output to stdout, set to "" to disable`,
+		},
+	},
 }
 
 type check struct {
 	title            string
+	name             string
+	isDefault        bool
 	f                func(ctx *cli.Context) ([]string, error)
 	abortIfFailed    bool
 	skipDatabaseInit bool
@@ -42,30 +77,124 @@ var checklist = []check{
 	{
 		// NOTE: this check should be the first in the list
 		title:            "Check paths and basic configuration",
+		name:             "paths",
+		isDefault:        true,
 		f:                runDoctorPathInfo,
 		abortIfFailed:    true,
 		skipDatabaseInit: true,
 	},
 	{
-		title: "Check if OpenSSH authorized_keys file id correct",
-		f:     runDoctorLocationMoved,
+		title:         "Check Database Version",
+		name:          "check-db",
+		isDefault:     true,
+		f:             runDoctorCheckDBVersion,
+		abortIfFailed: true,
+	},
+	{
+		title:     "Check if OpenSSH authorized_keys file is up-to-date",
+		name:      "authorized_keys",
+		isDefault: true,
+		f:         runDoctorAuthorizedKeys,
+	},
+	{
+		title:     "Check if SCRIPT_TYPE is available",
+		name:      "script-type",
+		isDefault: false,
+		f:         runDoctorScriptType,
+	},
+	{
+		title:     "Check if hook files are up-to-date and executable",
+		name:      "hooks",
+		isDefault: false,
+		f:         runDoctorHooks,
+	},
+	{
+		title:     "Recalculate merge bases",
+		name:      "recalculate_merge_bases",
+		isDefault: false,
+		f:         runDoctorPRMergeBase,
 	},
 	// more checks please append here
 }
 
 func runDoctor(ctx *cli.Context) error {
 
-	// Silence the console logger
-	// TODO: Redirect all logs into `doctor.log` ignoring any other log configuration
+	// Silence the default loggers
 	log.DelNamedLogger("console")
 	log.DelNamedLogger(log.DEFAULT)
 
+	// Now setup our own
+	logFile := ctx.String("log-file")
+	if !ctx.IsSet("log-file") {
+		logFile = "doctor.log"
+	}
+
+	if len(logFile) == 0 {
+		log.NewLogger(1000, "doctor", "console", `{"level":"NONE","stacktracelevel":"NONE","colorize":"%t"}`)
+	} else if logFile == "-" {
+		log.NewLogger(1000, "doctor", "console", `{"level":"trace","stacktracelevel":"NONE"}`)
+	} else {
+		log.NewLogger(1000, "doctor", "file", fmt.Sprintf(`{"filename":%q,"level":"trace","stacktracelevel":"NONE"}`, logFile))
+	}
+
+	// Finally redirect the default golog to here
+	golog.SetFlags(0)
+	golog.SetPrefix("")
+	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
+
+	if ctx.IsSet("list") {
+		w := tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
+		_, _ = w.Write([]byte("Default\tName\tTitle\n"))
+		for _, check := range checklist {
+			if check.isDefault {
+				_, _ = w.Write([]byte{'*'})
+			}
+			_, _ = w.Write([]byte{'\t'})
+			_, _ = w.Write([]byte(check.name))
+			_, _ = w.Write([]byte{'\t'})
+			_, _ = w.Write([]byte(check.title))
+			_, _ = w.Write([]byte{'\n'})
+		}
+		return w.Flush()
+	}
+
+	var checks []check
+	if ctx.Bool("all") {
+		checks = checklist
+	} else if ctx.IsSet("run") {
+		addDefault := ctx.Bool("default")
+		names := ctx.StringSlice("run")
+		for i, name := range names {
+			names[i] = strings.ToLower(strings.TrimSpace(name))
+		}
+
+		for _, check := range checklist {
+			if addDefault && check.isDefault {
+				checks = append(checks, check)
+				continue
+			}
+			for _, name := range names {
+				if name == check.name {
+					checks = append(checks, check)
+					break
+				}
+			}
+		}
+	} else {
+		for _, check := range checklist {
+			if check.isDefault {
+				checks = append(checks, check)
+			}
+		}
+	}
+
 	dbIsInit := false
 
-	for i, check := range checklist {
+	for i, check := range checks {
 		if !dbIsInit && !check.skipDatabaseInit {
 			// Only open database after the most basic configuration check
-			if err := initDB(); err != nil {
+			setting.EnableXORMLog = false
+			if err := initDBDisableConsole(true); err != nil {
 				fmt.Println(err)
 				fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
 				return nil
@@ -90,14 +219,6 @@ func runDoctor(ctx *cli.Context) error {
 	return nil
 }
 
-func exePath() (string, error) {
-	file, err := exec.LookPath(os.Args[0])
-	if err != nil {
-		return "", err
-	}
-	return filepath.Abs(file)
-}
-
 func runDoctorPathInfo(ctx *cli.Context) ([]string, error) {
 
 	res := make([]string, 0, 10)
@@ -115,16 +236,31 @@ func runDoctorPathInfo(ctx *cli.Context) ([]string, error) {
 
 	check := func(name, path string, is_dir, required, is_write bool) {
 		res = append(res, fmt.Sprintf("%-25s  '%s'", name+":", path))
-		if fi, err := os.Stat(path); err != nil {
+		fi, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) && ctx.Bool("fix") && is_dir {
+				if err := os.MkdirAll(path, 0777); err != nil {
+					res = append(res, fmt.Sprintf("    ERROR: %v", err))
+					fail = true
+					return
+				}
+				fi, err = os.Stat(path)
+			}
+		}
+		if err != nil {
 			if required {
 				res = append(res, fmt.Sprintf("    ERROR: %v", err))
 				fail = true
-			} else {
-				res = append(res, fmt.Sprintf("    NOTICE: not accessible (%v)", err))
+				return
 			}
-		} else if is_dir && !fi.IsDir() {
+			res = append(res, fmt.Sprintf("    NOTICE: not accessible (%v)", err))
+			return
+		}
+
+		if is_dir && !fi.IsDir() {
 			res = append(res, "    ERROR: not a directory")
 			fail = true
+			return
 		} else if !is_dir && !fi.Mode().IsRegular() {
 			res = append(res, "    ERROR: not a regular file")
 			fail = true
@@ -171,7 +307,9 @@ func runDoctorWritableDir(path string) error {
 	return nil
 }
 
-func runDoctorLocationMoved(ctx *cli.Context) ([]string, error) {
+const tplCommentPrefix = `# gitea public key`
+
+func runDoctorAuthorizedKeys(ctx *cli.Context) ([]string, error) {
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil, nil
 	}
@@ -179,49 +317,178 @@ func runDoctorLocationMoved(ctx *cli.Context) ([]string, error) {
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	f, err := os.Open(fPath)
 	if err != nil {
+		if ctx.Bool("fix") {
+			return []string{fmt.Sprintf("Error whilst opening authorized_keys: %v. Attempting regeneration", err)}, models.RewriteAllPublicKeys()
+		}
 		return nil, err
 	}
 	defer f.Close()
 
-	var firstline string
+	linesInAuthorizedKeys := map[string]bool{}
+
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		firstline = strings.TrimSpace(scanner.Text())
-		if len(firstline) == 0 || firstline[0] == '#' {
+		line := scanner.Text()
+		if strings.HasPrefix(line, tplCommentPrefix) {
 			continue
 		}
-		break
+		linesInAuthorizedKeys[line] = true
 	}
+	f.Close()
 
-	// command="/Volumes/data/Projects/gitea/gitea/gitea --config
-	if len(firstline) > 0 {
-		exp := regexp.MustCompile(`^[ \t]*(?:command=")([^ ]+) --config='([^']+)' serv key-([^"]+)",(?:[^ ]+) ssh-rsa ([^ ]+) ([^ ]+)[ \t]*$`)
-
-		// command="/home/user/gitea --config='/home/user/etc/app.ini' serv key-999",option-1,option-2,option-n ssh-rsa public-key-value key-name
-		res := exp.FindStringSubmatch(firstline)
-		if res == nil {
-			return nil, errors.New("Unknow authorized_keys format")
-		}
-
-		giteaPath := res[1] // => /home/user/gitea
-		iniPath := res[2]   // => /home/user/etc/app.ini
-
-		p, err := exePath()
-		if err != nil {
-			return nil, err
-		}
-		p, err = filepath.Abs(p)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(giteaPath) > 0 && giteaPath != p {
-			return []string{fmt.Sprintf("Gitea exe path wants %s but %s on %s", p, giteaPath, fPath)}, nil
-		}
-		if len(iniPath) > 0 && iniPath != setting.CustomConf {
-			return []string{fmt.Sprintf("Gitea config path wants %s but %s on %s", setting.CustomConf, iniPath, fPath)}, nil
-		}
+	// now we regenerate and check if there are any lines missing
+	regenerated := &bytes.Buffer{}
+	if err := models.RegeneratePublicKeys(regenerated); err != nil {
+		return nil, err
 	}
-
+	scanner = bufio.NewScanner(regenerated)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, tplCommentPrefix) {
+			continue
+		}
+		if ok := linesInAuthorizedKeys[line]; ok {
+			continue
+		}
+		if ctx.Bool("fix") {
+			return []string{"authorized_keys is out of date, attempting regeneration"}, models.RewriteAllPublicKeys()
+		}
+		return []string{"authorized_keys is out of date and should be regenerated with gitea admin regenerate keys"}, nil
+	}
 	return nil, nil
+}
+
+func runDoctorCheckDBVersion(ctx *cli.Context) ([]string, error) {
+	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+		if ctx.Bool("fix") {
+			return []string{fmt.Sprintf("WARN: Got Error %v during ensure up to date", err), "Attempting to migrate to the latest DB version to fix this."}, models.NewEngine(context.Background(), migrations.Migrate)
+		}
+		return nil, err
+	}
+	return nil, nil
+}
+
+func iterateRepositories(each func(*models.Repository) ([]string, error)) ([]string, error) {
+	results := []string{}
+	err := models.Iterate(
+		models.DefaultDBContext(),
+		new(models.Repository),
+		builder.Gt{"id": 0},
+		func(idx int, bean interface{}) error {
+			res, err := each(bean.(*models.Repository))
+			results = append(results, res...)
+			return err
+		},
+	)
+	return results, err
+}
+
+func iteratePRs(repo *models.Repository, each func(*models.Repository, *models.PullRequest) ([]string, error)) ([]string, error) {
+	results := []string{}
+	err := models.Iterate(
+		models.DefaultDBContext(),
+		new(models.PullRequest),
+		builder.Eq{"base_repo_id": repo.ID},
+		func(idx int, bean interface{}) error {
+			res, err := each(repo, bean.(*models.PullRequest))
+			results = append(results, res...)
+			return err
+		},
+	)
+	return results, err
+}
+
+func runDoctorHooks(ctx *cli.Context) ([]string, error) {
+	// Need to iterate across all of the repositories
+	return iterateRepositories(func(repo *models.Repository) ([]string, error) {
+		results, err := repository.CheckDelegateHooks(repo.RepoPath())
+		if err != nil {
+			return nil, err
+		}
+		if len(results) > 0 && ctx.Bool("fix") {
+			return []string{fmt.Sprintf("regenerated hooks for %s", repo.FullName())}, repository.CreateDelegateHooks(repo.RepoPath())
+		}
+
+		return results, nil
+	})
+}
+
+func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
+	numRepos := 0
+	numPRs := 0
+	numPRsUpdated := 0
+	results, err := iterateRepositories(func(repo *models.Repository) ([]string, error) {
+		numRepos++
+		return iteratePRs(repo, func(repo *models.Repository, pr *models.PullRequest) ([]string, error) {
+			numPRs++
+			results := []string{}
+			pr.BaseRepo = repo
+			repoPath := repo.RepoPath()
+
+			oldMergeBase := pr.MergeBase
+
+			if !pr.HasMerged {
+				var err error
+				pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.BaseBranch, pr.GetGitRefName()).RunInDir(repoPath)
+				if err != nil {
+					var err2 error
+					pr.MergeBase, err2 = git.NewCommand("rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
+					if err2 != nil {
+						results = append(results, fmt.Sprintf("WARN: Unable to get merge base for PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
+						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)
+						return results, nil
+					}
+				}
+			} else {
+				parentsString, err := git.NewCommand("rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
+				if err != nil {
+					results = append(results, fmt.Sprintf("WARN: Unable to get parents for merged PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
+					log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
+					return results, nil
+				}
+				parents := strings.Split(strings.TrimSpace(parentsString), " ")
+				if len(parents) < 2 {
+					return results, nil
+				}
+
+				args := append([]string{"merge-base", "--"}, parents[1:]...)
+				args = append(args, pr.GetGitRefName())
+
+				pr.MergeBase, err = git.NewCommand(args...).RunInDir(repoPath)
+				if err != nil {
+					results = append(results, fmt.Sprintf("WARN: Unable to get merge base for merged PR ID %d, #%d onto %s in %s/%s", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name))
+					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
+					return results, nil
+				}
+			}
+			pr.MergeBase = strings.TrimSpace(pr.MergeBase)
+			if pr.MergeBase != oldMergeBase {
+				if ctx.Bool("fix") {
+					if err := pr.UpdateCols("merge_base"); err != nil {
+						return results, err
+					}
+				} else {
+					results = append(results, fmt.Sprintf("#%d onto %s in %s/%s: MergeBase should be %s but is %s", pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, oldMergeBase, pr.MergeBase))
+				}
+				numPRsUpdated++
+			}
+			return results, nil
+		})
+	})
+
+	if ctx.Bool("fix") {
+		results = append(results, fmt.Sprintf("%d PR mergebases updated of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
+	} else {
+		results = append(results, fmt.Sprintf("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
+	}
+
+	return results, err
+}
+
+func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
+	path, err := exec.LookPath(setting.ScriptType)
+	if err != nil {
+		return []string{fmt.Sprintf("ScriptType %s is not on the current PATH", setting.ScriptType)}, err
+	}
+	return []string{fmt.Sprintf("ScriptType %s is on the current PATH at %s", setting.ScriptType, path)}, nil
 }
