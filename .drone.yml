@@ -421,7 +421,7 @@ steps:
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
 
   - name: gpg-sign
@@ -519,7 +519,7 @@ steps:
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
 
   - name: gpg-sign
@@ -796,37 +796,3 @@ steps:
         from_secret: discord_webhook_id
       webhook_token:
         from_secret: discord_webhook_token
-
----
-kind: pipeline
-name: test-release
-
-platform:
-  os: linux
-  arch: amd64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
-trigger:
-  event:
-    - pull_request
-
-steps:
-  - name: fetch-tags
-    pull: default
-    image: docker:git
-    commands:
-      - git fetch --tags --force
-
-  - name: static
-    pull: always
-    image: techknowlogick/xgo:go-1.14.x
-    commands:
-      - apt update && apt -y install curl
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
-      - export PATH=$PATH:$GOPATH/bin
-      - make release
-    environment:
-      TAGS: bindata sqlite sqlite_unlock_notify
