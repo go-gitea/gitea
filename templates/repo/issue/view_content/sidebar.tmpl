@@ -2,6 +2,97 @@
 	<div class="ui segment metas">
 		{{template "repo/issue/branch_selector_field" .}}
 
+		{{if .Issue.IsPull }}
+
+		<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
+		<div class="ui {{if or (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
+			<span class="text">
+				<strong>{{.i18n.Tr "repo.issues.review.reviewers"}}</strong>
+				{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
+					{{svg "octicon-gear" 16}}
+				{{end}}
+			</span>
+			<div class="filter menu" data-action="" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_reviewer_title"}}</div>
+				{{if .Reviewers}}
+					<div class="ui icon search input">
+						<i class="search icon"></i>
+						<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_reviewers"}}">
+					</div>
+				{{end}}
+				{{range .Reviewers}}
+					{{$ReviewerID := .ID}}
+					{{$checked := false}}
+					{{$canChoose := false}}
+					{{$notReviewed := true}}
+
+					{{range $.PullReviewers}}
+						{{if eq .ReviewerID $ReviewerID }}
+							{{$notReviewed = false }} 
+							{{if  eq .Type 4 }}
+								{{$checked = true}}
+								{{if or (eq $ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
+									{{$canChoose = true}}
+								{{end}}
+							{{else}}
+								{{$canChoose = true}}
+							{{end}}
+						{{end}}
+					{{end}}
+
+					{{ if $notReviewed}}
+						{{$canChoose = true}}
+					{{end}}
+
+					<a class="{{if not $canChoose}}ui poping up{{end}} item {{if $checked}} checked {{end}}" href="#" data-id="{{.ID}}" data-id-selector="#review_request_{{.ID}}" data-can-change="{{if not $canChoose}}block{{end}}" {{if not $canChoose}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}} data-is-checked="{{if $checked}}add{{else}}remove{{end}}">
+						<span class="octicon-check {{if not $checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
+						<span class="text">
+							<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
+						</span>
+					</a>
+				{{end}}
+			</div>
+		</div>
+
+		<div class="ui assignees list">
+			<span class="no-select item {{if .PullReviewers}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_reviewers"}}</span>
+			<div class="selected">
+				{{range .PullReviewers}}
+					<div class="item" style="margin-bottom: 10px;">
+						<a href="{{.Reviewer.HomeLink}}"><img class="ui avatar image" src="{{.Reviewer.RelAvatarLink}}">&nbsp;{{.Reviewer.GetDisplayName}}</a>
+						<span class="ui right type-icon text {{if eq .Type 1}}green
+							{{- else if eq .Type 2}}grey
+							{{- else if eq .Type 3}}red
+							{{- else if eq .Type 4}}yellow
+							{{- else}}grey{{end}} right ">
+
+							{{$canChoose := false}}
+							{{if eq .Type 4}}
+								{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
+									{{$canChoose = true}}
+								{{end}}
+							{{else}}
+								{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
+									{{$canChoose = true}}
+								{{end}}
+							{{end}}
+
+							{{if $canChoose}}
+								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+									{{svg "octicon-sync" 16}}
+								</a>
+							{{end}}
+							{{svg (printf "octicon-%s" .Type.Icon) 16}}
+						</span>
+					</div>
+				{{end}}
+			</div>
+		</div>
+
+		{{end}}
+
+		<div class="ui divider"></div>
+
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>

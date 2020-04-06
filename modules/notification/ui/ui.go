@@ -22,6 +22,7 @@ type (
 		IssueID              int64
 		CommentID            int64
 		NotificationAuthorID int64
+		ReceiverID           int64 // 0 -- ALL Watcher
 	}
 )
 
@@ -39,7 +40,7 @@ func NewNotifier() base.Notifier {
 func (ns *notificationService) handle(data ...queue.Data) {
 	for _, datum := range data {
 		opts := datum.(issueNotificationOpts)
-		if err := models.CreateOrUpdateIssueNotifications(opts.IssueID, opts.CommentID, opts.NotificationAuthorID); err != nil {
+		if err := models.CreateOrUpdateIssueNotifications(opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
 			log.Error("Was unable to create issue notification: %v", err)
 		}
 	}
@@ -102,4 +103,36 @@ func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r
 		opts.CommentID = c.ID
 	}
 	_ = ns.issueQueue.Push(opts)
+}
+
+func (ns *notificationService) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
+	if !removed {
+		var opts = issueNotificationOpts{
+			IssueID:              issue.ID,
+			NotificationAuthorID: doer.ID,
+			ReceiverID:           assignee.ID,
+		}
+
+		if comment != nil {
+			opts.CommentID = comment.ID
+		}
+
+		_ = ns.issueQueue.Push(opts)
+	}
+}
+
+func (ns *notificationService) NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+	if isRequest {
+		var opts = issueNotificationOpts{
+			IssueID:              issue.ID,
+			NotificationAuthorID: doer.ID,
+			ReceiverID:           reviewer.ID,
+		}
+
+		if comment != nil {
+			opts.CommentID = comment.ID
+		}
+
+		_ = ns.issueQueue.Push(opts)
+	}
 }
