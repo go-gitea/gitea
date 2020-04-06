@@ -44,7 +44,12 @@ func ApplicationsPost(ctx *context.Context, form auth.NewAccessTokenForm) {
 		Name: form.Name,
 	}
 
-	if models.AccessTokenByNameExists(t) {
+	exist, err := models.AccessTokenByNameExists(t)
+	if err != nil {
+		ctx.ServerError("AccessTokenByNameExists", err)
+		return
+	}
+	if exist {
 		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", t.Name))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 		return

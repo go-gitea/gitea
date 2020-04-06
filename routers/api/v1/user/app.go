@@ -91,7 +91,12 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 		Name: form.Name,
 	}
 
-	if models.AccessTokenByNameExists(t) {
+	exist, err := models.AccessTokenByNameExists(t)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if exist {
 		ctx.Error(http.StatusBadRequest, "AccessTokenByNameExists", errors.New("access token name has been used already"))
 		return
 	}
