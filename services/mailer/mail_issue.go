@@ -116,7 +116,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, fromMention bool) error {
 	const batchSize = 100
 	for i := 0; i < len(ids); i += batchSize {
-		job := make([]int64, batchSize)
+		var job []int64
 		if i+batchSize < len(ids) {
 			job = ids[i : i+batchSize]
 		} else {
