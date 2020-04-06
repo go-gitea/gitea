@@ -122,6 +122,12 @@ It is recommended you do a [backup]({{< relref "doc/usage/backup-and-restore.en-
 If you have carried out the installation steps as described above, the binary should
 have the generic name `gitea`. Do not change this, i.e. to include the version number.
 
+### 1. Use systemd (recommended)
+
+As explained before, we recommended to to use service system as systemd. In this case ```systemctl restart gitea``` should be enough.
+
+### 2. Use command-line/terminal
+
 To restart your gitea instance, we recommend to use SIGHUP signal. If you know your gitea PID use ```kill -1 $GITEA_PID``` otherwise you can use ```killall -1 gitea``` or ```pkill -1 gitea```
 
 To stop gracefully gitea instance, a simple ```kill $GITEA_PID``` or ```killall gitea``` is engouh.
