@@ -421,7 +421,7 @@ steps:
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
 
   - name: gpg-sign
@@ -519,7 +519,7 @@ steps:
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
 
   - name: gpg-sign
