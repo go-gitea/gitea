@@ -125,6 +125,39 @@ function initBranchSelector() {
   });
 }
 
+function initLabelEdit() {
+// Create label
+  const $newLabelPanel = $('.new-label.segment');
+  $('.new-label.button').click(() => {
+    $newLabelPanel.show();
+  });
+  $('.new-label.segment .cancel').click(() => {
+    $newLabelPanel.hide();
+  });
+
+  $('.color-picker').each(function () {
+    $(this).minicolors();
+  });
+  $('.precolors .color').click(function () {
+    const color_hex = $(this).data('color-hex');
+    $('.color-picker').val(color_hex);
+    $('.minicolors-swatch-color').css('background-color', color_hex);
+  });
+  $('.edit-label-button').click(function () {
+    $('#label-modal-id').val($(this).data('id'));
+    $('.edit-label .new-label-input').val($(this).data('title'));
+    $('.edit-label .new-label-desc-input').val($(this).data('description'));
+    $('.edit-label .color-picker').val($(this).data('color'));
+    $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
+    $('.edit-label.modal').modal({
+      onApprove() {
+        $('.edit-label.form').submit();
+      }
+    }).modal('show');
+    return false;
+  });
+}
+
 function updateIssuesMeta(url, action, issueIds, elementId) {
   return new Promise(((resolve) => {
     $.ajax({
@@ -697,36 +730,7 @@ async function initRepository() {
 
   // Labels
   if ($('.repository.labels').length > 0) {
-    // Create label
-    const $newLabelPanel = $('.new-label.segment');
-    $('.new-label.button').click(() => {
-      $newLabelPanel.show();
-    });
-    $('.new-label.segment .cancel').click(() => {
-      $newLabelPanel.hide();
-    });
-
-    $('.color-picker').each(function () {
-      $(this).minicolors();
-    });
-    $('.precolors .color').click(function () {
-      const color_hex = $(this).data('color-hex');
-      $('.color-picker').val(color_hex);
-      $('.minicolors-swatch-color').css('background-color', color_hex);
-    });
-    $('.edit-label-button').click(function () {
-      $('#label-modal-id').val($(this).data('id'));
-      $('.edit-label .new-label-input').val($(this).data('title'));
-      $('.edit-label .new-label-desc-input').val($(this).data('description'));
-      $('.edit-label .color-picker').val($(this).data('color'));
-      $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
-      $('.edit-label.modal').modal({
-        onApprove() {
-          $('.edit-label.form').submit();
-        }
-      }).modal('show');
-      return false;
-    });
+    initLabelEdit();
   }
 
   // Milestones
@@ -1756,6 +1760,11 @@ function initOrganization() {
         $prompt.hide();
       }
     });
+  }
+
+  // Labels
+  if ($('.organization.settings.labels').length > 0) {
+    initLabelEdit();
   }
 }
 
