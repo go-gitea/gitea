@@ -166,7 +166,6 @@ type Repository struct {
 	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenMilestones   int `xorm:"-"`
-	NumReleases         int `xorm:"-"`
 
 	IsPrivate  bool `xorm:"INDEX"`
 	IsEmpty    bool `xorm:"INDEX"`
@@ -353,6 +352,8 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 
 	repo.mustOwner(e)
 
+	numReleases, _ := GetReleaseCountByRepoID(repo.ID, FindReleasesOptions{IncludeDrafts: false, IncludeTags: true})
+
 	return &api.Repository{
 		ID:                        repo.ID,
 		Owner:                     repo.Owner.APIFormat(),
@@ -376,7 +377,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		Watchers:                  repo.NumWatches,
 		OpenIssues:                repo.NumOpenIssues,
 		OpenPulls:                 repo.NumOpenPulls,
-		Releases:                  repo.NumReleases,
+		Releases:                  int(numReleases),
 		DefaultBranch:             repo.DefaultBranch,
 		Created:                   repo.CreatedUnix.AsTime(),
 		Updated:                   repo.UpdatedUnix.AsTime(),
