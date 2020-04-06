@@ -1037,6 +1037,10 @@ i.icon.centerlock {
     top: 1.45em;
 }
 
+.ui.label {
+    padding: .3em .5em;
+}
+
 .ui.label > .detail .icons {
     margin-right: .25em;
 }
@@ -1193,13 +1197,15 @@ i.icon.centerlock {
 }
 
 .color-icon {
-    padding-right: .7em;
-    padding-left: .5em;
     margin-right: .5em;
     margin-left: .5em;
-    display: inline;
-    border: 1px solid rgba(0, 0, 0, .2);
-    border-radius: 500em;
+    display: inline-block;
+    border: 0 solid rgba(0, 0, 0, .2);
+    border-radius: 100%;
+    height: 14px;
+    width: 14px;
+    position: relative;
+    top: 2px;
 }
 
 .ui.label > .color-icon {
@@ -1213,4 +1219,12 @@ i.icon.centerlock {
 /* https://github.com/go-gitea/gitea/issues/10210 */
 .ui.attached.segment + .ui.attached.header {
     margin-top: 1rem;
+}
+
+/* limit width of all direct dropdown menu children */
+/* https://github.com/go-gitea/gitea/pull/10835 */
+.dropdown > .menu > * {
+    max-width: 300px;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
 }
