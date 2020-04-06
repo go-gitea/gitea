@@ -132,6 +132,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 
 	issue1 := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: issue1.RepoID}).(*Repository)
 
 	comment1 := AssertExistsAndLoadBean(t, &Comment{ID: 1}).(*Comment)
 
@@ -140,7 +141,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	addReaction(t, user3, issue1, comment1, "heart")
 	addReaction(t, user4, issue1, comment1, "+1")
 
-	err := comment1.LoadReactions()
+	err := comment1.LoadReactions(repo1)
 	assert.NoError(t, err)
 	assert.Len(t, comment1.Reactions, 4)
 

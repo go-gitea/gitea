@@ -74,14 +74,57 @@ func RepoMustNotBeArchived() macaron.Handler {
 	}
 }
 
+// CanCommitToBranchResults represents the results of CanCommitToBranch
+type CanCommitToBranchResults struct {
+	CanCommitToBranch bool
+	EditorEnabled     bool
+	UserCanPush       bool
+	RequireSigned     bool
+	WillSign          bool
+	SigningKey        string
+	WontSignReason    string
+}
+
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
-func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
-	protectedBranch, err := r.Repository.IsProtectedBranchForPush(r.BranchName, doer)
+func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResults, error) {
+	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
+
 	if err != nil {
-		return false, err
+		return CanCommitToBranchResults{}, err
 	}
-	return r.CanEnableEditor() && !protectedBranch, nil
+	userCanPush := true
+	requireSigned := false
+	if protectedBranch != nil {
+		userCanPush = protectedBranch.CanUserPush(doer.ID)
+		requireSigned = protectedBranch.RequireSignedCommits
+	}
+
+	sign, keyID, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+
+	canCommit := r.CanEnableEditor() && userCanPush
+	if requireSigned {
+		canCommit = canCommit && sign
+	}
+	wontSignReason := ""
+	if err != nil {
+		if models.IsErrWontSign(err) {
+			wontSignReason = string(err.(*models.ErrWontSign).Reason)
+			err = nil
+		} else {
+			wontSignReason = "error"
+		}
+	}
+
+	return CanCommitToBranchResults{
+		CanCommitToBranch: canCommit,
+		EditorEnabled:     r.CanEnableEditor(),
+		UserCanPush:       userCanPush,
+		RequireSigned:     requireSigned,
+		WillSign:          sign,
+		SigningKey:        keyID,
+		WontSignReason:    wontSignReason,
+	}, err
 }
 
 // CanUseTimetracker returns whether or not a user can use the timetracker.
@@ -91,12 +134,12 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
-		r.Permission.CanWrite(models.UnitTypeIssues) || issue.IsPoster(user.ID) || isAssigned)
+		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
-func (r *Repository) CanCreateIssueDependencies(user *models.User) bool {
-	return r.Permission.CanWrite(models.UnitTypeIssues) && r.Repository.IsDependenciesEnabled()
+func (r *Repository) CanCreateIssueDependencies(user *models.User, isPull bool) bool {
+	return r.Repository.IsDependenciesEnabled() && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -256,7 +299,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	redirectPath := strings.Replace(
 		ctx.Req.URL.Path,
 		fmt.Sprintf("%s/%s", ownerName, previousRepoName),
-		fmt.Sprintf("%s/%s", repo.MustOwnerName(), repo.Name),
+		repo.FullName(),
 		1,
 	)
 	if ctx.Req.URL.RawQuery != "" {

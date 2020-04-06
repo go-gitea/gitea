@@ -52,7 +52,6 @@ func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, 
 
 				lnk := string(link)
 				lnk = giteautil.URLJoin(prefix, lnk)
-				lnk = strings.Replace(lnk, " ", "+", -1)
 				link = []byte(lnk)
 			}
 			v.Destination = link
@@ -79,7 +78,16 @@ func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, 
 				}
 				link = []byte(giteautil.URLJoin(pc.Get(urlPrefixKey).(string), lnk))
 			}
+			if len(link) > 0 && link[0] == '#' {
+				link = []byte("#user-content-" + string(link)[1:])
+			}
 			v.Destination = link
+		case *ast.List:
+			if v.HasChildren() && v.FirstChild().HasChildren() && v.FirstChild().FirstChild().HasChildren() {
+				if _, ok := v.FirstChild().FirstChild().FirstChild().(*east.TaskCheckBox); ok {
+					v.SetAttributeString("class", []byte("task-list"))
+				}
+			}
 		}
 		return ast.WalkContinue, nil
 	})

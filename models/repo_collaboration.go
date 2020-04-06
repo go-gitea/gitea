@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -52,8 +53,15 @@ func (repo *Repository) AddCollaborator(u *User) error {
 	return sess.Commit()
 }
 
-func (repo *Repository) getCollaborations(e Engine) ([]*Collaboration, error) {
-	var collaborations []*Collaboration
+func (repo *Repository) getCollaborations(e Engine, listOptions ListOptions) ([]*Collaboration, error) {
+	if listOptions.Page == 0 {
+		collaborations := make([]*Collaboration, 0, 8)
+		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
+	}
+
+	e = listOptions.setEnginePagination(e)
+
+	collaborations := make([]*Collaboration, 0, listOptions.PageSize)
 	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
 }
 
@@ -63,8 +71,8 @@ type Collaborator struct {
 	Collaboration *Collaboration
 }
 
-func (repo *Repository) getCollaborators(e Engine) ([]*Collaborator, error) {
-	collaborations, err := repo.getCollaborations(e)
+func (repo *Repository) getCollaborators(e Engine, listOptions ListOptions) ([]*Collaborator, error) {
+	collaborations, err := repo.getCollaborations(e, listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("getCollaborations: %v", err)
 	}
@@ -84,8 +92,8 @@ func (repo *Repository) getCollaborators(e Engine) ([]*Collaborator, error) {
 }
 
 // GetCollaborators returns the collaborators for a repository
-func (repo *Repository) GetCollaborators() ([]*Collaborator, error) {
-	return repo.getCollaborators(x)
+func (repo *Repository) GetCollaborators(listOptions ListOptions) ([]*Collaborator, error) {
+	return repo.getCollaborators(x, listOptions)
 }
 
 func (repo *Repository) getCollaboration(e Engine, uid int64) (*Collaboration, error) {
@@ -241,4 +249,24 @@ func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
 // GetRepoTeams gets the list of teams that has access to the repository
 func (repo *Repository) GetRepoTeams() ([]*Team, error) {
 	return repo.getRepoTeams(x)
+}
+
+// IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
+func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
+	if repo.OwnerID == userID {
+		return true, nil
+	}
+	teamMember, err := x.Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
+		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
+		Where("team_repo.repo_id = ?", repo.ID).
+		And("team_unit.`type` = ?", UnitTypeCode).
+		And("team_user.uid = ?", userID).Table("team_user").Exist(&TeamUser{})
+	if err != nil {
+		return false, err
+	}
+	if teamMember {
+		return true, nil
+	}
+
+	return x.Get(&Collaboration{RepoID: repo.ID, UserID: userID})
 }

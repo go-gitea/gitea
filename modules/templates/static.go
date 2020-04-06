@@ -229,3 +229,16 @@ func AssetNames() []string {
 	}
 	return results
 }
+
+func AssetIsDir(name string) (bool, error) {
+	if f, err := Assets.Open("/" + name); err != nil {
+		return false, err
+	} else {
+		defer f.Close()
+		if fi, err := f.Stat(); err != nil {
+			return false, err
+		} else {
+			return fi.IsDir(), nil
+		}
+	}
+}

@@ -395,7 +395,7 @@ func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event model
 	var text, title string
 	var color int
 	switch p.Action {
-	case api.HookIssueSynchronized:
+	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
 			return nil, err
@@ -405,9 +405,9 @@ func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event model
 		text = p.Review.Content
 
 		switch event {
-		case models.HookEventPullRequestApproved:
+		case models.HookEventPullRequestReviewApproved:
 			color = greenColor
-		case models.HookEventPullRequestRejected:
+		case models.HookEventPullRequestReviewRejected:
 			color = redColor
 		case models.HookEventPullRequestComment:
 			color = greyColor
@@ -555,15 +555,16 @@ func GetMSTeamsPayload(p api.Payloader, event models.HookEventType, meta string)
 		return getMSTeamsDeletePayload(p.(*api.DeletePayload))
 	case models.HookEventFork:
 		return getMSTeamsForkPayload(p.(*api.ForkPayload))
-	case models.HookEventIssues:
+	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getMSTeamsIssuesPayload(p.(*api.IssuePayload))
-	case models.HookEventIssueComment:
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
 		return getMSTeamsIssueCommentPayload(p.(*api.IssueCommentPayload))
 	case models.HookEventPush:
 		return getMSTeamsPushPayload(p.(*api.PushPayload))
-	case models.HookEventPullRequest:
+	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
+		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getMSTeamsPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestRejected, models.HookEventPullRequestApproved, models.HookEventPullRequestComment:
+	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
 		return getMSTeamsPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case models.HookEventRepository:
 		return getMSTeamsRepositoryPayload(p.(*api.RepositoryPayload))

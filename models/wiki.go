@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -13,7 +14,7 @@ import (
 
 // WikiCloneLink returns clone URLs of repository wiki.
 func (repo *Repository) WikiCloneLink() *CloneLink {
-	return repo.cloneLink(x, true)
+	return repo.cloneLink(true)
 }
 
 // WikiPath returns wiki data path by given user and repository name.
@@ -23,7 +24,7 @@ func WikiPath(userName, repoName string) string {
 
 // WikiPath returns wiki data path for given repository.
 func (repo *Repository) WikiPath() string {
-	return WikiPath(repo.MustOwnerName(), repo.Name)
+	return WikiPath(repo.OwnerName, repo.Name)
 }
 
 // HasWiki returns true if repository has wiki.

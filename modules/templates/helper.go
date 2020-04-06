@@ -85,7 +85,7 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
-		"AvatarLink":    base.AvatarLink,
+		"AvatarLink":    models.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
@@ -93,6 +93,7 @@ func NewFuncMap() []template.FuncMap {
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"RawTimeSince":  timeutil.RawTimeSince,
 		"FileSize":      base.FileSize,
+		"PrettyNumber":  base.PrettyNumber,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
@@ -181,6 +182,13 @@ func NewFuncMap() []template.FuncMap {
 				path = append(path, str)
 			}
 			return path
+		},
+		"Json": func(in interface{}) string {
+			out, err := json.Marshal(in)
+			if err != nil {
+				return ""
+			}
+			return string(out)
 		},
 		"JsonPrettyPrint": func(in string) string {
 			var out bytes.Buffer
@@ -277,6 +285,9 @@ func NewFuncMap() []template.FuncMap {
 				}
 			}
 			return false
+		},
+		"svg": func(icon string, size int) template.HTML {
+			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
 		},
 	}}
 }
@@ -424,31 +435,6 @@ func List(l *list.List) chan interface{} {
 // Sha1 returns sha1 sum of string
 func Sha1(str string) string {
 	return base.EncodeSha1(str)
-}
-
-// ReplaceLeft replaces all prefixes 'oldS' in 's' with 'newS'.
-func ReplaceLeft(s, oldS, newS string) string {
-	oldLen, newLen, i, n := len(oldS), len(newS), 0, 0
-	for ; i < len(s) && strings.HasPrefix(s[i:], oldS); n++ {
-		i += oldLen
-	}
-
-	// simple optimization
-	if n == 0 {
-		return s
-	}
-
-	// allocating space for the new string
-	curLen := n*newLen + len(s[i:])
-	replacement := make([]byte, curLen)
-
-	j := 0
-	for ; j < n*newLen; j += newLen {
-		copy(replacement[j:j+newLen], newS)
-	}
-
-	copy(replacement[j:], s[i:])
-	return string(replacement)
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.

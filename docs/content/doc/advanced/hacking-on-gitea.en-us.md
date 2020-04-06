@@ -25,7 +25,7 @@ environment variable and to add the go bin directory or directories
 
 Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
 required to build the JavaScript and CSS files. The minimum supported Node.js
-version is 10 and the latest LTS version is recommended.
+version is {{< min-node-version >}} and the latest LTS version is recommended.
 
 You will also need make.
 <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>
@@ -36,45 +36,32 @@ necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
 on the executable path. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
 
-**Note 2**: Go version 1.11 or higher is required; however, it is important
+**Note 2**: Go version {{< min-go-version >}} or higher is required; however, it is important
 to note that our continuous integration will check that the formatting of the
 source code is not changed by `gofmt` using `make fmt-check`. Unfortunately,
 the results of `gofmt` can differ by the version of `go`. It is therefore
-recommended to install the version of go that our continuous integration is
-running. At the time of writing this is Go version 1.12; however, this can be
-checked by looking at the
-[master `.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml)
-(At the time of writing
-[line 67](https://github.com/go-gitea/gitea/blob/8917d66571a95f3da232a0c27bc1300210d10fde/.drone.yml#L67)
-is the relevant line - but this may change.)
+recommended to install the version of Go that our continuous integration is
+running. As of last update, it should be Go version {{< go-version >}}.
 
 ## Downloading and cloning the Gitea source code
 
-Go is quite opinionated about where it expects its source code, and simply
-cloning the Gitea repository to an arbitrary path is likely to lead to
-problems - the fixing of which is out of scope for this document. Further, some
-internal packages are referenced using their respective GitHub URL and at
-present we use `vendor/` directories.
-
-The recommended method of obtaining the source code is by using the `go get` command:
+The recommended method of obtaining the source code is by using `git clone`.
 
 ```bash
-go get -d code.gitea.io/gitea
-cd "$GOPATH/src/code.gitea.io/gitea"
+git clone https://github.com/go-gitea/gitea
 ```
 
-This will clone the Gitea source code to: `"$GOPATH/src/code.gitea.io/gitea"`, or if `$GOPATH`
-is not set `"$HOME/go/src/code.gitea.io/gitea"`.
+(Since the advent of go modules, it is no longer necessary to build go projects
+from within the `$GOPATH`, hence the `go get` approach is no longer recommended.)
 
 ## Forking Gitea
 
-As stated above, you cannot clone Gitea to an arbitrary path. Download the master Gitea source
-code as above. Then, fork the [Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
+Download the master Gitea source code as above. Then, fork the 
+[Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
 and either switch the git remote origin for your fork or add your fork as another remote:
 
 ```bash
 # Rename original Gitea origin to upstream
-cd "$GOPATH/src/code.gitea.io/gitea"
 git remote rename origin upstream
 git remote add origin "git@github.com:$GITHUB_USERNAME/gitea.git"
 git fetch --all --prune
@@ -84,7 +71,6 @@ or:
 
 ```bash
 # Add new remote for our fork
-cd "$GOPATH/src/code.gitea.io/gitea"
 git remote add "$FORK_NAME" "git@github.com:$GITHUB_USERNAME/gitea.git"
 git fetch --all --prune
 ```
@@ -114,7 +100,7 @@ how our continuous integration works.
 
 ### Formatting, code analysis and spell check
 
-Our continous integration will reject PRs that are not properly formatted, fail
+Our continuous integration will reject PRs that are not properly formatted, fail
 code analysis or spell check.
 
 You should format your code with `go fmt` using:
@@ -140,23 +126,20 @@ You should run revive, vet and spell-check on the code with:
 make revive vet misspell-check
 ```
 
-### Working on CSS
+### Working on JS and CSS
 
-Edit files in `web_src/less` and run the linter and build the CSS files via:
-
-```bash
-make css
-```
-
-### Working on JS
-
-Edit files in `web_src/js`, run the linter and build the JS files via:
+Edit files in `web_src` and run the linter and build the files in `public`:
 
 ```bash
-make js
+make webpack
 ```
 
 Note: When working on frontend code, it is advisable to set `USE_SERVICE_WORKER` to `false` in `app.ini` which will prevent undesirable caching of frontend assets.
+
+### Building Images
+
+To build the images, ImageMagick, `inkscape` and `zopflipng` binaries must be available in
+your `PATH` to run `make generate-images`.
 
 ### Updating the API
 
@@ -240,8 +223,9 @@ have written integration tests; however, these are database dependent.
 TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 ```
 
-will run the integration tests in an sqlite environment. Other database tests
-are available but may need adjustment to the local environment.
+will run the integration tests in an sqlite environment. Integration tests
+require  `git lfs` to be installed. Other database tests are available but
+may need adjustment to the local environment.
 
 Look at
 [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/master/integrations/README.md)
@@ -260,7 +244,7 @@ Documentation for the website is found in `docs/`. If you change this you
 can test your changes to ensure that they pass continuous integration using:
 
 ```bash
-cd "$GOPATH/src/code.gitea.io/gitea/docs"
+# from the docs directory within Gitea
 make trans-copy clean build
 ```
 

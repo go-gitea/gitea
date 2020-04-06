@@ -24,6 +24,8 @@
 					<img class="img-13" src="{{StaticUrlPrefix}}/img/telegram.png">
 				{{else if eq .HookType "msteams"}}
 					<img class="img-13" src="{{StaticUrlPrefix}}/img/msteams.png">
+				{{else if eq .HookType "feishu"}}
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/feishu.png">
 				{{end}}
 			</div>
 		</h4>
@@ -35,6 +37,7 @@
 			{{template "repo/settings/webhook/dingtalk" .}}
 			{{template "repo/settings/webhook/telegram" .}}
 			{{template "repo/settings/webhook/msteams" .}}
+			{{template "repo/settings/webhook/feishu" .}}
 		</div>
 
 		{{template "repo/settings/webhook/history" .}}

@@ -61,7 +61,11 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 }
 
 func TestWebhook_EventsArray(t *testing.T) {
-	assert.Equal(t, []string{"create", "delete", "fork", "push", "issues", "issue_comment", "pull_request", "repository", "release"},
+	assert.Equal(t, []string{"create", "delete", "fork", "push",
+		"issues", "issue_assign", "issue_label", "issue_milestone", "issue_comment",
+		"pull_request", "pull_request_assign", "pull_request_label", "pull_request_milestone",
+		"pull_request_comment", "pull_request_review_approved", "pull_request_review_rejected",
+		"pull_request_review_comment", "pull_request_sync", "repository", "release"},
 		(&Webhook{
 			HookEvent: &HookEvent{SendEverything: true},
 		}).EventsArray(),
@@ -120,7 +124,7 @@ func TestGetActiveWebhooksByRepoID(t *testing.T) {
 
 func TestGetWebhooksByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	hooks, err := GetWebhooksByRepoID(1)
+	hooks, err := GetWebhooksByRepoID(1, ListOptions{})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 2) {
 		assert.Equal(t, int64(1), hooks[0].ID)
@@ -140,7 +144,7 @@ func TestGetActiveWebhooksByOrgID(t *testing.T) {
 
 func TestGetWebhooksByOrgID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	hooks, err := GetWebhooksByOrgID(3)
+	hooks, err := GetWebhooksByOrgID(3, ListOptions{})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)

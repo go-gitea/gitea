@@ -22,7 +22,7 @@ type CreateLabelOption struct {
 	Name string `json:"name" binding:"Required"`
 	// required:true
 	// example: #00aabb
-	Color       string `json:"color" binding:"Required;Size(7)"`
+	Color       string `json:"color" binding:"Required"`
 	Description string `json:"description"`
 }
 

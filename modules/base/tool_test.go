@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package base
 
 import (
@@ -90,32 +94,21 @@ func TestSizedAvatarLink(t *testing.T) {
 	)
 }
 
-func TestAvatarLink(t *testing.T) {
-	disableGravatar()
-	assert.Equal(t, "/img/avatar_default.png", AvatarLink("gitea@example.com"))
-
-	enableGravatar(t)
-	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon",
-		AvatarLink("gitea@example.com"),
-	)
-}
-
 func TestFileSize(t *testing.T) {
 	var size int64 = 512
-	assert.Equal(t, "512B", FileSize(size))
+	assert.Equal(t, "512 B", FileSize(size))
 	size *= 1024
-	assert.Equal(t, "512KB", FileSize(size))
+	assert.Equal(t, "512 KiB", FileSize(size))
 	size *= 1024
-	assert.Equal(t, "512MB", FileSize(size))
+	assert.Equal(t, "512 MiB", FileSize(size))
 	size *= 1024
-	assert.Equal(t, "512GB", FileSize(size))
+	assert.Equal(t, "512 GiB", FileSize(size))
 	size *= 1024
-	assert.Equal(t, "512TB", FileSize(size))
+	assert.Equal(t, "512 TiB", FileSize(size))
 	size *= 1024
-	assert.Equal(t, "512PB", FileSize(size))
+	assert.Equal(t, "512 PiB", FileSize(size))
 	size *= 4
-	assert.Equal(t, "2.0EB", FileSize(size))
+	assert.Equal(t, "2.0 EiB", FileSize(size))
 }
 
 func TestSubtract(t *testing.T) {

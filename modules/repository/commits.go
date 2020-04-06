@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -124,7 +123,7 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		var err error
 		u, err = models.GetUserByEmail(email)
 		if err != nil {
-			pc.avatars[email] = base.AvatarLink(email)
+			pc.avatars[email] = models.AvatarLink(email)
 			if !models.IsErrUserNotExist(err) {
 				log.Error("GetUserByEmail: %v", err)
 				return ""

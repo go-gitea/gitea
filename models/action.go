@@ -120,10 +120,13 @@ func (a *Action) ShortActUserName() string {
 	return base.EllipsisString(a.GetActUserName(), 20)
 }
 
-// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME
+// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME, or falls back to the username if it is blank.
 func (a *Action) GetDisplayName() string {
 	if setting.UI.DefaultShowFullName {
-		return a.GetActFullName()
+		trimmedFullName := strings.TrimSpace(a.GetActFullName())
+		if len(trimmedFullName) > 0 {
+			return trimmedFullName
+		}
 	}
 	return a.ShortActUserName()
 }
@@ -145,7 +148,7 @@ func (a *Action) GetActAvatar() string {
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName() string {
 	a.loadRepo()
-	return a.Repo.MustOwner().Name
+	return a.Repo.OwnerName
 }
 
 // ShortRepoUserName returns the name of the action repository owner
@@ -210,7 +213,7 @@ func (a *Action) getCommentLink(e Engine) string {
 		return "#"
 	}
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = GetCommentByID(a.CommentID)
+		a.Comment, _ = getCommentByID(e, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
@@ -284,11 +287,11 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser    *User
-	RequestingUserID int64
-	IncludePrivate   bool // include private actions
-	OnlyPerformedBy  bool // only actions performed by requested user
-	IncludeDeleted   bool // include deleted actions
+	RequestedUser   *User // the user we want activity for
+	Actor           *User // the user viewing the activity
+	IncludePrivate  bool  // include private actions
+	OnlyPerformedBy bool  // only actions performed by requested user
+	IncludeDeleted  bool  // include deleted actions
 }
 
 // GetFeeds returns actions according to the provided options
@@ -296,8 +299,14 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	cond := builder.NewCond()
 
 	var repoIDs []int64
+	var actorID int64
+
+	if opts.Actor != nil {
+		actorID = opts.Actor.ID
+	}
+
 	if opts.RequestedUser.IsOrganization() {
-		env, err := opts.RequestedUser.AccessibleReposEnv(opts.RequestingUserID)
+		env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}
@@ -306,6 +315,8 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		}
 
 		cond = cond.And(builder.In("repo_id", repoIDs))
+	} else {
+		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
 	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})

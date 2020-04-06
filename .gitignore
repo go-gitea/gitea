@@ -34,19 +34,26 @@ _testmain.go
 coverage.all
 
 /modules/options/bindata.go
+/modules/options/bindata.go.hash
 /modules/public/bindata.go
+/modules/public/bindata.go.hash
 /modules/templates/bindata.go
+/modules/templates/bindata.go.hash
 
 *.db
 *.log
 
 /gitea
+/gitea-vet
 /debug
 /integrations.test
 
 /bin
 /dist
-/custom
+/custom/*
+!/custom/conf
+/custom/conf/*
+!/custom/conf/app.ini.sample
 /data
 /indexers
 /log
@@ -69,6 +76,9 @@ coverage.all
 /yarn.lock
 /public/js
 /public/css
+/public/fomantic
+/public/img/svg
+/VERSION
 
 # Snapcraft
 snap/.snapcraft/
@@ -79,3 +89,6 @@ prime/
 *.snap-build
 *_source.tar.bz2
 .DS_Store
+
+# Make evidence files
+/.make_evidence
