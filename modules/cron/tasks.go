@@ -55,8 +55,8 @@ func (t *Task) GetConfig() Config {
 func (t *Task) Run() {
 	t.RunWithUser(&models.User{
 		ID:        -1,
-		Name:      "Cron",
-		LowerName: "cron",
+		Name:      "(Cron)",
+		LowerName: "(cron)",
 	}, t.config)
 }
 
@@ -127,6 +127,17 @@ func RegisterTask(name string, config Config, fun func(context.Context, *models.
 		config: config,
 		fun:    fun,
 	}
+	lock.Lock()
+	locked := true
+	defer func() {
+		if locked {
+			lock.Unlock()
+		}
+	}()
+	if _, has := tasksMap[task.Name]; has {
+		log.Error("A task with this name: %s has already been registered", name)
+		return fmt.Errorf("duplicate task with name: %s", task.Name)
+	}
 
 	if config.IsEnabled() {
 		// We cannot use the entry return as there is no way to lock it
@@ -136,14 +147,12 @@ func RegisterTask(name string, config Config, fun func(context.Context, *models.
 		}
 	}
 
-	lock.Lock()
 	tasks = append(tasks, task)
 	tasksMap[task.Name] = task
 	if started && config.IsEnabled() && config.DoRunAtStart() {
 		lock.Unlock()
+		locked = false
 		task.Run()
-	} else {
-		lock.Unlock()
 	}
 
 	return nil
