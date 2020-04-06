@@ -58,7 +58,7 @@ var CmdDoctor = cli.Command{
 		},
 		cli.StringFlag{
 			Name:  "log-file",
-			Usage: `Name of the log file (default: "doctor.log"). Set to "-" to output to stdout, set to "" to disable.`,
+			Usage: `Name of the log file (default: "doctor.log"). Set to "-" to output to stdout, set to "" to disable`,
 		},
 	},
 }
