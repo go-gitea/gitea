@@ -86,7 +86,7 @@
 
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo) }}
 				<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
-					<i class="octicon octicon-tag"></i> {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .Repository.NumReleases}}gray{{else}}blue{{end}} small label">{{.Repository.NumReleases}}</span>
+					<i class="octicon octicon-tag"></i> {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .NumReleases}}gray{{else}}blue{{end}} small label">{{.NumReleases}}</span>
 				</a>
 				{{end}}
 
