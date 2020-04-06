@@ -150,8 +150,8 @@ Mermaid will detect and use tags with `class="language-mermaid"`.
 #### Example: PlantUML
 
 You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by using a PlantUML server.
-The data is encoded and sent to the PlantUML server which generates the picture. There is an online 
-demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you 
+The data is encoded and sent to the PlantUML server which generates the picture. There is an online
+demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you
 can set up your own [PlantUML server](https://plantuml.com/server) instead. To set up PlantUML rendering,
 copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
 `custom/public` folder. Then add the following to `custom/footer.tmpl`:
@@ -173,7 +173,7 @@ You can then add blocks like the following to your markdown:
     ```plantuml
         Alice -> Bob: Authentication Request
         Bob --> Alice: Authentication Response
-        
+
         Alice -> Bob: Another authentication Request
         Alice <-- Bob: Another authentication Response
     ```
@@ -234,6 +234,9 @@ Locales may change between versions, so keeping track of your customized locales
 ### Readmes
 
 To add a custom Readme, add a markdown formatted file (without an `.md` extension) to `custom/options/readme`
+
+**NOTE:** readme templates support **variable expansion**.  
+currently there are `{Name}` (name of repository), `{Description}`, `{CloneURL.SSH}` and `{CloneURL.HTTPS}`
 
 ### Reactions
 
