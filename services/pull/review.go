@@ -111,8 +111,8 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
 	}
 	pr := issue.PullRequest
-	if err := pr.GetBaseRepo(); err != nil {
-		return nil, fmt.Errorf("GetHeadRepo: %v", err)
+	if err := pr.LoadBaseRepo(); err != nil {
+		return nil, fmt.Errorf("LoadHeadRepo: %v", err)
 	}
 	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {

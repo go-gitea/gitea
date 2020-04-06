@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
@@ -213,12 +214,14 @@ func runServ(c *cli.Context) error {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
 		now := time.Now()
-		claims := jwt.MapClaims{
-			"repo": results.RepoID,
-			"op":   lfsVerb,
-			"exp":  now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
-			"nbf":  now.Unix(),
-			"user": results.UserID,
+		claims := lfs.Claims{
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
+				NotBefore: now.Unix(),
+			},
+			RepoID: results.RepoID,
+			Op:     lfsVerb,
+			UserID: results.UserID,
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 

@@ -11,7 +11,7 @@
 				<p>{{.i18n.Tr "install.docker_helper" "https://docs.gitea.io/en-us/install-with-docker/" | Safe}}</p>
 
 				<form class="ui form" action="{{AppSubUrl}}/install" method="post">
-					<!-- Dtabase Settings -->
+					<!-- Database Settings -->
 					<h4 class="ui dividing header">{{.i18n.Tr "install.db_title"}}</h4>
 					<p>{{.i18n.Tr "install.requite_db_desc"}}</p>
 					<div class="inline required field {{if .Err_DbType}}error{{end}}">

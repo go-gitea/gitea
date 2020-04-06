@@ -64,11 +64,11 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 	return
 }
 
-// GetIssueWatchersIDs returns IDs of subscribers to a given issue id
+// GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
-func GetIssueWatchersIDs(issueID int64) ([]int64, error) {
-	return getIssueWatchersIDs(x, issueID, true)
+func GetIssueWatchersIDs(issueID int64, watching bool) ([]int64, error) {
+	return getIssueWatchersIDs(x, issueID, watching)
 }
 
 func getIssueWatchersIDs(e Engine, issueID int64, watching bool) ([]int64, error) {
