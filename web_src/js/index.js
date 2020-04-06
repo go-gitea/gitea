@@ -1498,6 +1498,7 @@ function setSimpleMDE($editArea) {
       },
     ]
   });
+  $(simpleMDEditor.codemirror.getInputField()).addClass('js-quick-submit');
 
   return true;
 }
@@ -1529,6 +1530,7 @@ function setCommentSimpleMDE($editArea) {
       },
     ]
   });
+  $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
       if (!(issuesTribute.isActive || emojiTribute.isActive)) {
