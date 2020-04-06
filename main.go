@@ -21,9 +21,6 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 
-	// for build
-	_ "code.gitea.io/gitea/build"
-
 	"github.com/urfave/cli"
 )
 
