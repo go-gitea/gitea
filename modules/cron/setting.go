@@ -57,11 +57,15 @@ func (b *BaseConfig) DoRunAtStart() bool {
 func (b *BaseConfig) FormatMessage(name, status string, doer *models.User, args ...interface{}) string {
 	realArgs := make([]interface{}, 0, len(args)+2)
 	realArgs = append(realArgs, i18n.Tr("en-US", "admin.dashboard."+name))
-	realArgs = append(realArgs, doer.Name)
+	if doer == nil {
+		realArgs = append(realArgs, "(Cron)")
+	} else {
+		realArgs = append(realArgs, doer.Name)
+	}
 	if len(args) > 0 {
 		realArgs = append(realArgs, args...)
 	}
-	if doer == nil || (doer.ID == -1 && doer.Name == "Cron") {
+	if doer == nil || (doer.ID == -1 && doer.Name == "(Cron)") {
 		return i18n.Tr("en-US", "admin.dashboard.cron."+status, realArgs...)
 	}
 	return i18n.Tr("en-US", "admin.dashboard.task."+status, realArgs...)
