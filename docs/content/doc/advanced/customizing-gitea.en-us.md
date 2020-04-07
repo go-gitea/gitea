@@ -236,7 +236,7 @@ Locales may change between versions, so keeping track of your customized locales
 To add a custom Readme, add a markdown formatted file (without an `.md` extension) to `custom/options/readme`
 
 **NOTE:** readme templates support **variable expansion**.  
-currently there are `{Name}` (name of repository), `{Description}`, `{CloneURL.SSH}` and `{CloneURL.HTTPS}`
+currently there are `{Name}` (name of repository), `{Description}`, `{CloneURL.SSH}`, `{CloneURL.HTTPS}` and `{OwnerName}`
 
 ### Reactions
 
