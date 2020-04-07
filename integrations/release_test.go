@@ -65,7 +65,8 @@ func TestViewReleases(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	session.MakeRequest(t, req, http.StatusOK)
 
-	time.Sleep(time.Millisecond * 10)
+	// if CI is to slow this test fail, so lets wait a bit
+	time.Sleep(time.Millisecond * 100)
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {
