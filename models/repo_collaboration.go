@@ -187,6 +187,11 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
+	user, err := getUserByID(sess, uid)
+	if err != nil {
+		return err
+	}
+
 	if err = watchRepo(sess, uid, repo.ID, false); err != nil {
 		return err
 	}
@@ -197,28 +202,23 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 	}
 
 	// Unassign a user from any issue (s)he has been assigned to in the repository
-	if err := repo.removeIssueAssignees(sess, uid); err != nil {
+	if err := repo.reconsiderIssueAssignees(sess, user); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
-
-	user, err := getUserByID(e, userID)
-	if err != nil {
-		return err
-	}
+func (repo *Repository) reconsiderIssueAssignees(e Engine, user *User) error {
 
 	if canAssigned, err := canBeAssigned(e, user, repo, true); err != nil || canAssigned {
 		return err
 	}
 
-	if _, err = e.Where(builder.Eq{"assignee_id": userID}).
+	if _, err := e.Where(builder.Eq{"assignee_id": user.ID}).
 		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
 		Delete(&IssueAssignees{}); err != nil {
-		return fmt.Errorf("Could not delete assignee[%d] %v", userID, err)
+		return fmt.Errorf("Could not delete assignee[%d] %v", user.ID, err)
 	}
 
 	return nil
