@@ -211,7 +211,7 @@ func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
 		return err
 	}
 
-	if canAssigned, err := CanBeAssigned(user, repo, true); err != nil || canAssigned {
+	if canAssigned, err := canBeAssigned(e, user, repo, true); err != nil || canAssigned {
 		return err
 	}
 
