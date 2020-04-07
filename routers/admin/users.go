@@ -243,7 +243,13 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	u.AllowGitHook = form.AllowGitHook
 	u.AllowImportLocal = form.AllowImportLocal
 	u.AllowCreateOrganization = form.AllowCreateOrganization
-	u.ProhibitLogin = form.ProhibitLogin
+
+	// skip self Prohibit Login
+	if ctx.User.ID == u.ID {
+		u.ProhibitLogin = false
+	} else {
+		u.ProhibitLogin = form.ProhibitLogin
+	}
 
 	if err := models.UpdateUser(u); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {

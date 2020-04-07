@@ -24,6 +24,7 @@ type Notifier interface {
 	NotifyIssueChangeStatus(*models.User, *models.Issue, *models.Comment, bool)
 	NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64)
 	NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment)
+	NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment)
 	NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string)
 	NotifyIssueClearLabels(doer *models.User, issue *models.Issue)
 	NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string)
