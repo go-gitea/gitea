@@ -81,23 +81,38 @@ func Notifications(c *context.Context) {
 		return
 	}
 
-	repos, err := notifications.LoadRepos()
+	failCount := 0
+
+	repos, failures, err := notifications.LoadRepos()
 	if err != nil {
 		c.ServerError("LoadRepos", err)
 		return
 	}
+	notifications = notifications.Without(failures)
 	if err := repos.LoadAttributes(); err != nil {
 		c.ServerError("LoadAttributes", err)
 		return
 	}
+	failCount += len(failures)
 
-	if err := notifications.LoadIssues(); err != nil {
+	failures, err = notifications.LoadIssues()
+	if err != nil {
 		c.ServerError("LoadIssues", err)
 		return
 	}
-	if err := notifications.LoadComments(); err != nil {
+	notifications = notifications.Without(failures)
+	failCount += len(failures)
+
+	failures, err = notifications.LoadComments()
+	if err != nil {
 		c.ServerError("LoadComments", err)
 		return
+	}
+	notifications = notifications.Without(failures)
+	failCount += len(failures)
+
+	if failCount > 0 {
+		c.Flash.Error(fmt.Sprintf("ERROR: %d notifications were removed due to missing parts - check the logs", failCount))
 	}
 
 	title := c.Tr("notifications")

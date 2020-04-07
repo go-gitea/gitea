@@ -1072,12 +1072,14 @@ func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
 		return err
 	}
 
-	if _, err = sess.Insert(units); err != nil {
-		errRollback := sess.Rollback()
-		if errRollback != nil {
-			log.Error("UpdateTeamUnits sess.Rollback: %v", errRollback)
+	if len(units) > 0 {
+		if _, err = sess.Insert(units); err != nil {
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("UpdateTeamUnits sess.Rollback: %v", errRollback)
+			}
+			return err
 		}
-		return err
 	}
 
 	return sess.Commit()

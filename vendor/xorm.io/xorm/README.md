@@ -8,51 +8,50 @@ Xorm is a simple and powerful ORM for Go.
 [![](https://goreportcard.com/badge/xorm.io/xorm)](https://goreportcard.com/report/xorm.io/xorm)
 [![Join the chat at https://img.shields.io/discord/323460943201959939.svg](https://img.shields.io/discord/323460943201959939.svg)](https://discord.gg/HuR2CF3)
 
+## Notice
+
+v1.0.0 has some break changes from v0.8.2.
+
+- Removed some non gonic function name `Id`, `Sql`, please use `ID`, `SQL` instead.
+- Removed the dependent from `xorm.io/core` and moved the codes to `xorm.io/xorm/core`, `xorm.io/xorm/names`, `xorm.io/xorm/schemas` and others.
+- Renamed some interface names. i.e. `core.IMapper` -> `names.Mapper`, `core.ILogger` -> `log.Logger`.
+
 ## Features
 
 * Struct <-> Table Mapping Support
-
 * Chainable APIs
-
 * Transaction Support
-
 * Both ORM and raw SQL operation Support
-
 * Sync database schema Support
-
 * Query Cache speed up
-
-* Database Reverse support, See [Xorm Tool README](https://github.com/go-xorm/cmd/blob/master/README.md)
-
+* Database Reverse support via [xorm.io/reverse](https://xorm.io/reverse)
 * Simple cascade loading support
-
 * Optimistic Locking support
-
 * SQL Builder support via [xorm.io/builder](https://xorm.io/builder)
-
 * Automatical Read/Write seperatelly
-
 * Postgres schema support
-
 * Context Cache support
+* Support log/SQLLog context
 
 ## Drivers Support
 
 Drivers for Go's sql package which currently support database/sql includes:
 
-* Mysql: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
+* [Mysql5.*](https://github.com/mysql/mysql-server/tree/5.7) / [Mysql8.*](https://github.com/mysql/mysql-server) / [Mariadb](https://github.com/MariaDB/server) / [Tidb](https://github.com/pingcap/tidb)
+  - [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
+  - [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
 
-* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/tree/master/godrv)
+* [Postgres](https://github.com/postgres/postgres) / [Cockroach](https://github.com/cockroachdb/cockroach)
+  - [github.com/lib/pq](https://github.com/lib/pq)
 
-* Postgres: [github.com/lib/pq](https://github.com/lib/pq)
+* [SQLite](https://sqlite.org)
+  - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
 
-* Tidb: [github.com/pingcap/tidb](https://github.com/pingcap/tidb)
+* MsSql
+  - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-* SQLite: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
-
-* MsSql: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
-
-* Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
+* Oracle
+  - [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
 
 ## Installation
 
@@ -62,7 +61,7 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * [Manual](http://xorm.io/docs)
 
-* [GoDoc](http://godoc.org/xorm.io/xorm)
+* [GoDoc](http://pkg.go.dev/xorm.io/xorm)
 
 ## Quick Start
 
@@ -440,27 +439,7 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 ## Changelog
 
-* **v0.7.0**
-    * Some bugs fixed
-
-* **v0.6.6**
-    * Some bugs fixed
-
-* **v0.6.5**
-    * Postgres schema support
-    * vgo support
-    * Add FindAndCount
-    * Database special params support via NewEngineWithParams
-    * Some bugs fixed
-
-* **v0.6.4**
-    * Automatical Read/Write seperatelly
-    * Query/QueryString/QueryInterface and action with Where/And
-    * Get support non-struct variables
-    * BufferSize on Iterate
-    * fix some other bugs.
-
-[More changes ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
+You can find all the changelog [here](CHANGELOG.md)
 
 ## Cases
 

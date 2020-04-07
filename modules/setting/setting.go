@@ -141,6 +141,7 @@ var (
 		JWTSecretBytes  []byte        `ini:"-"`
 		HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
 		MaxFileSize     int64         `ini:"LFS_MAX_FILE_SIZE"`
+		LocksPagingNum  int           `ini:"LFS_LOCKS_PAGING_NUM"`
 	}
 
 	// Security settings
@@ -719,6 +720,9 @@ func NewContext() {
 	LFS.ContentPath = sec.Key("LFS_CONTENT_PATH").MustString(filepath.Join(AppDataPath, "lfs"))
 	if !filepath.IsAbs(LFS.ContentPath) {
 		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
+	}
+	if LFS.LocksPagingNum == 0 {
+		LFS.LocksPagingNum = 50
 	}
 
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
