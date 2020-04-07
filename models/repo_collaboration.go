@@ -194,8 +194,7 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
-	// Unassign a user from any issue (s)he has been assigned to in the
-	// repository
+	// Unassign a user from any issue (s)he has been assigned to in the repository
 	if err := repo.removeIssueAssignees(sess, uid); err != nil {
 		return err
 	}
@@ -205,21 +204,12 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 
 func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
 
-	user, err := GetUserByID(userID)
+	user, err := getUserByID(e, userID)
 	if err != nil {
 		return err
 	}
 
-	perm, err := getUserRepoPermission(e, repo, user)
-	if err != nil {
-		return err
-	}
-
-	if perm.CanWrite(UnitTypeIssues) {
-		return nil
-	}
-
-	if canBeAssigned, err := CanBeAssigned(user, repo, true); canBeAssigned && err == nil {
+	if canAssigned, err := CanBeAssigned(user, repo, true); err != nil || canAssigned {
 		return err
 	}
 
@@ -231,7 +221,7 @@ func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
 		Join("INNER", "issue", "`issue`.id = `issue_assignees`.issue_id AND `issue`.repo_id = ?", repo.ID).
 		Delete(assignee)
 	if err != nil {
-		return fmt.Errorf("Delete.. Could not delete assignees %v", err)
+		return fmt.Errorf("Could not delete assignee[%d] %v", userID, err)
 	}
 
 	return nil
