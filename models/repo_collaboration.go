@@ -196,8 +196,7 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
-	// Remove all IssueWatches a user has subscribed to in the repository
-	if err := removeIssueWatchersByRepoID(sess, uid, repo.ID); err != nil {
+	if err = repo.reconsiderWatches(sess, user); err != nil {
 		return err
 	}
 
@@ -220,7 +219,26 @@ func (repo *Repository) reconsiderIssueAssignees(e Engine, user *User) error {
 		Delete(&IssueAssignees{}); err != nil {
 		return fmt.Errorf("Could not delete assignee[%d] %v", user.ID, err)
 	}
+	return nil
+}
 
+func (repo *Repository) reconsiderWatches(e Engine, user *User) error {
+	perm, err := getUserRepoPermission(e, repo, user)
+	if err != nil {
+		return err
+	}
+	if perm.CanAccessAny(AccessModeRead, UnitTypeCode, UnitTypeIssues, UnitTypePullRequests) {
+		return nil
+	}
+
+	if err = watchRepo(e, user.ID, repo.ID, false); err != nil {
+		return err
+	}
+
+	// Remove all IssueWatches a user has subscribed to in the repository
+	if err := removeIssueWatchersByRepoID(e, user.ID, repo.ID); err != nil {
+		return err
+	}
 	return nil
 }
 
