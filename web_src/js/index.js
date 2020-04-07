@@ -125,7 +125,40 @@ function initBranchSelector() {
   });
 }
 
-function updateIssuesMeta(url, action, issueIds, elementId) {
+function initLabelEdit() {
+// Create label
+  const $newLabelPanel = $('.new-label.segment');
+  $('.new-label.button').click(() => {
+    $newLabelPanel.show();
+  });
+  $('.new-label.segment .cancel').click(() => {
+    $newLabelPanel.hide();
+  });
+
+  $('.color-picker').each(function () {
+    $(this).minicolors();
+  });
+  $('.precolors .color').click(function () {
+    const color_hex = $(this).data('color-hex');
+    $('.color-picker').val(color_hex);
+    $('.minicolors-swatch-color').css('background-color', color_hex);
+  });
+  $('.edit-label-button').click(function () {
+    $('#label-modal-id').val($(this).data('id'));
+    $('.edit-label .new-label-input').val($(this).data('title'));
+    $('.edit-label .new-label-desc-input').val($(this).data('description'));
+    $('.edit-label .color-picker').val($(this).data('color'));
+    $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
+    $('.edit-label.modal').modal({
+      onApprove() {
+        $('.edit-label.form').submit();
+      }
+    }).modal('show');
+    return false;
+  });
+}
+
+function updateIssuesMeta(url, action, issueIds, elementId, isAdd) {
   return new Promise(((resolve) => {
     $.ajax({
       type: 'POST',
@@ -134,7 +167,8 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
         _csrf: csrf,
         action,
         issue_ids: issueIds,
-        id: elementId
+        id: elementId,
+        is_add: isAdd
       },
       success: resolve
     });
@@ -357,7 +391,8 @@ function initCommentForm() {
             label['update-url'],
             label.action,
             label['issue-id'],
-            elementId
+            elementId,
+            label['is-checked']
           );
           promises.push(promise);
         });
@@ -367,22 +402,30 @@ function initCommentForm() {
 
     $listMenu.find('.item:not(.no-select)').click(function () {
       // we don't need the action attribute when updating assignees
-      if (selector === 'select-assignees-modify') {
+      if (selector === 'select-assignees-modify' || selector === 'select-reviewers-modify') {
         // UI magic. We need to do this here, otherwise it would destroy the functionality of
         // adding/removing labels
+
+        if ($(this).data('can-change') === 'block') {
+          return false;
+        }
+
         if ($(this).hasClass('checked')) {
           $(this).removeClass('checked');
           $(this).find('.octicon-check').addClass('invisible');
+          $(this).data('is-checked', 'remove');
         } else {
           $(this).addClass('checked');
           $(this).find('.octicon-check').removeClass('invisible');
+          $(this).data('is-checked', 'add');
         }
 
         updateIssuesMeta(
           $listMenu.data('update-url'),
           '',
           $listMenu.data('issue-id'),
-          $(this).data('id')
+          $(this).data('id'),
+          $(this).data('is-checked')
         );
         $listMenu.data('action', 'update'); // Update to reload the page when we updated items
         return false;
@@ -441,6 +484,7 @@ function initCommentForm() {
           $listMenu.data('update-url'),
           'clear',
           $listMenu.data('issue-id'),
+          '',
           ''
         ).then(reload);
       }
@@ -448,6 +492,7 @@ function initCommentForm() {
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
         $(this).find('.octicon').addClass('invisible');
+        $(this).data('is-checked', 'remove');
       });
 
       $list.find('.item').each(function () {
@@ -462,6 +507,7 @@ function initCommentForm() {
   initListSubmits('select-label', 'labels');
   initListSubmits('select-assignees', 'assignees');
   initListSubmits('select-assignees-modify', 'assignees');
+  initListSubmits('select-reviewers-modify', 'assignees');
 
   function selectItem(select_id, input_id) {
     const $menu = $(`${select_id} .menu`);
@@ -479,7 +525,8 @@ function initCommentForm() {
           $menu.data('update-url'),
           '',
           $menu.data('issue-id'),
-          $(this).data('id')
+          $(this).data('id'),
+          $(this).data('is-checked')
         ).then(reload);
       }
       switch (input_id) {
@@ -505,7 +552,8 @@ function initCommentForm() {
           $menu.data('update-url'),
           '',
           $menu.data('issue-id'),
-          $(this).data('id')
+          $(this).data('id'),
+          $(this).data('is-checked')
         ).then(reload);
       }
 
@@ -615,6 +663,18 @@ function initInstall() {
 function initIssueComments() {
   if ($('.repository.view.issue .comments').length === 0) return;
 
+  $('.re-request-review').click((event) => {
+    const $this = $('.re-request-review');
+    event.preventDefault();
+    updateIssuesMeta(
+      $this.data('update-url'),
+      '',
+      $this.data('issue-id'),
+      $this.data('id'),
+      $this.data('is-checked')
+    ).then(reload);
+  });
+
   $(document).click((event) => {
     const urlTarget = $(':target');
     if (urlTarget.length === 0) return;
@@ -697,36 +757,7 @@ async function initRepository() {
 
   // Labels
   if ($('.repository.labels').length > 0) {
-    // Create label
-    const $newLabelPanel = $('.new-label.segment');
-    $('.new-label.button').click(() => {
-      $newLabelPanel.show();
-    });
-    $('.new-label.segment .cancel').click(() => {
-      $newLabelPanel.hide();
-    });
-
-    $('.color-picker').each(function () {
-      $(this).minicolors();
-    });
-    $('.precolors .color').click(function () {
-      const color_hex = $(this).data('color-hex');
-      $('.color-picker').val(color_hex);
-      $('.minicolors-swatch-color').css('background-color', color_hex);
-    });
-    $('.edit-label-button').click(function () {
-      $('#label-modal-id').val($(this).data('id'));
-      $('.edit-label .new-label-input').val($(this).data('title'));
-      $('.edit-label .new-label-desc-input').val($(this).data('description'));
-      $('.edit-label .color-picker').val($(this).data('color'));
-      $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
-      $('.edit-label.modal').modal({
-        onApprove() {
-          $('.edit-label.form').submit();
-        }
-      }).modal('show');
-      return false;
-    });
+    initLabelEdit();
   }
 
   // Milestones
@@ -1494,6 +1525,7 @@ function setSimpleMDE($editArea) {
       },
     ]
   });
+  $(simpleMDEditor.codemirror.getInputField()).addClass('js-quick-submit');
 
   return true;
 }
@@ -1525,6 +1557,7 @@ function setCommentSimpleMDE($editArea) {
       },
     ]
   });
+  $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
       if (!(issuesTribute.isActive || emojiTribute.isActive)) {
@@ -1756,6 +1789,11 @@ function initOrganization() {
         $prompt.hide();
       }
     });
+  }
+
+  // Labels
+  if ($('.organization.settings.labels').length > 0) {
+    initLabelEdit();
   }
 }
 
@@ -2507,7 +2545,7 @@ $(document).ready(async () => {
       elementId = '';
       action = 'clear';
     }
-    updateIssuesMeta(url, action, issueIDs, elementId).then(() => {
+    updateIssuesMeta(url, action, issueIDs, elementId, '').then(() => {
       // NOTICE: This reset of checkbox state targets Firefox caching behaviour, as the checkboxes stay checked after reload
       if (action === 'close' || action === 'open') {
         // uncheck all checkboxes
