@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/test"
 
@@ -63,6 +64,8 @@ func TestViewReleases(t *testing.T) {
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	session.MakeRequest(t, req, http.StatusOK)
+
+	time.Sleep(time.Millisecond * 10)
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {
