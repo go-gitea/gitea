@@ -7,6 +7,8 @@ package models
 
 import (
 	"fmt"
+
+	"xorm.io/builder"
 )
 
 // Collaboration represent the relation between an individual and a repository.
@@ -213,14 +215,9 @@ func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
 		return err
 	}
 
-	assignee := &IssueAssignees{
-		AssigneeID: userID,
-	}
-
-	_, err = e.
-		Join("INNER", "issue", "`issue`.id = `issue_assignees`.issue_id AND `issue`.repo_id = ?", repo.ID).
-		Delete(assignee)
-	if err != nil {
+	if _, err = e.Where(builder.Eq{"assignee_id": userID}).
+		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
+		Delete(&IssueAssignees{}); err != nil {
 		return fmt.Errorf("Could not delete assignee[%d] %v", userID, err)
 	}
 
