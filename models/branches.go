@@ -177,12 +177,13 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 }
 
 // MergeBlockedByRejectedReview returns true if merge is blocked by rejected reviews
+// An official ReviewRequest should also block Merge like Reject
 func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullRequest) bool {
 	if !protectBranch.BlockOnRejectedReviews {
 		return false
 	}
 	rejectExist, err := x.Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeReject).
+		And("type in ( ?, ?)", ReviewTypeReject, ReviewTypeRequest).
 		And("official = ?", true).
 		Exist(new(Review))
 	if err != nil {
