@@ -231,10 +231,7 @@ func (repo *Repository) reconsiderWatches(e Engine, uid int64) error {
 	}
 
 	// Remove all IssueWatches a user has subscribed to in the repository
-	if err := removeIssueWatchersByRepoID(e, uid, repo.ID); err != nil {
-		return err
-	}
-	return nil
+	return removeIssueWatchersByRepoID(e, uid, repo.ID)
 }
 
 func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
