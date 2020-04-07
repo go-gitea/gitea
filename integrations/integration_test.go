@@ -335,7 +335,7 @@ var tokenCounter int64
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
-	tokenCounter += 1
+	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
