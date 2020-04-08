@@ -1797,7 +1797,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 
 	ls, err := LoginSources()
 	if err != nil {
-		log.Trace("SyncExternalUsers: %v", err)
+		log.Error("SyncExternalUsers: %v", err)
 		return err
 	}
 
