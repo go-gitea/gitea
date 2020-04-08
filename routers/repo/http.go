@@ -188,27 +188,12 @@ func HTTP(ctx *context.Context) {
 			// Assume password is a token.
 			token, err := models.GetAccessTokenBySHA(authToken)
 			if err == nil {
-				if isUsernameToken {
-					authUser, err = models.GetUserByID(token.UID)
-					if err != nil {
-						ctx.ServerError("GetUserByID", err)
-						return
-					}
-				} else {
-					authUser, err = models.GetUserByName(authUsername)
-					if err != nil {
-						if models.IsErrUserNotExist(err) {
-							ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
-						} else {
-							ctx.ServerError("GetUserByName", err)
-						}
-						return
-					}
-					if authUser.ID != token.UID {
-						ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
-						return
-					}
+				authUser, err = models.GetUserByID(token.UID)
+				if err != nil {
+					ctx.ServerError("GetUserByID", err)
+					return
 				}
+
 				token.UpdatedUnix = timeutil.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.ServerError("UpdateAccessToken", err)
