@@ -8,6 +8,7 @@ package git
 import (
 	"encoding/hex"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -15,6 +16,9 @@ import (
 
 // EmptySHA defines empty git SHA
 const EmptySHA = "0000000000000000000000000000000000000000"
+
+// SHAPattern can be used to determine if a string is an valid sha
+var SHAPattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 
 // SHA1 a git commit name
 type SHA1 = plumbing.Hash
