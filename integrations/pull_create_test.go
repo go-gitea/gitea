@@ -51,7 +51,7 @@ func TestPullCreate(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
 
 		// check the redirected URL
-		url := resp.HeaderMap.Get("Location")
+		url := resp.Header().Get("Location")
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
 		// check .diff can be accessed and matches performed change
@@ -79,7 +79,7 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", "master", "<i>XSS PR</i>")
 
 		// check the redirected URL
-		url := resp.HeaderMap.Get("Location")
+		url := resp.Header().Get("Location")
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
 		// Edit title
@@ -144,7 +144,7 @@ func TestPullBranchDelete(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", "master1", "This is a pull title")
 
 		// check the redirected URL
-		url := resp.HeaderMap.Get("Location")
+		url := resp.Header().Get("Location")
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 		req := NewRequest(t, "GET", url)
 		session.MakeRequest(t, req, http.StatusOK)
