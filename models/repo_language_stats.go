@@ -144,3 +144,32 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]fl
 
 	return sess.Commit()
 }
+
+// CopyLanguageStat Copy originalRepo language stat information to destRepo (use for forked repo)
+func CopyLanguageStat(originalRepo, destRepo *Repository) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	RepoLang := make(LanguageStatList, 0, 6)
+	if err := sess.Where("`repo_id` = ?", originalRepo.ID).Desc("`percentage`").Find(&RepoLang); err != nil {
+		return err
+	}
+	if len(RepoLang) > 0 {
+		for i := range RepoLang {
+			RepoLang[i].ID = 0
+			RepoLang[i].RepoID = destRepo.ID
+			RepoLang[i].CreatedUnix = timeutil.TimeStampNow()
+		}
+		//update destRepo's indexer status
+		tmpCommitID := RepoLang[0].CommitID
+		if err := destRepo.updateIndexerStatus(sess, RepoIndexerTypeStats, tmpCommitID); err != nil {
+			return err
+		}
+		if _, err := sess.Insert(&RepoLang); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
+}

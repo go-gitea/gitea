@@ -17,7 +17,7 @@
 					{{else if .IsMirror}}
 						{{svg "octicon-repo-clone" 32}}
 					{{else if .IsFork}}
-						{{svg "octicon-repo-fork" 32}}
+						{{svg "octicon-repo-forked" 32}}
 					{{else}}
 						{{svg "octicon-repo" 32}}
 					{{end}}
@@ -38,7 +38,7 @@
 						{{else if .IsMirror}}
 							{{svg "octicon-repo-clone" 32}}
 						{{else if .IsFork}}
-							{{svg "octicon-repo-fork" 32}}
+							{{svg "octicon-repo-forked" 32}}
 						{{else}}
 							{{svg "octicon-repo" 32}}
 						{{end}}
@@ -76,7 +76,7 @@
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button {{if and ($.IsSigned) (not $.CanSignedUserFork)}}disabled-repo-button{{end}}" tabindex="0">
 							<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
-								{{svg "octicon-repo-forked" 16}}{{$.i18n.Tr "repo.fork"}}
+								{{svg "octicon-repo-forked" 15}}{{$.i18n.Tr "repo.fork"}}
 							</a>
 							<a class="ui basic label" href="{{.Link}}/forks">
 								{{.NumForks}}
