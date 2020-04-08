@@ -185,10 +185,16 @@ func HTTP(ctx *context.Context) {
 					return
 				}
 			}
+
+			if setting.RequireUsernameWithToken {
+				isUsernameToken = false
+				authToken = authPasswd
+			}
+
 			// Assume password is a token.
 			token, err := models.GetAccessTokenBySHA(authToken)
 			if err == nil {
-				if isUsernameToken {
+				if (isUsernameToken || !setting.RequireProvidedUsernameMatchesToken) && !setting.RequireUsernameWithToken {
 					authUser, err = models.GetUserByID(token.UID)
 					if err != nil {
 						ctx.ServerError("GetUserByID", err)

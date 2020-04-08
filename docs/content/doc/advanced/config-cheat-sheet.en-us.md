@@ -311,6 +311,8 @@ set name for unique queues. Individual queues will default to
     - digit - use one or more digits
     - spec - use one or more special characters as ``!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~``
     - off - do not check password complexity
+- `REQUIRE_PROVIDED_USERNAME_MATCHES_TOKEN`: **true**: If a username is passed with an access token - ensure that tne token matches the username
+- `REQUIRE_USERNAME_WITH_TOKEN`: **false**: Always require a username with access token authentication. (If true overrides the `REQUIRE_PROVIDED_USERNAME_MATCHES_TOKEN` setting) NB: These two options do not affect OAuth2 authentication.
 
 ## OpenID (`openid`)
 

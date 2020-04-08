@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"gitea.com/macaron/macaron"
@@ -91,6 +93,35 @@ func (o *OAuth2) userIDFromToken(ctx *macaron.Context) int64 {
 		}
 		return uid
 	}
+
+	if username, token, err := base.BasicAuthDecode(tokenSHA); err == nil && len(token) > 0 && len(username) > 0 {
+		t, err := models.GetAccessTokenBySHA(tokenSHA)
+		if err != nil {
+			if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
+				log.Error("GetAccessTokenBySHA: %v", err)
+			}
+			return 0
+		}
+		if setting.RequireProvidedUsernameMatchesToken {
+			u, err := models.GetUserByName(username)
+			if err != nil {
+				log.Error("GetUserByID:  %v", err)
+				return 0
+			}
+			if u.ID != t.UID {
+				return 0
+			}
+		}
+		t.UpdatedUnix = timeutil.TimeStampNow()
+		if err = models.UpdateAccessToken(t); err != nil {
+			log.Error("UpdateAccessToken: %v", err)
+		}
+		ctx.Data["IsApiToken"] = true
+		return t.UID
+	} else if setting.RequireUsernameWithToken {
+		return 0
+	}
+
 	t, err := models.GetAccessTokenBySHA(tokenSHA)
 	if err != nil {
 		if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {

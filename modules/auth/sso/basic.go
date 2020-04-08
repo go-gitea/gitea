@@ -83,9 +83,15 @@ func (b *Basic) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models
 			return nil
 		}
 	}
+
+	if setting.RequireUsernameWithToken {
+		isUsernameToken = false
+		authToken = passwd
+	}
+
 	token, err := models.GetAccessTokenBySHA(authToken)
 	if err == nil {
-		if isUsernameToken {
+		if (isUsernameToken || !setting.RequireProvidedUsernameMatchesToken) && !setting.RequireUsernameWithToken {
 			u, err = models.GetUserByID(token.UID)
 			if err != nil {
 				log.Error("GetUserByID:  %v", err)

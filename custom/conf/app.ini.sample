@@ -471,6 +471,10 @@ PASSWORD_COMPLEXITY = lower,upper,digit,spec
 PASSWORD_HASH_ALGO = pbkdf2
 ; Set false to allow JavaScript to read CSRF cookie
 CSRF_COOKIE_HTTP_ONLY = true
+; Require Username matches Token if provided
+REQUIRE_PROVIDED_USERNAME_MATCHES_TOKEN = true
+; Require Username with Token
+REQUIRE_USERNAME_WITH_TOKEN = false
 
 [openid]
 ;

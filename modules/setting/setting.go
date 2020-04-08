@@ -145,19 +145,21 @@ var (
 	}
 
 	// Security settings
-	InstallLock                        bool
-	SecretKey                          string
-	LogInRememberDays                  int
-	CookieUserName                     string
-	CookieRememberName                 string
-	ReverseProxyAuthUser               string
-	ReverseProxyAuthEmail              string
-	MinPasswordLength                  int
-	ImportLocalPaths                   bool
-	DisableGitHooks                    bool
-	OnlyAllowPushIfGiteaEnvironmentSet bool
-	PasswordComplexity                 []string
-	PasswordHashAlgo                   string
+	InstallLock                         bool
+	SecretKey                           string
+	LogInRememberDays                   int
+	CookieUserName                      string
+	CookieRememberName                  string
+	ReverseProxyAuthUser                string
+	ReverseProxyAuthEmail               string
+	MinPasswordLength                   int
+	ImportLocalPaths                    bool
+	DisableGitHooks                     bool
+	OnlyAllowPushIfGiteaEnvironmentSet  bool
+	PasswordComplexity                  []string
+	PasswordHashAlgo                    string
+	RequireProvidedUsernameMatchesToken bool
+	RequireUsernameWithToken            bool
 
 	// UI settings
 	UI = struct {
@@ -815,6 +817,8 @@ func NewContext() {
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
+	RequireProvidedUsernameMatchesToken = sec.Key("REQUIRE_PROVIDED_USERNAME_MATCHES_TOKEN").MustBool(true)
+	RequireUsernameWithToken = sec.Key("REQUIRE_USERNAME_WITH_TOKEN").MustBool(false)
 
 	InternalToken = loadInternalToken(sec)
 
