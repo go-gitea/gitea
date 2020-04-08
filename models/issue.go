@@ -73,8 +73,8 @@ var (
 	issueTasksDonePat *regexp.Regexp
 )
 
-const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
-const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
+const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
+const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
 const issueMaxDupIndexAttempts = 3
 const maxIssueIDs = 950
 
@@ -459,7 +459,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return err
 	}
 	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		return ErrLabelNotExist{}
+		return ErrRepoLabelNotExist{}
 	}
 
 	if err = issue.clearLabels(sess, doer); err != nil {
@@ -894,7 +894,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 		for _, label := range labels {
 			// Silently drop invalid labels.
-			if label.RepoID != opts.Repo.ID {
+			if label.RepoID != opts.Repo.ID && label.OrgID != opts.Repo.OwnerID {
 				continue
 			}
 
@@ -1045,16 +1045,18 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
 	ListOptions
-	RepoIDs     []int64 // include all repos if empty
-	AssigneeID  int64
-	PosterID    int64
-	MentionedID int64
-	MilestoneID int64
-	IsClosed    util.OptionalBool
-	IsPull      util.OptionalBool
-	LabelIDs    []int64
-	SortType    string
-	IssueIDs    []int64
+	RepoIDs            []int64 // include all repos if empty
+	AssigneeID         int64
+	PosterID           int64
+	MentionedID        int64
+	MilestoneID        int64
+	IsClosed           util.OptionalBool
+	IsPull             util.OptionalBool
+	LabelIDs           []int64
+	IncludedLabelNames []string
+	ExcludedLabelNames []string
+	SortType           string
+	IssueIDs           []int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
 }
@@ -1152,6 +1154,14 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 				sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
 			}
 		}
+	}
+
+	if len(opts.IncludedLabelNames) > 0 {
+		sess.In("issue.id", BuildLabelNamesIssueIDsCondition(opts.IncludedLabelNames))
+	}
+
+	if len(opts.ExcludedLabelNames) > 0 {
+		sess.And(builder.NotIn("issue.id", BuildLabelNamesIssueIDsCondition(opts.ExcludedLabelNames)))
 	}
 }
 

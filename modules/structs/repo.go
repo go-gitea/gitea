@@ -112,6 +112,8 @@ type CreateRepoOption struct {
 	License string `json:"license"`
 	// Readme of the repository to create
 	Readme string `json:"readme"`
+	// DefaultBranch of the repository (used when initializes and in template)
+	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
 }
 
 // EditRepoOption options when editing a repository's properties

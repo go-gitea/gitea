@@ -51,13 +51,14 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 		return
 	}
 
-	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
-
-	if comment != nil {
-		ctx.Redirect(comment.HTMLURL())
-	} else {
+	if comment == nil {
+		log.Trace("Comment not created: %-v #%d[%d]", ctx.Repo.Repository, issue.Index, issue.ID)
 		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		return
 	}
+
+	log.Trace("Comment created: %-v #%d[%d] Comment[%d]", ctx.Repo.Repository, issue.Index, issue.ID, comment.ID)
+	ctx.Redirect(comment.HTMLURL())
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist

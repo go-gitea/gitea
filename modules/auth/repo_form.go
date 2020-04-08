@@ -27,15 +27,16 @@ import (
 
 // CreateRepoForm form for creating repository
 type CreateRepoForm struct {
-	UID         int64  `binding:"Required"`
-	RepoName    string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Private     bool
-	Description string `binding:"MaxSize(255)"`
-	AutoInit    bool
-	Gitignores  string
-	IssueLabels string
-	License     string
-	Readme      string
+	UID           int64  `binding:"Required"`
+	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Private       bool
+	Description   string `binding:"MaxSize(255)"`
+	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
+	AutoInit      bool
+	Gitignores    string
+	IssueLabels   string
+	License       string
+	Readme        string
 
 	RepoTemplate int64
 	GitContent   bool
@@ -174,6 +175,7 @@ type ProtectBranchForm struct {
 	BlockOnRejectedReviews   bool
 	DismissStaleApprovals    bool
 	RequireSignedCommits     bool
+	ProtectedFilePatterns    string
 }
 
 // Validate validates the fields
@@ -308,6 +310,20 @@ type NewTelegramHookForm struct {
 
 // Validate validates the fields
 func (f *NewTelegramHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// NewMatrixHookForm form for creating Matrix hook
+type NewMatrixHookForm struct {
+	HomeserverURL string `binding:"Required;ValidUrl"`
+	RoomID        string `binding:"Required"`
+	AccessToken   string `binding:"Required"`
+	MessageType   int
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewMatrixHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
