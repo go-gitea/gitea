@@ -353,7 +353,7 @@ func runDoctorAuthorizedKeys(ctx *cli.Context) ([]string, error) {
 		if ctx.Bool("fix") {
 			return []string{"authorized_keys is out of date, attempting regeneration"}, models.RewriteAllPublicKeys()
 		}
-		return []string{"authorized_keys is out of date and should be regenerated with gitea admin regenerate keys"}, nil
+		return nil, fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized_keys --fix"`)
 	}
 	return nil, nil
 }
@@ -479,6 +479,9 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 	if ctx.Bool("fix") {
 		results = append(results, fmt.Sprintf("%d PR mergebases updated of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
 	} else {
+		if numPRsUpdated > 0 && err == nil {
+			return results, fmt.Errorf("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
+		}
 		results = append(results, fmt.Sprintf("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos))
 	}
 
