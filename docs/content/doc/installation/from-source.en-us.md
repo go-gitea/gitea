@@ -160,7 +160,7 @@ Running `gitea help` will allow you to review what the computed settings will be
 
 ## Cross Build
 
-You can also cross build Gitea. The `go` compiler toolchain supports cross-compiling to different architecture targets that are supported by the toolchain. See [`GOOS` and `GOARCH` environment variable](https://golang.org/doc/install/source#environment) for the list of supported targets. Cross build is useful if you want to build Gitea for less-powerful systems (such as Raspberry Pi).
+The `go` compiler toolchain supports cross-compiling to different architecture targets that are supported by the toolchain. See [`GOOS` and `GOARCH` environment variable](https://golang.org/doc/install/source#environment) for the list of supported targets. Cross compilation is helpful if you want to build Gitea for less-powerful systems (such as Raspberry Pi).
 
 To cross build Gitea with build tags (`TAGS`), you also need C cross compiler which target corresponding architecture as `GOOS` and `GOARCH` variables you select. For example, to cross build for Linux ARM64 (`GOOS=linux` and `GOARCH=arm64`), you need `aarch64-unknown-linux-gnu-gcc` cross compiler. This is required because Gitea build tags uses `cgo` foreign-function interface (FFI).
 
