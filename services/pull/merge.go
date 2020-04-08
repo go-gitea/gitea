@@ -571,14 +571,20 @@ func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
 		}
 	}
 
-	if enoughApprovals := pr.ProtectedBranch.HasEnoughApprovals(pr); !enoughApprovals {
+	if !pr.ProtectedBranch.HasEnoughApprovals(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "Does not have enough approvals",
 		}
 	}
-	if rejected := pr.ProtectedBranch.MergeBlockedByRejectedReview(pr); rejected {
+	if pr.ProtectedBranch.MergeBlockedByRejectedReview(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "There are requested changes",
+		}
+	}
+
+	if pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: fmt.Sprintf("There head branch %d behind base branch", pr.CommitsBehind),
 		}
 	}
 
