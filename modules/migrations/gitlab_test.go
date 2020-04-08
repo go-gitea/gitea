@@ -172,6 +172,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			PosterID:   1241334,
 			PosterName: "lafriks",
 			Created:    time.Date(2019, 11, 28, 8, 44, 52, 501000000, time.UTC),
+			Updated:    time.Date(2019, 11, 28, 8, 44, 52, 501000000, time.UTC),
 			Content:    "This is a comment",
 			Reactions:  nil,
 		},
@@ -216,6 +217,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			PosterName: "lafriks",
 			State:      "opened",
 			Created:    time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
+			Updated:    time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name: "bug",
