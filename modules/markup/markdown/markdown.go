@@ -16,6 +16,7 @@ import (
 	giteautil "code.gitea.io/gitea/modules/util"
 
 	"github.com/yuin/goldmark"
+	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
@@ -53,6 +54,7 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 						extension.Ellipsis: nil,
 					}),
 				),
+				meta.New(meta.WithTable()),
 			),
 			goldmark.WithParserOptions(
 				parser.WithAttribute(),
