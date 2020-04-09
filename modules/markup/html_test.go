@@ -228,6 +228,56 @@ func TestRender_email(t *testing.T) {
 		`<p>email@domain..com</p>`)
 }
 
+func TestRender_emoji(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+	setting.StaticURLPrefix = AppURL
+
+	test := func(input, expected string) {
+		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+	}
+	setting.UI.Reactions = append(setting.UI.Reactions, "gitea")
+
+	// Text that should be turned into or recognized as emoji
+
+	test(
+		":smile:",
+		`<p><span class="emoji" aria-label="grinning face with smiling eyes">😄</span></p>`)
+	test(
+		":thumbsup:",
+		`<p><span class="emoji" aria-label="thumbs up">👍</span></p>`)
+	test(
+		":cupid:",
+		`<p><span class="emoji" aria-label="heart with arrow">💘</span></p>`)
+	test(
+		"😄",
+		`<p><span class="emoji" aria-label="grinning face with smiling eyes">😄</span></p>`)
+	// emoji not included in our data set so we should still detect/style it but have no description
+	test(
+		"👩🏾‍🤝‍👨🏿",
+		`<p><span class="emoji">👩🏾‍🤝‍👨🏿</span></p>`)
+	test(
+		":gitea:",
+		`<p><span class="emoji" aria-label="gitea"><img src="`+setting.StaticURLPrefix+`/emoji/img/gitea.png"/></span></p>`)
+
+	test(
+		"Some text with 😄 in the middle",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+	test(
+		"Some text with :smile: in the middle",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+
+	// should match nothing
+
+	test(
+		"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+		`<p>2001:0db8:85a3:0000:0000:8a2e:0370:7334</p>`)
+	test(
+		":not exist:",
+		`<p>:not exist:</p>`)
+}
+
 func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL

@@ -56,6 +56,10 @@ func ReplaceSanitizer() {
 	// Allow classes for task lists
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list`)).OnElements("ul")
 
+	// Allow classes for emojis
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("span")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("img")
+
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",
 		"accesskey", "action", "align", "alt",

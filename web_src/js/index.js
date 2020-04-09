@@ -1,4 +1,4 @@
-/* globals wipPrefixes, issuesTribute, emojiTribute */
+/* globals wipPrefixes */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
@@ -15,6 +15,7 @@ import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initDateTimePicker from './features/datetimepicker.js';
+import {initTribute, issuesTribute, emojiTribute} from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
@@ -46,7 +47,6 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      emojify.run($previewPanel[0]);
       $('pre code', $previewPanel[0]).each(function () {
         highlight(this);
       });
@@ -72,7 +72,6 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        emojify.run($previewPanel[0]);
         $('pre code', $previewPanel[0]).each(function () {
           highlight(this);
         });
@@ -93,7 +92,6 @@ function initEditDiffTab($form) {
     }, (data) => {
       const $diffPreviewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('diff')}"]`);
       $diffPreviewPanel.html(data);
-      emojify.run($diffPreviewPanel[0]);
     });
   });
 }
@@ -249,10 +247,6 @@ function initReactionSelector(parent) {
             react.appendTo(content);
           }
           react.html(resp.html);
-          const hasEmoji = react.find('.has-emoji');
-          for (let i = 0; i < hasEmoji.length; i++) {
-            emojify.run(hasEmoji.get(i));
-          }
           react.find('.dropdown').dropdown();
           initReactionSelector(react);
         }
@@ -1008,7 +1002,6 @@ async function initRepository() {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
-              emojify.run($renderContent[0]);
               $('pre code', $renderContent[0]).each(function () {
                 highlight(this);
               });
@@ -1335,7 +1328,6 @@ function initWikiForm() {
               text: plainText
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-              emojify.run($('.editor-preview')[0]);
               $(preview).find('pre code').each((_, e) => {
                 highlight(e);
               });
@@ -1507,7 +1499,6 @@ function setSimpleMDE($editArea) {
           text: plainText
         }, (data) => {
           preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-          emojify.run($('.editor-preview')[0]);
         });
       }, 0);
 
@@ -2471,21 +2462,6 @@ $(document).ready(async () => {
     });
   }
 
-  // Emojify
-  emojify.setConfig({
-    img_dir: `${AppSubUrl}/vendor/plugins/emojify/images`,
-    ignore_emoticons: true
-  });
-  const hasEmoji = document.getElementsByClassName('has-emoji');
-  for (let i = 0; i < hasEmoji.length; i++) {
-    emojify.run(hasEmoji[i]);
-    for (let j = 0; j < hasEmoji[i].childNodes.length; j++) {
-      if (hasEmoji[i].childNodes[j].nodeName === 'A') {
-        emojify.run(hasEmoji[i].childNodes[j]);
-      }
-    }
-  }
-
   // Helpers.
   $('.delete-button').click(showDeletePopup);
   $('.add-all-button').click(showAddAllPopup);
@@ -2596,6 +2572,7 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups();
+  initTribute();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {

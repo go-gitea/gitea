@@ -25,6 +25,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
@@ -85,6 +86,18 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
+		"ReactionToEmoji": func(reaction string) template.HTML {
+
+			val := emoji.FromCode(reaction)
+			if val != nil {
+				return template.HTML(val.Emoji)
+			}
+			val = emoji.FromAlias(reaction)
+			if val != nil {
+				return template.HTML(val.Emoji)
+			}
+			return template.HTML(fmt.Sprintf(`<img src=%s/emoji/img/%s.png></img>`, setting.StaticURLPrefix, reaction))
+		},
 		"AvatarLink":    models.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
@@ -139,6 +152,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderIssueTitle":               RenderIssueTitle,
 		"RenderNote":                     RenderNote,
 		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
@@ -503,6 +517,16 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 		return ""
 	}
 	return template.HTML(renderedMessage)
+}
+
+// RenderIssueTitle renders issue title with Specified Post Processors
+func RenderIssueTitle(title string) template.HTML {
+	renderedTitle, err := markup.RenderIssueTitle([]byte(template.HTMLEscapeString(title)))
+	if err != nil {
+		log.Error("RenderIssueTitle: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedTitle)
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
