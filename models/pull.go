@@ -354,22 +354,17 @@ func (pr *PullRequest) GetCommitMessages() string {
 	return stringBuilder.String()
 }
 
-// GetCommitDivergence get Divergence of a pull request
-func (pr *PullRequest) GetCommitDivergence() *git.DivergeObject {
-	return &git.DivergeObject{Ahead: pr.CommitsAhead, Behind: pr.CommitsBehind}
-}
-
 // UpdateCommitDivergence update Divergence of a pull request
-func (pr *PullRequest) UpdateCommitDivergence(div *git.DivergeObject) error {
-	return pr.updateCommitDivergence(x, div)
+func (pr *PullRequest) UpdateCommitDivergence(ahead, behind int) error {
+	return pr.updateCommitDivergence(x, ahead, behind)
 }
 
-func (pr *PullRequest) updateCommitDivergence(e Engine, div *git.DivergeObject) error {
-	if div == nil || pr.ID == 0 {
-		return fmt.Errorf("updateCommitDivergence: diverge nil or PR-ID 0")
+func (pr *PullRequest) updateCommitDivergence(e Engine, ahead, behind int) error {
+	if pr.ID == 0 {
+		return fmt.Errorf("pull ID is 0")
 	}
-	pr.CommitsAhead = div.Ahead
-	pr.CommitsBehind = div.Behind
+	pr.CommitsAhead = ahead
+	pr.CommitsBehind = behind
 	_, err := e.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr)
 	return err
 }

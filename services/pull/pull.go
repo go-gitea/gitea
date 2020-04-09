@@ -222,7 +222,7 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 						if err != nil {
 							log.Error("GetDiverging: %v", err)
 						} else {
-							err = pr.UpdateCommitDivergence(divergence)
+							err = pr.UpdateCommitDivergence(divergence.Ahead, divergence.Behind)
 							if err != nil {
 								log.Error("UpdateCommitDivergence: %v", err)
 							}
@@ -248,7 +248,7 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			if err != nil {
 				log.Error("GetDiverging: %v", err)
 			} else {
-				err = pr.UpdateCommitDivergence(divergence)
+				err = pr.UpdateCommitDivergence(divergence.Ahead, divergence.Behind)
 				if err != nil {
 					log.Error("UpdateCommitDivergence: %v", err)
 				}

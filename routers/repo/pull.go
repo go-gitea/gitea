@@ -419,14 +419,13 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 	}
 
-	if headBranchExist {
+	if headBranchExist && pull.CommitsBehind > 0 {
 		allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
 		}
 		ctx.Data["UpdateAllowed"] = allowUpdate
-		ctx.Data["Divergence"] = pull.GetCommitDivergence()
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
