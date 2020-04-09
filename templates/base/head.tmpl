@@ -94,6 +94,14 @@
 			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
 			Heatmap: {{if .EnableHeatmap}}true{{else}}false{{end}},
 			heatmapUser: {{if .HeatmapUser}}'{{.HeatmapUser}}'{{else}}null{{end}},
+			{{if .RequireTribute}}
+			tributeValues: [
+				{{ range .Assignees }}
+				{key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
+				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'},
+				{{ end }}
+			],
+			{{end}}
 		};
 	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">

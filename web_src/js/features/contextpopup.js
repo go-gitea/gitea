@@ -1,4 +1,5 @@
 import {svg} from '../utils.js';
+import {replaceEmojiTokens} from './emoji.js';
 
 const {AppSubUrl} = window.config;
 
@@ -24,7 +25,7 @@ function issuePopup(owner, repo, index, $element) {
     let labels = '';
     for (let i = 0; i < issue.labels.length; i++) {
       const label = issue.labels[i];
-      const labelName = emojify.replace(label.name);
+      const labelName = replaceEmojiTokens(label.name);
       const red = parseInt(label.color.substring(0, 2), 16);
       const green = parseInt(label.color.substring(2, 4), 16);
       const blue = parseInt(label.color.substring(4, 6), 16);
