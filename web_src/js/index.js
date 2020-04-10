@@ -663,15 +663,19 @@ function initInstall() {
 function initIssueComments() {
   if ($('.repository.view.issue .comments').length === 0) return;
 
-  $('.re-request-review').click((event) => {
-    const $this = $('.re-request-review');
+  $('.re-request-review').on('click', function (event) {
+    const url = $(this).data('update-url');
+    const issue_id = $(this).data('issue-id');
+    const id = $(this).data('id');
+    const is_checked = $(this).data('is-checked');
+
     event.preventDefault();
     updateIssuesMeta(
-      $this.data('update-url'),
+      url,
       '',
-      $this.data('issue-id'),
-      $this.data('id'),
-      $this.data('is-checked')
+      issue_id,
+      id,
+      is_checked
     ).then(reload);
   });
 

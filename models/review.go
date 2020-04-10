@@ -575,7 +575,7 @@ func RemoveRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 		return nil, err
 	}
 
-	comment, err = CreateComment(&CreateCommentOptions{
+	comment, err = createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
