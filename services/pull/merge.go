@@ -287,7 +287,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 		if err = pr.Issue.LoadPoster(); err != nil {
 			log.Error("LoadPoster: %v", err)
-			return "", fmt.Errorf("LoadPoster: %v", err)
+			return fmt.Errorf("LoadPoster: %v", err)
 		}
 		sig := pr.Issue.Poster.NewGitSig()
 		if signArg == "" {
