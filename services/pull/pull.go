@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/setting"
 	issue_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/unknwon/com"
@@ -79,7 +80,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	}
 
 	// Check if branches are equal
-	branchesEqual, err := pr.IsHeadEqualWithBranch(targetBranch)
+	branchesEqual, err := IsHeadEqualWithBranch(pr, targetBranch)
 	if err != nil {
 		return err
 	}
@@ -453,4 +454,203 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 		return errs
 	}
 	return nil
+}
+
+// GetCommitMessages returns the commit messages between head and merge base (if there is one)
+func GetCommitMessages(pr *models.PullRequest) string {
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
+		return ""
+	}
+
+	if err := pr.Issue.LoadPoster(); err != nil {
+		log.Error("Cannot load poster %d for pr id %d, index %d Error: %v", pr.Issue.PosterID, pr.ID, pr.Index, err)
+		return ""
+	}
+
+	if pr.HeadRepo == nil {
+		var err error
+		pr.HeadRepo, err = models.GetRepositoryByID(pr.HeadRepoID)
+		if err != nil {
+			log.Error("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
+			return ""
+		}
+	}
+
+	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		log.Error("Unable to open head repository: Error: %v", err)
+		return ""
+	}
+	defer gitRepo.Close()
+
+	headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
+	if err != nil {
+		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
+		return ""
+	}
+
+	mergeBase, err := gitRepo.GetCommit(pr.MergeBase)
+	if err != nil {
+		log.Error("Unable to get merge base commit: %s Error: %v", pr.MergeBase, err)
+		return ""
+	}
+
+	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
+
+	list, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, 0)
+	if err != nil {
+		log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
+		return ""
+	}
+
+	maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
+
+	posterSig := pr.Issue.Poster.NewGitSig().String()
+
+	authorsMap := map[string]bool{}
+	authors := make([]string, 0, list.Len())
+	stringBuilder := strings.Builder{}
+	element := list.Front()
+	for element != nil {
+		commit := element.Value.(*git.Commit)
+
+		if maxSize < 0 || stringBuilder.Len() < maxSize {
+			toWrite := []byte(commit.CommitMessage)
+			if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
+				toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
+			}
+			if _, err := stringBuilder.Write(toWrite); err != nil {
+				log.Error("Unable to write commit message Error: %v", err)
+				return ""
+			}
+
+			if _, err := stringBuilder.WriteRune('\n'); err != nil {
+				log.Error("Unable to write commit message Error: %v", err)
+				return ""
+			}
+		}
+
+		authorString := commit.Author.String()
+		if !authorsMap[authorString] && authorString != posterSig {
+			authors = append(authors, authorString)
+			authorsMap[authorString] = true
+		}
+		element = element.Next()
+	}
+
+	// Consider collecting the remaining authors
+	if limit >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
+		skip := limit
+		limit = 30
+		for {
+			list, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
+			if err != nil {
+				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
+				return ""
+
+			}
+			if list.Len() == 0 {
+				break
+			}
+			element := list.Front()
+			for element != nil {
+				commit := element.Value.(*git.Commit)
+
+				authorString := commit.Author.String()
+				if !authorsMap[authorString] && authorString != posterSig {
+					authors = append(authors, authorString)
+					authorsMap[authorString] = true
+				}
+				element = element.Next()
+			}
+
+		}
+	}
+
+	if len(authors) > 0 {
+		if _, err := stringBuilder.WriteRune('\n'); err != nil {
+			log.Error("Unable to write to string builder Error: %v", err)
+			return ""
+		}
+	}
+
+	for _, author := range authors {
+		if _, err := stringBuilder.Write([]byte("Co-authored-by: ")); err != nil {
+			log.Error("Unable to write to string builder Error: %v", err)
+			return ""
+		}
+		if _, err := stringBuilder.Write([]byte(author)); err != nil {
+			log.Error("Unable to write to string builder Error: %v", err)
+			return ""
+		}
+		if _, err := stringBuilder.WriteRune('\n'); err != nil {
+			log.Error("Unable to write to string builder Error: %v", err)
+			return ""
+		}
+	}
+
+	return stringBuilder.String()
+}
+
+// GetLastCommitStatus returns the last commit status for this pull request.
+func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, err error) {
+	if err = pr.LoadHeadRepo(); err != nil {
+		return nil, err
+	}
+
+	if pr.HeadRepo == nil {
+		return nil, models.ErrPullRequestHeadRepoMissing{ID: pr.ID, HeadRepoID: pr.HeadRepoID}
+	}
+
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer headGitRepo.Close()
+
+	lastCommitID, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pr.LoadBaseRepo()
+	if err != nil {
+		return nil, err
+	}
+
+	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo, lastCommitID, 0)
+	if err != nil {
+		return nil, err
+	}
+	return models.CalcCommitStatus(statusList), nil
+}
+
+// IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head
+func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, error) {
+	var err error
+	if err = pr.LoadBaseRepo(); err != nil {
+		return false, err
+	}
+	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		return false, err
+	}
+	baseCommit, err := baseGitRepo.GetBranchCommit(branchName)
+	if err != nil {
+		return false, err
+	}
+
+	if err = pr.LoadHeadRepo(); err != nil {
+		return false, err
+	}
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return false, err
+	}
+	headCommit, err := headGitRepo.GetBranchCommit(pr.HeadBranch)
+	if err != nil {
+		return false, err
+	}
+	return baseCommit.HasPreviousCommit(headCommit.ID)
 }

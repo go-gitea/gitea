@@ -234,7 +234,6 @@
 							</div>
 							{{end}}
 							{{if $prUnit.PullRequestsConfig.AllowSquash}}
-							{{$commitMessages := .Issue.PullRequest.GetCommitMessages}}
 							<div class="ui form squash-fields" style="display: none">
 								<form action="{{.Link}}/merge" method="post">
 									{{.CsrfTokenHtml}}
@@ -242,7 +241,7 @@
 										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultSquashMessage}}">
 									</div>
 									<div class="field">
-										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{$commitMessages}}Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
+										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{.GetCommitMessages}}Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
 									</div>
 									<button class="ui green button" type="submit" name="do" value="squash">
 										{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}

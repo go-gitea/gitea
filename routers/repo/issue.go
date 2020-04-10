@@ -240,7 +240,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 				return
 			}
 
-			commitStatus[issues[i].PullRequest.ID], _ = issues[i].PullRequest.GetLastCommitStatus()
+			commitStatus[issues[i].PullRequest.ID], _ = pull_service.GetLastCommitStatus(issues[i].PullRequest)
 		}
 	}
 

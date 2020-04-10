@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
@@ -553,7 +554,7 @@ func Issues(ctx *context.Context) {
 		issue.Repo = showReposMap[issue.RepoID]
 
 		if isPullList {
-			commitStatus[issue.PullRequest.ID], _ = issue.PullRequest.GetLastCommitStatus()
+			commitStatus[issue.PullRequest.ID], _ = pull_service.GetLastCommitStatus(issue.PullRequest)
 		}
 	}
 
