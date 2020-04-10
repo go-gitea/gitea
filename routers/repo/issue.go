@@ -990,6 +990,14 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("Review.LoadCodeComments", err)
 				return
 			}
+
+			// use assignee as Mark Conversation doer
+			if comment.Type == models.CommentTypeCode && comment.AssigneeID != 0 {
+				if err = comment.LoadAssigneeUser(); err != nil {
+					ctx.ServerError("LoadAssigneeUser", err)
+					return
+				}
+			}
 		}
 	}
 
@@ -1031,6 +1039,11 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["AllowMerge"], err = pull_service.IsUserAllowedToMerge(pull, perm, ctx.User)
 			if err != nil {
 				ctx.ServerError("IsUserAllowedToMerge", err)
+				return
+			}
+
+			if ctx.Data["CanMarkConversation"], err = models.CanMarkConversation(issue, ctx.User); err != nil {
+				ctx.ServerError("CanMarkConversation", err)
 				return
 			}
 		}

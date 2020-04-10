@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
@@ -589,4 +590,60 @@ func RemoveRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 	}
 
 	return comment, sess.Commit()
+}
+
+// MarkConversation Add or remove Conversation mark for a code comment
+func MarkConversation(comment *Comment, doer *User, isResolve bool) (err error) {
+	if comment.Type != CommentTypeCode {
+		return nil
+	}
+
+	if isResolve {
+		if comment.AssigneeID != 0 {
+			return nil
+		}
+
+		if _, err = x.Exec("UPDATE `comment` SET assignee_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
+			return err
+		}
+	} else {
+		if comment.AssigneeID == 0 {
+			return nil
+		}
+
+		if _, err = x.Exec("UPDATE `comment` SET assignee_id=? WHERE id=?", 0, comment.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CanMarkConversation  Add or remove Conversation mark for a code comment permission check
+// the PR writer , offfical reviewer and poster can do it
+func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) {
+	if doer == nil || issue == nil {
+		return false, fmt.Errorf("issue or doer is nil")
+	}
+
+	if doer.ID != issue.PosterID {
+		perm, err := GetUserRepoPermission(issue.Repo, doer)
+		if err != nil {
+			return false, err
+		}
+
+		permResult = perm.CanAccess(AccessModeWrite, UnitTypePullRequests)
+		if !permResult {
+			permResult, err = IsOfficialReviewer(issue, doer)
+			if err != nil {
+				return false, err
+			}
+		}
+
+		if !permResult {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

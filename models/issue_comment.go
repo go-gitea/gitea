@@ -942,6 +942,13 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 		return nil, err
 	}
 	for _, comment := range comments {
+		// use assignee as Conversation doer
+		if comment.AssigneeID != 0 {
+			if err := comment.LoadAssigneeUser(); err != nil {
+				return nil, err
+			}
+		}
+
 		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
 			// If the review is pending only the author can see the comments (except the review is set)
 			if review.ID == 0 {

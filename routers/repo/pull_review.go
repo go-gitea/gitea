@@ -61,6 +61,44 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 	ctx.Redirect(comment.HTMLURL())
 }
 
+// UpdateResolveConversation add or remove an Conversation resolved mark
+func UpdateResolveConversation(ctx *context.Context) {
+	action := ctx.Query("action")
+	issueID := ctx.QueryInt64("issue_id")
+	commentID := ctx.QueryInt64("comment_id")
+
+	issue, err := models.GetIssueByID(issueID)
+	if err != nil {
+		ctx.ServerError("GetIssueByID", err)
+		return
+	}
+
+	if !issue.IsPull {
+		return
+	}
+
+	comment, err := models.GetCommentByID(commentID)
+	if err != nil {
+		ctx.ServerError("GetCommentByID", err)
+		return
+	}
+
+	if action == "Resolve" || action == "UnResolve" {
+		err = models.MarkConversation(comment, ctx.User, action == "Resolve")
+		if err != nil {
+			ctx.ServerError("MarkConversation", err)
+			return
+		}
+	} else {
+		ctx.ServerError("UpdateResolveConversation", fmt.Errorf("error action : %s", action))
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
+}
+
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 	issue := GetActionIssue(ctx)
