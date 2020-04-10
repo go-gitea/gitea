@@ -600,7 +600,7 @@ func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, e
 	}
 
 	if pr.HeadRepo == nil {
-		return nil, models.ErrPullRequestHeadRepoMissing{pr.ID, pr.HeadRepoID}
+		return nil, models.ErrPullRequestHeadRepoMissing{ID: pr.ID, HeadRepoID: pr.HeadRepoID}
 	}
 
 	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
