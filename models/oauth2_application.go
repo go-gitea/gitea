@@ -214,7 +214,7 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 	app.Name = opts.Name
 	app.RedirectURIs = opts.RedirectURIs
 
-	if err = updateOAuth2Application(x, app); err != nil {
+	if err = updateOAuth2Application(sess, app); err != nil {
 		return nil, err
 	}
 	app.ClientSecret = ""
