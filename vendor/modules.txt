@@ -654,6 +654,9 @@ github.com/yuin/goldmark/renderer
 github.com/yuin/goldmark/renderer/html
 github.com/yuin/goldmark/text
 github.com/yuin/goldmark/util
+# github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
+## explicit
+github.com/yuin/goldmark-meta
 # go.etcd.io/bbolt v1.3.3
 ## explicit
 # go.mongodb.org/mongo-driver v1.1.1
