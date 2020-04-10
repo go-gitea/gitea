@@ -665,17 +665,17 @@ function initIssueComments() {
 
   $('.re-request-review').on('click', function (event) {
     const url = $(this).data('update-url');
-    const issue_id = $(this).data('issue-id');
+    const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
-    const is_checked = $(this).data('is-checked');
+    const isChecked = $(this).data('is-checked');
 
     event.preventDefault();
     updateIssuesMeta(
       url,
       '',
-      issue_id,
+      issueId,
       id,
-      is_checked
+      isChecked
     ).then(reload);
   });
 
