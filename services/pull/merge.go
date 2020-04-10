@@ -337,6 +337,10 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 			return "", err
 		}
 
+		if err = pr.Issue.LoadPoster(); err != nil {
+			log.Error("LoadPoster: %v", err)
+			return "", fmt.Errorf("LoadPoster: %v", err)
+		}
 		sig := pr.Issue.Poster.NewGitSig()
 		if signArg == "" {
 			if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
