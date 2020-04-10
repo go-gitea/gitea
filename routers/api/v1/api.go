@@ -580,7 +580,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/oauth2").
 					Get(user.ListOauth2Applications).
 					Post(bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application)
-				m.Delete("/oauth2/:id", user.DeleteOauth2Application)
+				m.Combo("/oauth2/:id").
+					Delete(user.DeleteOauth2Application).
+					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application).
+					Get(user.GetOauth2Application)
 			}, reqToken())
 
 			m.Group("/gpg_keys", func() {
@@ -789,7 +792,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
-							Post(reqToken(), mustNotBeArchived, reqRepoWriter(models.UnitTypePullRequests), bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
+							Post(reqToken(), mustNotBeArchived, bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 					})
 				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(false))
 				m.Group("/statuses", func() {
