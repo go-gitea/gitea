@@ -672,13 +672,13 @@ a.ui.basic.green.label:hover {
     color: #dbdbdb !important;
 }
 
-.ui.comments .comment .actions a {
-    color: #9e9e9e;
+.ui .comment .actions a {
+    color: #9e9e9e !important;
 }
 
-.ui.comments .comment .actions a.active,
-.ui.comments .comment .actions a:hover {
-    color: #fff;
+.ui .comment .actions a.active,
+.ui .comment .actions a:hover {
+    color: #fff !important;
 }
 
 .repository.view.issue .comment-list .comment .content .header:after {
@@ -698,8 +698,14 @@ a.ui.basic.green.label:hover {
 }
 
 .repository.view.issue .comment-list:not(.prevent-before-timeline):before,
-.repository.view.issue .comment-list .timeline-line:before {
+.repository.view.issue .comment-list .timeline:before {
     background-color: #3b4954;
+}
+
+.repository.view.issue .comment-list .timeline-item .badge {
+    background-color: #383c4a;
+    border-color: #3b4954;
+    color: #9e9e9e;
 }
 
 .repository .comment.form .content .form:after {
