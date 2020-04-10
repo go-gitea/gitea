@@ -716,13 +716,13 @@
                 z-index: -1;
             }
 
-            .timeline-line {
+            .timeline {
                 position: relative;
                 display: block;
-                width: 100%;
-                max-width: 100%;
+                margin-left: 40px;
+                padding-left: 16px;
 
-                &:before {
+                &:before { //ciara
                     display: block;
                     content: "";
                     position: absolute;
@@ -730,17 +730,90 @@
                     margin-bottom: 14px;
                     top: 0;
                     bottom: 0;
-                    left: 82px;
+                    left: 30px;
                     width: 2px;
                     background-color: #f3f3f3;
                     z-index: -1;
                 }
             }
 
-            .comment {
-                .avatar {
-                    width: @comment-avatar-width;
+            .timeline-item,
+            .timeline-item-group {
+                padding: 12px 0;
+            }
+
+            .timeline-item-group {
+                .timeline-item {
+                    padding-top: 8px;
+                    padding-bottom: 8px;
                 }
+            }
+
+            .timeline-item {
+                margin-left: 16px;
+                position: relative;
+
+                .timeline-avatar {
+                    position: absolute;
+                    left: -72px;
+                    img {
+                        width: 40px;
+                        height: 40px;
+                    }
+                }
+
+                &:first-child {
+                    padding-top: 0 !important;
+                }
+
+                &:last-child {
+                    padding-bottom: 0 !important;
+                }
+
+                .badge {
+                    width: 32px;
+                    height: 32px;
+                    background-color: #fff;
+                    border: 2px solid #eee;
+                    border-radius: 50%;
+                    display: flex;
+                    float: left;
+                    margin-left: -32px;
+                    margin-top: -1px;
+                    margin-right: 8px;
+                    color: #444;
+
+                    .svg {
+                        width: 28px;
+                        height: 28px;
+                        text-align: center;
+                        line-height: 28px;
+                        padding: 4px;
+
+                        &.octicon-circle-slash {
+                            color: #bd2c00;
+                        }
+
+                        &.octicon-primitive-dot {
+                            color: #6cc644;
+                        }
+
+                        &.octicon-comment {
+                            margin-top: 2px;
+                        }
+                    }
+                }
+
+                &.comment > .content {
+                    margin-left: -16px;
+                }
+
+                &.event > .text {
+                    line-height: 30px;
+                }
+            }
+
+            .comment {
 
                 .tag {
                     color: #767676;
@@ -778,8 +851,6 @@
                 }
 
                 .content {
-                    margin-left: 4em;
-
                     > .header {
                         #avatar-arrow;
                         font-weight: normal;
@@ -787,7 +858,6 @@
                         position: relative;
                         color: #767676;
                         background-color: #f7f7f7;
-                        border-bottom: 1px solid #eeeeee;
                         border-top-left-radius: 3px;
                         border-top-right-radius: 3px;
 
@@ -795,6 +865,29 @@
                             max-width: 78%;
                             padding-top: 10px;
                             padding-bottom: 10px;
+                        }
+
+                        &.arrow-top::before,
+                        &.arrow-top::after {
+                            transform: rotate(90deg);
+                        }
+
+                        &.arrow-top::before {
+                            top: -9px;
+                            left: 6px;
+                        }
+
+                        &.arrow-top::after {
+                            top: -8px;
+                            left: 7px;
+                        }
+
+                        .actions a {
+                            color: rgba(0, 0, 0, .4);
+
+                            &:hover {
+                                color: rgba(0, 0, 0, .8);
+                            }
                         }
                     }
 
@@ -892,9 +985,7 @@
             }
 
             .event {
-                position: relative;
-                margin: 15px 0 15px 79px;
-                padding-left: 25px;
+                padding-left: 15px;
 
                 & > .svg:not(.issue-symbol) {
                     text-shadow: -2px 0 #fff, 0 2px #fff, 2px 0 #fff, 0 -2px #fff;
@@ -935,46 +1026,6 @@
                     }
                 }
 
-                .svg {
-                    width: 30px;
-                    float: left;
-                    text-align: center;
-
-                    &.octicon-circle-slash {
-                        margin-top: 5px;
-                        margin-left: -35.5px;
-                        height: 20px;
-                        color: #bd2c00;
-                    }
-
-                    &.octicon-primitive-dot {
-                        margin-top: -1px;
-                        margin-left: -35.5px;
-                        margin-right: -1px;
-                        height: 30px;
-                        color: #6cc644;
-                    }
-
-                    &.octicon-bookmark {
-                        margin-top: 2px;
-                        margin-left: -35.5px;
-                        margin-right: -1px;
-                        height: 25px;
-                    }
-
-                    &.octicon-eye {
-                        margin-top: 3px;
-                        margin-left: -35.5px;
-                        margin-right: 0;
-                        height: 22px;
-                    }
-
-                    &.octicon-x {
-                        margin-left: -35.5px;
-                        height: 25px;
-                    }
-                }
-
                 .detail {
                     font-size: .9rem;
                     margin-top: 5px;
@@ -986,11 +1037,11 @@
                         }
                     }
                 }
-            }
-        }
 
-        .ui.segment.metas {
-            margin-top: -3px;
+                .segments {
+                    box-shadow: none;
+                }
+            }
         }
 
         .ui.participants {
@@ -2169,8 +2220,8 @@
 
         .select-reaction {
             float: left;
-            padding: .5em;
-            padding-left: 1em;
+            padding: .4em;
+            line-height: 21px;
 
             &:not(.active) a {
                 display: none;

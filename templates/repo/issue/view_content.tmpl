@@ -10,12 +10,12 @@
 
 	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
 	<div class="twelve wide column comment-list prevent-before-timeline">
-		<ui class="ui comments timeline-line">
-			<div id="{{.Issue.HashTag}}" class="comment">
+		<ui class="ui timeline">
+			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
 			{{if .Issue.OriginalAuthor }}
-				<span class="avatar"><img src="/img/avatar_default.png"></span>
+				<span class="timeline-avatar"><img src="/img/avatar_default.png"></span>
 			{{else}}
-				<a class="avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
+				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
 					<img src="{{.Issue.Poster.RelAvatarLink}}">
 				</a>
 			{{end}}
@@ -67,8 +67,8 @@
 			{{end}}
 			{{if .IsSigned}}
 				{{ if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (or (not .Issue.IsLocked))) (not .Repository.IsArchived) }}
-				<div class="comment form">
-					<a class="avatar" href="{{.SignedUser.HomeLink}}">
+				<div class="timeline-item comment form">
+					<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
 						<img src="{{.SignedUser.RelAvatarLink}}">
 					</a>
 					<div class="content">
@@ -116,8 +116,8 @@
 			{{else}}
 				{{if .IsSigned}}
 					{{if .Repository.IsArchived}}
-					<div class="comment form">
-						<a class="avatar" href="{{.SignedUser.HomeLink}}">
+					<div class="timeline-item comment form">
+						<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
 							<img src="{{.SignedUser.RelAvatarLink}}">
 						</a>
 						<div class="content">
