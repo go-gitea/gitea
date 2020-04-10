@@ -439,7 +439,7 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 		}
 
-		count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 			IncludeDrafts: false,
 			IncludeTags:   true,
 		})
@@ -447,7 +447,6 @@ func RepoAssignment() macaron.Handler {
 			ctx.ServerError("GetReleaseCountByRepoID", err)
 			return
 		}
-		ctx.Repo.Repository.NumReleases = int(count)
 
 		ctx.Data["Title"] = owner.Name + "/" + repo.Name
 		ctx.Data["Repository"] = repo
