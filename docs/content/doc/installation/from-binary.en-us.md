@@ -132,7 +132,7 @@ To restart your gitea instance, we recommend to use SIGHUP signal. If you know y
 
 To stop gracefully gitea instance, a simple ```kill $GITEA_PID``` or ```killall gitea``` is engouh.
 
-**NOTE:** We don't recommend to use SIGKILL signal (know also as `-9`), you **broke** some gitea behaviors as it will not gracefully stop (task in queue, indexers processes, ...)
+**NOTE:** We don't recommend to use SIGKILL signal (know also as `-9`), you may be forcefully stopping some of Gitea internal tasks and it will not gracefully stop (tasks in queues, indexers processes, etc.)
 
 See below for troubleshooting instructions to repair broken repositories after
 an update of your Gitea version.
