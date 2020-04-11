@@ -8,9 +8,27 @@
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<span class="type-icon text {{if eq .Type 1}}green
-							{{else if eq .Type 2}}grey
-							{{else if eq .Type 3}}red
+							{{- else if eq .Type 2}}grey
+							{{- else if eq .Type 3}}red
+							{{- else if eq .Type 4}}yellow
 							{{else}}grey{{end}}">
+
+							{{$canChoose := false}}
+							{{if eq .Type 4}}
+								{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
+									{{$canChoose = true}}
+								{{end}}
+							{{else}}
+								{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
+									{{$canChoose = true}}
+								{{end}}
+							{{end}}
+
+							{{if $canChoose }}
+								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+									{{svg "octicon-sync" 16}}
+								</a>
+							{{end}}
 							{{svg (printf "octicon-%s" .Type.Icon) 16}}
 						</span>
 						{{if .Stale}}
@@ -28,6 +46,8 @@
 								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 							{{else if eq .Type 3}}
 								{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+							{{else if eq .Type 4}}
+								{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
 							{{else}}
 								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 							{{end}}
@@ -38,21 +58,20 @@
 		</div>
 	</div>
 {{end}}
-<div class="comment merge box">
-	<a class="avatar text
-	{{if .Issue.PullRequest.HasMerged}}purple
-	{{else if .Issue.IsClosed}}grey
-	{{else if .IsPullWorkInProgress}}grey
-	{{else if .IsFilesConflicted}}grey
-	{{else if .IsPullRequestBroken}}red
-	{{else if .IsBlockedByApprovals}}red
-	{{else if .IsBlockedByRejection}}red
-	{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
-	{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
-	{{else if and .RequireSigned (not .WillSign)}}}red
-	{{else if .Issue.PullRequest.IsChecking}}yellow
-	{{else if .Issue.PullRequest.CanAutoMerge}}green
-	{{else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
+<div class="timeline-item comment merge box">
+	<a class="timeline-avatar text  {{if .Issue.PullRequest.HasMerged}}purple
+	{{- else if .Issue.IsClosed}}grey
+	{{- else if .IsPullWorkInProgress}}grey
+	{{- else if .IsFilesConflicted}}grey
+	{{- else if .IsPullRequestBroken}}red
+	{{- else if .IsBlockedByApprovals}}red
+	{{- else if .IsBlockedByRejection}}red
+	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
+	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
+	{{- else if and .RequireSigned (not .WillSign)}}}red
+	{{- else if .Issue.PullRequest.IsChecking}}yellow
+	{{- else if .Issue.PullRequest.CanAutoMerge}}green
+	{{- else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
 	<div class="content">
 		{{template "repo/pulls/status" .}}
 		<div class="ui {{if not $.LatestCommitStatus}}top attached header{{else}}attached merge-section segment{{end}}">
@@ -215,7 +234,6 @@
 							</div>
 							{{end}}
 							{{if $prUnit.PullRequestsConfig.AllowSquash}}
-							{{$commitMessages := .Issue.PullRequest.GetCommitMessages}}
 							<div class="ui form squash-fields" style="display: none">
 								<form action="{{.Link}}/merge" method="post">
 									{{.CsrfTokenHtml}}
@@ -223,7 +241,7 @@
 										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultSquashMessage}}">
 									</div>
 									<div class="field">
-										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{$commitMessages}}Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
+										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{.GetCommitMessages}}Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
 									</div>
 									<button class="ui green button" type="submit" name="do" value="squash">
 										{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}

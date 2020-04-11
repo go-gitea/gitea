@@ -55,6 +55,7 @@ func prepareRepoCommit(ctx models.DBContext, repo *models.Repository, tmpDir, re
 		"Description":    repo.Description,
 		"CloneURL.SSH":   cloneLink.SSH,
 		"CloneURL.HTTPS": cloneLink.HTTPS,
+		"OwnerName":      repo.OwnerName,
 	}
 	if err = ioutil.WriteFile(filepath.Join(tmpDir, "README.md"),
 		[]byte(com.Expand(string(data), match)), 0644); err != nil {
