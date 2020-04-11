@@ -7,12 +7,15 @@ package markdown
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	giteautil "code.gitea.io/gitea/modules/util"
 
+	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
@@ -24,17 +27,54 @@ import (
 
 var byteMailto = []byte("mailto:")
 
+// Header holds the data about a header.
+type Header struct {
+	Level int
+	Text  string
+	ID    string
+}
+
 // GiteaASTTransformer is a default transformer of the goldmark tree.
 type GiteaASTTransformer struct{}
 
 // Transform transforms the given AST tree.
 func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
+	metaData := meta.GetItems(pc)
+	firstChild := node.FirstChild()
+	createTOC := false
+	var toc = []Header{}
+	if metaData != nil {
+		rc := ToRenderConfig(metaData)
+		log.Info("%v", rc)
+
+		metaNode := rc.toMetaNode(metaData)
+		if metaNode != nil {
+			node.InsertBefore(node, firstChild, metaNode)
+		}
+		createTOC = rc.TOC
+		toc = make([]Header, 0, 100)
+	}
+
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
 
 		switch v := n.(type) {
+		case *ast.Heading:
+			if createTOC {
+				log.Info("CreateToc")
+				text := n.Text(reader.Source())
+				header := Header{
+					Text:  util.BytesToReadOnlyString(text),
+					Level: v.Level,
+				}
+				if id, found := v.AttributeString("id"); found {
+					header.ID = util.BytesToReadOnlyString(id.([]byte))
+				}
+				toc = append(toc, header)
+				log.Info("CreateToc: %v", header)
+			}
 		case *ast.Image:
 			// Images need two things:
 			//
@@ -91,6 +131,13 @@ func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, 
 		}
 		return ast.WalkContinue, nil
 	})
+
+	if createTOC && len(toc) > 0 {
+		tocNode := createTOCNode(toc)
+		if tocNode != nil {
+			node.InsertBefore(node, firstChild, tocNode)
+		}
+	}
 }
 
 type prefixedIDs struct {
@@ -139,10 +186,10 @@ func newPrefixedIDs() *prefixedIDs {
 	}
 }
 
-// NewTaskCheckBoxHTMLRenderer creates a TaskCheckBoxHTMLRenderer to render tasklists
+// NewGiteaHTMLRenderer creates a GiteaHTMLRenderer to render
 // in the gitea form.
-func NewTaskCheckBoxHTMLRenderer(opts ...html.Option) renderer.NodeRenderer {
-	r := &TaskCheckBoxHTMLRenderer{
+func NewGiteaHTMLRenderer(opts ...html.Option) renderer.NodeRenderer {
+	r := &GiteaHTMLRenderer{
 		Config: html.NewConfig(),
 	}
 	for _, opt := range opts {
@@ -151,19 +198,82 @@ func NewTaskCheckBoxHTMLRenderer(opts ...html.Option) renderer.NodeRenderer {
 	return r
 }
 
-// TaskCheckBoxHTMLRenderer is a renderer.NodeRenderer implementation that
-// renders checkboxes in list items.
-// Overrides the default goldmark one to present the gitea format
-type TaskCheckBoxHTMLRenderer struct {
+// GiteaHTMLRenderer is a renderer.NodeRenderer implementation that
+// renders gitea specific features.
+type GiteaHTMLRenderer struct {
 	html.Config
 }
 
 // RegisterFuncs implements renderer.NodeRenderer.RegisterFuncs.
-func (r *TaskCheckBoxHTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+func (r *GiteaHTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+	reg.Register(KindDetails, r.renderDetails)
+	reg.Register(KindSummary, r.renderSummary)
+	reg.Register(KindIcon, r.renderIcon)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 }
 
-func (r *TaskCheckBoxHTMLRenderer) renderTaskCheckBox(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *GiteaHTMLRenderer) renderDetails(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	var err error
+	if entering {
+		_, err = w.WriteString("<details>")
+	} else {
+		_, err = w.WriteString("</details>")
+	}
+
+	if err != nil {
+		return ast.WalkStop, err
+	}
+
+	return ast.WalkContinue, nil
+}
+
+func (r *GiteaHTMLRenderer) renderSummary(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	var err error
+	if entering {
+		_, err = w.WriteString("<summary>")
+	} else {
+		_, err = w.WriteString("</summary>")
+	}
+
+	if err != nil {
+		return ast.WalkStop, err
+	}
+
+	return ast.WalkContinue, nil
+}
+
+var validNameRE = regexp.MustCompile("^[a-z ]+$")
+
+func (r *GiteaHTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+
+	n := node.(*Icon)
+
+	name := strings.TrimSpace(strings.ToLower(string(n.Name)))
+
+	if len(name) == 0 {
+		// skip this
+		return ast.WalkContinue, nil
+	}
+
+	if !validNameRE.MatchString(name) {
+		// skip this
+		return ast.WalkContinue, nil
+	}
+
+	var err error
+	_, err = w.WriteString(fmt.Sprintf(`<i class="icon %s"></i>`, name))
+
+	if err != nil {
+		return ast.WalkStop, err
+	}
+
+	return ast.WalkContinue, nil
+}
+
+func (r *GiteaHTMLRenderer) renderTaskCheckBox(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		return ast.WalkContinue, nil
 	}
