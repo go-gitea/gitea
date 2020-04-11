@@ -661,7 +661,7 @@ function initInstall() {
 }
 
 function initIssueComments() {
-  if ($('.repository.view.issue .comments').length === 0) return;
+  if ($('.repository.view.issue .timeline').length === 0) return;
 
   $('.re-request-review').on('click', function (event) {
     const url = $(this).data('update-url');
