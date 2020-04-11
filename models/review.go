@@ -395,9 +395,13 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 
 // GetReviewerByIssueIDAndUserID get the latest review of reviewer for a pull request
 func GetReviewerByIssueIDAndUserID(issueID, userID int64) (review *Review, err error) {
+	return getReviewerByIssueIDAndUserID(x, issueID, userID)
+}
+
+func getReviewerByIssueIDAndUserID(e Engine, issueID, userID int64) (review *Review, err error) {
 	review = new(Review)
 
-	if _, err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
+	if _, err := e.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
 		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Get(review); err != nil {
 		return nil, err
@@ -559,7 +563,7 @@ func RemoveRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 		// recalculate which is the latest official review from that user
 		var review *Review
 
-		review, err = GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
+		review, err = getReviewerByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -575,7 +579,7 @@ func RemoveRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 		return nil, err
 	}
 
-	comment, err = CreateComment(&CreateCommentOptions{
+	comment, err = createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
