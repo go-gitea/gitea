@@ -1,6 +1,10 @@
 # cloud.google.com/go v0.45.0
 ## explicit
 cloud.google.com/go/compute/metadata
+# gitea.com/jolheiser/gitea-vet v0.1.0
+## explicit
+gitea.com/jolheiser/gitea-vet
+gitea.com/jolheiser/gitea-vet/checks
 # gitea.com/lunny/levelqueue v0.2.0
 ## explicit
 gitea.com/lunny/levelqueue
@@ -46,6 +50,7 @@ gitea.com/macaron/session/redis
 ## explicit
 gitea.com/macaron/toolbox
 # github.com/BurntSushi/toml v0.3.1
+## explicit
 github.com/BurntSushi/toml
 # github.com/PuerkitoBio/goquery v1.5.0
 ## explicit
@@ -63,6 +68,8 @@ github.com/andybalholm/cascadia
 github.com/anmitsu/go-shlex
 # github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 github.com/asaskevich/govalidator
+# github.com/aymerick/douceur v0.2.0
+github.com/aymerick/douceur/css
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/bgentry/speakeasy v0.1.0
@@ -124,6 +131,8 @@ github.com/boombuler/barcode/qr
 github.com/boombuler/barcode/utils
 # github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668
 github.com/bradfitz/gomemcache/memcache
+# github.com/chris-ramon/douceur v0.2.0
+github.com/chris-ramon/douceur/parser
 # github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2
 ## explicit
 github.com/couchbase/gomemcached
@@ -184,6 +193,10 @@ github.com/ethantkoenig/rupture
 ## explicit
 # github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870
 ## explicit
+# github.com/fatih/color v1.9.0
+github.com/fatih/color
+# github.com/fatih/structtag v1.2.0
+github.com/fatih/structtag
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
 # github.com/gliderlabs/ssh v0.2.2
@@ -335,6 +348,8 @@ github.com/google/go-querystring/query
 # github.com/gorilla/context v1.1.1
 ## explicit
 github.com/gorilla/context
+# github.com/gorilla/css v1.0.0
+github.com/gorilla/css/scanner
 # github.com/gorilla/handlers v1.4.2
 github.com/gorilla/handlers
 # github.com/gorilla/mux v1.6.2
@@ -445,11 +460,15 @@ github.com/markbates/goth/providers/nextcloud
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 github.com/markbates/goth/providers/yandex
-# github.com/mattn/go-isatty v0.0.7
+# github.com/mattn/go-colorable v0.1.4
+github.com/mattn/go-colorable
+# github.com/mattn/go-isatty v0.0.11
 ## explicit
 github.com/mattn/go-isatty
 # github.com/mattn/go-oci8 v0.0.0-20190320171441-14ba190cf52d
 ## explicit
+# github.com/mattn/go-runewidth v0.0.7
+github.com/mattn/go-runewidth
 # github.com/mattn/go-sqlite3 v1.11.0
 ## explicit
 github.com/mattn/go-sqlite3
@@ -458,10 +477,19 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 ## explicit
 github.com/mcuadros/go-version
-# github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
+# github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
+## explicit
+github.com/mgechev/dots
+# github.com/mgechev/revive v1.0.2
+## explicit
+github.com/mgechev/revive/formatter
+github.com/mgechev/revive/lint
+github.com/mgechev/revive/rule
+# github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912
 ## explicit
 github.com/microcosm-cc/bluemonday
 # github.com/mitchellh/go-homedir v1.1.0
+## explicit
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
@@ -478,6 +506,8 @@ github.com/nfnt/resize
 # github.com/niklasfasching/go-org v0.1.9
 ## explicit
 github.com/niklasfasching/go-org/org
+# github.com/olekukonko/tablewriter v0.0.4
+github.com/olekukonko/tablewriter
 # github.com/oliamb/cutter v0.2.2
 ## explicit
 github.com/oliamb/cutter
@@ -490,7 +520,7 @@ github.com/olivere/elastic/v7/uritemplates
 github.com/pelletier/go-toml
 # github.com/philhofer/fwd v1.0.0
 github.com/philhofer/fwd
-# github.com/pkg/errors v0.8.1
+# github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
@@ -624,6 +654,9 @@ github.com/yuin/goldmark/renderer
 github.com/yuin/goldmark/renderer/html
 github.com/yuin/goldmark/text
 github.com/yuin/goldmark/util
+# github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
+## explicit
+github.com/yuin/goldmark-meta
 # go.etcd.io/bbolt v1.3.3
 ## explicit
 # go.mongodb.org/mongo-driver v1.1.1
@@ -661,7 +694,10 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/net v0.0.0-20200301022130-244492dfa37a
+# golang.org/x/mod v0.2.0
+golang.org/x/mod/module
+golang.org/x/mod/semver
+# golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 ## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -678,7 +714,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
+# golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
@@ -708,8 +744,13 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/tools v0.0.0-20191213221258-04c2e8eff935
+# golang.org/x/tools v0.0.0-20200325010219-a49f79bcc224
 ## explicit
+golang.org/x/tools/cover
+golang.org/x/tools/go/analysis
+golang.org/x/tools/go/analysis/internal/analysisflags
+golang.org/x/tools/go/analysis/internal/facts
+golang.org/x/tools/go/analysis/unitchecker
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/buildutil
 golang.org/x/tools/go/gcexportdata
@@ -718,12 +759,16 @@ golang.org/x/tools/go/internal/gcimporter
 golang.org/x/tools/go/internal/packagesdriver
 golang.org/x/tools/go/loader
 golang.org/x/tools/go/packages
+golang.org/x/tools/go/types/objectpath
 golang.org/x/tools/imports
 golang.org/x/tools/internal/fastwalk
+golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
-golang.org/x/tools/internal/module
-golang.org/x/tools/internal/semver
+golang.org/x/tools/internal/packagesinternal
+# golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
+golang.org/x/xerrors
+golang.org/x/xerrors/internal
 # google.golang.org/appengine v1.6.4
 google.golang.org/appengine
 google.golang.org/appengine/cloudsql
