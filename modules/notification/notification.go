@@ -150,6 +150,13 @@ func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee 
 	}
 }
 
+// NotifyPullRewiewRequest notifies Request Review change
+func NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRewiewRequest(doer, issue, reviewer, isRequest, comment)
+	}
+}
+
 // NotifyIssueClearLabels notifies clear labels to notifiers
 func NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
 	for _, notifier := range notifiers {
