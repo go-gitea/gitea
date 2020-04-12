@@ -433,6 +433,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			return nil
 		}
 		ctx.Data["Divergence"] = divergence
+		ctx.Data["GetCommitMessages"] = pull_service.GetCommitMessages(pull)
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
