@@ -28,7 +28,7 @@
 
 					{{range $.PullReviewers}}
 						{{if eq .ReviewerID $ReviewerID }}
-							{{$notReviewed = false }} 
+							{{$notReviewed = false }}
 							{{if  eq .Type 4 }}
 								{{$checked = true}}
 								{{if or (eq $ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
@@ -142,10 +142,12 @@
 
 		<div class="ui divider"></div>
 
-		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
+		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
-				<span class="octicon octicon-gear"></span>
+				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
+					{{svg "octicon-gear" 16}}
+				{{end}}
 			</span>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
