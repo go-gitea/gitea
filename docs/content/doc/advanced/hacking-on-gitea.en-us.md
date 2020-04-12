@@ -128,10 +128,28 @@ make revive vet misspell-check
 
 ### Working on JS and CSS
 
-Edit files in `web_src` and run the linter and build the files in `public`:
+For simple changes, edit files in `web_src`, run the build and start the server to test:
 
 ```bash
-make webpack
+make build && ./gitea
+```
+
+For more involved changes use the `watch-frontend` task to continuously rebuild files when their sources change. The `bindata` tag must be absent to ensure the file system will be used for files in `public`. First, build and run the backend:
+
+```bash
+make backend && ./gitea
+```
+
+With the backend running, open another terminal and run:
+
+```bash
+make watch-frontend
+```
+
+Before committing, make sure the linters pass:
+
+```bash
+make lint-frontend
 ```
 
 Note: When working on frontend code, it is advisable to set `USE_SERVICE_WORKER` to `false` in `app.ini` which will prevent undesirable caching of frontend assets.
