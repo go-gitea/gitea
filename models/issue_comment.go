@@ -121,7 +121,6 @@ type Comment struct {
 	RemovedAssignee  bool
 	Assignee         *User `xorm:"-"`
 	ResolveDoerID    int64
-	IsResolved       bool  `xorm:"-"`
 	ResolveDoer      *User `xorm:"-"`
 	OldTitle         string
 	NewTitle         string
@@ -430,8 +429,12 @@ func (c *Comment) LoadResolveDoer() (err error) {
 	if err != nil {
 		return
 	}
-	c.IsResolved = true
 	return
+}
+
+// IsResolved check if an code comment is resolved
+func (c *Comment) IsResolved() bool {
+	return c.ResolveDoerID != 0 && c.Type == CommentTypeCode
 }
 
 // LoadDepIssueDetails loads Dependent Issue Details

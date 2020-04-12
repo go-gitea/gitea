@@ -73,6 +73,18 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 
+	var permResult bool
+	if permResult, err = models.CanMarkConversation(issue, ctx.User); err != nil {
+		ctx.ServerError("CanMarkConversation", err)
+		return
+	}
+	if !permResult {
+		ctx.ServerError("UpdateResolveConversation",
+			fmt.Errorf("doer can't permission [usser_id: %d, issue_id: %d]",
+				ctx.User.ID, issue.ID))
+		return
+	}
+
 	if !issue.IsPull {
 		return
 	}

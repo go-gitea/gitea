@@ -631,6 +631,13 @@ func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) 
 	}
 
 	if doer.ID != issue.PosterID {
+		if issue.Repo == nil {
+			err = issue.LoadRepo()
+			if err != nil {
+				return false, err
+			}
+		}
+
 		perm, err := GetUserRepoPermission(issue.Repo, doer)
 		if err != nil {
 			return false, err
