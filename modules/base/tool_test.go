@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package base
 
 import (
@@ -87,17 +91,6 @@ func TestSizedAvatarLink(t *testing.T) {
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon&s=100",
 		SizedAvatarLink("gitea@example.com", 100),
-	)
-}
-
-func TestAvatarLink(t *testing.T) {
-	disableGravatar()
-	assert.Equal(t, "/img/avatar_default.png", AvatarLink("gitea@example.com"))
-
-	enableGravatar(t)
-	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon",
-		AvatarLink("gitea@example.com"),
 	)
 }
 

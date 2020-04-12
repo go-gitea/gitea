@@ -81,13 +81,16 @@ func SearchIssues(ctx *context.APIContext) {
 		AllPublic:   true,
 		TopicOnly:   false,
 		Collaborate: util.OptionalBoolNone,
-		OrderBy:     models.SearchOrderByRecentUpdated,
-		Actor:       ctx.User,
+		// This needs to be a column that is not nil in fixtures or
+		// MySQL will return different results when sorting by null in some cases
+		OrderBy: models.SearchOrderByAlphabetically,
+		Actor:   ctx.User,
 	}
 	if ctx.IsSigned {
 		opts.Private = true
 		opts.AllLimited = true
 	}
+
 	issueCount := 0
 	for page := 1; ; page++ {
 		opts.Page = page
@@ -127,15 +130,6 @@ func SearchIssues(ctx *context.APIContext) {
 		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword)
 	}
 
-	labels := ctx.Query("labels")
-	if splitted := strings.Split(labels, ","); labels != "" && len(splitted) > 0 {
-		labelIDs, err = models.GetLabelIDsInReposByNames(repoIDs, splitted)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
-			return
-		}
-	}
-
 	var isPull util.OptionalBool
 	switch ctx.Query("type") {
 	case "pulls":
@@ -146,6 +140,12 @@ func SearchIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
+	labels := strings.TrimSpace(ctx.Query("labels"))
+	var includedLabelNames []string
+	if len(labels) > 0 {
+		includedLabelNames = strings.Split(labels, ",")
+	}
+
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
@@ -154,13 +154,14 @@ func SearchIssues(ctx *context.APIContext) {
 				Page:     ctx.QueryInt("page"),
 				PageSize: setting.UI.IssuePagingNum,
 			},
-			RepoIDs:        repoIDs,
-			IsClosed:       isClosed,
-			IssueIDs:       issueIDs,
-			LabelIDs:       labelIDs,
-			SortType:       "priorityrepo",
-			PriorityRepoID: ctx.QueryInt64("priority_repo_id"),
-			IsPull:         isPull,
+
+			RepoIDs:            repoIDs,
+			IsClosed:           isClosed,
+			IssueIDs:           issueIDs,
+			IncludedLabelNames: includedLabelNames,
+			SortType:           "priorityrepo",
+			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
+			IsPull:             isPull,
 		})
 	}
 

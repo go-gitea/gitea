@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
-	"xorm.io/core"
+	"xorm.io/xorm/convert"
 )
 
 const (
@@ -214,7 +214,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	hasTLS := false
-	var config core.Conversion
+	var config convert.Conversion
 	switch models.LoginType(form.Type) {
 	case models.LoginLDAP, models.LoginDLDAP:
 		config = parseLDAPConfig(form)
@@ -322,7 +322,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		return
 	}
 
-	var config core.Conversion
+	var config convert.Conversion
 	switch models.LoginType(form.Type) {
 	case models.LoginLDAP, models.LoginDLDAP:
 		config = parseLDAPConfig(form)
