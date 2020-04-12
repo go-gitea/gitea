@@ -8,13 +8,15 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/unknwon/i18n"
 	"github.com/yuin/goldmark/ast"
 )
 
-func createTOCNode(toc []Header) ast.Node {
+func createTOCNode(toc []Header, lang string) ast.Node {
 	details := NewDetails()
 	summary := NewSummary()
-	summary.AppendChild(summary, ast.NewString([]byte("Table of Contents")))
+
+	summary.AppendChild(summary, ast.NewString([]byte(i18n.Tr(lang, "toc"))))
 	details.AppendChild(details, summary)
 	ul := ast.NewList('-')
 	details.AppendChild(details, ul)

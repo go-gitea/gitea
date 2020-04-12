@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
 
 	meta "github.com/yuin/goldmark-meta"
@@ -43,9 +44,13 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 	firstChild := node.FirstChild()
 	createTOC := false
 	var toc = []Header{}
+	rc := &RenderConfig{
+		Meta: "table",
+		Icon: "table",
+		Lang: "",
+	}
 	if metaData != nil {
-		rc := ToRenderConfig(metaData)
-		log.Info("%v", rc)
+		rc.ToRenderConfig(metaData)
 
 		metaNode := rc.toMetaNode(metaData)
 		if metaNode != nil {
@@ -131,10 +136,18 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 	})
 
 	if createTOC && len(toc) > 0 {
-		tocNode := createTOCNode(toc)
+		lang := rc.Lang
+		if len(lang) == 0 {
+			lang = setting.Langs[0]
+		}
+		tocNode := createTOCNode(toc, rc.Lang)
 		if tocNode != nil {
 			node.InsertBefore(node, firstChild, tocNode)
 		}
+	}
+
+	if len(rc.Lang) > 0 {
+		node.SetAttributeString("lang", []byte(rc.Lang))
 	}
 }
 
@@ -204,10 +217,35 @@ type HTMLRenderer struct {
 
 // RegisterFuncs implements renderer.NodeRenderer.RegisterFuncs.
 func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+	reg.Register(ast.KindDocument, r.renderDocument)
 	reg.Register(KindDetails, r.renderDetails)
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(KindIcon, r.renderIcon)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
+}
+
+func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	log.Info("renderDocument %v", node)
+	n := node.(*ast.Document)
+
+	var err error
+	if entering {
+		_, err = w.WriteString("<div")
+		if val, has := n.AttributeString("lang"); has && err == nil {
+			_, err = w.WriteString(fmt.Sprintf(` lang=%q`, val))
+		}
+		if err == nil {
+			_, err = w.WriteRune('>')
+		}
+	} else {
+		_, err = w.WriteString("</div>")
+	}
+
+	if err != nil {
+		return ast.WalkStop, err
+	}
+
+	return ast.WalkContinue, nil
 }
 
 func (r *HTMLRenderer) renderDetails(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {

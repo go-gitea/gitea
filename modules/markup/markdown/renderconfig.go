@@ -18,18 +18,16 @@ type RenderConfig struct {
 	Meta string
 	Icon string
 	TOC  bool
+	Lang string
 }
 
 // ToRenderConfig converts a yaml.MapSlice to a RenderConfig
-func ToRenderConfig(meta yaml.MapSlice) *RenderConfig {
-	rc := &RenderConfig{
-		Meta: "table",
-		Icon: "table",
-	}
+func (rc *RenderConfig) ToRenderConfig(meta yaml.MapSlice) {
 	if meta == nil {
-		return rc
+		return
 	}
-	var giteaMetaControl *yaml.MapItem
+	found := false
+	var giteaMetaControl yaml.MapItem
 	for _, item := range meta {
 		strKey, ok := item.Key.(string)
 		if !ok {
@@ -38,17 +36,28 @@ func ToRenderConfig(meta yaml.MapSlice) *RenderConfig {
 		strKey = strings.TrimSpace(strings.ToLower(strKey))
 		switch strKey {
 		case "gitea":
-			giteaMetaControl = &item
+			giteaMetaControl = item
+			found = true
 		case "include_toc":
 			val, ok := item.Value.(bool)
 			if !ok {
 				continue
 			}
 			rc.TOC = val
+		case "lang":
+			val, ok := item.Value.(string)
+			if !ok {
+				continue
+			}
+			val = strings.TrimSpace(val)
+			if len(val) == 0 {
+				continue
+			}
+			rc.Lang = val
 		}
 	}
 
-	if giteaMetaControl != nil {
+	if found {
 		switch v := giteaMetaControl.Value.(type) {
 		case string:
 			switch v {
@@ -68,14 +77,13 @@ func ToRenderConfig(meta yaml.MapSlice) *RenderConfig {
 					continue
 				}
 				strKey = strings.TrimSpace(strings.ToLower(strKey))
-				strValue, ok := item.Value.(string)
-				strValue = strings.TrimSpace(strings.ToLower(strValue))
 				switch strKey {
 				case "meta":
+					val, ok := item.Value.(string)
 					if !ok {
 						continue
 					}
-					switch strValue {
+					switch strings.TrimSpace(strings.ToLower(val)) {
 					case "none":
 						rc.Meta = "none"
 					case "table":
@@ -86,21 +94,32 @@ func ToRenderConfig(meta yaml.MapSlice) *RenderConfig {
 						rc.Meta = "details"
 					}
 				case "details_icon":
+					val, ok := item.Value.(string)
 					if !ok {
 						continue
 					}
-					rc.Icon = strValue
+					rc.Icon = strings.TrimSpace(strings.ToLower(val))
 				case "include_toc":
 					val, ok := item.Value.(bool)
 					if !ok {
 						continue
 					}
 					rc.TOC = val
+				case "lang":
+					val, ok := item.Value.(string)
+					if !ok {
+						continue
+					}
+					val = strings.TrimSpace(val)
+					if len(val) == 0 {
+						continue
+					}
+					rc.Lang = val
 				}
 			}
 		}
 	}
-	return rc
+	return
 }
 
 func (rc *RenderConfig) toMetaNode(meta yaml.MapSlice) ast.Node {
