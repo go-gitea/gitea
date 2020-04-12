@@ -1,4 +1,3 @@
-
 ; This file lists the default values used by Gitea
 ; Copy required sections to your own app.ini (default is custom/conf/app.ini)
 ; and modify as needed.
@@ -221,6 +220,7 @@ ROOT_URL = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
 STATIC_URL_PREFIX =
 ; The address to listen on. Either a IPv4/IPv6 address or the path to a unix socket.
 HTTP_ADDR = 0.0.0.0
+; The port to listen on. Leave empty when using a unix socket.
 HTTP_PORT = 3000
 ; If REDIRECT_OTHER_PORT is true, and PROTOCOL is set to https an http server
 ; will be started on PORT_TO_REDIRECT and it will redirect plain, non-secure http requests to the main
@@ -335,7 +335,7 @@ RSA = 2048
 DSA = 1024
 
 [database]
-; Either "mysql", "postgres", "mssql" or "sqlite3", it's your choice
+; Database to use. Either "mysql", "postgres", "mssql" or "sqlite3".
 DB_TYPE = mysql
 HOST = 127.0.0.1:3306
 NAME = gitea
@@ -713,7 +713,7 @@ ENABLE_FEDERATED_AVATAR = false
 ENABLED = true
 ; Path for attachments. Defaults to `data/attachments`
 PATH = data/attachments
-; One or more allowed types, e.g. image/jpeg|image/png
+; One or more allowed types, e.g. "image/jpeg|image/png". Use "*/*" for all types.
 ALLOWED_TYPES = image/jpeg|image/png|application/zip|application/gzip
 ; Max size of each file. Defaults to 4MB
 MAX_SIZE = 4
