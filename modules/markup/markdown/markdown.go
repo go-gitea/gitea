@@ -71,7 +71,7 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 		// Override the original Tasklist renderer!
 		converter.Renderer().AddOptions(
 			renderer.WithNodeRenderers(
-				util.Prioritized(NewGiteaHTMLRenderer(), 1000),
+				util.Prioritized(NewHTMLRenderer(), 1000),
 			),
 		)
 

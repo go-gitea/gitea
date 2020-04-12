@@ -34,11 +34,11 @@ type Header struct {
 	ID    string
 }
 
-// GiteaASTTransformer is a default transformer of the goldmark tree.
-type GiteaASTTransformer struct{}
+// ASTTransformer is a default transformer of the goldmark tree.
+type ASTTransformer struct{}
 
 // Transform transforms the given AST tree.
-func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
+func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
 	metaData := meta.GetItems(pc)
 	firstChild := node.FirstChild()
 	createTOC := false
@@ -63,7 +63,6 @@ func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, 
 		switch v := n.(type) {
 		case *ast.Heading:
 			if createTOC {
-				log.Info("CreateToc")
 				text := n.Text(reader.Source())
 				header := Header{
 					Text:  util.BytesToReadOnlyString(text),
@@ -73,7 +72,6 @@ func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, 
 					header.ID = util.BytesToReadOnlyString(id.([]byte))
 				}
 				toc = append(toc, header)
-				log.Info("CreateToc: %v", header)
 			}
 		case *ast.Image:
 			// Images need two things:
@@ -186,10 +184,10 @@ func newPrefixedIDs() *prefixedIDs {
 	}
 }
 
-// NewGiteaHTMLRenderer creates a GiteaHTMLRenderer to render
+// NewHTMLRenderer creates a HTMLRenderer to render
 // in the gitea form.
-func NewGiteaHTMLRenderer(opts ...html.Option) renderer.NodeRenderer {
-	r := &GiteaHTMLRenderer{
+func NewHTMLRenderer(opts ...html.Option) renderer.NodeRenderer {
+	r := &HTMLRenderer{
 		Config: html.NewConfig(),
 	}
 	for _, opt := range opts {
@@ -198,21 +196,21 @@ func NewGiteaHTMLRenderer(opts ...html.Option) renderer.NodeRenderer {
 	return r
 }
 
-// GiteaHTMLRenderer is a renderer.NodeRenderer implementation that
+// HTMLRenderer is a renderer.NodeRenderer implementation that
 // renders gitea specific features.
-type GiteaHTMLRenderer struct {
+type HTMLRenderer struct {
 	html.Config
 }
 
 // RegisterFuncs implements renderer.NodeRenderer.RegisterFuncs.
-func (r *GiteaHTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindDetails, r.renderDetails)
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(KindIcon, r.renderIcon)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 }
 
-func (r *GiteaHTMLRenderer) renderDetails(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderDetails(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	var err error
 	if entering {
 		_, err = w.WriteString("<details>")
@@ -227,7 +225,7 @@ func (r *GiteaHTMLRenderer) renderDetails(w util.BufWriter, source []byte, node 
 	return ast.WalkContinue, nil
 }
 
-func (r *GiteaHTMLRenderer) renderSummary(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderSummary(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	var err error
 	if entering {
 		_, err = w.WriteString("<summary>")
@@ -244,7 +242,7 @@ func (r *GiteaHTMLRenderer) renderSummary(w util.BufWriter, source []byte, node 
 
 var validNameRE = regexp.MustCompile("^[a-z ]+$")
 
-func (r *GiteaHTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		return ast.WalkContinue, nil
 	}
@@ -273,7 +271,7 @@ func (r *GiteaHTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast
 	return ast.WalkContinue, nil
 }
 
-func (r *GiteaHTMLRenderer) renderTaskCheckBox(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderTaskCheckBox(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		return ast.WalkContinue, nil
 	}
