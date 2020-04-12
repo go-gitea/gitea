@@ -991,12 +991,9 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 
-			// use assignee as Mark Conversation doer
-			if comment.Type == models.CommentTypeCode && comment.AssigneeID != 0 {
-				if err = comment.LoadAssigneeUser(); err != nil {
-					ctx.ServerError("LoadAssigneeUser", err)
-					return
-				}
+			if err = comment.LoadResolveDoer(); err != nil {
+				ctx.ServerError("LoadResolveDoer", err)
+				return
 			}
 		}
 	}

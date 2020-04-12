@@ -603,19 +603,19 @@ func MarkConversation(comment *Comment, doer *User, isResolve bool) (err error) 
 	}
 
 	if isResolve {
-		if comment.AssigneeID != 0 {
+		if comment.ResolveDoerID != 0 {
 			return nil
 		}
 
-		if _, err = x.Exec("UPDATE `comment` SET assignee_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
+		if _, err = x.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
 			return err
 		}
 	} else {
-		if comment.AssigneeID == 0 {
+		if comment.ResolveDoerID == 0 {
 			return nil
 		}
 
-		if _, err = x.Exec("UPDATE `comment` SET assignee_id=? WHERE id=?", 0, comment.ID); err != nil {
+		if _, err = x.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
 			return err
 		}
 	}
@@ -624,7 +624,7 @@ func MarkConversation(comment *Comment, doer *User, isResolve bool) (err error) 
 }
 
 // CanMarkConversation  Add or remove Conversation mark for a code comment permission check
-// the PR writer , offfical reviewer and poster can do it
+// the PR writer , offfcial reviewer and poster can do it
 func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) {
 	if doer == nil || issue == nil {
 		return false, fmt.Errorf("issue or doer is nil")

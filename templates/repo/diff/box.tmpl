@@ -147,27 +147,27 @@
 															{{end}}
 														</tr>
 														{{if gt (len $line.Comments) 0}}
-															{{$assigneeid := (index $line.Comments 0).AssigneeID}}
-															{{$assignee := (index $line.Comments 0).Assignee}}
+															{{$resolved := (index $line.Comments 0).IsResolved}}
+															{{$resolveDoer := (index $line.Comments 0).ResolveDoer}}
 															<tr class="add-code-comment">
 																<td class="lines-num"></td>
 																<td class="lines-type-marker"></td>
 																<td class="add-comment-left">
-																	<div class="ui segment">
-																		{{if and (not (eq $assigneeid 0)) (eq $line.GetCommentSide "previous")}}
-																			<span class="ui grey text left"><b>{{$assignee.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
+																	{{if and $resolved  (eq $line.GetCommentSide "previous")}}
+																		<div class="ui top attached header">
+																			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
 																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
-																				{{svg "octicon-fold" 16}}
+																				{{svg "octicon-unfold" 16}}
 																				{{$.i18n.Tr "repo.issues.review.show_resolved"}}
 																			</button>
 																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
 																				{{svg "octicon-fold" 16}}
 																				{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
 																			</button>
-																		{{end}}
-																	</div>
+																		</div>
+																	{{end}}
 																	{{if eq $line.GetCommentSide "previous"}}
-																		<div id="code-comments-{{(index  $line.Comments 0).ID}}" class="field comment-code-cloud {{if not (eq $assigneeid 0)}}hide{{end}}">
+																		<div id="code-comments-{{(index  $line.Comments 0).ID}}" class="field comment-code-cloud {{if $resolved}}hide{{end}}">
 																			<div class="comment-list">
 																				<ui class="ui comments">
 																				{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
@@ -175,16 +175,13 @@
 																			</div>
 																		{{template "repo/diff/comment_form_datahandler" dict "reply" (index $line.Comments 0).ReviewID "hidden" true "root" $ "comment" (index $line.Comments 0)}}
 																			{{if $.CanMarkConversation }}
-																				<button class="ui green icon tiny button resolve-conversation" data-action="{{if eq $assigneeid 0}}Resolve{{else}}UnResolve{{end}}" data-issue-id="{{$.Issue.ID}}"  data-comment-id="{{(index $line.Comments 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
-																					{{if not (eq $assigneeid 0)}}
+																				<button class="ui green icon tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-issue-id="{{$.Issue.ID}}"  data-comment-id="{{(index $line.Comments 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
+																					{{if $resolved}}
 																						{{$.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
 																					{{else}}
 																						{{$.i18n.Tr "repo.issues.review.resolve_conversation"}}
 																					{{end}}
 																				</button>
-																			{{end}}
-																			{{if not (eq $assigneeid 0)}}
-																				<span class="ui grey text"><b>{{$assignee.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
 																			{{end}}
 																		</div>
 																	{{end}}
@@ -192,19 +189,21 @@
 																<td class="lines-num"></td>
 																<td class="lines-type-marker"></td>
 																<td class="add-comment-right">
-																	{{if and (not (eq $assigneeid 0)) (eq $line.GetCommentSide "proposed")}}
-																		<span class="ui grey text left"><b>{{$assignee.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>	
-																		<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
-																			{{svg "octicon-fold" 16}}
-																			{{$.i18n.Tr "repo.issues.review.show_resolved"}}
-																		</button>
-																		<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
-																			{{svg "octicon-fold" 16}}
-																			{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
-																		</button>
+																	{{if and $resolved (eq $line.GetCommentSide "proposed")}}
+																		<div class="ui top attached header">
+																			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>	
+																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
+																				{{svg "octicon-unfold" 16}}
+																				{{$.i18n.Tr "repo.issues.review.show_resolved"}}
+																			</button>
+																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
+																				{{svg "octicon-fold" 16}}
+																				{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
+																			</button>	
+																		</div>
 																	{{end}}
 																	{{if eq $line.GetCommentSide "proposed"}}
-																		<div id="code-comments-{{(index  $line.Comments 0).ID}}" class="field comment-code-cloud {{if not (eq $assigneeid 0)}}hide{{end}}">
+																		<div id="code-comments-{{(index  $line.Comments 0).ID}}" class="field comment-code-cloud {{if $resolved}}hide{{end}}">
 																			<div class="comment-list">
 																				<ui class="ui comments">
 																				{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
@@ -212,16 +211,13 @@
 																			</div>
 																			{{template "repo/diff/comment_form_datahandler" dict "reply" (index $line.Comments 0).ReviewID "hidden" true "root" $ "comment" (index $line.Comments 0)}}
 																			{{if $.CanMarkConversation}}
-																				<button class="ui green icon tiny button resolve-conversation" data-action="{{if eq $assigneeid 0}}Resolve{{else}}UnResolve{{end}}" data-issue-id="{{$.Issue.ID}}"  data-comment-id="{{(index $line.Comments 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
-																					{{if not (eq $assigneeid 0)}}
+																				<button class="ui green icon tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-issue-id="{{$.Issue.ID}}"  data-comment-id="{{(index $line.Comments 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
+																					{{if $resolved}}
 																						{{$.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
 																					{{else}}
 																						{{$.i18n.Tr "repo.issues.review.resolve_conversation"}}
 																					{{end}}
 																				</button>
-																			{{end}}
-																			{{if not (eq $assigneeid 0)}}
-																				<span class="ui grey text"><b>{{$assignee.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
 																			{{end}}
 																		</div>
 																	{{end}}

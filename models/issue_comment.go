@@ -120,6 +120,9 @@ type Comment struct {
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *User `xorm:"-"`
+	ResolveDoerID    int64
+	IsResolved       bool  `xorm:"-"`
+	ResolveDoer      *User `xorm:"-"`
 	OldTitle         string
 	NewTitle         string
 	OldRef           string
@@ -416,6 +419,19 @@ func (c *Comment) LoadAssigneeUser() error {
 		}
 	}
 	return nil
+}
+
+// LoadResolveDoer if comment.Type is CommentTypeCode and ResolveDoerID not zero, then load resolveDoer
+func (c *Comment) LoadResolveDoer() (err error) {
+	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
+		return nil
+	}
+	c.ResolveDoer, err = getUserByID(x, c.ResolveDoerID)
+	if err != nil {
+		return
+	}
+	c.IsResolved = true
+	return
 }
 
 // LoadDepIssueDetails loads Dependent Issue Details
@@ -941,12 +957,10 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 	if err := e.In("id", ids).Find(&reviews); err != nil {
 		return nil, err
 	}
+
 	for _, comment := range comments {
-		// use assignee as Conversation doer
-		if comment.AssigneeID != 0 {
-			if err := comment.LoadAssigneeUser(); err != nil {
-				return nil, err
-			}
+		if err := comment.LoadResolveDoer(); err != nil {
+			return nil, err
 		}
 
 		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
