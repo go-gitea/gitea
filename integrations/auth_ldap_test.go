@@ -312,7 +312,7 @@ func TestLDAPUserSigninFailedWithGroupsUsingDN(t *testing.T) {
 	}
 }
 
-func TestLDAPUserSigninFailedWithGroupsUsignCN(t *testing.T) {
+func TestLDAPUserSigninFailedWithGroupsUsingCN(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()
 		return
