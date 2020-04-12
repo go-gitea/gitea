@@ -530,9 +530,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/NotificationCount"
-          },
-          "204": {
-            "description": "No unread notification"
           }
         }
       }
@@ -2511,6 +2508,52 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/commits/{ref}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a single commit from a repository",
+        "operationId": "repoGetSingleCommitByRef",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "a git ref",
+            "name": "ref",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Commit"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/commits/{ref}/statuses": {
       "get": {
         "produces": [
@@ -2976,7 +3019,7 @@
           "repository"
         ],
         "summary": "Get a single commit from a repository",
-        "operationId": "repoGetSingleCommit",
+        "operationId": "repoGetSingleCommitBySHA",
         "parameters": [
           {
             "type": "string",
@@ -3006,6 +3049,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -8311,6 +8357,31 @@
       }
     },
     "/user/applications/oauth2/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "get an OAuth2 Application",
+        "operationId": "userGetOAuth2Application",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "Application ID to be found",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OAuth2Application"
+          }
+        }
+      },
       "delete": {
         "produces": [
           "application/json"
@@ -8333,6 +8404,39 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "update an OAuth2 Application, this includes regenerating the client secret",
+        "operationId": "userUpdateOAuth2Application",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "application to be updated",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OAuth2Application"
           }
         }
       }
