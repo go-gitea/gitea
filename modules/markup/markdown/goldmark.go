@@ -140,7 +140,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		if len(lang) == 0 {
 			lang = setting.Langs[0]
 		}
-		tocNode := createTOCNode(toc, rc.Lang)
+		tocNode := createTOCNode(toc, lang)
 		if tocNode != nil {
 			node.InsertBefore(node, firstChild, tocNode)
 		}

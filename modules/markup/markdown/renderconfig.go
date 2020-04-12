@@ -119,7 +119,6 @@ func (rc *RenderConfig) ToRenderConfig(meta yaml.MapSlice) {
 			}
 		}
 	}
-	return
 }
 
 func (rc *RenderConfig) toMetaNode(meta yaml.MapSlice) ast.Node {
