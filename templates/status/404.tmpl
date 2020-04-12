@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 {{if .IsRepo}}<div class="repository">{{template "repo/header" .}}</div>{{end}}
 <div class="ui container center">
-	<p style="margin-top: 100px"><img src="{{StaticUrlPrefix}}/img/404.png" alt="404"/></p>
+	<p style="margin-top: 100px"><img class="ui centered image" src="{{StaticUrlPrefix}}/img/404.png" alt="404"/></p>
 	<div class="ui divider"></div>
 	<br>
 	<p>{{.i18n.Tr "error404" | Safe}}
