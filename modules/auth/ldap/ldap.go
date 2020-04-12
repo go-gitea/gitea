@@ -283,7 +283,7 @@ func (ls *Source) ProcessUserEntry(entry *ldap.Entry, l *ldap.Conn) *SearchResul
 		}
 
 		if len(strings.TrimSpace(ls.RestrictedGroupFilter)) > 0 {
-			hasRestrictedGroup = ls.CheckGroupFilter(l, sr, ls.RestrictedFilter)
+			hasRestrictedGroup = ls.CheckGroupFilter(l, sr, ls.RestrictedGroupFilter)
 			if hasRestrictedGroup && !hasAdminGroup {
 				log.Info("LDAP user %s is in restricted group!", username)
 			}

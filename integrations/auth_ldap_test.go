@@ -299,7 +299,7 @@ func TestLDAPUserSigninFailed(t *testing.T) {
 	testLoginFailed(t, u.UserName, u.Password, i18n.Tr("en", "form.username_password_incorrect"))
 }
 
-func TestLDAPUserSigninFailedWithGroupsUsignDN(t *testing.T) {
+func TestLDAPUserSigninFailedWithGroupsUsingDN(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()
 		return
