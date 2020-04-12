@@ -228,21 +228,23 @@ func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.
 	log.Info("renderDocument %v", node)
 	n := node.(*ast.Document)
 
-	var err error
-	if entering {
-		_, err = w.WriteString("<div")
-		if val, has := n.AttributeString("lang"); has && err == nil {
-			_, err = w.WriteString(fmt.Sprintf(` lang=%q`, val))
+	if val, has := n.AttributeString("lang"); has {
+		var err error
+		if entering {
+			_, err = w.WriteString("<div")
+			if err == nil {
+				_, err = w.WriteString(fmt.Sprintf(` lang=%q`, val))
+			}
+			if err == nil {
+				_, err = w.WriteRune('>')
+			}
+		} else {
+			_, err = w.WriteString("</div>")
 		}
-		if err == nil {
-			_, err = w.WriteRune('>')
-		}
-	} else {
-		_, err = w.WriteString("</div>")
-	}
 
-	if err != nil {
-		return ast.WalkStop, err
+		if err != nil {
+			return ast.WalkStop, err
+		}
 	}
 
 	return ast.WalkContinue, nil
