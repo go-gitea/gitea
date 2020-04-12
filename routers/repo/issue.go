@@ -380,7 +380,6 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	}
 }
 
-<<<<<<< HEAD
 func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 
 	var err error
@@ -404,14 +403,16 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
-=======
+		return
+	}
+}
+
 // RetrieveRepoReviewers find all reviewers of a repository
 func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issuePosterID int64) {
 	var err error
 	ctx.Data["Reviewers"], err = repo.GetReviewers(ctx.User.ID, issuePosterID)
 	if err != nil {
 		ctx.ServerError("GetReviewers", err)
->>>>>>> cc4da79fb6302f35dfe9e2d5af7cda384083b0af
 		return
 	}
 }
@@ -1020,7 +1021,6 @@ func ViewIssue(ctx *context.Context) {
 			if comment.MilestoneID > 0 && comment.Milestone == nil {
 				comment.Milestone = ghostMilestone
 			}
-<<<<<<< HEAD
 		} else if comment.Type == models.CommentTypeProject {
 
 			if err = comment.LoadProject(); err != nil {
@@ -1041,10 +1041,7 @@ func ViewIssue(ctx *context.Context) {
 				comment.Project = ghostProject
 			}
 
-		} else if comment.Type == models.CommentTypeAssignees {
-=======
 		} else if comment.Type == models.CommentTypeAssignees || comment.Type == models.CommentTypeReviewRequest {
->>>>>>> cc4da79fb6302f35dfe9e2d5af7cda384083b0af
 			if err = comment.LoadAssigneeUser(); err != nil {
 				ctx.ServerError("LoadAssigneeUser", err)
 				return
