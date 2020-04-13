@@ -87,7 +87,7 @@ func SendWebPushNotificationToUser(userID int64, payload *structs.NotificationPa
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusCreated {
+		if resp.StatusCode >= 400 && resp.StatusCode <= 499 {
 			// This is a bad subscription. It may have expired (410 Gone).
 			err = DeleteWebPushSubscription(userSubscription.ID)
 			if err != nil {
