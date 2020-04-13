@@ -1,4 +1,4 @@
-import {emojiKeys, emojiMap, giteaImage} from './emoji.js';
+import {emojiKeys, emojiHTML} from './emoji.js';
 
 export const issuesTribute = window.config.Tribute ? new Tribute({
   values: window.config.tributeValues,
@@ -36,7 +36,7 @@ export const emojiTribute = window.config.Tribute ? new Tribute({
       return `:${item.original}:`;
     },
     menuItemTemplate(item) {
-      return `<div class="tribute-item"><span class="emoji">${item.original === 'gitea' ? giteaImage : emojiMap[item.original]}</span>${item.original}</div>`;
+      return `<div class="tribute-item">${emojiHTML(item.original)}<span>${item.original}</span></div>`;
     }
   }]
 }) : null;

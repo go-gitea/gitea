@@ -2,8 +2,6 @@ import emojis from '../../../assets/emoji.json';
 
 const {StaticUrlPrefix} = window.config;
 
-export const giteaImage = `<img alt=":gitea:" title=":gitea:" class="emoji" src="${StaticUrlPrefix}/img/emoji.png" align="absmiddle">`;
-
 const tempMap = {gitea: 'gitea'};
 for (const {emoji, aliases} of emojis) {
   for (const alias of aliases || []) {
@@ -20,4 +18,17 @@ export const emojiKeys = Object.keys(tempMap).sort((a, b) => {
 export const emojiMap = {};
 for (const key of emojiKeys) {
   emojiMap[key] = tempMap[key];
+}
+
+export function emojiHTML(name) {
+  let inner;
+  if (name === 'gitea') {
+    inner = `<img class="emoji" alt=":${name}:" src="${StaticUrlPrefix}/img/emoji.png" align="absmiddle">`;
+  } else if (emojiMap[name]) {
+    inner = emojiMap[name];
+  } else {
+    inner = `:${name}:`;
+  }
+
+  return `<span class="emoji" title=":${name}:">${inner}</span>`;
 }
