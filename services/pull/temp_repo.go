@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// createTemporaryRepo creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch
+// it also create a second base branch called "original_base"
 func createTemporaryRepo(pr *models.PullRequest) (string, error) {
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
