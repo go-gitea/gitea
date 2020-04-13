@@ -21,7 +21,7 @@
 					<a class="ui {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{AppSubUrl}}/explore/code?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}">
 						<i class="color-icon" style="background-color: {{$term.Color}}"></i>
 						{{$term.Language}}
-						<div class="detail" style="vertical-align: baseline;">{{$term.Count}}</div>
+						<div class="detail number">{{$term.Count}}</div>
 					</a>
 					{{end}}
 				</div>
