@@ -16,6 +16,10 @@ import (
 	"strconv"
 	"strings"
 
+	"bufio"
+	"os"
+	"os/exec"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
@@ -27,10 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-
-	"bufio"
-	"os"
-	"os/exec"
 )
 
 const (
@@ -490,6 +490,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			if err != nil {
 				ctx.ServerError("ReadMetaObject", err)
 				return
+
 			}
 			defer dataRc.Close()
 
@@ -509,6 +510,46 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
 			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 		}
+		if meta != nil {
+			ctx.Data["IsLFSFile"] = true
+			isLFSFile = true
+
+			// OK read the lfs object
+			var err error
+			dataRc, err = lfs.ReadMetaObject(meta)
+			if err != nil {
+				ctx.ServerError("ReadMetaObject", err)
+				return
+			}
+			defer dataRc.Close()
+
+			buf = make([]byte, 1024)
+			n, err = dataRc.Read(buf)
+			if err != nil {
+				ctx.ServerError("Data", err)
+				return
+			}
+			buf = buf[:n]
+
+			isTextFile = base.IsTextFile(buf)
+			ctx.Data["IsTextFile"] = isTextFile
+
+			fileSize = meta.Size
+			ctx.Data["FileSize"] = meta.Size
+			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
+			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
+		}
+	}
+	// Check LFS Lock
+	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
+	ctx.Data["LFSLock"] = lfsLock
+	if err != nil {
+		ctx.ServerError("GetTreePathLock", err)
+		return
+	}
+	if lfsLock != nil {
+		ctx.Data["LFSLockOwner"] = lfsLock.Owner.DisplayName()
+		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
 	}
 	// Check LFS Lock
 	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
