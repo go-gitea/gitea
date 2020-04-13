@@ -41,7 +41,7 @@ func NewWebPushSubscription(ctx *context.APIContext, input api.NotificationWebPu
 	//     "$ref": "#/definitions/NotificationWebPushSubscription"
 	// responses:
 	//   "201":
-	//     description: The Web Push subscription was tested and saved sucessfully.
+	//     description: The Web Push subscription was tested and saved successfully.
 	//   "422":
 	//     description: Required fields were missing or the provided subscription could not be tested successfully.
 
