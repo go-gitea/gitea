@@ -4,45 +4,57 @@ export default async function initProject(csrf) {
   }
 
   const { Sortable } = await import(
-    /* webpackChunkName: "sortable" */ "sortablejs"
+    /* webpackChunkName: "sortable" */ 'sortablejs'
   );
 
-  const boardColumns = document.getElementsByClassName("board-column");
+  const boardColumns = document.getElementsByClassName('board-column');
 
   for (let i = 0; i < boardColumns.length; i++) {
     new Sortable(
       document.getElementById(
-        boardColumns[i].getElementsByClassName("board")[0].id
+        boardColumns[i].getElementsByClassName('board')[0].id
       ),
       {
-        group: "shared",
+        group: 'shared',
         animation: 150,
         onAdd: e => {
           $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}`, {
             headers: {
-              "X-Csrf-Token": csrf,
-              "X-Remote": true
+              'X-Csrf-Token': csrf,
+              'X-Remote': true,
             },
-            contentType: "application/json",
-            type: "POST",
+            contentType: 'application/json',
+            type: 'POST',
             success: () => {
               // setTimeout(reload(),3000)
-            }
+            },
           });
-        }
+        },
       }
     );
   }
-}
 
-function editProjectBoard(id) {
-  if (!window.config || !window.config.PageIsProjects) {
-    return;
-  }
+  $('.edit-project-board').each(function() {
+    const projectTitle = $(this).find(
+      '.content > .form > .field > .project-board-title'
+    );
 
-  const board = document.getElementById(id);
-
-  if (board === undefined) {
-	  return
-  }
+    $(this)
+      .find('.content > .form > .actions > .red')
+      .click(function(e) {
+        e.preventDefault();
+        $.ajax({
+          url: $(this).data('url'),
+          data: JSON.stringify({ title: projectTitle.val() }),
+          headers: {
+            'X-Csrf-Token': csrf,
+            'X-Remote': true,
+          },
+          contentType: 'application/json',
+          method: 'PUT',
+        }).done(res => {
+          // setTimeout(reload(),3000)
+        });
+      });
+  });
 }
