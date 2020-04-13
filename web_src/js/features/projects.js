@@ -35,6 +35,8 @@ export default async function initProject(csrf) {
   }
 
   $('.edit-project-board').each(function() {
+    const modal = $(this);
+
     const projectTitle = $(this).find(
       '.content > .form > .field > .project-board-title'
     );
@@ -53,7 +55,8 @@ export default async function initProject(csrf) {
           contentType: 'application/json',
           method: 'PUT',
         }).done(res => {
-          // setTimeout(reload(),3000)
+          modal.modal('hide');
+          // setTimeout(window.location.reload(), 2000);
         });
       });
   });
