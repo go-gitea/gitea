@@ -1,12 +1,19 @@
-export default async function initHighlight() {
-  if (!window.config || !window.config.HighlightJS) return;
+export default async function highlight(elementOrNodeList) {
+  if (!window.config || !window.config.HighlightJS || !elementOrNodeList) return;
+  const nodes = 'length' in elementOrNodeList ? elementOrNodeList : [elementOrNodeList];
+  if (!nodes.length) return;
 
-  const hljs = await import(/* webpackChunkName: "highlight" */'highlight.js');
+  const {default: Worker} = await import(/* webpackChunkName: "highlight" */'./highlight.worker.js');
+  const worker = new Worker();
 
-  const nodes = [].slice.call(document.querySelectorAll('pre code') || []);
-  for (let i = 0; i < nodes.length; i++) {
-    hljs.highlightBlock(nodes[i]);
+  worker.addEventListener('message', ({data}) => {
+    const {index, html} = data;
+    nodes[index].outerHTML = html;
+  });
+
+  for (let index = 0; index < nodes.length; index++) {
+    const node = nodes[index];
+    if (!node) continue;
+    worker.postMessage({index, html: node.outerHTML});
   }
-
-  return hljs;
 }
