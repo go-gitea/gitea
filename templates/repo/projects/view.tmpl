@@ -36,7 +36,7 @@
 						{{svg "octicon-pencil" 16}}
 						{{$.i18n.Tr "repo.projects.board.edit"}}
 					</a>
-                        <a class="item" href="{{AppSubUrl}}/">
+                        <a class="item delete-project-board" data-url="{{$.RepoLink}}/projects/{{.Board.ProjectID}}/{{.Board.ID}}">
 						{{svg "octicon-star" 16}}
 						{{$.i18n.Tr "repo.projects.board.delete"}}
 					</a>

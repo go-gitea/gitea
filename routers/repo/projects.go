@@ -345,7 +345,7 @@ func UpdateIssueProject(ctx *context.Context) {
 }
 
 // DeleteProjectBoard allows for the deletion of a project board
-func DeleteProjectBoard(ctx context.Context) {
+func DeleteProjectBoard(ctx *context.Context) {
 	if ctx.User == nil {
 		ctx.JSON(403, map[string]string{
 			"message": "Only signed in users are allowed to call make this action.",
