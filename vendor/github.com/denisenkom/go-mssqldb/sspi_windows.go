@@ -113,7 +113,7 @@ type SSPIAuth struct {
 	ctxt     SecHandle
 }
 
-func getAuth(user, password, service, workstation string) (Auth, bool) {
+func getAuth(user, password, service, workstation string) (auth, bool) {
 	if user == "" {
 		return &SSPIAuth{Service: service}, true
 	}

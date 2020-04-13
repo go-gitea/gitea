@@ -9,7 +9,7 @@ import (
 // ************
 //
 // The following notes assume that you are familiar with the YAML specification
-// (http://yaml.org/spec/cvs/current.html).  We mostly follow it, although in
+// (http://yaml.org/spec/1.2/spec.html).  We mostly follow it, although in
 // some cases we are less restrictive that it requires.
 //
 // The process of transforming a YAML stream into a sequence of events is
@@ -611,7 +611,7 @@ func yaml_parser_set_scanner_tag_error(parser *yaml_parser_t, directive bool, co
 	if directive {
 		context = "while parsing a %TAG directive"
 	}
-	return yaml_parser_set_scanner_error(parser, context, context_mark, "did not find URI escaped octet")
+	return yaml_parser_set_scanner_error(parser, context, context_mark, problem)
 }
 
 func trace(args ...interface{}) func() {
@@ -871,12 +871,6 @@ func yaml_parser_save_simple_key(parser *yaml_parser_t) bool {
 
 	required := parser.flow_level == 0 && parser.indent == parser.mark.column
 
-	// A simple key is required only when it is the first token in the current
-	// line.  Therefore it is always allowed.  But we add a check anyway.
-	if required && !parser.simple_key_allowed {
-		panic("should not happen")
-	}
-
 	//
 	// If the current position may start a simple key, save it.
 	//
@@ -912,6 +906,9 @@ func yaml_parser_remove_simple_key(parser *yaml_parser_t) bool {
 	return true
 }
 
+// max_flow_level limits the flow_level
+const max_flow_level = 10000
+
 // Increase the flow level and resize the simple key list if needed.
 func yaml_parser_increase_flow_level(parser *yaml_parser_t) bool {
 	// Reset the simple key on the next level.
@@ -919,6 +916,11 @@ func yaml_parser_increase_flow_level(parser *yaml_parser_t) bool {
 
 	// Increase the flow level.
 	parser.flow_level++
+	if parser.flow_level > max_flow_level {
+		return yaml_parser_set_scanner_error(parser,
+			"while increasing flow level", parser.simple_keys[len(parser.simple_keys)-1].mark,
+			fmt.Sprintf("exceeded max depth of %d", max_flow_level))
+	}
 	return true
 }
 
@@ -930,6 +932,9 @@ func yaml_parser_decrease_flow_level(parser *yaml_parser_t) bool {
 	}
 	return true
 }
+
+// max_indents limits the indents stack size
+const max_indents = 10000
 
 // Push the current indentation level to the stack and set the new level
 // the current column is greater than the indentation level.  In this case,
@@ -945,6 +950,11 @@ func yaml_parser_roll_indent(parser *yaml_parser_t, column, number int, typ yaml
 		// indentation level.
 		parser.indents = append(parser.indents, parser.indent)
 		parser.indent = column
+		if len(parser.indents) > max_indents {
+			return yaml_parser_set_scanner_error(parser,
+				"while increasing indent level", parser.simple_keys[len(parser.simple_keys)-1].mark,
+				fmt.Sprintf("exceeded max depth of %d", max_indents))
+		}
 
 		// Create a token and insert it into the queue.
 		token := yaml_token_t{
@@ -1944,7 +1954,7 @@ func yaml_parser_scan_tag_handle(parser *yaml_parser_t, directive bool, start_ma
 	} else {
 		// It's either the '!' tag or not really a tag handle.  If it's a %TAG
 		// directive, it's an error.  If it's a tag token, it must be a part of URI.
-		if directive && !(s[0] == '!' && s[1] == 0) {
+		if directive && string(s) != "!" {
 			yaml_parser_set_scanner_tag_error(parser, directive,
 				start_mark, "did not find expected '!'")
 			return false
@@ -1959,6 +1969,7 @@ func yaml_parser_scan_tag_handle(parser *yaml_parser_t, directive bool, start_ma
 func yaml_parser_scan_tag_uri(parser *yaml_parser_t, directive bool, head []byte, start_mark yaml_mark_t, uri *[]byte) bool {
 	//size_t length = head ? strlen((char *)head) : 0
 	var s []byte
+	hasTag := len(head) > 0
 
 	// Copy the head if needed.
 	//
@@ -2000,10 +2011,10 @@ func yaml_parser_scan_tag_uri(parser *yaml_parser_t, directive bool, head []byte
 		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
 			return false
 		}
+		hasTag = true
 	}
 
-	// Check if the tag is non-empty.
-	if len(s) == 0 {
+	if !hasTag {
 		yaml_parser_set_scanner_tag_error(parser, directive,
 			start_mark, "did not find expected tag URI")
 		return false
@@ -2474,6 +2485,10 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 			}
 		}
 
+		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
+			return false
+		}
+
 		// Check if we are at the end of the scalar.
 		if single {
 			if parser.buffer[parser.buffer_pos] == '\'' {
@@ -2486,10 +2501,6 @@ func yaml_parser_scan_flow_scalar(parser *yaml_parser_t, token *yaml_token_t, si
 		}
 
 		// Consume blank characters.
-		if parser.unread < 1 && !yaml_parser_update_buffer(parser, 1) {
-			return false
-		}
-
 		for is_blank(parser.buffer, parser.buffer_pos) || is_break(parser.buffer, parser.buffer_pos) {
 			if is_blank(parser.buffer, parser.buffer_pos) {
 				// Consume a space or a tab character.
@@ -2591,19 +2602,10 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 		// Consume non-blank characters.
 		for !is_blankz(parser.buffer, parser.buffer_pos) {
 
-			// Check for 'x:x' in the flow context. TODO: Fix the test "spec-08-13".
-			if parser.flow_level > 0 &&
-				parser.buffer[parser.buffer_pos] == ':' &&
-				!is_blankz(parser.buffer, parser.buffer_pos+1) {
-				yaml_parser_set_scanner_error(parser, "while scanning a plain scalar",
-					start_mark, "found unexpected ':'")
-				return false
-			}
-
 			// Check for indicators that may end a plain scalar.
 			if (parser.buffer[parser.buffer_pos] == ':' && is_blankz(parser.buffer, parser.buffer_pos+1)) ||
 				(parser.flow_level > 0 &&
-					(parser.buffer[parser.buffer_pos] == ',' || parser.buffer[parser.buffer_pos] == ':' ||
+					(parser.buffer[parser.buffer_pos] == ',' ||
 						parser.buffer[parser.buffer_pos] == '?' || parser.buffer[parser.buffer_pos] == '[' ||
 						parser.buffer[parser.buffer_pos] == ']' || parser.buffer[parser.buffer_pos] == '{' ||
 						parser.buffer[parser.buffer_pos] == '}')) {
@@ -2655,10 +2657,10 @@ func yaml_parser_scan_plain_scalar(parser *yaml_parser_t, token *yaml_token_t) b
 		for is_blank(parser.buffer, parser.buffer_pos) || is_break(parser.buffer, parser.buffer_pos) {
 			if is_blank(parser.buffer, parser.buffer_pos) {
 
-				// Check for tab character that abuse indentation.
+				// Check for tab characters that abuse indentation.
 				if leading_blanks && parser.mark.column < indent && is_tab(parser.buffer, parser.buffer_pos) {
 					yaml_parser_set_scanner_error(parser, "while scanning a plain scalar",
-						start_mark, "found a tab character that violate indentation")
+						start_mark, "found a tab character that violates indentation")
 					return false
 				}
 

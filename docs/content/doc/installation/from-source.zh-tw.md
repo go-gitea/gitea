@@ -32,14 +32,14 @@ cd $GOPATH/src/code.gitea.io/gitea
 
 ```
 git branch -a
-git checkout v1.0
+git checkout v{{< version >}}
 ```
 
-最後您也可以直接編譯最新的標籤版本像是 `v1.0.0`，假如您想要從原始碼編譯，這方法是最合適的，在編譯標籤版本前，您需要列出當下所有標籤，並且直接切換到標籤版本，請使用底下指令：:
+最後您也可以直接編譯最新的標籤版本像是 `v{{< version >}}`，假如您想要從原始碼編譯，這方法是最合適的，在編譯標籤版本前，您需要列出當下所有標籤，並且直接切換到標籤版本，請使用底下指令：:
 
 ```
 git tag -l
-git checkout v1.0.0
+git checkout v{{< version >}}
 ```
 
 ## 編譯
@@ -47,14 +47,13 @@ git checkout v1.0.0
 完成設定相依性套件環境等工作後，您就可以開始編譯工作了。我們提供了不同的[編譯選項](https://github.com/go-gitea/gitea/blob/master/Makefile) ，讓編譯過程更加簡單。您可以根據需求來調整編譯選項，底下是可用的編譯選項說明：
 
 * `bindata`: 使用此標籤來嵌入所有 Gitea 相關資源，您不用擔心其他額外檔案，對於部署來說非常方便。
-* `sqlite`: 使用此標籤來啟用 [SQLite3](https://sqlite.org/) 資料庫，建議只有少數人時才使用此模式。
-* `tidb`: 使用此標籤來啟用 [TiDB](https://github.com/pingcap/tidb) 資料庫，它是檔案形式的資料庫，跟 SQLite 類似。
+* `sqlite sqlite_unlock_notify`: 使用此標籤來啟用 [SQLite3](https://sqlite.org/) 資料庫，建議只有少數人時才使用此模式。
 * `pam`: 使用此標籤來啟用 PAM (Linux Pluggable Authentication Modules) 認證，對於系統使用者來說，此方式最方便了。
 
-現在您可以開始編譯執行檔了，我們建議使用 `bindata` 編譯選項，使用 `bindata` 選項前，您必須執行 `generate` 任務將所有資源都一起編譯進去，否則相關資源都不會被編譯進執行檔:
+現在您可以開始編譯執行檔了，我們建議使用 `bindata` 編譯選項:
 
 ```
-TAGS="bindata" make generate build
+TAGS="bindata" make build
 ```
 
 **注意**: 因為使用了套件管理工具，我們建議 Go 環境版本為 1.6 或者是更高，這樣不用在 Go 1.5 版本設定全域變數 `GO15VENDOREXPERIMENT`。
@@ -69,5 +68,5 @@ TAGS="bindata" make generate build
 
 ## 需要協助？
 
-如果本頁中無法解決您的問題，請直接到 [Discord server](https://discord.gg/NsatcWJ)，在那邊可以快速得到協助。
+如果本頁中無法解決您的問題，請直接到 [Discord server](https://discord.gg/Gitea)，在那邊可以快速得到協助。
 

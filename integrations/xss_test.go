@@ -14,7 +14,7 @@ import (
 )
 
 func TestXSSUserFullName(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	const fullName = `name & <script class="evil">alert('Oh no!');</script>`
 

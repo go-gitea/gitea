@@ -13,6 +13,7 @@
   issue_id: 1 # in repo_id 1
   content: "good work!"
   created_unix: 946684811
+  updated_unix: 946684811
 -
   id: 3
   type: 0 # comment
@@ -20,6 +21,7 @@
   issue_id: 1 # in repo_id 1
   content: "meh..."
   created_unix: 946684812
+  updated_unix: 946684812
 -
   id: 4
   type: 21 # code comment
@@ -49,6 +51,18 @@
   issue_id: 2
   content: "it's already invalidated. boring..."
   line: -4
+  tree_path: "README.md"
+  created_unix: 946684812
+  invalidated: true
+
+-
+  id: 7
+  type: 21 # code comment
+  poster_id: 100
+  issue_id: 3
+  content: "a review from a deleted user"
+  line: -4
+  review_id: 10
   tree_path: "README.md"
   created_unix: 946684812
   invalidated: true

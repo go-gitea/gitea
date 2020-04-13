@@ -14,23 +14,23 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	// Fake issue with assignees
-	issue, err := GetIssueByID(1)
+	issue, err := GetIssueWithAttrsByID(1)
 	assert.NoError(t, err)
 
 	// Assign multiple users
 	user2, err := GetUserByID(2)
 	assert.NoError(t, err)
-	err = UpdateAssignee(issue, &User{ID: 1}, user2.ID)
+	_, _, err = issue.ToggleAssignee(&User{ID: 1}, user2.ID)
 	assert.NoError(t, err)
 
 	user3, err := GetUserByID(3)
 	assert.NoError(t, err)
-	err = UpdateAssignee(issue, &User{ID: 1}, user3.ID)
+	_, _, err = issue.ToggleAssignee(&User{ID: 1}, user3.ID)
 	assert.NoError(t, err)
 
 	user1, err := GetUserByID(1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
 	assert.NoError(t, err)
-	err = UpdateAssignee(issue, &User{ID: 1}, user1.ID)
+	_, _, err = issue.ToggleAssignee(&User{ID: 1}, user1.ID)
 	assert.NoError(t, err)
 
 	// Check if he got removed
@@ -43,8 +43,7 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.NoError(t, err)
 
 	var expectedAssignees []*User
-	expectedAssignees = append(expectedAssignees, user2)
-	expectedAssignees = append(expectedAssignees, user3)
+	expectedAssignees = append(expectedAssignees, user2, user3)
 
 	for in, assignee := range assignees {
 		assert.Equal(t, assignee.ID, expectedAssignees[in].ID)
@@ -59,13 +58,25 @@ func TestUpdateAssignee(t *testing.T) {
 	isAssigned, err = IsUserAssignedToIssue(issue, &User{ID: 4})
 	assert.NoError(t, err)
 	assert.False(t, isAssigned)
+}
 
-	// Clean everyone
-	err = DeleteNotPassedAssignee(issue, user1, []*User{})
+func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
+	IDs, err := MakeIDsFromAPIAssigneesToAdd("", []string{""})
 	assert.NoError(t, err)
+	assert.Equal(t, []int64{}, IDs)
 
-	// Check they're gone
-	assignees, err = GetAssigneesByIssue(issue)
+	IDs, err = MakeIDsFromAPIAssigneesToAdd("", []string{"none_existing_user"})
+	assert.Error(t, err)
+
+	IDs, err = MakeIDsFromAPIAssigneesToAdd("user1", []string{"user1"})
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(assignees))
+	assert.Equal(t, []int64{1}, IDs)
+
+	IDs, err = MakeIDsFromAPIAssigneesToAdd("user2", []string{""})
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{2}, IDs)
+
+	IDs, err = MakeIDsFromAPIAssigneesToAdd("", []string{"user1", "user2"})
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{1, 2}, IDs)
 }

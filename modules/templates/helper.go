@@ -16,20 +16,29 @@ import (
 	"mime"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
+	texttmpl "text/template"
 	"time"
+	"unicode"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
-	"gopkg.in/editorconfig/editorconfig-core-go.v1"
+	"github.com/editorconfig/editorconfig-core-go/v2"
 )
+
+// Used from static.go && dynamic.go
+var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
@@ -46,6 +55,9 @@ func NewFuncMap() []template.FuncMap {
 		"AppSubUrl": func() string {
 			return setting.AppSubURL
 		},
+		"StaticUrlPrefix": func() string {
+			return setting.StaticURLPrefix
+		},
 		"AppUrl": func() string {
 			return setting.AppURL
 		},
@@ -61,22 +73,30 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGravatar": func() bool {
 			return setting.DisableGravatar
 		},
+		"DefaultShowFullName": func() bool {
+			return setting.UI.DefaultShowFullName
+		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.ShowFooterTemplateLoadTime
 		},
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
-		"AvatarLink":    base.AvatarLink,
+		"AllowedReactions": func() []string {
+			return setting.UI.Reactions
+		},
+		"AvatarLink":    models.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
-		"TimeSince":     base.TimeSince,
-		"TimeSinceUnix": base.TimeSinceUnix,
-		"RawTimeSince":  base.RawTimeSince,
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"RawTimeSince":  timeutil.RawTimeSince,
 		"FileSize":      base.FileSize,
+		"PrettyNumber":  base.PrettyNumber,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": MigrationIcon,
 		"Add": func(a, b int) int {
 			return a + b
 		},
@@ -87,10 +107,8 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"SizeFmt": func(s int64) string {
-			return base.FileSize(s)
-		},
-		"List": List,
+		"SizeFmt": base.FileSize,
+		"List":    List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -115,10 +133,14 @@ func NewFuncMap() []template.FuncMap {
 		"EscapePound": func(str string) string {
 			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
 		},
-		"RenderCommitMessage":      RenderCommitMessage,
-		"RenderCommitMessageLink":  RenderCommitMessageLink,
-		"RenderCommitBody":         RenderCommitBody,
-		"IsMultilineCommitMessage": IsMultilineCommitMessage,
+		"PathEscapeSegments":             util.PathEscapeSegments,
+		"URLJoin":                        util.URLJoin,
+		"RenderCommitMessage":            RenderCommitMessage,
+		"RenderCommitMessageLink":        RenderCommitMessageLink,
+		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
+		"RenderCommitBody":               RenderCommitBody,
+		"RenderNote":                     RenderNote,
+		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -131,13 +153,20 @@ func NewFuncMap() []template.FuncMap {
 		"MetaKeywords": func() string {
 			return setting.UI.Meta.Keywords
 		},
+		"UseServiceWorker": func() bool {
+			return setting.UI.UseServiceWorker
+		},
 		"FilenameIsImage": func(filename string) bool {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
 			return strings.HasPrefix(mimeType, "image/")
 		},
 		"TabSizeClass": func(ec *editorconfig.Editorconfig, filename string) string {
 			if ec != nil {
-				def := ec.GetDefinitionForFilename(filename)
+				def, err := ec.GetDefinitionForFilename(filename)
+				if err != nil {
+					log.Error("tab size class: getting definition for filename: %v", err)
+					return "tab-size-8"
+				}
 				if def.TabWidth > 0 {
 					return fmt.Sprintf("tab-size-%d", def.TabWidth)
 				}
@@ -148,12 +177,18 @@ func NewFuncMap() []template.FuncMap {
 			var path []string
 			index := strings.LastIndex(str, "/")
 			if index != -1 && index != len(str) {
-				path = append(path, str[0:index+1])
-				path = append(path, str[index+1:])
+				path = append(path, str[0:index+1], str[index+1:])
 			} else {
 				path = append(path, str)
 			}
 			return path
+		},
+		"Json": func(in interface{}) string {
+			out, err := json.Marshal(in)
+			if err != nil {
+				return ""
+			}
+			return string(out)
 		},
 		"JsonPrettyPrint": func(in string) string {
 			var out bytes.Buffer
@@ -219,6 +254,147 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return dict, nil
 		},
+		"percentage": func(n int, values ...int) float32 {
+			var sum = 0
+			for i := 0; i < len(values); i++ {
+				sum += values[i]
+			}
+			return float32(n) * 100 / float32(sum)
+		},
+		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
+		"MirrorAddress":     mirror_service.Address,
+		"MirrorFullAddress": mirror_service.AddressNoCredentials,
+		"MirrorUserName":    mirror_service.Username,
+		"MirrorPassword":    mirror_service.Password,
+		"CommitType": func(commit interface{}) string {
+			switch commit.(type) {
+			case models.SignCommitWithStatuses:
+				return "SignCommitWithStatuses"
+			case models.SignCommit:
+				return "SignCommit"
+			case models.UserCommit:
+				return "UserCommit"
+			default:
+				return ""
+			}
+		},
+		"contain": func(s []int64, id int64) bool {
+			for i := 0; i < len(s); i++ {
+				if s[i] == id {
+					return true
+				}
+			}
+			return false
+		},
+		"svg": func(icon string, size int) template.HTML {
+			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
+		},
+	}}
+}
+
+// NewTextFuncMap returns functions for injecting to text templates
+// It's a subset of those used for HTML and other templates
+func NewTextFuncMap() []texttmpl.FuncMap {
+	return []texttmpl.FuncMap{map[string]interface{}{
+		"GoVer": func() string {
+			return strings.Title(runtime.Version())
+		},
+		"AppName": func() string {
+			return setting.AppName
+		},
+		"AppSubUrl": func() string {
+			return setting.AppSubURL
+		},
+		"AppUrl": func() string {
+			return setting.AppURL
+		},
+		"AppVer": func() string {
+			return setting.AppVer
+		},
+		"AppBuiltWith": func() string {
+			return setting.AppBuiltWith
+		},
+		"AppDomain": func() string {
+			return setting.Domain
+		},
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"RawTimeSince":  timeutil.RawTimeSince,
+		"DateFmtLong": func(t time.Time) string {
+			return t.Format(time.RFC1123Z)
+		},
+		"DateFmtShort": func(t time.Time) string {
+			return t.Format("Jan 02, 2006")
+		},
+		"List": List,
+		"SubStr": func(str string, start, length int) string {
+			if len(str) == 0 {
+				return ""
+			}
+			end := start + length
+			if length == -1 {
+				end = len(str)
+			}
+			if len(str) < end {
+				return str
+			}
+			return str[start:end]
+		},
+		"EllipsisString": base.EllipsisString,
+		"URLJoin":        util.URLJoin,
+		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values)%2 != 0 {
+				return nil, errors.New("invalid dict call")
+			}
+			dict := make(map[string]interface{}, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, errors.New("dict keys must be strings")
+				}
+				dict[key] = values[i+1]
+			}
+			return dict, nil
+		},
+		"Printf":   fmt.Sprintf,
+		"Escape":   Escape,
+		"Sec2Time": models.SecToTime,
+		"ParseDeadline": func(deadline string) []string {
+			return strings.Split(deadline, "|")
+		},
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values) == 0 {
+				return nil, errors.New("invalid dict call")
+			}
+
+			dict := make(map[string]interface{})
+
+			for i := 0; i < len(values); i++ {
+				switch key := values[i].(type) {
+				case string:
+					i++
+					if i == len(values) {
+						return nil, errors.New("specify the key for non array values")
+					}
+					dict[key] = values[i]
+				case map[string]interface{}:
+					m := values[i].(map[string]interface{})
+					for i, v := range m {
+						dict[i] = v
+					}
+				default:
+					return nil, errors.New("dict values must be maps")
+				}
+			}
+			return dict, nil
+		},
+		"percentage": func(n int, values ...int) float32 {
+			var sum = 0
+			for i := 0; i < len(values); i++ {
+				sum += values[i]
+			}
+			return float32(n) * 100 / float32(sum)
+		},
 	}}
 }
 
@@ -261,83 +437,6 @@ func Sha1(str string) string {
 	return base.EncodeSha1(str)
 }
 
-// ToUTF8WithErr converts content to UTF8 encoding
-func ToUTF8WithErr(content []byte) (string, error) {
-	charsetLabel, err := base.DetectEncoding(content)
-	if err != nil {
-		return "", err
-	} else if charsetLabel == "UTF-8" {
-		return string(content), nil
-	}
-
-	encoding, _ := charset.Lookup(charsetLabel)
-	if encoding == nil {
-		return string(content), fmt.Errorf("Unknown encoding: %s", charsetLabel)
-	}
-
-	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
-	result, n, err := transform.String(encoding.NewDecoder(), string(content))
-	if err != nil {
-		result = result + string(content[n:])
-	}
-
-	return result, err
-}
-
-// ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
-func ToUTF8WithFallback(content []byte) []byte {
-	charsetLabel, err := base.DetectEncoding(content)
-	if err != nil || charsetLabel == "UTF-8" {
-		return content
-	}
-
-	encoding, _ := charset.Lookup(charsetLabel)
-	if encoding == nil {
-		return content
-	}
-
-	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
-	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
-	if err != nil {
-		return append(result, content[n:]...)
-	}
-
-	return result
-}
-
-// ToUTF8 converts content to UTF8 encoding and ignore error
-func ToUTF8(content string) string {
-	res, _ := ToUTF8WithErr([]byte(content))
-	return res
-}
-
-// ReplaceLeft replaces all prefixes 'old' in 's' with 'new'.
-func ReplaceLeft(s, old, new string) string {
-	oldLen, newLen, i, n := len(old), len(new), 0, 0
-	for ; i < len(s) && strings.HasPrefix(s[i:], old); n++ {
-		i += oldLen
-	}
-
-	// simple optimization
-	if n == 0 {
-		return s
-	}
-
-	// allocating space for the new string
-	curLen := n*newLen + len(s[i:])
-	replacement := make([]byte, curLen, curLen)
-
-	j := 0
-	for ; j < n*newLen; j += newLen {
-		copy(replacement[j:j+newLen], new)
-	}
-
-	copy(replacement[j:], s[i:])
-	return string(replacement)
-}
-
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func RenderCommitMessage(msg, urlPrefix string, metas map[string]string) template.HTML {
 	return RenderCommitMessageLink(msg, urlPrefix, "", metas)
@@ -351,7 +450,7 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 	// shouldn't be any special HTML.
 	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
 	if err != nil {
-		log.Error(3, "RenderCommitMessage: %v", err)
+		log.Error("RenderCommitMessage: %v", err)
 		return ""
 	}
 	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
@@ -361,19 +460,60 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 	return template.HTML(msgLines[0])
 }
 
+// RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
+// the provided default url, handling for special links without email to links.
+func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
+	lineEnd := strings.IndexByte(msgLine, '\n')
+	if lineEnd > 0 {
+		msgLine = msgLine[:lineEnd]
+	}
+	msgLine = strings.TrimRightFunc(msgLine, unicode.IsSpace)
+	if len(msgLine) == 0 {
+		return template.HTML("")
+	}
+
+	// we can safely assume that it will not return any error, since there
+	// shouldn't be any special HTML.
+	renderedMessage, err := markup.RenderCommitMessageSubject([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, urlDefault, metas)
+	if err != nil {
+		log.Error("RenderCommitMessageSubject: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedMessage)
+}
+
 // RenderCommitBody extracts the body of a commit message without its title.
 func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
+	msgLine := strings.TrimRightFunc(msg, unicode.IsSpace)
+	lineEnd := strings.IndexByte(msgLine, '\n')
+	if lineEnd > 0 {
+		msgLine = msgLine[lineEnd+1:]
+	} else {
+		return template.HTML("")
+	}
+	msgLine = strings.TrimLeftFunc(msgLine, unicode.IsSpace)
+	if len(msgLine) == 0 {
+		return template.HTML("")
+	}
+
+	renderedMessage, err := markup.RenderCommitMessage([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, "", metas)
+	if err != nil {
+		log.Error("RenderCommitMessage: %v", err)
+		return ""
+	}
+	return template.HTML(renderedMessage)
+}
+
+// RenderNote renders the contents of a git-notes file as a commit message.
+func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
 	if err != nil {
-		log.Error(3, "RenderCommitMessage: %v", err)
+		log.Error("RenderNote: %v", err)
 		return ""
 	}
-	body := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
-	if len(body) == 0 {
-		return template.HTML("")
-	}
-	return template.HTML(strings.Join(body[1:], "\n"))
+	return template.HTML(string(fullMessage))
 }
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
@@ -406,7 +546,7 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-opened"
 	case models.ActionCreatePullRequest:
 		return "git-pull-request"
-	case models.ActionCommentIssue:
+	case models.ActionCommentIssue, models.ActionCommentPull:
 		return "comment-discussion"
 	case models.ActionMergePullRequest:
 		return "git-merge"
@@ -416,16 +556,20 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-reopened"
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
 		return "repo-clone"
+	case models.ActionApprovePullRequest:
+		return "eye"
+	case models.ActionRejectPullRequest:
+		return "x"
 	default:
 		return "invalid type"
 	}
 }
 
 // ActionContent2Commits converts action content to push commits
-func ActionContent2Commits(act Actioner) *models.PushCommits {
-	push := models.NewPushCommits()
+func ActionContent2Commits(act Actioner) *repository.PushCommits {
+	push := repository.NewPushCommits()
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
-		log.Error(4, "json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
+		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}
 	return push
 }
@@ -480,6 +624,12 @@ var trNLangRules = map[string]func(int64) int{
 	"zh-TW": func(cnt int64) int {
 		return 0
 	},
+	"fr-FR": func(cnt int64) int {
+		if cnt > -2 && cnt < 2 {
+			return 0
+		}
+		return 1
+	},
 }
 
 // TrN returns key to be used for plural text translation
@@ -506,4 +656,33 @@ func TrN(lang string, cnt interface{}, key1, keyN string) string {
 		return key1
 	}
 	return keyN
+}
+
+// MigrationIcon returns a Font Awesome name matching the service an issue/comment was migrated from
+func MigrationIcon(hostname string) string {
+	switch hostname {
+	case "github.com":
+		return "fa-github"
+	default:
+		return "fa-git-alt"
+	}
+}
+
+func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) {
+	// Split template into subject and body
+	var subjectContent []byte
+	bodyContent := content
+	loc := mailSubjectSplit.FindIndex(content)
+	if loc != nil {
+		subjectContent = content[0:loc[0]]
+		bodyContent = content[loc[1]:]
+	}
+	if _, err := stpl.New(name).
+		Parse(string(subjectContent)); err != nil {
+		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
+	}
+	if _, err := btpl.New(name).
+		Parse(string(bodyContent)); err != nil {
+		log.Warn("Failed to parse template [%s/body]: %v", name, err)
+	}
 }

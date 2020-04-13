@@ -415,7 +415,6 @@ func (udc *UpsideDownCouch) Close() error {
 func (udc *UpsideDownCouch) Update(doc *document.Document) (err error) {
 	// do analysis before acquiring write lock
 	analysisStart := time.Now()
-	numPlainTextBytes := doc.NumPlainTextBytes()
 	resultChan := make(chan *index.AnalysisResult)
 	aw := index.NewAnalysisWork(udc, doc, resultChan)
 
@@ -452,6 +451,11 @@ func (udc *UpsideDownCouch) Update(doc *document.Document) (err error) {
 		return
 	}
 
+	return udc.UpdateWithAnalysis(doc, result, backIndexRow)
+}
+
+func (udc *UpsideDownCouch) UpdateWithAnalysis(doc *document.Document,
+	result *index.AnalysisResult, backIndexRow *BackIndexRow) (err error) {
 	// start a writer for this update
 	indexStart := time.Now()
 	var kvwriter store.KVWriter
@@ -490,7 +494,7 @@ func (udc *UpsideDownCouch) Update(doc *document.Document) (err error) {
 	atomic.AddUint64(&udc.stats.indexTime, uint64(time.Since(indexStart)))
 	if err == nil {
 		atomic.AddUint64(&udc.stats.updates, 1)
-		atomic.AddUint64(&udc.stats.numPlainTextBytesIndexed, numPlainTextBytes)
+		atomic.AddUint64(&udc.stats.numPlainTextBytesIndexed, doc.NumPlainTextBytes())
 	} else {
 		atomic.AddUint64(&udc.stats.errors, 1)
 	}
@@ -775,7 +779,7 @@ func (udc *UpsideDownCouch) termVectorsFromTokenFreq(field uint16, tf *analysis.
 }
 
 func (udc *UpsideDownCouch) termFieldVectorsFromTermVectors(in []*TermVector) []*index.TermFieldVector {
-	if len(in) <= 0 {
+	if len(in) == 0 {
 		return nil
 	}
 
@@ -797,6 +801,10 @@ func (udc *UpsideDownCouch) termFieldVectorsFromTermVectors(in []*TermVector) []
 }
 
 func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
+	persistedCallback := batch.PersistedCallback()
+	if persistedCallback != nil {
+		defer persistedCallback(err)
+	}
 	analysisStart := time.Now()
 
 	resultChan := make(chan *index.AnalysisResult, len(batch.IndexOps))
@@ -810,15 +818,17 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 		}
 	}
 
-	go func() {
-		for _, doc := range batch.IndexOps {
-			if doc != nil {
-				aw := index.NewAnalysisWork(udc, doc, resultChan)
-				// put the work on the queue
-				udc.analysisQueue.Queue(aw)
+	if numUpdates > 0 {
+		go func() {
+			for _, doc := range batch.IndexOps {
+				if doc != nil {
+					aw := index.NewAnalysisWork(udc, doc, resultChan)
+					// put the work on the queue
+					udc.analysisQueue.Queue(aw)
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	// retrieve back index rows concurrent with analysis
 	docBackIndexRowErr := error(nil)
@@ -837,6 +847,11 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 			docBackIndexRowErr = err
 			return
 		}
+		defer func() {
+			if cerr := kvreader.Close(); err == nil && cerr != nil {
+				docBackIndexRowErr = cerr
+			}
+		}()
 
 		for docID, doc := range batch.IndexOps {
 			backIndexRow, err := backIndexRowForDoc(kvreader, index.IndexInternalID(docID))
@@ -846,12 +861,6 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 			}
 
 			docBackIndexRowCh <- &docBackIndexRow{docID, doc, backIndexRow}
-		}
-
-		err = kvreader.Close()
-		if err != nil {
-			docBackIndexRowErr = err
-			return
 		}
 	}()
 
@@ -959,6 +968,7 @@ func (udc *UpsideDownCouch) Batch(batch *index.Batch) (err error) {
 	} else {
 		atomic.AddUint64(&udc.stats.errors, 1)
 	}
+
 	return
 }
 

@@ -8,27 +8,34 @@ package repo
 
 import (
 	"container/list"
+	"crypto/subtle"
 	"fmt"
-	"io"
-	"net/url"
+	"net/http"
 	"path"
 	"strings"
+	"time"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/gitdiff"
+	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
 	tplFork        base.TplName = "repo/pulls/fork"
-	tplComparePull base.TplName = "repo/pulls/compare"
+	tplCompareDiff base.TplName = "repo/diff/compare"
 	tplPullCommits base.TplName = "repo/pulls/commits"
 	tplPullFiles   base.TplName = "repo/pulls/files"
 
@@ -46,8 +53,8 @@ var (
 	}
 )
 
-func getForkRepository(ctx *context.Context) *models.Repository {
-	forkRepo, err := models.GetRepositoryByID(ctx.ParamsInt64(":repoid"))
+func getRepository(ctx *context.Context, repoID int64) *models.Repository {
+	repo, err := models.GetRepositoryByID(repoID)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", nil)
@@ -57,7 +64,33 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 
-	if !forkRepo.CanBeForked() || !forkRepo.HasAccess(ctx.User) {
+	perm, err := models.GetUserRepoPermission(repo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil
+	}
+
+	if !perm.CanRead(models.UnitTypeCode) {
+		log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+			"User in repo has Permissions: %-+v",
+			ctx.User,
+			models.UnitTypeCode,
+			ctx.Repo,
+			perm)
+		ctx.NotFound("getRepository", nil)
+		return nil
+	}
+	return repo
+}
+
+func getForkRepository(ctx *context.Context) *models.Repository {
+	forkRepo := getRepository(ctx, ctx.ParamsInt64(":repoid"))
+	if ctx.Written() {
+		return nil
+	}
+
+	if forkRepo.IsEmpty {
+		log.Trace("Empty repository %-v", forkRepo)
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}
@@ -67,7 +100,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate
 	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
 
-	if err = forkRepo.GetOwner(); err != nil {
+	if err := forkRepo.GetOwner(); err != nil {
 		ctx.ServerError("GetOwner", err)
 		return nil
 	}
@@ -86,6 +119,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	}
 
 	var traverseParentRepo = forkRepo
+	var err error
 	for {
 		if ctx.User.ID == traverseParentRepo.OwnerID {
 			canForkToUser = false
@@ -187,7 +221,7 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	}
 
-	repo, err := models.ForkRepository(ctx.User, ctxUser, forkRepo, form.RepoName, form.Description)
+	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, forkRepo, form.RepoName, form.Description)
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
@@ -217,6 +251,14 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		}
 		return nil
 	}
+	if err = issue.LoadPoster(); err != nil {
+		ctx.ServerError("LoadPoster", err)
+		return nil
+	}
+	if err := issue.LoadRepo(); err != nil {
+		ctx.ServerError("LoadRepo", err)
+		return nil
+	}
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 	ctx.Data["Issue"] = issue
 
@@ -225,8 +267,13 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		return nil
 	}
 
-	if err = issue.PullRequest.GetHeadRepo(); err != nil {
-		ctx.ServerError("GetHeadRepo", err)
+	if err = issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return nil
+	}
+
+	if err = issue.PullRequest.LoadHeadRepo(); err != nil {
+		ctx.ServerError("LoadHeadRepo", err)
 		return nil
 	}
 
@@ -242,85 +289,212 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 }
 
 func setMergeTarget(ctx *context.Context, pull *models.PullRequest) {
-	if ctx.Repo.Owner.Name == pull.HeadUserName {
+	if ctx.Repo.Owner.Name == pull.MustHeadUserName() {
 		ctx.Data["HeadTarget"] = pull.HeadBranch
 	} else if pull.HeadRepo == nil {
-		ctx.Data["HeadTarget"] = pull.HeadUserName + ":" + pull.HeadBranch
+		ctx.Data["HeadTarget"] = pull.MustHeadUserName() + ":" + pull.HeadBranch
 	} else {
-		ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+		ctx.Data["HeadTarget"] = pull.MustHeadUserName() + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
 	}
 	ctx.Data["BaseTarget"] = pull.BaseBranch
 }
 
 // PrepareMergedViewPullInfo show meta information for a merged pull request view page
-func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullRequestInfo {
+func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.CompareInfo {
 	pull := issue.PullRequest
 
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
-	prInfo, err := ctx.Repo.GitRepo.GetPullRequestInfo(ctx.Repo.Repository.RepoPath(),
+	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
 		pull.MergeBase, pull.GetGitRefName())
-
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 			ctx.Data["IsPullRequestBroken"] = true
-			ctx.Data["BaseTarget"] = "deleted"
+			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0
 			ctx.Data["NumFiles"] = 0
 			return nil
 		}
 
-		ctx.ServerError("GetPullRequestInfo", err)
+		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
-	ctx.Data["NumCommits"] = prInfo.Commits.Len()
-	ctx.Data["NumFiles"] = prInfo.NumFiles
-	return prInfo
+	ctx.Data["NumCommits"] = compareInfo.Commits.Len()
+	ctx.Data["NumFiles"] = compareInfo.NumFiles
+	return compareInfo
 }
 
 // PrepareViewPullInfo show meta information for a pull request preview page
-func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullRequestInfo {
+func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.CompareInfo {
 	repo := ctx.Repo.Repository
 	pull := issue.PullRequest
 
-	var err error
-	if err = pull.GetHeadRepo(); err != nil {
-		ctx.ServerError("GetHeadRepo", err)
+	if err := pull.LoadHeadRepo(); err != nil {
+		ctx.ServerError("LoadHeadRepo", err)
+		return nil
+	}
+
+	if err := pull.LoadBaseRepo(); err != nil {
+		ctx.ServerError("LoadBaseRepo", err)
 		return nil
 	}
 
 	setMergeTarget(ctx, pull)
 
-	var headGitRepo *git.Repository
+	if err := pull.LoadProtectedBranch(); err != nil {
+		ctx.ServerError("LoadProtectedBranch", err)
+		return nil
+	}
+	ctx.Data["EnableStatusCheck"] = pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck
+
+	baseGitRepo, err := git.OpenRepository(pull.BaseRepo.RepoPath())
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return nil
+	}
+	defer baseGitRepo.Close()
+
+	if !baseGitRepo.IsBranchExist(pull.BaseBranch) {
+		ctx.Data["IsPullRequestBroken"] = true
+		ctx.Data["BaseTarget"] = pull.BaseBranch
+		ctx.Data["HeadTarget"] = pull.HeadBranch
+
+		sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitRefName()), err)
+			return nil
+		}
+		commitStatuses, err := models.GetLatestCommitStatus(repo, sha, 0)
+		if err != nil {
+			ctx.ServerError("GetLatestCommitStatus", err)
+			return nil
+		}
+		if len(commitStatuses) > 0 {
+			ctx.Data["LatestCommitStatuses"] = commitStatuses
+			ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
+		}
+
+		compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
+			pull.MergeBase, pull.GetGitRefName())
+		if err != nil {
+			if strings.Contains(err.Error(), "fatal: Not a valid object name") {
+				ctx.Data["IsPullRequestBroken"] = true
+				ctx.Data["BaseTarget"] = pull.BaseBranch
+				ctx.Data["NumCommits"] = 0
+				ctx.Data["NumFiles"] = 0
+				return nil
+			}
+
+			ctx.ServerError("GetCompareInfo", err)
+			return nil
+		}
+
+		ctx.Data["NumCommits"] = compareInfo.Commits.Len()
+		ctx.Data["NumFiles"] = compareInfo.NumFiles
+		return compareInfo
+	}
+
+	var headBranchExist bool
+	var headBranchSha string
+	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
-		headGitRepo, err = git.OpenRepository(pull.HeadRepo.RepoPath())
+		var err error
+
+		headGitRepo, err := git.OpenRepository(pull.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
 		}
+		defer headGitRepo.Close()
+
+		headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
+
+		if headBranchExist {
+			headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
+			if err != nil {
+				ctx.ServerError("GetBranchCommitID", err)
+				return nil
+			}
+		}
 	}
 
-	if pull.HeadRepo == nil || !headGitRepo.IsBranchExist(pull.HeadBranch) {
-		ctx.Data["IsPullRequestBroken"] = true
-		ctx.Data["HeadTarget"] = "deleted"
-		ctx.Data["NumCommits"] = 0
-		ctx.Data["NumFiles"] = 0
+	if headBranchExist {
+		allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+		if err != nil {
+			ctx.ServerError("IsUserAllowedToUpdate", err)
+			return nil
+		}
+		ctx.Data["UpdateAllowed"] = allowUpdate
+
+		divergence, err := pull_service.GetDiverging(pull)
+		if err != nil {
+			ctx.ServerError("GetDiverging", err)
+			return nil
+		}
+		ctx.Data["Divergence"] = divergence
+		ctx.Data["GetCommitMessages"] = pull_service.GetCommitMessages(pull)
+	}
+
+	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
+	if err != nil {
+		ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitRefName()), err)
 		return nil
 	}
 
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(repo.Owner.Name, repo.Name),
-		pull.BaseBranch, pull.HeadBranch)
+	commitStatuses, err := models.GetLatestCommitStatus(repo, sha, 0)
+	if err != nil {
+		ctx.ServerError("GetLatestCommitStatus", err)
+		return nil
+	}
+	if len(commitStatuses) > 0 {
+		ctx.Data["LatestCommitStatuses"] = commitStatuses
+		ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
+	}
+
+	if pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck {
+		ctx.Data["is_context_required"] = func(context string) bool {
+			for _, c := range pull.ProtectedBranch.StatusCheckContexts {
+				if c == context {
+					return true
+				}
+			}
+			return false
+		}
+		state := pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
+		ctx.Data["RequiredStatusCheckState"] = state
+		ctx.Data["IsRequiredStatusCheckSuccess"] = state.IsSuccess()
+	}
+
+	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha
+	ctx.Data["HeadBranchCommitID"] = headBranchSha
+	ctx.Data["PullHeadCommitID"] = sha
+
+	if pull.HeadRepo == nil || !headBranchExist || headBranchSha != sha {
+		ctx.Data["IsPullRequestBroken"] = true
+		if pull.IsSameRepo() {
+			ctx.Data["HeadTarget"] = pull.HeadBranch
+		} else {
+			if pull.HeadRepo == nil {
+				ctx.Data["HeadTarget"] = "<deleted>:" + pull.HeadBranch
+			} else {
+				ctx.Data["HeadTarget"] = pull.HeadRepo.OwnerName + ":" + pull.HeadBranch
+			}
+		}
+	}
+
+	compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
+		pull.BaseBranch, pull.GetGitRefName())
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 			ctx.Data["IsPullRequestBroken"] = true
-			ctx.Data["BaseTarget"] = "deleted"
+			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0
 			ctx.Data["NumFiles"] = 0
 			return nil
 		}
 
-		ctx.ServerError("GetPullRequestInfo", err)
+		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
 
@@ -329,9 +503,14 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.PullReq
 		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix()
 	}
 
-	ctx.Data["NumCommits"] = prInfo.Commits.Len()
-	ctx.Data["NumFiles"] = prInfo.NumFiles
-	return prInfo
+	if pull.IsFilesConflicted() {
+		ctx.Data["IsPullFilesConflicted"] = true
+		ctx.Data["ConflictedFiles"] = pull.ConflictedFiles
+	}
+
+	ctx.Data["NumCommits"] = compareInfo.Commits.Len()
+	ctx.Data["NumFiles"] = compareInfo.NumFiles
+	return compareInfo
 }
 
 // ViewPullCommits show commits for a pull request
@@ -346,36 +525,30 @@ func ViewPullCommits(ctx *context.Context) {
 	pull := issue.PullRequest
 
 	var commits *list.List
+	var prInfo *git.CompareInfo
 	if pull.HasMerged {
-		prInfo := PrepareMergedViewPullInfo(ctx, issue)
-		if ctx.Written() {
-			return
-		} else if prInfo == nil {
-			ctx.NotFound("ViewPullCommits", nil)
-			return
-		}
-		ctx.Data["Username"] = ctx.Repo.Owner.Name
-		ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-		commits = prInfo.Commits
+		prInfo = PrepareMergedViewPullInfo(ctx, issue)
 	} else {
-		prInfo := PrepareViewPullInfo(ctx, issue)
-		if ctx.Written() {
-			return
-		} else if prInfo == nil {
-			ctx.NotFound("ViewPullCommits", nil)
-			return
-		}
-		ctx.Data["Username"] = pull.HeadUserName
-		ctx.Data["Reponame"] = pull.HeadRepo.Name
-		commits = prInfo.Commits
+		prInfo = PrepareViewPullInfo(ctx, issue)
 	}
 
+	if ctx.Written() {
+		return
+	} else if prInfo == nil {
+		ctx.NotFound("ViewPullCommits", nil)
+		return
+	}
+
+	ctx.Data["Username"] = ctx.Repo.Owner.Name
+	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
+	commits = prInfo.Commits
 	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = commits.Len()
 
+	getBranchData(ctx, issue)
 	ctx.HTML(200, tplPullCommits)
 }
 
@@ -404,64 +577,38 @@ func ViewPullFiles(ctx *context.Context) {
 	)
 
 	var headTarget string
+	var prInfo *git.CompareInfo
 	if pull.HasMerged {
-		prInfo := PrepareMergedViewPullInfo(ctx, issue)
-		if ctx.Written() {
-			return
-		} else if prInfo == nil {
-			ctx.NotFound("ViewPullFiles", nil)
-			return
-		}
-
-		diffRepoPath = ctx.Repo.GitRepo.Path
-		gitRepo = ctx.Repo.GitRepo
-
-		headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return
-		}
-
-		startCommitID = prInfo.MergeBase
-		endCommitID = headCommitID
-
-		headTarget = path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-		ctx.Data["Username"] = ctx.Repo.Owner.Name
-		ctx.Data["Reponame"] = ctx.Repo.Repository.Name
+		prInfo = PrepareMergedViewPullInfo(ctx, issue)
 	} else {
-		prInfo := PrepareViewPullInfo(ctx, issue)
-		if ctx.Written() {
-			return
-		} else if prInfo == nil {
-			ctx.NotFound("ViewPullFiles", nil)
-			return
-		}
-
-		headRepoPath := models.RepoPath(pull.HeadUserName, pull.HeadRepo.Name)
-
-		headGitRepo, err := git.OpenRepository(headRepoPath)
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return
-		}
-
-		headCommitID, err := headGitRepo.GetBranchCommitID(pull.HeadBranch)
-		if err != nil {
-			ctx.ServerError("GetBranchCommitID", err)
-			return
-		}
-
-		diffRepoPath = headRepoPath
-		startCommitID = prInfo.MergeBase
-		endCommitID = headCommitID
-		gitRepo = headGitRepo
-
-		headTarget = path.Join(pull.HeadUserName, pull.HeadRepo.Name)
-		ctx.Data["Username"] = pull.HeadUserName
-		ctx.Data["Reponame"] = pull.HeadRepo.Name
+		prInfo = PrepareViewPullInfo(ctx, issue)
 	}
 
-	diff, err := models.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
+	if ctx.Written() {
+		return
+	} else if prInfo == nil {
+		ctx.NotFound("ViewPullFiles", nil)
+		return
+	}
+
+	diffRepoPath = ctx.Repo.GitRepo.Path
+	gitRepo = ctx.Repo.GitRepo
+
+	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
+	if err != nil {
+		ctx.ServerError("GetRefCommitID", err)
+		return
+	}
+
+	startCommitID = prInfo.MergeBase
+	endCommitID = headCommitID
+
+	headTarget = path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	ctx.Data["Username"] = ctx.Repo.Owner.Name
+	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
+	ctx.Data["AfterCommitID"] = endCommitID
+
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
 		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
 		whitespaceFlags[ctx.Data["WhitespaceBehavior"].(string)])
@@ -478,17 +625,22 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 
+	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return
+	}
 	commit, err := gitRepo.GetCommit(endCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return
 	}
 
-	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", endCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
+	setImageCompareContext(ctx, baseCommit, commit)
+	setPathsCompareContext(ctx, baseCommit, commit, headTarget)
+
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
 		ctx.ServerError("GetAssignees", err)
@@ -499,7 +651,67 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
 	}
+	getBranchData(ctx, issue)
+	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.HTML(200, tplPullFiles)
+}
+
+// UpdatePullRequest merge master into PR
+func UpdatePullRequest(ctx *context.Context) {
+	issue := checkPullInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+	if issue.IsClosed {
+		ctx.NotFound("MergePullRequest", nil)
+		return
+	}
+	if issue.PullRequest.HasMerged {
+		ctx.NotFound("MergePullRequest", nil)
+		return
+	}
+
+	if err := issue.PullRequest.LoadBaseRepo(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if err := issue.PullRequest.LoadHeadRepo(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	allowedUpdate, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, ctx.User)
+	if err != nil {
+		ctx.ServerError("IsUserAllowedToMerge", err)
+		return
+	}
+
+	// ToDo: add check if maintainers are allowed to change branch ... (need migration & co)
+	if !allowedUpdate {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		return
+	}
+
+	// default merge commit message
+	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
+
+	if err = pull_service.Update(issue.PullRequest, ctx.User, message); err != nil {
+		if models.IsErrMergeConflicts(err) {
+			conflictError := err.(models.ErrMergeConflicts)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_conflict", utils.SanitizeFlashErrorString(conflictError.StdErr), utils.SanitizeFlashErrorString(conflictError.StdOut)))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+			return
+		}
+		ctx.Flash.Error(err.Error())
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+	}
+
+	time.Sleep(1 * time.Second)
+
+	ctx.Flash.Success(ctx.Tr("repo.pulls.update_branch_success"))
+	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 }
 
 // MergePullRequest response for merging pull request
@@ -509,23 +721,38 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 	if issue.IsClosed {
-		ctx.NotFound("MergePullRequest", nil)
-		return
-	}
-
-	pr, err := models.GetPullRequestByIssueID(issue.ID)
-	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
-			ctx.NotFound("GetPullRequestByIssueID", nil)
-		} else {
-			ctx.ServerError("GetPullRequestByIssueID", err)
+		if issue.IsPull {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+			return
 		}
+		ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
 		return
 	}
-	pr.Issue = issue
 
-	if !pr.CanAutoMerge() || pr.HasMerged {
-		ctx.NotFound("MergePullRequest", nil)
+	pr := issue.PullRequest
+
+	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.User)
+	if err != nil {
+		ctx.ServerError("IsUserAllowedToMerge", err)
+		return
+	}
+	if !allowedMerge {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		return
+	}
+
+	if !pr.CanAutoMerge() {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		return
+	}
+
+	if pr.HasMerged {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 		return
 	}
 
@@ -533,6 +760,21 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
+	}
+
+	if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
+		if !models.IsErrNotAllowedToMerge(err) {
+			ctx.ServerError("Merge PR status", err)
+			return
+		}
+		if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.User); err != nil {
+			ctx.ServerError("IsUserRepoAdmin", err)
+			return
+		} else if !isRepoAdmin {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		}
 	}
 
 	if ctx.HasError() {
@@ -544,6 +786,9 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
 		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
+			message = pr.GetDefaultMergeMessage()
+		}
+		if models.MergeStyle(form.Do) == models.MergeStyleRebaseMerge {
 			message = pr.GetDefaultMergeMessage()
 		}
 		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
@@ -570,9 +815,40 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err = pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err = pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrMergeConflicts(err) {
+			conflictError := err.(models.ErrMergeConflicts)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_conflict", utils.SanitizeFlashErrorString(conflictError.StdErr), utils.SanitizeFlashErrorString(conflictError.StdOut)))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA), utils.SanitizeFlashErrorString(conflictError.StdErr), utils.SanitizeFlashErrorString(conflictError.StdOut)))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrMergeUnrelatedHistories(err) {
+			log.Debug("MergeUnrelatedHistories error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if git.IsErrPushOutOfDate(err) {
+			log.Debug("MergePushOutOfDate error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if git.IsErrPushRejected(err) {
+			log.Debug("MergePushRejected error: %v", err)
+			pushrejErr := err.(*git.ErrPushRejected)
+			message := pushrejErr.Message
+			if len(message) == 0 {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))
+			} else {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected", utils.SanitizeFlashErrorString(pushrejErr.Message)))
+			}
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
 		}
@@ -580,228 +856,24 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	notification.Service.NotifyIssue(pr.Issue, ctx.User.ID)
+	if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
+		ctx.ServerError("CreateOrStopIssueStopwatch", err)
+		return
+	}
 
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 }
 
-// ParseCompareInfo parse compare info between two commit for preparing pull request
-func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *git.Repository, *git.PullRequestInfo, string, string) {
-	baseRepo := ctx.Repo.Repository
+func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
 
-	// Get compared branches information
-	// format: <base branch>...[<head repo>:]<head branch>
-	// base<-head: master...head:feature
-	// same repo: master...feature
-
-	var (
-		headUser   *models.User
-		headBranch string
-		isSameRepo bool
-		infoPath   string
-		err        error
-	)
-	infoPath, err = url.QueryUnescape(ctx.Params("*"))
-	if err != nil {
-		ctx.NotFound("QueryUnescape", err)
-	}
-	infos := strings.Split(infoPath, "...")
-	if len(infos) != 2 {
-		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
-		ctx.NotFound("CompareAndPullRequest", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	baseBranch := infos[0]
-	ctx.Data["BaseBranch"] = baseBranch
-
-	// If there is no head repository, it means pull request between same repository.
-	headInfos := strings.Split(infos[1], ":")
-	if len(headInfos) == 1 {
-		isSameRepo = true
-		headUser = ctx.Repo.Owner
-		headBranch = headInfos[0]
-
-	} else if len(headInfos) == 2 {
-		headUser, err = models.GetUserByName(headInfos[0])
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.NotFound("GetUserByName", nil)
-			} else {
-				ctx.ServerError("GetUserByName", err)
-			}
-			return nil, nil, nil, nil, "", ""
-		}
-		headBranch = headInfos[1]
-		isSameRepo = headUser.ID == ctx.Repo.Owner.ID
-	} else {
-		ctx.NotFound("CompareAndPullRequest", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-	ctx.Data["HeadUser"] = headUser
-	ctx.Data["HeadBranch"] = headBranch
-	ctx.Repo.PullRequest.SameRepo = isSameRepo
-
-	// Check if base branch is valid.
-	if !ctx.Repo.GitRepo.IsBranchExist(baseBranch) {
-		ctx.NotFound("IsBranchExist", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	// Check if current user has fork of repository or in the same repository.
-	headRepo, has := models.HasForkedRepo(headUser.ID, baseRepo.ID)
-	if !has && !isSameRepo {
-		log.Trace("ParseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-		ctx.NotFound("ParseCompareInfo", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	var headGitRepo *git.Repository
-	if isSameRepo {
-		headRepo = ctx.Repo.Repository
-		headGitRepo = ctx.Repo.GitRepo
-	} else {
-		headGitRepo, err = git.OpenRepository(models.RepoPath(headUser.Name, headRepo.Name))
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return nil, nil, nil, nil, "", ""
+	if models.StopwatchExists(user.ID, issue.ID) {
+		if err := models.CreateOrStopIssueStopwatch(user, issue); err != nil {
+			return err
 		}
 	}
 
-	if !ctx.User.IsWriterOfRepo(headRepo) && !ctx.User.IsAdmin {
-		log.Trace("ParseCompareInfo[%d]: does not have write access or site admin", baseRepo.ID)
-		ctx.NotFound("ParseCompareInfo", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	// Check if head branch is valid.
-	if !headGitRepo.IsBranchExist(headBranch) {
-		ctx.NotFound("IsBranchExist", nil)
-		return nil, nil, nil, nil, "", ""
-	}
-
-	headBranches, err := headGitRepo.GetBranches()
-	if err != nil {
-		ctx.ServerError("GetBranches", err)
-		return nil, nil, nil, nil, "", ""
-	}
-	ctx.Data["HeadBranches"] = headBranches
-
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
-	if err != nil {
-		ctx.ServerError("GetPullRequestInfo", err)
-		return nil, nil, nil, nil, "", ""
-	}
-	ctx.Data["BeforeCommitID"] = prInfo.MergeBase
-
-	return headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch
-}
-
-// PrepareCompareDiff render pull request preview diff page
-func PrepareCompareDiff(
-	ctx *context.Context,
-	headUser *models.User,
-	headRepo *models.Repository,
-	headGitRepo *git.Repository,
-	prInfo *git.PullRequestInfo,
-	baseBranch, headBranch string) bool {
-
-	var (
-		repo = ctx.Repo.Repository
-		err  error
-	)
-
-	// Get diff information.
-	ctx.Data["CommitRepoLink"] = headRepo.Link()
-
-	headCommitID, err := headGitRepo.GetBranchCommitID(headBranch)
-	if err != nil {
-		ctx.ServerError("GetBranchCommitID", err)
-		return false
-	}
-	ctx.Data["AfterCommitID"] = headCommitID
-
-	if headCommitID == prInfo.MergeBase {
-		ctx.Data["IsNothingToCompare"] = true
-		return true
-	}
-
-	diff, err := models.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
-		prInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
-	if err != nil {
-		ctx.ServerError("GetDiffRange", err)
-		return false
-	}
-	ctx.Data["Diff"] = diff
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
-
-	headCommit, err := headGitRepo.GetCommit(headCommitID)
-	if err != nil {
-		ctx.ServerError("GetCommit", err)
-		return false
-	}
-
-	prInfo.Commits = models.ValidateCommitsWithEmails(prInfo.Commits)
-	prInfo.Commits = models.ParseCommitsWithSignature(prInfo.Commits)
-	prInfo.Commits = models.ParseCommitsWithStatus(prInfo.Commits, headRepo)
-	ctx.Data["Commits"] = prInfo.Commits
-	ctx.Data["CommitCount"] = prInfo.Commits.Len()
-	ctx.Data["Username"] = headUser.Name
-	ctx.Data["Reponame"] = headRepo.Name
-	ctx.Data["IsImageFile"] = headCommit.IsImageFile
-
-	headTarget := path.Join(headUser.Name, repo.Name)
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", headCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", prInfo.MergeBase)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", headCommitID)
-	return false
-}
-
-// CompareAndPullRequest render pull request preview page
-func CompareAndPullRequest(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
-	ctx.Data["PageIsComparePull"] = true
-	ctx.Data["IsDiffCompare"] = true
-	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireTribute"] = true
-	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
-	renderAttachmentSettings(ctx)
-
-	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
-	if err != nil {
-		if !models.IsErrPullRequestNotExist(err) {
-			ctx.ServerError("GetUnmergedPullRequest", err)
-			return
-		}
-	} else {
-		ctx.Data["HasPullRequest"] = true
-		ctx.Data["PullRequest"] = pr
-		ctx.HTML(200, tplComparePull)
-		return
-	}
-
-	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch)
-	if ctx.Written() {
-		return
-	}
-
-	if !nothingToCompare {
-		// Setup information for new form.
-		RetrieveRepoMetas(ctx, ctx.Repo.Repository)
-		if ctx.Written() {
-			return
-		}
-	}
-
-	ctx.HTML(200, tplComparePull)
+	return nil
 }
 
 // CompareAndPullRequestPost response for creating pull request
@@ -822,8 +894,9 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	if ctx.Written() {
 		return
 	}
+	defer headGitRepo.Close()
 
-	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form)
+	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, true)
 	if ctx.Written() {
 		return
 	}
@@ -842,19 +915,22 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 			return
 		}
 
-		ctx.HTML(200, tplComparePull)
+		ctx.HTML(200, tplCompareDiff)
 		return
 	}
 
-	patch, err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch)
-	if err != nil {
-		ctx.ServerError("GetPatch", err)
+	if util.IsEmptyString(form.Title) {
+		PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch)
+		if ctx.Written() {
+			return
+		}
+
+		ctx.RenderWithErr(ctx.Tr("repo.issues.new.title_empty"), tplCompareDiff, form)
 		return
 	}
 
 	pullIssue := &models.Issue{
 		RepoID:      repo.ID,
-		Index:       repo.NextIssueIndex(),
 		Title:       form.Title,
 		PosterID:    ctx.User.ID,
 		Poster:      ctx.User,
@@ -863,32 +939,26 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		Content:     form.Content,
 	}
 	pullRequest := &models.PullRequest{
-		HeadRepoID:   headRepo.ID,
-		BaseRepoID:   repo.ID,
-		HeadUserName: headUser.Name,
-		HeadBranch:   headBranch,
-		BaseBranch:   baseBranch,
-		HeadRepo:     headRepo,
-		BaseRepo:     repo,
-		MergeBase:    prInfo.MergeBase,
-		Type:         models.PullRequestGitea,
+		HeadRepoID: headRepo.ID,
+		BaseRepoID: repo.ID,
+		HeadBranch: headBranch,
+		BaseBranch: baseBranch,
+		HeadRepo:   headRepo,
+		BaseRepo:   repo,
+		MergeBase:  prInfo.MergeBase,
+		Type:       models.PullRequestGitea,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
 
-	if err := models.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, patch, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
 		}
 		ctx.ServerError("NewPullRequest", err)
 		return
-	} else if err := pullRequest.PushToBaseRepo(); err != nil {
-		ctx.ServerError("PushToBaseRepo", err)
-		return
 	}
-
-	notification.Service.NotifyIssue(pullIssue, ctx.User.ID)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pullIssue.Index))
@@ -908,7 +978,9 @@ func TriggerTask(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	if secret != base.EncodeMD5(owner.Salt) {
+	got := []byte(base.EncodeMD5(owner.Salt))
+	want := []byte(secret)
+	if subtle.ConstantTimeCompare(got, want) != 1 {
 		ctx.Error(404)
 		log.Trace("TriggerTask [%s/%s]: invalid secret", owner.Name, repo.Name)
 		return
@@ -926,8 +998,7 @@ func TriggerTask(ctx *context.Context) {
 
 	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
-	go models.HookQueue.Add(repo.ID)
-	go models.AddTestPullRequestTask(pusher, repo.ID, branch, true)
+	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, "", "")
 	ctx.Status(202)
 }
 
@@ -938,38 +1009,35 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	pr, err := models.GetPullRequestByIssueID(issue.ID)
-	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
-			ctx.NotFound("GetPullRequestByIssueID", nil)
-		} else {
-			ctx.ServerError("GetPullRequestByIssueID", err)
-		}
-		return
-	}
+	pr := issue.PullRequest
 
-	// Allow cleanup only for merged PR
-	if !pr.HasMerged {
+	// Don't cleanup unmerged and unclosed PRs
+	if !pr.HasMerged && !issue.IsClosed {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}
 
-	if err = pr.GetHeadRepo(); err != nil {
-		ctx.ServerError("GetHeadRepo", err)
+	if err := pr.LoadHeadRepo(); err != nil {
+		ctx.ServerError("LoadHeadRepo", err)
 		return
 	} else if pr.HeadRepo == nil {
 		// Forked repository has already been deleted
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
-	} else if pr.GetBaseRepo(); err != nil {
-		ctx.ServerError("GetBaseRepo", err)
+	} else if err = pr.LoadBaseRepo(); err != nil {
+		ctx.ServerError("LoadBaseRepo", err)
 		return
-	} else if pr.HeadRepo.GetOwner(); err != nil {
+	} else if err = pr.HeadRepo.GetOwner(); err != nil {
 		ctx.ServerError("HeadRepo.GetOwner", err)
 		return
 	}
 
-	if !ctx.User.IsWriterOfRepo(pr.HeadRepo) {
+	perm, err := models.GetUserRepoPermission(pr.HeadRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+	if !perm.CanWrite(models.UnitTypeCode) {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}
@@ -981,12 +1049,14 @@ func CleanUpPullRequest(ctx *context.Context) {
 		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
 		return
 	}
+	defer gitRepo.Close()
 
 	gitBaseRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
 		return
 	}
+	defer gitBaseRepo.Close()
 
 	defer func() {
 		ctx.JSON(200, map[string]interface{}{
@@ -1002,7 +1072,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	// Check if branch is not protected
 	if protected, err := pr.HeadRepo.IsProtectedBranch(pr.HeadBranch, ctx.User); err != nil || protected {
 		if err != nil {
-			log.Error(4, "HeadRepo.IsProtectedBranch: %v", err)
+			log.Error("HeadRepo.IsProtectedBranch: %v", err)
 		}
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
@@ -1011,13 +1081,13 @@ func CleanUpPullRequest(ctx *context.Context) {
 	// Check if branch has no new commits
 	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitRefName())
 	if err != nil {
-		log.Error(4, "GetRefCommitID: %v", err)
+		log.Error("GetRefCommitID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
 	branchCommitID, err := gitRepo.GetBranchCommitID(pr.HeadBranch)
 	if err != nil {
-		log.Error(4, "GetBranchCommitID: %v", err)
+		log.Error("GetBranchCommitID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
@@ -1029,14 +1099,29 @@ func CleanUpPullRequest(ctx *context.Context) {
 	if err := gitRepo.DeleteBranch(pr.HeadBranch, git.DeleteBranchOptions{
 		Force: true,
 	}); err != nil {
-		log.Error(4, "DeleteBranch: %v", err)
+		log.Error("DeleteBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
 	}
 
+	if err := repofiles.PushUpdate(
+		pr.HeadRepo,
+		pr.HeadBranch,
+		repofiles.PushUpdateOptions{
+			RefFullName:  git.BranchPrefix + pr.HeadBranch,
+			OldCommitID:  branchCommitID,
+			NewCommitID:  git.EmptySHA,
+			PusherID:     ctx.User.ID,
+			PusherName:   ctx.User.Name,
+			RepoUserName: pr.HeadRepo.Owner.Name,
+			RepoName:     pr.HeadRepo.Name,
+		}); err != nil {
+		log.Error("Update: %v", err)
+	}
+
 	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, issue.ID, pr.HeadBranch); err != nil {
 		// Do not fail here as branch has already been deleted
-		log.Error(4, "DeleteBranch: %v", err)
+		log.Error("DeleteBranch: %v", err)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))
@@ -1044,40 +1129,16 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 // DownloadPullDiff render a pull's raw diff
 func DownloadPullDiff(ctx *context.Context) {
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound("GetIssueByIndex", err)
-		} else {
-			ctx.ServerError("GetIssueByIndex", err)
-		}
-		return
-	}
-
-	// Return not found if it's not a pull request
-	if !issue.IsPull {
-		ctx.NotFound("DownloadPullDiff",
-			fmt.Errorf("Issue is not a pull request"))
-		return
-	}
-
-	pr := issue.PullRequest
-
-	if err = pr.GetBaseRepo(); err != nil {
-		ctx.ServerError("GetBaseRepo", err)
-		return
-	}
-	patch, err := pr.BaseRepo.PatchPath(pr.Index)
-	if err != nil {
-		ctx.ServerError("PatchPath", err)
-		return
-	}
-
-	ctx.ServeFileContent(patch)
+	DownloadPullDiffOrPatch(ctx, false)
 }
 
 // DownloadPullPatch render a pull's raw patch
 func DownloadPullPatch(ctx *context.Context) {
+	DownloadPullDiffOrPatch(ctx, true)
+}
+
+// DownloadPullDiffOrPatch render a pull's raw diff or patch
+func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -1095,28 +1156,86 @@ func DownloadPullPatch(ctx *context.Context) {
 		return
 	}
 
+	if err = issue.LoadPullRequest(); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return
+	}
+
 	pr := issue.PullRequest
 
-	if err = pr.GetHeadRepo(); err != nil {
-		ctx.ServerError("GetHeadRepo", err)
+	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
+		ctx.ServerError("DownloadDiffOrPatch", err)
+		return
+	}
+}
+
+// UpdatePullRequestTarget change pull request's target branch
+func UpdatePullRequestTarget(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	pr := issue.PullRequest
+	if ctx.Written() {
+		return
+	}
+	if !issue.IsPull {
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		ctx.ServerError("OpenRepository", err)
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
-	patch, err := headGitRepo.GetFormatPatch(pr.MergeBase, pr.HeadBranch)
-	if err != nil {
-		ctx.ServerError("GetFormatPatch", err)
+	targetBranch := ctx.QueryTrim("target_branch")
+	if len(targetBranch) == 0 {
+		ctx.Error(http.StatusNoContent)
 		return
 	}
 
-	_, err = io.Copy(ctx, patch)
-	if err != nil {
-		ctx.ServerError("io.Copy", err)
+	if err := pull_service.ChangeTargetBranch(pr, ctx.User, targetBranch); err != nil {
+		if models.IsErrPullRequestAlreadyExists(err) {
+			err := err.(models.ErrPullRequestAlreadyExists)
+
+			RepoRelPath := ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
+			errorMessage := ctx.Tr("repo.pulls.has_pull_request", ctx.Repo.RepoLink, RepoRelPath, err.IssueID)
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusConflict, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else if models.IsErrIssueIsClosed(err) {
+			errorMessage := ctx.Tr("repo.pulls.is_closed")
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusConflict, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else if models.IsErrPullRequestHasMerged(err) {
+			errorMessage := ctx.Tr("repo.pulls.has_merged")
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusConflict, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else if models.IsErrBranchesEqual(err) {
+			errorMessage := ctx.Tr("repo.pulls.nothing_to_compare")
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusBadRequest, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else {
+			ctx.ServerError("UpdatePullRequestTarget", err)
+		}
 		return
 	}
+	notification.NotifyPullRequestChangeTargetBranch(ctx.User, pr, targetBranch)
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"base_branch": pr.BaseBranch,
+	})
 }

@@ -142,7 +142,7 @@ type ServiceProvider struct {
 	// Allow parameters to be passed in the query string rather
 	// than the body.
 	// See https://github.com/mrjones/oauth/pull/63
-	SignQueryParams   bool
+	SignQueryParams bool
 }
 
 func (sp *ServiceProvider) httpMethod() string {
@@ -451,8 +451,10 @@ func (c *Consumer) AuthorizeToken(rtoken *RequestToken, verificationCode string)
 
 func (c *Consumer) AuthorizeTokenWithParams(rtoken *RequestToken, verificationCode string, additionalParams map[string]string) (atoken *AccessToken, err error) {
 	params := map[string]string{
-		VERIFIER_PARAM: verificationCode,
-		TOKEN_PARAM:    rtoken.Token,
+		TOKEN_PARAM: rtoken.Token,
+	}
+	if verificationCode != "" {
+		params[VERIFIER_PARAM] = verificationCode
 	}
 	return c.makeAccessTokenRequestWithParams(params, rtoken.Secret, additionalParams)
 }
@@ -674,8 +676,12 @@ func (c *Consumer) makeAuthorizedRequestReader(method string, urlString string, 
 
 	} else {
 		// TODO(mrjones): validate that we're not overrideing an exising body?
-		request.Body = ioutil.NopCloser(strings.NewReader(vals.Encode()))
 		request.ContentLength = int64(len(vals.Encode()))
+		if request.ContentLength == 0 {
+			request.Body = nil
+		} else {
+			request.Body = ioutil.NopCloser(strings.NewReader(vals.Encode()))
+		}
 	}
 
 	for k, vs := range c.AdditionalHeaders {
@@ -781,6 +787,25 @@ func canonicalizeUrl(u *url.URL) string {
 	return buf.String()
 }
 
+func getBody(request *http.Request) ([]byte, error) {
+	if request.Body == nil {
+		return nil, nil
+	}
+	defer request.Body.Close()
+	originalBody, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// We have to re-install the body (because we've ruined it by reading it).
+	if len(originalBody) > 0 {
+		request.Body = ioutil.NopCloser(bytes.NewReader(originalBody))
+	} else {
+		request.Body = nil
+	}
+	return originalBody, nil
+}
+
 func parseBody(request *http.Request) (map[string]string, error) {
 	userParams := map[string]string{}
 
@@ -797,17 +822,12 @@ func parseBody(request *http.Request) (map[string]string, error) {
 		}
 	} else {
 		// x-www-form-urlencoded parameters come from the body instead:
-		defer request.Body.Close()
-		originalBody, err := ioutil.ReadAll(request.Body)
+		body, err := getBody(request)
 		if err != nil {
 			return nil, err
 		}
 
-		// If there was a body, we have to re-install it
-		// (because we've ruined it by reading it).
-		request.Body = ioutil.NopCloser(bytes.NewReader(originalBody))
-
-		params, err := url.ParseQuery(string(originalBody))
+		params, err := url.ParseQuery(string(body))
 		if err != nil {
 			return nil, err
 		}
@@ -843,24 +863,18 @@ func calculateBodyHash(request *http.Request, s signer) (string, error) {
 		return "", nil
 	}
 
-	var originalBody []byte
+	var body []byte
 
 	if request.Body != nil {
 		var err error
-
-		defer request.Body.Close()
-		originalBody, err = ioutil.ReadAll(request.Body)
+		body, err = getBody(request)
 		if err != nil {
 			return "", err
 		}
-
-		// If there was a body, we have to re-install it
-		// (because we've ruined it by reading it).
-		request.Body = ioutil.NopCloser(bytes.NewReader(originalBody))
 	}
 
 	h := s.HashFunc().New()
-	h.Write(originalBody)
+	h.Write(body)
 	rawSignature := h.Sum(nil)
 
 	return base64.StdEncoding.EncodeToString(rawSignature), nil

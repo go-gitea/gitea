@@ -5,7 +5,7 @@
 	<a class="{{if .PageIsSettingsCollaboration}}active{{end}} item" href="{{.RepoLink}}/settings/collaboration">
 		{{.i18n.Tr "repo.settings.collaboration"}}
 	</a>
-	{{if not .Repository.IsBare}}
+	{{if not .Repository.IsEmpty}}
 		<a class="{{if .PageIsSettingsBranches}}active{{end}} item" href="{{.RepoLink}}/settings/branches">
 			{{.i18n.Tr "repo.settings.branches"}}
 		</a>
@@ -21,4 +21,9 @@
 	<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{.RepoLink}}/settings/keys">
 		{{.i18n.Tr "repo.settings.deploy_keys"}}
 	</a>
+	{{if .LFSStartServer}}
+		<a class="{{if .PageIsSettingsLFS}}active{{end}} item" href="{{.RepoLink}}/settings/lfs">
+			{{.i18n.Tr "repo.settings.lfs"}}
+		</a>
+	{{end}}
 </div>

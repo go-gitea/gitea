@@ -7,17 +7,17 @@ package models
 import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // IssueDependency represents an issue dependency
 type IssueDependency struct {
-	ID           int64          `xorm:"pk autoincr"`
-	UserID       int64          `xorm:"NOT NULL"`
-	IssueID      int64          `xorm:"UNIQUE(issue_dependency) NOT NULL"`
-	DependencyID int64          `xorm:"UNIQUE(issue_dependency) NOT NULL"`
-	CreatedUnix  util.TimeStamp `xorm:"created"`
-	UpdatedUnix  util.TimeStamp `xorm:"updated"`
+	ID           int64              `xorm:"pk autoincr"`
+	UserID       int64              `xorm:"NOT NULL"`
+	IssueID      int64              `xorm:"UNIQUE(issue_dependency) NOT NULL"`
+	DependencyID int64              `xorm:"UNIQUE(issue_dependency) NOT NULL"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"updated"`
 }
 
 // DependencyType Defines Dependency Type Constants
@@ -113,8 +113,11 @@ func issueDepExists(e Engine, issueID int64, depID int64) (bool, error) {
 
 // IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
+	return issueNoDependenciesLeft(x, issue)
+}
 
-	exists, err := x.
+func issueNoDependenciesLeft(e Engine, issue *Issue) (bool, error) {
+	exists, err := e.
 		Table("issue_dependency").
 		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
@@ -127,9 +130,13 @@ func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
 
 // IsDependenciesEnabled returns if dependecies are enabled and returns the default setting if not set.
 func (repo *Repository) IsDependenciesEnabled() bool {
+	return repo.isDependenciesEnabled(x)
+}
+
+func (repo *Repository) isDependenciesEnabled(e Engine) bool {
 	var u *RepoUnit
 	var err error
-	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {
+	if u, err = repo.getUnit(e, UnitTypeIssues); err != nil {
 		log.Trace("%s", err)
 		return setting.Service.DefaultEnableDependencies
 	}

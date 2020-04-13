@@ -14,13 +14,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-	"gopkg.in/macaron.v1"
-)
 
-//go:generate go-bindata -tags "bindata" -ignore "\\.go|\\.less" -pkg "public" -o "bindata.go" ../../public/...
-//go:generate go fmt bindata.go
-//go:generate sed -i.bak s/..\/..\/public\/// bindata.go
-//go:generate rm -f bindata.go.bak
+	"gitea.com/macaron/macaron"
+)
 
 // Options represents the available options to configure the macaron handler.
 type Options struct {
@@ -117,7 +113,7 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 	if fi.IsDir() {
 		// Redirect if missing trailing slash.
 		if !strings.HasSuffix(ctx.Req.URL.Path, "/") {
-			http.Redirect(ctx.Resp, ctx.Req.Request, ctx.Req.URL.Path+"/", http.StatusFound)
+			http.Redirect(ctx.Resp, ctx.Req.Request, path.Clean(ctx.Req.URL.Path+"/"), http.StatusFound)
 			return true
 		}
 

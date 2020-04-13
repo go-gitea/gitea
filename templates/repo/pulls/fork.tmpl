@@ -13,20 +13,20 @@
 						<label>{{.i18n.Tr "repo.owner"}}</label>
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
-							<span class="text">
+							<span class="text" title="{{.ContextUser.Name}}">
 								<img class="ui mini image" src="{{.ContextUser.RelAvatarLink}}">
 								{{.ContextUser.ShortName 20}}
 							</span>
 							<i class="dropdown icon"></i>
 							<div class="menu">
 								{{if .CanForkToUser}}
-									<div class="item" data-value="{{.SignedUser.ID}}">
+									<div class="item" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
 										<img class="ui mini image" src="{{.SignedUser.RelAvatarLink}}">
 										{{.SignedUser.ShortName 20}}
 									</div>
 								{{end}}
 								{{range .Orgs}}
-									<div class="item" data-value="{{.ID}}">
+									<div class="item" data-value="{{.ID}}" title="{{.Name}}">
 										<img class="ui mini image" src="{{.RelAvatarLink}}">
 										{{.ShortName 20}}
 									</div>

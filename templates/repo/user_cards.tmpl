@@ -1,7 +1,9 @@
 <div class="ui container user-cards">
+	{{if .CardsTitle}}
 	<h2 class="ui dividing header">
 		{{.CardsTitle}}
 	</h2>
+	{{end}}
 	<ul class="list">
 		{{range .Cards}}
 			<li class="item ui segment">
@@ -12,36 +14,16 @@
 
 				<div class="meta">
 					{{if .Website}}
-						<span class="octicon octicon-link"></span> <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
+						{{svg "octicon-link" 16}} <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
 					{{else if .Location}}
-						<span class="octicon octicon-location"></span> {{.Location}}
+						{{svg "octicon-location" 16}} {{.Location}}
 					{{else}}
-						<span class="octicon octicon-clock"></span> {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+						{{svg "octicon-clock" 16}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 					{{end}}
 				</div>
 			</li>
 		{{end}}
 	</ul>
 
-	{{with .Page}}
-		{{if gt .TotalPages 1}}
-			<div class="center page buttons">
-				<div class="ui borderless pagination menu">
-					<a class="{{if not .HasPrevious}}disabled{{end}} item" {{if .HasPrevious}}href="{{$.Link}}?page={{.Previous}}"{{end}}>
-						<i class="left arrow icon"></i> {{$.i18n.Tr "repo.issues.previous"}}
-					</a>
-					{{range .Pages}}
-						{{if eq .Num -1}}
-							<a class="disabled item">...</a>
-						{{else}}
-							<a class="{{if .IsCurrent}}active{{end}} item" {{if not .IsCurrent}}href="{{$.Link}}?page={{.Num}}"{{end}}>{{.Num}}</a>
-						{{end}}
-					{{end}}
-					<a class="{{if not .HasNext}}disabled{{end}} item" {{if .HasNext}}href="{{$.Link}}?page={{.Next}}"{{end}}>
-						{{$.i18n.Tr "repo.issues.next"}}&nbsp;<i class="icon right arrow"></i>
-					</a>
-				</div>
-			</div>
-		{{end}}
-	{{end}}
+	{{ template "base/paginate" . }}
 </div>

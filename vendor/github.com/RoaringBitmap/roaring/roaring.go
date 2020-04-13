@@ -6,12 +6,12 @@
 package roaring
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"strconv"
+	"sync"
 )
 
 // Bitmap represents a compressed bitmap where you can add integers.
@@ -52,7 +52,7 @@ func (rb *Bitmap) ToBytes() ([]byte, error) {
 	return rb.highlowcontainer.toBytes()
 }
 
-// WriteToMsgpack writes a msgpack2/snappy-streaming compressed serialized
+// Deprecated: WriteToMsgpack writes a msgpack2/snappy-streaming compressed serialized
 // version of this bitmap to stream. The format is not
 // compatible with the WriteTo() format, and is
 // experimental: it may produce smaller on disk
@@ -67,8 +67,14 @@ func (rb *Bitmap) WriteToMsgpack(stream io.Writer) (int64, error) {
 // The format is compatible with other RoaringBitmap
 // implementations (Java, C) and is documented here:
 // https://github.com/RoaringBitmap/RoaringFormatSpec
-func (rb *Bitmap) ReadFrom(stream io.Reader) (int64, error) {
-	return rb.highlowcontainer.readFrom(stream)
+func (rb *Bitmap) ReadFrom(reader io.Reader) (p int64, err error) {
+	stream := byteInputAdapterPool.Get().(*byteInputAdapter)
+	stream.reset(reader)
+
+	p, err = rb.highlowcontainer.readFrom(stream)
+	byteInputAdapterPool.Put(stream)
+
+	return
 }
 
 // FromBuffer creates a bitmap from its serialized version stored in buffer
@@ -87,9 +93,35 @@ func (rb *Bitmap) ReadFrom(stream io.Reader) (int64, error) {
 // You should *not* change the copy-on-write status of the resulting
 // bitmaps (SetCopyOnWrite).
 //
-func (rb *Bitmap) FromBuffer(buf []byte) (int64, error) {
-	return rb.highlowcontainer.fromBuffer(buf)
+// If buf becomes unavailable, then a bitmap created with
+// FromBuffer would be effectively broken. Furthermore, any
+// bitmap derived from this bitmap (e.g., via Or, And) might
+// also be broken. Thus, before making buf unavailable, you should
+// call CloneCopyOnWriteContainers on all such bitmaps.
+//
+func (rb *Bitmap) FromBuffer(buf []byte) (p int64, err error) {
+	stream := byteBufferPool.Get().(*byteBuffer)
+	stream.reset(buf)
+
+	p, err = rb.highlowcontainer.readFrom(stream)
+	byteBufferPool.Put(stream)
+
+	return
 }
+
+var (
+	byteBufferPool = sync.Pool{
+		New: func() interface{} {
+			return &byteBuffer{}
+		},
+	}
+
+	byteInputAdapterPool = sync.Pool{
+		New: func() interface{} {
+			return &byteInputAdapter{}
+		},
+	}
+)
 
 // RunOptimize attempts to further compress the runs of consecutive values found in the bitmap
 func (rb *Bitmap) RunOptimize() {
@@ -101,7 +133,7 @@ func (rb *Bitmap) HasRunCompression() bool {
 	return rb.highlowcontainer.hasRunCompression()
 }
 
-// ReadFromMsgpack reads a msgpack2/snappy-streaming serialized
+// Deprecated: ReadFromMsgpack reads a msgpack2/snappy-streaming serialized
 // version of this bitmap from stream. The format is
 // expected is that written by the WriteToMsgpack()
 // call; see additional notes there.
@@ -110,29 +142,15 @@ func (rb *Bitmap) ReadFromMsgpack(stream io.Reader) (int64, error) {
 }
 
 // MarshalBinary implements the encoding.BinaryMarshaler interface for the bitmap
+// (same as ToBytes)
 func (rb *Bitmap) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
-	writer := bufio.NewWriter(&buf)
-	_, err := rb.WriteTo(writer)
-	if err != nil {
-		return nil, err
-	}
-	err = writer.Flush()
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return rb.ToBytes()
 }
 
 // UnmarshalBinary implements the encoding.BinaryUnmarshaler interface for the bitmap
 func (rb *Bitmap) UnmarshalBinary(data []byte) error {
-	var buf bytes.Buffer
-	_, err := buf.Write(data)
-	if err != nil {
-		return err
-	}
-	reader := bufio.NewReader(&buf)
-	_, err = rb.ReadFrom(reader)
+	r := bytes.NewReader(data)
+	_, err := rb.ReadFrom(r)
 	return err
 }
 
@@ -215,10 +233,20 @@ type IntIterable interface {
 	Next() uint32
 }
 
+// IntPeekable allows you to look at the next value without advancing and
+// advance as long as the next value is smaller than minval
+type IntPeekable interface {
+	IntIterable
+	// PeekNext peeks the next value without advancing the iterator
+	PeekNext() uint32
+	// AdvanceIfNeeded advances as long as the next value is smaller than minval
+	AdvanceIfNeeded(minval uint32)
+}
+
 type intIterator struct {
 	pos              int
 	hs               uint32
-	iter             shortIterable
+	iter             shortPeekable
 	highlowcontainer *roaringArray
 }
 
@@ -244,10 +272,73 @@ func (ii *intIterator) Next() uint32 {
 	return x
 }
 
+// PeekNext peeks the next value without advancing the iterator
+func (ii *intIterator) PeekNext() uint32 {
+	return uint32(ii.iter.peekNext()&maxLowBit) | ii.hs
+}
+
+// AdvanceIfNeeded advances as long as the next value is smaller than minval
+func (ii *intIterator) AdvanceIfNeeded(minval uint32) {
+	to := minval >> 16
+
+	for ii.HasNext() && (ii.hs>>16) < to {
+		ii.pos++
+		ii.init()
+	}
+
+	if ii.HasNext() && (ii.hs>>16) == to {
+		ii.iter.advanceIfNeeded(lowbits(minval))
+
+		if !ii.iter.hasNext() {
+			ii.pos++
+			ii.init()
+		}
+	}
+}
+
 func newIntIterator(a *Bitmap) *intIterator {
 	p := new(intIterator)
 	p.pos = 0
 	p.highlowcontainer = &a.highlowcontainer
+	p.init()
+	return p
+}
+
+type intReverseIterator struct {
+	pos              int
+	hs               uint32
+	iter             shortIterable
+	highlowcontainer *roaringArray
+}
+
+// HasNext returns true if there are more integers to iterate over
+func (ii *intReverseIterator) HasNext() bool {
+	return ii.pos >= 0
+}
+
+func (ii *intReverseIterator) init() {
+	if ii.pos >= 0 {
+		ii.iter = ii.highlowcontainer.getContainerAtIndex(ii.pos).getReverseIterator()
+		ii.hs = uint32(ii.highlowcontainer.getKeyAtIndex(ii.pos)) << 16
+	} else {
+		ii.iter = nil
+	}
+}
+
+// Next returns the next integer
+func (ii *intReverseIterator) Next() uint32 {
+	x := uint32(ii.iter.next()) | ii.hs
+	if !ii.iter.hasNext() {
+		ii.pos = ii.pos - 1
+		ii.init()
+	}
+	return x
+}
+
+func newIntReverseIterator(a *Bitmap) *intReverseIterator {
+	p := new(intReverseIterator)
+	p.highlowcontainer = &a.highlowcontainer
+	p.pos = a.highlowcontainer.size() - 1
 	p.init()
 	return p
 }
@@ -325,12 +416,20 @@ func (rb *Bitmap) String() string {
 	return buffer.String()
 }
 
-// Iterator creates a new IntIterable to iterate over the integers contained in the bitmap, in sorted order
-func (rb *Bitmap) Iterator() IntIterable {
+// Iterator creates a new IntPeekable to iterate over the integers contained in the bitmap, in sorted order;
+// the iterator becomes invalid if the bitmap is modified (e.g., with Add or Remove).
+func (rb *Bitmap) Iterator() IntPeekable {
 	return newIntIterator(rb)
 }
 
-// Iterator creates a new ManyIntIterable to iterate over the integers contained in the bitmap, in sorted order
+// ReverseIterator creates a new IntIterable to iterate over the integers contained in the bitmap, in sorted order;
+// the iterator becomes invalid if the bitmap is modified (e.g., with Add or Remove).
+func (rb *Bitmap) ReverseIterator() IntIterable {
+	return newIntReverseIterator(rb)
+}
+
+// ManyIterator creates a new ManyIntIterable to iterate over the integers contained in the bitmap, in sorted order;
+// the iterator becomes invalid if the bitmap is modified (e.g., with Add or Remove).
 func (rb *Bitmap) ManyIterator() ManyIntIterable {
 	return newManyIntIterator(rb)
 }
@@ -372,6 +471,46 @@ func (rb *Bitmap) Equals(o interface{}) bool {
 		return srb.highlowcontainer.equals(rb.highlowcontainer)
 	}
 	return false
+}
+
+// AddOffset adds the value 'offset' to each and every value in a bitmap, generating a new bitmap in the process
+func AddOffset(x *Bitmap, offset uint32) (answer *Bitmap) {
+	containerOffset := highbits(offset)
+	inOffset := lowbits(offset)
+	if inOffset == 0 {
+		answer = x.Clone()
+		for pos := 0; pos < answer.highlowcontainer.size(); pos++ {
+			key := answer.highlowcontainer.getKeyAtIndex(pos)
+			key += containerOffset
+			answer.highlowcontainer.keys[pos] = key
+		}
+	} else {
+		answer = New()
+		for pos := 0; pos < x.highlowcontainer.size(); pos++ {
+			key := x.highlowcontainer.getKeyAtIndex(pos)
+			key += containerOffset
+			c := x.highlowcontainer.getContainerAtIndex(pos)
+			offsetted := c.addOffset(inOffset)
+			if offsetted[0].getCardinality() > 0 {
+				curSize := answer.highlowcontainer.size()
+				lastkey := uint16(0)
+				if curSize > 0 {
+					lastkey = answer.highlowcontainer.getKeyAtIndex(curSize - 1)
+				}
+				if curSize > 0 && lastkey == key {
+					prev := answer.highlowcontainer.getContainerAtIndex(curSize - 1)
+					orrseult := prev.ior(offsetted[0])
+					answer.highlowcontainer.setContainerAtIndex(curSize-1, orrseult)
+				} else {
+					answer.highlowcontainer.appendContainer(key, offsetted[0], false)
+				}
+			}
+			if offsetted[1].getCardinality() > 0 {
+				answer.highlowcontainer.appendContainer(key+1, offsetted[1], false)
+			}
+		}
+	}
+	return answer
 }
 
 // Add the integer x to the bitmap
@@ -794,11 +933,6 @@ main:
 	}
 }
 
-/*func (rb *Bitmap) Or(x2 *Bitmap) {
-	results := Or(rb, x2) // Todo: could be computed in-place for reduced memory usage
-	rb.highlowcontainer = results.highlowcontainer
-}*/
-
 // AndNot computes the difference between two bitmaps and stores the result in the current bitmap
 func (rb *Bitmap) AndNot(x2 *Bitmap) {
 	pos1 := 0
@@ -1086,10 +1220,10 @@ func (rb *Bitmap) Flip(rangeStart, rangeEnd uint64) {
 		return
 	}
 
-	hbStart := highbits(uint32(rangeStart))
-	lbStart := lowbits(uint32(rangeStart))
-	hbLast := highbits(uint32(rangeEnd - 1))
-	lbLast := lowbits(uint32(rangeEnd - 1))
+	hbStart := uint32(highbits(uint32(rangeStart)))
+	lbStart := uint32(lowbits(uint32(rangeStart)))
+	hbLast := uint32(highbits(uint32(rangeEnd - 1)))
+	lbLast := uint32(lowbits(uint32(rangeEnd - 1)))
 
 	var max uint32 = maxLowBit
 	for hb := hbStart; hb <= hbLast; hb++ {
@@ -1102,7 +1236,7 @@ func (rb *Bitmap) Flip(rangeStart, rangeEnd uint64) {
 			containerLast = uint32(lbLast)
 		}
 
-		i := rb.highlowcontainer.getIndex(hb)
+		i := rb.highlowcontainer.getIndex(uint16(hb))
 
 		if i >= 0 {
 			c := rb.highlowcontainer.getWritableContainerAtIndex(i).inot(int(containerStart), int(containerLast)+1)
@@ -1113,7 +1247,7 @@ func (rb *Bitmap) Flip(rangeStart, rangeEnd uint64) {
 			}
 		} else { // *think* the range of ones must never be
 			// empty.
-			rb.highlowcontainer.insertNewKeyValueAt(-i-1, hb, rangeOfOnes(int(containerStart), int(containerLast)))
+			rb.highlowcontainer.insertNewKeyValueAt(-i-1, uint16(hb), rangeOfOnes(int(containerStart), int(containerLast)))
 		}
 	}
 }
@@ -1139,24 +1273,24 @@ func (rb *Bitmap) AddRange(rangeStart, rangeEnd uint64) {
 	lbLast := uint32(lowbits(uint32(rangeEnd - 1)))
 
 	var max uint32 = maxLowBit
-	for hb := uint16(hbStart); hb <= uint16(hbLast); hb++ {
+	for hb := hbStart; hb <= hbLast; hb++ {
 		containerStart := uint32(0)
-		if hb == uint16(hbStart) {
+		if hb == hbStart {
 			containerStart = lbStart
 		}
 		containerLast := max
-		if hb == uint16(hbLast) {
+		if hb == hbLast {
 			containerLast = lbLast
 		}
 
-		i := rb.highlowcontainer.getIndex(hb)
+		i := rb.highlowcontainer.getIndex(uint16(hb))
 
 		if i >= 0 {
 			c := rb.highlowcontainer.getWritableContainerAtIndex(i).iaddRange(int(containerStart), int(containerLast)+1)
 			rb.highlowcontainer.setContainerAtIndex(i, c)
 		} else { // *think* the range of ones must never be
 			// empty.
-			rb.highlowcontainer.insertNewKeyValueAt(-i-1, hb, rangeOfOnes(int(containerStart), int(containerLast)))
+			rb.highlowcontainer.insertNewKeyValueAt(-i-1, uint16(hb), rangeOfOnes(int(containerStart), int(containerLast)))
 		}
 	}
 }
@@ -1243,13 +1377,13 @@ func Flip(bm *Bitmap, rangeStart, rangeEnd uint64) *Bitmap {
 	}
 
 	answer := NewBitmap()
-	hbStart := highbits(uint32(rangeStart))
-	lbStart := lowbits(uint32(rangeStart))
-	hbLast := highbits(uint32(rangeEnd - 1))
-	lbLast := lowbits(uint32(rangeEnd - 1))
+	hbStart := uint32(highbits(uint32(rangeStart)))
+	lbStart := uint32(lowbits(uint32(rangeStart)))
+	hbLast := uint32(highbits(uint32(rangeEnd - 1)))
+	lbLast := uint32(lowbits(uint32(rangeEnd - 1)))
 
 	// copy the containers before the active area
-	answer.highlowcontainer.appendCopiesUntil(bm.highlowcontainer, hbStart)
+	answer.highlowcontainer.appendCopiesUntil(bm.highlowcontainer, uint16(hbStart))
 
 	var max uint32 = maxLowBit
 	for hb := hbStart; hb <= hbLast; hb++ {
@@ -1262,23 +1396,23 @@ func Flip(bm *Bitmap, rangeStart, rangeEnd uint64) *Bitmap {
 			containerLast = uint32(lbLast)
 		}
 
-		i := bm.highlowcontainer.getIndex(hb)
-		j := answer.highlowcontainer.getIndex(hb)
+		i := bm.highlowcontainer.getIndex(uint16(hb))
+		j := answer.highlowcontainer.getIndex(uint16(hb))
 
 		if i >= 0 {
 			c := bm.highlowcontainer.getContainerAtIndex(i).not(int(containerStart), int(containerLast)+1)
 			if c.getCardinality() > 0 {
-				answer.highlowcontainer.insertNewKeyValueAt(-j-1, hb, c)
+				answer.highlowcontainer.insertNewKeyValueAt(-j-1, uint16(hb), c)
 			}
 
 		} else { // *think* the range of ones must never be
 			// empty.
-			answer.highlowcontainer.insertNewKeyValueAt(-j-1, hb,
+			answer.highlowcontainer.insertNewKeyValueAt(-j-1, uint16(hb),
 				rangeOfOnes(int(containerStart), int(containerLast)))
 		}
 	}
 	// copy the containers after the active area.
-	answer.highlowcontainer.appendCopiesAfter(bm.highlowcontainer, hbLast)
+	answer.highlowcontainer.appendCopiesAfter(bm.highlowcontainer, uint16(hbLast))
 
 	return answer
 }
@@ -1294,6 +1428,21 @@ func (rb *Bitmap) SetCopyOnWrite(val bool) {
 // GetCopyOnWrite gets this bitmap's copy-on-write property
 func (rb *Bitmap) GetCopyOnWrite() (val bool) {
 	return rb.highlowcontainer.copyOnWrite
+}
+
+// CloneCopyOnWriteContainers clones all containers which have
+// needCopyOnWrite set to true.
+// This can be used to make sure it is safe to munmap a []byte
+// that the roaring array may still have a reference to, after
+// calling FromBuffer.
+// More generally this function is useful if you call FromBuffer
+// to construct a bitmap with a backing array buf
+// and then later discard the buf array. Note that you should call
+// CloneCopyOnWriteContainers on all bitmaps that were derived
+// from the 'FromBuffer' bitmap since they map have dependencies
+// on the buf array as well.
+func (rb *Bitmap) CloneCopyOnWriteContainers() {
+	rb.highlowcontainer.cloneCopyOnWriteContainers()
 }
 
 // FlipInt calls Flip after casting the parameters (convenience method)

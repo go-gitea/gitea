@@ -12,6 +12,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/urfave/cli"
 )
 
@@ -22,15 +24,23 @@ func argsSet(c *cli.Context, args ...string) error {
 		if !c.IsSet(a) {
 			return errors.New(a + " is not set")
 		}
+
+		if util.IsEmptyString(a) {
+			return errors.New(a + " is required")
+		}
 	}
 	return nil
 }
 
 func initDB() error {
-	setting.NewContext()
-	models.LoadConfigs()
+	return initDBDisableConsole(false)
+}
 
-	setting.NewXORMLogService(false)
+func initDBDisableConsole(disableConsole bool) error {
+	setting.NewContext()
+	setting.InitDBConfig()
+
+	setting.NewXORMLogService(disableConsole)
 	if err := models.SetEngine(); err != nil {
 		return fmt.Errorf("models.SetEngine: %v", err)
 	}

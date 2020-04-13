@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -26,13 +26,13 @@
   }
 
   CodeMirror.defineMode("jsx", function(config, modeConfig) {
-    var xmlMode = CodeMirror.getMode(config, {name: "xml", allowMissing: true, multilineTagIndentPastTag: false})
+    var xmlMode = CodeMirror.getMode(config, {name: "xml", allowMissing: true, multilineTagIndentPastTag: false, allowMissingTagName: true})
     var jsMode = CodeMirror.getMode(config, modeConfig && modeConfig.base || "javascript")
 
     function flatXMLIndent(state) {
       var tagName = state.tagName
       state.tagName = null
-      var result = xmlMode.indent(state, "")
+      var result = xmlMode.indent(state, "", "")
       state.tagName = tagName
       return result
     }
@@ -105,7 +105,7 @@
     function jsToken(stream, state, cx) {
       if (stream.peek() == "<" && jsMode.expressionAllowed(stream, cx.state)) {
         jsMode.skipExpression(cx.state)
-        state.context = new Context(CodeMirror.startState(xmlMode, jsMode.indent(cx.state, "")),
+        state.context = new Context(CodeMirror.startState(xmlMode, jsMode.indent(cx.state, "", "")),
                                     xmlMode, 0, state.context)
         return null
       }
@@ -144,4 +144,5 @@
   }, "xml", "javascript")
 
   CodeMirror.defineMIME("text/jsx", "jsx")
+  CodeMirror.defineMIME("text/typescript-jsx", {name: "jsx", base: {name: "javascript", typescript: true}})
 });

@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package models
 
 import (
@@ -38,6 +42,14 @@ func TestU2FRegistration_UpdateCounter(t *testing.T) {
 	reg.Counter = 1
 	assert.NoError(t, reg.UpdateCounter())
 	AssertExistsIf(t, true, &U2FRegistration{ID: 1, Counter: 1})
+}
+
+func TestU2FRegistration_UpdateLargeCounter(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	reg := AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
+	reg.Counter = 0xffffffff
+	assert.NoError(t, reg.UpdateCounter())
+	AssertExistsIf(t, true, &U2FRegistration{ID: 1, Counter: 0xffffffff})
 }
 
 func TestCreateRegistration(t *testing.T) {

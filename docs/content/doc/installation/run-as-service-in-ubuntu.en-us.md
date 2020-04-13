@@ -13,28 +13,29 @@ menu:
     identifier: "linux-service"
 ---
 
-### Run as service in Ubuntu 16.04 LTS
+### Run Gitea as Linux service
+
+You can run Gitea as service, using either systemd or supervisor. The steps below tested on Ubuntu 16.04, but those should work on any Linux distributions (with little modification).
 
 #### Using systemd
 
-Run the below command in a terminal:
-```
-sudo vim /etc/systemd/system/gitea.service
-```
-
-Copy the sample [gitea.service](https://github.com/go-gitea/gitea/blob/master/contrib/systemd/gitea.service).
+Copy the sample [gitea.service](https://github.com/go-gitea/gitea/blob/master/contrib/systemd/gitea.service) to `/etc/systemd/system/gitea.service`, then edit the file with your favorite editor.
 
 Uncomment any service that needs to be enabled on this host, such as MySQL.
 
 Change the user, home directory, and other required startup values. Change the
 PORT or remove the -p flag if default port is used.
 
-Enable and start gitea at boot:
+Enable and start Gitea at boot:
 ```
 sudo systemctl enable gitea
 sudo systemctl start gitea
 ```
 
+If you have systemd version 220 or later, you can enable and immediately start Gitea at once by:
+```
+sudo systemctl enable gitea --now
+```
 
 #### Using supervisor
 
@@ -45,23 +46,24 @@ sudo apt install supervisor
 
 Create a log dir for the supervisor logs:
 ```
-# assuming gitea is installed in /home/git/gitea/
+# assuming Gitea is installed in /home/git/gitea/
 mkdir /home/git/gitea/log/supervisor
 ```
 
-Open supervisor config file in a file editor:
-```
-sudo vim /etc/supervisor/supervisord.conf
-```
-
 Append the configuration from the sample
-[supervisord config](https://github.com/go-gitea/gitea/blob/master/contrib/supervisor/gitea).
+[supervisord config](https://github.com/go-gitea/gitea/blob/master/contrib/supervisor/gitea) to `/etc/supervisor/supervisord.conf`.
 
-Change the user(git) and home(/home/git) settings to match the deployment
-environment. Change the PORT or remove the -p flag if default port is used.
+Using your favorite editor, change the user (git) and home
+(/home/git) settings to match the deployment environment. Change the PORT
+or remove the -p flag if default port is used.
 
 Lastly enable and start supervisor at boot:
 ```
 sudo systemctl enable supervisor
 sudo systemctl start supervisor
+```
+
+If you have systemd version 220 or later, you can enable and immediately start supervisor by:
+```
+sudo systemctl enable supervisor --now
 ```

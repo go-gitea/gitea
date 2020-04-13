@@ -6,10 +6,22 @@ package models
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
-	"github.com/go-xorm/xorm"
+	"code.gitea.io/gitea/modules/git"
+
+	"xorm.io/xorm"
 )
+
+// ActivityAuthorData represents statistical git commit count data
+type ActivityAuthorData struct {
+	Name       string `json:"name"`
+	Login      string `json:"login"`
+	AvatarLink string `json:"avatar_link"`
+	HomeLink   string `json:"home_link"`
+	Commits    int64  `json:"commits"`
+}
 
 // ActivityStats represets issue and pull request information.
 type ActivityStats struct {
@@ -24,30 +36,108 @@ type ActivityStats struct {
 	UnresolvedIssues            IssueList
 	PublishedReleases           []*Release
 	PublishedReleaseAuthorCount int64
+	Code                        *git.CodeActivityStats
 }
 
 // GetActivityStats return stats for repository at given time range
-func GetActivityStats(repoID int64, timeFrom time.Time, releases, issues, prs bool) (*ActivityStats, error) {
-	stats := &ActivityStats{}
+func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
+	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
 	if releases {
-		if err := stats.FillReleases(repoID, timeFrom); err != nil {
+		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillReleases: %v", err)
 		}
 	}
 	if prs {
-		if err := stats.FillPullRequests(repoID, timeFrom); err != nil {
+		if err := stats.FillPullRequests(repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillPullRequests: %v", err)
 		}
 	}
 	if issues {
-		if err := stats.FillIssues(repoID, timeFrom); err != nil {
+		if err := stats.FillIssues(repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillIssues: %v", err)
 		}
 	}
-	if err := stats.FillUnresolvedIssues(repoID, timeFrom, issues, prs); err != nil {
+	if err := stats.FillUnresolvedIssues(repo.ID, timeFrom, issues, prs); err != nil {
 		return nil, fmt.Errorf("FillUnresolvedIssues: %v", err)
 	}
+	if code {
+		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			return nil, fmt.Errorf("OpenRepository: %v", err)
+		}
+		defer gitRepo.Close()
+
+		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
+		if err != nil {
+			return nil, fmt.Errorf("FillFromGit: %v", err)
+		}
+		stats.Code = code
+	}
 	return stats, nil
+}
+
+// GetActivityStatsTopAuthors returns top author stats for git commits for all branches
+func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return nil, fmt.Errorf("OpenRepository: %v", err)
+	}
+	defer gitRepo.Close()
+
+	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
+	if err != nil {
+		return nil, fmt.Errorf("FillFromGit: %v", err)
+	}
+	if code.Authors == nil {
+		return nil, nil
+	}
+	users := make(map[int64]*ActivityAuthorData)
+	var unknownUserID int64
+	unknownUserAvatarLink := NewGhostUser().AvatarLink()
+	for _, v := range code.Authors {
+		if len(v.Email) == 0 {
+			continue
+		}
+		u, err := GetUserByEmail(v.Email)
+		if u == nil || IsErrUserNotExist(err) {
+			unknownUserID--
+			users[unknownUserID] = &ActivityAuthorData{
+				Name:       v.Name,
+				AvatarLink: unknownUserAvatarLink,
+				Commits:    v.Commits,
+			}
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if user, ok := users[u.ID]; !ok {
+			users[u.ID] = &ActivityAuthorData{
+				Name:       u.DisplayName(),
+				Login:      u.LowerName,
+				AvatarLink: u.AvatarLink(),
+				HomeLink:   u.HomeLink(),
+				Commits:    v.Commits,
+			}
+		} else {
+			user.Commits += v.Commits
+		}
+	}
+	v := make([]*ActivityAuthorData, 0)
+	for _, u := range users {
+		v = append(v, u)
+	}
+
+	sort.Slice(v, func(i, j int) bool {
+		return v[i].Commits > v[j].Commits
+	})
+
+	cnt := count
+	if cnt > len(v) {
+		cnt = len(v)
+	}
+
+	return v[:cnt], nil
 }
 
 // ActivePRCount returns total active pull request count

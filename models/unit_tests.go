@@ -14,20 +14,24 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 	"gopkg.in/testfixtures.v2"
+	"xorm.io/xorm"
+	"xorm.io/xorm/names"
 )
 
 // NonexistentID an ID that will never exist
 const NonexistentID = int64(math.MaxInt64)
 
 // giteaRoot a path to the gitea root
-var giteaRoot string
+var (
+	giteaRoot   string
+	fixturesDir string
+)
 
 func fatalTestError(fmtStr string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, fmtStr, args...)
@@ -39,8 +43,8 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 func MainTest(m *testing.M, pathToGiteaRoot string) {
 	var err error
 	giteaRoot = pathToGiteaRoot
-	fixturesDir := filepath.Join(pathToGiteaRoot, "models", "fixtures")
-	if err = createTestEngine(fixturesDir); err != nil {
+	fixturesDir = filepath.Join(pathToGiteaRoot, "models", "fixtures")
+	if err = CreateTestEngine(fixturesDir); err != nil {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
@@ -48,6 +52,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.RunUser = "runuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
+	setting.Database.UseSQLite3 = true
 	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
@@ -63,6 +68,13 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 		fatalTestError("url.Parse: %v\n", err)
 	}
 
+	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
+		fatalTestError("os.RemoveAll: %v\n", err)
+	}
+	if err = com.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+		fatalTestError("com.CopyDir: %v\n", err)
+	}
+
 	exitStatus := m.Run()
 	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
 		fatalTestError("os.RemoveAll: %v\n", err)
@@ -73,13 +85,14 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	os.Exit(exitStatus)
 }
 
-func createTestEngine(fixturesDir string) error {
+// CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
+func CreateTestEngine(fixturesDir string) error {
 	var err error
-	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
+	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
 	if err != nil {
 		return err
 	}
-	x.SetMapper(core.GonicMapper{})
+	x.SetMapper(names.GonicMapper{})
 	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
 		return err
 	}
@@ -115,6 +128,7 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, removeAllWithRetry(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
 	assert.NoError(t, com.CopyDir(metaPath, setting.RepoRootPath))
+	base.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
 }
 
 type testCond struct {

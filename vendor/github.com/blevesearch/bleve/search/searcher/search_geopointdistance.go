@@ -34,14 +34,19 @@ func NewGeoPointDistanceSearcher(indexReader index.IndexReader, centerLon,
 	// build a searcher for the box
 	boxSearcher, err := boxSearcher(indexReader,
 		topLeftLon, topLeftLat, bottomRightLon, bottomRightLat,
-		field, boost, options)
+		field, boost, options, false)
+	if err != nil {
+		return nil, err
+	}
+
+	dvReader, err := indexReader.DocValueReader([]string{field})
 	if err != nil {
 		return nil, err
 	}
 
 	// wrap it in a filtering searcher which checks the actual distance
 	return NewFilteringSearcher(boxSearcher,
-		buildDistFilter(indexReader, field, centerLon, centerLat, dist)), nil
+		buildDistFilter(dvReader, field, centerLon, centerLat, dist)), nil
 }
 
 // boxSearcher builds a searcher for the described bounding box
@@ -49,19 +54,20 @@ func NewGeoPointDistanceSearcher(indexReader index.IndexReader, centerLon,
 // two boxes joined through a disjunction searcher
 func boxSearcher(indexReader index.IndexReader,
 	topLeftLon, topLeftLat, bottomRightLon, bottomRightLat float64,
-	field string, boost float64, options search.SearcherOptions) (
+	field string, boost float64, options search.SearcherOptions, checkBoundaries bool) (
 	search.Searcher, error) {
 	if bottomRightLon < topLeftLon {
 		// cross date line, rewrite as two parts
 
 		leftSearcher, err := NewGeoBoundingBoxSearcher(indexReader,
 			-180, bottomRightLat, bottomRightLon, topLeftLat,
-			field, boost, options, false)
+			field, boost, options, checkBoundaries)
 		if err != nil {
 			return nil, err
 		}
 		rightSearcher, err := NewGeoBoundingBoxSearcher(indexReader,
-			topLeftLon, bottomRightLat, 180, topLeftLat, field, boost, options, false)
+			topLeftLon, bottomRightLat, 180, topLeftLat, field, boost, options,
+			checkBoundaries)
 		if err != nil {
 			_ = leftSearcher.Close()
 			return nil, err
@@ -80,32 +86,32 @@ func boxSearcher(indexReader index.IndexReader,
 	// build geoboundinggox searcher for that bounding box
 	boxSearcher, err := NewGeoBoundingBoxSearcher(indexReader,
 		topLeftLon, bottomRightLat, bottomRightLon, topLeftLat, field, boost,
-		options, false)
+		options, checkBoundaries)
 	if err != nil {
 		return nil, err
 	}
 	return boxSearcher, nil
 }
 
-func buildDistFilter(indexReader index.IndexReader, field string,
+func buildDistFilter(dvReader index.DocValueReader, field string,
 	centerLon, centerLat, maxDist float64) FilterFunc {
 	return func(d *search.DocumentMatch) bool {
 		var lon, lat float64
 		var found bool
-		err := indexReader.DocumentVisitFieldTerms(d.IndexInternalID,
-			[]string{field}, func(field string, term []byte) {
-				// only consider the values which are shifted 0
-				prefixCoded := numeric.PrefixCoded(term)
-				shift, err := prefixCoded.Shift()
-				if err == nil && shift == 0 {
-					i64, err := prefixCoded.Int64()
-					if err == nil {
-						lon = geo.MortonUnhashLon(uint64(i64))
-						lat = geo.MortonUnhashLat(uint64(i64))
-						found = true
-					}
+
+		err := dvReader.VisitDocValues(d.IndexInternalID, func(field string, term []byte) {
+			// only consider the values which are shifted 0
+			prefixCoded := numeric.PrefixCoded(term)
+			shift, err := prefixCoded.Shift()
+			if err == nil && shift == 0 {
+				i64, err := prefixCoded.Int64()
+				if err == nil {
+					lon = geo.MortonUnhashLon(uint64(i64))
+					lat = geo.MortonUnhashLat(uint64(i64))
+					found = true
 				}
-			})
+			}
+		})
 		if err == nil && found {
 			dist := geo.Haversin(lon, lat, centerLon, centerLat)
 			if dist <= maxDist/1000 {

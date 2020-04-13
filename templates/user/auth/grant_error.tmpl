@@ -1,0 +1,16 @@
+{{template "base/head" .}}
+{{if .IsRepo}}<div class="repository">{{template "repo/header" .}}</div>{{end}}
+<div class="ui one column stackable center aligned page grid oauth2-authorize-application-box">
+	<div class="column seven wide">
+		<div class="ui middle centered raised segments">
+			<h1 class="ui top attached header">
+				{{.i18n.Tr "auth.authorization_failed" }}
+			</h1>
+			<h3 class="ui attached segment">{{.Error.ErrorDescription}}</h3>
+			<div class="ui attached segment">
+				<p>{{.i18n.Tr "auth.authorization_failed_desc"}}</p>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -15,8 +15,18 @@
 package document
 
 import (
+	"reflect"
+
 	"github.com/blevesearch/bleve/analysis"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeCompositeField int
+
+func init() {
+	var cf CompositeField
+	reflectStaticSizeCompositeField = int(reflect.TypeOf(cf).Size())
+}
 
 const DefaultCompositeIndexingOptions = IndexField
 
@@ -52,6 +62,21 @@ func NewCompositeFieldWithIndexingOptions(name string, defaultInclude bool, incl
 	}
 
 	return rv
+}
+
+func (c *CompositeField) Size() int {
+	sizeInBytes := reflectStaticSizeCompositeField + size.SizeOfPtr +
+		len(c.name)
+
+	for k, _ := range c.includedFields {
+		sizeInBytes += size.SizeOfString + len(k) + size.SizeOfBool
+	}
+
+	for k, _ := range c.excludedFields {
+		sizeInBytes += size.SizeOfString + len(k) + size.SizeOfBool
+	}
+
+	return sizeInBytes
 }
 
 func (c *CompositeField) Name() string {

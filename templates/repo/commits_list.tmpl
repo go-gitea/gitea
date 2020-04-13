@@ -1,0 +1,98 @@
+<div class="ui attached table segment">
+		<table class="ui very basic striped fixed table single line" id="commits-table">
+			<thead>
+				<tr>
+					<th class="four wide">{{.i18n.Tr "repo.commits.author"}}</th>
+					<th class="two wide sha">SHA1</th>
+					<th class="seven wide message">{{.i18n.Tr "repo.commits.message"}}</th>
+					<th class="three wide right aligned">{{.i18n.Tr "repo.commits.date"}}</th>
+				</tr>
+			</thead>
+			<tbody class="commit-list">
+				{{ $r:= List .Commits}}
+				{{range $r}}
+					<tr>
+						<td class="author">
+							{{$userName := .Author.Name}}
+							{{if .User}}
+								{{if .User.FullName}}
+									{{$userName = .User.FullName}}
+								{{end}}
+								<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
+							{{else}}
+								<img class="ui avatar image" src="{{AvatarLink .Author.Email}}" alt=""/>&nbsp;&nbsp;{{$userName}}
+							{{end}}
+						</td>
+						<td class="sha">
+							{{$class := "ui sha label"}}
+							{{if .Signature}}
+								{{$class = (printf "%s%s" $class " isSigned")}}
+								{{if .Verification.Verified}}
+									{{if eq .Verification.TrustStatus "trusted"}}
+										{{$class = (printf "%s%s" $class " isVerified")}}
+									{{else if eq .Verification.TrustStatus "untrusted"}}
+										{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+									{{else}}
+										{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+									{{end}}
+								{{else if .Verification.Warning}}
+									{{$class = (printf "%s%s" $class " isWarning")}}
+								{{end}}
+							{{end}}
+							{{if $.Reponame}}
+								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+							{{else}}
+								<span class="{{$class}}">
+							{{end}}
+								<span class="shortsha">{{ShortSha .ID.String}}</span>
+								{{if .Signature}}
+									<div class="ui detail icon button">
+										{{if .Verification.Verified}}
+											<div title="{{if eq .Verification.TrustStatus "trusted"}}{{else if eq .Verification.TrustStatus "untrusted"}}{{$.i18n.Tr "repo.commits.signed_by_untrusted_user"}}: {{else}}{{$.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}: {{end}}{{.Verification.Reason}}">
+												{{if ne .Verification.SigningUser.ID 0}}
+													<i class="lock icon"></i>
+													<img class="ui signature avatar image" src="{{.Verification.SigningUser.RelAvatarLink}}" />
+												{{else}}
+													<i title="{{.Verification.Reason}}" class="icons">
+														<i class="lock icon"></i>
+														<i class="tiny inverted cog icon centerlock"></i>
+													</i>
+													<img class="ui signature avatar image" src="{{AvatarLink .Verification.SigningEmail}}" />
+												{{end}}
+											</div>
+										{{else}}
+											<i title="{{$.i18n.Tr .Verification.Reason}}" class="unlock icon"></i>
+										{{end}}
+									</div>
+								{{end}}
+							{{if $.Reponame}}
+								</a>
+							{{else}}
+								</span>
+							{{end}}
+						</td>
+						<td class="message">
+							<span class="message-wrapper">
+							{{if $.PageIsWiki}}
+								<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary}}</span>
+							{{else }}
+								{{ $commitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl $.Username $.Reponame .ID }}
+								<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
+							{{end}}
+							</span>
+							{{if IsMultilineCommitMessage .Message}}
+							<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+							{{end}}
+							{{if eq (CommitType .) "SignCommitWithStatuses"}}
+								{{template "repo/commit_status" .Status}}
+							{{end}}
+							{{if IsMultilineCommitMessage .Message}}
+							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+							{{end}}
+						</td>
+						<td class="text right aligned">{{TimeSince .Author.When $.Lang}}</td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>

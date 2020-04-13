@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,10 +7,15 @@ package models
 
 import (
 	"bufio"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -21,16 +27,18 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 const (
 	tplCommentPrefix = `# gitea public key`
-	tplPublicKey     = tplCommentPrefix + "\n" + `command="%s serv key-%d --config='%s'",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
+	tplCommand       = "%s --config=%q serv key-%d"
+	tplPublicKey     = tplCommentPrefix + "\n" + `command=%q,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
 )
 
 var sshOpLocker sync.Mutex
@@ -50,22 +58,22 @@ type PublicKey struct {
 	ID            int64      `xorm:"pk autoincr"`
 	OwnerID       int64      `xorm:"INDEX NOT NULL"`
 	Name          string     `xorm:"NOT NULL"`
-	Fingerprint   string     `xorm:"NOT NULL"`
+	Fingerprint   string     `xorm:"INDEX NOT NULL"`
 	Content       string     `xorm:"TEXT NOT NULL"`
 	Mode          AccessMode `xorm:"NOT NULL DEFAULT 2"`
 	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
 	LoginSourceID int64      `xorm:"NOT NULL DEFAULT 0"`
 
-	CreatedUnix       util.TimeStamp `xorm:"created"`
-	UpdatedUnix       util.TimeStamp `xorm:"updated"`
-	HasRecentActivity bool           `xorm:"-"`
-	HasUsed           bool           `xorm:"-"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
+	HasRecentActivity bool               `xorm:"-"`
+	HasUsed           bool               `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *PublicKey) AfterLoad() {
 	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
-	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
+	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
 // OmitEmail returns content of public key without email address.
@@ -75,7 +83,7 @@ func (key *PublicKey) OmitEmail() string {
 
 // AuthorizedString returns formatted public key string for authorized_keys file.
 func (key *PublicKey) AuthorizedString() string {
-	return fmt.Sprintf(tplPublicKey, setting.AppPath, key.ID, setting.CustomConf, key.Content)
+	return fmt.Sprintf(tplPublicKey, fmt.Sprintf(tplCommand, setting.AppPath, setting.CustomConf, key.ID), key.Content)
 }
 
 func extractTypeFromBase64Key(key string) (string, error) {
@@ -92,19 +100,74 @@ func extractTypeFromBase64Key(key string) (string, error) {
 	return string(b[4 : 4+keyLength]), nil
 }
 
+const ssh2keyStart = "---- BEGIN SSH2 PUBLIC KEY ----"
+
 // parseKeyString parses any key string in OpenSSH or SSH2 format to clean OpenSSH string (RFC4253).
 func parseKeyString(content string) (string, error) {
-	// Transform all legal line endings to a single "\n".
-	content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
-	// remove trailing newline (and beginning spaces too)
+	// remove whitespace at start and end
 	content = strings.TrimSpace(content)
-	lines := strings.Split(content, "\n")
 
 	var keyType, keyContent, keyComment string
 
-	if len(lines) == 1 {
+	if strings.HasPrefix(content, ssh2keyStart) {
+		// Parse SSH2 file format.
+
+		// Transform all legal line endings to a single "\n".
+		content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
+
+		lines := strings.Split(content, "\n")
+		continuationLine := false
+
+		for _, line := range lines {
+			// Skip lines that:
+			// 1) are a continuation of the previous line,
+			// 2) contain ":" as that are comment lines
+			// 3) contain "-" as that are begin and end tags
+			if continuationLine || strings.ContainsAny(line, ":-") {
+				continuationLine = strings.HasSuffix(line, "\\")
+			} else {
+				keyContent += line
+			}
+		}
+
+		t, err := extractTypeFromBase64Key(keyContent)
+		if err != nil {
+			return "", fmt.Errorf("extractTypeFromBase64Key: %v", err)
+		}
+		keyType = t
+	} else {
+		if strings.Contains(content, "-----BEGIN") {
+			// Convert PEM Keys to OpenSSH format
+			// Transform all legal line endings to a single "\n".
+			content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
+
+			block, _ := pem.Decode([]byte(content))
+			if block == nil {
+				return "", fmt.Errorf("failed to parse PEM block containing the public key")
+			}
+
+			pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+			if err != nil {
+				var pk rsa.PublicKey
+				_, err2 := asn1.Unmarshal(block.Bytes, &pk)
+				if err2 != nil {
+					return "", fmt.Errorf("failed to parse DER encoded public key as either PKIX or PEM RSA Key: %v %v", err, err2)
+				}
+				pub = &pk
+			}
+
+			sshKey, err := ssh.NewPublicKey(pub)
+			if err != nil {
+				return "", fmt.Errorf("unable to convert to ssh public key: %v", err)
+			}
+			content = string(ssh.MarshalAuthorizedKey(sshKey))
+		}
 		// Parse OpenSSH format.
-		parts := strings.SplitN(lines[0], " ", 3)
+
+		// Remove all newlines
+		content = strings.NewReplacer("\r\n", "", "\n", "").Replace(content)
+
+		parts := strings.SplitN(content, " ", 3)
 		switch len(parts) {
 		case 0:
 			return "", errors.New("empty key")
@@ -129,27 +192,11 @@ func parseKeyString(content string) (string, error) {
 		} else if keyType != t {
 			return "", fmt.Errorf("key type and content does not match: %s - %s", keyType, t)
 		}
-	} else {
-		// Parse SSH2 file format.
-		continuationLine := false
-
-		for _, line := range lines {
-			// Skip lines that:
-			// 1) are a continuation of the previous line,
-			// 2) contain ":" as that are comment lines
-			// 3) contain "-" as that are begin and end tags
-			if continuationLine || strings.ContainsAny(line, ":-") {
-				continuationLine = strings.HasSuffix(line, "\\")
-			} else {
-				keyContent = keyContent + line
-			}
-		}
-
-		t, err := extractTypeFromBase64Key(keyContent)
-		if err != nil {
-			return "", fmt.Errorf("extractTypeFromBase64Key: %v", err)
-		}
-		keyType = t
+	}
+	// Finally we need to check whether we can actually read the proposed key:
+	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(keyType + " " + keyContent + " " + keyComment))
+	if err != nil {
+		return "", fmt.Errorf("invalid ssh public key: %v", err)
 	}
 	return keyType + " " + keyContent + " " + keyComment, nil
 }
@@ -313,6 +360,18 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
 
+	if setting.SSH.RootPath != "" {
+		// First of ensure that the RootPath is present, and if not make it with 0700 permissions
+		// This of course doesn't guarantee that this is the right directory for authorized_keys
+		// but at least if it's supposed to be this directory and it doesn't exist and we're the
+		// right user it will at least be created properly.
+		err := os.MkdirAll(setting.SSH.RootPath, 0700)
+		if err != nil {
+			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
+			return err
+		}
+	}
+
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	f, err := os.OpenFile(fPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
@@ -329,7 +388,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 
 		// .ssh directory should have mode 700, and authorized_keys file should have mode 600.
 		if fi.Mode().Perm() > 0600 {
-			log.Error(4, "authorized_keys file has unusual permission flags: %s - setting to -rw-------", fi.Mode().Perm().String())
+			log.Error("authorized_keys file has unusual permission flags: %s - setting to -rw-------", fi.Mode().Perm().String())
 			if err = f.Chmod(0600); err != nil {
 				return err
 			}
@@ -349,7 +408,6 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 func checkKeyFingerprint(e Engine, fingerprint string) error {
 	has, err := e.Get(&PublicKey{
 		Fingerprint: fingerprint,
-		Type:        KeyTypeUser,
 	})
 	if err != nil {
 		return err
@@ -359,7 +417,7 @@ func checkKeyFingerprint(e Engine, fingerprint string) error {
 	return nil
 }
 
-func calcFingerprint(publicKeyContent string) (string, error) {
+func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 	// Calculate fingerprint.
 	tmpPath, err := writeTmpKeyFile(publicKeyContent)
 	if err != nil {
@@ -368,6 +426,9 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 	defer os.Remove(tmpPath)
 	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
 	if err != nil {
+		if strings.Contains(stderr, "is not a public key file") {
+			return "", ErrKeyUnableVerify{stderr}
+		}
 		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
 	} else if len(stdout) < 2 {
 		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
@@ -375,8 +436,40 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 	return strings.Split(stdout, " ")[1], nil
 }
 
+func calcFingerprintNative(publicKeyContent string) (string, error) {
+	// Calculate fingerprint.
+	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(publicKeyContent))
+	if err != nil {
+		return "", err
+	}
+	return ssh.FingerprintSHA256(pk), nil
+}
+
+func calcFingerprint(publicKeyContent string) (string, error) {
+	//Call the method based on configuration
+	var (
+		fnName, fp string
+		err        error
+	)
+	if setting.SSH.StartBuiltinServer {
+		fnName = "calcFingerprintNative"
+		fp, err = calcFingerprintNative(publicKeyContent)
+	} else {
+		fnName = "calcFingerprintSSHKeygen"
+		fp, err = calcFingerprintSSHKeygen(publicKeyContent)
+	}
+	if err != nil {
+		if IsErrKeyUnableVerify(err) {
+			log.Info("%s", publicKeyContent)
+			return "", err
+		}
+		return "", fmt.Errorf("%s: %v", fnName, err)
+	}
+	return fp, nil
+}
+
 func addKey(e Engine, key *PublicKey) (err error) {
-	if len(key.Fingerprint) <= 0 {
+	if len(key.Fingerprint) == 0 {
 		key.Fingerprint, err = calcFingerprint(key.Content)
 		if err != nil {
 			return err
@@ -392,7 +485,7 @@ func addKey(e Engine, key *PublicKey) (err error) {
 }
 
 // AddPublicKey adds new public key to database and authorized_keys file.
-func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*PublicKey, error) {
+func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*PublicKey, error) {
 	log.Trace(content)
 
 	fingerprint, err := calcFingerprint(content)
@@ -400,24 +493,24 @@ func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*Pu
 		return nil, err
 	}
 
-	if err := checkKeyFingerprint(x, fingerprint); err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	if err := checkKeyFingerprint(sess, fingerprint); err != nil {
 		return nil, err
 	}
 
 	// Key name of same user cannot be duplicated.
-	has, err := x.
+	has, err := sess.
 		Where("owner_id = ? AND name = ?", ownerID, name).
 		Get(new(PublicKey))
 	if err != nil {
 		return nil, err
 	} else if has {
 		return nil, ErrKeyNameAlreadyUsed{ownerID, name}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return nil, err
 	}
 
 	key := &PublicKey{
@@ -427,7 +520,7 @@ func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*Pu
 		Content:       content,
 		Mode:          AccessModeWrite,
 		Type:          KeyTypeUser,
-		LoginSourceID: LoginSourceID,
+		LoginSourceID: loginSourceID,
 	}
 	if err = addKey(sess, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
@@ -440,7 +533,7 @@ func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*Pu
 func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	key := new(PublicKey)
 	has, err := x.
-		Id(keyID).
+		ID(keyID).
 		Get(key)
 	if err != nil {
 		return nil, err
@@ -450,11 +543,9 @@ func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	return key, nil
 }
 
-// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
-// and returns public key found.
-func SearchPublicKeyByContent(content string) (*PublicKey, error) {
+func searchPublicKeyByContentWithEngine(e Engine, content string) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := x.
+	has, err := e.
 		Where("content like ?", content+"%").
 		Get(key)
 	if err != nil {
@@ -465,19 +556,44 @@ func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 	return key, nil
 }
 
-// ListPublicKeys returns a list of public keys belongs to given user.
-func ListPublicKeys(uid int64) ([]*PublicKey, error) {
+// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
+// and returns public key found.
+func SearchPublicKeyByContent(content string) (*PublicKey, error) {
+	return searchPublicKeyByContentWithEngine(x, content)
+}
+
+// SearchPublicKey returns a list of public keys matching the provided arguments.
+func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
-	return keys, x.
-		Where("owner_id = ?", uid).
-		Find(&keys)
+	cond := builder.NewCond()
+	if uid != 0 {
+		cond = cond.And(builder.Eq{"owner_id": uid})
+	}
+	if fingerprint != "" {
+		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
+	}
+	return keys, x.Where(cond).Find(&keys)
+}
+
+// ListPublicKeys returns a list of public keys belongs to given user.
+func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
+	sess := x.Where("owner_id = ?", uid)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*PublicKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
+	}
+
+	keys := make([]*PublicKey, 0, 5)
+	return keys, sess.Find(&keys)
 }
 
 // ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
-func ListPublicLdapSSHKeys(uid int64, LoginSourceID int64) ([]*PublicKey, error) {
+func ListPublicLdapSSHKeys(uid int64, loginSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
-		Where("owner_id = ? AND login_source_id = ?", uid, LoginSourceID).
+		Where("owner_id = ? AND login_source_id = ?", uid, loginSourceID).
 		Find(&keys)
 }
 
@@ -492,7 +608,7 @@ func UpdatePublicKeyUpdated(id int64) error {
 	}
 
 	_, err := x.ID(id).Cols("updated_unix").Update(&PublicKey{
-		UpdatedUnix: util.TimeStampNow(),
+		UpdatedUnix: timeutil.TimeStampNow(),
 	})
 	if err != nil {
 		return err
@@ -501,7 +617,7 @@ func UpdatePublicKeyUpdated(id int64) error {
 }
 
 // deletePublicKeys does the actual key deletion but does not update authorized_keys file.
-func deletePublicKeys(e *xorm.Session, keyIDs ...int64) error {
+func deletePublicKeys(e Engine, keyIDs ...int64) error {
 	if len(keyIDs) == 0 {
 		return nil
 	}
@@ -535,6 +651,7 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 	if err = sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	return RewriteAllPublicKeys()
 }
@@ -543,13 +660,29 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 // Note: x.Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
 func RewriteAllPublicKeys() error {
+	return rewriteAllPublicKeys(x)
+}
+
+func rewriteAllPublicKeys(e Engine) error {
 	//Don't rewrite key if internal server
-	if setting.SSH.StartBuiltinServer {
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
 
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
+
+	if setting.SSH.RootPath != "" {
+		// First of ensure that the RootPath is present, and if not make it with 0700 permissions
+		// This of course doesn't guarantee that this is the right directory for authorized_keys
+		// but at least if it's supposed to be this directory and it doesn't exist and we're the
+		// right user it will at least be created properly.
+		err := os.MkdirAll(setting.SSH.RootPath, 0700)
+		if err != nil {
+			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
+			return err
+		}
+	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	tmpPath := fPath + ".tmp"
@@ -569,7 +702,21 @@ func RewriteAllPublicKeys() error {
 		}
 	}
 
-	err = x.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+	if err := regeneratePublicKeys(e, t); err != nil {
+		return err
+	}
+
+	t.Close()
+	return os.Rename(tmpPath, fPath)
+}
+
+// RegeneratePublicKeys regenerates the authorized_keys file
+func RegeneratePublicKeys(t io.StringWriter) error {
+	return regeneratePublicKeys(x, t)
+}
+
+func regeneratePublicKeys(e Engine, t io.StringWriter) error {
+	err := e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	})
@@ -577,6 +724,7 @@ func RewriteAllPublicKeys() error {
 		return err
 	}
 
+	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	if com.IsExist(fPath) {
 		f, err := os.Open(fPath)
 		if err != nil {
@@ -591,13 +739,13 @@ func RewriteAllPublicKeys() error {
 			}
 			_, err = t.WriteString(line + "\n")
 			if err != nil {
+				f.Close()
 				return err
 			}
 		}
-		defer f.Close()
+		f.Close()
 	}
-
-	return os.Rename(tmpPath, fPath)
+	return nil
 }
 
 // ________                .__                 ____  __.
@@ -618,16 +766,16 @@ type DeployKey struct {
 
 	Mode AccessMode `xorm:"NOT NULL DEFAULT 1"`
 
-	CreatedUnix       util.TimeStamp `xorm:"created"`
-	UpdatedUnix       util.TimeStamp `xorm:"updated"`
-	HasRecentActivity bool           `xorm:"-"`
-	HasUsed           bool           `xorm:"-"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
+	HasRecentActivity bool               `xorm:"-"`
+	HasUsed           bool               `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *DeployKey) AfterLoad() {
 	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
-	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
+	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
 // GetContent gets associated public key content.
@@ -705,24 +853,28 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		accessMode = AccessModeWrite
 	}
 
-	pkey := &PublicKey{
-		Fingerprint: fingerprint,
-		Mode:        accessMode,
-		Type:        KeyTypeDeploy,
-	}
-	has, err := x.Get(pkey)
-	if err != nil {
-		return nil, err
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
 	}
 
-	// First time use this deploy key.
-	if !has {
+	pkey := &PublicKey{
+		Fingerprint: fingerprint,
+	}
+	has, err := sess.Get(pkey)
+	if err != nil {
+		return nil, err
+	}
+
+	if has {
+		if pkey.Type != KeyTypeDeploy {
+			return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
+		}
+	} else {
+		// First time use this deploy key.
+		pkey.Mode = accessMode
+		pkey.Type = KeyTypeDeploy
 		pkey.Content = content
 		pkey.Name = name
 		if err = addKey(sess, pkey); err != nil {
@@ -740,8 +892,12 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 
 // GetDeployKeyByID returns deploy key by given ID.
 func GetDeployKeyByID(id int64) (*DeployKey, error) {
+	return getDeployKeyByID(x, id)
+}
+
+func getDeployKeyByID(e Engine, id int64) (*DeployKey, error) {
 	key := new(DeployKey)
-	has, err := x.ID(id).Get(key)
+	has, err := e.ID(id).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -752,11 +908,15 @@ func GetDeployKeyByID(id int64) (*DeployKey, error) {
 
 // GetDeployKeyByRepo returns deploy key by given public key ID and repository ID.
 func GetDeployKeyByRepo(keyID, repoID int64) (*DeployKey, error) {
+	return getDeployKeyByRepo(x, keyID, repoID)
+}
+
+func getDeployKeyByRepo(e Engine, keyID, repoID int64) (*DeployKey, error) {
 	key := &DeployKey{
 		KeyID:  keyID,
 		RepoID: repoID,
 	}
-	has, err := x.Get(key)
+	has, err := e.Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -779,7 +939,19 @@ func UpdateDeployKey(key *DeployKey) error {
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
 func DeleteDeployKey(doer *User, id int64) error {
-	key, err := GetDeployKeyByID(id)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := deleteDeployKey(sess, doer, id); err != nil {
+		return err
+	}
+	return sess.Commit()
+}
+
+func deleteDeployKey(sess Engine, doer *User, id int64) error {
+	key, err := getDeployKeyByID(sess, id)
 	if err != nil {
 		if IsErrDeployKeyNotExist(err) {
 			return nil
@@ -789,22 +961,16 @@ func DeleteDeployKey(doer *User, id int64) error {
 
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin {
-		repo, err := GetRepositoryByID(key.RepoID)
+		repo, err := getRepositoryByID(sess, key.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		yes, err := HasAccess(doer.ID, repo, AccessModeAdmin)
+		has, err := isUserRepoAdmin(sess, repo, doer)
 		if err != nil {
-			return fmt.Errorf("HasAccess: %v", err)
-		} else if !yes {
+			return fmt.Errorf("GetUserRepoPermission: %v", err)
+		} else if !has {
 			return ErrKeyAccessDenied{doer.ID, key.ID, "deploy"}
 		}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
 	}
 
 	if _, err = sess.ID(key.ID).Delete(new(DeployKey)); err != nil {
@@ -821,15 +987,46 @@ func DeleteDeployKey(doer *User, id int64) error {
 		if err = deletePublicKeys(sess, key.KeyID); err != nil {
 			return err
 		}
+
+		// after deleted the public keys, should rewrite the public keys file
+		if err = rewriteAllPublicKeys(sess); err != nil {
+			return err
+		}
 	}
 
-	return sess.Commit()
+	return nil
 }
 
 // ListDeployKeys returns all deploy keys by given repository ID.
-func ListDeployKeys(repoID int64) ([]*DeployKey, error) {
+func ListDeployKeys(repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
+	return listDeployKeys(x, repoID, listOptions)
+}
+
+func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
+	sess := e.Where("repo_id = ?", repoID)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*DeployKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
+	}
+
 	keys := make([]*DeployKey, 0, 5)
-	return keys, x.
-		Where("repo_id = ?", repoID).
-		Find(&keys)
+	return keys, sess.Find(&keys)
+}
+
+// SearchDeployKeys returns a list of deploy keys matching the provided arguments.
+func SearchDeployKeys(repoID int64, keyID int64, fingerprint string) ([]*DeployKey, error) {
+	keys := make([]*DeployKey, 0, 5)
+	cond := builder.NewCond()
+	if repoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": repoID})
+	}
+	if keyID != 0 {
+		cond = cond.And(builder.Eq{"key_id": keyID})
+	}
+	if fingerprint != "" {
+		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
+	}
+	return keys, x.Where(cond).Find(&keys)
 }

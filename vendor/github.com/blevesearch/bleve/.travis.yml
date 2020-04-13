@@ -1,0 +1,29 @@
+sudo: false
+
+language: go
+
+go:
+ - "1.10.x"
+ - "1.11.x"
+ - "1.12.x"
+
+script:
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/mattn/goveralls
+  - go get github.com/kisielk/errcheck
+  - go get -u github.com/FiloSottile/gvt
+  - gvt restore
+  - go test -race -v $(go list ./... | grep -v vendor/)
+  - go vet $(go list ./... | grep -v vendor/)
+  - go test ./test -v -indexType scorch
+  - if [[ ${TRAVIS_GO_VERSION} =~ ^1\.10 ]]; then
+        echo "errcheck skipped for go version" $TRAVIS_GO_VERSION;
+    else
+        errcheck -ignorepkg fmt $(go list ./... | grep -v vendor/);
+    fi
+  - docs/project-code-coverage.sh
+  - docs/build_children.sh
+
+notifications:
+  email:
+    - marty.schoch@gmail.com

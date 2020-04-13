@@ -1,0 +1,137 @@
+{{template "base/head" .}}
+<div class="repository diff">
+	{{template "repo/header" .}}
+	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
+		{{$class := ""}}
+		{{if .Commit.Signature}}
+			{{$class = (printf "%s%s" $class " isSigned")}}
+			{{if .Verification.Verified}}
+				{{if eq .Verification.TrustStatus "trusted"}}
+					{{$class = (printf "%s%s" $class " isVerified")}}
+				{{else if eq .Verification.TrustStatus "untrusted"}}
+					{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+				{{else}}
+					{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+				{{end}}
+			{{else if .Verification.Warning}}
+				{{$class = (printf "%s%s" $class " isWarning")}}
+			{{end}}
+		{{end}}
+		<div class="ui top attached info clearing segment {{$class}}">
+			<a class="ui floated right blue tiny button" href="{{EscapePound .SourcePath}}">
+				{{.i18n.Tr "repo.diff.browse_source"}}
+			</a>
+			<h3 class="has-emoji"><span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commit_status" .CommitStatus}}</h3>
+			{{if IsMultilineCommitMessage .Commit.Message}}
+				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+			{{end}}
+			<span class="text grey">{{svg "octicon-git-branch" 16}}{{.BranchName}}</span>
+		</div>
+		<div class="ui attached info segment {{$class}}">
+			<div class="ui stackable grid">
+				<div class="nine wide column">
+					{{if .Author}}
+						<img class="ui avatar image" src="{{.Author.RelAvatarLink}}" />
+					{{if .Author.FullName}}
+					<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong> {{if .IsSigned}}&lt;{{.Commit.Author.Email}}&gt;{{end}}</a>
+					{{else}}
+					<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong> {{if .IsSigned}}&lt;{{.Commit.Author.Email}}&gt;{{end}}</a>
+					{{end}}
+					{{else}}
+						<img class="ui avatar image" src="{{AvatarLink .Commit.Author.Email}}" />
+						<strong>{{.Commit.Author.Name}}</strong>
+					{{end}}
+					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
+						<span> </span>
+						{{if ne .Verification.CommittingUser.ID 0}}
+							<img class="ui avatar image" src="{{.Verification.CommittingUser.RelAvatarLink}}" />
+							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong> &lt;{{.Commit.Committer.Email}}&gt;</a> 
+						{{else}}
+							<img class="ui avatar image" src="{{AvatarLink .Commit.Committer.Email}}" />
+							<strong>{{.Commit.Committer.Name}}</strong>
+						{{end}}
+					{{end}}
+					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
+				</div>
+				<div class="seven wide right aligned column">
+					<div class="ui horizontal list">
+						{{if .Parents}}
+							<div class="item">
+								{{.i18n.Tr "repo.diff.parent"}}
+							</div>
+							<div class="item">
+								{{range .Parents}}
+									<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
+								{{end}}
+							</div>
+						{{end}}
+						<div class="mobile-only"></div>
+						<div class="item">{{.i18n.Tr "repo.diff.commit"}}</div>
+						<div class="item"><span class="ui blue sha label">{{ShortSha .CommitID}}</span></div>
+					</div>
+				</div><!-- end column -->
+			</div><!-- end grid -->
+		</div>
+		{{if .Commit.Signature}}
+			<div class="ui bottom attached message {{$class}}">
+				{{if .Verification.Verified }}
+					{{if ne .Verification.SigningUser.ID 0}}
+						<i class="lock icon"></i>
+						{{if eq .Verification.TrustStatus "trusted"}}
+							<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
+						{{else if eq .Verification.TrustStatus "untrusted"}}
+							<span class="ui text">{{.i18n.Tr "repo.commits.signed_by_untrusted_user"}}:</span>
+						{{else}}
+							<span class="ui text">{{.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
+						{{end}}
+						<img class="ui avatar image" src="{{.Verification.SigningUser.RelAvatarLink}}" />
+						<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.Name}}</strong> <{{.Verification.SigningEmail}}></a>
+						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
+					{{else}}
+						<i class="icons" title="{{.i18n.Tr "gpg.default_key"}}">
+							<i class="lock icon"></i>
+							<i class="tiny inverted cog icon centerlock"></i>
+						</i>
+						<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
+						<img class="ui avatar image" src="{{AvatarLink .Verification.SigningEmail}}" />
+						<strong>{{.Verification.SigningUser.Name}}</strong> <{{.Verification.SigningEmail}}>
+						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="cogs icon" title="{{.i18n.Tr "gpg.default_key"}}"></i>{{.Verification.SigningKey.KeyID}}</span>
+					{{end}}
+				{{else if .Verification.Warning}}
+					<i class="unlock icon"></i>
+					<span class="ui text">{{.i18n.Tr .Verification.Reason}}</span>
+					<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
+				{{else}}
+				  <i class="unlock icon"></i>
+				  {{.i18n.Tr .Verification.Reason}}
+				  {{if and .Verification.SigningKey (ne .Verification.SigningKey.KeyID "")}}
+					<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
+				  {{end}}
+				{{end}}
+			</div>
+		{{end}}
+		{{if .Note}}
+			<div class="ui top attached info segment message git-notes">
+				<i class="sticky note icon"></i>
+				{{.i18n.Tr "repo.diff.git-notes"}}:
+				{{if .NoteAuthor}}
+					<a href="{{.NoteAuthor.HomeLink}}">
+						{{if .NoteAuthor.FullName}}
+						  <strong>{{.NoteAuthor.FullName}}</strong>
+						{{else}}
+						  <strong>{{.NoteCommit.Author.Name}}</strong>
+						{{end}}
+					</a>
+				{{else}}
+					<strong>{{.NoteCommit.Author.Name}}</strong>
+				{{end}}
+				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
+			</div>
+			<div class="ui bottom attached info segment git-notes">
+				<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+			</div>
+		{{end}}
+		{{template "repo/diff/box" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

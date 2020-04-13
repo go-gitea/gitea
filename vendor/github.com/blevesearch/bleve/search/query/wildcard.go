@@ -15,7 +15,6 @@
 package query
 
 import (
-	"regexp"
 	"strings"
 
 	"github.com/blevesearch/bleve/index"
@@ -47,7 +46,6 @@ type WildcardQuery struct {
 	Wildcard string `json:"wildcard"`
 	FieldVal string `json:"field,omitempty"`
 	BoostVal *Boost `json:"boost,omitempty"`
-	compiled *regexp.Regexp
 }
 
 // NewWildcardQuery creates a new Query which finds
@@ -83,24 +81,13 @@ func (q *WildcardQuery) Searcher(i index.IndexReader, m mapping.IndexMapping, op
 	if q.FieldVal == "" {
 		field = m.DefaultSearchField()
 	}
-	if q.compiled == nil {
-		var err error
-		q.compiled, err = q.convertToRegexp()
-		if err != nil {
-			return nil, err
-		}
-	}
 
-	return searcher.NewRegexpSearcher(i, q.compiled, field, q.BoostVal.Value(), options)
+	regexpString := wildcardRegexpReplacer.Replace(q.Wildcard)
+
+	return searcher.NewRegexpStringSearcher(i, regexpString, field,
+		q.BoostVal.Value(), options)
 }
 
 func (q *WildcardQuery) Validate() error {
-	var err error
-	q.compiled, err = q.convertToRegexp()
-	return err
-}
-
-func (q *WildcardQuery) convertToRegexp() (*regexp.Regexp, error) {
-	regexpString := wildcardRegexpReplacer.Replace(q.Wildcard)
-	return regexp.Compile(regexpString)
+	return nil // real validation delayed until searcher constructor
 }

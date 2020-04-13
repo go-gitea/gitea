@@ -1,0 +1,8 @@
+- id: 1
+  grant_id: 1
+  code: "authcode"
+  code_challenge: "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg" # Code Verifier: N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt
+  code_challenge_method: "S256"
+  redirect_uri: "a"
+  valid_until: 3546869730
+

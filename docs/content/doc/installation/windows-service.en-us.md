@@ -13,19 +13,40 @@ menu:
     identifier: "windows-service"
 ---
 
+# Prerequisites
+
+The following changes are made in C:\gitea\custom\conf\app.ini:
+
+```
+RUN_USER = COMPUTERNAME$
+```
+
+Sets Gitea to run as the local system user.
+
+COMPUTERNAME is whatever the response is from `echo %COMPUTERNAME%` on the command line. If the response is `USER-PC` then `RUN_USER = USER-PC$`
+
+## Use absolute paths
+
+If you use sqlite3, change the `PATH` to include the full path:
+
+```
+[database]
+PATH     = c:/gitea/data/gitea.db
+```
+
 # Register as a Windows Service
 
 To register Gitea as a Windows service, open a command prompt (cmd) as an Administrator,
 then run the following command:
 
 ```
-sc create gitea start= auto binPath= ""C:\gitea\gitea.exe" web --config "C:\gitea\custom\conf\app.ini""
+sc.exe create gitea start= auto binPath= "\"C:\gitea\gitea.exe\" web --config \"C:\gitea\custom\conf\app.ini\""
 ```
 
 Do not forget to replace `C:\gitea` with the correct Gitea directory.
 
 Open "Windows Services", search for the service named "gitea", right-click it and click on
-"Run". If everything is OK Gitea will be reachable on `http://localhost:3000` (or the port
+"Run". If everything is OK, Gitea will be reachable on `http://localhost:3000` (or the port
 that was configured).
 
 ## Unregister as a service
@@ -33,5 +54,5 @@ that was configured).
 To unregister Gitea as a service, open a command prompt (cmd) as an Administrator and run:
 
 ```
-sc delete gitea
+sc.exe delete gitea
 ```

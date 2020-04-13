@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -23,12 +24,16 @@ const (
 	tplSettingsDelete base.TplName = "org/settings/delete"
 	// tplSettingsHooks template path for render hook settings
 	tplSettingsHooks base.TplName = "org/settings/hooks"
+	// tplSettingsLabels template path for render labels settings
+	tplSettingsLabels base.TplName = "org/settings/labels"
 )
 
 // Settings render the main settings page
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
+	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.HTML(200, tplSettingsOptions)
 }
 
@@ -36,6 +41,7 @@ func Settings(ctx *context.Context) {
 func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSettingsOptions)
@@ -79,6 +85,8 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
+	org.Visibility = form.Visibility
+	org.RepoAdminChangeTeamAccess = form.RepoAdminChangeTeamAccess
 	if err := models.UpdateUser(org); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
@@ -109,7 +117,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(ctx.Org.OrgLink + "/settings")
 }
 
-// SettingsDelete response for delete repository
+// SettingsDelete response for deleting an organization
 func SettingsDelete(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsDelete"] = true
@@ -146,10 +154,10 @@ func SettingsDelete(ctx *context.Context) {
 func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["BaseLink"] = ctx.Org.OrgLink
+	ctx.Data["BaseLink"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
-	ws, err := models.GetWebhooksByOrgID(ctx.Org.Organization.ID)
+	ws, err := models.GetWebhooksByOrgID(ctx.Org.Organization.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetWebhooksByOrgId", err)
 		return
@@ -170,4 +178,14 @@ func DeleteWebhook(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Org.OrgLink + "/settings/hooks",
 	})
+}
+
+// Labels render organization labels page
+func Labels(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.labels")
+	ctx.Data["PageIsOrgSettingsLabels"] = true
+	ctx.Data["RequireMinicolors"] = true
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["LabelTemplates"] = models.LabelTemplates
+	ctx.HTML(200, tplSettingsLabels)
 }

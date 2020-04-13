@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addIssueDependencies(x *xorm.Engine) (err error) {
@@ -25,6 +25,18 @@ func addIssueDependencies(x *xorm.Engine) (err error) {
 		Updated      time.Time `xorm:"-"`
 		UpdatedUnix  int64     `xorm:"updated"`
 	}
+
+	const (
+		v16UnitTypeCode            = iota + 1 // 1 code
+		v16UnitTypeIssues                     // 2 issues
+		v16UnitTypePRs                        // 3 PRs
+		v16UnitTypeCommits                    // 4 Commits
+		v16UnitTypeReleases                   // 5 Releases
+		v16UnitTypeWiki                       // 6 Wiki
+		v16UnitTypeSettings                   // 7 Settings
+		v16UnitTypeExternalWiki               // 8 ExternalWiki
+		v16UnitTypeExternalTracker            // 9 ExternalTracker
+	)
 
 	if err = x.Sync(new(IssueDependency)); err != nil {
 		return fmt.Errorf("Error creating issue_dependency_table column definition: %v", err)
@@ -80,7 +92,7 @@ func addIssueDependencies(x *xorm.Engine) (err error) {
 
 	//Updating existing issue units
 	units := make([]*RepoUnit, 0, 100)
-	err = x.Where("`type` = ?", V16UnitTypeIssues).Find(&units)
+	err = x.Where("`type` = ?", v16UnitTypeIssues).Find(&units)
 	if err != nil {
 		return fmt.Errorf("Query repo units: %v", err)
 	}

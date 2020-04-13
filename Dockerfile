@@ -1,14 +1,17 @@
 
 ###################################
 #Build stage
-FROM golang:1.10-alpine3.7 AS build-env
+FROM golang:1.14-alpine3.11 AS build-env
+
+ARG GOPROXY
+ENV GOPROXY ${GOPROXY:-direct}
 
 ARG GITEA_VERSION
-ARG TAGS="sqlite"
+ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS "bindata $TAGS"
 
 #Build deps
-RUN apk --no-cache add build-base git
+RUN apk --no-cache add build-base git nodejs npm
 
 #Setup repo
 COPY . ${GOPATH}/src/code.gitea.io/gitea
@@ -16,9 +19,9 @@ WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 
 #Checkout version if set
 RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
- && make clean generate build
+ && make clean-all build
 
-FROM alpine:3.7
+FROM alpine:3.11
 LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 22 3000
@@ -56,6 +59,6 @@ VOLUME ["/data"]
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/bin/s6-svscan", "/etc/s6"]
 
-COPY docker /
+COPY docker/root /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 RUN ln -s /app/gitea/gitea /usr/local/bin/gitea

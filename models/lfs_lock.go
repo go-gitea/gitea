@@ -12,8 +12,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/sdk/gitea"
-	"github.com/go-xorm/xorm"
+	api "code.gitea.io/gitea/modules/structs"
+
+	"xorm.io/xorm"
 )
 
 // LFSLock represents a git lfs lock of repository.
@@ -39,16 +40,16 @@ func (l *LFSLock) AfterLoad(session *xorm.Session) {
 	var err error
 	l.Owner, err = getUserByID(session, l.OwnerID)
 	if err != nil {
-		log.Error(2, "LFS lock AfterLoad failed OwnerId[%d] not found: %v", l.OwnerID, err)
+		log.Error("LFS lock AfterLoad failed OwnerId[%d] not found: %v", l.OwnerID, err)
 	}
 	l.Repo, err = getRepositoryByID(session, l.RepoID)
 	if err != nil {
-		log.Error(2, "LFS lock AfterLoad failed RepoId[%d] not found: %v", l.RepoID, err)
+		log.Error("LFS lock AfterLoad failed RepoId[%d] not found: %v", l.RepoID, err)
 	}
 }
 
 func cleanPath(p string) string {
-	return path.Clean(p)
+	return path.Clean("/" + p)[1:]
 }
 
 // APIFormat convert a Release to lfs.LFSLock
@@ -56,7 +57,7 @@ func (l *LFSLock) APIFormat() *api.LFSLock {
 	return &api.LFSLock{
 		ID:       strconv.FormatInt(l.ID, 10),
 		Path:     l.Path,
-		LockedAt: l.Created,
+		LockedAt: l.Created.Round(time.Second),
 		Owner: &api.LFSLockOwner{
 			Name: l.Owner.DisplayName(),
 		},
@@ -69,6 +70,8 @@ func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	lock.Path = cleanPath(lock.Path)
 
 	l, err := GetLFSLock(lock.Repo, lock.Path)
 	if err == nil {
@@ -109,9 +112,24 @@ func GetLFSLockByID(id int64) (*LFSLock, error) {
 }
 
 // GetLFSLockByRepoID returns a list of locks of repository.
-func GetLFSLockByRepoID(repoID int64) (locks []*LFSLock, err error) {
-	err = x.Where("repo_id = ?", repoID).Find(&locks)
-	return
+func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if page >= 0 && pageSize > 0 {
+		start := 0
+		if page > 0 {
+			start = (page - 1) * pageSize
+		}
+		sess.Limit(pageSize, start)
+	}
+	lfsLocks := make([]*LFSLock, 0, pageSize)
+	return lfsLocks, sess.Find(&lfsLocks, &LFSLock{RepoID: repoID})
+}
+
+// CountLFSLockByRepoID returns a count of all LFSLocks associated with a repository.
+func CountLFSLockByRepoID(repoID int64) (int64, error) {
+	return x.Count(&LFSLock{RepoID: repoID})
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.
@@ -139,10 +157,11 @@ func CheckLFSAccessForRepo(u *User, repo *Repository, mode AccessMode) error {
 	if u == nil {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}
-	has, err := HasAccess(u.ID, repo, mode)
+	perm, err := GetUserRepoPermission(repo, u)
 	if err != nil {
 		return err
-	} else if !has {
+	}
+	if !perm.CanAccess(mode, UnitTypeCode) {
 		return ErrLFSUnauthorizedAction{repo.ID, u.DisplayName(), mode}
 	}
 	return nil

@@ -6,14 +6,18 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	pwd "code.gitea.io/gitea/modules/password"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
@@ -40,6 +44,10 @@ var (
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "name",
+				Usage: "Username. DEPRECATED: use username instead",
+			},
+			cli.StringFlag{
+				Name:  "username",
 				Usage: "Username",
 			},
 			cli.StringFlag{
@@ -54,10 +62,22 @@ var (
 				Name:  "admin",
 				Usage: "User is an admin",
 			},
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
+			cli.BoolFlag{
+				Name:  "random-password",
+				Usage: "Generate a random password for the user",
+			},
+			cli.BoolFlag{
+				Name:  "must-change-password",
+				Usage: "Set this option to false to prevent forcing the user to change their password after initial login, (Default: true)",
+			},
+			cli.IntFlag{
+				Name:  "random-password-length",
+				Usage: "Length of the random password to be generated",
+				Value: 12,
+			},
+			cli.BoolFlag{
+				Name:  "access-token",
+				Usage: "Generate access token for the user",
 			},
 		},
 	}
@@ -76,11 +96,6 @@ var (
 				Name:  "password,p",
 				Value: "",
 				Usage: "New password to set for user",
-			},
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
 			},
 		},
 	}
@@ -104,26 +119,12 @@ var (
 		Name:   "hooks",
 		Usage:  "Regenerate git-hooks",
 		Action: runRegenerateHooks,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-		},
 	}
 
 	microcmdRegenKeys = cli.Command{
 		Name:   "keys",
 		Usage:  "Regenerate authorized_keys file",
 		Action: runRegenerateKeys,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-		},
 	}
 
 	subcmdAuth = cli.Command{
@@ -132,6 +133,10 @@ var (
 		Subcommands: []cli.Command{
 			microcmdAuthAddOauth,
 			microcmdAuthUpdateOauth,
+			cmdAuthAddLdapBindDn,
+			cmdAuthUpdateLdapBindDn,
+			cmdAuthAddLdapSimpleAuth,
+			cmdAuthUpdateLdapSimpleAuth,
 			microcmdAuthList,
 			microcmdAuthDelete,
 		},
@@ -142,39 +147,46 @@ var (
 		Usage:  "List auth sources",
 		Action: runListAuth,
 		Flags: []cli.Flag{
+			cli.IntFlag{
+				Name:  "min-width",
+				Usage: "Minimal cell width including any padding for the formatted table",
+				Value: 0,
+			},
+			cli.IntFlag{
+				Name:  "tab-width",
+				Usage: "width of tab characters in formatted table (equivalent number of spaces)",
+				Value: 8,
+			},
+			cli.IntFlag{
+				Name:  "padding",
+				Usage: "padding added to a cell before computing its width",
+				Value: 1,
+			},
 			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
+				Name:  "pad-char",
+				Usage: `ASCII char used for padding if padchar == '\\t', the Writer will assume that the width of a '\\t' in the formatted output is tabwidth, and cells are left-aligned independent of align_left (for correct-looking results, tabwidth must correspond to the tab width in the viewer displaying the result)`,
+				Value: "\t",
+			},
+			cli.BoolFlag{
+				Name:  "vertical-bars",
+				Usage: "Set to true to print vertical bars between columns",
 			},
 		},
 	}
 
 	idFlag = cli.Int64Flag{
 		Name:  "id",
-		Usage: "ID of OAuth authentication source",
+		Usage: "ID of authentication source",
 	}
 
 	microcmdAuthDelete = cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
+		Flags:  []cli.Flag{idFlag},
 		Action: runDeleteAuth,
-		Flags: []cli.Flag{
-			cli.StringFlag{
-				Name:  "config, c",
-				Value: "custom/conf/app.ini",
-				Usage: "Custom configuration file path",
-			},
-			idFlag,
-		},
 	}
 
 	oauthCLIFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
-		},
 		cli.StringFlag{
 			Name:  "name",
 			Value: "",
@@ -247,14 +259,12 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
-
+	if !pwd.IsComplexEnough(c.String("password")) {
+		return errors.New("Password does not meet complexity requirements")
+	}
 	uname := c.String("username")
 	user, err := models.GetUserByName(uname)
 	if err != nil {
@@ -264,6 +274,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 	user.HashPassword(c.String("password"))
+
 	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
 		return err
 	}
@@ -273,29 +284,88 @@ func runChangePassword(c *cli.Context) error {
 }
 
 func runCreateUser(c *cli.Context) error {
-	if err := argsSet(c, "name", "password", "email"); err != nil {
+	if err := argsSet(c, "email"); err != nil {
 		return err
 	}
 
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
+	if c.IsSet("name") && c.IsSet("username") {
+		return errors.New("Cannot set both --name and --username flags")
+	}
+	if !c.IsSet("name") && !c.IsSet("username") {
+		return errors.New("One of --name or --username flags must be set")
+	}
+
+	if c.IsSet("password") && c.IsSet("random-password") {
+		return errors.New("cannot set both -random-password and -password flags")
+	}
+
+	var username string
+	if c.IsSet("username") {
+		username = c.String("username")
+	} else {
+		username = c.String("name")
+		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
 	}
 
 	if err := initDB(); err != nil {
 		return err
 	}
 
-	if err := models.CreateUser(&models.User{
-		Name:     c.String("name"),
-		Email:    c.String("email"),
-		Passwd:   c.String("password"),
-		IsActive: true,
-		IsAdmin:  c.Bool("admin"),
-	}); err != nil {
+	var password string
+	if c.IsSet("password") {
+		password = c.String("password")
+	} else if c.IsSet("random-password") {
+		var err error
+		password, err = pwd.Generate(c.Int("random-password-length"))
+		if err != nil {
+			return err
+		}
+		fmt.Printf("generated random password is '%s'\n", password)
+	} else {
+		return errors.New("must set either password or random-password flag")
+	}
+
+	// always default to true
+	var changePassword = true
+
+	// If this is the first user being created.
+	// Take it as the admin and don't force a password update.
+	if n := models.CountUsers(); n == 0 {
+		changePassword = false
+	}
+
+	if c.IsSet("must-change-password") {
+		changePassword = c.Bool("must-change-password")
+	}
+
+	u := &models.User{
+		Name:               username,
+		Email:              c.String("email"),
+		Passwd:             password,
+		IsActive:           true,
+		IsAdmin:            c.Bool("admin"),
+		MustChangePassword: changePassword,
+		Theme:              setting.UI.DefaultTheme,
+	}
+
+	if err := models.CreateUser(u); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 
-	fmt.Printf("New user '%s' has been successfully created!\n", c.String("name"))
+	if c.Bool("access-token") {
+		t := &models.AccessToken{
+			Name: "gitea-admin",
+			UID:  u.ID,
+		}
+
+		if err := models.NewAccessToken(t); err != nil {
+			return err
+		}
+
+		fmt.Printf("Access token was successfully created... %s\n", t.Token)
+	}
+
+	fmt.Printf("New user '%s' has been successfully created!\n", username)
 	return nil
 }
 
@@ -307,9 +377,11 @@ func runRepoSyncReleases(c *cli.Context) error {
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Page:     page,
-			PageSize: models.RepositoryListDefaultPageSize,
-			Private:  true,
+			ListOptions: models.ListOptions{
+				PageSize: models.RepositoryListDefaultPageSize,
+				Page:     page,
+			},
+			Private: true,
 		})
 		if err != nil {
 			return fmt.Errorf("SearchRepositoryByName: %v", err)
@@ -332,19 +404,22 @@ func runRepoSyncReleases(c *cli.Context) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
+				gitRepo.Close()
 				continue
 			}
 
 			count, err = getReleaseCount(repo.ID)
 			if err != nil {
 				log.Warn(" GetReleaseCountByRepoID: %v", err)
+				gitRepo.Close()
 				continue
 			}
 
 			log.Trace(" repo %s releases synchronized to tags: from %d to %d",
 				repo.FullName(), oldnum, count)
+			gitRepo.Close()
 		}
 	}
 
@@ -361,21 +436,13 @@ func getReleaseCount(id int64) (int64, error) {
 }
 
 func runRegenerateHooks(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
-	return models.SyncRepositoryHooks()
+	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
 func runRegenerateKeys(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -404,31 +471,19 @@ func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
 }
 
 func runAddOauth(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
 
-	if err := models.CreateLoginSource(&models.LoginSource{
+	return models.CreateLoginSource(&models.LoginSource{
 		Type:      models.LoginOAuth2,
 		Name:      c.String("name"),
 		IsActived: true,
 		Cfg:       parseOAuth2Config(c),
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func runUpdateOauth(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if !c.IsSet("id") {
 		return fmt.Errorf("--id flag is missing")
 	}
@@ -465,7 +520,7 @@ func runUpdateOauth(c *cli.Context) error {
 	}
 
 	// update custom URL mapping
-	var customURLMapping *oauth2.CustomURLMapping
+	var customURLMapping = &oauth2.CustomURLMapping{}
 
 	if oAuth2Config.CustomURLMapping != nil {
 		customURLMapping.TokenURL = oAuth2Config.CustomURLMapping.TokenURL
@@ -492,18 +547,10 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	if err := models.UpdateSource(source); err != nil {
-		return err
-	}
-
-	return nil
+	return models.UpdateSource(source)
 }
 
 func runListAuth(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -514,11 +561,21 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
+	flags := tabwriter.AlignRight
+	if c.Bool("vertical-bars") {
+		flags |= tabwriter.Debug
+	}
+
+	padChar := byte('\t')
+	if len(c.String("pad-char")) > 0 {
+		padChar = c.String("pad-char")[0]
+	}
+
 	// loop through each source and print
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
-	fmt.Fprintf(w, "ID\tName\tType\tEnabled")
+	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
+	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
 	}
 	w.Flush()
 
@@ -526,10 +583,6 @@ func runListAuth(c *cli.Context) error {
 }
 
 func runDeleteAuth(c *cli.Context) error {
-	if c.IsSet("config") {
-		setting.CustomConf = c.String("config")
-	}
-
 	if !c.IsSet("id") {
 		return fmt.Errorf("--id flag is missing")
 	}
@@ -543,8 +596,5 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	if err = models.DeleteSource(source); err != nil {
-		return err
-	}
-	return nil
+	return models.DeleteSource(source)
 }

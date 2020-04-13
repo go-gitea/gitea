@@ -3,9 +3,7 @@
 		<div class="file-body file-code code-view code-diff">
 			<table>
 				<tbody>
-					{{with .File}}
-						{{template "repo/diff/section_unified" .}}
-					{{end}}
+					{{template "repo/diff/section_unified" dict "file" .File "root" $}}
 				</tbody>
 			</table>
 		</div>

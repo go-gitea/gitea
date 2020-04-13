@@ -18,7 +18,7 @@ menu:
 Tous les binaires sont livrés avec le support de SQLite, MySQL et PostgreSQL, et sont construits avec les ressources incorporées. Gardez à l'esprit que cela peut être différent pour les versions antérieures. L'installation basée sur nos binaires est assez simple, il suffit de choisir le fichier correspondant à votre plateforme à partir de la [page de téléchargement](https://dl.gitea.io/gitea). Copiez l'URL et remplacer l'URL dans les commandes suivantes par la nouvelle:
 
 ```
-wget -O gitea https://dl.gitea.io/gitea/1.3.2/gitea-1.3.2-linux-amd64
+wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
 chmod +x gitea
 ```
 
@@ -42,4 +42,4 @@ Si vous obtenez l'erreur `702 runWeb()] [E] Failed to start server: listen tcp 0
 
 ## Il manque quelque chose ?
 
-Est-ce que nous avons oublié quelque chose sur cette page ? N'hésitez pas à nous contacter sur notre [serveur Discord](https://discord.gg/NsatcWJ), vous obtiendrez des réponses à toute vos questions assez rapidement.
+Est-ce que nous avons oublié quelque chose sur cette page ? N'hésitez pas à nous contacter sur notre [serveur Discord](https://discord.gg/Gitea), vous obtiendrez des réponses à toute vos questions assez rapidement.

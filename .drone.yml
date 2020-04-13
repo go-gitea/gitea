@@ -1,346 +1,798 @@
+---
+kind: pipeline
+name: compliance
+
+platform:
+  os: linux
+  arch: arm64
+
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
-clone:
-  git:
-    image: plugins/git:next
-    depth: 50
-    tags: true
-
-pipeline:
-  download_translations:
-    image: jonasfranz/crowdin
-    pull: true
-    secrets: [ crowdin_key ]
-    project_identifier: gitea
-    ignore_branch: true
-    download: true
-    export_dir: options/locale/
-    when:
-      event: [ push ]
-      branch: [ master ]
-
-  update-translations:
-    image: alpine:3.7
+steps:
+  - name: deps-frontend
+    pull: always
+    image: node:12
     commands:
-      - mv ./options/locale/locale_en-US.ini ./options/
-      - sed -i -e 's/="/=/g' -e 's/"$$//g' ./options/locale/*.ini
-      - sed -i -e 's/\\\\"/"/g' ./options/locale/*.ini
-      - mv ./options/locale_en-US.ini ./options/locale/
-    when:
-      event: [ push ]
-      branch: [ master ]
+      - make node_modules
 
-  git_push:
-    image: appleboy/drone-git-push
-    pull: true
-    secrets: [ git_push_ssh_key ]
-    remote: git@github.com:go-gitea/gitea.git
-    force: false
-    commit: true
-    commit_message: "[skip ci] Updated translations via Crowdin"
-    author_name: GiteaBot
-    author_email: teabot@gitea.io
-    when:
-      event: [ push ]
-      branch: [ master ]
-
-  pre-build:
-    image: webhippie/nodejs:latest
-    pull: true
+  - name: lint-frontend
+    pull: always
+    image: node:12
     commands:
-      - npm install
-      - make stylesheets-check
-    when:
-      event: [ push, tag, pull_request ]
+      - make lint-frontend
+    depends_on: [deps-frontend]
 
-  build-without-gcc:
-    image: golang:1.9
-    pull: true
+  - name: lint-backend
+    pull: always
+    image: golang:1.14
     commands:
-      - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
-    when:
-      event: [ push, tag, pull_request ]
-
-  build:
-    image: golang:1.11
-    pull: true
+      - make lint-backend
     environment:
-      TAGS: bindata sqlite
-    commands:
-      - make clean
-      - make generate
-      - make vet
-      - make lint
-      - make fmt-check
-      - make swagger-check
-      - make swagger-validate
-      - make misspell-check
-      - make test-vendor
-      - make build
-    when:
-      event: [ push, tag, pull_request ]
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
 
-  test:
-    image: golang:1.11
-    pull: true
-    group: test
-    environment:
-      TAGS: bindata sqlite
+  - name: build-frontend
+    pull: always
+    image: node:10 # this step is kept at the lowest version of node that we support
     commands:
-      - make unit-test-coverage
-    when:
-      event: [ push, pull_request ]
-      branch: [ master ]
+      - make frontend
+    depends_on: [lint-frontend]
 
-  test:
-    image: golang:1.11
-    pull: true
-    group: test
+  - name: build-backend-no-gcc
+    pull: always
+    image: golang:1.12 # this step is kept as the lowest version of golang that we support
     environment:
-      TAGS: bindata sqlite
+      GO111MODULE: on
+      GOPROXY: off
     commands:
-      - make test
-    when:
-      event: [ push, pull_request ]
-      branch: [ release/* ]
+      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+    depends_on: [lint-backend]
 
-  test:
-    image: golang:1.11
-    pull: true
-    group: test
+  - name: build-backend-arm64
+    pull: always
+    image: golang:1.14
     environment:
+      GO111MODULE: on
+      GOPROXY: off
+      GOOS: linux
+      GOARCH: arm64
       TAGS: bindata
     commands:
-      - make test
-    when:
-      event: [ tag ]
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - make build # test cross compile
+      - rm ./gitea # clean
+    depends_on: [lint-backend]
 
-  # Commented until db locking have been resolved!
-  # test-sqlite:
-  #   image: golang:1.10
-  #   pull: true
-  #   group: test
-  #   environment:
-  #     TAGS: bindata
-  #   commands:
-  #     - make test-sqlite
-  #   when:
-  #     event: [ push, tag, pull_request ]
-
-  test-mysql:
-    image: golang:1.11
-    pull: true
-    group: test
+  - name: build-backend-386
+    pull: always
+    image: golang:1.14
     environment:
-      TAGS: bindata
-      TEST_LDAP: "1"
+      GO111MODULE: on
+      GOPROXY: off
+      GOOS: linux
+      GOARCH: 386
     commands:
-      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-      - apt-get install -y git-lfs
-      - make integration-test-coverage
-    when:
-      event: [ push, pull_request ]
-      branch: [ master ]
+      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
+    depends_on: [lint-backend]
 
-  test-mysql:
-    image: golang:1.11
-    pull: true
-    group: test
-    environment:
-      TAGS: bindata
-      TEST_LDAP: "1"
-    commands:
-      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-      - apt-get install -y git-lfs
-      - make test-mysql
-    when:
-      event: [ tag ]
+---
+kind: pipeline
+name: testing-amd64
 
-  test-pgsql:
-    image: golang:1.11
-    pull: true
-    group: test
-    environment:
-      TAGS: bindata
-      TEST_LDAP: "1"
-    commands:
-      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-      - apt-get install -y git-lfs
-      - make test-pgsql
-    when:
-      event: [ push, tag, pull_request ]
+platform:
+  os: linux
+  arch: amd64
 
-  generate-coverage:
-    image: golang:1.11
-    pull: true
-    environment:
-      TAGS: bindata
-    commands:
-      - make coverage
-    when:
-      event: [ push, pull_request ]
-      branch: [ master ]
+depends_on:
+  - compliance
 
-  coverage:
-    image: robertstettner/drone-codecov
-    secrets: [ codecov_token ]
-    files:
-      - coverage.all
-    when:
-      event: [ push, pull_request ]
-      branch: [ master ]
-
-  static:
-    image: karalabe/xgo-latest:latest
-    pull: true
-    environment:
-      TAGS: bindata sqlite
-    commands:
-      - export PATH=$PATH:$GOPATH/bin
-      - make release
-    when:
-      event: [ push, tag ]
-
-  build-docs:
-    image: webhippie/hugo:latest
-    pull: true
-    commands:
-      - cd docs
-      - make trans-copy
-      - make clean
-      - make build
-
-  publish-docs:
-    image: lucap/drone-netlify:latest
-    pull: true
-    secrets: [ netlify_token ]
-    site_id: d2260bae-7861-4c02-8646-8f6440b12672
-    path: docs/public/
-    when:
-      event: [ push ]
-      branch: [ master ]
-
-  docker:
-    image: plugins/docker:17.12
-    pull: true
-    secrets: [ docker_username, docker_password ]
-    repo: gitea/gitea
-    tags: [ '${DRONE_BRANCH##release/v}' ]
-    when:
-      event: [ push ]
-      branch: [ release/* ]
-
-  docker:
-    image: plugins/docker:17.12
-    secrets: [ docker_username, docker_password ]
-    pull: true
-    repo: gitea/gitea
-    default_tags: true
-    when:
-      event: [ push, tag ]
-
-  gpg-sign:
-    image: plugins/gpgsign:1
-    pull: true
-    secrets: [ gpgsign_key, gpgsign_passphrase ]
-    detach_sign: true
-    files:
-      - dist/release/*
-    excludes:
-      - dist/release/*.sha256
-    when:
-      event: [ push, tag ]
-
-  release:
-    image: plugins/s3:1
-    pull: true
-    secrets: [ aws_access_key_id, aws_secret_access_key ]
-    bucket: releases
-    endpoint: https://storage.gitea.io
-    path_style: true
-    strip_prefix: dist/release/
-    source: dist/release/*
-    target: /gitea/${DRONE_TAG##v}
-    when:
-      event: [ tag ]
-
-  release:
-    image: plugins/s3:1
-    pull: true
-    secrets: [ aws_access_key_id, aws_secret_access_key ]
-    bucket: releases
-    endpoint: https://storage.gitea.io
-    path_style: true
-    strip_prefix: dist/release/
-    source: dist/release/*
-    target: /gitea/${DRONE_BRANCH##release/v}
-    when:
-      event: [ push ]
-      branch: [ release/* ]
-
-  release:
-    image: plugins/s3:1
-    pull: true
-    secrets: [ aws_access_key_id, aws_secret_access_key ]
-    bucket: releases
-    endpoint: https://storage.gitea.io
-    path_style: true
-    strip_prefix: dist/release/
-    source: dist/release/*
-    target: /gitea/master
-    when:
-      event: [ push ]
-      branch: [ master ]
-
-  github:
-    image: plugins/github-release:1
-    pull: true
-    secrets: [ github_token ]
-    files:
-      - dist/release/*
-    when:
-      event: [ tag ]
-
-  upload_translations:
-    image: jonasfranz/crowdin
-    pull: true
-    secrets: [ crowdin_key ]
-    project_identifier: gitea
-    ignore_branch: true
-    download: false
-    files:
-      locale_en-US.ini: options/locale/locale_en-US.ini
-    when:
-      event: [ push ]
-      branch: [ master ]
-
-  discord:
-    image: appleboy/drone-discord:1.0.0
-    pull: true
-    secrets: [ discord_webhook_id, discord_webhook_token ]
-    when:
-      event: [ push, tag, pull_request ]
-      status: [ changed, failure ]
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
 
 services:
-  mysql:
+  - name: mysql
+    pull: default
     image: mysql:5.7
     environment:
-      - MYSQL_DATABASE=test
-      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
-    when:
-      event: [ push, tag, pull_request ]
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      MYSQL_DATABASE: test
 
-  pgsql:
+  - name: mysql8
+    pull: default
+    image: mysql:8.0
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      MYSQL_DATABASE: testgitea
+
+  - name: mssql
+    pull: default
+    image: mcr.microsoft.com/mssql/server:latest
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_PID: Standard
+      SA_PASSWORD: MwantsaSecurePassword1
+
+  - name: ldap
+    pull: default
+    image: gitea/test-openldap:latest
+
+  - name: elasticsearch
+    pull: default
+    environment:
+      discovery.type: single-node
+    image: elasticsearch:7.5.0
+
+steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+    when:
+      event:
+        exclude:
+          - pull_request
+
+  - name: build
+    pull: always
+    image: golang:1.14
+    commands:
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - make build
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: tag-pre-condition
+    pull: always
+    image: alpine/git
+    commands:
+      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
+
+  - name: unit-test
+    pull: always
+    image: golang:1.14
+    commands:
+      - make unit-test-coverage test-check
+    environment:
+      GOPROXY: off
+      TAGS: bindata sqlite sqlite_unlock_notify
+      GITHUB_READ_TOKEN:
+        from_secret: github_read_token
+
+  - name: test-mysql
+    pull: always
+    image: golang:1.14
+    commands:
+      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
+      - apt-get install -y git-lfs
+      - make test-mysql-migration integration-test-coverage
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+      TEST_LDAP: 1
+    depends_on:
+      - build
+
+  - name: test-mysql8
+    pull: always
+    image: golang:1.14
+    commands:
+      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
+      - apt-get install -y git-lfs
+      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+      TEST_LDAP: 1
+    depends_on:
+      - build
+
+  - name: test-mssql
+    pull: always
+    image: golang:1.14
+    commands:
+      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
+      - apt-get install -y git-lfs
+      - make test-mssql-migration test-mssql
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+      TEST_LDAP: 1
+    depends_on:
+      - build
+
+  - name: generate-coverage
+    pull: always
+    image: golang:1.14
+    commands:
+      - make coverage
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+    depends_on:
+      - unit-test
+      - test-mysql
+    when:
+      branch:
+        - master
+      event:
+        - push
+        - pull_request
+
+  - name: coverage
+    pull: always
+    image: robertstettner/drone-codecov
+    settings:
+      files:
+        - coverage.all
+    environment:
+      CODECOV_TOKEN:
+        from_secret: codecov_token
+    depends_on:
+      - generate-coverage
+    when:
+      branch:
+        - master
+      event:
+        - push
+        - pull_request
+
+---
+kind: pipeline
+name: testing-arm64
+
+platform:
+  os: linux
+  arch: arm64
+
+depends_on:
+  - compliance
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+services:
+  - name: pgsql
+    pull: default
     image: postgres:9.5
     environment:
-      - POSTGRES_DB=test
-    when:
-      event: [ push, tag, pull_request ]
+      POSTGRES_DB: test
+      POSTGRES_PASSWORD: postgres
 
-  ldap:
+  - name: ldap
+    pull: default
     image: gitea/test-openldap:latest
+
+steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
     when:
-      event: [ push, tag, pull_request ]
+      event:
+        exclude:
+          - pull_request
+
+  - name: build
+    pull: always
+    image: golang:1.14
+    commands:
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - make build
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: test-sqlite
+    pull: always
+    image: golang:1.14
+    commands:
+      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
+      - apt-get install -y git-lfs
+      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+    depends_on:
+      - build
+
+  - name: test-pgsql
+    pull: always
+    image: golang:1.14
+    commands:
+      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
+      - apt-get install -y git-lfs
+      - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+      TEST_LDAP: 1
+    depends_on:
+      - build
+
+---
+kind: pipeline
+name: translations
+
+platform:
+  os: linux
+  arch: arm64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+trigger:
+  branch:
+    - master
+  event:
+    - push
+
+steps:
+  - name: download
+    pull: always
+    image: jonasfranz/crowdin
+    settings:
+      download: true
+      export_dir: options/locale/
+      ignore_branch: true
+      project_identifier: gitea
+    environment:
+      CROWDIN_KEY:
+        from_secret: crowdin_key
+
+  - name: update
+    pull: default
+    image: alpine:3.11
+    commands:
+      - ./build/update-locales.sh
+
+  - name: push
+    pull: always
+    image: appleboy/drone-git-push
+    settings:
+      author_email: "teabot@gitea.io"
+      author_name: GiteaBot
+      commit: true
+      commit_message: "[skip ci] Updated translations via Crowdin"
+      remote: "git@github.com:go-gitea/gitea.git"
+    environment:
+      GIT_PUSH_SSH_KEY:
+        from_secret: git_push_ssh_key
+
+  - name: upload_translations
+    pull: always
+    image: jonasfranz/crowdin
+    settings:
+      files:
+        locale_en-US.ini: options/locale/locale_en-US.ini
+      ignore_branch: true
+      project_identifier: gitea
+    environment:
+      CROWDIN_KEY:
+        from_secret: crowdin_key
+
+---
+kind: pipeline
+name: release-latest
+
+platform:
+  os: linux
+  arch: amd64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+trigger:
+  branch:
+    - master
+    - "release/*"
+  event:
+    - push
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+  - translations
+
+steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: static
+    pull: always
+    image: techknowlogick/xgo:go-1.14.x
+    commands:
+      - apt update && apt -y install curl
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - export PATH=$PATH:$GOPATH/bin
+      - make release
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: gpg-sign
+    pull: always
+    image: plugins/gpgsign:1
+    settings:
+      detach_sign: true
+      excludes:
+        - "dist/release/*.sha256"
+      files:
+        - "dist/release/*"
+    environment:
+      GPGSIGN_KEY:
+        from_secret: gpgsign_key
+      GPGSIGN_PASSPHRASE:
+        from_secret: gpgsign_passphrase
+
+  - name: release-branch
+    pull: always
+    image: plugins/s3:1
+    settings:
+      acl: public-read
+      bucket: releases
+      endpoint: https://storage.gitea.io
+      path_style: true
+      source: "dist/release/*"
+      strip_prefix: dist/release/
+      target: "/gitea/${DRONE_BRANCH##release/v}"
+    environment:
+      AWS_ACCESS_KEY_ID:
+        from_secret: aws_access_key_id
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: aws_secret_access_key
+    when:
+      branch:
+        - "release/*"
+      event:
+        - push
+
+  - name: release-master
+    pull: always
+    image: plugins/s3:1
+    settings:
+      acl: public-read
+      bucket: releases
+      endpoint: https://storage.gitea.io
+      path_style: true
+      source: "dist/release/*"
+      strip_prefix: dist/release/
+      target: /gitea/master
+    environment:
+      AWS_ACCESS_KEY_ID:
+        from_secret: aws_access_key_id
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: aws_secret_access_key
+    when:
+      branch:
+        - master
+      event:
+        - push
+
+---
+kind: pipeline
+name: release-version
+
+platform:
+  os: linux
+  arch: amd64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+trigger:
+  event:
+    - tag
+
+depends_on:
+  - testing-arm64
+  - testing-amd64
+
+steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: static
+    pull: always
+    image: techknowlogick/xgo:go-1.14.x
+    commands:
+      - apt update && apt -y install curl
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - export PATH=$PATH:$GOPATH/bin
+      - make release
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: gpg-sign
+    pull: always
+    image: plugins/gpgsign:1
+    settings:
+      detach_sign: true
+      excludes:
+        - "dist/release/*.sha256"
+      files:
+        - "dist/release/*"
+    environment:
+      GPGSIGN_KEY:
+        from_secret: gpgsign_key
+      GPGSIGN_PASSPHRASE:
+        from_secret: gpgsign_passphrase
+
+  - name: release-tag
+    pull: always
+    image: plugins/s3:1
+    settings:
+      acl: public-read
+      bucket: releases
+      endpoint: https://storage.gitea.io
+      path_style: true
+      source: "dist/release/*"
+      strip_prefix: dist/release/
+      target: "/gitea/${DRONE_TAG##v}"
+    environment:
+      AWS_ACCESS_KEY_ID:
+        from_secret: aws_access_key_id
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: aws_secret_access_key
+
+  - name: github
+    pull: always
+    image: plugins/github-release:1
+    settings:
+      files:
+        - "dist/release/*"
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+
+---
+kind: pipeline
+name: docs
+
+platform:
+  os: linux
+  arch: arm64
+
+depends_on:
+  - compliance
+
+steps:
+  - name: build-docs
+    pull: always
+    image: plugins/hugo:latest
+    commands:
+      - apk add --no-cache make bash curl
+      - cd docs
+      - make trans-copy clean build
+
+  - name: publish-docs
+    pull: always
+    image: techknowlogick/drone-netlify:latest
+    settings:
+      path: docs/public/
+      site_id: d2260bae-7861-4c02-8646-8f6440b12672
+    environment:
+      NETLIFY_TOKEN:
+        from_secret: netlify_token
+    when:
+      branch:
+        - master
+      event:
+        - push
+
+---
+kind: pipeline
+name: docker-linux-amd64-release
+
+platform:
+  os: linux
+  arch: amd64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+  - refs/heads/master
+  - "refs/tags/**"
+
+steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: publish
+    pull: always
+    image: plugins/docker:linux-amd64
+    settings:
+      auto_tag: true
+      auto_tag_suffix: linux-amd64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+---
+kind: pipeline
+name: docker-linux-arm64-dry-run
+
+platform:
+  os: linux
+  arch: arm64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+depends_on:
+  - compliance
+
+trigger:
+  ref:
+  - "refs/pull/**"
+
+steps:
+  - name: dryrun
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      dry_run: true
+      repo: gitea/gitea
+      tags: linux-arm64
+      build_args:
+        - GOPROXY=off
+    when:
+      event:
+        - pull_request
+
+---
+kind: pipeline
+name: docker-linux-arm64-release
+
+platform:
+  os: linux
+  arch: arm64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+  - refs/heads/master
+  - "refs/tags/**"
+steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: publish
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      auto_tag: true
+      auto_tag_suffix: linux-arm64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+---
+kind: pipeline
+name: docker-manifest
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: manifest
+    pull: always
+    image: plugins/manifest
+    settings:
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
+trigger:
+  ref:
+  - refs/heads/master
+  - "refs/tags/**"
+
+depends_on:
+  - docker-linux-amd64-release
+  - docker-linux-arm64-release
+
+---
+kind: pipeline
+name: notifications
+
+platform:
+  os: linux
+  arch: arm64
+
+clone:
+  disable: true
+
+trigger:
+  branch:
+    - master
+    - "release/*"
+  event:
+    - push
+    - tag
+  status:
+    - success
+    - failure
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+  - translations
+  - release-version
+  - release-latest
+  - docker-linux-amd64-release
+  - docker-linux-arm64-release
+  - docker-manifest
+  - docs
+
+steps:
+  - name: discord
+    pull: always
+    image: appleboy/drone-discord:1.2.4
+    settings:
+      message: "{{#success build.status}} ✅  Build #{{build.number}} of `{{repo.name}}` succeeded.\n\n📝 Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n\n🌐 {{ build.link }} {{else}} ❌  Build #{{build.number}} of `{{repo.name}}` failed.\n\n📝 Commit by {{commit.author}} on `{{commit.branch}}`:\n``` {{commit.message}} ```\n\n🌐 {{ build.link }} {{/success}}\n"
+      webhook_id:
+        from_secret: discord_webhook_id
+      webhook_token:
+        from_secret: discord_webhook_token

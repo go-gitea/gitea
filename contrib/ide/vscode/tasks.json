@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "taskName": "Build",
+      "label": "Build",
       "type": "shell",
       "command": "go",
       "group": "build",
@@ -25,7 +25,7 @@
       "problemMatcher": ["$go"]
     },
     {
-      "taskName": "Build (with SQLite3)",
+      "label": "Build (with SQLite3)",
       "type": "shell",
       "command": "go",
       "group": "build",
@@ -35,7 +35,7 @@
         "focus": false,
         "panel": "shared"
       },
-      "args": ["build", "-tags=\"sqlite\""],
+      "args": ["build", "-tags=\"sqlite sqlite_unlock_notify\""],
       "linux": {
         "args": ["-o", "gitea", "${workspaceRoot}/main.go"]
       },

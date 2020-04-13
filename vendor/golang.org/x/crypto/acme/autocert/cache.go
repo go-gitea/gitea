@@ -16,10 +16,10 @@ import (
 var ErrCacheMiss = errors.New("acme/autocert: certificate cache miss")
 
 // Cache is used by Manager to store and retrieve previously obtained certificates
-// as opaque data.
+// and other account data as opaque blobs.
 //
-// The key argument of the methods refers to a domain name but need not be an FQDN.
-// Cache implementations should not rely on the key naming pattern.
+// Cache implementations should not rely on the key naming pattern. Keys can
+// include any printable ASCII characters, except the following: \/:*?"<>|
 type Cache interface {
 	// Get returns a certificate data for the specified key.
 	// If there's no such key, Get returns ErrCacheMiss.
@@ -77,6 +77,7 @@ func (d DirCache) Put(ctx context.Context, name string, data []byte) error {
 		if tmp, err = d.writeTempFile(name, data); err != nil {
 			return
 		}
+		defer os.Remove(tmp)
 		select {
 		case <-ctx.Done():
 			// Don't overwrite the file if the context was canceled.
@@ -116,12 +117,17 @@ func (d DirCache) Delete(ctx context.Context, name string) error {
 }
 
 // writeTempFile writes b to a temporary file, closes the file and returns its path.
-func (d DirCache) writeTempFile(prefix string, b []byte) (string, error) {
+func (d DirCache) writeTempFile(prefix string, b []byte) (name string, reterr error) {
 	// TempFile uses 0600 permissions
 	f, err := ioutil.TempFile(string(d), prefix)
 	if err != nil {
 		return "", err
 	}
+	defer func() {
+		if reterr != nil {
+			os.Remove(f.Name())
+		}
+	}()
 	if _, err := f.Write(b); err != nil {
 		f.Close()
 		return "", err

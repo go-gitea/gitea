@@ -5,9 +5,8 @@
 package admin
 
 import (
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
@@ -16,7 +15,7 @@ import (
 func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
 	// swagger:operation POST /admin/users/{username}/repos admin adminCreateRepo
 	// ---
-	// summary: Create a repository on behalf a user
+	// summary: Create a repository on behalf of a user
 	// consumes:
 	// - application/json
 	// produces:
@@ -27,13 +26,22 @@ func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
 	//   description: username of the user. This user will own the created repository
 	//   type: string
 	//   required: true
+	// - name: repository
+	//   in: body
+	//   required: true
+	//   schema: { "$ref": "#/definitions/CreateRepoOption" }
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	owner := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

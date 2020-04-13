@@ -11,18 +11,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"gopkg.in/ini.v1"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
+
+	"github.com/unknwon/com"
+	"gopkg.in/ini.v1"
+	"xorm.io/xorm"
 )
 
 const (
@@ -40,11 +41,7 @@ func InstallInit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("install.install")
 	ctx.Data["PageIsInstall"] = true
 
-	dbOpts := []string{"MySQL", "PostgreSQL", "MSSQL"}
-	if models.EnableSQLite3 {
-		dbOpts = append(dbOpts, "SQLite3")
-	}
-	ctx.Data["DbOptions"] = dbOpts
+	ctx.Data["DbOptions"] = setting.SupportedDatabases
 }
 
 // Install render installation page
@@ -52,20 +49,22 @@ func Install(ctx *context.Context) {
 	form := auth.InstallForm{}
 
 	// Database settings
-	form.DbHost = models.DbCfg.Host
-	form.DbUser = models.DbCfg.User
-	form.DbPasswd = models.DbCfg.Passwd
-	form.DbName = models.DbCfg.Name
-	form.DbPath = models.DbCfg.Path
+	form.DbHost = setting.Database.Host
+	form.DbUser = setting.Database.User
+	form.DbPasswd = setting.Database.Passwd
+	form.DbName = setting.Database.Name
+	form.DbPath = setting.Database.Path
+	form.DbSchema = setting.Database.Schema
+	form.Charset = setting.Database.Charset
 
 	ctx.Data["CurDbOption"] = "MySQL"
-	switch models.DbCfg.Type {
+	switch setting.Database.Type {
 	case "postgres":
 		ctx.Data["CurDbOption"] = "PostgreSQL"
 	case "mssql":
 		ctx.Data["CurDbOption"] = "MSSQL"
 	case "sqlite3":
-		if models.EnableSQLite3 {
+		if setting.EnableSQLite3 {
 			ctx.Data["CurDbOption"] = "SQLite3"
 		}
 	}
@@ -143,17 +142,19 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Pass basic check, now test configuration.
 	// Test database setting.
-	dbTypes := map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3"}
-	models.DbCfg.Type = dbTypes[form.DbType]
-	models.DbCfg.Host = form.DbHost
-	models.DbCfg.User = form.DbUser
-	models.DbCfg.Passwd = form.DbPasswd
-	models.DbCfg.Name = form.DbName
-	models.DbCfg.SSLMode = form.SSLMode
-	models.DbCfg.Path = form.DbPath
 
-	if (models.DbCfg.Type == "sqlite3") &&
-		len(models.DbCfg.Path) == 0 {
+	setting.Database.Type = setting.GetDBTypeByName(form.DbType)
+	setting.Database.Host = form.DbHost
+	setting.Database.User = form.DbUser
+	setting.Database.Passwd = form.DbPasswd
+	setting.Database.Name = form.DbName
+	setting.Database.Schema = form.DbSchema
+	setting.Database.SSLMode = form.SSLMode
+	setting.Database.Charset = form.Charset
+	setting.Database.Path = form.DbPath
+
+	if (setting.Database.Type == "sqlite3") &&
+		len(setting.Database.Path) == 0 {
 		ctx.Data["Err_DbPath"] = true
 		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, &form)
 		return
@@ -213,18 +214,42 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 
-	// Check admin password.
-	if len(form.AdminName) > 0 && len(form.AdminPasswd) == 0 {
-		ctx.Data["Err_Admin"] = true
-		ctx.Data["Err_AdminPasswd"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_password"), tplInstall, form)
-		return
-	}
-	if form.AdminPasswd != form.AdminConfirmPasswd {
-		ctx.Data["Err_Admin"] = true
-		ctx.Data["Err_AdminPasswd"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplInstall, form)
-		return
+	// Check admin user creation
+	if len(form.AdminName) > 0 {
+		// Ensure AdminName is valid
+		if err := models.IsUsableUsername(form.AdminName); err != nil {
+			ctx.Data["Err_Admin"] = true
+			ctx.Data["Err_AdminName"] = true
+			if models.IsErrNameReserved(err) {
+				ctx.RenderWithErr(ctx.Tr("install.err_admin_name_is_reserved"), tplInstall, form)
+				return
+			} else if models.IsErrNamePatternNotAllowed(err) {
+				ctx.RenderWithErr(ctx.Tr("install.err_admin_name_pattern_not_allowed"), tplInstall, form)
+				return
+			}
+			ctx.RenderWithErr(ctx.Tr("install.err_admin_name_is_invalid"), tplInstall, form)
+			return
+		}
+		// Check Admin email
+		if len(form.AdminEmail) == 0 {
+			ctx.Data["Err_Admin"] = true
+			ctx.Data["Err_AdminEmail"] = true
+			ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_email"), tplInstall, form)
+			return
+		}
+		// Check admin password.
+		if len(form.AdminPasswd) == 0 {
+			ctx.Data["Err_Admin"] = true
+			ctx.Data["Err_AdminPasswd"] = true
+			ctx.RenderWithErr(ctx.Tr("install.err_empty_admin_password"), tplInstall, form)
+			return
+		}
+		if form.AdminPasswd != form.AdminConfirmPasswd {
+			ctx.Data["Err_Admin"] = true
+			ctx.Data["Err_AdminPasswd"] = true
+			ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplInstall, form)
+			return
+		}
 	}
 
 	if form.AppURL[len(form.AppURL)-1] != '/' {
@@ -236,16 +261,18 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	if com.IsFile(setting.CustomConf) {
 		// Keeps custom settings if there is already something.
 		if err = cfg.Append(setting.CustomConf); err != nil {
-			log.Error(4, "Failed to load custom conf '%s': %v", setting.CustomConf, err)
+			log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 		}
 	}
-	cfg.Section("database").Key("DB_TYPE").SetValue(models.DbCfg.Type)
-	cfg.Section("database").Key("HOST").SetValue(models.DbCfg.Host)
-	cfg.Section("database").Key("NAME").SetValue(models.DbCfg.Name)
-	cfg.Section("database").Key("USER").SetValue(models.DbCfg.User)
-	cfg.Section("database").Key("PASSWD").SetValue(models.DbCfg.Passwd)
-	cfg.Section("database").Key("SSL_MODE").SetValue(models.DbCfg.SSLMode)
-	cfg.Section("database").Key("PATH").SetValue(models.DbCfg.Path)
+	cfg.Section("database").Key("DB_TYPE").SetValue(setting.Database.Type)
+	cfg.Section("database").Key("HOST").SetValue(setting.Database.Host)
+	cfg.Section("database").Key("NAME").SetValue(setting.Database.Name)
+	cfg.Section("database").Key("USER").SetValue(setting.Database.User)
+	cfg.Section("database").Key("PASSWD").SetValue(setting.Database.Passwd)
+	cfg.Section("database").Key("SCHEMA").SetValue(setting.Database.Schema)
+	cfg.Section("database").Key("SSL_MODE").SetValue(setting.Database.SSLMode)
+	cfg.Section("database").Key("CHARSET").SetValue(setting.Database.Charset)
+	cfg.Section("database").Key("PATH").SetValue(setting.Database.Path)
 
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("repository").Key("ROOT").SetValue(form.RepoRootPath)
@@ -266,7 +293,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
 		var secretKey string
-		if secretKey, err = generate.NewLfsJwtSecret(); err != nil {
+		if secretKey, err = generate.NewJwtSecret(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
 			return
 		}
@@ -328,7 +355,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 
-	GlobalInit()
+	GlobalInit(graceful.GetManager().HammerContext())
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
@@ -363,6 +390,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	log.Info("First-time run install finished!")
+	// FIXME: This isn't really enough to completely take account of new configuration
+	// We should really be restarting:
+	// - On windows this is probably just a simple restart
+	// - On linux we can't just use graceful.RestartProcess() everything that was passed in on LISTEN_FDS
+	//   (active or not) needs to be passed out and everything new passed out too.
+	//   This means we need to prevent the cleanup goroutine from running prior to the second GlobalInit
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
 	ctx.Redirect(form.AppURL + "user/login")
 }

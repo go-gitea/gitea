@@ -16,7 +16,7 @@
 							<div class="divider"> / </div>
 							{{if eq $i $l}}
 								<input id="file-name" value="{{$v}}" placeholder="{{$.i18n.Tr "repo.editor.name_your_file"}}" data-ec-url-prefix="{{$.EditorconfigURLPrefix}}" required autofocus>
-								<span class="octicon octicon-info poping up" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center" data-variation="tiny inverted"></span>
+								<span class="poping up" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-info" 16}}</span>
 							{{else}}
 								<span class="section"><a href="{{EscapePound $.BranchLink}}/{{index $.TreePaths $i | EscapePound}}">{{$v}}</a></span>
 							{{end}}
@@ -28,19 +28,18 @@
 			</div>
 			<div class="field">
 				<div class="ui top attached tabular menu" data-write="write" data-preview="preview" data-diff="diff">
-					<a class="active item" data-tab="write"><i class="octicon octicon-code"></i> {{if .IsNewFile}}{{.i18n.Tr "repo.editor.new_file"}}{{else}}{{.i18n.Tr "repo.editor.edit_file"}}{{end}}</a>
+					<a class="active item" data-tab="write">{{svg "octicon-code" 16}} {{if .IsNewFile}}{{.i18n.Tr "repo.editor.new_file"}}{{else}}{{.i18n.Tr "repo.editor.edit_file"}}{{end}}</a>
 					{{if not .IsNewFile}}
-					<a class="item" data-tab="preview" data-url="{{AppSubUrl}}/api/v1/markdown" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL | EscapePound}}" data-preview-file-modes="{{.PreviewableFileModes}}"><i class="octicon octicon-eye"></i> {{.i18n.Tr "repo.release.preview"}}</a>
-					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | EscapePound}}/{{.TreePath | EscapePound}}" data-context="{{.BranchLink}}"><i class="octicon octicon-diff"></i> {{.i18n.Tr "repo.editor.preview_changes"}}</a>
+					<a class="item" data-tab="preview" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL | EscapePound}}" data-preview-file-modes="{{.PreviewableFileModes}}">{{svg "octicon-eye" 16}} {{.i18n.Tr "preview"}}</a>
+					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | EscapePound}}/{{.TreePath | EscapePound}}" data-context="{{.BranchLink}}">{{svg "octicon-diff" 16}} {{.i18n.Tr "repo.editor.preview_changes"}}</a>
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
 					<textarea id="edit_area" name="content" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
-						data-url="{{AppSubUrl}}/api/v1/markdown"
+						data-url="{{.Repository.APIURL}}/markdown"
 						data-context="{{.RepoLink}}"
 						data-markdown-file-exts="{{.MarkdownFileExts}}"
-						data-line-wrap-extensions="{{.LineWrapExtensions}}"
-						required>
+						data-line-wrap-extensions="{{.LineWrapExtensions}}">
 {{.FileContent}}</textarea>
 				</div>
 				<div class="ui bottom attached tab segment markdown" data-tab="preview">
@@ -53,5 +52,27 @@
 			{{template "repo/editor/commit_form" .}}
 		</form>
 	</div>
+
+
+	<div class="ui small basic modal" id="edit-empty-content-modal">
+		<div class="ui icon header">
+			<i class="file icon"></i>
+            {{.i18n.Tr "repo.editor.commit_empty_file_header"}}
+		</div>
+		<div class="center content">
+			<p>{{.i18n.Tr "repo.editor.commit_empty_file_text"}}</p>
+		</div>
+		<div class="actions">
+			<div class="ui red basic cancel inverted button">
+				<i class="remove icon"></i>
+                {{.i18n.Tr "repo.editor.cancel"}}
+			</div>
+			<div class="ui green basic ok inverted button">
+				<i class="save icon"></i>
+                {{.i18n.Tr "repo.editor.commit_changes"}}
+			</div>
+		</div>
+	</div>
+
 </div>
 {{template "base/footer" .}}

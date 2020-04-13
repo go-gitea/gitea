@@ -35,7 +35,7 @@ Si vous souhaitez compiler la dernière version stable, utilisez les étiquettes
 
 ```
 git branch -a
-git checkout v1.0
+git checkout v{{< version >}}
 ```
 
 Si vous souhaitez valider une demande d'ajout (_Pull request_), vous devez activer cette branche en premier : 
@@ -44,11 +44,11 @@ Si vous souhaitez valider une demande d'ajout (_Pull request_), vous devez activ
 git fetch origin pull/xyz/head:pr-xyz  # xyz is PR value
 ```
 
-Enfin, vous pouvez directement utiliser les versions étiquettées (ex : `v1.0.0`). Pour utiliser les étiquettes, vous devez lister les étiquettes disponibles et choisir une étiquette spécifique avec les commandes suivantes :
+Enfin, vous pouvez directement utiliser les versions étiquettées (ex : `v{{< version >}}`). Pour utiliser les étiquettes, vous devez lister les étiquettes disponibles et choisir une étiquette spécifique avec les commandes suivantes :
 
 ```
 git tag -l
-git checkout v1.0.0
+git checkout v{{< version >}}
 git checkout pr-xyz
 ```
 
@@ -57,14 +57,13 @@ git checkout pr-xyz
 Comme nous regroupons déjà toutes les bibliothèques requises pour compiler Gitea, vous pouvez continuer avec le processus de compilation lui-même. Nous fournissons diverses [tâches Make](https://github.com/go-gitea/gitea/blob/master/Makefile) pour rendre le processus de construction aussi simple que possible. <a href='{{< relref "doc/advanced/make.fr-fr.md" >}}'>Voyez ici comment obtenir Make</a>. Selon vos besoins, vous pourrez éventuellement ajouter diverses options de compilation, vous pouvez choisir entre ces options :
 
 * `bindata`: Intègre toutes les ressources nécessaires à l'exécution d'une instance de Gitea, ce qui rend un déploiement facile car il n'est pas nécessaire de se préoccuper des fichiers supplémentaires.
-* `sqlite`: Active la prise en charge d'une base de données [SQLite3](https://sqlite.org/), ceci n'est recommandé que pour les petites installations de Gitea.
-* `tidb`: Active la prise en charge d'une base de données [TiDB](https://github.com/pingcap/tidb), c'est une base de données simplet et basée sur des fichiers. Elle est comparable à SQLite.
+* `sqlite sqlite_unlock_notify`: Active la prise en charge d'une base de données [SQLite3](https://sqlite.org/), ceci n'est recommandé que pour les petites installations de Gitea.
 * `pam`: Active la prise en charge de PAM (mLinux Pluggable Authentication Modules), très utile si vos utilisateurs doivent être authentifiés avec les comptes du système.
 
-Il est temps de compiler le binaire, nous suggérons d'intégrer les ressources avec l'option de compilation `bindata`. Pour inclure les ressources, vous devrez également exécuter la tâche Make `generate`. Dans le cas échéant, les ressources ne pourront pas être intégrées:
+Il est temps de compiler le binaire, nous suggérons d'intégrer les ressources avec l'option de compilation `bindata`:
 
 ```
-TAGS="bindata" make generate build
+TAGS="bindata" make build
 ```
 
 ## Test
@@ -77,4 +76,4 @@ Après avoir suivi toutes les étapes, vous devriez avoir le binaire `gitea` dan
 
 ## Il manque quelque chose ?
 
-Est-ce que nous avons oublié quelque chose sur cette page ? N'hésitez pas à nous contacter sur notre [serveur Discord](https://discord.gg/NsatcWJ), vous obtiendrez des réponses à toute vos questions assez rapidement.
+Est-ce que nous avons oublié quelque chose sur cette page ? N'hésitez pas à nous contacter sur notre [serveur Discord](https://discord.gg/Gitea), vous obtiendrez des réponses à toute vos questions assez rapidement.

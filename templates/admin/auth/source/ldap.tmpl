@@ -30,7 +30,7 @@
 		<input id="bind_password" name="bind_password" type="password" value="{{.bind_password}}">
 		<p class="help text red">{{.i18n.Tr "admin.auths.bind_password_helper"}}</p>
 	</div>
-	<div class="ldap required field {{if not (eq .type 2)}}hide{{end}}">
+	<div class="binddnrequired {{if (eq .type 2)}}required{{end}} field">
 		<label for="user_base">{{.i18n.Tr "admin.auths.user_base"}}</label>
 		<input id="user_base" name="user_base" value="{{.user_base}}" placeholder="e.g. ou=Users,dc=mydomain,dc=com">
 	</div>
@@ -45,6 +45,11 @@
 	<div class="field">
 		<label for="admin_filter">{{.i18n.Tr "admin.auths.admin_filter"}}</label>
 		<input id="admin_filter" name="admin_filter" value="{{.admin_filter}}">
+	</div>
+	<div class="field">
+		<label for="restricted_filter">{{.i18n.Tr "admin.auths.restricted_filter"}}</label>
+		<input id="restricted_filter" name="admin_filter" value="{{.restricted_filter}}">
+		<p class="help">{{.i18n.Tr "admin.auths.restricted_filter_helper"}}</p>
 	</div>
 	<div class="field">
 		<label for="attribute_username">{{.i18n.Tr "admin.auths.attribute_username"}}</label>

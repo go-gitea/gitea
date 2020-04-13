@@ -306,6 +306,7 @@ var nameMap = map[string]htmlEncoding{
 	"iso-2022-cn":         replacement,
 	"iso-2022-cn-ext":     replacement,
 	"iso-2022-kr":         replacement,
+	"replacement":         replacement,
 	"utf-16be":            utf16be,
 	"utf-16":              utf16le,
 	"utf-16le":            utf16le,
@@ -313,7 +314,7 @@ var nameMap = map[string]htmlEncoding{
 }
 
 var localeMap = []htmlEncoding{
-	windows1252, // und
+	windows1252, // und_Latn
 	windows1256, // ar
 	windows1251, // ba
 	windows1251, // be
@@ -349,4 +350,4 @@ var localeMap = []htmlEncoding{
 	big5,        // zh-hant
 }
 
-const locales = "und ar ba be bg cs el et fa he hr hu ja kk ko ku ky lt lv mk pl ru sah sk sl sr tg th tr tt uk vi zh-hans zh-hant"
+const locales = "und_Latn ar ba be bg cs el et fa he hr hu ja kk ko ku ky lt lv mk pl ru sah sk sl sr tg th tr tt uk vi zh-hans zh-hant"

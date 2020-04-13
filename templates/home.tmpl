@@ -3,92 +3,51 @@
 	<div class="ui stackable middle very relaxed page grid">
 		<div class="sixteen wide center aligned centered column">
 			<div>
-				<!--<img class="logo" src="{{AppSubUrl}}/img/gitea-lg.png" />-->
-				<img class="logo" src="{{AppSubUrl}}/img/thingit-logo.png" />
+				<img class="logo" src="{{StaticUrlPrefix}}/img/gitea-lg.png" />
 			</div>
 			<div class="hero">
 				<h1 class="ui icon header title">
-					Thingit
+					{{AppName}}
 				</h1>
-				<!--<h2>{{.i18n.Tr "app_desc"}}</h2>-->
-				<h2>Collaborative CAD platform</h2>
+				<h2>{{.i18n.Tr "startpage.app_desc"}}</h2>
 			</div>
 		</div>
 	</div>
-	{{if eq .Lang "fr-FR"}}
-		<div class="ui stackable middle very relaxed page grid">
-			<div class="eight wide center column">
-				<h1 class="hero ui icon header">
-					<i class="octicon octicon-flame"></i> Un workflow efficace
-				</h1>
-				<p class="large">
-					Développer les projets de CAO en utilisant les meilleures pratiques du développement logiciel. Les contributeurs viennent du monde entier.
-				</p>
-			</div>
-			<div class="eight wide center column">
-				<h1 class="hero ui icon header">
-					<i class="octicon octicon-device-desktop"></i> Indépendant des formats propriétaires
-				</h1>
-				<p class="large">
-					Donnez vie à vos idées sans dépendre des logiciels chers et propriétaires
-				</p>
-			</div>
+	<div class="ui stackable middle very relaxed page grid">
+		<div class="eight wide center column">
+			<h1 class="hero ui icon header">
+				{{svg "octicon-flame" 16}} {{.i18n.Tr "startpage.install"}}
+			</h1>
+			<p class="large">
+				{{.i18n.Tr "startpage.install_desc" | Str2html}}
+			</p>
 		</div>
-		<div class="ui stackable middle very relaxed page grid">
-			<div class="eight wide center column">
-				<h1 class="hero ui icon header">
-					<i class="octicon octicon-rocket"></i> Batteries inclues
-				</h1>
-				<p class="large">
-					Utilisez les librairies de pièces fournies par la plateforme pour ne pas réinventer la roue.
-				</p>
-			</div>
-			<div class="eight wide center column">
-				<h1 class="hero ui icon header">
-					<i class="octicon octicon-code"></i> 100% paramétrique
-				</h1>
-				<p class="large">
-					La possibilité de scripter entièrement la conception des pièces et leur assemblage permet de créer des projets 100% paramétriques
-				</p>
-			</div>
+		<div class="eight wide center column">
+			<h1 class="hero ui icon header">
+				{{svg "octicon-device-desktop" 16}} {{.i18n.Tr "startpage.platform"}}
+			</h1>
+			<p class="large">
+				{{.i18n.Tr "startpage.platform_desc" | Str2html}}
+			</p>
 		</div>
-	{{else}}
-		<div class="ui stackable middle very relaxed page grid">
-			<div class="eight wide center column">
-				<h1 class="hero ui icon header">
-					<i class="octicon octicon-flame"></i> An efficient workflow
-				</h1>
-				<p class="large">
-					Develop CAD projects backed by the same best practises that powered open source software development. Contributors from all over the world.
-				</p>
-			</div>
-			<div class="eight wide center column">
-				<h1 class="hero ui icon header">
-					<i class="octicon octicon-device-desktop"></i> Independent from proprietary formats
-				</h1>
-				<p class="large">
-					Bring your projects to life without depending on costly and closed softs.
-				</p>
-			</div>
+	</div>
+	<div class="ui stackable middle very relaxed page grid">
+		<div class="eight wide center column">
+			<h1 class="hero ui icon header">
+				{{svg "octicon-rocket" 16}} {{.i18n.Tr "startpage.lightweight"}}
+			</h1>
+			<p class="large">
+				{{.i18n.Tr "startpage.lightweight_desc" | Str2html}}
+			</p>
 		</div>
-		<div class="ui stackable middle very relaxed page grid">
-			<div class="eight wide center column">
-				<h1 class="hero ui icon header">
-					<i class="octicon octicon-rocket"></i> Batteries included
-				</h1>
-				<p class="large">
-					Use provided parts libraries. Don't reinvent the wheel!
-				</p>
-			</div>
-			<div class="eight wide center column">
-				<h1 class="hero ui icon header">
-					<i class="octicon octicon-code"></i> 100% parametric
-				</h1>
-				<p class="large">
-					Parts and assemblies may be scripted, which makes projects defined this way 100% parametric.
-				</p>
-			</div>
+		<div class="eight wide center column">
+			<h1 class="hero ui icon header">
+				{{svg "octicon-code" 16}} {{.i18n.Tr "startpage.license"}}
+			</h1>
+			<p class="large">
+				{{.i18n.Tr "startpage.license_desc" | Str2html}}
+			</p>
 		</div>
-	{{end}}
+	</div>
 </div>
 {{template "base/footer" .}}
