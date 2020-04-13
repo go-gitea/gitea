@@ -274,7 +274,7 @@ func ViewProject(ctx *context.Context) {
 	uncategorizedBoard := data{
 		Board: models.ProjectBoard{
 			ID:        0,
-			ProjectID: 0,
+			ProjectID: ctx.ParamsInt64(":id"),
 			Title:     ctx.Tr("repo.projects.type.uncategorized"),
 		},
 		Issues: []*models.Issue{},
