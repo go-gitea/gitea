@@ -118,6 +118,97 @@ func GetNotifications(opts FindNotificationOptions) (NotificationList, error) {
 	return getNotifications(x, opts)
 }
 
+// GetEligibleNotificationParticipants returns a list of users, as well as the issue, who are eligible to
+// receive a new or updated notification.
+// receiverID > 0 just targets the one user.
+func GetEligibleNotificationParticipants(issue *Issue, notificationAuthorID, receiverID int64) (map[int64]struct{}, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	result, err := getEligibleNotificationParticipants(sess, issue, notificationAuthorID, receiverID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sess.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return result, err
+}
+
+func getEligibleNotificationParticipants(e Engine, issue *Issue, notificationAuthorID, receiverID int64) (map[int64]struct{}, error) {
+	var toNotify map[int64]struct{}
+
+	if receiverID > 0 {
+		toNotify = make(map[int64]struct{}, 1)
+		toNotify[receiverID] = struct{}{}
+		return toNotify, nil
+
+	}
+
+	toNotify = make(map[int64]struct{}, 32)
+	issueWatches, err := getIssueWatchersIDs(e, issue.ID, true)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range issueWatches {
+		toNotify[id] = struct{}{}
+	}
+
+	repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range repoWatches {
+		toNotify[id] = struct{}{}
+	}
+	issueParticipants, err := issue.getParticipantIDsByIssue(e)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range issueParticipants {
+		toNotify[id] = struct{}{}
+	}
+
+	// dont notify user who cause notification
+	delete(toNotify, notificationAuthorID)
+	// filter out explicit unwatch on issue
+	issueUnWatches, err := getIssueWatchersIDs(e, issue.ID, false)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range issueUnWatches {
+		delete(toNotify, id)
+	}
+
+	err = issue.loadRepo(e)
+	if err != nil {
+		return nil, err
+	}
+	units := issue.Repo.Units
+	issue.Repo.Units = nil // <- Not sure why this was here before refactoring, but we put it back later
+	defer func() {
+		issue.Repo.Units = units
+	}()
+
+	// Filter out those who can't view the linked issue/PR, but were previously involved
+	for userID := range toNotify {
+		if issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypePullRequests) {
+			delete(toNotify, userID)
+		}
+		if !issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypeIssues) {
+			delete(toNotify, userID)
+		}
+	}
+
+	return toNotify, nil
+}
+
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to reciver, else send to all watcher
@@ -137,9 +228,7 @@ func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, 
 
 func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notificationAuthorID, receiverID int64) error {
 	// init
-	var toNotify map[int64]struct{}
 	notifications, err := getNotificationsByIssueID(e, issueID)
-
 	if err != nil {
 		return err
 	}
@@ -149,68 +238,24 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notification
 		return err
 	}
 
-	if receiverID > 0 {
-		toNotify = make(map[int64]struct{}, 1)
-		toNotify[receiverID] = struct{}{}
-	} else {
-		toNotify = make(map[int64]struct{}, 32)
-		issueWatches, err := getIssueWatchersIDs(e, issueID, true)
-		if err != nil {
-			return err
-		}
-		for _, id := range issueWatches {
-			toNotify[id] = struct{}{}
-		}
-
-		repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
-		if err != nil {
-			return err
-		}
-		for _, id := range repoWatches {
-			toNotify[id] = struct{}{}
-		}
-		issueParticipants, err := issue.getParticipantIDsByIssue(e)
-		if err != nil {
-			return err
-		}
-		for _, id := range issueParticipants {
-			toNotify[id] = struct{}{}
-		}
-
-		// dont notify user who cause notification
-		delete(toNotify, notificationAuthorID)
-		// explicit unwatch on issue
-		issueUnWatches, err := getIssueWatchersIDs(e, issueID, false)
-		if err != nil {
-			return err
-		}
-		for _, id := range issueUnWatches {
-			delete(toNotify, id)
-		}
-	}
-
-	err = issue.loadRepo(e)
+	toNotify, err := getEligibleNotificationParticipants(e, issue, notificationAuthorID, receiverID)
 	if err != nil {
 		return err
+	}
+	if len(toNotify) == 0 {
+		return nil
 	}
 
 	// notify
 	for userID := range toNotify {
-		issue.Repo.Units = nil
-		if issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypePullRequests) {
-			continue
-		}
-		if !issue.IsPull && !issue.Repo.checkUnitUser(e, userID, false, UnitTypeIssues) {
-			continue
-		}
 
 		err := notificationSendWebPushNotification(userID, issue, commentID)
 		if err != nil {
 			log.Error("problem sending webhook notification: %v", err)
 		}
 
-		if notificationExists(notifications, issue.ID, userID) {
-			if err = updateIssueNotification(e, userID, issue.ID, commentID, notificationAuthorID); err != nil {
+		if notificationExists(notifications, issueID, userID) {
+			if err = updateIssueNotification(e, userID, issueID, commentID, notificationAuthorID); err != nil {
 				return err
 			}
 			continue
