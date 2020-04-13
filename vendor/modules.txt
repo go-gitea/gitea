@@ -669,7 +669,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
+# golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 ## explicit
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
