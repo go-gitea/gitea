@@ -52,6 +52,10 @@ menu:
       url: https://code.gitea.io/
       weight: 40
       pre: code
+    - name: Translation
+      url: https://crowdin.com/project/gitea
+      weight: 41
+      pre: language
     - name: Downloads
       url: https://dl.gitea.io/
       weight: 50
@@ -100,6 +104,10 @@ languages:
           url: https://code.gitea.io/
           weight: 40
           pre: code
+        - name: 翻译
+          url: https://crowdin.com/project/gitea
+          weight: 41
+          pre: language
         - name: 下载
           url: https://dl.gitea.io/
           weight: 50
@@ -143,6 +151,10 @@ languages:
           url: https://code.gitea.io/
           weight: 40
           pre: code
+        - name: 翻译
+          url: https://crowdin.com/project/gitea
+          weight: 41
+          pre: language
         - name: 下载
           url: https://dl.gitea.io/
           weight: 50
@@ -186,6 +198,10 @@ languages:
           url: https://code.gitea.io/
           weight: 40
           pre: code
+        - name: Translation
+          url: https://crowdin.com/project/gitea
+          weight: 41
+          pre: language
         - name: Downloads
           url: https://dl.gitea.io/
           weight: 50
@@ -229,6 +245,10 @@ languages:
           url: https://code.gitea.io/
           weight: 40
           pre: code
+        - name: Translation
+          url: https://crowdin.com/project/gitea
+          weight: 41
+          pre: language
         - name: Downloads
           url: https://dl.gitea.io/
           weight: 50
@@ -272,6 +292,10 @@ languages:
           url: https://code.gitea.io/
           weight: 40
           pre: code
+        - name: Translation
+          url: https://crowdin.com/project/gitea
+          weight: 41
+          pre: language
         - name: Téléchargement
           url: https://dl.gitea.io/
           weight: 50
