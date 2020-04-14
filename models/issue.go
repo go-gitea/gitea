@@ -554,7 +554,7 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*Comment, error) {
+func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed, isMergePull bool) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := getIssueByID(e, issue.ID)
 	if err != nil {
@@ -620,6 +620,8 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*C
 	cmtType := CommentTypeClose
 	if !issue.IsClosed {
 		cmtType = CommentTypeReopen
+	} else if isMergePull {
+		cmtType = CommentTypeMergePull
 	}
 
 	return createComment(e, &CreateCommentOptions{
@@ -645,7 +647,7 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (*Comment, error) {
 		return nil, err
 	}
 
-	comment, err := issue.changeStatus(sess, doer, isClosed)
+	comment, err := issue.changeStatus(sess, doer, isClosed, false)
 	if err != nil {
 		return nil, err
 	}
