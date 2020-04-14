@@ -418,12 +418,10 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 
 	if headBranchExist {
-		if pull.CommitsBehind > 0 {
-			ctx.Data["UpdateAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
-			if err != nil {
-				ctx.ServerError("IsUserAllowedToUpdate", err)
-				return nil
-			}
+		ctx.Data["UpdateAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+		if err != nil {
+			ctx.ServerError("IsUserAllowedToUpdate", err)
+			return nil
 		}
 		ctx.Data["GetCommitMessages"] = pull_service.GetCommitMessages(pull)
 	}
