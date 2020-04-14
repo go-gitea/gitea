@@ -305,7 +305,7 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{if and .Divergence (gt .Divergence.Behind 0)}}
+				{{if gt .Issue.PullRequest.CommitsBehind 0}}
 				<div class="ui very compact branch-update grid">
 						<div class="row">
 						<div class="item text gray eleven wide left floated column">
