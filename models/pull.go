@@ -390,7 +390,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, err
 	}
 
-	if _, err := pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
+	if _, err := pr.Issue.changeStatus(sess, pr.Merger, true, true); err != nil {
 		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
