@@ -58,7 +58,6 @@
 		</div>
 	</div>
 {{end}}
-VARSTATUS: RequiredStatusCheckState.IsSuccess: {{if .RequiredStatusCheckState.IsSuccess}}true{{else}}false{{end}}
 <div class="timeline-item comment merge box">
 	<a class="timeline-avatar text  {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
