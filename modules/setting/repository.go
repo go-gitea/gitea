@@ -35,6 +35,8 @@ var (
 		AccessControlAllowOrigin                string
 		UseCompatSSHURI                         bool
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
+		DefaultEnableHookTaskPurge              bool
+		DefaultNumberWebhookDeliveriesToKeep    int64
 		EnablePushCreateUser                    bool
 		EnablePushCreateOrg                     bool
 		DisabledRepoUnits                       []string
@@ -99,6 +101,8 @@ var (
 		AccessControlAllowOrigin:                "",
 		UseCompatSSHURI:                         false,
 		DefaultCloseIssuesViaCommitsInAnyBranch: false,
+		DefaultEnableHookTaskPurge:              true,
+		DefaultNumberWebhookDeliveriesToKeep:    10,
 		EnablePushCreateUser:                    false,
 		EnablePushCreateOrg:                     false,
 		DisabledRepoUnits:                       []string{},
