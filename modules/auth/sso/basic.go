@@ -85,22 +85,12 @@ func (b *Basic) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models
 	}
 	token, err := models.GetAccessTokenBySHA(authToken)
 	if err == nil {
-		if isUsernameToken {
-			u, err = models.GetUserByID(token.UID)
-			if err != nil {
-				log.Error("GetUserByID:  %v", err)
-				return nil
-			}
-		} else {
-			u, err = models.GetUserByName(uname)
-			if err != nil {
-				log.Error("GetUserByID:  %v", err)
-				return nil
-			}
-			if u.ID != token.UID {
-				return nil
-			}
+		u, err = models.GetUserByID(token.UID)
+		if err != nil {
+			log.Error("GetUserByID:  %v", err)
+			return nil
 		}
+
 		token.UpdatedUnix = timeutil.TimeStampNow()
 		if err = models.UpdateAccessToken(token); err != nil {
 			log.Error("UpdateAccessToken:  %v", err)
