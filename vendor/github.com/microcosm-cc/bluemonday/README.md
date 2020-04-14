@@ -1,4 +1,4 @@
-# bluemonday [![Build Status](https://travis-ci.org/microcosm-cc/bluemonday.svg?branch=master)](https://travis-ci.org/microcosm-cc/bluemonday) [![GoDoc](https://godoc.org/github.com/microcosm-cc/bluemonday?status.png)](https://godoc.org/github.com/microcosm-cc/bluemonday)
+# bluemonday [![Build Status](https://travis-ci.org/microcosm-cc/bluemonday.svg?branch=master)](https://travis-ci.org/microcosm-cc/bluemonday) [![GoDoc](https://godoc.org/github.com/microcosm-cc/bluemonday?status.png)](https://godoc.org/github.com/microcosm-cc/bluemonday) [![Sourcegraph](https://sourcegraph.com/github.com/microcosm-cc/bluemonday/-/badge.svg)](https://sourcegraph.com/github.com/microcosm-cc/bluemonday?badge)
 
 bluemonday is a HTML sanitizer implemented in Go. It is fast and highly configurable.
 
@@ -58,9 +58,11 @@ We expect to be supplied with well-formatted HTML (closing elements for every ap
 
 ### Supported Go Versions
 
-bluemonday is regularly tested against Go 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7 and tip.
+bluemonday is tested against Go 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11, 1.12, and tip.
 
 We do not support Go 1.0 as we depend on `golang.org/x/net/html` which includes a reference to `io.ErrNoProgress` which did not exist in Go 1.0.
+
+We support Go 1.1 but Travis no longer tests against it.
 
 ## Is it production ready?
 
@@ -87,7 +89,11 @@ import (
 )
 
 func main() {
+	// Do this once for each unique policy, and use the policy for the life of the program
+	// Policy creation/editing is not safe to use in multiple goroutines
 	p := bluemonday.UGCPolicy()
+
+	// The policy can then be used to sanitize lots of input and it is safe to use the policy in multiple goroutines
 	html := p.Sanitize(
 		`<a onblur="alert(secret)" href="http://www.google.com">Google</a>`,
 	)
@@ -140,7 +146,7 @@ func main() {
 
 We ship two default policies:
 
-1. `bluemonday.StrictPolicy()` which can be thought of as equivalent to stripping all HTML elements and their attributes as it has nothing on it's whitelist. An example usage scenario would be blog post titles where HTML tags are not expected at all and if they are then the elements *and* the content of the elements should be stripped. This is a *very* strict policy.
+1. `bluemonday.StrictPolicy()` which can be thought of as equivalent to stripping all HTML elements and their attributes as it has nothing on its whitelist. An example usage scenario would be blog post titles where HTML tags are not expected at all and if they are then the elements *and* the content of the elements should be stripped. This is a *very* strict policy.
 2. `bluemonday.UGCPolicy()` which allows a broad selection of HTML elements and attributes that are safe for user generated content. Note that this policy does *not* whitelist iframes, object, embed, styles, script, etc. An example usage scenario would be blog post bodies where a variety of formatting is expected along with the potential for TABLEs and IMGs.
 
 ## Policy Building
@@ -163,10 +169,24 @@ To add elements to a policy either add just the elements:
 p.AllowElements("b", "strong")
 ```
 
+Or using a regex:
+
+_Note: if an element is added by name as shown above, any matching regex will be ignored_
+
+It is also recommended to ensure multiple patterns don't overlap as order of execution is not guaranteed and can result in some rules being missed.
+```go
+p.AllowElementsMatching(regex.MustCompile(`^my-element-`))
+```
+
 Or add elements as a virtue of adding an attribute:
 ```go
 // Not the recommended pattern, see the recommendation on using .Matching() below
 p.AllowAttrs("nowrap").OnElements("td", "th")
+```
+
+Again, this also supports a regex pattern match alternative:
+```go
+p.AllowAttrs("nowrap").OnElementsMatching(regex.MustCompile(`^my-element-`))
 ```
 
 Attributes can either be added to all elements:
@@ -196,6 +216,49 @@ And you can take any existing policy and extend it:
 ```go
 p := bluemonday.UGCPolicy()
 p.AllowElements("fieldset", "select", "option")
+```
+
+### Inline CSS
+
+Although it's possible to handle inline CSS using `AllowAttrs` with a `Matching` rule, writing a single monolithic regular expression to safely process all inline CSS which you wish to allow is not a trivial task.  Instead of attempting to do so, you can whitelist the `style` attribute on whichever element(s) you desire and use style policies to control and sanitize inline styles.
+
+It is suggested that you use `Matching` (with a suitable regular expression)
+`MatchingEnum`, or `MatchingHandler` to ensure each style matches your needs,
+but default handlers are supplied for most widely used styles.
+
+Similar to attributes, you can allow specific CSS properties to be set inline:
+```go
+p.AllowAttrs("style").OnElements("span", "p")
+// Allow the 'color' property with valid RGB(A) hex values only (on any element allowed a 'style' attribute)
+p.AllowStyles("color").Matching(regexp.MustCompile("(?i)^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$")).Globally()
+```
+
+Additionally, you can allow a CSS property to be set only to an allowed value:
+```go
+p.AllowAttrs("style").OnElements("span", "p")
+// Allow the 'text-decoration' property to be set to 'underline', 'line-through' or 'none'
+// on 'span' elements only
+p.AllowStyles("text-decoration").MatchingEnum("underline", "line-through", "none").OnElements("span")
+```
+
+Or you can specify elements based on a regex patterm match:
+```go
+p.AllowAttrs("style").OnElementsMatching(regex.MustCompile(`^my-element-`))
+// Allow the 'text-decoration' property to be set to 'underline', 'line-through' or 'none'
+// on 'span' elements only
+p.AllowStyles("text-decoration").MatchingEnum("underline", "line-through", "none").OnElementsMatching(regex.MustCompile(`^my-element-`))
+```
+
+If you need more specific checking, you can create a handler that takes in a string and returns a bool to
+validate the values for a given property. The string parameter has been
+converted to lowercase and unicode code points have been converted.
+```go
+myHandler := func(value string) bool{
+	return true
+}
+p.AllowAttrs("style").OnElements("span", "p")
+// Allow the 'color' property with values validated by the handler (on any element allowed a 'style' attribute)
+p.AllowStyles("color").MatchingHandler(myHandler).Globally()
 ```
 
 ### Links
@@ -231,6 +294,13 @@ Regardless of whether you have enabled parseable URLs, you can force all URLs to
 // This applies to "a" "area" "link" elements that have a "href" attribute
 p.RequireNoFollowOnLinks(true)
 ```
+
+Similarly, you can force all URLs to have "noreferrer" in their rel attribute.
+```go
+// This applies to "a" "area" "link" elements that have a "href" attribute
+p.RequireNoReferrerOnLinks(true)
+```
+
 
 We provide a convenience method that applies all of the above, but you will still need to whitelist the linkable elements for the URL rules to be applied to:
 ```go
@@ -273,7 +343,7 @@ We also bundle some helpers to simplify policy building:
 // Permits the "dir", "id", "lang", "title" attributes globally
 p.AllowStandardAttributes()
 
-// Permits the "img" element and it's standard attributes
+// Permits the "img" element and its standard attributes
 p.AllowImages()
 
 // Permits ordered and unordered lists, and also definition lists
@@ -312,7 +382,6 @@ It is not the job of bluemonday to fix your bad HTML, it is merely the job of bl
 
 ## TODO
 
-* Add support for CSS sanitisation to allow some CSS properties based on a whitelist, possibly using the [Gorilla CSS3 scanner](http://www.gorillatoolkit.org/pkg/css/scanner)
 * Investigate whether devs want to blacklist elements and attributes. This would allow devs to take an existing policy (such as the `bluemonday.UGCPolicy()` ) that encapsulates 90% of what they're looking for but does more than they need, and to remove the extra things they do not want to make it 100% what they want
 * Investigate whether devs want a validating HTML mode, in which the HTML elements are not just transformed into a balanced tree (every start tag has a closing tag at the correct depth) but also that elements and character data appear only in their allowed context (i.e. that a `table` element isn't a descendent of a `caption`, that `colgroup`, `thead`, `tbody`, `tfoot` and `tr` are permitted, and that character data is not permitted)
 

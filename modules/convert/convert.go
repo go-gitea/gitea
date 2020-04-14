@@ -386,7 +386,6 @@ func ToCommitUser(sig *git.Signature) *api.CommitUser {
 func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 	return &api.CommitMeta{
 		SHA: tag.Object.String(),
-		// TODO: Add the /commits API endpoint and use it here (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
 		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
 	}
 }
