@@ -110,7 +110,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		deleteFileOptions.SHA = "badsha"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
-		resp = session.MakeRequest(t, req, http.StatusNotFound)
+		resp = session.MakeRequest(t, req, http.StatusBadRequest)
 
 		// Test creating a file in repo16 by user4 who does not have write access
 		fileID++
