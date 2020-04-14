@@ -51,6 +51,7 @@ module.exports = {
         sourceMap: true,
         extractComments: false,
         terserOptions: {
+          keep_fnames: /^(HTML|SVG)/, // https://github.com/fgnass/domino/issues/144
           output: {
             comments: false,
           },
@@ -88,6 +89,19 @@ module.exports = {
       {
         test: require.resolve('jquery-datetimepicker'),
         use: 'imports-loader?define=>false,exports=>false',
+      },
+      {
+        test: /\.worker\.js$/,
+        use: [
+          {
+            loader: 'worker-loader',
+            options: {
+              name: '[name].js',
+              inline: true,
+              fallback: false,
+            },
+          },
+        ],
       },
       {
         test: /\.js$/,
