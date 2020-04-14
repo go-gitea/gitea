@@ -584,7 +584,7 @@ func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
 
 	if pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr) {
 		return models.ErrNotAllowedToMerge{
-			Reason: fmt.Sprintf("There head branch %d behind base branch", pr.CommitsBehind),
+			Reason: fmt.Sprintf("Head branch %d behind base branch", pr.CommitsBehind),
 		}
 	}
 

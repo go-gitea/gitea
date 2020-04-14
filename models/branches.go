@@ -197,13 +197,7 @@ func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullReque
 
 // MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
 func (protectBranch *ProtectedBranch) MergeBlockedByOutdatedBranch(pr *PullRequest) bool {
-	if !protectBranch.BlockOnOutdatedBranch {
-		return false
-	}
-	if pr.CommitsBehind == 0 {
-		return false
-	}
-	return true
+	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
 }
 
 // GetProtectedFilePatterns parses a semicolon separated list of protected file patterns and returns a glob.Glob slice
