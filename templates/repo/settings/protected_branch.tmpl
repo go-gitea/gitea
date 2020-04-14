@@ -225,6 +225,11 @@
 							<p class="help">{{.i18n.Tr "repo.settings.require_signed_commits_desc"}}</p>
 						</div>
 					</div>
+					<div class="field">
+						<label for="protected_file_patterns">{{.i18n.Tr "repo.settings.protect_protected_file_patterns"}}</label>
+						<input name="protected_file_patterns" id="protected_file_patterns" type="text" value="{{.Branch.ProtectedFilePatterns}}">
+						<p class="help">{{.i18n.Tr "repo.settings.protect_protected_file_patterns_desc" | Safe}}</p>
+					</div>
 
 				</div>
 

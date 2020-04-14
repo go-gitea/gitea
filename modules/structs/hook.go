@@ -41,7 +41,7 @@ type CreateHookOptionConfig map[string]string
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
 	// required: true
-	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram
+	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu
 	Type string `json:"type" binding:"Required"`
 	// required: true
 	Config       CreateHookOptionConfig `json:"config" binding:"Required"`
@@ -374,6 +374,8 @@ const (
 	HookIssueMilestoned HookIssueAction = "milestoned"
 	// HookIssueDemilestoned is an issue action for when a milestone is cleared on an issue.
 	HookIssueDemilestoned HookIssueAction = "demilestoned"
+	// HookIssueReviewed is an issue action for when a pull request is reviewed
+	HookIssueReviewed HookIssueAction = "reviewed"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.

@@ -29,6 +29,8 @@
 
 package bluemonday
 
+//TODO sgutzwiller create map of styles to default handlers
+//TODO sgutzwiller create handlers for various attributes
 import (
 	"net/url"
 	"regexp"
@@ -47,20 +49,25 @@ type Policy struct {
 	// exceptions
 	initialized bool
 
-	// Allows the <!DOCTYPE > tag to exist in the sanitized document
-	allowDocType bool
-
 	// If true then we add spaces when stripping tags, specifically the closing
 	// tag is replaced by a space character.
 	addSpaces bool
 
-	// When true, add rel="nofollow" to HTML anchors
+	// When true, add rel="nofollow" to HTML a, area, and link tags
 	requireNoFollow bool
 
-	// When true, add rel="nofollow" to HTML anchors
+	// When true, add rel="nofollow" to HTML a, area, and link tags
 	// Will add for href="http://foo"
 	// Will skip for href="/foo" or href="foo"
 	requireNoFollowFullyQualifiedLinks bool
+
+	// When true, add rel="noreferrer" to HTML a, area, and link tags
+	requireNoReferrer bool
+
+	// When true, add rel="noreferrer" to HTML a, area, and link tags
+	// Will add for href="http://foo"
+	// Will skip for href="/foo" or href="foo"
+	requireNoReferrerFullyQualifiedLinks bool
 
 	// When true add target="_blank" to fully qualified links
 	// Will add for href="http://foo"
@@ -73,11 +80,26 @@ type Policy struct {
 	// When true, u, _ := url.Parse("url"); !u.IsAbs() is permitted
 	allowRelativeURLs bool
 
+	// When true, allow data attributes.
+	allowDataAttributes bool
+
 	// map[htmlElementName]map[htmlAttributeName]attrPolicy
 	elsAndAttrs map[string]map[string]attrPolicy
 
+	// elsMatchingAndAttrs stores regex based element matches along with attributes
+	elsMatchingAndAttrs map[*regexp.Regexp]map[string]attrPolicy
+
 	// map[htmlAttributeName]attrPolicy
 	globalAttrs map[string]attrPolicy
+
+	// map[htmlElementName]map[cssPropertyName]stylePolicy
+	elsAndStyles map[string]map[string]stylePolicy
+
+	// map[regex]map[cssPropertyName]stylePolicy
+	elsMatchingAndStyles map[*regexp.Regexp]map[string]stylePolicy
+
+	// map[cssPropertyName]stylePolicy
+	globalStyles map[string]stylePolicy
 
 	// If urlPolicy is nil, all URLs with matching schema are allowed.
 	// Otherwise, only the URLs with matching schema and urlPolicy(url)
@@ -93,6 +115,16 @@ type Policy struct {
 	// be maintained in the output HTML.
 	setOfElementsAllowedWithoutAttrs map[string]struct{}
 
+	// If an element has had all attributes removed as a result of a policy
+	// being applied, then the element would be removed from the output.
+	//
+	// However some elements are valid and have strong layout meaning without
+	// any attributes, i.e. <table>.
+	//
+	// In this case, any element matching a regular expression will be accepted without
+	// attributes added.
+	setOfElementsMatchingAllowedWithoutAttrs []*regexp.Regexp
+
 	setOfElementsToSkipContent map[string]struct{}
 }
 
@@ -103,6 +135,20 @@ type attrPolicy struct {
 	regexp *regexp.Regexp
 }
 
+type stylePolicy struct {
+	// handler to validate
+	handler func(string) bool
+
+	// optional pattern to match, when not nil the regexp needs to match
+	// otherwise the property is removed
+	regexp *regexp.Regexp
+
+	// optional list of allowed property values, for properties which
+	// have a defined list of allowed values; property will be removed
+	// if the value is not allowed
+	enum []string
+}
+
 type attrPolicyBuilder struct {
 	p *Policy
 
@@ -111,13 +157,26 @@ type attrPolicyBuilder struct {
 	allowEmpty bool
 }
 
+type stylePolicyBuilder struct {
+	p *Policy
+
+	propertyNames []string
+	regexp        *regexp.Regexp
+	enum          []string
+	handler       func(string) bool
+}
+
 type urlPolicy func(url *url.URL) (allowUrl bool)
 
 // init initializes the maps if this has not been done already
 func (p *Policy) init() {
 	if !p.initialized {
 		p.elsAndAttrs = make(map[string]map[string]attrPolicy)
+		p.elsMatchingAndAttrs = make(map[*regexp.Regexp]map[string]attrPolicy)
 		p.globalAttrs = make(map[string]attrPolicy)
+		p.elsAndStyles = make(map[string]map[string]stylePolicy)
+		p.elsMatchingAndStyles = make(map[*regexp.Regexp]map[string]stylePolicy)
+		p.globalStyles = make(map[string]stylePolicy)
 		p.allowURLSchemes = make(map[string]urlPolicy)
 		p.setOfElementsAllowedWithoutAttrs = make(map[string]struct{})
 		p.setOfElementsToSkipContent = make(map[string]struct{})
@@ -159,6 +218,21 @@ func (p *Policy) AllowAttrs(attrNames ...string) *attrPolicyBuilder {
 	}
 
 	return &abp
+}
+
+// AllowDataAttributes whitelists all data attributes. We can't specify the name
+// of each attribute exactly as they are customized.
+//
+// NOTE: These values are not sanitized and applications that evaluate or process
+// them without checking and verification of the input may be at risk if this option
+// is enabled. This is a 'caveat emptor' option and the person enabling this option
+// needs to fully understand the potential impact with regards to whatever application
+// will be consuming the sanitized HTML afterwards, i.e. if you know you put a link in a
+// data attribute and use that to automatically load some new window then you're giving
+// the author of a HTML fragment the means to open a malicious destination automatically.
+// Use with care!
+func (p *Policy) AllowDataAttributes() {
+	p.allowDataAttributes = true
 }
 
 // AllowNoAttrs says that attributes on element are optional.
@@ -230,6 +304,30 @@ func (abp *attrPolicyBuilder) OnElements(elements ...string) *Policy {
 	return abp.p
 }
 
+// OnElementsMatching will bind an attribute policy to all elements matching a given regex
+// and return the updated policy
+func (abp *attrPolicyBuilder) OnElementsMatching(regex *regexp.Regexp) *Policy {
+	for _, attr := range abp.attrNames {
+		if _, ok := abp.p.elsMatchingAndAttrs[regex]; !ok {
+			abp.p.elsMatchingAndAttrs[regex] = make(map[string]attrPolicy)
+		}
+		ap := attrPolicy{}
+		if abp.regexp != nil {
+			ap.regexp = abp.regexp
+		}
+		abp.p.elsMatchingAndAttrs[regex][attr] = ap
+	}
+
+	if abp.allowEmpty {
+		abp.p.setOfElementsMatchingAllowedWithoutAttrs = append(abp.p.setOfElementsMatchingAllowedWithoutAttrs, regex)
+		if _, ok := abp.p.elsMatchingAndAttrs[regex]; !ok {
+			abp.p.elsMatchingAndAttrs[regex] = make(map[string]attrPolicy)
+		}
+	}
+
+	return abp.p
+}
+
 // Globally will bind an attribute policy to all HTML elements and return the
 // updated policy
 func (abp *attrPolicyBuilder) Globally() *Policy {
@@ -250,6 +348,139 @@ func (abp *attrPolicyBuilder) Globally() *Policy {
 	return abp.p
 }
 
+// AllowStyles takes a range of CSS property names and returns a
+// style policy builder that allows you to specify the pattern and scope of
+// the whitelisted property.
+//
+// The style policy is only added to the core policy when either Globally()
+// or OnElements(...) are called.
+func (p *Policy) AllowStyles(propertyNames ...string) *stylePolicyBuilder {
+
+	p.init()
+
+	abp := stylePolicyBuilder{
+		p: p,
+	}
+
+	for _, propertyName := range propertyNames {
+		abp.propertyNames = append(abp.propertyNames, strings.ToLower(propertyName))
+	}
+
+	return &abp
+}
+
+// Matching allows a regular expression to be applied to a nascent style
+// policy, and returns the style policy. Calling this more than once will
+// replace the existing regexp.
+func (spb *stylePolicyBuilder) Matching(regex *regexp.Regexp) *stylePolicyBuilder {
+
+	spb.regexp = regex
+
+	return spb
+}
+
+// MatchingEnum allows a list of allowed values to be applied to a nascent style
+// policy, and returns the style policy. Calling this more than once will
+// replace the existing list of allowed values.
+func (spb *stylePolicyBuilder) MatchingEnum(enum ...string) *stylePolicyBuilder {
+
+	spb.enum = enum
+
+	return spb
+}
+
+// MatchingHandler allows a handler to be applied to a nascent style
+// policy, and returns the style policy. Calling this more than once will
+// replace the existing handler.
+func (spb *stylePolicyBuilder) MatchingHandler(handler func(string) bool) *stylePolicyBuilder {
+
+	spb.handler = handler
+
+	return spb
+}
+
+// OnElements will bind a style policy to a given range of HTML elements
+// and return the updated policy
+func (spb *stylePolicyBuilder) OnElements(elements ...string) *Policy {
+
+	for _, element := range elements {
+		element = strings.ToLower(element)
+
+		for _, attr := range spb.propertyNames {
+
+			if _, ok := spb.p.elsAndStyles[element]; !ok {
+				spb.p.elsAndStyles[element] = make(map[string]stylePolicy)
+			}
+
+			sp := stylePolicy{}
+			if spb.handler != nil {
+				sp.handler = spb.handler
+			} else if len(spb.enum) > 0 {
+				sp.enum = spb.enum
+			} else if spb.regexp != nil {
+				sp.regexp = spb.regexp
+			} else {
+				sp.handler = getDefaultHandler(attr)
+			}
+			spb.p.elsAndStyles[element][attr] = sp
+		}
+	}
+
+	return spb.p
+}
+
+// OnElementsMatching will bind a style policy to any HTML elements matching the pattern
+// and return the updated policy
+func (spb *stylePolicyBuilder) OnElementsMatching(regex *regexp.Regexp) *Policy {
+
+		for _, attr := range spb.propertyNames {
+
+			if _, ok := spb.p.elsMatchingAndStyles[regex]; !ok {
+				spb.p.elsMatchingAndStyles[regex] = make(map[string]stylePolicy)
+			}
+
+			sp := stylePolicy{}
+			if spb.handler != nil {
+				sp.handler = spb.handler
+			} else if len(spb.enum) > 0 {
+				sp.enum = spb.enum
+			} else if spb.regexp != nil {
+				sp.regexp = spb.regexp
+			} else {
+				sp.handler = getDefaultHandler(attr)
+			}
+			spb.p.elsMatchingAndStyles[regex][attr] = sp
+		}
+
+	return spb.p
+}
+
+// Globally will bind a style policy to all HTML elements and return the
+// updated policy
+func (spb *stylePolicyBuilder) Globally() *Policy {
+
+	for _, attr := range spb.propertyNames {
+		if _, ok := spb.p.globalStyles[attr]; !ok {
+			spb.p.globalStyles[attr] = stylePolicy{}
+		}
+
+		// Use only one strategy for validating styles, fallback to default
+		sp := stylePolicy{}
+		if spb.handler != nil {
+			sp.handler = spb.handler
+		} else if len(spb.enum) > 0 {
+			sp.enum = spb.enum
+		} else if spb.regexp != nil {
+			sp.regexp = spb.regexp
+		} else {
+			sp.handler = getDefaultHandler(attr)
+		}
+		spb.p.globalStyles[attr] = sp
+	}
+
+	return spb.p
+}
+
 // AllowElements will append HTML elements to the whitelist without applying an
 // attribute policy to those elements (the elements are permitted
 // sans-attributes)
@@ -267,8 +498,16 @@ func (p *Policy) AllowElements(names ...string) *Policy {
 	return p
 }
 
-// RequireNoFollowOnLinks will result in all <a> tags having a rel="nofollow"
-// added to them if one does not already exist
+func (p *Policy) AllowElementsMatching(regex *regexp.Regexp) *Policy {
+	p.init()
+	if _, ok := p.elsMatchingAndAttrs[regex]; !ok {
+		p.elsMatchingAndAttrs[regex] = make(map[string]attrPolicy)
+	}
+	return p
+}
+
+// RequireNoFollowOnLinks will result in all a, area, link tags having a
+// rel="nofollow"added to them if one does not already exist
 //
 // Note: This requires p.RequireParseableURLs(true) and will enable it.
 func (p *Policy) RequireNoFollowOnLinks(require bool) *Policy {
@@ -279,9 +518,10 @@ func (p *Policy) RequireNoFollowOnLinks(require bool) *Policy {
 	return p
 }
 
-// RequireNoFollowOnFullyQualifiedLinks will result in all <a> tags that point
-// to a non-local destination (i.e. starts with a protocol and has a host)
-// having a rel="nofollow" added to them if one does not already exist
+// RequireNoFollowOnFullyQualifiedLinks will result in all a, area, and link
+// tags that point to a non-local destination (i.e. starts with a protocol and
+// has a host) having a rel="nofollow" added to them if one does not already
+// exist
 //
 // Note: This requires p.RequireParseableURLs(true) and will enable it.
 func (p *Policy) RequireNoFollowOnFullyQualifiedLinks(require bool) *Policy {
@@ -292,9 +532,35 @@ func (p *Policy) RequireNoFollowOnFullyQualifiedLinks(require bool) *Policy {
 	return p
 }
 
-// AddTargetBlankToFullyQualifiedLinks will result in all <a> tags that point
-// to a non-local destination (i.e. starts with a protocol and has a host)
-// having a target="_blank" added to them if one does not already exist
+// RequireNoReferrerOnLinks will result in all a, area, and link tags having a
+// rel="noreferrrer" added to them if one does not already exist
+//
+// Note: This requires p.RequireParseableURLs(true) and will enable it.
+func (p *Policy) RequireNoReferrerOnLinks(require bool) *Policy {
+
+	p.requireNoReferrer = require
+	p.requireParseableURLs = true
+
+	return p
+}
+
+// RequireNoReferrerOnFullyQualifiedLinks will result in all a, area, and link
+// tags that point to a non-local destination (i.e. starts with a protocol and
+// has a host) having a rel="noreferrer" added to them if one does not already
+// exist
+//
+// Note: This requires p.RequireParseableURLs(true) and will enable it.
+func (p *Policy) RequireNoReferrerOnFullyQualifiedLinks(require bool) *Policy {
+
+	p.requireNoReferrerFullyQualifiedLinks = require
+	p.requireParseableURLs = true
+
+	return p
+}
+
+// AddTargetBlankToFullyQualifiedLinks will result in all a, area and link tags
+// that point to a non-local destination (i.e. starts with a protocol and has a
+// host) having a target="_blank" added to them if one does not already exist
 //
 // Note: This requires p.RequireParseableURLs(true) and will enable it.
 func (p *Policy) AddTargetBlankToFullyQualifiedLinks(require bool) *Policy {
@@ -369,21 +635,6 @@ func (p *Policy) AllowURLSchemeWithCustomPolicy(
 	return p
 }
 
-// AllowDocType states whether the HTML sanitised by the sanitizer is allowed to
-// contain the HTML DocType tag: <!DOCTYPE HTML> or one of it's variants.
-//
-// The HTML spec only permits one doctype per document, and as you know how you
-// are using the output of this, you know best as to whether we should ignore it
-// (default) or not.
-//
-// If you are sanitizing a HTML fragment the default (false) is fine.
-func (p *Policy) AllowDocType(allow bool) *Policy {
-
-	p.allowDocType = allow
-
-	return p
-}
-
 // AddSpaceWhenStrippingTag states whether to add a single space " " when
 // removing tags that are not whitelisted by the policy.
 //
@@ -402,7 +653,7 @@ func (p *Policy) AddSpaceWhenStrippingTag(allow bool) *Policy {
 }
 
 // SkipElementsContent adds the HTML elements whose tags is needed to be removed
-// with it's content.
+// with its content.
 func (p *Policy) SkipElementsContent(names ...string) *Policy {
 
 	p.init()
@@ -440,6 +691,7 @@ func (p *Policy) addDefaultElementsWithoutAttrs() {
 
 	p.setOfElementsAllowedWithoutAttrs["abbr"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["acronym"] = struct{}{}
+	p.setOfElementsAllowedWithoutAttrs["address"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["article"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["aside"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["audio"] = struct{}{}
@@ -451,6 +703,7 @@ func (p *Policy) addDefaultElementsWithoutAttrs() {
 	p.setOfElementsAllowedWithoutAttrs["button"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["canvas"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["caption"] = struct{}{}
+	p.setOfElementsAllowedWithoutAttrs["center"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["cite"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["code"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["col"] = struct{}{}
@@ -484,6 +737,7 @@ func (p *Policy) addDefaultElementsWithoutAttrs() {
 	p.setOfElementsAllowedWithoutAttrs["kbd"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["li"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["mark"] = struct{}{}
+	p.setOfElementsAllowedWithoutAttrs["marquee"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["nav"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["ol"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["optgroup"] = struct{}{}
@@ -496,6 +750,7 @@ func (p *Policy) addDefaultElementsWithoutAttrs() {
 	p.setOfElementsAllowedWithoutAttrs["ruby"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["s"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["samp"] = struct{}{}
+	p.setOfElementsAllowedWithoutAttrs["script"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["section"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["select"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["small"] = struct{}{}

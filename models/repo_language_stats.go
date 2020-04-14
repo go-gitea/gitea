@@ -125,13 +125,51 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]fl
 		}
 	}
 	// Delete old languages
-	if _, err := sess.Where("`id` IN (SELECT `id` FROM `language_stat` WHERE `repo_id` = ? AND `commit_id` != ?)", repo.ID, commitID).Delete(&LanguageStat{}); err != nil {
-		return err
+	statsToDelete := make([]int64, 0, len(oldstats))
+	for _, s := range oldstats {
+		if s.CommitID != commitID {
+			statsToDelete = append(statsToDelete, s.ID)
+		}
+	}
+	if len(statsToDelete) > 0 {
+		if _, err := sess.In("`id`", statsToDelete).Delete(&LanguageStat{}); err != nil {
+			return err
+		}
 	}
 
+	// Update indexer status
 	if err = repo.updateIndexerStatus(sess, RepoIndexerTypeStats, commitID); err != nil {
 		return err
 	}
 
+	return sess.Commit()
+}
+
+// CopyLanguageStat Copy originalRepo language stat information to destRepo (use for forked repo)
+func CopyLanguageStat(originalRepo, destRepo *Repository) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	RepoLang := make(LanguageStatList, 0, 6)
+	if err := sess.Where("`repo_id` = ?", originalRepo.ID).Desc("`percentage`").Find(&RepoLang); err != nil {
+		return err
+	}
+	if len(RepoLang) > 0 {
+		for i := range RepoLang {
+			RepoLang[i].ID = 0
+			RepoLang[i].RepoID = destRepo.ID
+			RepoLang[i].CreatedUnix = timeutil.TimeStampNow()
+		}
+		//update destRepo's indexer status
+		tmpCommitID := RepoLang[0].CommitID
+		if err := destRepo.updateIndexerStatus(sess, RepoIndexerTypeStats, tmpCommitID); err != nil {
+			return err
+		}
+		if _, err := sess.Insert(&RepoLang); err != nil {
+			return err
+		}
+	}
 	return sess.Commit()
 }

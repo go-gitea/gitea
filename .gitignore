@@ -44,12 +44,16 @@ coverage.all
 *.log
 
 /gitea
+/gitea-vet
 /debug
 /integrations.test
 
 /bin
 /dist
-/custom
+/custom/*
+!/custom/conf
+/custom/conf/*
+!/custom/conf/app.ini.sample
 /data
 /indexers
 /log
@@ -74,6 +78,7 @@ coverage.all
 /public/css
 /public/fomantic
 /public/img/svg
+/VERSION
 
 # Snapcraft
 snap/.snapcraft/
