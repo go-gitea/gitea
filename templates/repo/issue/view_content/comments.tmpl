@@ -379,6 +379,7 @@
 									{{$invalid := (index $comms 0).Invalidated}}
 									{{$resolved := (index $comms 0).IsResolved}}
 									{{$resolveDoer := (index $comms 0).ResolveDoer}}
+									{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
 								{{if or $invalid $resolved}}
 									<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="ui compact right labeled button show-outdated">
 										{{svg "octicon-unfold" 16}}
@@ -445,8 +446,8 @@
 									</div>
 									{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $comms 0).ReviewID "root" $ "comment" (index $comms 0)}}
 
-									{{if $.CanMarkConversation}}
-										<button class="ui green icon tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-issue-id="{{$.Issue.ID}}"  data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
+									{{if and $.CanMarkConversation $isNotPending}}
+										<button class="ui green icon tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
 											{{if $resolved}}
 												{{$.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
 											{{else}}

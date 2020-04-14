@@ -2570,13 +2570,11 @@ $(document).ready(async () => {
     e.preventDefault();
     const id = $(this).data('comment-id');
     const action = $(this).data('action');
-    const issue_id = $(this).data('issue-id');
     const url = $(this).data('update-url');
 
     $.post(url, {
       _csrf: csrf,
       action,
-      issue_id,
       comment_id: id,
     }).then(reload);
   });

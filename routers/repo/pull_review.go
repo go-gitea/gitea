@@ -64,34 +64,31 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 // UpdateResolveConversation add or remove an Conversation resolved mark
 func UpdateResolveConversation(ctx *context.Context) {
 	action := ctx.Query("action")
-	issueID := ctx.QueryInt64("issue_id")
 	commentID := ctx.QueryInt64("comment_id")
 
-	issue, err := models.GetIssueByID(issueID)
+	comment, err := models.GetCommentByID(commentID)
 	if err != nil {
 		ctx.ServerError("GetIssueByID", err)
 		return
 	}
 
+	if err = comment.LoadIssue(); err != nil {
+		ctx.ServerError("comment.LoadIssue", err)
+		return
+	}
+
 	var permResult bool
-	if permResult, err = models.CanMarkConversation(issue, ctx.User); err != nil {
+	if permResult, err = models.CanMarkConversation(comment.Issue, ctx.User); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
 		return
 	}
 	if !permResult {
-		ctx.ServerError("UpdateResolveConversation",
-			fmt.Errorf("doer can't permission [usser_id: %d, issue_id: %d]",
-				ctx.User.ID, issue.ID))
+		ctx.Error(403)
 		return
 	}
 
-	if !issue.IsPull {
-		return
-	}
-
-	comment, err := models.GetCommentByID(commentID)
-	if err != nil {
-		ctx.ServerError("GetCommentByID", err)
+	if !comment.Issue.IsPull {
+		ctx.Error(400)
 		return
 	}
 
@@ -102,7 +99,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 			return
 		}
 	} else {
-		ctx.ServerError("UpdateResolveConversation", fmt.Errorf("error action : %s", action))
+		ctx.Error(400)
 		return
 	}
 
