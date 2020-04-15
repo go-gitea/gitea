@@ -34,8 +34,5 @@ export function emojiHTML(name) {
 
 // retrieve string for given emoji name
 export function emojiString(name) {
-  if (emojiMap[name]) {
-    return emojiMap[name];
-  }
-  return `:${name}:`;
+  return emojiMap[name] || `:${name}:`;
 }
