@@ -114,6 +114,8 @@ func IsWatching(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
+	//   "404":
+	//     description: User is not watching this repo or repo do not exist
 
 	if models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.JSON(http.StatusOK, api.WatchInfo{
