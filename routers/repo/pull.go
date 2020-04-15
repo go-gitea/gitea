@@ -399,8 +399,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
-		var err error
-
 		headGitRepo, err := git.OpenRepository(pull.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
@@ -420,19 +418,11 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 
 	if headBranchExist {
-		allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+		ctx.Data["UpdateAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
 		}
-		ctx.Data["UpdateAllowed"] = allowUpdate
-
-		divergence, err := pull_service.GetDiverging(pull)
-		if err != nil {
-			ctx.ServerError("GetDiverging", err)
-			return nil
-		}
-		ctx.Data["Divergence"] = divergence
 		ctx.Data["GetCommitMessages"] = pull_service.GetCommitMessages(pull)
 	}
 

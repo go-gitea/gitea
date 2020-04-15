@@ -202,9 +202,11 @@ var migrations = []Migration{
 	NewMigration("Add EmailHash Table", addEmailHashTable),
 	// v134 -> v135
 	NewMigration("Refix merge base for merged pull requests", refixMergeBase),
-	// v135 -> 136
+	// v135 -> v136
 	NewMigration("Add OrgID column to Labels table", addOrgIDLabelColumn),
-	// v136 -> 137
+	// v136 -> v137
+	NewMigration("Add CommitsAhead and CommitsBehind Column to PullRequest Table", addCommitDivergenceToPulls),
+	// v137 -> v138
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
 }
 
