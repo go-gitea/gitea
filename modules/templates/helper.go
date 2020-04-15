@@ -152,7 +152,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
-		"RenderIssueTitle":               RenderIssueTitle,
+		"RenderEmoji":                    RenderEmoji,
 		"RenderNote":                     RenderNote,
 		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
@@ -519,14 +519,14 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 	return template.HTML(renderedMessage)
 }
 
-// RenderIssueTitle renders issue title with Specified Post Processors
-func RenderIssueTitle(title string) template.HTML {
-	renderedTitle, err := markup.RenderIssueTitle([]byte(template.HTMLEscapeString(title)))
+// RenderEmoji renders issue title with Specified Post Processors
+func RenderEmoji(text string) template.HTML {
+	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
 	if err != nil {
-		log.Error("RenderIssueTitle: %v", err)
+		log.Error("RenderEmoji: %v", err)
 		return template.HTML("")
 	}
-	return template.HTML(renderedTitle)
+	return template.HTML(renderedText)
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.

@@ -108,7 +108,7 @@
 						{{if .Repo}}
 						<li class="item">
 							<div class="ui label">{{.Repo.FullName}}#{{.Index}}</div>
-							<a class="title" href="{{.HTMLURL}}">{{RenderIssueTitle .Title}}</a>
+							<a class="title" href="{{.HTMLURL}}">{{RenderEmoji .Title}}</a>
 
 							{{if .IsPull}}
 									{{if (index $.CommitStatus .PullRequest.ID)}}

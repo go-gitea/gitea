@@ -233,6 +233,14 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 	if subject == "" {
 		subject = fallback
 	}
+
+	renderedText, err := markup.RenderEmoji([]byte(subject))
+	if err != nil {
+		log.Error("RenderEmoji: %v", err)
+	} else {
+		subject = markup.StripTags(string(renderedText))
+	}
+
 	mailMeta["Subject"] = subject
 
 	var mailBody bytes.Buffer

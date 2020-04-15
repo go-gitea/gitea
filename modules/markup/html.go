@@ -64,7 +64,7 @@ var (
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// find emoji by alias like :smile:
-	emojiShortCodeRegex = regexp.MustCompile(`\:[^:]+\:{1}`)
+	emojiShortCodeRegex = regexp.MustCompile(`\:[\w]+\:{1}`)
 
 	// find emoji literal: search all emoji hex range as many times as they appear as
 	// some emojis (skin color etc..) are just two or more chained together
@@ -243,7 +243,7 @@ var commitMessageSubjectProcessors = []processor{
 	emojiProcessor,
 }
 
-var issueTitleProcessors = []processor{
+var emojiProcessors = []processor{
 	emojiShortCodeProcessor,
 	emojiProcessor,
 }
@@ -289,13 +289,13 @@ func RenderDescriptionHTML(
 	return ctx.postProcess(rawHTML)
 }
 
-// RenderIssueTitle will use similar logic as PostProcess, but will
-// use a specific set of processors
-func RenderIssueTitle(
+// RenderEmoji for when we want to just process emoji and shortcodes
+// in various places it isn't already run through the normal markdown procesor
+func RenderEmoji(
 	rawHTML []byte,
 ) ([]byte, error) {
 	ctx := &postProcessCtx{
-		procs: issueTitleProcessors,
+		procs: emojiProcessors,
 	}
 	return ctx.postProcess(rawHTML)
 }
