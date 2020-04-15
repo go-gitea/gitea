@@ -1,4 +1,4 @@
-import {emojiKeys, emojiHTML} from './emoji.js';
+import {emojiKeys, emojiHTML, emojiString} from './emoji.js';
 
 export const issuesTribute = window.config.Tribute ? new Tribute({
   values: window.config.tributeValues,
@@ -33,7 +33,7 @@ export const emojiTribute = window.config.Tribute ? new Tribute({
     },
     selectTemplate(item) {
       if (typeof item === 'undefined') return null;
-      return `:${item.original}:`;
+      return emojiString(item.original);
     },
     menuItemTemplate(item) {
       return `<div class="tribute-item">${emojiHTML(item.original)}<span>${item.original}</span></div>`;
