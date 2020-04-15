@@ -853,7 +853,7 @@ SCHEDULE = @every 24h
 UPDATE_EXISTING = true
 
 ; Update migrated repositories' issues and comments' posterid, it will always attempt synchronization when the instance starts.
-[cron.update_migration_post_id]
+[cron.update_migration_poster_id]
 ; Interval as a duration between each synchronization. (default every 24h)
 SCHEDULE = @every 24h
 
