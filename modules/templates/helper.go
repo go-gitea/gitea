@@ -98,6 +98,9 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return template.HTML(fmt.Sprintf(`<img src=%s/emoji/img/%s.png></img>`, setting.StaticURLPrefix, reaction))
 		},
+		"RenderEmojiPlain": func(s string) string {
+			return emoji.ReplaceAliases(s)
+		},
 		"AvatarLink":    models.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
@@ -153,7 +156,6 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
 		"RenderEmoji":                    RenderEmoji,
-		"RenderEmojiPlain":               RenderEmojiPlain,
 		"RenderNote":                     RenderNote,
 		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
@@ -528,19 +530,6 @@ func RenderEmoji(text string) template.HTML {
 		return template.HTML("")
 	}
 	return template.HTML(renderedText)
-}
-
-// RenderEmojiPlain replaces emoji shortcode in a string with emoji
-func RenderEmojiPlain(text string) string {
-	m := markup.EmojiShortCodeRegex.FindAllStringSubmatch(text, -1)
-
-	for _, match := range m {
-		converted := emoji.FromAlias(match[0])
-		if converted != nil {
-			text = strings.Replace(text, match[0], converted.Emoji, -1)
-		}
-	}
-	return text
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.

@@ -235,14 +235,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 		subject = fallback
 	}
 
-	m := markup.EmojiShortCodeRegex.FindAllStringSubmatch(subject, -1)
-
-	for _, match := range m {
-		converted := emoji.FromAlias(match[0])
-		if converted != nil {
-			subject = strings.Replace(subject, match[0], converted.Emoji, -1)
-		}
-	}
+	subject = emoji.ReplaceAliases(subject)
 
 	mailMeta["Subject"] = subject
 
