@@ -51,7 +51,7 @@
 					</div>
 					{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $line.Comments 0).ReviewID "root" $.root "comment" (index $line.Comments 0)}}
 					{{if and $.root.CanMarkConversation $isNotPending}}
-						<button class="ui tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $line.Comments 0).ID}}" data-update-url="{{$.root.RepoLink}}/issues/resolve_conversation" >
+						<button class="ui icon tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $line.Comments 0).ID}}" data-update-url="{{$.root.RepoLink}}/issues/resolve_conversation" >
 							{{if $resolved}}
 								{{$.root.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
 							{{else}}
