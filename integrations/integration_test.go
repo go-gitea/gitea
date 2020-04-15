@@ -330,14 +330,18 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	return session
 }
 
+//token has to be unique this counter take care of
+var tokenCounter int64
+
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
+	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
 		"_csrf": doc.GetCSRF(),
-		"name":  "api-testing-token",
+		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 	req = NewRequest(t, "GET", "/user/settings/applications")
