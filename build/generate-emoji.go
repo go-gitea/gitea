@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	gemojiURL = "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
+	gemojiURL         = "https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json"
+	maxUnicodeVersion = 12
 )
 
 var (
@@ -34,9 +35,19 @@ type Gemoji []Emoji
 
 // Emoji represents a single emoji and associated data.
 type Emoji struct {
-	Emoji       string   `json:"emoji"`
-	Description string   `json:"description"`
-	Aliases     []string `json:"aliases"`
+	Emoji          string   `json:"emoji"`
+	Description    string   `json:"description,omitempty"`
+	Aliases        []string `json:"aliases"`
+	UnicodeVersion string   `json:"unicode_version,omitempty"`
+}
+
+// Don't unclude some fields in JSON
+func (e Emoji) MarshalJSON() ([]byte, error) {
+	type emoji Emoji
+	x := emoji(e)
+	x.UnicodeVersion = ""
+	x.Description = ""
+	return json.Marshal(x)
 }
 
 func main() {
@@ -63,6 +74,7 @@ var replacer = strings.NewReplacer(
 	"}}", "},\n}",
 	", Description:", ", ",
 	", Aliases:", ", ",
+	", UnicodeVersion:", ", ",
 )
 
 var emojiRE = regexp.MustCompile(`\{Emoji:"([^"]*)"`)
@@ -89,6 +101,17 @@ func generate() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// filter out emoji that require greater than max unicode version
+
+	tmp := data[:0]
+	for i := range data {
+		val, _ := strconv.ParseFloat(data[i].UnicodeVersion, 64)
+		if int(val) <= maxUnicodeVersion {
+			tmp = append(tmp, data[i])
+		}
+	}
+	data = tmp
 
 	sort.Slice(data, func(i, j int) bool {
 		return data[i].Aliases[0] < data[j].Aliases[0]
@@ -134,7 +157,7 @@ func generate() ([]byte, error) {
 	})
 
 	// write a JSON file to use with tribute
-	file, _ := json.MarshalIndent(data, "", " ")
+	file, _ := json.Marshal(data)
 	_ = ioutil.WriteFile("assets/emoji.json", file, 0644)
 
 	// format

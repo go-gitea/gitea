@@ -14,9 +14,10 @@ type Gemoji []Emoji
 
 // Emoji represents a single emoji and associated data.
 type Emoji struct {
-	Emoji       string   `json:"emoji"`
-	Description string   `json:"description"`
-	Aliases     []string `json:"aliases"`
+	Emoji          string
+	Description    string
+	Aliases        []string
+	UnicodeVersion string
 }
 
 var (
