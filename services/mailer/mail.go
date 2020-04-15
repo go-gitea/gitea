@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -234,11 +235,13 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 		subject = fallback
 	}
 
-	renderedText, err := markup.RenderEmoji([]byte(subject))
-	if err != nil {
-		log.Error("RenderEmoji: %v", err)
-	} else {
-		subject = markup.StripTags(string(renderedText))
+	m := markup.EmojiShortCodeRegex.FindAllStringSubmatch(subject, -1)
+
+	for _, match := range m {
+		converted := emoji.FromAlias(match[0])
+		if converted != nil {
+			subject = strings.Replace(subject, match[0], converted.Emoji, -1)
+		}
 	}
 
 	mailMeta["Subject"] = subject

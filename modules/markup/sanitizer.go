@@ -126,9 +126,3 @@ func SanitizeBytes(b []byte) []byte {
 	NewSanitizer()
 	return sanitizer.policy.SanitizeBytes(b)
 }
-
-// StripTags use sanitizer to strip all html tags from a string
-func StripTags(s string) string {
-	p := bluemonday.StripTagsPolicy()
-	return p.Sanitize(s)
-}

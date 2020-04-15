@@ -64,7 +64,7 @@ var (
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// find emoji by alias like :smile:
-	emojiShortCodeRegex = regexp.MustCompile(`\:[\w]+\:{1}`)
+	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w]+\:{1}`)
 
 	// find emoji literal: search all emoji hex range as many times as they appear as
 	// some emojis (skin color etc..) are just two or more chained together
@@ -876,7 +876,7 @@ func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
 // emojiShortCodeProcessor for rendering text like :smile: into emoji
 func emojiShortCodeProcessor(ctx *postProcessCtx, node *html.Node) {
 
-	m := emojiShortCodeRegex.FindStringSubmatchIndex(node.Data)
+	m := EmojiShortCodeRegex.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
 	}
