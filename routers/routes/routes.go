@@ -863,6 +863,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/new", repo.NewProject)
 			m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewRepoProjectPost)
 			m.Get("/:id", repo.ViewProject)
+			m.Post("/:id", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.AddBoardToProjectPost)
 			m.Get("/:id/:action", repo.ChangeProjectStatus)
 			m.Post("/:id/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
 			m.Get("/:id/edit", repo.EditProject)
@@ -870,7 +871,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Combo("/:id/:boardID").Put(bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle).
 				Delete(repo.DeleteProjectBoard)
 			m.Post("/:id/:boardID/:index", repo.MoveIssueAcrossBoards)
-			m.Post("/:id/boards", bindIgnErr(auth.EditProjectBoardTitleForm{}, repo.AddBoardToProject))
 
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 

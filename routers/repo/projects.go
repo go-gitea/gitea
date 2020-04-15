@@ -314,6 +314,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Title"] = p.Title
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["RequiresDraggable"] = true
+	ctx.Data["ProjectID"] = p.ID
 
 	ctx.HTML(200, tplProjectsView)
 }
@@ -371,30 +372,30 @@ func DeleteProjectBoard(ctx *context.Context) {
 }
 
 // AddBoardToProject allows a new board to be added to a project.
-func AddBoardToProject(ctx context.Context, form auth.EditProjectBoardTitleForm) {
+func AddBoardToProjectPost(ctx *context.Context, form auth.EditProjectBoardTitleForm) {
 
-	if ctx.HasError() {
-		ctx.HTML(200, tplProjectsNew)
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+		ctx.JSON(403, map[string]string{
+			"message": "Only authorized users are allowed to call make this action.",
+		})
 		return
 	}
 
 	projectID := ctx.ParamsInt64(":id")
 
-	_, err := models.GetProjectByRepoID(ctx.Repo.Repository.RepoID, projectID)
+	_, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, projectID)
 	if err != nil {
-
-		if models.IsErrProjectBoardNotExist(err) {
-			ctx.NotFound("", err)
+		if models.IsErrProjectNotExist(err) {
+			ctx.NotFound("", nil)
 		} else {
-			ctx.ServerError("GetProjectBoard", err)
+			ctx.ServerError("GetProjectByRepoID", err)
 		}
-
 		return
 	}
 
 	if err := models.NewProjectBoard(&models.ProjectBoard{
 		ProjectID: projectID,
-		RepoID:    ctx.Repo.Repository.RepoID,
+		RepoID:    ctx.Repo.Repository.ID,
 		Title:     form.Title,
 		CreatorID: ctx.User.ID,
 	}); err != nil {
@@ -402,8 +403,9 @@ func AddBoardToProject(ctx context.Context, form auth.EditProjectBoardTitleForm)
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
 }
 
 // EditProjectBoardTitle allows a project board's title to be updated
