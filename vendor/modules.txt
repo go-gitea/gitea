@@ -205,6 +205,16 @@ github.com/gliderlabs/ssh
 # github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
 ## explicit
 github.com/glycerine/go-unsnap-stream
+# github.com/go-enry/go-enry/v2 v2.3.0
+## explicit
+github.com/go-enry/go-enry/v2
+github.com/go-enry/go-enry/v2/data
+github.com/go-enry/go-enry/v2/data/rule
+github.com/go-enry/go-enry/v2/internal/tokenizer
+github.com/go-enry/go-enry/v2/internal/tokenizer/flex
+github.com/go-enry/go-enry/v2/regex
+# github.com/go-enry/go-oniguruma v1.2.0
+github.com/go-enry/go-oniguruma
 # github.com/go-git/gcfg v1.5.0
 github.com/go-git/gcfg
 github.com/go-git/gcfg/scanner
@@ -578,16 +588,6 @@ github.com/spf13/jwalterweatherman
 github.com/spf13/pflag
 # github.com/spf13/viper v1.4.0
 github.com/spf13/viper
-# github.com/src-d/enry/v2 v2.1.0
-## explicit
-github.com/src-d/enry/v2
-github.com/src-d/enry/v2/data
-github.com/src-d/enry/v2/data/rule
-github.com/src-d/enry/v2/internal/tokenizer
-github.com/src-d/enry/v2/internal/tokenizer/flex
-github.com/src-d/enry/v2/regex
-# github.com/src-d/go-oniguruma v1.1.0
-github.com/src-d/go-oniguruma
 # github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2
 ## explicit
 github.com/steveyen/gtreap
@@ -803,7 +803,7 @@ gopkg.in/testfixtures.v2
 gopkg.in/toqueteos/substring.v1
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
-# gopkg.in/yaml.v2 v2.2.4
+# gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
 # mvdan.cc/xurls/v2 v2.1.0
 ## explicit
