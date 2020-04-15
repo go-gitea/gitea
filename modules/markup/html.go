@@ -63,7 +63,7 @@ var (
 	// blackfriday extensions create IDs like fn:user-content-footnote
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
-	// find emoji by alias like :smile:
+	// EmojiShortCodeRegex find emoji by alias like :smile:
 	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w]+\:{1}`)
 
 	// find emoji literal: search all emoji hex range as many times as they appear as
