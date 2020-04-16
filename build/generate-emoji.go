@@ -41,7 +41,7 @@ type Emoji struct {
 	UnicodeVersion string   `json:"unicode_version,omitempty"`
 }
 
-// Don't unclude some fields in JSON
+// Don't include some fields in JSON
 func (e Emoji) MarshalJSON() ([]byte, error) {
 	type emoji Emoji
 	x := emoji(e)
