@@ -61,6 +61,19 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
+	if err := comment.LoadIssue(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if allowed, err := models.UserAllowedToLookAtConfidentialIssue(ctx.User, comment.Issue); err != nil || !allowed {
+		if err != nil {
+			ctx.InternalServerError(err)
+		} else {
+			ctx.Status(http.StatusForbidden)
+		}
+		return
+	}
+
 	reactions, err := models.FindCommentReactions(comment)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
@@ -185,6 +198,15 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		return
 	}
 
+	if allowed, err := models.UserAllowedToLookAtConfidentialIssue(ctx.User, comment.Issue); err != nil || !allowed {
+		if err != nil {
+			ctx.InternalServerError(err)
+		} else {
+			ctx.Status(http.StatusForbidden)
+		}
+		return
+	}
+
 	if isCreateType {
 		// PostIssueCommentReaction part
 		reaction, err := models.CreateCommentReaction(ctx.User, comment.Issue, comment, form.Reaction)
@@ -272,6 +294,15 @@ func GetIssueReactions(ctx *context.APIContext) {
 
 	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
 		ctx.Error(http.StatusForbidden, "GetIssueReactions", errors.New("no permission to get reactions"))
+		return
+	}
+
+	if allowed, err := models.UserAllowedToLookAtConfidentialIssue(ctx.User, issue); err != nil || !allowed {
+		if err != nil {
+			ctx.InternalServerError(err)
+		} else {
+			ctx.Status(http.StatusForbidden)
+		}
 		return
 	}
 
@@ -391,6 +422,15 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
+		return
+	}
+
+	if allowed, err := models.UserAllowedToLookAtConfidentialIssue(ctx.User, issue); err != nil || !allowed {
+		if err != nil {
+			ctx.InternalServerError(err)
+		} else {
+			ctx.Status(http.StatusForbidden)
+		}
 		return
 	}
 

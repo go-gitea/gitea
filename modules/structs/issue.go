@@ -50,6 +50,7 @@ type Issue struct {
 	Milestone        *Milestone `json:"milestone"`
 	Assignee         *User      `json:"assignee"`
 	Assignees        []*User    `json:"assignees"`
+	Confidential     bool       `json:"confidential"`
 	// Whether the issue is open or closed
 	//
 	// type: string
@@ -88,8 +89,9 @@ type CreateIssueOption struct {
 	// milestone id
 	Milestone int64 `json:"milestone"`
 	// list of label ids
-	Labels []int64 `json:"labels"`
-	Closed bool    `json:"closed"`
+	Labels       []int64 `json:"labels"`
+	Closed       bool    `json:"closed"`
+	Confidential bool    `json:"confidential"`
 }
 
 // EditIssueOption options for editing an issue
@@ -103,6 +105,7 @@ type EditIssueOption struct {
 	// swagger:strfmt date-time
 	Deadline       *time.Time `json:"due_date"`
 	RemoveDeadline *bool      `json:"unset_due_date"`
+	Confidential   *bool      `json:"confidential"`
 }
 
 // EditDeadlineOption options for creating a deadline

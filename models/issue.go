@@ -42,6 +42,7 @@ type Issue struct {
 	MilestoneID      int64      `xorm:"INDEX"`
 	Milestone        *Milestone `xorm:"-"`
 	Priority         int
+	Confidential     bool
 	AssigneeID       int64        `xorm:"-"`
 	Assignee         *User        `xorm:"-"`
 	IsClosed         bool         `xorm:"INDEX"`
@@ -1059,6 +1060,8 @@ type IssuesOptions struct {
 	ExcludedLabelNames []string
 	SortType           string
 	IssueIDs           []int64
+	Confidential       bool
+	Doer               *User
 	// prioritize issues from this repo
 	PriorityRepoID int64
 }
@@ -1165,6 +1168,11 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	if len(opts.ExcludedLabelNames) > 0 {
 		sess.And(builder.NotIn("issue.id", BuildLabelNamesIssueIDsCondition(opts.ExcludedLabelNames)))
 	}
+	if !opts.Confidential || opts.Doer == nil {
+		sess.And("issue.confidential = ?", false)
+	} else {
+		//sess.And("issue.confidential = ?", true)
+	}
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
@@ -1230,7 +1238,8 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
-	return issues, nil
+	issues, _, err := FilterConfidentialIssue(opts.Doer, issues)
+	return issues, err
 }
 
 // GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,

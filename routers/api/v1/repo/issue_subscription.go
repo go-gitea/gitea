@@ -125,6 +125,15 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
+	if allowed, err := models.UserAllowedToLookAtConfidentialIssue(ctx.User, issue); err != nil || !allowed {
+		if err != nil {
+			ctx.InternalServerError(err)
+		} else {
+			ctx.Status(http.StatusForbidden)
+		}
+		return
+	}
+
 	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, watch); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrUpdateIssueWatch", err)
 		return
@@ -181,6 +190,15 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 
+		return
+	}
+
+	if allowed, err := models.UserAllowedToLookAtConfidentialIssue(ctx.User, issue); err != nil || !allowed {
+		if err != nil {
+			ctx.InternalServerError(err)
+		} else {
+			ctx.Status(http.StatusForbidden)
+		}
 		return
 	}
 
