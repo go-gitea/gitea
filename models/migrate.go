@@ -64,15 +64,20 @@ func insertIssue(sess *xorm.Session, issue *Issue) error {
 		})
 		labelIDs = append(labelIDs, label.ID)
 	}
-	if _, err := sess.Insert(issueLabels); err != nil {
-		return err
+	if len(issueLabels) > 0 {
+		if _, err := sess.Insert(issueLabels); err != nil {
+			return err
+		}
 	}
 
 	for _, reaction := range issue.Reactions {
 		reaction.IssueID = issue.ID
 	}
-	if _, err := sess.Insert(issue.Reactions); err != nil {
-		return err
+
+	if len(issue.Reactions) > 0 {
+		if _, err := sess.Insert(issue.Reactions); err != nil {
+			return err
+		}
 	}
 
 	cols := make([]string, 0)
