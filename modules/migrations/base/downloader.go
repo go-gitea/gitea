@@ -187,7 +187,7 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, er
 	return nil, err
 }
 
-// GetPullRequests returns a repository's pull requests with retry
+// GetReviews returns pull requests reviews
 func (d *RetryDownloader) GetReviews(pullRequestNumber int64) ([]*Review, error) {
 	var (
 		times   = d.RetryTimes
