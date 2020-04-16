@@ -196,15 +196,13 @@ func InsertReleases(rels ...*Release) error {
 			return err
 		}
 
-		for i := 0; i < len(rel.Attachments); i++ {
+		for i, a := range rel.Attachments {
 			rel.Attachments[i].ReleaseID = rel.ID
-		}
-
-		if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
-			return err
+			if _, err := sess.NoAutoTime().Insert(a); err != nil {
+				return err
+			}
 		}
 	}
-
 	return sess.Commit()
 }
 
