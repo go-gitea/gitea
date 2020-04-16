@@ -393,12 +393,16 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		iss = append(iss, &is)
 	}
 
-	for _, is := range iss {
-		if err := models.InsertIssues(is); err != nil {
+	if len(iss) > 0 {
+		if err := models.InsertIssues(iss...); err != nil {
 			return err
 		}
-		g.issues.Store(is.Index, is.ID)
+
+		for _, is := range iss {
+			g.issues.Store(is.Index, is.ID)
+		}
 	}
+
 	return nil
 }
 
