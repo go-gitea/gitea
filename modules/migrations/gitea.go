@@ -404,7 +404,6 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 
 // CreateComments creates comments of issues
 func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
-
 	var cms = make([]*models.Comment, 0, len(comments))
 	for _, comment := range comments {
 		var issueID int64
