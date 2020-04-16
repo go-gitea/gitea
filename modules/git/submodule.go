@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -69,16 +70,16 @@ func getRefURL(refURL, urlPrefix, parentPath string) string {
 
 			m := match[0]
 			refHostname := m[2]
-			path := m[3]
+			pth := m[3]
 
-			if !strings.HasPrefix(path, "/") {
-				path = "/" + path
+			if !strings.HasPrefix(pth, "/") {
+				pth = "/" + pth
 			}
 
 			if urlPrefixHostname == refHostname {
-				return prefixURL.Scheme + "://" + urlPrefixHostname + path
+				return prefixURL.Scheme + "://" + urlPrefixHostname + path.Join(prefixURL.Path, pth)
 			}
-			return "http://" + refHostname + path
+			return "http://" + refHostname + pth
 		}
 	}
 
@@ -97,7 +98,7 @@ func getRefURL(refURL, urlPrefix, parentPath string) string {
 	for _, scheme := range supportedSchemes {
 		if ref.Scheme == scheme {
 			if urlPrefixHostname == refHostname {
-				return prefixURL.Scheme + "://" + prefixURL.Host + ref.Path
+				return prefixURL.Scheme + "://" + prefixURL.Host + path.Join(prefixURL.Path, ref.Path)
 			} else if ref.Scheme == "http" || ref.Scheme == "https" {
 				if len(ref.User.Username()) > 0 {
 					return ref.Scheme + "://" + fmt.Sprintf("%v", ref.User) + "@" + ref.Host + ref.Path
