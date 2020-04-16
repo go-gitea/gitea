@@ -631,8 +631,7 @@ func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) 
 	}
 
 	if doer.ID != issue.PosterID {
-		err = issue.LoadRepo()
-		if err != nil {
+		if err = issue.LoadRepo(); err != nil {
 			return false, err
 		}
 
@@ -643,8 +642,7 @@ func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) 
 
 		permResult = perm.CanAccess(AccessModeWrite, UnitTypePullRequests)
 		if !permResult {
-			permResult, err = IsOfficialReviewer(issue, doer)
-			if err != nil {
+			if permResult, err = IsOfficialReviewer(issue, doer); err != nil {
 				return false, err
 			}
 		}

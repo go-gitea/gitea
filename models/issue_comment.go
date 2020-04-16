@@ -430,7 +430,6 @@ func (c *Comment) LoadResolveDoer() (err error) {
 	c.ResolveDoer, err = getUserByID(x, c.ResolveDoerID)
 	if err != nil {
 		if IsErrUserNotExist(err) {
-			c.ResolveDoerID = -1
 			c.ResolveDoer = NewGhostUser()
 			err = nil
 		}
