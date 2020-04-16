@@ -523,13 +523,18 @@ func (issues IssueList) GetApprovalCounts() (map[int64][]*ReviewCount, error) {
 }
 
 func (issues IssueList) getApprovalCounts(e Engine) (map[int64][]*ReviewCount, error) {
-	rCounts := make([]*ReviewCount, 0, 6*len(issues))
+	rCounts := make([]*ReviewCount, 0, 2*len(issues))
 	ids := make([]int64, len(issues))
 	for i, issue := range issues {
 		ids[i] = issue.ID
 	}
 	sess := e.In("issue_id", ids)
-	err := sess.Select("issue_id, type, count(id) as `count`").Where("official = ?", true).GroupBy("issue_id, type").OrderBy("issue_id").Table("review").Find(&rCounts)
+	err := sess.Select("issue_id, type, count(id) as `count`").
+		Where("official = ?", true).
+		GroupBy("issue_id, type").
+		OrderBy("issue_id").
+		Table("review").
+		Find(&rCounts)
 	if err != nil {
 		return nil, err
 	}
