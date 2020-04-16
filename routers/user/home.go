@@ -430,8 +430,10 @@ func Issues(ctx *context.Context) {
 	}
 
 	opts := &models.IssuesOptions{
-		IsPull:   util.OptionalBoolOf(isPullList),
-		SortType: sortType,
+		IsPull:       util.OptionalBoolOf(isPullList),
+		SortType:     sortType,
+		Doer:         ctx.User,
+		Confidential: true,
 	}
 
 	switch filterMode {

@@ -1309,14 +1309,16 @@ func parseCountResult(results []map[string][]byte) int64 {
 
 // IssueStatsOptions contains parameters accepted by GetIssueStats.
 type IssueStatsOptions struct {
-	RepoID      int64
-	Labels      string
-	MilestoneID int64
-	AssigneeID  int64
-	MentionedID int64
-	PosterID    int64
-	IsPull      util.OptionalBool
-	IssueIDs    []int64
+	RepoID       int64
+	Labels       string
+	MilestoneID  int64
+	AssigneeID   int64
+	MentionedID  int64
+	PosterID     int64
+	IsPull       util.OptionalBool
+	IssueIDs     []int64
+	Doer         *User
+	Confidential bool
 }
 
 // GetIssueStats returns issue statistic information by given conditions.

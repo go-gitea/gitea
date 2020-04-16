@@ -163,14 +163,16 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		issueStats = &models.IssueStats{}
 	} else {
 		issueStats, err = models.GetIssueStats(&models.IssueStatsOptions{
-			RepoID:      repo.ID,
-			Labels:      selectLabels,
-			MilestoneID: milestoneID,
-			AssigneeID:  assigneeID,
-			MentionedID: mentionedID,
-			PosterID:    posterID,
-			IsPull:      isPullOption,
-			IssueIDs:    issueIDs,
+			RepoID:       repo.ID,
+			Labels:       selectLabels,
+			MilestoneID:  milestoneID,
+			AssigneeID:   assigneeID,
+			MentionedID:  mentionedID,
+			PosterID:     posterID,
+			IsPull:       isPullOption,
+			IssueIDs:     issueIDs,
+			Doer:         ctx.User,
+			Confidential: true,
 		})
 		if err != nil {
 			ctx.ServerError("GetIssueStats", err)
@@ -199,16 +201,18 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
-			RepoIDs:     []int64{repo.ID},
-			AssigneeID:  assigneeID,
-			PosterID:    posterID,
-			MentionedID: mentionedID,
-			MilestoneID: milestoneID,
-			IsClosed:    util.OptionalBoolOf(isShowClosed),
-			IsPull:      isPullOption,
-			LabelIDs:    labelIDs,
-			SortType:    sortType,
-			IssueIDs:    issueIDs,
+			RepoIDs:      []int64{repo.ID},
+			AssigneeID:   assigneeID,
+			PosterID:     posterID,
+			MentionedID:  mentionedID,
+			MilestoneID:  milestoneID,
+			IsClosed:     util.OptionalBoolOf(isShowClosed),
+			IsPull:       isPullOption,
+			LabelIDs:     labelIDs,
+			SortType:     sortType,
+			IssueIDs:     issueIDs,
+			Doer:         ctx.User,
+			Confidential: true,
 		})
 		if err != nil {
 			ctx.ServerError("Issues", err)

@@ -162,6 +162,8 @@ func SearchIssues(ctx *context.APIContext) {
 			SortType:           "priorityrepo",
 			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
 			IsPull:             isPull,
+			Doer:               ctx.User,
+			Confidential:       true,
 		})
 	}
 
@@ -270,12 +272,14 @@ func ListIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
-			ListOptions: listOptions,
-			RepoIDs:     []int64{ctx.Repo.Repository.ID},
-			IsClosed:    isClosed,
-			IssueIDs:    issueIDs,
-			LabelIDs:    labelIDs,
-			IsPull:      isPull,
+			ListOptions:  listOptions,
+			RepoIDs:      []int64{ctx.Repo.Repository.ID},
+			IsClosed:     isClosed,
+			IssueIDs:     issueIDs,
+			LabelIDs:     labelIDs,
+			IsPull:       isPull,
+			Doer:         ctx.User,
+			Confidential: true,
 		})
 	}
 
