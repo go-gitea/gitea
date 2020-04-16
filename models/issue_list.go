@@ -535,17 +535,10 @@ func (issues IssueList) getApprovalCounts(e Engine) (map[int64][]*ReviewCount, e
 	}
 
 	approvalCountMap := make(map[int64][]*ReviewCount, len(issues))
-	if len(rCounts) > 0 {
-		start := 0
-		lastID := rCounts[0].IssueID
-		for i, current := range rCounts[1:] {
-			if lastID != current.IssueID {
-				approvalCountMap[lastID] = rCounts[start:i]
-				start = i
-				lastID = current.IssueID
-			}
-		}
-		approvalCountMap[lastID] = rCounts[start:]
+
+	for _, c := range rCounts {
+		approvalCountMap[c.IssueID] = append(approvalCountMap[c.IssueID], c)
 	}
+
 	return approvalCountMap, nil
 }
