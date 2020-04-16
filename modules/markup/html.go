@@ -64,7 +64,7 @@ var (
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// EmojiShortCodeRegex find emoji by alias like :smile:
-	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w]+\:{1}`)
+	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:{1}`)
 
 	// find emoji literal: search all emoji hex range as many times as they appear as
 	// some emojis (skin color etc..) are just two or more chained together

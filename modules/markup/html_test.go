@@ -248,6 +248,9 @@ func TestRender_emoji(t *testing.T) {
 		":thumbsup:",
 		`<p><span class="emoji" aria-label="thumbs up">👍</span></p>`)
 	test(
+		":+1:",
+		`<p><span class="emoji" aria-label="thumbs up">👍</span></p>`)
+	test(
 		":cupid:",
 		`<p><span class="emoji" aria-label="heart with arrow">💘</span></p>`)
 	test(
