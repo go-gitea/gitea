@@ -413,9 +413,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			}
 			return false
 		}
-		state := pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
-		ctx.Data["RequiredStatusCheckState"] = state
-		ctx.Data["IsRequiredStatusCheckSuccess"] = state.IsSuccess()
+		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
 	}
 
 	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha
