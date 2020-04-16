@@ -156,7 +156,7 @@ func InsertIssueComments(comments []*Comment) error {
 			reaction.IssueID = comment.IssueID
 			reaction.CommentID = comment.ID
 		}
-		if len(comment.Reactions) != 0 {
+		if len(comment.Reactions) > 0 {
 			if _, err := sess.Insert(comment.Reactions); err != nil {
 				return err
 			}
