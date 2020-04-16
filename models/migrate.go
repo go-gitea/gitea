@@ -210,6 +210,7 @@ func InsertReleases(rels ...*Release) error {
 			}
 		}
 	}
+
 	return sess.Commit()
 }
 

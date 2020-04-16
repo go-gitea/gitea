@@ -405,10 +405,6 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 // CreateComments creates comments of issues
 func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
-	if len(comments) == 0 {
-		return nil
-	}
-
 	var cms = make([]*models.Comment, 0, len(comments))
 	for _, comment := range comments {
 		var issueID int64
@@ -482,6 +478,9 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		cms = append(cms, &cm)
 	}
 
+	if len(cms) == 0 {
+		return nil
+	}
 	return models.InsertIssueComments(cms)
 }
 
