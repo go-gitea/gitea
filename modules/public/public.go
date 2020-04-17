@@ -115,7 +115,6 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 			for _, entry := range resourceEntries {
 				if entry == parts[1] {
 					ctx.Resp.WriteHeader(404)
-					ctx.Resp.Write([]byte(""))
 					return true
 				}
 			}
