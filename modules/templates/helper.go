@@ -96,7 +96,7 @@ func NewFuncMap() []template.FuncMap {
 			if val != nil {
 				return template.HTML(val.Emoji)
 			}
-			return template.HTML(fmt.Sprintf(`<img src=%s/emoji/img/%s.png></img>`, setting.StaticURLPrefix, reaction))
+			return template.HTML(fmt.Sprintf(`<img src=%s/img/emoji/%s.png></img>`, setting.StaticURLPrefix, reaction))
 		},
 		"RenderEmojiPlain": func(s string) string {
 			return emoji.ReplaceAliases(s)

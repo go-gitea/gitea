@@ -462,7 +462,7 @@ func createCustomEmoji(alias, class string) *html.Node {
 		Attr:     []html.Attribute{},
 	}
 	if class != "" {
-		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/emoji/img/%s.png`, setting.StaticURLPrefix, alias)})
+		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
 	}
 
 	span.AppendChild(img)
@@ -905,14 +905,10 @@ func emojiProcessor(ctx *postProcessCtx, node *html.Node) {
 	}
 
 	codepoint := node.Data[m[0]:m[1]]
-	// see if we know this emoji and look up its description for aria-label
 	val := emoji.FromCode(codepoint)
 	if val != nil {
 		replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", val.Description))
-		return
 	}
-	replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", ""))
-
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
