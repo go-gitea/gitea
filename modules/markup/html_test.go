@@ -239,7 +239,6 @@ func TestRender_emoji(t *testing.T) {
 		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
-	setting.UI.Reactions = append(setting.UI.Reactions, "gitea")
 
 	// Make sure we can successfully match every emoji in our dataset with regex
 	for i := range emoji.GemojiData {
