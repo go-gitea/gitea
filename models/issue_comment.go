@@ -88,6 +88,8 @@ const (
 	CommentTypeDeleteTimeManual
 	// add or remove Request from one
 	CommentTypeReviewRequest
+	// merge pull request
+	CommentTypeMergePull
 	// Project changed
 	CommentTypeProject
 	// Project board changed

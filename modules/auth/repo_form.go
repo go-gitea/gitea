@@ -173,6 +173,7 @@ type ProtectBranchForm struct {
 	ApprovalsWhitelistUsers  string
 	ApprovalsWhitelistTeams  string
 	BlockOnRejectedReviews   bool
+	BlockOnOutdatedBranch    bool
 	DismissStaleApprovals    bool
 	RequireSignedCommits     bool
 	ProtectedFilePatterns    string

@@ -42,6 +42,8 @@ type PullRequest struct {
 	Type            PullRequestType
 	Status          PullRequestStatus
 	ConflictedFiles []string `xorm:"TEXT JSON"`
+	CommitsAhead    int
+	CommitsBehind   int
 
 	IssueID int64  `xorm:"INDEX"`
 	Issue   *Issue `xorm:"-"`
@@ -390,7 +392,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, err
 	}
 
-	if _, err := pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
+	if _, err := pr.Issue.changeStatus(sess, pr.Merger, true, true); err != nil {
 		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
@@ -613,6 +615,21 @@ func (pr *PullRequest) GetWorkInProgressPrefix() string {
 		}
 	}
 	return ""
+}
+
+// UpdateCommitDivergence update Divergence of a pull request
+func (pr *PullRequest) UpdateCommitDivergence(ahead, behind int) error {
+	return pr.updateCommitDivergence(x, ahead, behind)
+}
+
+func (pr *PullRequest) updateCommitDivergence(e Engine, ahead, behind int) error {
+	if pr.ID == 0 {
+		return fmt.Errorf("pull ID is 0")
+	}
+	pr.CommitsAhead = ahead
+	pr.CommitsBehind = behind
+	_, err := e.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr)
+	return err
 }
 
 // IsSameRepo returns true if base repo and head repo is the same

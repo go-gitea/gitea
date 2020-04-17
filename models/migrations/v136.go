@@ -5,127 +5,59 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"fmt"
+
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"xorm.io/xorm"
-	"xorm.io/xorm/convert"
 )
 
-func addProjectsInfo(x *xorm.Engine) error {
+func addCommitDivergenceToPulls(x *xorm.Engine) error {
 
+	if err := x.Sync2(new(models.PullRequest)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+
+	var last int
+	batchSize := setting.Database.IterateBufferSize
 	sess := x.NewSession()
 	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	type (
-		ProjectType      uint8
-		ProjectBoardType uint8
-	)
-
-	type Project struct {
-		ID              int64  `xorm:"pk autoincr"`
-		Title           string `xorm:"INDEX NOT NULL"`
-		Description     string `xorm:"TEXT"`
-		RepoID          int64  `xorm:"NOT NULL"`
-		CreatorID       int64  `xorm:"NOT NULL"`
-		IsClosed        bool   `xorm:"INDEX"`
-		NumIssues       int
-		NumClosedIssues int
-
-		BoardType ProjectBoardType
-		Type      ProjectType
-
-		ClosedDateUnix timeutil.TimeStamp
-		CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-
-	if err := sess.Sync2(new(Project)); err != nil {
-		return err
-	}
-
-	type Comment struct {
-		OldProjectID int64
-		ProjectID    int64
-	}
-
-	if err := sess.Sync2(new(Comment)); err != nil {
-		return err
-	}
-
-	type Repository struct {
-		ID                int64
-		NumProjects       int `xorm:"NOT NULL DEFAULT 0"`
-		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
-		NumOpenProjects   int `xorm:"-"`
-	}
-
-	if err := sess.Sync2(new(Repository)); err != nil {
-		return err
-	}
-
-	type Issue struct {
-		ProjectID      int64 `xorm:"INDEX"`
-		ProjectBoardID int64 `xorm:"INDEX"`
-	}
-
-	if err := sess.Sync2(new(Issue)); err != nil {
-		return err
-	}
-
-	type ProjectBoard struct {
-		ID        int64 `xorm:"pk autoincr"`
-		ProjectID int64 `xorm:"INDEX NOT NULL"`
-		Title     string
-		RepoID    int64 `xorm:"INDEX NOT NULL"`
-
-		// Not really needed but helpful
-		CreatorID int64 `xorm:"NOT NULL"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-
-	if err := sess.Sync2(new(ProjectBoard)); err != nil {
-		return err
-	}
-
-	type RepoUnit struct {
-		ID          int64
-		RepoID      int64              `xorm:"INDEX(s)"`
-		Type        int                `xorm:"INDEX(s)"`
-		Config      convert.Conversion `xorm:"TEXT"`
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
-	}
-
-	const batchSize = 100
-
-	const unitTypeProject int = 8 // see UnitTypeProjects in models/units.go
-
-	for start := 0; ; start += batchSize {
-		repos := make([]*Repository, 0, batchSize)
-
-		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
+	for {
+		if err := sess.Begin(); err != nil {
 			return err
 		}
-
-		if len(repos) == 0 {
+		var results = make([]*models.PullRequest, 0, batchSize)
+		err := sess.Where("has_merged = ?", false).OrderBy("id").Limit(batchSize, last).Find(&results)
+		if err != nil {
+			return err
+		}
+		if len(results) == 0 {
 			break
 		}
+		last += len(results)
 
-		for _, r := range repos {
-			if _, err := sess.ID(r.ID).Insert(&RepoUnit{
-				RepoID:      r.ID,
-				Type:        unitTypeProject,
-				CreatedUnix: timeutil.TimeStampNow(),
-			}); err != nil {
-				return err
+		for _, pr := range results {
+			divergence, err := pull_service.GetDiverging(pr)
+			if err != nil {
+				log.Warn("Could not recalculate Divergence for pull: %d", pr.ID)
+				pr.CommitsAhead = 0
+				pr.CommitsBehind = 0
+			}
+			if divergence != nil {
+				pr.CommitsAhead = divergence.Ahead
+				pr.CommitsBehind = divergence.Behind
+			}
+			if _, err = sess.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr); err != nil {
+				return fmt.Errorf("Update Cols: %v", err)
 			}
 		}
-	}
 
-	return sess.Commit()
+		if err := sess.Commit(); err != nil {
+			return err
+		}
+	}
+	return nil
 }

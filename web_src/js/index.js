@@ -11,13 +11,13 @@ import './vendor/semanticdropdown.js';
 import {svg} from './utils.js';
 
 import initContextPopups from './features/contextpopup.js';
-import initHighlight from './features/highlight.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initProject from './features/projects.js';
 import initDateTimePicker from './features/datetimepicker.js';
 import createDropzone from './features/dropzone.js';
+import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
@@ -30,7 +30,6 @@ let previewFileModes;
 let simpleMDEditor;
 const commentMDEditors = {};
 let codeMirrorEditor;
-let hljs;
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -50,7 +49,7 @@ function initCommentPreviewTab($form) {
       $previewPanel.html(data);
       emojify.run($previewPanel[0]);
       $('pre code', $previewPanel[0]).each(function () {
-        hljs.highlightBlock(this);
+        highlight(this);
       });
     });
   });
@@ -76,7 +75,7 @@ function initEditPreviewTab($form) {
         $previewPanel.html(data);
         emojify.run($previewPanel[0]);
         $('pre code', $previewPanel[0]).each(function () {
-          hljs.highlightBlock(this);
+          highlight(this);
         });
       });
     });
@@ -1013,7 +1012,7 @@ async function initRepository() {
               $renderContent.html(data.content);
               emojify.run($renderContent[0]);
               $('pre code', $renderContent[0]).each(function () {
-                hljs.highlightBlock(this);
+                highlight(this);
               });
             }
             const $content = $segment.parent();
@@ -1339,7 +1338,7 @@ function initWikiForm() {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
               emojify.run($('.editor-preview')[0]);
               $(preview).find('pre code').each((_, e) => {
-                hljs.highlightBlock(e);
+                highlight(e);
               });
             });
           };
@@ -2635,8 +2634,8 @@ $(document).ready(async () => {
   });
 
   // parallel init of lazy-loaded features
-  [hljs] = await Promise.all([
-    initHighlight(),
+  await Promise.all([
+    highlight(document.querySelectorAll('pre code')),
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
