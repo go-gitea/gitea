@@ -113,6 +113,12 @@ var checklist = []check{
 		isDefault: false,
 		f:         runDoctorPRMergeBase,
 	},
+	{
+		title:     "Check consistency of database",
+		name:      "check-db-consistency",
+		isDefault: false,
+		f:         runDoctorCheckDBConsistency,
+	},
 	// more checks please append here
 }
 
@@ -493,4 +499,65 @@ func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
 		return []string{fmt.Sprintf("ScriptType %s is not on the current PATH", setting.ScriptType)}, err
 	}
 	return []string{fmt.Sprintf("ScriptType %s is on the current PATH at %s", setting.ScriptType, path)}, nil
+}
+
+func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
+	_, committer, err := models.TxDBContext()
+	if err != nil {
+		return nil, err
+	}
+	sess := committer.(models.Engine)
+	defer committer.Close()
+	var results []string
+
+	//find issues without existing repository
+	count, err := sess.Table("issue").
+		Join("LEFT", "repository", "issue.repo_id=repository.id").
+		Where("repository.id is NULL").
+		Count("id")
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		if ctx.Bool("fix") {
+			if _, err = sess.In("id", builder.Select("issue.id").
+				From("issue").
+				Join("LEFT", "repository", "issue.repo_id=repository.id").
+				Where(builder.IsNull{"repository.id"})).
+				Delete(models.Issue{}); err != nil {
+				return nil, err
+			}
+			results = append(results, fmt.Sprintf("%d issues without existing repository deleted", count))
+		} else {
+			results = append(results, fmt.Sprintf("%d issues without existing repository", count))
+		}
+	}
+
+	//find tracked times without existing issues/pulls
+	count, err = sess.Table("tracked_time").
+		Join("LEFT", "issue", "tracked_time.issue_id=issue.id").
+		Where("issue.id is NULL").
+		Count("id")
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		if ctx.Bool("fix") {
+			if _, err = sess.In("id", builder.Select("tracked_time.id").
+				From("tracked_time").
+				Join("LEFT", "issue", "tracked_time.issue_id=issue.id").
+				Where(builder.IsNull{"issue.id"})).
+				Delete(models.TrackedTime{}); err != nil {
+				return nil, err
+			}
+			results = append(results, fmt.Sprintf("%d tracked times without existing issue deleted", count))
+		} else {
+			results = append(results, fmt.Sprintf("%d tracked times without existing issue", count))
+		}
+	}
+
+	if ctx.Bool("fix") {
+		return results, committer.Commit()
+	}
+	return results, nil
 }
