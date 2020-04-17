@@ -6,7 +6,6 @@
 package repo
 
 import (
-	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -173,20 +172,22 @@ func SingleRelease(ctx *context.Context) {
 
 // LatestRelease redirects to the latest release
 func LatestRelease(ctx *context.Context) {
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-		ListOptions: models.ListOptions{Page: 1, PageSize: 1},
-	})
+	release, err := models.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetReleasesByRepoID", err)
+		if models.IsErrReleaseNotExist(err) {
+			ctx.NotFound("LatestRelease", err)
+			return
+		}
+		ctx.ServerError("GetLatestReleaseByRepoID", err)
 		return
 	}
 
-	if len(releases) < 1 {
-		ctx.NotFound("LatestRelease", errors.New("no latest release found"))
+	if err := release.LoadAttributes(); err != nil {
+		ctx.ServerError("LoadAttributes", err)
 		return
 	}
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/releases/tag/" + releases[0].LowerTagName)
+	ctx.Redirect(release.HTMLURL())
 }
 
 // NewRelease render creating release page
