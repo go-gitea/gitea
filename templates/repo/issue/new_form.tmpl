@@ -142,7 +142,7 @@
 			<div class="ui {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}} floating jump select-project dropdown">
 				<span class="text">
 					<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
-					<span class="badge">{{svg "octicon-gear" 16}}</span>
+					{{svg "octicon-gear" 16}}
 				</span>
 				<div class="menu">
 					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
