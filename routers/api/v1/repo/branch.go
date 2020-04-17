@@ -121,6 +121,11 @@ func DeleteBranch(ctx *context.APIContext) {
 		return
 	}
 
+	if ctx.Repo.Repository.DefaultBranch == ctx.Repo.BranchName {
+		ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
+		return
+	}
+
 	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(ctx.Repo.BranchName, ctx.User)
 	if err != nil {
 		ctx.InternalServerError(err)
