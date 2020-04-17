@@ -30,8 +30,8 @@ type Options struct {
 	Prefix       string
 }
 
-// List of entries inside the `public` directory
-var resourceEntries = []string{
+// List of known entries inside the `public` directory
+var knownEntries = []string{
 	"js",
 	"css",
 	"fomantic",
@@ -112,7 +112,7 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 			if len(parts) < 2 {
 				return false
 			}
-			for _, entry := range resourceEntries {
+			for _, entry := range knownEntries {
 				if entry == parts[1] {
 					ctx.Resp.WriteHeader(404)
 					return true
