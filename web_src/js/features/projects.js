@@ -77,4 +77,22 @@ export default async function initProject(csrf) {
       });
     });
   });
+
+  $('#new_board_submit').click(function(e) {
+    e.preventDefault();
+
+    $.ajax({
+      url: $(this).data('url'),
+
+      data: JSON.stringify({ title: $('#new_board').val() }),
+      headers: {
+        'X-Csrf-Token': csrf,
+        'X-Remote': true,
+      },
+      contentType: 'application/json',
+      method: 'POST',
+    }).done(() => {
+      setTimeout(window.location.reload(true), 2000);
+    });
+  });
 }

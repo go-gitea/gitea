@@ -371,7 +371,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 	})
 }
 
-// AddBoardToProject allows a new board to be added to a project.
+// AddBoardToProjectPost allows a new board to be added to a project.
 func AddBoardToProjectPost(ctx *context.Context, form auth.EditProjectBoardTitleForm) {
 
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
