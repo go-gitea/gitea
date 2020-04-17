@@ -32,19 +32,18 @@ type URI struct {
 
 // SetSchema set schema
 func (uri *URI) SetSchema(schema string) {
+	// hack me
 	if uri.DBType == schemas.POSTGRES {
-		uri.Schema = schema
+		uri.Schema = strings.TrimSpace(schema)
 	}
 }
 
 // Dialect represents a kind of database
 type Dialect interface {
-	Init(*core.DB, *URI) error
+	Init(*URI) error
 	URI() *URI
-	DB() *core.DB
 	SQLType(*schemas.Column) string
 	FormatBytes(b []byte) string
-	DefaultSchema() string
 
 	IsReserved(string) bool
 	Quoter() schemas.Quoter
@@ -52,18 +51,18 @@ type Dialect interface {
 
 	AutoIncrStr() string
 
-	GetIndexes(ctx context.Context, tableName string) (map[string]*schemas.Index, error)
+	GetIndexes(queryer core.Queryer, ctx context.Context, tableName string) (map[string]*schemas.Index, error)
 	IndexCheckSQL(tableName, idxName string) (string, []interface{})
 	CreateIndexSQL(tableName string, index *schemas.Index) string
 	DropIndexSQL(tableName string, index *schemas.Index) string
 
-	GetTables(ctx context.Context) ([]*schemas.Table, error)
-	IsTableExist(ctx context.Context, tableName string) (bool, error)
+	GetTables(queryer core.Queryer, ctx context.Context) ([]*schemas.Table, error)
+	IsTableExist(queryer core.Queryer, ctx context.Context, tableName string) (bool, error)
 	CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool)
 	DropTableSQL(tableName string) (string, bool)
 
-	GetColumns(ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error)
-	IsColumnExist(ctx context.Context, tableName string, colName string) (bool, error)
+	GetColumns(queryer core.Queryer, ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error)
+	IsColumnExist(queryer core.Queryer, ctx context.Context, tableName string, colName string) (bool, error)
 	AddColumnSQL(tableName string, col *schemas.Column) string
 	ModifyColumnSQL(tableName string, col *schemas.Column) string
 
@@ -75,7 +74,6 @@ type Dialect interface {
 
 // Base represents a basic dialect and all real dialects could embed this struct
 type Base struct {
-	db      *core.DB
 	dialect Dialect
 	uri     *URI
 	quoter  schemas.Quoter
@@ -85,16 +83,8 @@ func (b *Base) Quoter() schemas.Quoter {
 	return b.quoter
 }
 
-func (b *Base) DB() *core.DB {
-	return b.db
-}
-
-func (b *Base) DefaultSchema() string {
-	return ""
-}
-
-func (b *Base) Init(db *core.DB, dialect Dialect, uri *URI) error {
-	b.db, b.dialect, b.uri = db, dialect, uri
+func (b *Base) Init(dialect Dialect, uri *URI) error {
+	b.dialect, b.uri = dialect, uri
 	return nil
 }
 
@@ -160,8 +150,8 @@ func (db *Base) DropTableSQL(tableName string) (string, bool) {
 	return fmt.Sprintf("DROP TABLE IF EXISTS %s", quote(tableName)), true
 }
 
-func (db *Base) HasRecords(ctx context.Context, query string, args ...interface{}) (bool, error) {
-	rows, err := db.DB().QueryContext(ctx, query, args...)
+func (db *Base) HasRecords(queryer core.Queryer, ctx context.Context, query string, args ...interface{}) (bool, error) {
+	rows, err := queryer.QueryContext(ctx, query, args...)
 	if err != nil {
 		return false, err
 	}
@@ -173,7 +163,7 @@ func (db *Base) HasRecords(ctx context.Context, query string, args ...interface{
 	return false, nil
 }
 
-func (db *Base) IsColumnExist(ctx context.Context, tableName, colName string) (bool, error) {
+func (db *Base) IsColumnExist(queryer core.Queryer, ctx context.Context, tableName, colName string) (bool, error) {
 	quote := db.dialect.Quoter().Quote
 	query := fmt.Sprintf(
 		"SELECT %v FROM %v.%v WHERE %v = ? AND %v = ? AND %v = ?",
@@ -184,7 +174,7 @@ func (db *Base) IsColumnExist(ctx context.Context, tableName, colName string) (b
 		quote("TABLE_NAME"),
 		quote("COLUMN_NAME"),
 	)
-	return db.HasRecords(ctx, query, db.uri.DBName, tableName, colName)
+	return db.HasRecords(queryer, ctx, query, db.uri.DBName, tableName, colName)
 }
 
 func (db *Base) AddColumnSQL(tableName string, col *schemas.Column) string {

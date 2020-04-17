@@ -21,9 +21,6 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 
-	// for embed
-	_ "github.com/shurcooL/vfsgen"
-
 	"github.com/urfave/cli"
 )
 

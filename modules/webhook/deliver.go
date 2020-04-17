@@ -73,6 +73,13 @@ func Deliver(t *models.HookTask) error {
 		return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
 	}
 
+	if t.Type == models.MATRIX {
+		req, err = getMatrixHookRequest(t)
+		if err != nil {
+			return err
+		}
+	}
+
 	req.Header.Add("X-Gitea-Delivery", t.UUID)
 	req.Header.Add("X-Gitea-Event", t.EventType.Event())
 	req.Header.Add("X-Gitea-Signature", t.Signature)

@@ -27,7 +27,7 @@ func (db *DB) PrepareContext(ctx context.Context, query string) (*Stmt, error) {
 	var i int
 	query = re.ReplaceAllStringFunc(query, func(src string) string {
 		names[src[1:]] = i
-		i += 1
+		i++
 		return "?"
 	})
 

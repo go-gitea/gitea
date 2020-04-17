@@ -77,6 +77,10 @@ type cacheStruct struct {
 	idx   int
 }
 
+var (
+	_ QueryExecuter = &DB{}
+)
+
 // DB is a wrap of sql.DB with extra contents
 type DB struct {
 	*sql.DB

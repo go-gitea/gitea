@@ -53,7 +53,7 @@ func fixMergeBase(x *xorm.Engine) error {
 			break
 		}
 
-		i += 50
+		i += len(prs)
 		for _, pr := range prs {
 			baseRepo := &Repository{ID: pr.BaseRepoID}
 			has, err := x.Table("repository").Get(baseRepo)
@@ -81,10 +81,22 @@ func fixMergeBase(x *xorm.Engine) error {
 					}
 				}
 			} else {
-				var err error
-				pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.MergedCommitID+"^", gitRefName).RunInDir(repoPath)
+				parentsString, err := git.NewCommand("rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
 				if err != nil {
-					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
+					log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
+					continue
+				}
+				parents := strings.Split(strings.TrimSpace(parentsString), " ")
+				if len(parents) < 2 {
+					continue
+				}
+
+				args := append([]string{"merge-base", "--"}, parents[1:]...)
+				args = append(args, gitRefName)
+
+				pr.MergeBase, err = git.NewCommand(args...).RunInDir(repoPath)
+				if err != nil {
+					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 					continue
 				}
 			}

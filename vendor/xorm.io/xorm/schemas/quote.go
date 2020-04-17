@@ -107,16 +107,17 @@ func findStart(value string, start int) int {
 		return start
 	}
 
-	var k int
+	var k = -1
 	for j := start; j < len(value); j++ {
 		if value[j] != ' ' {
 			k = j
 			break
 		}
 	}
-	if k-1 == len(value) {
+	if k == -1 {
 		return len(value)
 	}
+
 	if (value[k] == 'A' || value[k] == 'a') && (value[k+1] == 'S' || value[k+1] == 's') {
 		k = k + 2
 	}
@@ -178,8 +179,11 @@ func (q Quoter) QuoteTo(buf *strings.Builder, value string) error {
 				return err
 			}
 		}
-		var nextEnd = findWord(value, start)
+		if start == len(value) {
+			return nil
+		}
 
+		var nextEnd = findWord(value, start)
 		if err := q.quoteWordTo(buf, value[start:nextEnd]); err != nil {
 			return err
 		}

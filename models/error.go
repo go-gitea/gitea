@@ -7,7 +7,6 @@ package models
 
 import (
 	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 )
@@ -228,7 +227,7 @@ func IsErrUserNotAllowedCreateOrg(err error) bool {
 }
 
 func (err ErrUserNotAllowedCreateOrg) Error() string {
-	return fmt.Sprintf("user is not allowed to create organizations")
+	return "user is not allowed to create organizations"
 }
 
 // ErrReachLimitOfRepo represents a "ReachLimitOfRepo" kind of error.
@@ -562,7 +561,7 @@ func IsErrAccessTokenEmpty(err error) bool {
 }
 
 func (err ErrAccessTokenEmpty) Error() string {
-	return fmt.Sprintf("access token is empty")
+	return "access token is empty"
 }
 
 // ________                            .__                __  .__
@@ -916,6 +915,25 @@ func (err ErrFilePathInvalid) Error() string {
 	return fmt.Sprintf("path is invalid [path: %s]", err.Path)
 }
 
+// ErrFilePathProtected represents a "FilePathProtected" kind of error.
+type ErrFilePathProtected struct {
+	Message string
+	Path    string
+}
+
+// IsErrFilePathProtected checks if an error is an ErrFilePathProtected.
+func IsErrFilePathProtected(err error) bool {
+	_, ok := err.(ErrFilePathProtected)
+	return ok
+}
+
+func (err ErrFilePathProtected) Error() string {
+	if err.Message != "" {
+		return err.Message
+	}
+	return fmt.Sprintf("path is protected and can not be changed [path: %s]", err.Path)
+}
+
 // ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo.
 type ErrUserDoesNotHaveAccessToRepo struct {
 	UserID   int64
@@ -1089,7 +1107,7 @@ func IsErrSHAOrCommitIDNotProvided(err error) bool {
 }
 
 func (err ErrSHAOrCommitIDNotProvided) Error() string {
-	return fmt.Sprintf("a SHA or commmit ID must be proved when updating a file")
+	return "a SHA or commmit ID must be proved when updating a file"
 }
 
 //  __      __      ___.   .__                   __
@@ -1369,71 +1387,6 @@ func (err ErrMergeUnrelatedHistories) Error() string {
 	return fmt.Sprintf("Merge UnrelatedHistories Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
 }
 
-// ErrMergePushOutOfDate represents an error if merging fails due to unrelated histories
-type ErrMergePushOutOfDate struct {
-	Style  MergeStyle
-	StdOut string
-	StdErr string
-	Err    error
-}
-
-// IsErrMergePushOutOfDate checks if an error is a ErrMergePushOutOfDate.
-func IsErrMergePushOutOfDate(err error) bool {
-	_, ok := err.(ErrMergePushOutOfDate)
-	return ok
-}
-
-func (err ErrMergePushOutOfDate) Error() string {
-	return fmt.Sprintf("Merge PushOutOfDate Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
-}
-
-// ErrPushRejected represents an error if merging fails due to rejection from a hook
-type ErrPushRejected struct {
-	Style   MergeStyle
-	Message string
-	StdOut  string
-	StdErr  string
-	Err     error
-}
-
-// IsErrPushRejected checks if an error is a ErrPushRejected.
-func IsErrPushRejected(err error) bool {
-	_, ok := err.(ErrPushRejected)
-	return ok
-}
-
-func (err ErrPushRejected) Error() string {
-	return fmt.Sprintf("Merge PushRejected Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
-}
-
-// GenerateMessage generates the remote message from the stderr
-func (err *ErrPushRejected) GenerateMessage() {
-	messageBuilder := &strings.Builder{}
-	i := strings.Index(err.StdErr, "remote: ")
-	if i < 0 {
-		err.Message = ""
-		return
-	}
-	for {
-		if len(err.StdErr) <= i+8 {
-			break
-		}
-		if err.StdErr[i:i+8] != "remote: " {
-			break
-		}
-		i += 8
-		nl := strings.IndexByte(err.StdErr[i:], '\n')
-		if nl >= 0 {
-			messageBuilder.WriteString(err.StdErr[i : i+nl+1])
-			i = i + nl + 1
-		} else {
-			messageBuilder.WriteString(err.StdErr[i:])
-			i = len(err.StdErr)
-		}
-	}
-	err.Message = strings.TrimSpace(messageBuilder.String())
-}
-
 // ErrRebaseConflicts represents an error if rebase fails with a conflict
 type ErrRebaseConflicts struct {
 	Style     MergeStyle
@@ -1549,10 +1502,41 @@ func (err ErrTrackedTimeNotExist) Error() string {
 // |_______ (____  /___  /\___  >____/
 //         \/    \/    \/     \/
 
+// ErrRepoLabelNotExist represents a "RepoLabelNotExist" kind of error.
+type ErrRepoLabelNotExist struct {
+	LabelID int64
+	RepoID  int64
+}
+
+// IsErrRepoLabelNotExist checks if an error is a RepoErrLabelNotExist.
+func IsErrRepoLabelNotExist(err error) bool {
+	_, ok := err.(ErrRepoLabelNotExist)
+	return ok
+}
+
+func (err ErrRepoLabelNotExist) Error() string {
+	return fmt.Sprintf("label does not exist [label_id: %d, repo_id: %d]", err.LabelID, err.RepoID)
+}
+
+// ErrOrgLabelNotExist represents a "OrgLabelNotExist" kind of error.
+type ErrOrgLabelNotExist struct {
+	LabelID int64
+	OrgID   int64
+}
+
+// IsErrOrgLabelNotExist checks if an error is a OrgErrLabelNotExist.
+func IsErrOrgLabelNotExist(err error) bool {
+	_, ok := err.(ErrOrgLabelNotExist)
+	return ok
+}
+
+func (err ErrOrgLabelNotExist) Error() string {
+	return fmt.Sprintf("label does not exist [label_id: %d, org_id: %d]", err.LabelID, err.OrgID)
+}
+
 // ErrLabelNotExist represents a "LabelNotExist" kind of error.
 type ErrLabelNotExist struct {
 	LabelID int64
-	RepoID  int64
 }
 
 // IsErrLabelNotExist checks if an error is a ErrLabelNotExist.
@@ -1562,7 +1546,7 @@ func IsErrLabelNotExist(err error) bool {
 }
 
 func (err ErrLabelNotExist) Error() string {
-	return fmt.Sprintf("label does not exist [label_id: %d, repo_id: %d]", err.LabelID, err.RepoID)
+	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
 }
 
 //    _____  .__.__                   __
