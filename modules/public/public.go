@@ -30,6 +30,13 @@ type Options struct {
 	Prefix       string
 }
 
+// List of entries inside the `public` directory
+var resourceEntries = []string{
+	"js",
+	"css",
+	"fomantic",
+}
+
 // Custom implements the macaron static handler for serving custom assets.
 func Custom(opts *Options) macaron.Handler {
 	return opts.staticHandler(path.Join(setting.CustomPath, "public"))
@@ -99,6 +106,20 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 
 	f, err := opt.FileSystem.Open(file)
 	if err != nil {
+		// 404 requests to any known entries in `public`
+		if path.Base(opts.Directory) == "public" {
+			parts := strings.Split(file, "/")
+			if len(parts) < 2 {
+				return false
+			}
+			for _, entry := range resourceEntries {
+				if entry == parts[1] {
+					ctx.Resp.WriteHeader(404)
+					ctx.Resp.Write([]byte(""))
+					return true
+				}
+			}
+		}
 		return false
 	}
 	defer f.Close()
