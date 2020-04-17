@@ -53,7 +53,7 @@ PREFIX_ARCHIVE_FILES = true
 ; Enable the kanban board feature system wide.
 ENABLE_KANBAN_BOARD = true
 ; Default templates for kanban borards
-PROJECT_BOARD_BASIC_KANBAN_TYPE = Todo, In progress, Done
+PROJECT_BOARD_BASIC_KANBAN_TYPE = To Do, In Progress, Done
 PROJECT_BOARD_BUG_TRIAGE_TYPE = Needs Triage, High priority, Low priority, Closed
 
 [repository.editor]
