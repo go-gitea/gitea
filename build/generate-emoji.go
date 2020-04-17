@@ -102,12 +102,18 @@ func generate() ([]byte, error) {
 		return nil, err
 	}
 
-	// filter out emoji that require greater than max unicode version
-
+	var re = regexp.MustCompile(`keycap|registered|copyright`)
 	tmp := data[:0]
+
+	// filter out emoji that require greater than max unicode version
 	for i := range data {
 		val, _ := strconv.ParseFloat(data[i].UnicodeVersion, 64)
 		if int(val) <= maxUnicodeVersion {
+			// remove these keycaps for now they really complicate matching since
+			// they include normal letters in them
+			if re.MatchString(data[i].Description) {
+				continue
+			}
 			tmp = append(tmp, data[i])
 		}
 	}

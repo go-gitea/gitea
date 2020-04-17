@@ -68,7 +68,7 @@ var (
 
 	// find emoji literal: search all emoji hex range as many times as they appear as
 	// some emojis (skin color etc..) are just two or more chained together
-	emojiRegex = regexp.MustCompile(`[\x{1F000}-\x{1FFFF}|\x{20a0}-\x{32ff}|\x{fe4e5}-\x{fe4ee}|\x{200D}]+`)
+	emojiRegex = regexp.MustCompile(`[\x{1F000}-\x{1FFFF}|\x{2000}-\x{32ff}|\x{fe4e5}-\x{fe4ee}|\x{200D}|\x{FE0F}|\x{e0000}-\x{e007f}]+`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
