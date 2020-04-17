@@ -86,18 +86,6 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
-		"ReactionToEmoji": func(reaction string) template.HTML {
-
-			val := emoji.FromCode(reaction)
-			if val != nil {
-				return template.HTML(val.Emoji)
-			}
-			val = emoji.FromAlias(reaction)
-			if val != nil {
-				return template.HTML(val.Emoji)
-			}
-			return template.HTML(fmt.Sprintf(`<img src=%s/img/emoji/%s.png></img>`, setting.StaticURLPrefix, reaction))
-		},
 		"RenderEmojiPlain": func(s string) string {
 			return emoji.ReplaceAliases(s)
 		},
@@ -156,6 +144,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
 		"RenderEmoji":                    RenderEmoji,
+		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
 		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
@@ -530,6 +519,19 @@ func RenderEmoji(text string) template.HTML {
 		return template.HTML("")
 	}
 	return template.HTML(renderedText)
+}
+
+//ReactionToEmoji renders emoji for use in reactions
+func ReactionToEmoji(reaction string) template.HTML {
+	val := emoji.FromCode(reaction)
+	if val != nil {
+		return template.HTML(val.Emoji)
+	}
+	val = emoji.FromAlias(reaction)
+	if val != nil {
+		return template.HTML(val.Emoji)
+	}
+	return template.HTML(fmt.Sprintf(`<img src=%s/img/emoji/%s.png></img>`, setting.StaticURLPrefix, reaction))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
