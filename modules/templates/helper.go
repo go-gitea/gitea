@@ -86,9 +86,6 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
-		"RenderEmojiPlain": func(s string) string {
-			return emoji.ReplaceAliases(s)
-		},
 		"AvatarLink":    models.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
@@ -144,6 +141,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
 		"RenderEmoji":                    RenderEmoji,
+		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
 		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
