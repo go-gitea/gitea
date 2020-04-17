@@ -85,7 +85,7 @@ var checklist = []check{
 	},
 	{
 		title:         "Check Database Version",
-		name:          "check-db",
+		name:          "check-db-version",
 		isDefault:     true,
 		f:             runDoctorCheckDBVersion,
 		abortIfFailed: true,
