@@ -263,6 +263,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 				}
 			}
 
+			// Detect Protected file pattern
 			globs := protectBranch.GetProtectedFilePatterns()
 			if len(globs) > 0 {
 				err := checkFileProtection(oldCommitID, newCommitID, globs, gitRepo, env)
