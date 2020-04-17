@@ -5,12 +5,18 @@
 package migrations
 
 import (
+	"fmt"
+
 	"xorm.io/xorm"
 )
 
-func addBlockOnOutdatedBranch(x *xorm.Engine) error {
-	type ProtectedBranch struct {
-		BlockOnOutdatedBranch bool `xorm:"NOT NULL DEFAULT false"`
+func addResolveDoerIDCommentColumn(x *xorm.Engine) error {
+	type Comment struct {
+		ResolveDoerID int64
 	}
-	return x.Sync2(new(ProtectedBranch))
+
+	if err := x.Sync2(new(Comment)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+	return nil
 }

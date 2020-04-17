@@ -248,6 +248,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		protectBranch.DismissStaleApprovals = f.DismissStaleApprovals
 		protectBranch.RequireSignedCommits = f.RequireSignedCommits
 		protectBranch.ProtectedFilePatterns = f.ProtectedFilePatterns
+		protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 
 		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 			UserIDs:          whitelistUsers,

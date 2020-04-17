@@ -207,6 +207,8 @@ var migrations = []Migration{
 	// v136 -> v137
 	NewMigration("Add CommitsAhead and CommitsBehind Column to PullRequest Table", addCommitDivergenceToPulls),
 	// v137 -> v138
+	NewMigration("Add Branch Protection Block Outdated Branch", addBlockOnOutdatedBranch),
+	// v138 -> v139
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
 }
 
