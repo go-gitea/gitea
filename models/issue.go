@@ -1066,10 +1066,10 @@ type IssuesOptions struct {
 	IsClosed           util.OptionalBool
 	IsPull             util.OptionalBool
 	LabelIDs           []int64
-	SortType           string
-	IssueIDs           []int64
 	IncludedLabelNames []string
 	ExcludedLabelNames []string
+	SortType           string
+	IssueIDs           []int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
 }
