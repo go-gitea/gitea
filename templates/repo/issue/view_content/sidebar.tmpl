@@ -145,14 +145,14 @@
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
-				<span class="octicon octicon-gear"></span>
+				{{svg "octicon-gear" 16}}
 			</span>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
 				{{if .OpenProjects}}
 					<div class="divider"></div>
 					<div class="header">
-						<i class="octicon octicon-milestone"></i>
+						{{svg "octicon-milestone" 16}}
 						{{.i18n.Tr "repo.issues.new.open_projects"}}
 					</div>
 					{{range .OpenProjects}}
@@ -162,7 +162,7 @@
 				{{if .ClosedProjects}}
 					<div class="divider"></div>
 					<div class="header">
-						<i class="octicon octicon-milestone"></i>
+						{{svg "octicon-milestone" 16}}
 						{{.i18n.Tr "repo.issues.new.closed_projects"}}
 					</div>
 					{{range .ClosedProjects}}

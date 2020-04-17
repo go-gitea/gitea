@@ -117,7 +117,7 @@
 
 				{{ if .IsKanbanEnabled }}
 					<a href="{{.RepoLink}}/projects" class="{{ if .IsProjectsPage }}active{{end}} item">
-						<i class="octicon octicon-git-pull-request"></i> {{.i18n.Tr "repo.kanban_board"}}
+						{{svg "octicon-git-pull-request" 16}} {{.i18n.Tr "repo.kanban_board"}}
 						<span class="ui {{if not .Repository.NumOpenProjects}}gray{{else}}blue{{end}} small label">
 							{{.Repository.NumOpenProjects}}
 						</span>

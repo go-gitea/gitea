@@ -75,7 +75,7 @@
 					{{end}}
 					{{ if .IsKanbanEnabled }}
 					<a class="item" href="{{AppSubUrl}}/projects/create">
-						<i class="octicon octicon-plus"></i> {{ .i18n.Tr "new_project" }}
+						{{svg "octicon-plus" 16}} {{ .i18n.Tr "new_project" }}
 					</a>
 					{{ end }}
 				</div><!-- end content create new menu -->

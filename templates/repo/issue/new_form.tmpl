@@ -59,7 +59,7 @@
 							<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
 							{{if .Description }}<br><small class="desc">{{.Description}}</small>{{end}}</a>
 						{{end}}
-					
+
 						<div class="ui divider"></div>
 						{{range .OrgLabels}}
 							<a class="{{if .IsChecked}}checked{{end}} item has-emoji" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
@@ -142,14 +142,14 @@
 			<div class="ui {{if not (or .OpenProjects .ClosedProjects)}}disabled{{end}} floating jump select-project dropdown">
 				<span class="text">
 					<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
-					<span class="octicon octicon-gear"></span>
+					<span class="badge">{{svg "octicon-gear" 16}}</span>
 				</span>
 				<div class="menu">
 					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
 					{{if .OpenProjects}}
 						<div class="divider"></div>
 						<div class="header">
-							<i class="octicon octicon-milestone"></i>
+							{{svg "octicon-milestone" 16}}
 							{{.i18n.Tr "repo.issues.new.open_projects"}}
 						</div>
 						{{range .OpenProjects}}
@@ -159,7 +159,7 @@
 					{{if .ClosedProjects}}
 						<div class="divider"></div>
 						<div class="header">
-							<i class="octicon octicon-milestone"></i>
+							{{svg "octicon-milestone" 16}}
 							{{.i18n.Tr "repo.issues.new.closed_projects"}}
 						</div>
 						{{range .ClosedProjects}}
@@ -220,4 +220,3 @@
 {{if .PageIsComparePull}}
 	<script>window.wipPrefixes = {{.PullRequestWorkInProgressPrefixes}}</script>
 {{end}}
-

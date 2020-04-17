@@ -94,7 +94,7 @@
                                 {{ if $board.ID }}
                                 <a href="{{$.RepoLink}}/issues?project={{$board.ID}}">{{ $board.ID }}</a> {{ end }} {{ if .MilestoneID }}
                                 <a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
-                                    <span class="octicon octicon-milestone"></span> {{ .Milestone.Name }}
+                                    <span class="badge">{{svg "octicon-milestone" 16}} {{ .Milestone.Name }}</span>
                                 </a>
                                 {{ end }}
                             </div>
