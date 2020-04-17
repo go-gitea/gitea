@@ -340,6 +340,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 		DismissStaleApprovals:    form.DismissStaleApprovals,
 		RequireSignedCommits:     form.RequireSignedCommits,
 		ProtectedFilePatterns:    form.ProtectedFilePatterns,
+		BlockOnOutdatedBranch:    form.BlockOnOutdatedBranch,
 	}
 
 	err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
@@ -473,6 +474,10 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 
 	if form.ProtectedFilePatterns != nil {
 		protectBranch.ProtectedFilePatterns = *form.ProtectedFilePatterns
+	}
+
+	if form.BlockOnOutdatedBranch != nil {
+		protectBranch.BlockOnOutdatedBranch = *form.BlockOnOutdatedBranch
 	}
 
 	var whitelistUsers []int64

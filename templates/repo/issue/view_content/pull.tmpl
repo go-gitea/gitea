@@ -66,6 +66,7 @@
 	{{- else if .IsPullRequestBroken}}red
 	{{- else if .IsBlockedByApprovals}}red
 	{{- else if .IsBlockedByRejection}}red
+	{{- else if .IsBlockedByOutdatedBranch}}red
 	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
 	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
 	{{- else if and .RequireSigned (not .WillSign)}}}red
@@ -138,6 +139,11 @@
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
 					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
 					</div>
+				{{else if .IsBlockedByOutdatedBranch}}
+					<div class="item text red">
+						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+					{{$.i18n.Tr "repo.pulls.blocked_by_outdated_branch"}}
+					</div>
 				{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsError .RequiredStatusCheckState.IsFailure)}}
 					<div class="item text red">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
@@ -158,7 +164,7 @@
 						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 					</div>
 				{{end}}
-				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
+				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOutdatedBranch (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
 				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item text yellow">
@@ -341,6 +347,11 @@
 					<div class="item text red">
 						{{svg "octicon-x" 16}}
 					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
+					</div>
+				{{else if .IsBlockedByOutdatedBranch}}
+					<div class="item text red">
+						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
+					{{$.i18n.Tr "repo.pulls.blocked_by_outdated_branch"}}
 					</div>
 				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
 					<div class="item text red">
