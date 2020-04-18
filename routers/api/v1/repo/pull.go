@@ -113,6 +113,7 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
 	ctx.JSON(http.StatusOK, &apiPrs)
 }
 

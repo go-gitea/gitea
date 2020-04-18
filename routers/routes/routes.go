@@ -739,6 +739,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
+			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.UpdateResolveConversation)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/:id", func() {
 			m.Post("", repo.UpdateCommentContent)
