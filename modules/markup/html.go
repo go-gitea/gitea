@@ -356,40 +356,24 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 				if attr.Key != "class" {
 					continue
 				}
-				// Got a class
-				from := 0
+				classes := strings.Split(attr.Val, " ")
+				for i, class := range classes {
+					if class == "icon" {
+						icon = true
+						classes[0], classes[i] = classes[i], classes[0]
+						attr.Val = strings.Join(classes, " ")
 
-				for idx := strings.Index(attr.Val[from:], "icon") + from; idx >= from; {
-					if (idx != 0 && attr.Val[idx-1] != ' ') ||
-						(len(attr.Val) > idx+4 && attr.Val[idx+4] != ' ') {
-						from = idx + 4
-						continue
+						// Remove all children of icons
+						child := node.FirstChild
+						for child != nil {
+							node.RemoveChild(child)
+							child = child.NextSibling
+						}
+						node.FirstChild = nil
+						node.LastChild = nil
+						break
 					}
-					// We should be an icon
-					end := idx + 4
-
-					// now need to move the icon class first...
-					if idx != 0 && attr.Val[idx-1] == ' ' {
-						idx--
-					}
-					class := "icon " + attr.Val[:idx]
-					if len(attr.Val) > end+1 && attr.Val[end] == ' ' {
-						class += " " + attr.Val[end:]
-					}
-					attr.Val = class
-
-					// Remove all children of icons
-					child := node.FirstChild
-					for child != nil {
-						node.RemoveChild(child)
-						child = child.NextSibling
-					}
-					node.FirstChild = nil
-					node.LastChild = nil
-
-					break
 				}
-				break
 			}
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
