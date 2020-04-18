@@ -1604,7 +1604,9 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 }
 
 // UpdateIssueByAPI updates all allowed fields of given issue.
-func UpdateIssueByAPI(issue *Issue, doer *User) (*Comment, bool, error) {
+// If the issue status is changed a statusChangeComment is returned
+// similarly if the title is changed the titleChanged bool is set to true
+func UpdateIssueByAPI(issue *Issue, doer *User) (statusChangeComment *Comment, titleChanged bool, err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -1628,7 +1630,7 @@ func UpdateIssueByAPI(issue *Issue, doer *User) (*Comment, bool, error) {
 		return nil, false, err
 	}
 
-	titleChanged := currentIssue.Title != issue.Title
+	titleChanged = currentIssue.Title != issue.Title
 	if titleChanged {
 		var opts = &CreateCommentOptions{
 			Type:     CommentTypeChangeTitle,
@@ -1644,10 +1646,8 @@ func UpdateIssueByAPI(issue *Issue, doer *User) (*Comment, bool, error) {
 		}
 	}
 
-	var comment *Comment
-
 	if currentIssue.IsClosed != issue.IsClosed {
-		comment, err = issue.doChangeStatus(sess, doer, false)
+		statusChangeComment, err = issue.doChangeStatus(sess, doer, false)
 		if err != nil {
 			return nil, false, err
 		}
@@ -1656,7 +1656,7 @@ func UpdateIssueByAPI(issue *Issue, doer *User) (*Comment, bool, error) {
 	if err := issue.addCrossReferences(sess, doer, true); err != nil {
 		return nil, false, err
 	}
-	return comment, titleChanged, sess.Commit()
+	return statusChangeComment, titleChanged, sess.Commit()
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
