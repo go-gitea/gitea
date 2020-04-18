@@ -1126,6 +1126,7 @@ async function initRepository() {
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
       $repoComparePull.find('.pullrequest-form').show();
+      autoSimpleMDE.codemirror.refresh();
       $(this).parent().hide();
     });
   }
@@ -2554,6 +2555,19 @@ $(document).ready(async () => {
   $('.issue-checkbox input[type="checkbox"]:checked').first().each((_, e) => {
     e.checked = false;
     $(e).trigger('click');
+  });
+
+  $('.resolve-conversation').on('click', function (e) {
+    e.preventDefault();
+    const id = $(this).data('comment-id');
+    const action = $(this).data('action');
+    const url = $(this).data('update-url');
+
+    $.post(url, {
+      _csrf: csrf,
+      action,
+      comment_id: id,
+    }).then(reload);
   });
 
   buttonsClickOnEnter();
