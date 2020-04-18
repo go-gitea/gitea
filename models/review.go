@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
@@ -395,9 +396,13 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 
 // GetReviewerByIssueIDAndUserID get the latest review of reviewer for a pull request
 func GetReviewerByIssueIDAndUserID(issueID, userID int64) (review *Review, err error) {
+	return getReviewerByIssueIDAndUserID(x, issueID, userID)
+}
+
+func getReviewerByIssueIDAndUserID(e Engine, issueID, userID int64) (review *Review, err error) {
 	review = new(Review)
 
-	if _, err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
+	if _, err := e.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
 		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Get(review); err != nil {
 		return nil, err
@@ -559,7 +564,7 @@ func RemoveRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 		// recalculate which is the latest official review from that user
 		var review *Review
 
-		review, err = GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
+		review, err = getReviewerByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -575,7 +580,7 @@ func RemoveRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 		return nil, err
 	}
 
-	comment, err = CreateComment(&CreateCommentOptions{
+	comment, err = createComment(sess, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -589,4 +594,63 @@ func RemoveRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 	}
 
 	return comment, sess.Commit()
+}
+
+// MarkConversation Add or remove Conversation mark for a code comment
+func MarkConversation(comment *Comment, doer *User, isResolve bool) (err error) {
+	if comment.Type != CommentTypeCode {
+		return nil
+	}
+
+	if isResolve {
+		if comment.ResolveDoerID != 0 {
+			return nil
+		}
+
+		if _, err = x.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
+			return err
+		}
+	} else {
+		if comment.ResolveDoerID == 0 {
+			return nil
+		}
+
+		if _, err = x.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CanMarkConversation  Add or remove Conversation mark for a code comment permission check
+// the PR writer , offfcial reviewer and poster can do it
+func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) {
+	if doer == nil || issue == nil {
+		return false, fmt.Errorf("issue or doer is nil")
+	}
+
+	if doer.ID != issue.PosterID {
+		if err = issue.LoadRepo(); err != nil {
+			return false, err
+		}
+
+		perm, err := GetUserRepoPermission(issue.Repo, doer)
+		if err != nil {
+			return false, err
+		}
+
+		permResult = perm.CanAccess(AccessModeWrite, UnitTypePullRequests)
+		if !permResult {
+			if permResult, err = IsOfficialReviewer(issue, doer); err != nil {
+				return false, err
+			}
+		}
+
+		if !permResult {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

@@ -11,12 +11,12 @@ import './vendor/semanticdropdown.js';
 import {svg} from './utils.js';
 
 import initContextPopups from './features/contextpopup.js';
-import initHighlight from './features/highlight.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initDateTimePicker from './features/datetimepicker.js';
 import createDropzone from './features/dropzone.js';
+import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
@@ -29,7 +29,6 @@ let previewFileModes;
 let simpleMDEditor;
 const commentMDEditors = {};
 let codeMirrorEditor;
-let hljs;
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -49,7 +48,7 @@ function initCommentPreviewTab($form) {
       $previewPanel.html(data);
       emojify.run($previewPanel[0]);
       $('pre code', $previewPanel[0]).each(function () {
-        hljs.highlightBlock(this);
+        highlight(this);
       });
     });
   });
@@ -75,7 +74,7 @@ function initEditPreviewTab($form) {
         $previewPanel.html(data);
         emojify.run($previewPanel[0]);
         $('pre code', $previewPanel[0]).each(function () {
-          hljs.highlightBlock(this);
+          highlight(this);
         });
       });
     });
@@ -661,17 +660,21 @@ function initInstall() {
 }
 
 function initIssueComments() {
-  if ($('.repository.view.issue .comments').length === 0) return;
+  if ($('.repository.view.issue .timeline').length === 0) return;
 
-  $('.re-request-review').click((event) => {
-    const $this = $('.re-request-review');
+  $('.re-request-review').on('click', function (event) {
+    const url = $(this).data('update-url');
+    const issueId = $(this).data('issue-id');
+    const id = $(this).data('id');
+    const isChecked = $(this).data('is-checked');
+
     event.preventDefault();
     updateIssuesMeta(
-      $this.data('update-url'),
+      url,
       '',
-      $this.data('issue-id'),
-      $this.data('id'),
-      $this.data('is-checked')
+      issueId,
+      id,
+      isChecked
     ).then(reload);
   });
 
@@ -1007,7 +1010,7 @@ async function initRepository() {
               $renderContent.html(data.content);
               emojify.run($renderContent[0]);
               $('pre code', $renderContent[0]).each(function () {
-                hljs.highlightBlock(this);
+                highlight(this);
               });
             }
             const $content = $segment.parent();
@@ -1132,6 +1135,7 @@ async function initRepository() {
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
       $repoComparePull.find('.pullrequest-form').show();
+      autoSimpleMDE.codemirror.refresh();
       $(this).parent().hide();
     });
   }
@@ -1333,7 +1337,7 @@ function initWikiForm() {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
               emojify.run($('.editor-preview')[0]);
               $(preview).find('pre code').each((_, e) => {
-                hljs.highlightBlock(e);
+                highlight(e);
               });
             });
           };
@@ -2562,6 +2566,19 @@ $(document).ready(async () => {
     $(e).click();
   });
 
+  $('.resolve-conversation').on('click', function (e) {
+    e.preventDefault();
+    const id = $(this).data('comment-id');
+    const action = $(this).data('action');
+    const url = $(this).data('update-url');
+
+    $.post(url, {
+      _csrf: csrf,
+      action,
+      comment_id: id,
+    }).then(reload);
+  });
+
   buttonsClickOnEnter();
   searchUsers();
   searchTeams();
@@ -2629,8 +2646,8 @@ $(document).ready(async () => {
   });
 
   // parallel init of lazy-loaded features
-  [hljs] = await Promise.all([
-    initHighlight(),
+  await Promise.all([
+    highlight(document.querySelectorAll('pre code')),
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),

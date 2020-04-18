@@ -530,9 +530,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/NotificationCount"
-          },
-          "204": {
-            "description": "No unread notification"
           }
         }
       }
@@ -2641,6 +2638,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ContentsListResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -2687,6 +2687,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ContentsResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2834,6 +2837,15 @@
         "responses": {
           "200": {
             "$ref": "#/responses/FileDeleteResponse"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -7399,6 +7411,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/WatchInfo"
+          },
+          "404": {
+            "description": "User is not watching this repo or repo do not exist"
           }
         }
       },
@@ -8360,6 +8375,31 @@
       }
     },
     "/user/applications/oauth2/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "get an OAuth2 Application",
+        "operationId": "userGetOAuth2Application",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "Application ID to be found",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OAuth2Application"
+          }
+        }
+      },
       "delete": {
         "produces": [
           "application/json"
@@ -8382,6 +8422,39 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "update an OAuth2 Application, this includes regenerating the client secret",
+        "operationId": "userUpdateOAuth2Application",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "application to be updated",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OAuth2Application"
           }
         }
       }
@@ -9999,6 +10072,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_outdated_branch": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOutdatedBranch"
+        },
         "block_on_rejected_reviews": {
           "type": "boolean",
           "x-go-name": "BlockOnRejectedReviews"
@@ -10318,6 +10395,10 @@
             "type": "string"
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
+        },
+        "block_on_outdated_branch": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOutdatedBranch"
         },
         "block_on_rejected_reviews": {
           "type": "boolean",
@@ -11130,6 +11211,10 @@
             "type": "string"
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
+        },
+        "block_on_outdated_branch": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOutdatedBranch"
         },
         "block_on_rejected_reviews": {
           "type": "boolean",
@@ -13021,6 +13106,10 @@
         "draft": {
           "type": "boolean",
           "x-go-name": "IsDraft"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
         },
         "id": {
           "type": "integer",
