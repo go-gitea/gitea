@@ -990,6 +990,11 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("Review.LoadCodeComments", err)
 				return
 			}
+
+			if err = comment.LoadResolveDoer(); err != nil {
+				ctx.ServerError("LoadResolveDoer", err)
+				return
+			}
 		}
 	}
 
@@ -1031,6 +1036,11 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["AllowMerge"], err = pull_service.IsUserAllowedToMerge(pull, perm, ctx.User)
 			if err != nil {
 				ctx.ServerError("IsUserAllowedToMerge", err)
+				return
+			}
+
+			if ctx.Data["CanMarkConversation"], err = models.CanMarkConversation(issue, ctx.User); err != nil {
+				ctx.ServerError("CanMarkConversation", err)
 				return
 			}
 		}
