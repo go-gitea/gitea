@@ -65,9 +65,7 @@ func (rc *RenderConfig) ToRenderConfig(meta yaml.MapSlice) {
 				rc.Meta = "none"
 			case "table":
 				rc.Meta = "table"
-			case "details":
-				rc.Meta = "details"
-			default:
+			default: // "details"
 				rc.Meta = "details"
 			}
 		case yaml.MapSlice:
@@ -88,9 +86,7 @@ func (rc *RenderConfig) ToRenderConfig(meta yaml.MapSlice) {
 						rc.Meta = "none"
 					case "table":
 						rc.Meta = "table"
-					case "details":
-						rc.Meta = "details"
-					default:
+					default: // "details"
 						rc.Meta = "details"
 					}
 				case "details_icon":
