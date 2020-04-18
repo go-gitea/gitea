@@ -2566,6 +2566,19 @@ $(document).ready(async () => {
     $(e).click();
   });
 
+  $('.resolve-conversation').on('click', function (e) {
+    e.preventDefault();
+    const id = $(this).data('comment-id');
+    const action = $(this).data('action');
+    const url = $(this).data('update-url');
+
+    $.post(url, {
+      _csrf: csrf,
+      action,
+      comment_id: id,
+    }).then(reload);
+  });
+
   buttonsClickOnEnter();
   searchUsers();
   searchTeams();
