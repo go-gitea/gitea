@@ -32,9 +32,11 @@ type Options struct {
 
 // List of known entries inside the `public` directory
 var knownEntries = []string{
-	"js",
 	"css",
 	"fomantic",
+	"img",
+	"js",
+	"vendor",
 }
 
 // Custom implements the macaron static handler for serving custom assets.
