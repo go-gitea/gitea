@@ -7,6 +7,7 @@ self := $(location)
 
 %:
 	@tmpdir=`mktemp --tmpdir -d` ; \
+	echo Using temporary directory $$tmpdir for test repositories ; \
 	USE_REPO_TEST_DIR= $(MAKE) -f $(self) --no-print-directory REPO_TEST_DIR=$$tmpdir/ $@ ; \
 	STATUS=$$? ; rm -r "$$tmpdir" ; exit $$STATUS
 
