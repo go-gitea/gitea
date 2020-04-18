@@ -6,9 +6,9 @@ location = $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
 self := $(location)
 
 %:
-	tmpdir=`mktemp --tmpdir -d` ; \
+	@tmpdir=`mktemp --tmpdir -d` ; \
 	USE_REPO_TEST_DIR= $(MAKE) -f $(self) --no-print-directory REPO_TEST_DIR=$$tmpdir/ $@ ; \
-	rm -r "$$tmpdir"
+	STATUS=$$? ; rm -r "$$tmpdir" ; exit $$STATUS
 
 else
 
