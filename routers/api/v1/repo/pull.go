@@ -460,6 +460,9 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
+	if form.State != nil {
+		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
 	if err != nil {
 		if models.IsErrDependenciesLeft(err) {
