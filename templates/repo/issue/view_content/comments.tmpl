@@ -381,6 +381,7 @@
 				</div>
 			</div>
 			{{end}}
+
 			{{if .Review.CodeComments}}
 			<div class="timeline-item event">
 				{{ range $filename, $lines := .Review.CodeComments}}
@@ -388,14 +389,25 @@
 							<div class="ui segments">
 								<div class="ui segment">
 									{{$invalid := (index $comms 0).Invalidated}}
-								{{if $invalid}}
+									{{$resolved := (index $comms 0).IsResolved}}
+									{{$resolveDoer := (index $comms 0).ResolveDoer}}
+									{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
+								{{if or $invalid $resolved}}
 									<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="ui compact right labeled button show-outdated">
-										{{svg "octicon-fold" 16}}
-										{{$.i18n.Tr "repo.issues.review.show_outdated"}}
+										{{svg "octicon-unfold" 16}}
+										{{if $invalid }}
+											{{$.i18n.Tr "repo.issues.review.show_outdated"}}
+										{{else}}
+											{{$.i18n.Tr "repo.issues.review.show_resolved"}}
+										{{end}}
 									</button>
 									<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="hide ui compact right labeled button hide-outdated">
 										{{svg "octicon-fold" 16}}
-										{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
+										{{if $invalid}}
+											{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
+										{{else}}
+											{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
+										{{end}}
 									</button>
 								{{end}}
 									<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
@@ -403,7 +415,7 @@
 								{{$diff := (CommentMustAsDiff (index $comms 0))}}
 								{{if $diff}}
 									{{$file := (index $diff.Files 0)}}
-									<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $invalid}} hide{{end}}">
+									<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if or $invalid $resolved}} hide{{end}}">
 										<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
 											<div class="file-body file-code code-view code-diff code-diff-unified">
 												<table>
@@ -415,7 +427,7 @@
 										</div>
 									</div>
 								{{end}}
-								<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if $invalid}} hide{{end}}">
+								<div id="code-comments-{{(index $comms 0).ID}}" class="ui segment{{if or $invalid $resolved}} hide{{end}}">
 									<div class="ui comments">
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
@@ -445,6 +457,20 @@
 										{{end}}
 									</div>
 									{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $comms 0).ReviewID "root" $ "comment" (index $comms 0)}}
+
+									{{if and $.CanMarkConversation $isNotPending}}
+										<button class="ui tiny button resolve-conversation" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
+											{{if $resolved}}
+												{{$.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
+											{{else}}
+												{{$.i18n.Tr "repo.issues.review.resolve_conversation"}}
+											{{end}}
+										</button>
+									{{end}}
+
+									{{if $resolved}}
+										<span class="ui grey text"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
+									{{end}}
 								</div>
 							</div>
 					{{end}}
