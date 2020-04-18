@@ -366,7 +366,7 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 						child := node.FirstChild
 						for child != nil {
 							node.RemoveChild(child)
-							child = child.NextSibling
+							child = node.FirstChild
 						}
 						node.FirstChild = nil
 						node.LastChild = nil
