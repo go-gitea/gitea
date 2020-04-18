@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -393,6 +394,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if len(form.Title) > 0 {
 		issue.Title = form.Title
 	}
@@ -458,19 +460,22 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
-	if err = models.UpdateIssueByAPI(issue); err != nil {
+	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
+	if err != nil {
+		if models.IsErrDependenciesLeft(err) {
+			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueByAPI", err)
 		return
 	}
-	if form.State != nil {
-		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
-			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
-			return
-		}
+
+	if titleChanged {
+		notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
+	}
+
+	if statusChangeComment != nil {
+		notification.NotifyIssueChangeStatus(ctx.User, issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database
