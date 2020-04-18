@@ -624,6 +624,13 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
+	if ctx.IsSigned && ctx.User != nil {
+		if ctx.Data["CanMarkConversation"], err = models.CanMarkConversation(issue, ctx.User); err != nil {
+			ctx.ServerError("CanMarkConversation", err)
+			return
+		}
+	}
+
 	setImageCompareContext(ctx, baseCommit, commit)
 	setPathsCompareContext(ctx, baseCommit, commit, headTarget)
 
