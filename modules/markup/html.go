@@ -359,7 +359,6 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 				classes := strings.Split(attr.Val, " ")
 				for i, class := range classes {
 					if class == "icon" {
-						icon = true
 						classes[0], classes[i] = classes[i], classes[0]
 						attr.Val = strings.Join(classes, " ")
 
