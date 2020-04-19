@@ -1578,7 +1578,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Delete Issues and related objects
 	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
 	var attachmentPaths []string
-	attachmentPaths, err = deleteIssuesByBuilder(sess, deleteCond)
+	if attachmentPaths, err = deleteIssuesByBuilder(sess, deleteCond); err != nil {
+		return err
+	}
 
 	if _, err = sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
 		return err
