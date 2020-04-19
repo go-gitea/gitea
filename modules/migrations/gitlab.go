@@ -32,7 +32,7 @@ func init() {
 type GitlabDownloaderFactory struct {
 }
 
-// Match returns ture if the migration remote URL matched this downloader factory
+// Match returns true if the migration remote URL matched this downloader factory
 func (f *GitlabDownloaderFactory) Match(opts base.MigrateOptions) (bool, error) {
 	var matched bool
 
@@ -492,11 +492,11 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		}
 
 		// Add the PR ID to the Issue Count because PR and Issues share ID space in Gitea
-		newPRnumber := g.issueCount + int64(pr.IID)
+		newPRNumber := g.issueCount + int64(pr.IID)
 
 		allPRs = append(allPRs, &base.PullRequest{
 			Title:          pr.Title,
-			Number:         int64(newPRnumber),
+			Number:         newPRNumber,
 			PosterName:     pr.Author.Username,
 			PosterID:       int64(pr.Author.ID),
 			Content:        pr.Description,
