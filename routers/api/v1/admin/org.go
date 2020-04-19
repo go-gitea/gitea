@@ -6,6 +6,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
