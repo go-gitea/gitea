@@ -226,22 +226,6 @@ steps:
     depends_on:
       - build
 
-  - name: test-sqlite-gap
-    pull: always
-    image: golang:1.14
-    volumes:
-    - name: integrations-data
-      path: /go/src/code.gitea.io/gitea/integrations-data
-    commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
-      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
-    environment:
-      GOPROXY: off
-      TAGS: bindata
-    depends_on:
-      - build
-
   - name: generate-coverage
     pull: always
     image: golang:1.14
