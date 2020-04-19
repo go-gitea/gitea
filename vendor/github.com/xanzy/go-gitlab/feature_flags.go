@@ -38,7 +38,7 @@ func (f Feature) String() string {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/features.html#list-all-features
-func (s *FeaturesService) ListFeatures(options ...OptionFunc) ([]*Feature, *Response, error) {
+func (s *FeaturesService) ListFeatures(options ...RequestOptionFunc) ([]*Feature, *Response, error) {
 	req, err := s.client.NewRequest("GET", "features", nil, options)
 	if err != nil {
 		return nil, nil, err
@@ -56,7 +56,7 @@ func (s *FeaturesService) ListFeatures(options ...OptionFunc) ([]*Feature, *Resp
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/features.html#set-or-create-a-feature
-func (s *FeaturesService) SetFeatureFlag(name string, value interface{}, options ...OptionFunc) (*Feature, *Response, error) {
+func (s *FeaturesService) SetFeatureFlag(name string, value interface{}, options ...RequestOptionFunc) (*Feature, *Response, error) {
 	u := fmt.Sprintf("features/%s", url.PathEscape(name))
 
 	opt := struct {
