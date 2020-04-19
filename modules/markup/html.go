@@ -368,8 +368,6 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 							node.RemoveChild(child)
 							child = node.FirstChild
 						}
-						node.FirstChild = nil
-						node.LastChild = nil
 						break
 					}
 				}
