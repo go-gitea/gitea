@@ -10,12 +10,12 @@ PASSWD   = {{TEST_MYSQL8_PASSWORD}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_PATH = integrations/indexers-mysql8/issues.bleve
+ISSUE_INDEXER_PATH = integrations-data/mysql8/indexers/issues.bleve
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = integrations/indexers-mysql8/repos.bleve
+REPO_INDEXER_PATH = integrations-data/mysql8/indexers/repos.bleve
 
 [repository]
-ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-mysql8/gitea-repositories
+ROOT = integrations-data/mysql8/gitea-repositories
 
 [repository.local]
 LOCAL_COPY_PATH = tmp/local-repo-mysql8
@@ -36,7 +36,7 @@ LFS_START_SERVER = true
 LFS_CONTENT_PATH = data/lfs-mysql8
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
-APP_DATA_PATH    = integrations/gitea-integration-mysql8/data
+APP_DATA_PATH    = integrations-data/mysql8/data
 BUILTIN_SSH_SERVER_USER = git
 
 [mailer]

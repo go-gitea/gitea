@@ -10,12 +10,12 @@ PASSWD   = {{TEST_MSSQL_PASSWORD}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_PATH = integrations/indexers-mssql/issues.bleve
+ISSUE_INDEXER_PATH = integrations-data/mssql/indexers/issues.bleve
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = integrations/indexers-mssql/repos.bleve
+REPO_INDEXER_PATH = integrations-data/mssql/indexers/repos.bleve
 
 [repository]
-ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-mssql/gitea-repositories
+ROOT = integrations-data/mssql/gitea-repositories
 
 [repository.local]
 LOCAL_COPY_PATH = tmp/local-repo-mssql
@@ -36,7 +36,7 @@ LFS_START_SERVER = true
 LFS_CONTENT_PATH = data/lfs-mssql
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
-APP_DATA_PATH    = integrations/gitea-integration-mssql/data
+APP_DATA_PATH    = integrations-data/mssql/data
 BUILTIN_SSH_SERVER_USER = git
 
 [mailer]

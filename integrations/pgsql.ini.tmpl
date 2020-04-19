@@ -11,12 +11,12 @@ SCHEMA   = {{TEST_PGSQL_SCHEMA}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_PATH = integrations/indexers-pgsql/issues.bleve
+ISSUE_INDEXER_PATH = integrations-data/pgsql/indexers/issues.bleve
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = integrations/indexers-pgsql/repos.bleve
+REPO_INDEXER_PATH = integrations-data/pgsql/indexers/repos.bleve
 
 [repository]
-ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-pgsql/gitea-repositories
+ROOT = integrations-data/pgsql/gitea-repositories
 
 [repository.local]
 LOCAL_COPY_PATH = tmp/local-repo-pgsql
@@ -37,7 +37,7 @@ LFS_START_SERVER = true
 LFS_CONTENT_PATH = data/lfs-pgsql
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
-APP_DATA_PATH    = integrations/gitea-integration-pgsql/data
+APP_DATA_PATH    = integrations-data/pgsql/data
 BUILTIN_SSH_SERVER_USER = git
 
 [mailer]

@@ -12,12 +12,12 @@ SSL_MODE = disable
 [indexer]
 ISSUE_INDEXER_TYPE = elasticsearch
 ISSUE_INDEXER_CONN_STR = http://elastic:changeme@elasticsearch:9200
-ISSUE_INDEXER_PATH = integrations/indexers-mysql/issues.bleve
+ISSUE_INDEXER_PATH = integrations-data/mysql/indexers/issues.bleve
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = integrations/indexers-mysql/repos.bleve
+REPO_INDEXER_PATH = integrations-data/mysql/indexers/repos.bleve
 
 [repository]
-ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-mysql/gitea-repositories
+ROOT = integrations-data/mysql/gitea-repositories
 
 [repository.local]
 LOCAL_COPY_PATH = tmp/local-repo-mysql
@@ -38,7 +38,7 @@ LFS_START_SERVER = true
 LFS_CONTENT_PATH = data/lfs-mysql
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
-APP_DATA_PATH    = integrations/gitea-integration-mysql/data
+APP_DATA_PATH    = integrations-data/mysql/data
 BUILTIN_SSH_SERVER_USER = git
 
 [mailer]

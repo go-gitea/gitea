@@ -178,6 +178,9 @@ steps:
   - name: test-mysql
     pull: always
     image: golang:1.14
+    volumes:
+    - name: integrations-data
+      path: /go/src/code.gitea.io/gitea/integrations-data
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -186,13 +189,15 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
-      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
   - name: test-mysql8
     pull: always
     image: golang:1.14
+    volumes:
+    - name: integrations-data
+      path: /go/src/code.gitea.io/gitea/integrations-data
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -201,13 +206,15 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
-      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
   - name: test-mssql
     pull: always
     image: golang:1.14
+    volumes:
+    - name: integrations-data
+      path: /go/src/code.gitea.io/gitea/integrations-data
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -216,7 +223,22 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
-      USE_REPO_TEST_DIR: 1
+    depends_on:
+      - build
+
+  - name: test-sqlite-gap
+    pull: always
+    image: golang:1.14
+    volumes:
+    - name: integrations-data
+      path: /go/src/code.gitea.io/gitea/integrations-data
+    commands:
+      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
+      - apt-get install -y git-lfs
+      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
+    environment:
+      GOPROXY: off
+      TAGS: bindata
     depends_on:
       - build
 
@@ -255,6 +277,11 @@ steps:
       event:
         - push
         - pull_request
+
+volumes:
+- name: integrations-data
+  temp:
+    medium: memory
 
 ---
 kind: pipeline
@@ -308,6 +335,9 @@ steps:
   - name: test-sqlite
     pull: always
     image: golang:1.14
+    volumes:
+    - name: integrations-data
+      path: /go/src/code.gitea.io/gitea/integrations-data
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -315,13 +345,15 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
-      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
   - name: test-pgsql
     pull: always
     image: golang:1.14
+    volumes:
+    - name: integrations-data
+      path: /go/src/code.gitea.io/gitea/integrations-data
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -330,9 +362,13 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
-      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
+
+volumes:
+- name: integrations-data
+  temp:
+    medium: memory
 
 ---
 kind: pipeline
