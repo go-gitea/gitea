@@ -497,6 +497,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		allPRs = append(allPRs, &base.PullRequest{
 			Title:          pr.Title,
 			Number:         newPRNumber,
+			OriginalNumber: int64(pr.IID),
 			PosterName:     pr.Author.Username,
 			PosterID:       int64(pr.Author.ID),
 			Content:        pr.Description,
@@ -532,5 +533,30 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 // GetReviews returns pull requests review
 func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
 
-	return nil, nil
+	state, _, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber))
+	if err != nil {
+		return nil, err
+	}
+
+	//GitLab only has Approvals witch similar to gitea's approve review's
+	approvers := make(map[int]*gitlab.BasicUser)
+	for i := range state.Rules {
+		for _, u := range state.Rules[i].ApprovedBy {
+			approvers[u.ID] = u
+		}
+	}
+
+	var reviews = make([]*base.Review, 0, len(approvers))
+	for k, v := range approvers {
+		reviews = append(reviews, &base.Review{
+			ReviewerID:   int64(k),
+			ReviewerName: v.Username,
+			// GitLab API dont return creation date
+			CreatedAt: time.Now(),
+			// All we get are approvals
+			State: base.ReviewStateApproved,
+		})
+	}
+
+	return reviews, nil
 }

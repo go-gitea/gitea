@@ -277,7 +277,19 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			// migrate reviews
 			var allReviews = make([]*base.Review, 0, reviewBatchSize)
 			for _, pr := range prs {
-				reviews, err := downloader.GetReviews(pr.Number)
+				number := pr.Number
+
+				// on gitlab migrations pull number change
+				if pr.OriginalNumber > 0 {
+					number = pr.OriginalNumber
+				}
+
+				reviews, err := downloader.GetReviews(number)
+				if pr.OriginalNumber > 0 {
+					for i := range reviews {
+						reviews[i].IssueIndex = pr.Number
+					}
+				}
 				if err != nil {
 					return err
 				}
