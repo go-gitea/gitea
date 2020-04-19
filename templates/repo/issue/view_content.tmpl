@@ -182,8 +182,9 @@
 			{{$.i18n.Tr "loading"}}
 		</div>
 		{{if .IsAttachmentEnabled}}
+		<div class="field">
 			<div class="comment-files"></div>
-			<div class="ui basic button dropzone" id="comment-dropzone"
+			<div class="ui dropzone" id="comment-dropzone"
 				data-upload-url="{{AppSubUrl}}/attachments"
 				data-remove-url="{{AppSubUrl}}/attachments/delete"
 				data-csrf="{{.CsrfToken}}" data-accepts="{{.AttachmentAllowedTypes}}"
@@ -193,6 +194,7 @@
 				data-file-too-big="{{.i18n.Tr "dropzone.file_too_big"}}"
 				data-remove-file="{{.i18n.Tr "dropzone.remove_file"}}">
 			</div>
+		</div>
 		{{end}}
 		<div class="text right edit buttons">
 			<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
