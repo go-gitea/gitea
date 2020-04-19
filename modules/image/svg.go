@@ -15,16 +15,22 @@ import (
 // SanitizeSVG remove potential malicious dom elements
 func SanitizeSVG(svgData io.Reader) string {
 	p := bluemonday.NewPolicy()
-	p.AllowElements("svg", "title", "path", "desc", "g")
-	p.AllowAttrs("id", "viewbox", "role", "aria-labelledby", "xmlns", "xmlns:xlink", "xml:space").OnElements("svg")
+	p.AllowElements("svg", "title", "path", "desc", "g", "a")
+	p.AllowNoAttrs().OnElements("svg", "title", "desc", "g", "a")
+	p.AllowAttrs("id", "viewBox", "role", "aria-labelledby", "xmlns", "xmlns:xlink", "xml:space").OnElements("svg")
+	p.AllowAttrs("version").Matching(regexp.MustCompile(`^\d$`)).OnElements("svg")
 	p.AllowAttrs("id").OnElements("title", "desc")
 	p.AllowAttrs("id", "data-name", "class", "aria-label").OnElements("g")
 	p.AllowAttrs("id", "data-name", "class", "d", "transform", "aria-haspopup").OnElements("path")
-	p.AllowAttrs("x", "y", "width", "height").OnElements("rect")
+	p.AllowAttrs("x", "y", "width", "height").OnElements("rect", "svg")
 
+	p.AllowAttrs("href", "xlink:href").Matching(regexp.MustCompile(`^#\w+$`)).OnElements("a")
+
+	//TODO find a good way to allow relative url import
 	//var invalidID = regexp.MustCompile(`((http|ftp)s?)|(url *\( *' *//)`)
 	//var validID = regexp.MustCompile(`(?!((http|ftp)s?)|(url *\( *' *//))`) //not supported
-	//p.AllowAttrs("fill").Matching(regexp.MustCompile(`((http|ftp)s?)|(url *\( *' *//)`)).OnElements("rect") //TODO match opposite
+	//p.AllowAttrs("fill").Matching(regexp.MustCompile(`^(\w+)|(url\(#\w+\))$`)).OnElements("rect")
+	p.AllowAttrs("fill").Matching(regexp.MustCompile(`^\w+$`)).OnElements("rect")
 
 	p.SkipElementsContent("this", "script")
 	cleanedSVG := p.SanitizeReader(svgData).String()

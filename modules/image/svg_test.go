@@ -79,15 +79,15 @@ func TestSanitizeSVG(t *testing.T) {
 		</g>
 	</g>
 </svg>`,
-			/* Adjustemnt from https://github.com/darylldoyle/svg-sanitizer base
+			/* Adjustement from https://github.com/darylldoyle/svg-sanitizer base
 			   Diff:
 			   --- Expected
 			   +++ Actual
 			   @@ -1,2 +1,2 @@
 			   -<svg id="cat" viewBox="0 0 720 800" aria-labelledby="catTitle catDesc" role="img" version="1">
-			   +<svg id="cat" viewbox="0 0 720 800" aria-labelledby="catTitle catDesc" role="img">
+			   +<svg version="1" id="cat" viewbox="0 0 720 800" aria-labelledby="catTitle catDesc" role="img">
 			*/
-			want: `<svg id="cat" viewbox="0 0 720 800" aria-labelledby="catTitle catDesc" role="img">
+			want: `<svg version="1" id="cat" viewbox="0 0 720 800" aria-labelledby="catTitle catDesc" role="img">
 	<title id="catTitle">Pixels, My Super-friendly Cat</title>
 	<desc id="catDesc">An illustrated gray cat with bright green blinking eyes.</desc>
 	<path id="tail" data-name="tail" class="cls-1" d="M545.9,695.9c8,28.2,23.2,42.3,27.2,46.9,21.4,24.1,41.5,40.2,81.1,42.9s65.4-14.2,60.8-26.8-23.1-9.1-51.3-8.3c-35.2.9-66.6-31.3-74.8-63.9s-7.9-63.8-36.8-85.5c-44.1-33-135.6-7.1-159.8-3.4s-48.4,52.5-9.6,45.1,91.4-23.1,123.2-12.7C537.8,640.4,537.9,667.7,545.9,695.9Z" transform="translate(-9.7 -9.3)"/>
@@ -161,15 +161,14 @@ func TestSanitizeSVG(t *testing.T) {
 <script>alert(1);</script>
 <line fill="none" stroke="#000000" stroke-miterlimit="10" x1="541.54" y1="299.573" x2="543.179" y2="536.458"/>
 </svg>`,
-			/* Adjustemnt from https://github.com/darylldoyle/svg-sanitizer base
+			/* Adjustement from https://github.com/darylldoyle/svg-sanitizer base
 			   --- Expected
 			   +++ Actual
-			   @@ -1 +1,2 @@
-			   -<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="0 0 600 600"/>
-			   +<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="0 0 600 600" xml:space="preserve">
-			   +</svg>
+			   @@ -1,2 +1,2 @@
+			   -<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="0 0 600 600" xml:space="preserve">
+			   +<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="600px" height="600px" viewbox="0 0 600 600" xml:space="preserve">
 			*/
-			want: `<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="0 0 600 600" xml:space="preserve">
+			want: `<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="600px" height="600px" viewbox="0 0 600 600" xml:space="preserve">
 </svg>`,
 		},
 		{
@@ -185,15 +184,102 @@ func TestSanitizeSVG(t *testing.T) {
 <rect fill="url('/benis.svg')" x="0" y="0" width="1000" height="1000"></rect>
 <rect fill="url('#benis.svg')" x="0" y="0" width="1000" height="1000"></rect>
 </svg>`,
-			want: `<?xml version="1.0" encoding="utf-8" ?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
+			/* Adjustement from https://github.com/darylldoyle/svg-sanitizer base
+			--- Expected
+			+++ Actual
+			@@ -1,2 +1 @@
+			-<?xml version="1.0" encoding="utf-8" ?>110
+			@@ -6,4 +6,4 @@
+			 <rect x="0" y="0" width="1000" height="1000"></rect>
+			-<rect fill="url('/benis.svg')" x="0" y="0" width="1000" height="1000"></rect>
+			-<rect fill="url('#benis.svg')" x="0" y="0" width="1000" height="1000"></rect>
+			+<rect x="0" y="0" width="1000" height="1000"></rect>
+			+<rect x="0" y="0" width="1000" height="1000"></rect>
+
+			FIXME: Currently this will block any fill with url.
+			*/
+			want: `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
 <rect x="0" y="0" width="1000" height="1000"></rect>
 <rect x="0" y="0" width="1000" height="1000"></rect>
 <rect x="0" y="0" width="1000" height="1000"></rect>
 <rect x="0" y="0" width="1000" height="1000"></rect>
 <rect x="0" y="0" width="1000" height="1000"></rect>
-<rect fill="url('/benis.svg')" x="0" y="0" width="1000" height="1000"></rect>
-<rect fill="url('#benis.svg')" x="0" y="0" width="1000" height="1000"></rect>
+<rect x="0" y="0" width="1000" height="1000"></rect>
+<rect x="0" y="0" width="1000" height="1000"></rect>
+</svg>`,
+		},
+		{
+			name: "hrefTestOne",
+			input: `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="600px" id="Layer_1" width="600px" x="0px" y="0px" xml:space="preserve">
+	<a href="javascript:alert(2)">test 1</a>
+	<a xlink:href="javascript:alert(2)">test 2</a>
+	<a href="#test3">test 3</a>
+	<a xlink:href="#test">test 4</a>
+
+	<a href="data:data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' onload='alert(88)'%3E%3C/svg%3E">test 5</a>
+	<a xlink:href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' onload='alert(88)'%3E%3C/svg%3E">test 6</a>
+
+	<a href="javascript&#9;:alert(document.domain)">test 7</a>
+	<a href="javascrip&#9;t:alert('0xd0ff9')">test 8</a>
+</svg>`,
+			/* Adjustement from https://github.com/darylldoyle/svg-sanitizer base
+			   Diff:
+			   --- Expected
+			   +++ Actual
+			   @@ -5,6 +5,4 @@
+			           <a xlink:href="#test">test 4</a>
+			   -
+			           <a>test 5</a>
+			           <a>test 6</a>
+			   -
+			           <a>test 7</a>
+			*/
+			want: `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="600px" id="Layer_1" width="600px" x="0px" y="0px" xml:space="preserve">
+	<a>test 1</a>
+	<a>test 2</a>
+	<a href="#test3">test 3</a>
+	<a xlink:href="#test">test 4</a>
+	<a>test 5</a>
+	<a>test 6</a>
+	<a>test 7</a>
+	<a>test 8</a>
+</svg>`,
+		},
+		{
+			name: "hrefTestTwo",
+			input: `<svg xmlns="http://www.w3.org/2000/svg" height="600px" id="Layer_1" width="600px" x="0px" y="0px" xml:space="preserve">
+	<a href="javascript:alert(2)">test 1</a>
+	<a xlink:href="javascript:alert(2)">test 2</a>
+	<a href="#test3">test 3</a>
+	<a xlink:href="#test">test 4</a>
+
+	<a href="data:data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' onload='alert(88)'%3E%3C/svg%3E">test 5</a>
+	<a xlink:href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' onload='alert(88)'%3E%3C/svg%3E">test 6</a>
+
+	<a href="javascript&#9;:alert(document.domain)">test 7</a>
+	<a href="javascrip&#9;t:alert('0xd0ff9')">test 8</a>
+</svg>`,
+			/* Adjustement from https://github.com/darylldoyle/svg-sanitizer base
+			   Diff:
+			   --- Expected
+			   +++ Actual
+			   @@ -5,6 +5,4 @@
+			           <a xlink:href="#test">test 4</a>
+			   -
+			           <a>test 5</a>
+			           <a>test 6</a>
+			   -
+			           <a>test 7</a>
+			*/
+			want: `<svg xmlns="http://www.w3.org/2000/svg" height="600px" id="Layer_1" width="600px" x="0px" y="0px" xml:space="preserve">
+	<a>test 1</a>
+	<a>test 2</a>
+	<a href="#test3">test 3</a>
+	<a xlink:href="#test">test 4</a>
+	<a>test 5</a>
+	<a>test 6</a>
+	<a>test 7</a>
+	<a>test 8</a>
 </svg>`,
 		},
 	}
