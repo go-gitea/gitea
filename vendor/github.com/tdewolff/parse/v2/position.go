@@ -22,30 +22,32 @@ func Position(r io.Reader, offset int) (line, col int, context string) {
 			return
 		}
 
-		nNewline := 0
+		n := 1
+		newline := false
 		if c == '\n' {
-			nNewline = 1
+			newline = true
 		} else if c == '\r' {
 			if l.Peek(1) == '\n' {
-				nNewline = 2
+				newline = true
+				n = 2
 			} else {
-				nNewline = 1
+				newline = true
 			}
 		} else if c >= 0xC0 {
-			if r, n := l.PeekRune(0); r == '\u2028' || r == '\u2029' {
-				nNewline = n
+			var r rune
+			if r, n = l.PeekRune(0); r == '\u2028' || r == '\u2029' {
+				newline = true
 			}
-		} else {
-			l.Move(1)
 		}
 
-		if nNewline > 0 {
-			if offset < l.Pos()+nNewline {
-				// move onto offset position, let next iteration handle it
-				l.Move(offset - l.Pos())
-				continue
-			}
-			l.Move(nNewline)
+		if 1 < n && offset < l.Pos()+n {
+			// move onto offset position, let next iteration handle it
+			l.Move(offset - l.Pos())
+			continue
+		}
+		l.Move(n)
+
+		if newline {
 			line++
 			offset -= l.Pos()
 			l.Skip()

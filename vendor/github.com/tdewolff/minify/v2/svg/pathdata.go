@@ -29,6 +29,7 @@ type PathDataState struct {
 	cmd            byte
 	prevDigit      bool
 	prevDigitIsInt bool
+	prevFlag       bool
 }
 
 func NewPathData(o *Minifier) *PathData {
@@ -39,6 +40,29 @@ func NewPathData(o *Minifier) *PathData {
 		qx: math.NaN(),
 		qy: math.NaN(),
 	}
+}
+
+var pathCmds = map[byte]bool{
+	'M': true,
+	'm': true,
+	'L': true,
+	'l': true,
+	'H': true,
+	'h': true,
+	'V': true,
+	'v': true,
+	'Q': true,
+	'q': true,
+	'T': true,
+	't': true,
+	'C': true,
+	'c': true,
+	'S': true,
+	's': true,
+	'A': true,
+	'a': true,
+	'Z': true,
+	'z': true,
 }
 
 // ShortenPathData takes a full pathdata string and returns a shortened version. The original string is overwritten.
@@ -56,13 +80,24 @@ func (p *PathData) ShortenPathData(b []byte) []byte {
 		c := b[i]
 		if c == ' ' || c == ',' || c == '\n' || c == '\r' || c == '\t' {
 			continue
-		} else if c >= 'A' && (cmd == 0 || cmd != c || c == 'M' || c == 'm') { // any command
+		} else if pathCmds[c] && (cmd == 0 || cmd != c || c == 'M' || c == 'm') { // any command
 			if cmd != 0 {
 				j += p.copyInstruction(b[j:], cmd)
 			}
 			cmd = c
 			p.coords = p.coords[:0]
 			p.coordFloats = p.coordFloats[:0]
+		} else if (cmd == 'A' || cmd == 'a') && (len(p.coordFloats)%7 == 3 || len(p.coordFloats)%7 == 4) {
+			// boolean flags for arc command
+			if c == '1' {
+				p.coords = append(p.coords, b[i:i+1])
+				p.coordFloats = append(p.coordFloats, 1.0)
+			} else if c == '0' {
+				p.coords = append(p.coords, b[i:i+1])
+				p.coordFloats = append(p.coordFloats, 0.0)
+			} else {
+				cmd = 0 // bad format, don't minify
+			}
 		} else if n := parse.Number(b[i:]); n > 0 {
 			f, _ := strconv.ParseFloat(b[i : i+n])
 			p.coords = append(p.coords, b[i:i+n])
@@ -70,9 +105,10 @@ func (p *PathData) ShortenPathData(b []byte) []byte {
 			i += n - 1
 		}
 	}
-	if cmd != 0 {
-		j += p.copyInstruction(b[j:], cmd)
+	if cmd == 0 {
+		return b
 	}
+	j += p.copyInstruction(b[j:], cmd)
 	return b[:j]
 }
 
@@ -128,20 +164,22 @@ func (p *PathData) copyInstruction(b []byte, cmd byte) int {
 		if cmd == 'H' || cmd == 'h' {
 			ax = coordFloats[di-1]
 			if isRelCmd {
-				ay = 0
-			} else {
-				ay = p.y
+				ax += p.x
 			}
+			ay = p.y
 		} else if cmd == 'V' || cmd == 'v' {
-			if isRelCmd {
-				ax = 0
-			} else {
-				ax = p.x
-			}
+			ax = p.x
 			ay = coordFloats[di-1]
+			if isRelCmd {
+				ay += p.y
+			}
 		} else {
 			ax = coordFloats[di-2]
 			ay = coordFloats[di-1]
+			if isRelCmd {
+				ax += p.x
+				ay += p.y
+			}
 		}
 
 		// switch from C to S whenever possible
@@ -154,8 +192,16 @@ func (p *PathData) copyInstruction(b []byte, cmd byte) int {
 
 			var cp1x, cp1y float64
 			cp2x, cp2y := coordFloats[di-4], coordFloats[di-3]
+			if isRelCmd {
+				cp2x += p.x
+				cp2y += p.y
+			}
 			if cmd == 'C' || cmd == 'c' {
 				cp1x, cp1y = coordFloats[di-6], coordFloats[di-5]
+				if isRelCmd {
+					cp1x += p.x
+					cp1y += p.y
+				}
 				if cp1x == p.cx && cp1y == p.cy {
 					if isRelCmd {
 						cmd = 's'
@@ -172,7 +218,7 @@ func (p *PathData) copyInstruction(b []byte, cmd byte) int {
 			// if control points overlap begin/end points, this is a straight line
 			// even though if the control points would be along the straight line, we won't minify that as the control points influence the speed along the curve (important for dashes for example)
 			// only change to a lines if we are sure no 'S' or 's' follows
-			if (cmd == 'C' || cmd == 'c' || i+di >= n) && (cp1x == p.x || cp1x == ax) && (cp1y == p.y || cp1y == ay) && (cp2x == p.x || cp2x == ax) && (cp2y == p.y || cp2y == ay) {
+			if (cmd == 'C' || cmd == 'c' || i+di >= n) && (cp1x == p.x && cp1y == p.y || cp1x == ax && cp1y == ay) && (cp2x == p.x && cp2y == p.y || cp2x == ax && cp2y == ay) {
 				if isRelCmd {
 					cmd = 'l'
 				} else {
@@ -198,6 +244,10 @@ func (p *PathData) copyInstruction(b []byte, cmd byte) int {
 			var cpx, cpy float64
 			if cmd == 'Q' || cmd == 'q' {
 				cpx, cpy = coordFloats[di-4], coordFloats[di-3]
+				if isRelCmd {
+					cpx += p.x
+					cpy += p.y
+				}
 				if cpx == p.qx && cpy == p.qy {
 					if isRelCmd {
 						cmd = 't'
@@ -214,7 +264,7 @@ func (p *PathData) copyInstruction(b []byte, cmd byte) int {
 			// if control point overlaps begin/end points, this is a straight line
 			// even though if the control point would be along the straight line, we won't minify that as the control point influences the speed along the curve (important for dashes for example)
 			// only change to a lines if we are sure no 'T' or 't' follows
-			if (cmd == 'Q' || cmd == 'q' || i+di >= n) && (cpx == p.x || cpx == ax) && (cpy == p.y || cpy == ay) {
+			if (cmd == 'Q' || cmd == 'q' || i+di >= n) && (cpx == p.x && cpy == p.y || cpx == ax && cpy == ay) {
 				if isRelCmd {
 					cmd = 'l'
 				} else {
@@ -231,32 +281,24 @@ func (p *PathData) copyInstruction(b []byte, cmd byte) int {
 
 		// switch from L to H or V whenever possible
 		if cmd == 'L' || cmd == 'l' {
-			if isRelCmd {
-				if ax == 0 && ay == 0 {
-					continue
-				} else if ax == 0 {
+			if ax == p.x && ay == p.y {
+				continue
+			} else if ax == p.x {
+				if isRelCmd {
 					cmd = 'v'
-					coords = coords[1:]
-					coordFloats = coordFloats[1:]
-					ax = 0
-				} else if ay == 0 {
-					cmd = 'h'
-					coords = coords[:1]
-					coordFloats = coordFloats[:1]
-					ay = 0
-				}
-			} else {
-				if ax == p.x && ay == p.y {
-					continue
-				} else if ax == p.x {
+				} else {
 					cmd = 'V'
-					coords = coords[1:]
-					coordFloats = coordFloats[1:]
-				} else if ay == p.y {
-					cmd = 'H'
-					coords = coords[:1]
-					coordFloats = coordFloats[:1]
 				}
+				coords = coords[1:]
+				coordFloats = coordFloats[1:]
+			} else if ay == p.y {
+				if isRelCmd {
+					cmd = 'h'
+				} else {
+					cmd = 'H'
+				}
+				coords = coords[:1]
+				coordFloats = coordFloats[:1]
 			}
 		}
 
@@ -278,13 +320,8 @@ func (p *PathData) copyInstruction(b []byte, cmd byte) int {
 			p.state = curState
 		}
 
-		if isRelCmd {
-			p.x += ax
-			p.y += ay
-		} else {
-			p.x = ax
-			p.y = ay
-		}
+		p.x = ax
+		p.y = ay
 		if i == 0 && (origCmd == 'M' || origCmd == 'm') {
 			p.x0 = p.x
 			p.y0 = p.y
@@ -304,14 +341,14 @@ func (p *PathData) shortenCurPosInstruction(cmd byte, coords [][]byte) PathDataS
 		state.prevDigitIsInt = false
 	}
 	for i, coord := range coords {
-		isFlag := false
-		// Arc has boolean flags that can only be 0 or 1. Setting isFlag prevents from adding a dot before a zero (instead of a space). However, when the dot already was there, the command is malformed and could make the path longer than before, introducing bugs.
-		if (cmd == 'A' || cmd == 'a') && (i%7 == 3 || i%7 == 4) && coord[0] != '.' {
-			isFlag = true
+		// Arc has boolean flags that can only be 0 or 1. copyFlag prevents from adding a dot before a zero (instead of a space). However, when the dot already was there, the command is malformed and could make the path longer than before, introducing bugs.
+		if (cmd == 'A' || cmd == 'a') && (i%7 == 3 || i%7 == 4) {
+			state.copyFlag(&p.curBuffer, coord[0] == '1')
+			continue
 		}
 
-		coord = minify.Number(coord, p.o.Decimals)
-		state.copyNumber(&p.curBuffer, coord, isFlag)
+		coord = minify.Number(coord, p.o.Precision)
+		state.copyNumber(&p.curBuffer, coord)
 	}
 	return state
 }
@@ -327,7 +364,6 @@ func (p *PathData) shortenAltPosInstruction(cmd byte, coordFloats []float64, x, 
 		state.prevDigitIsInt = false
 	}
 	for i, f := range coordFloats {
-		isFlag := false
 		if cmd == 'L' || cmd == 'l' || cmd == 'C' || cmd == 'c' || cmd == 'S' || cmd == 's' || cmd == 'Q' || cmd == 'q' || cmd == 'T' || cmd == 't' || cmd == 'M' || cmd == 'm' {
 			if i%2 == 0 {
 				f += x
@@ -344,28 +380,24 @@ func (p *PathData) shortenAltPosInstruction(cmd byte, coordFloats []float64, x, 
 			} else if i%7 == 6 {
 				f += y
 			} else if i%7 == 3 || i%7 == 4 {
-				isFlag = true
+				state.copyFlag(&p.altBuffer, f == 1.0)
+				continue
 			}
 		}
 
 		p.coordBuffer = strconvStdlib.AppendFloat(p.coordBuffer[:0], f, 'g', -1, 64)
-		coord := minify.Number(p.coordBuffer, p.o.Decimals)
-		state.copyNumber(&p.altBuffer, coord, isFlag)
+		coord := minify.Number(p.coordBuffer, p.o.newPrecision)
+		state.copyNumber(&p.altBuffer, coord)
 	}
 	return state
 }
 
 // copyNumber will copy a number to the destination buffer, taking into account space or dot insertion to guarantee the shortest pathdata.
-func (state *PathDataState) copyNumber(buffer *[]byte, coord []byte, isFlag bool) {
+func (state *PathDataState) copyNumber(buffer *[]byte, coord []byte) {
 	if state.prevDigit && (coord[0] >= '0' && coord[0] <= '9' || coord[0] == '.' && state.prevDigitIsInt) {
 		if coord[0] == '0' && !state.prevDigitIsInt {
-			if isFlag {
-				*buffer = append(*buffer, ' ', '0')
-				state.prevDigitIsInt = true
-			} else {
-				*buffer = append(*buffer, '.', '0') // aggresively add dot so subsequent numbers could drop leading space
-				// prevDigit stays true and prevDigitIsInt stays false
-			}
+			*buffer = append(*buffer, '.', '0') // aggresively add dot so subsequent numbers could drop leading space
+			// prevDigit stays true and prevDigitIsInt stays false
 			return
 		}
 		*buffer = append(*buffer, ' ')
@@ -385,4 +417,24 @@ func (state *PathDataState) copyNumber(buffer *[]byte, coord []byte, isFlag bool
 		}
 	}
 	*buffer = append(*buffer, coord...)
+	state.prevFlag = false
+}
+
+func (state *PathDataState) copyFlag(buffer *[]byte, flag bool) {
+	if !state.prevFlag {
+		if flag {
+			*buffer = append(*buffer, ' ', '1')
+		} else {
+			*buffer = append(*buffer, ' ', '0')
+		}
+	} else {
+		if flag {
+			*buffer = append(*buffer, '1')
+		} else {
+			*buffer = append(*buffer, '0')
+		}
+	}
+	state.prevFlag = true
+	state.prevDigit = false
+	state.prevDigitIsInt = false
 }

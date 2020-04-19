@@ -1,6 +1,10 @@
 language: go
+go:
+  - 1.13.x
+env:
+  - GO111MODULE=on
 before_install:
   - go get github.com/mattn/goveralls
 script:
-  - go test -v -covermode=count -coverprofile=profile.cov . ./css ./html ./js ./json ./svg ./xml
-  - goveralls -v -coverprofile=profile.cov -service travis-ci -repotoken $COVERALLS_TOKEN
+  - go test -covermode=count -coverprofile=profile.cov . ./css ./html ./js ./json ./svg ./xml
+  - goveralls -coverprofile=profile.cov -service travis-ci

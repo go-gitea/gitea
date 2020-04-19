@@ -502,16 +502,16 @@ github.com/syndtr/goleveldb/leveldb/opt
 github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
-# github.com/tdewolff/minify/v2 v2.5.1
+# github.com/tdewolff/minify/v2 v2.7.3
 github.com/tdewolff/minify/v2
 github.com/tdewolff/minify/v2/css
 github.com/tdewolff/minify/v2/svg
-# github.com/tdewolff/parse/v2 v2.3.9
+github.com/tdewolff/minify/v2/xml
+# github.com/tdewolff/parse/v2 v2.4.2
 github.com/tdewolff/parse/v2
 github.com/tdewolff/parse/v2/buffer
 github.com/tdewolff/parse/v2/css
 github.com/tdewolff/parse/v2/strconv
-github.com/tdewolff/parse/v2/svg
 github.com/tdewolff/parse/v2/xml
 # github.com/tinylib/msgp v1.1.1
 github.com/tinylib/msgp/msgp

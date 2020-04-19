@@ -1,20 +1,14 @@
-# Minify <a name="minify"></a> [![Build Status](https://travis-ci.org/tdewolff/minify.svg?branch=master)](https://travis-ci.org/tdewolff/minify) [![GoDoc](http://godoc.org/github.com/tdewolff/minify?status.svg)](http://godoc.org/github.com/tdewolff/minify) [![Coverage Status](https://coveralls.io/repos/github/tdewolff/minify/badge.svg?branch=master)](https://coveralls.io/github/tdewolff/minify?branch=master) [![Join the chat at https://gitter.im/tdewolff/minify](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/tdewolff/minify?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
-***BE AWARE: YOU NEED GO 1.9.7+, 1.10.3+, 1.11 to run the latest release!!!***
-
-If you cannot upgrade Go, please pin to **minify@v2.3.6** and **parse@v2.3.4**
-
----
+# Minify <a name="minify"></a> [![Build Status](https://travis-ci.org/tdewolff/minify.svg?branch=master)](https://travis-ci.org/tdewolff/minify) [![GoDoc](http://godoc.org/github.com/tdewolff/minify?status.svg)](http://godoc.org/github.com/tdewolff/minify) [![Coverage Status](https://coveralls.io/repos/github/tdewolff/minify/badge.svg?branch=master)](https://coveralls.io/github/tdewolff/minify?branch=master)
 
 **[Online demo](https://go.tacodewolff.nl/minify) if you need to minify files *now*.**
 
 **[Command line tool](https://github.com/tdewolff/minify/tree/master/cmd/minify) that minifies concurrently and supports watching file changes.**
 
-**[All releases](https://github.com/tdewolff/minify/releases) for various platforms.**
+**[Releases](https://github.com/tdewolff/minify/releases) of CLI for various platforms.** See [CLI](https://github.com/tdewolff/minify/tree/master/cmd/minify) for more installation instructions.
 
 ---
 
-*Did you know that the shortest valid piece of HTML5 is `<!doctype html><html lang=en><title>x</title>`? See for yourself at the [W3C Validator](http://validator.w3.org/)!*
+*Did you know that the shortest valid piece of HTML5 is `<!doctype html><title>x</title>`? See for yourself at the [W3C Validator](http://validator.w3.org/)!*
 
 Minify is a minifier package written in [Go][1]. It provides HTML5, CSS3, JS, JSON, SVG and XML minifiers and an interface to implement any other minifier. Minification is the process of removing bytes from a file (such as whitespace) without changing its output and therefore shrinking its size and speeding up transmission over the internet and possibly parsing. The implemented minifiers are designed for high performance.
 
@@ -47,6 +41,10 @@ The core functionality associates mimetypes with minification functions, allowin
 		- [Mediatypes](#mediatypes)
 	- [Examples](#examples)
 		- [Common minifiers](#common-minifiers)
+		- [External minifiers](#external-minifiers)
+            - [Closure Compiler](#closure-compiler)
+            - [UglifyJS](#uglifyjs)
+            - [esbuild](#esbuild)
 		- [Custom minifier](#custom-minifier-example)
 		- [ResponseWriter](#responsewriter)
 		- [Templates](#templates)
@@ -76,11 +74,7 @@ Minifiers or bindings to minifiers exist in almost all programming languages. So
 This minifier proves to be that fast and extensive minifier that can handle HTML and any other filetype it may contain (CSS, JS, ...). It is usually orders of magnitude faster than existing minifiers.
 
 ## Installation
-Run the following command
-
-	go get -u github.com/tdewolff/minify/v2
-
-or add the following imports and run the project with `go get`
+With modules enabled (`GO111MODULES=auto` or `GO111MODULES=on`), add the following imports and run the project with `go get`
 ``` go
 import (
 	"github.com/tdewolff/minify/v2"
@@ -92,6 +86,8 @@ import (
 	"github.com/tdewolff/minify/v2/xml"
 )
 ```
+
+See [CLI tool](https://github.com/tdewolff/minify/tree/master/cmd/minify) for installation instructions of the binary.
 
 ## API stability
 There is no guarantee for absolute stability, but I take issues and bugs seriously and don't take API changes lightly. The library will be maintained in a compatible way unless vital bugs prevent me from doing so. There has been one API change after v1 which added options support and I took the opportunity to push through some more API clean up as well. There are no plans whatsoever for future API changes.
@@ -175,6 +171,7 @@ Options:
 - `KeepDefaultAttrVals` preserve default attribute values such as `<script type="application/javascript">`
 - `KeepDocumentTags` preserve `html`, `head` and `body` tags
 - `KeepEndTags` preserve all end tags
+- `KeepQuotes` preserve quotes around attribute values
 - `KeepWhitespace` preserve whitespace between inline tags but still collapse multiple whitespace characters into one
 
 After recent benchmarking and profiling it became really fast and minifies pages in the 10ms range, making it viable for on-the-fly minification.
@@ -225,8 +222,8 @@ There are a couple of comparison tables online, such as [CSS Minifier Comparison
 
 Options:
 
-- `Decimals` number of decimals to preserve for numbers, `-1` means no trimming
 - `KeepCSS2` prohibits using CSS3 syntax (such as exponents in numbers, or `rgba(` &#8594; `rgb(`), might be incomplete
+- `Precision` number of significant digits to preserve for numbers, `0` means no trimming
 
 ## JS
 
@@ -257,7 +254,6 @@ The SVG minifier uses these minifications:
 - minify colors
 - shorten lengths and numbers and remove default `px` unit
 - shorten `path` data
-- convert `rect`, `line`, `polygon`, `polyline` to `path`
 - use relative or absolute positions in path data whichever is shorter
 
 TODO:
@@ -266,7 +262,7 @@ TODO:
 
 Options:
 
-- `Decimals` number of decimals to preserve for numbers, `-1` means no trimming
+- `Precision` number of significant digits to preserve for numbers, `0` means no trimming
 
 ## XML
 
@@ -432,13 +428,37 @@ func main() {
 	m.AddFuncRegexp(regexp.MustCompile("[/+]json$"), json.Minify)
 	m.AddFuncRegexp(regexp.MustCompile("[/+]xml$"), xml.Minify)
 
-	// Or use the following for better minification of JS but lower speed:
-	// m.AddCmdRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), exec.Command("java", "-jar", "build/compiler.jar"))
-
 	if err := m.Minify("text/html", os.Stdout, os.Stdin); err != nil {
 		panic(err)
 	}
 }
+```
+
+### External minifiers
+Below are some examples of using common external minifiers.
+
+#### Closure Compiler
+See [Closure Compiler Application](https://developers.google.com/closure/compiler/docs/gettingstarted_app). Not tested.
+
+``` go
+m.AddCmdRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"),
+    exec.Command("java", "-jar", "build/compiler.jar"))
+```
+
+### UglifyJS
+See [UglifyJS](https://github.com/mishoo/UglifyJS2).
+
+``` go
+m.AddCmdRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"),
+    exec.Command("uglifyjs"))
+```
+
+### esbuild
+See [esbuild](https://github.com/evanw/esbuild).
+
+``` go
+m.AddCmdRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"),
+    exec.Command("esbuild", "$in.js", "--minify", "--outfile=$out.js"))
 ```
 
 ### <a name="custom-minifier-example"></a> Custom minifier

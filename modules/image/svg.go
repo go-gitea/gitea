@@ -1,27 +1,15 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package svg
+package image
 
 import (
 	"bytes"
 	"io"
 
 	"github.com/microcosm-cc/bluemonday"
-
-	minify "github.com/tdewolff/minify/v2"
-	"github.com/tdewolff/minify/v2/svg"
 )
-
-// MinifySVG compact svg strings
-func MinifySVG(svgData io.Reader) (*bytes.Buffer, error) {
-	m := minify.New()
-	m.AddFunc("image/svg+xml", svg.Minify)
-	var out bytes.Buffer
-	err := m.Minify("image/svg+xml", &out, svgData)
-	return &out, err
-}
 
 // SanitizeSVG remove potential malicious dom elements
 func SanitizeSVG(svgData io.Reader) *bytes.Buffer {

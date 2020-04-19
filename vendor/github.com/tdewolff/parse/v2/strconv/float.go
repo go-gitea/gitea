@@ -1,6 +1,8 @@
 package strconv
 
-import "math"
+import (
+	"math"
+)
 
 var float64pow10 = []float64{
 	1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9,
@@ -83,8 +85,7 @@ func ParseFloat(b []byte) (float64, int) {
 	return f * math.Pow10(int(expExp)), i
 }
 
-const log2 = 0.301029995
-const int64maxlen = 18
+const log2 = 0.3010299956639812
 
 func float64exp(f float64) int {
 	exp2 := 0
@@ -100,10 +101,9 @@ func float64exp(f float64) int {
 	return int(exp10)
 }
 
+// AppendFloat appends a float to `b` with precision `prec`. It returns the new slice and whether succesful or not. Precision is the number of decimals to display, thus prec + 1 == number of significant digits.
 func AppendFloat(b []byte, f float64, prec int) ([]byte, bool) {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
-		return b, false
-	} else if prec >= int64maxlen {
 		return b, false
 	}
 
@@ -112,8 +112,8 @@ func AppendFloat(b []byte, f float64, prec int) ([]byte, bool) {
 		f = -f
 		neg = true
 	}
-	if prec == -1 {
-		prec = int64maxlen - 1
+	if prec < 0 || 17 < prec {
+		prec = 17 // maximum number of significant digits in double
 	}
 	prec -= float64exp(f) // number of digits in front of the dot
 	f *= math.Pow10(prec)

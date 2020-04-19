@@ -1,15 +1,10 @@
-package svg
+package xml
 
-import (
-	minifyXML "github.com/tdewolff/minify/v2/xml"
-	"github.com/tdewolff/parse/v2"
-	"github.com/tdewolff/parse/v2/xml"
-)
+import "github.com/tdewolff/parse/v2/xml"
 
 // Token is a single token unit with an attribute value (if given) and hash of the data.
 type Token struct {
 	xml.TokenType
-	Hash    Hash
 	Data    []byte
 	Text    []byte
 	AttrVal []byte
@@ -21,8 +16,6 @@ type TokenBuffer struct {
 
 	buf []Token
 	pos int
-
-	attrBuffer []*Token
 }
 
 // NewTokenBuffer returns a new TokenBuffer.
@@ -38,18 +31,8 @@ func (z *TokenBuffer) read(t *Token) {
 	t.Text = z.l.Text()
 	if t.TokenType == xml.AttributeToken {
 		t.AttrVal = z.l.AttrVal()
-		if len(t.AttrVal) > 1 && (t.AttrVal[0] == '"' || t.AttrVal[0] == '\'') {
-			t.AttrVal = t.AttrVal[1 : len(t.AttrVal)-1] // quotes will be readded in attribute loop if necessary
-			t.AttrVal = parse.ReplaceMultipleWhitespaceAndEntities(t.AttrVal, minifyXML.EntitiesMap, nil)
-			t.AttrVal = parse.TrimWhitespace(t.AttrVal)
-		}
-		t.Hash = ToHash(t.Text)
-	} else if t.TokenType == xml.StartTagToken || t.TokenType == xml.EndTagToken {
-		t.AttrVal = nil
-		t.Hash = ToHash(t.Text)
 	} else {
 		t.AttrVal = nil
-		t.Hash = 0
 	}
 }
 
@@ -98,33 +81,4 @@ func (z *TokenBuffer) Shift() *Token {
 	t := &z.buf[z.pos]
 	z.pos++
 	return t
-}
-
-// Attributes extracts the gives attribute hashes from a tag.
-// It returns in the same order pointers to the requested token data or nil.
-func (z *TokenBuffer) Attributes(hashes ...Hash) []*Token {
-	n := 0
-	for {
-		if t := z.Peek(n); t.TokenType != xml.AttributeToken {
-			break
-		}
-		n++
-	}
-	if len(hashes) > cap(z.attrBuffer) {
-		z.attrBuffer = make([]*Token, len(hashes))
-	} else {
-		z.attrBuffer = z.attrBuffer[:len(hashes)]
-		for i := range z.attrBuffer {
-			z.attrBuffer[i] = nil
-		}
-	}
-	for i := z.pos; i < z.pos+n; i++ {
-		attr := &z.buf[i]
-		for j, hash := range hashes {
-			if hash == attr.Hash {
-				z.attrBuffer[j] = attr
-			}
-		}
-	}
-	return z.attrBuffer
 }

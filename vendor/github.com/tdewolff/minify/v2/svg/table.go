@@ -1,14 +1,12 @@
 package svg
 
-import "github.com/tdewolff/parse/v2/svg"
-
-var colorAttrMap = map[svg.Hash]bool{
-	svg.Color:          true,
-	svg.Fill:           true,
-	svg.Stroke:         true,
-	svg.Stop_Color:     true,
-	svg.Flood_Color:    true,
-	svg.Lighting_Color: true,
+var colorAttrMap = map[Hash]bool{
+	Color:          true,
+	Fill:           true,
+	Stroke:         true,
+	Stop_Color:     true,
+	Flood_Color:    true,
+	Lighting_Color: true,
 }
 
 // var styleAttrMap = map[svg.Hash]bool{

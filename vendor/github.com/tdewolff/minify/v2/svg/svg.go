@@ -6,11 +6,10 @@ import (
 	"io"
 
 	"github.com/tdewolff/minify/v2"
-	minifyCSS "github.com/tdewolff/minify/v2/css"
+	"github.com/tdewolff/minify/v2/css"
+	minifyXML "github.com/tdewolff/minify/v2/xml"
 	"github.com/tdewolff/parse/v2"
 	"github.com/tdewolff/parse/v2/buffer"
-	"github.com/tdewolff/parse/v2/css"
-	"github.com/tdewolff/parse/v2/svg"
 	"github.com/tdewolff/parse/v2/xml"
 )
 
@@ -28,22 +27,35 @@ var (
 
 ////////////////////////////////////////////////////////////////
 
-// DefaultMinifier is the default minifier.
-var DefaultMinifier = &Minifier{Decimals: -1}
+// DEPRECATED: DefaultMinifier is the default minifier.
+var DefaultMinifier = &Minifier{}
 
 // Minifier is an SVG minifier.
 type Minifier struct {
-	Decimals int
+	Decimals     int // DEPRECATED
+	Precision    int // number of significant digits
+	newPrecision int // precision for new numbers
 }
 
 // Minify minifies SVG data, it reads from r and writes to w.
 func Minify(m *minify.M, w io.Writer, r io.Reader, params map[string]string) error {
-	return DefaultMinifier.Minify(m, w, r, params)
+	return (&Minifier{}).Minify(m, w, r, params)
 }
 
 // Minify minifies SVG data, it reads from r and writes to w.
 func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]string) error {
-	var tag svg.Hash
+	if o.Decimals != 0 {
+		minify.Warning.Println("SVG option `Decimals` is deprecated, using as `Precision` instead. Be aware that `Decimals` meant the number of digits behind the dot while `Precision` means the number of significant digits. Example: 1.23 with `Decimals=1` would give 1.2 but with `Pecision=1` gives 1. The default `Decimals=-1` is now `Precision=0` which prints the whole number.")
+	}
+	if o.Precision == 0 {
+		o.Precision = o.Decimals
+	}
+	o.newPrecision = o.Precision
+	if o.newPrecision <= 0 || 15 < o.newPrecision {
+		o.newPrecision = 15 // minimum number of digits a double can represent exactly
+	}
+
+	var tag Hash
 	defaultStyleType := cssMimeBytes
 	defaultStyleParams := map[string]string(nil)
 	defaultInlineStyleParams := map[string]string{"inline": "1"}
@@ -71,8 +83,10 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 				}
 			}
 		case xml.TextToken:
-			t.Data = parse.ReplaceMultipleWhitespace(parse.TrimWhitespace(t.Data))
-			if tag == svg.Style && len(t.Data) > 0 {
+			t.Data = parse.ReplaceMultipleWhitespaceAndEntities(t.Data, minifyXML.EntitiesMap, nil)
+			t.Data = parse.TrimWhitespace(t.Data)
+
+			if tag == Style && len(t.Data) > 0 {
 				if err := m.MinifyMimetype(defaultStyleType, w, buffer.NewReader(t.Data), defaultStyleParams); err != nil {
 					if err != minify.ErrNotExist {
 						return err
@@ -84,7 +98,7 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 				return err
 			}
 		case xml.CDATAToken:
-			if tag == svg.Style {
+			if tag == Style {
 				minifyBuffer.Reset()
 				if err := m.MinifyMimetype(defaultStyleType, minifyBuffer, buffer.NewReader(t.Text), defaultStyleParams); err == nil {
 					t.Data = append(t.Data[:9], minifyBuffer.Bytes()...)
@@ -96,7 +110,9 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 			}
 			var useText bool
 			if t.Text, useText = xml.EscapeCDATAVal(&attrByteBuffer, t.Text); useText {
-				t.Text = parse.ReplaceMultipleWhitespace(parse.TrimWhitespace(t.Text))
+				t.Text = parse.ReplaceMultipleWhitespace(t.Text)
+				t.Text = parse.TrimWhitespace(t.Text)
+
 				if _, err := w.Write(t.Text); err != nil {
 					return err
 				}
@@ -111,15 +127,12 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 			}
 		case xml.StartTagToken:
 			tag = t.Hash
-			if tag == svg.Metadata {
+			if tag == Metadata {
 				t.Data = nil
-			} else if tag == svg.Line {
-				o.shortenLine(tb, &t, p)
-			} else if tag == svg.Rect {
-				o.shortenRect(tb, &t, p)
-			} else if tag == svg.Polygon || tag == svg.Polyline {
-				o.shortenPoly(tb, &t, p)
+			} else if tag == Rect {
+				o.shortenRect(tb, &t)
 			}
+
 			if t.Data == nil {
 				skipTag(tb)
 			} else if _, err := w.Write(t.Data); err != nil {
@@ -132,20 +145,20 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 
 			attr := t.Hash
 			val := t.AttrVal
-			if n, m := parse.Dimension(val); n+m == len(val) && attr != svg.Version { // TODO: inefficient, temporary measure
+			if n, m := parse.Dimension(val); n+m == len(val) && attr != Version { // TODO: inefficient, temporary measure
 				val, _ = o.shortenDimension(val)
 			}
-			if attr == svg.Xml_Space && bytes.Equal(val, []byte("preserve")) ||
-				tag == svg.Svg && (attr == svg.Version && bytes.Equal(val, []byte("1.1")) ||
-					attr == svg.X && bytes.Equal(val, []byte("0")) ||
-					attr == svg.Y && bytes.Equal(val, []byte("0")) ||
-					attr == svg.Width && bytes.Equal(val, []byte("100%")) ||
-					attr == svg.Height && bytes.Equal(val, []byte("100%")) ||
-					attr == svg.PreserveAspectRatio && bytes.Equal(val, []byte("xMidYMid meet")) ||
-					attr == svg.BaseProfile && bytes.Equal(val, []byte("none")) ||
-					attr == svg.ContentScriptType && bytes.Equal(val, []byte("application/ecmascript")) ||
-					attr == svg.ContentStyleType && bytes.Equal(val, []byte("text/css"))) ||
-				tag == svg.Style && attr == svg.Type && bytes.Equal(val, []byte("text/css")) {
+			if attr == Xml_Space && bytes.Equal(val, []byte("preserve")) ||
+				tag == Svg && (attr == Version && bytes.Equal(val, []byte("1.1")) ||
+					attr == X && bytes.Equal(val, []byte("0")) ||
+					attr == Y && bytes.Equal(val, []byte("0")) ||
+					attr == Width && bytes.Equal(val, []byte("100%")) ||
+					attr == Height && bytes.Equal(val, []byte("100%")) ||
+					attr == PreserveAspectRatio && bytes.Equal(val, []byte("xMidYMid meet")) ||
+					attr == BaseProfile && bytes.Equal(val, []byte("none")) ||
+					attr == ContentScriptType && bytes.Equal(val, []byte("application/ecmascript")) ||
+					attr == ContentStyleType && bytes.Equal(val, []byte("text/css"))) ||
+				tag == Style && attr == Type && bytes.Equal(val, []byte("text/css")) {
 				continue
 			}
 
@@ -159,19 +172,19 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 				return err
 			}
 
-			if tag == svg.Svg && attr == svg.ContentStyleType {
+			if tag == Svg && attr == ContentStyleType {
 				val = minify.Mediatype(val)
 				defaultStyleType = val
-			} else if attr == svg.Style {
+			} else if attr == Style {
 				minifyBuffer.Reset()
 				if err := m.MinifyMimetype(defaultStyleType, minifyBuffer, buffer.NewReader(val), defaultInlineStyleParams); err == nil {
 					val = minifyBuffer.Bytes()
 				} else if err != minify.ErrNotExist {
 					return err
 				}
-			} else if attr == svg.D {
+			} else if attr == D {
 				val = p.ShortenPathData(val)
-			} else if attr == svg.ViewBox {
+			} else if attr == ViewBox {
 				j := 0
 				newVal := val[:0]
 				for i := 0; i < 4; i++ {
@@ -195,14 +208,14 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 			} else if colorAttrMap[attr] && len(val) > 0 && (len(val) < 5 || !parse.EqualFold(val[:4], urlBytes)) {
 				parse.ToLower(val)
 				if val[0] == '#' {
-					if name, ok := minifyCSS.ShortenColorHex[string(val)]; ok {
+					if name, ok := css.ShortenColorHex[string(val)]; ok {
 						val = name
 					} else if len(val) == 7 && val[1] == val[2] && val[3] == val[4] && val[5] == val[6] {
 						val[2] = val[3]
 						val[3] = val[5]
 						val = val[:4]
 					}
-				} else if hex, ok := minifyCSS.ShortenColorName[css.ToHash(val)]; ok {
+				} else if hex, ok := css.ShortenColorName[css.ToHash(val)]; ok {
 					val = hex
 					// } else if len(val) > 5 && bytes.Equal(val[:4], []byte("rgb(")) && val[len(val)-1] == ')' {
 					// TODO: handle rgb(x, y, z) and hsl(x, y, z)
@@ -235,6 +248,12 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 					return err
 				}
 			}
+
+			if tag == ForeignObject {
+				if err := printTag(w, tb, tag); err != nil {
+					return err
+				}
+			}
 		case xml.StartTagCloseVoidToken:
 			tag = 0
 			if _, err := w.Write(t.Data); err != nil {
@@ -256,7 +275,7 @@ func (o *Minifier) Minify(m *minify.M, w io.Writer, r io.Reader, _ map[string]st
 func (o *Minifier) shortenDimension(b []byte) ([]byte, int) {
 	if n, m := parse.Dimension(b); n > 0 {
 		unit := b[n : n+m]
-		b = minify.Number(b[:n], o.Decimals)
+		b = minify.Number(b[:n], o.Precision)
 		if len(b) != 1 || b[0] != '0' {
 			if m == 2 && unit[0] == 'p' && unit[1] == 'x' {
 				unit = nil
@@ -270,147 +289,60 @@ func (o *Minifier) shortenDimension(b []byte) ([]byte, int) {
 	return b, 0
 }
 
-func (o *Minifier) shortenLine(tb *TokenBuffer, t *Token, p *PathData) {
-	x1, y1, x2, y2 := zeroBytes, zeroBytes, zeroBytes, zeroBytes
-	if attrs, replacee := tb.Attributes(svg.X1, svg.Y1, svg.X2, svg.Y2); replacee != nil {
-		// skip converting to path if any attribute contains dimensions, TODO: convert non-percentage dimensions to px
-		for _, attr := range attrs {
-			if attr != nil {
-				if _, dim := parse.Dimension(attr.AttrVal); dim != 0 {
-					return
-				}
-			}
-		}
-
-		if attrs[0] != nil {
-			x1 = minify.Number(attrs[0].AttrVal, o.Decimals)
-			attrs[0].Text = nil
-		}
-		if attrs[1] != nil {
-			y1 = minify.Number(attrs[1].AttrVal, o.Decimals)
-			attrs[1].Text = nil
-		}
-		if attrs[2] != nil {
-			x2 = minify.Number(attrs[2].AttrVal, o.Decimals)
-			attrs[2].Text = nil
-		}
-		if attrs[3] != nil {
-			y2 = minify.Number(attrs[3].AttrVal, o.Decimals)
-			attrs[3].Text = nil
-		}
-
-		d := make([]byte, 0, 5+len(x1)+len(y1)+len(x2)+len(y2))
-		d = append(d, 'M')
-		d = append(d, x1...)
-		d = append(d, ' ')
-		d = append(d, y1...)
-		d = append(d, 'L')
-		d = append(d, x2...)
-		d = append(d, ' ')
-		d = append(d, y2...)
-		d = append(d, 'z')
-		d = p.ShortenPathData(d)
-
-		t.Data = pathBytes
-		replacee.Text = dBytes
-		replacee.AttrVal = d
+func (o *Minifier) shortenRect(tb *TokenBuffer, t *Token) {
+	w, h := zeroBytes, zeroBytes
+	attrs := tb.Attributes(Width, Height)
+	if attrs[0] != nil {
+		n, _ := parse.Dimension(attrs[0].AttrVal)
+		w = minify.Number(attrs[0].AttrVal[:n], o.Precision)
 	}
-}
-
-func (o *Minifier) shortenRect(tb *TokenBuffer, t *Token, p *PathData) {
-	if attrs, replacee := tb.Attributes(svg.X, svg.Y, svg.Width, svg.Height, svg.Rx, svg.Ry); replacee != nil && attrs[4] == nil && attrs[5] == nil {
-		// skip converting to path if any attribute contains dimensions, TODO: convert non-percentage dimensions to px
-		for _, attr := range attrs {
-			if attr != nil {
-				if _, dim := parse.Dimension(attr.AttrVal); dim != 0 {
-					return
-				}
-			}
-		}
-
-		x, y, w, h := zeroBytes, zeroBytes, zeroBytes, zeroBytes
-		if attrs[0] != nil {
-			x = minify.Number(attrs[0].AttrVal, o.Decimals)
-			attrs[0].Text = nil
-		}
-		if attrs[1] != nil {
-			y = minify.Number(attrs[1].AttrVal, o.Decimals)
-			attrs[1].Text = nil
-		}
-		if attrs[2] != nil {
-			w = minify.Number(attrs[2].AttrVal, o.Decimals)
-			attrs[2].Text = nil
-		}
-		if attrs[3] != nil {
-			h = minify.Number(attrs[3].AttrVal, o.Decimals)
-			attrs[3].Text = nil
-		}
-		if len(w) == 0 || w[0] == '0' || len(h) == 0 || h[0] == '0' {
-			t.Data = nil
-			return
-		}
-
-		d := make([]byte, 0, 6+2*len(x)+len(y)+len(w)+len(h))
-		d = append(d, 'M')
-		d = append(d, x...)
-		d = append(d, ' ')
-		d = append(d, y...)
-		d = append(d, 'h')
-		d = append(d, w...)
-		d = append(d, 'v')
-		d = append(d, h...)
-		d = append(d, 'H')
-		d = append(d, x...)
-		d = append(d, 'z')
-		d = p.ShortenPathData(d)
-
-		t.Data = pathBytes
-		replacee.Text = dBytes
-		replacee.AttrVal = d
+	if attrs[1] != nil {
+		n, _ := parse.Dimension(attrs[1].AttrVal)
+		h = minify.Number(attrs[1].AttrVal[:n], o.Precision)
 	}
-}
-
-func (o *Minifier) shortenPoly(tb *TokenBuffer, t *Token, p *PathData) {
-	if attrs, replacee := tb.Attributes(svg.Points); replacee != nil && attrs[0] != nil {
-		points := attrs[0].AttrVal
-
-		i := 0
-		for i < len(points) && !(points[i] == ' ' || points[i] == ',' || points[i] == '\n' || points[i] == '\r' || points[i] == '\t') {
-			i++
-		}
-		for i < len(points) && (points[i] == ' ' || points[i] == ',' || points[i] == '\n' || points[i] == '\r' || points[i] == '\t') {
-			i++
-		}
-		for i < len(points) && !(points[i] == ' ' || points[i] == ',' || points[i] == '\n' || points[i] == '\r' || points[i] == '\t') {
-			i++
-		}
-		endMoveTo := i
-		for i < len(points) && (points[i] == ' ' || points[i] == ',' || points[i] == '\n' || points[i] == '\r' || points[i] == '\t') {
-			i++
-		}
-		startLineTo := i
-
-		if i == len(points) {
-			return
-		}
-
-		d := make([]byte, 0, len(points)+3)
-		d = append(d, 'M')
-		d = append(d, points[:endMoveTo]...)
-		d = append(d, 'L')
-		d = append(d, points[startLineTo:]...)
-		if t.Hash == svg.Polygon {
-			d = append(d, 'z')
-		}
-		d = p.ShortenPathData(d)
-
-		t.Data = pathBytes
-		replacee.Text = dBytes
-		replacee.AttrVal = d
+	if len(w) == 0 || w[0] == '0' || len(h) == 0 || h[0] == '0' {
+		t.Data = nil
 	}
 }
 
 ////////////////////////////////////////////////////////////////
+
+func printTag(w io.Writer, tb *TokenBuffer, tag Hash) error {
+	level := 0
+	for {
+		t := *tb.Peek(0)
+		if level == 0 && t.Hash == tag && (t.TokenType == xml.EndTagToken || t.TokenType == xml.StartTagCloseVoidToken) {
+			break
+		}
+		switch t.TokenType {
+		case xml.ErrorToken:
+			break
+		case xml.StartTagToken:
+			if t.Hash == tag {
+				level++
+			}
+		case xml.StartTagCloseVoidToken:
+			if t.Hash == tag {
+				if level == 0 {
+					break
+				}
+				level--
+			}
+		case xml.EndTagToken:
+			if t.Hash == tag {
+				if level == 0 {
+					break
+				}
+				level--
+			}
+		}
+		if _, err := w.Write(t.Data); err != nil {
+			return err
+		}
+		tb.Shift()
+	}
+	return nil
+}
 
 func skipTag(tb *TokenBuffer) {
 	level := 0

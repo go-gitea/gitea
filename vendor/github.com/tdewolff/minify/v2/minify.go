@@ -2,19 +2,28 @@
 package minify
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"mime"
 	"net/http"
 	"net/url"
+	"os"
 	"os/exec"
 	"path"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/tdewolff/parse/v2"
 	"github.com/tdewolff/parse/v2/buffer"
 )
+
+// Warning is used to report usage warnings such as using a deprecated feature
+var Warning = log.New(os.Stderr, "WARNING: ", 0)
 
 // ErrNotExist is returned when no minifier exists for a given mimetype.
 var ErrNotExist = errors.New("minifier does not exist for mimetype")
@@ -49,9 +58,55 @@ type cmdMinifier struct {
 func (c *cmdMinifier) Minify(_ *M, w io.Writer, r io.Reader, _ map[string]string) error {
 	cmd := &exec.Cmd{}
 	*cmd = *c.cmd // concurrency safety
-	cmd.Stdout = w
-	cmd.Stdin = r
-	return cmd.Run()
+
+	var in, out *os.File
+	for i, arg := range cmd.Args {
+		if j := strings.Index(arg, "$in"); j != -1 {
+			k := strings.IndexAny(arg[j+3:], " \r\n\t!\"#$&'()*;<=>?[\\]^`{|}")
+			if k == -1 {
+				k = len(arg)
+			}
+
+			var err error
+			if in, err = ioutil.TempFile("", "minify-in-*"+arg[j+3:k]); err != nil {
+				return err
+			}
+			cmd.Args[i] = arg[:j] + in.Name() + arg[k:]
+		} else if j := strings.Index(arg, "$out"); j != -1 {
+			k := strings.IndexAny(arg[j+4:], " \r\n\t!\"#$&'()*;<=>?[\\]^`{|}")
+			if k == -1 {
+				k = len(arg)
+			}
+
+			var err error
+			if out, err = ioutil.TempFile("", "minify-out-*"+arg[j+4:k]); err != nil {
+				return err
+			}
+			cmd.Args[i] = arg[:j] + out.Name() + arg[k:]
+		}
+	}
+
+	if in == nil {
+		cmd.Stdin = r
+	} else if _, err := io.Copy(in, r); err != nil {
+		return err
+	}
+	if out == nil {
+		cmd.Stdout = w
+	} else {
+		defer io.Copy(w, out)
+	}
+	stderr := &bytes.Buffer{}
+	cmd.Stderr = stderr
+
+	err := cmd.Run()
+	if _, ok := err.(*exec.ExitError); ok {
+		if stderr.Len() != 0 {
+			err = fmt.Errorf("%s", stderr.String())
+		}
+		err = fmt.Errorf("command %s failed:\n%w", cmd.Path, err)
+	}
+	return err
 }
 
 ////////////////////////////////////////////////////////////////
@@ -154,18 +209,16 @@ func (m *M) MinifyMimetype(mimetype []byte, w io.Writer, r io.Reader, params map
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
-	err := ErrNotExist
 	if minifier, ok := m.literal[string(mimetype)]; ok { // string conversion is optimized away
-		err = minifier.Minify(m, w, r, params)
+		return minifier.Minify(m, w, r, params)
 	} else {
 		for _, minifier := range m.pattern {
 			if minifier.pattern.Match(mimetype) {
-				err = minifier.Minify(m, w, r, params)
-				break
+				return minifier.Minify(m, w, r, params)
 			}
 		}
 	}
-	return err
+	return ErrNotExist
 }
 
 // Bytes minifies an array of bytes (safe for concurrent use). When an error occurs it return the original array and the error.

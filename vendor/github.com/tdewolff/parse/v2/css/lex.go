@@ -158,6 +158,11 @@ func (l *Lexer) Restore() {
 	l.r.Restore()
 }
 
+// Offset returns the current position in the input stream.
+func (l *Lexer) Offset() int {
+	return l.r.Offset()
+}
+
 // Next returns the next Token. It returns ErrorToken when an error was encountered. Using Err() one can retrieve the error message.
 func (l *Lexer) Next() (TokenType, []byte) {
 	switch l.r.Peek(0) {
@@ -348,7 +353,8 @@ func (l *Lexer) consumeEscape() bool {
 			l.r.Move(n)
 			return true
 		} else if c == 0 && l.r.Err() != nil {
-			return true
+			l.r.Rewind(mark)
+			return false
 		}
 	}
 	l.r.Move(1)
@@ -638,6 +644,7 @@ func (l *Lexer) consumeString() TokenType {
 			break
 		} else if c == '\\' {
 			if !l.consumeEscape() {
+				// either newline or EOF after backslash
 				l.r.Move(1)
 				l.consumeNewline()
 			}
