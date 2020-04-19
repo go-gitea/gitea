@@ -313,6 +313,19 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
+	if isWiki {
+		// Ensure the wiki is enabled before we allow access to it
+		if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+			if models.IsErrUnitTypeNotExist(err) {
+				ctx.HandleText(http.StatusForbidden, "repository wiki is disabled")
+				return
+			}
+			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
+			ctx.ServerError("GetUnit(UnitTypeWiki) for "+repo.FullName(), err)
+			return
+		}
+	}
+
 	environ = append(environ, models.ProtectedBranchRepoID+fmt.Sprintf("=%d", repo.ID))
 
 	w := ctx.Resp
