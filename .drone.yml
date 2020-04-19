@@ -10,11 +10,21 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
+tmpfs: /go/src/code.gitea.io/gitea/tmpfs1
+
 steps:
   - name: deps-frontend
     pull: always
     image: node:12
+    tmpfs: /go/src/code.gitea.io/gitea/tmpfs2
     commands:
+      - "echo ### GAP ###"
+      - "echo We are at `pwd`"
+      - "mount -l | fgrep tmpfs || echo mount has errors"
+      - "ls -ld /go/src/code.gitea.io/gitea/tmpfs* && echo ls -ld succeeded || echo ls -ld has errors"
+      - "ps -f"
+      - "ps -f -p $$$$"
+      - "echo ### GAP ###"
       - make node_modules
 
   - name: lint-frontend
