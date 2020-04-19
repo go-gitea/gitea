@@ -6,12 +6,15 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -79,6 +82,104 @@ func GetBranch(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, br)
+}
+
+// DeleteBranch get a branch of a repository
+func DeleteBranch(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/branches/{branch} repository repoDeleteBranch
+	// ---
+	// summary: Delete a specific branch from a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: branch
+	//   in: path
+	//   description: branch to delete
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/error"
+
+	if ctx.Repo.TreePath != "" {
+		// if TreePath != "", then URL contained extra slashes
+		// (i.e. "master/subbranch" instead of "master"), so branch does
+		// not exist
+		ctx.NotFound()
+		return
+	}
+
+	if ctx.Repo.Repository.DefaultBranch == ctx.Repo.BranchName {
+		ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
+		return
+	}
+
+	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(ctx.Repo.BranchName, ctx.User)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if isProtected {
+		ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
+		return
+	}
+
+	branch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.BranchName)
+	if err != nil {
+		if git.IsErrBranchNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetBranch", err)
+		}
+		return
+	}
+
+	c, err := branch.GetCommit()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+		return
+	}
+
+	if err := ctx.Repo.GitRepo.DeleteBranch(ctx.Repo.BranchName, git.DeleteBranchOptions{
+		Force: true,
+	}); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
+		return
+	}
+
+	// Don't return error below this
+	if err := repofiles.PushUpdate(
+		ctx.Repo.Repository,
+		ctx.Repo.BranchName,
+		repofiles.PushUpdateOptions{
+			RefFullName:  git.BranchPrefix + ctx.Repo.BranchName,
+			OldCommitID:  c.ID.String(),
+			NewCommitID:  git.EmptySHA,
+			PusherID:     ctx.User.ID,
+			PusherName:   ctx.User.Name,
+			RepoUserName: ctx.Repo.Owner.Name,
+			RepoName:     ctx.Repo.Repository.Name,
+		}); err != nil {
+		log.Error("Update: %v", err)
+	}
+
+	if err := ctx.Repo.Repository.AddDeletedBranch(ctx.Repo.BranchName, c.ID.String(), ctx.User.ID); err != nil {
+		log.Warn("AddDeletedBranch: %v", err)
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 // ListBranches list all the branches of a repository
