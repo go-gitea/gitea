@@ -539,18 +539,18 @@ func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, 
 	}
 
 	//GitLab only has Approvals witch similar to gitea's approve review's
-	approvers := make(map[int]*gitlab.BasicUser)
+	approvers := make(map[int]string)
 	for i := range state.Rules {
-		for _, u := range state.Rules[i].ApprovedBy {
-			approvers[u.ID] = u
+		for u := range state.Rules[i].ApprovedBy {
+			approvers[state.Rules[i].ApprovedBy[u].ID] = state.Rules[i].ApprovedBy[u].Username
 		}
 	}
 
 	var reviews = make([]*base.Review, 0, len(approvers))
-	for k, v := range approvers {
+	for id, name := range approvers {
 		reviews = append(reviews, &base.Review{
-			ReviewerID:   int64(k),
-			ReviewerName: v.Username,
+			ReviewerID:   int64(id),
+			ReviewerName: name,
 			// GitLab API dont return creation date
 			CreatedAt: time.Now(),
 			// All we get are approvals
