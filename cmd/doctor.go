@@ -521,13 +521,17 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	}
 	if count > 0 {
 		if ctx.Bool("fix") {
-			if _, err = sess.In("id", builder.Select("issue.id").
-				From("issue").
+			var ids []int64
+
+			sess.Table("issue").Select("issue.id").
 				Join("LEFT", "repository", "issue.repo_id=repository.id").
-				Where(builder.IsNull{"repository.id"})).
-				Delete(models.Issue{}); err != nil {
+				Where("repository.id is NULL").
+				Find(&ids)
+
+			if err = models.DeleteIssuesByIDs(ids); err != nil {
 				return nil, err
 			}
+
 			results = append(results, fmt.Sprintf("%d issues without existing repository deleted", count))
 		} else {
 			results = append(results, fmt.Sprintf("%d issues without existing repository", count))
