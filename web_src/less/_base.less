@@ -1223,7 +1223,7 @@ i.icon.centerlock {
 
 /* limit width of all direct dropdown menu children */
 /* https://github.com/go-gitea/gitea/pull/10835 */
-.dropdown > .menu > * {
+.dropdown:not(.selection) > .menu > * {
     max-width: 300px;
     overflow-x: hidden;
     text-overflow: ellipsis;
