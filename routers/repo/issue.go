@@ -917,6 +917,8 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 
+		participants = addParticipant(comment.Poster, participants)
+
 		if comment.Type == models.CommentTypeComment {
 			if err := comment.LoadAttachments(); err != nil {
 				ctx.ServerError("LoadAttachments", err)
@@ -939,7 +941,6 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			marked[comment.PosterID] = comment.ShowTag
-			participants = addParticipant(comment.Poster, participants)
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
 				ctx.ServerError("LoadLabel", err)
@@ -975,7 +976,6 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadReview", err)
 				return
 			}
-			participants = addParticipant(comment.Poster, participants)
 			if comment.Review == nil {
 				continue
 			}
