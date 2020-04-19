@@ -304,7 +304,6 @@
 							{{end}}
 							<div class="ui buttons two fluid start-add">
 								<button onclick="this.disabled=true;window.toggleStopwatch()" class="ui button poping up start" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
-								<button onclick="window.timeAddManual()" class="ui button green poping up add-time" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
 								<div class="ui mini modal">
 									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
 									<div class="content">
@@ -319,6 +318,7 @@
 										<div class="ui red cancel button">{{.i18n.Tr "repo.issues.add_time_cancel"}}</div>
 									</div>
 								</div>
+								<button onclick="window.timeAddManual()" class="ui button green poping up add-time" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
 							</div>
 						{{end}}
 					</div>
