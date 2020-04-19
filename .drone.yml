@@ -176,6 +176,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -190,6 +191,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -204,6 +206,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -302,6 +305,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -316,6 +320,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
