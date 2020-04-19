@@ -523,10 +523,12 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		if ctx.Bool("fix") {
 			var ids []int64
 
-			sess.Table("issue").Select("issue.id").
+			if err = sess.Table("issue").Select("issue.id").
 				Join("LEFT", "repository", "issue.repo_id=repository.id").
 				Where("repository.id is NULL").
-				Find(&ids)
+				Find(&ids); err != nil {
+				return nil, err
+			}
 
 			if err = models.DeleteIssuesByIDs(ids); err != nil {
 				return nil, err
