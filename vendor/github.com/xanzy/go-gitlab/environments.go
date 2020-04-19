@@ -56,7 +56,7 @@ type ListEnvironmentsOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/environments.html#list-environments
-func (s *EnvironmentsService) ListEnvironments(pid interface{}, opts *ListEnvironmentsOptions, options ...OptionFunc) ([]*Environment, *Response, error) {
+func (s *EnvironmentsService) ListEnvironments(pid interface{}, opts *ListEnvironmentsOptions, options ...RequestOptionFunc) ([]*Environment, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -81,7 +81,7 @@ func (s *EnvironmentsService) ListEnvironments(pid interface{}, opts *ListEnviro
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/environments.html#get-a-specific-environment
-func (s *EnvironmentsService) GetEnvironment(pid interface{}, environment int, options ...OptionFunc) (*Environment, *Response, error) {
+func (s *EnvironmentsService) GetEnvironment(pid interface{}, environment int, options ...RequestOptionFunc) (*Environment, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -118,7 +118,7 @@ type CreateEnvironmentOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/environments.html#create-a-new-environment
-func (s *EnvironmentsService) CreateEnvironment(pid interface{}, opt *CreateEnvironmentOptions, options ...OptionFunc) (*Environment, *Response, error) {
+func (s *EnvironmentsService) CreateEnvironment(pid interface{}, opt *CreateEnvironmentOptions, options ...RequestOptionFunc) (*Environment, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -152,7 +152,7 @@ type EditEnvironmentOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/environments.html#edit-an-existing-environment
-func (s *EnvironmentsService) EditEnvironment(pid interface{}, environment int, opt *EditEnvironmentOptions, options ...OptionFunc) (*Environment, *Response, error) {
+func (s *EnvironmentsService) EditEnvironment(pid interface{}, environment int, opt *EditEnvironmentOptions, options ...RequestOptionFunc) (*Environment, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -177,7 +177,7 @@ func (s *EnvironmentsService) EditEnvironment(pid interface{}, environment int, 
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/environments.html#remove-a-environment-from-a-group-or-project
-func (s *EnvironmentsService) DeleteEnvironment(pid interface{}, environment int, options ...OptionFunc) (*Response, error) {
+func (s *EnvironmentsService) DeleteEnvironment(pid interface{}, environment int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func (s *EnvironmentsService) DeleteEnvironment(pid interface{}, environment int
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/environments.html#stop-an-environment
-func (s *EnvironmentsService) StopEnvironment(pid interface{}, environmentID int, options ...OptionFunc) (*Response, error) {
+func (s *EnvironmentsService) StopEnvironment(pid interface{}, environmentID int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err

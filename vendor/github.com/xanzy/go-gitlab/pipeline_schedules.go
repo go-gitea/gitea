@@ -63,7 +63,7 @@ type ListPipelineSchedulesOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_schedules.html
-func (s *PipelineSchedulesService) ListPipelineSchedules(pid interface{}, opt *ListPipelineSchedulesOptions, options ...OptionFunc) ([]*PipelineSchedule, *Response, error) {
+func (s *PipelineSchedulesService) ListPipelineSchedules(pid interface{}, opt *ListPipelineSchedulesOptions, options ...RequestOptionFunc) ([]*PipelineSchedule, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -88,7 +88,7 @@ func (s *PipelineSchedulesService) ListPipelineSchedules(pid interface{}, opt *L
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_schedules.html
-func (s *PipelineSchedulesService) GetPipelineSchedule(pid interface{}, schedule int, options ...OptionFunc) (*PipelineSchedule, *Response, error) {
+func (s *PipelineSchedulesService) GetPipelineSchedule(pid interface{}, schedule int, options ...RequestOptionFunc) (*PipelineSchedule, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -126,7 +126,7 @@ type CreatePipelineScheduleOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_schedules.html#create-a-new-pipeline-schedule
-func (s *PipelineSchedulesService) CreatePipelineSchedule(pid interface{}, opt *CreatePipelineScheduleOptions, options ...OptionFunc) (*PipelineSchedule, *Response, error) {
+func (s *PipelineSchedulesService) CreatePipelineSchedule(pid interface{}, opt *CreatePipelineScheduleOptions, options ...RequestOptionFunc) (*PipelineSchedule, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -164,7 +164,7 @@ type EditPipelineScheduleOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_schedules.html#edit-a-pipeline-schedule
-func (s *PipelineSchedulesService) EditPipelineSchedule(pid interface{}, schedule int, opt *EditPipelineScheduleOptions, options ...OptionFunc) (*PipelineSchedule, *Response, error) {
+func (s *PipelineSchedulesService) EditPipelineSchedule(pid interface{}, schedule int, opt *EditPipelineScheduleOptions, options ...RequestOptionFunc) (*PipelineSchedule, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -190,7 +190,7 @@ func (s *PipelineSchedulesService) EditPipelineSchedule(pid interface{}, schedul
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_schedules.html#take-ownership-of-a-pipeline-schedule
-func (s *PipelineSchedulesService) TakeOwnershipOfPipelineSchedule(pid interface{}, schedule int, options ...OptionFunc) (*PipelineSchedule, *Response, error) {
+func (s *PipelineSchedulesService) TakeOwnershipOfPipelineSchedule(pid interface{}, schedule int, options ...RequestOptionFunc) (*PipelineSchedule, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -215,7 +215,7 @@ func (s *PipelineSchedulesService) TakeOwnershipOfPipelineSchedule(pid interface
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_schedules.html#delete-a-pipeline-schedule
-func (s *PipelineSchedulesService) DeletePipelineSchedule(pid interface{}, schedule int, options ...OptionFunc) (*Response, error) {
+func (s *PipelineSchedulesService) DeletePipelineSchedule(pid interface{}, schedule int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
@@ -245,7 +245,7 @@ type CreatePipelineScheduleVariableOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_schedules.html#create-a-new-pipeline-schedule
-func (s *PipelineSchedulesService) CreatePipelineScheduleVariable(pid interface{}, schedule int, opt *CreatePipelineScheduleVariableOptions, options ...OptionFunc) (*PipelineVariable, *Response, error) {
+func (s *PipelineSchedulesService) CreatePipelineScheduleVariable(pid interface{}, schedule int, opt *CreatePipelineScheduleVariableOptions, options ...RequestOptionFunc) (*PipelineVariable, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -280,7 +280,7 @@ type EditPipelineScheduleVariableOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_schedules.html#edit-a-pipeline-schedule-variable
-func (s *PipelineSchedulesService) EditPipelineScheduleVariable(pid interface{}, schedule int, key string, opt *EditPipelineScheduleVariableOptions, options ...OptionFunc) (*PipelineVariable, *Response, error) {
+func (s *PipelineSchedulesService) EditPipelineScheduleVariable(pid interface{}, schedule int, key string, opt *EditPipelineScheduleVariableOptions, options ...RequestOptionFunc) (*PipelineVariable, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -305,7 +305,7 @@ func (s *PipelineSchedulesService) EditPipelineScheduleVariable(pid interface{},
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_schedules.html#delete-a-pipeline-schedule-variable
-func (s *PipelineSchedulesService) DeletePipelineScheduleVariable(pid interface{}, schedule int, key string, options ...OptionFunc) (*PipelineVariable, *Response, error) {
+func (s *PipelineSchedulesService) DeletePipelineScheduleVariable(pid interface{}, schedule int, key string, options ...RequestOptionFunc) (*PipelineVariable, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err

@@ -63,7 +63,7 @@ type GetFileOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/repository_files.html#get-file-from-repository
-func (s *RepositoryFilesService) GetFile(pid interface{}, fileName string, opt *GetFileOptions, options ...OptionFunc) (*File, *Response, error) {
+func (s *RepositoryFilesService) GetFile(pid interface{}, fileName string, opt *GetFileOptions, options ...RequestOptionFunc) (*File, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -101,7 +101,7 @@ type GetFileMetaDataOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/repository_files.html#get-file-from-repository
-func (s *RepositoryFilesService) GetFileMetaData(pid interface{}, fileName string, opt *GetFileMetaDataOptions, options ...OptionFunc) (*File, *Response, error) {
+func (s *RepositoryFilesService) GetFileMetaData(pid interface{}, fileName string, opt *GetFileMetaDataOptions, options ...RequestOptionFunc) (*File, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -154,7 +154,7 @@ type GetRawFileOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/repository_files.html#get-raw-file-from-repository
-func (s *RepositoryFilesService) GetRawFile(pid interface{}, fileName string, opt *GetRawFileOptions, options ...OptionFunc) ([]byte, *Response, error) {
+func (s *RepositoryFilesService) GetRawFile(pid interface{}, fileName string, opt *GetRawFileOptions, options ...RequestOptionFunc) ([]byte, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -208,7 +208,7 @@ type CreateFileOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/repository_files.html#create-new-file-in-repository
-func (s *RepositoryFilesService) CreateFile(pid interface{}, fileName string, opt *CreateFileOptions, options ...OptionFunc) (*FileInfo, *Response, error) {
+func (s *RepositoryFilesService) CreateFile(pid interface{}, fileName string, opt *CreateFileOptions, options ...RequestOptionFunc) (*FileInfo, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -251,7 +251,7 @@ type UpdateFileOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/repository_files.html#update-existing-file-in-repository
-func (s *RepositoryFilesService) UpdateFile(pid interface{}, fileName string, opt *UpdateFileOptions, options ...OptionFunc) (*FileInfo, *Response, error) {
+func (s *RepositoryFilesService) UpdateFile(pid interface{}, fileName string, opt *UpdateFileOptions, options ...RequestOptionFunc) (*FileInfo, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -291,7 +291,7 @@ type DeleteFileOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/repository_files.html#delete-existing-file-in-repository
-func (s *RepositoryFilesService) DeleteFile(pid interface{}, fileName string, opt *DeleteFileOptions, options ...OptionFunc) (*Response, error) {
+func (s *RepositoryFilesService) DeleteFile(pid interface{}, fileName string, opt *DeleteFileOptions, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err

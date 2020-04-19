@@ -53,9 +53,10 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
-	github.com/golang/protobuf v1.3.4 // indirect
+	github.com/golang/protobuf v1.4.0 // indirect
 	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
+	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
 	github.com/huandu/xstrings v1.3.0
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
@@ -104,17 +105,19 @@ require (
 	github.com/unknwon/i18n v0.0.0-20190805065654-5c6446a380b6
 	github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 	github.com/urfave/cli v1.20.0
-	github.com/xanzy/go-gitlab v0.22.1
+	github.com/xanzy/go-gitlab v0.31.0
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	github.com/yuin/goldmark v1.1.25
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
 	golang.org/x/text v0.3.2
+	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
 	golang.org/x/tools v0.0.0-20200325010219-a49f79bcc224
+	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df

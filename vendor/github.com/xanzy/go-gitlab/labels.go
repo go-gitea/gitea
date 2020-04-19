@@ -78,7 +78,7 @@ type ListLabelsOptions ListOptions
 // ListLabels gets all labels for given project.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/labels.html#list-labels
-func (s *LabelsService) ListLabels(pid interface{}, opt *ListLabelsOptions, options ...OptionFunc) ([]*Label, *Response, error) {
+func (s *LabelsService) ListLabels(pid interface{}, opt *ListLabelsOptions, options ...RequestOptionFunc) ([]*Label, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -112,7 +112,7 @@ type CreateLabelOptions struct {
 // color.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/labels.html#create-a-new-label
-func (s *LabelsService) CreateLabel(pid interface{}, opt *CreateLabelOptions, options ...OptionFunc) (*Label, *Response, error) {
+func (s *LabelsService) CreateLabel(pid interface{}, opt *CreateLabelOptions, options ...RequestOptionFunc) (*Label, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -143,7 +143,7 @@ type DeleteLabelOptions struct {
 // DeleteLabel deletes a label given by its name.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/labels.html#delete-a-label
-func (s *LabelsService) DeleteLabel(pid interface{}, opt *DeleteLabelOptions, options ...OptionFunc) (*Response, error) {
+func (s *LabelsService) DeleteLabel(pid interface{}, opt *DeleteLabelOptions, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
@@ -172,7 +172,7 @@ type UpdateLabelOptions struct {
 // one parameter is required, to update the label.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/labels.html#edit-an-existing-label
-func (s *LabelsService) UpdateLabel(pid interface{}, opt *UpdateLabelOptions, options ...OptionFunc) (*Label, *Response, error) {
+func (s *LabelsService) UpdateLabel(pid interface{}, opt *UpdateLabelOptions, options ...RequestOptionFunc) (*Label, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -199,7 +199,7 @@ func (s *LabelsService) UpdateLabel(pid interface{}, opt *UpdateLabelOptions, op
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/labels.html#subscribe-to-a-label
-func (s *LabelsService) SubscribeToLabel(pid interface{}, labelID interface{}, options ...OptionFunc) (*Label, *Response, error) {
+func (s *LabelsService) SubscribeToLabel(pid interface{}, labelID interface{}, options ...RequestOptionFunc) (*Label, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -230,7 +230,7 @@ func (s *LabelsService) SubscribeToLabel(pid interface{}, labelID interface{}, o
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/labels.html#unsubscribe-from-a-label
-func (s *LabelsService) UnsubscribeFromLabel(pid interface{}, labelID interface{}, options ...OptionFunc) (*Response, error) {
+func (s *LabelsService) UnsubscribeFromLabel(pid interface{}, labelID interface{}, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err

@@ -37,7 +37,7 @@ type ListProjectBadgesOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/project_badges.html#list-all-badges-of-a-project
-func (s *ProjectBadgesService) ListProjectBadges(pid interface{}, opt *ListProjectBadgesOptions, options ...OptionFunc) ([]*ProjectBadge, *Response, error) {
+func (s *ProjectBadgesService) ListProjectBadges(pid interface{}, opt *ListProjectBadgesOptions, options ...RequestOptionFunc) ([]*ProjectBadge, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -62,7 +62,7 @@ func (s *ProjectBadgesService) ListProjectBadges(pid interface{}, opt *ListProje
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/project_badges.html#get-a-badge-of-a-project
-func (s *ProjectBadgesService) GetProjectBadge(pid interface{}, badge int, options ...OptionFunc) (*ProjectBadge, *Response, error) {
+func (s *ProjectBadgesService) GetProjectBadge(pid interface{}, badge int, options ...RequestOptionFunc) (*ProjectBadge, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -96,7 +96,7 @@ type AddProjectBadgeOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/project_badges.html#add-a-badge-to-a-project
-func (s *ProjectBadgesService) AddProjectBadge(pid interface{}, opt *AddProjectBadgeOptions, options ...OptionFunc) (*ProjectBadge, *Response, error) {
+func (s *ProjectBadgesService) AddProjectBadge(pid interface{}, opt *AddProjectBadgeOptions, options ...RequestOptionFunc) (*ProjectBadge, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -130,7 +130,7 @@ type EditProjectBadgeOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/project_badges.html#edit-a-badge-of-a-project
-func (s *ProjectBadgesService) EditProjectBadge(pid interface{}, badge int, opt *EditProjectBadgeOptions, options ...OptionFunc) (*ProjectBadge, *Response, error) {
+func (s *ProjectBadgesService) EditProjectBadge(pid interface{}, badge int, opt *EditProjectBadgeOptions, options ...RequestOptionFunc) (*ProjectBadge, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -156,7 +156,7 @@ func (s *ProjectBadgesService) EditProjectBadge(pid interface{}, badge int, opt 
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/project_badges.html#remove-a-badge-from-a-project
-func (s *ProjectBadgesService) DeleteProjectBadge(pid interface{}, badge int, options ...OptionFunc) (*Response, error) {
+func (s *ProjectBadgesService) DeleteProjectBadge(pid interface{}, badge int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
@@ -185,7 +185,7 @@ type ProjectBadgePreviewOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/project_badges.html#preview-a-badge-from-a-project
-func (s *ProjectBadgesService) PreviewProjectBadge(pid interface{}, opt *ProjectBadgePreviewOptions, options ...OptionFunc) (*ProjectBadge, *Response, error) {
+func (s *ProjectBadgesService) PreviewProjectBadge(pid interface{}, opt *ProjectBadgePreviewOptions, options ...RequestOptionFunc) (*ProjectBadge, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err

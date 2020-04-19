@@ -37,7 +37,7 @@ type SetTimeEstimateOptions struct {
 // setTimeEstimate sets the time estimate for a single project issue.
 //
 // GitLab docs: https://docs.gitlab.com/ce/workflow/time_tracking.html
-func (s *timeStatsService) setTimeEstimate(pid interface{}, entity string, issue int, opt *SetTimeEstimateOptions, options ...OptionFunc) (*TimeStats, *Response, error) {
+func (s *timeStatsService) setTimeEstimate(pid interface{}, entity string, issue int, opt *SetTimeEstimateOptions, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -61,7 +61,7 @@ func (s *timeStatsService) setTimeEstimate(pid interface{}, entity string, issue
 // resetTimeEstimate resets the time estimate for a single project issue.
 //
 // GitLab docs: https://docs.gitlab.com/ce/workflow/time_tracking.html
-func (s *timeStatsService) resetTimeEstimate(pid interface{}, entity string, issue int, options ...OptionFunc) (*TimeStats, *Response, error) {
+func (s *timeStatsService) resetTimeEstimate(pid interface{}, entity string, issue int, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -92,7 +92,7 @@ type AddSpentTimeOptions struct {
 // addSpentTime adds spent time for a single project issue.
 //
 // GitLab docs: https://docs.gitlab.com/ce/workflow/time_tracking.html
-func (s *timeStatsService) addSpentTime(pid interface{}, entity string, issue int, opt *AddSpentTimeOptions, options ...OptionFunc) (*TimeStats, *Response, error) {
+func (s *timeStatsService) addSpentTime(pid interface{}, entity string, issue int, opt *AddSpentTimeOptions, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -116,7 +116,7 @@ func (s *timeStatsService) addSpentTime(pid interface{}, entity string, issue in
 // resetSpentTime resets the spent time for a single project issue.
 //
 // GitLab docs: https://docs.gitlab.com/ce/workflow/time_tracking.html
-func (s *timeStatsService) resetSpentTime(pid interface{}, entity string, issue int, options ...OptionFunc) (*TimeStats, *Response, error) {
+func (s *timeStatsService) resetSpentTime(pid interface{}, entity string, issue int, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -140,7 +140,7 @@ func (s *timeStatsService) resetSpentTime(pid interface{}, entity string, issue 
 // getTimeSpent gets the spent time for a single project issue.
 //
 // GitLab docs: https://docs.gitlab.com/ce/workflow/time_tracking.html
-func (s *timeStatsService) getTimeSpent(pid interface{}, entity string, issue int, options ...OptionFunc) (*TimeStats, *Response, error) {
+func (s *timeStatsService) getTimeSpent(pid interface{}, entity string, issue int, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err

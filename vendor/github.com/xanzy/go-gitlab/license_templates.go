@@ -44,7 +44,7 @@ type ListLicenseTemplatesOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/templates/licenses.html#list-license-templates
-func (s *LicenseTemplatesService) ListLicenseTemplates(opt *ListLicenseTemplatesOptions, options ...OptionFunc) ([]*LicenseTemplate, *Response, error) {
+func (s *LicenseTemplatesService) ListLicenseTemplates(opt *ListLicenseTemplatesOptions, options ...RequestOptionFunc) ([]*LicenseTemplate, *Response, error) {
 	req, err := s.client.NewRequest("GET", "templates/licenses", opt, options)
 	if err != nil {
 		return nil, nil, err
@@ -74,7 +74,7 @@ type GetLicenseTemplateOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/templates/licenses.html#single-license-template
-func (s *LicenseTemplatesService) GetLicenseTemplate(template string, opt *GetLicenseTemplateOptions, options ...OptionFunc) (*LicenseTemplate, *Response, error) {
+func (s *LicenseTemplatesService) GetLicenseTemplate(template string, opt *GetLicenseTemplateOptions, options ...RequestOptionFunc) (*LicenseTemplate, *Response, error) {
 	u := fmt.Sprintf("templates/licenses/%s", template)
 
 	req, err := s.client.NewRequest("GET", u, opt, options)

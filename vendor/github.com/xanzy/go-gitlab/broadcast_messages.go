@@ -54,7 +54,7 @@ type ListBroadcastMessagesOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/broadcast_messages.html#get-all-broadcast-messages
-func (s *BroadcastMessagesService) ListBroadcastMessages(opt *ListBroadcastMessagesOptions, options ...OptionFunc) ([]*BroadcastMessage, *Response, error) {
+func (s *BroadcastMessagesService) ListBroadcastMessages(opt *ListBroadcastMessagesOptions, options ...RequestOptionFunc) ([]*BroadcastMessage, *Response, error) {
 	req, err := s.client.NewRequest("GET", "broadcast_messages", opt, options)
 	if err != nil {
 		return nil, nil, err
@@ -73,7 +73,7 @@ func (s *BroadcastMessagesService) ListBroadcastMessages(opt *ListBroadcastMessa
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/broadcast_messages.html#get-a-specific-broadcast-message
-func (s *BroadcastMessagesService) GetBroadcastMessage(broadcast int, options ...OptionFunc) (*BroadcastMessage, *Response, error) {
+func (s *BroadcastMessagesService) GetBroadcastMessage(broadcast int, options ...RequestOptionFunc) (*BroadcastMessage, *Response, error) {
 	u := fmt.Sprintf("broadcast_messages/%d", broadcast)
 
 	req, err := s.client.NewRequest("GET", u, nil, options)
@@ -107,7 +107,7 @@ type CreateBroadcastMessageOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/broadcast_messages.html#create-a-broadcast-message
-func (s *BroadcastMessagesService) CreateBroadcastMessage(opt *CreateBroadcastMessageOptions, options ...OptionFunc) (*BroadcastMessage, *Response, error) {
+func (s *BroadcastMessagesService) CreateBroadcastMessage(opt *CreateBroadcastMessageOptions, options ...RequestOptionFunc) (*BroadcastMessage, *Response, error) {
 	req, err := s.client.NewRequest("POST", "broadcast_messages", opt, options)
 	if err != nil {
 		return nil, nil, err
@@ -139,7 +139,7 @@ type UpdateBroadcastMessageOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/broadcast_messages.html#update-a-broadcast-message
-func (s *BroadcastMessagesService) UpdateBroadcastMessage(broadcast int, opt *UpdateBroadcastMessageOptions, options ...OptionFunc) (*BroadcastMessage, *Response, error) {
+func (s *BroadcastMessagesService) UpdateBroadcastMessage(broadcast int, opt *UpdateBroadcastMessageOptions, options ...RequestOptionFunc) (*BroadcastMessage, *Response, error) {
 	u := fmt.Sprintf("broadcast_messages/%d", broadcast)
 
 	req, err := s.client.NewRequest("PUT", u, opt, options)
@@ -160,7 +160,7 @@ func (s *BroadcastMessagesService) UpdateBroadcastMessage(broadcast int, opt *Up
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/broadcast_messages.html#delete-a-broadcast-message
-func (s *BroadcastMessagesService) DeleteBroadcastMessage(broadcast int, options ...OptionFunc) (*Response, error) {
+func (s *BroadcastMessagesService) DeleteBroadcastMessage(broadcast int, options ...RequestOptionFunc) (*Response, error) {
 	u := fmt.Sprintf("broadcast_messages/%d", broadcast)
 
 	req, err := s.client.NewRequest("DELETE", u, nil, options)

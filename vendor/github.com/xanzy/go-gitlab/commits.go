@@ -70,18 +70,19 @@ func (c Commit) String() string {
 // GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#list-repository-commits
 type ListCommitsOptions struct {
 	ListOptions
-	RefName   *string    `url:"ref_name,omitempty" json:"ref_name,omitempty"`
-	Since     *time.Time `url:"since,omitempty" json:"since,omitempty"`
-	Until     *time.Time `url:"until,omitempty" json:"until,omitempty"`
-	Path      *string    `url:"path,omitempty" json:"path,omitempty"`
-	All       *bool      `url:"all,omitempty" json:"all,omitempty"`
-	WithStats *bool      `url:"with_stats,omitempty" json:"with_stats,omitempty"`
+	RefName     *string    `url:"ref_name,omitempty" json:"ref_name,omitempty"`
+	Since       *time.Time `url:"since,omitempty" json:"since,omitempty"`
+	Until       *time.Time `url:"until,omitempty" json:"until,omitempty"`
+	Path        *string    `url:"path,omitempty" json:"path,omitempty"`
+	All         *bool      `url:"all,omitempty" json:"all,omitempty"`
+	WithStats   *bool      `url:"with_stats,omitempty" json:"with_stats,omitempty"`
+	FirstParent *bool      `url:"first_parent,omitempty" json:"first_parent,omitempty"`
 }
 
 // ListCommits gets a list of repository commits in a project.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#list-commits
-func (s *CommitsService) ListCommits(pid interface{}, opt *ListCommitsOptions, options ...OptionFunc) ([]*Commit, *Response, error) {
+func (s *CommitsService) ListCommits(pid interface{}, opt *ListCommitsOptions, options ...RequestOptionFunc) ([]*Commit, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -146,7 +147,7 @@ type GetCommitRefsOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/commits.html#get-references-a-commit-is-pushed-to
-func (s *CommitsService) GetCommitRefs(pid interface{}, sha string, opt *GetCommitRefsOptions, options ...OptionFunc) ([]*CommitRef, *Response, error) {
+func (s *CommitsService) GetCommitRefs(pid interface{}, sha string, opt *GetCommitRefsOptions, options ...RequestOptionFunc) ([]*CommitRef, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -171,7 +172,7 @@ func (s *CommitsService) GetCommitRefs(pid interface{}, sha string, opt *GetComm
 // branch or tag.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#get-a-single-commit
-func (s *CommitsService) GetCommit(pid interface{}, sha string, options ...OptionFunc) (*Commit, *Response, error) {
+func (s *CommitsService) GetCommit(pid interface{}, sha string, options ...RequestOptionFunc) (*Commit, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -214,7 +215,7 @@ type CreateCommitOptions struct {
 // CreateCommit creates a commit with multiple files and actions.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#create-a-commit-with-multiple-files-and-actions
-func (s *CommitsService) CreateCommit(pid interface{}, opt *CreateCommitOptions, options ...OptionFunc) (*Commit, *Response, error) {
+func (s *CommitsService) CreateCommit(pid interface{}, opt *CreateCommitOptions, options ...RequestOptionFunc) (*Commit, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -263,7 +264,7 @@ type GetCommitDiffOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/commits.html#get-the-diff-of-a-commit
-func (s *CommitsService) GetCommitDiff(pid interface{}, sha string, opt *GetCommitDiffOptions, options ...OptionFunc) ([]*Diff, *Response, error) {
+func (s *CommitsService) GetCommitDiff(pid interface{}, sha string, opt *GetCommitDiffOptions, options ...RequestOptionFunc) ([]*Diff, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -320,7 +321,7 @@ type GetCommitCommentsOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/commits.html#get-the-comments-of-a-commit
-func (s *CommitsService) GetCommitComments(pid interface{}, sha string, opt *GetCommitCommentsOptions, options ...OptionFunc) ([]*CommitComment, *Response, error) {
+func (s *CommitsService) GetCommitComments(pid interface{}, sha string, opt *GetCommitCommentsOptions, options ...RequestOptionFunc) ([]*CommitComment, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -359,7 +360,7 @@ type PostCommitCommentOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/commits.html#post-comment-to-commit
-func (s *CommitsService) PostCommitComment(pid interface{}, sha string, opt *PostCommitCommentOptions, options ...OptionFunc) (*CommitComment, *Response, error) {
+func (s *CommitsService) PostCommitComment(pid interface{}, sha string, opt *PostCommitCommentOptions, options ...RequestOptionFunc) (*CommitComment, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -411,7 +412,7 @@ type CommitStatus struct {
 // GetCommitStatuses gets the statuses of a commit in a project.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#get-the-status-of-a-commit
-func (s *CommitsService) GetCommitStatuses(pid interface{}, sha string, opt *GetCommitStatusesOptions, options ...OptionFunc) ([]*CommitStatus, *Response, error) {
+func (s *CommitsService) GetCommitStatuses(pid interface{}, sha string, opt *GetCommitStatusesOptions, options ...RequestOptionFunc) ([]*CommitStatus, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -447,7 +448,7 @@ type SetCommitStatusOptions struct {
 // SetCommitStatus sets the status of a commit in a project.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#post-the-status-to-commit
-func (s *CommitsService) SetCommitStatus(pid interface{}, sha string, opt *SetCommitStatusOptions, options ...OptionFunc) (*CommitStatus, *Response, error) {
+func (s *CommitsService) SetCommitStatus(pid interface{}, sha string, opt *SetCommitStatusOptions, options ...RequestOptionFunc) (*CommitStatus, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -472,7 +473,7 @@ func (s *CommitsService) SetCommitStatus(pid interface{}, sha string, opt *SetCo
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/commits.html#list-merge-requests-associated-with-a-commit
-func (s *CommitsService) GetMergeRequestsByCommit(pid interface{}, sha string, options ...OptionFunc) ([]*MergeRequest, *Response, error) {
+func (s *CommitsService) GetMergeRequestsByCommit(pid interface{}, sha string, options ...RequestOptionFunc) ([]*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -503,7 +504,7 @@ type CherryPickCommitOptions struct {
 // CherryPickCommit cherry picks a commit to a given branch.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#cherry-pick-a-commit
-func (s *CommitsService) CherryPickCommit(pid interface{}, sha string, opt *CherryPickCommitOptions, options ...OptionFunc) (*Commit, *Response, error) {
+func (s *CommitsService) CherryPickCommit(pid interface{}, sha string, opt *CherryPickCommitOptions, options ...RequestOptionFunc) (*Commit, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -534,7 +535,7 @@ type RevertCommitOptions struct {
 // RevertCommit reverts a commit in a given branch.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/commits.html#revert-a-commit
-func (s *CommitsService) RevertCommit(pid interface{}, sha string, opt *RevertCommitOptions, options ...OptionFunc) (*Commit, *Response, error) {
+func (s *CommitsService) RevertCommit(pid interface{}, sha string, opt *RevertCommitOptions, options ...RequestOptionFunc) (*Commit, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -571,7 +572,7 @@ type GPGSignature struct {
 // GetGPGSiganature gets a GPG signature of a commit.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/commits.html#get-gpg-signature-of-a-commit
-func (s *CommitsService) GetGPGSiganature(pid interface{}, sha string, options ...OptionFunc) (*GPGSignature, *Response, error) {
+func (s *CommitsService) GetGPGSiganature(pid interface{}, sha string, options ...RequestOptionFunc) (*GPGSignature, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err

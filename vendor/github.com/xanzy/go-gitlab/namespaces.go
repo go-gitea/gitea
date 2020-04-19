@@ -56,7 +56,7 @@ type ListNamespacesOptions struct {
 // ListNamespaces gets a list of projects accessible by the authenticated user.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/namespaces.html#list-namespaces
-func (s *NamespacesService) ListNamespaces(opt *ListNamespacesOptions, options ...OptionFunc) ([]*Namespace, *Response, error) {
+func (s *NamespacesService) ListNamespaces(opt *ListNamespacesOptions, options ...RequestOptionFunc) ([]*Namespace, *Response, error) {
 	req, err := s.client.NewRequest("GET", "namespaces", opt, options)
 	if err != nil {
 		return nil, nil, err
@@ -76,7 +76,7 @@ func (s *NamespacesService) ListNamespaces(opt *ListNamespacesOptions, options .
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/namespaces.html#search-for-namespace
-func (s *NamespacesService) SearchNamespace(query string, options ...OptionFunc) ([]*Namespace, *Response, error) {
+func (s *NamespacesService) SearchNamespace(query string, options ...RequestOptionFunc) ([]*Namespace, *Response, error) {
 	var q struct {
 		Search string `url:"search,omitempty" json:"search,omitempty"`
 	}
@@ -100,7 +100,7 @@ func (s *NamespacesService) SearchNamespace(query string, options ...OptionFunc)
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/namespaces.html#get-namespace-by-id
-func (s *NamespacesService) GetNamespace(id interface{}, options ...OptionFunc) (*Namespace, *Response, error) {
+func (s *NamespacesService) GetNamespace(id interface{}, options ...RequestOptionFunc) (*Namespace, *Response, error) {
 	namespace, err := parseID(id)
 	if err != nil {
 		return nil, nil, err

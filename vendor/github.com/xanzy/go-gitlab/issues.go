@@ -19,6 +19,7 @@ package gitlab
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -52,6 +53,13 @@ type IssueAssignee struct {
 	Username  string `json:"username"`
 }
 
+// IssueReferences represents references of the issue.
+type IssueReferences struct {
+	Short    string `json:"short"`
+	Relative string `json:"relative"`
+	Full     string `json:"full"`
+}
+
 // IssueLinks represents links of the issue.
 type IssueLinks struct {
 	Self       string `json:"self"`
@@ -64,33 +72,38 @@ type IssueLinks struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html
 type Issue struct {
-	ID                int              `json:"id"`
-	IID               int              `json:"iid"`
-	ProjectID         int              `json:"project_id"`
-	Milestone         *Milestone       `json:"milestone"`
-	Author            *IssueAuthor     `json:"author"`
-	Description       string           `json:"description"`
-	State             string           `json:"state"`
-	Assignees         []*IssueAssignee `json:"assignees"`
-	Assignee          *IssueAssignee   `json:"assignee"`
-	Upvotes           int              `json:"upvotes"`
-	Downvotes         int              `json:"downvotes"`
-	Labels            Labels           `json:"labels"`
-	Title             string           `json:"title"`
-	UpdatedAt         *time.Time       `json:"updated_at"`
-	CreatedAt         *time.Time       `json:"created_at"`
-	ClosedAt          *time.Time       `json:"closed_at"`
-	Subscribed        bool             `json:"subscribed"`
-	UserNotesCount    int              `json:"user_notes_count"`
-	DueDate           *ISOTime         `json:"due_date"`
-	WebURL            string           `json:"web_url"`
-	TimeStats         *TimeStats       `json:"time_stats"`
-	Confidential      bool             `json:"confidential"`
-	Weight            int              `json:"weight"`
-	DiscussionLocked  bool             `json:"discussion_locked"`
-	Links             *IssueLinks      `json:"_links"`
-	IssueLinkID       int              `json:"issue_link_id"`
-	MergeRequestCount int              `json:"merge_requests_count"`
+	ID                   int              `json:"id"`
+	IID                  int              `json:"iid"`
+	State                string           `json:"state"`
+	Description          string           `json:"description"`
+	Author               *IssueAuthor     `json:"author"`
+	Milestone            *Milestone       `json:"milestone"`
+	ProjectID            int              `json:"project_id"`
+	Assignees            []*IssueAssignee `json:"assignees"`
+	Assignee             *IssueAssignee   `json:"assignee"`
+	UpdatedAt            *time.Time       `json:"updated_at"`
+	ClosedAt             *time.Time       `json:"closed_at"`
+	Title                string           `json:"title"`
+	CreatedAt            *time.Time       `json:"created_at"`
+	Labels               Labels           `json:"labels"`
+	Upvotes              int              `json:"upvotes"`
+	Downvotes            int              `json:"downvotes"`
+	DueDate              *ISOTime         `json:"due_date"`
+	WebURL               string           `json:"web_url"`
+	References           *IssueReferences `json:"references"`
+	TimeStats            *TimeStats       `json:"time_stats"`
+	Confidential         bool             `json:"confidential"`
+	Weight               int              `json:"weight"`
+	DiscussionLocked     bool             `json:"discussion_locked"`
+	Subscribed           bool             `json:"subscribed"`
+	UserNotesCount       int              `json:"user_notes_count"`
+	Links                *IssueLinks      `json:"_links"`
+	IssueLinkID          int              `json:"issue_link_id"`
+	MergeRequestCount    int              `json:"merge_requests_count"`
+	TaskCompletionStatus struct {
+		Count          int `json:"count"`
+		CompletedCount int `json:"completed_count"`
+	} `json:"task_completion_status"`
 }
 
 func (i Issue) String() string {
@@ -103,6 +116,12 @@ type Labels []string
 // MarshalJSON implements the json.Marshaler interface.
 func (l *Labels) MarshalJSON() ([]byte, error) {
 	return json.Marshal(strings.Join(*l, ","))
+}
+
+// EncodeValues implements the query.EncodeValues interface
+func (l *Labels) EncodeValues(key string, v *url.Values) error {
+	v.Set(key, strings.Join(*l, ","))
+	return nil
 }
 
 // ListIssuesOptions represents the available ListIssues() options.
@@ -133,7 +152,7 @@ type ListIssuesOptions struct {
 // takes pagination parameters page and per_page to restrict the list of issues.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-issues
-func (s *IssuesService) ListIssues(opt *ListIssuesOptions, options ...OptionFunc) ([]*Issue, *Response, error) {
+func (s *IssuesService) ListIssues(opt *ListIssuesOptions, options ...RequestOptionFunc) ([]*Issue, *Response, error) {
 	req, err := s.client.NewRequest("GET", "issues", opt, options)
 	if err != nil {
 		return nil, nil, err
@@ -175,7 +194,7 @@ type ListGroupIssuesOptions struct {
 // pagination parameters page and per_page to return the list of group issues.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-group-issues
-func (s *IssuesService) ListGroupIssues(pid interface{}, opt *ListGroupIssuesOptions, options ...OptionFunc) ([]*Issue, *Response, error) {
+func (s *IssuesService) ListGroupIssues(pid interface{}, opt *ListGroupIssuesOptions, options ...RequestOptionFunc) ([]*Issue, *Response, error) {
 	group, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -225,7 +244,7 @@ type ListProjectIssuesOptions struct {
 // pagination parameters page and per_page to return the list of project issues.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-project-issues
-func (s *IssuesService) ListProjectIssues(pid interface{}, opt *ListProjectIssuesOptions, options ...OptionFunc) ([]*Issue, *Response, error) {
+func (s *IssuesService) ListProjectIssues(pid interface{}, opt *ListProjectIssuesOptions, options ...RequestOptionFunc) ([]*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -249,7 +268,7 @@ func (s *IssuesService) ListProjectIssues(pid interface{}, opt *ListProjectIssue
 // GetIssue gets a single project issue.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#single-issues
-func (s *IssuesService) GetIssue(pid interface{}, issue int, options ...OptionFunc) (*Issue, *Response, error) {
+func (s *IssuesService) GetIssue(pid interface{}, issue int, options ...RequestOptionFunc) (*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -291,7 +310,7 @@ type CreateIssueOptions struct {
 // CreateIssue creates a new project issue.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#new-issues
-func (s *IssuesService) CreateIssue(pid interface{}, opt *CreateIssueOptions, options ...OptionFunc) (*Issue, *Response, error) {
+func (s *IssuesService) CreateIssue(pid interface{}, opt *CreateIssueOptions, options ...RequestOptionFunc) (*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -333,7 +352,7 @@ type UpdateIssueOptions struct {
 // to mark an issue as closed.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#edit-issues
-func (s *IssuesService) UpdateIssue(pid interface{}, issue int, opt *UpdateIssueOptions, options ...OptionFunc) (*Issue, *Response, error) {
+func (s *IssuesService) UpdateIssue(pid interface{}, issue int, opt *UpdateIssueOptions, options ...RequestOptionFunc) (*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -357,7 +376,7 @@ func (s *IssuesService) UpdateIssue(pid interface{}, issue int, opt *UpdateIssue
 // DeleteIssue deletes a single project issue.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#delete-an-issue
-func (s *IssuesService) DeleteIssue(pid interface{}, issue int, options ...OptionFunc) (*Response, error) {
+func (s *IssuesService) DeleteIssue(pid interface{}, issue int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
@@ -383,7 +402,7 @@ type MoveIssueOptions struct {
 // to mark an issue as closed.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/issues.html#move-an-issue
-func (s *IssuesService) MoveIssue(pid interface{}, issue int, opt *MoveIssueOptions, options ...OptionFunc) (*Issue, *Response, error) {
+func (s *IssuesService) MoveIssue(pid interface{}, issue int, opt *MoveIssueOptions, options ...RequestOptionFunc) (*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -410,7 +429,7 @@ func (s *IssuesService) MoveIssue(pid interface{}, issue int, opt *MoveIssueOpti
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/merge_requests.html#subscribe-to-a-merge-request
-func (s *IssuesService) SubscribeToIssue(pid interface{}, issue int, options ...OptionFunc) (*Issue, *Response, error) {
+func (s *IssuesService) SubscribeToIssue(pid interface{}, issue int, options ...RequestOptionFunc) (*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -437,7 +456,7 @@ func (s *IssuesService) SubscribeToIssue(pid interface{}, issue int, options ...
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/merge_requests.html#unsubscribe-from-a-merge-request
-func (s *IssuesService) UnsubscribeFromIssue(pid interface{}, issue int, options ...OptionFunc) (*Issue, *Response, error) {
+func (s *IssuesService) UnsubscribeFromIssue(pid interface{}, issue int, options ...RequestOptionFunc) (*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -470,7 +489,7 @@ type ListMergeRequestsClosingIssueOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/issues.html#list-merge-requests-that-will-close-issue-on-merge
-func (s *IssuesService) ListMergeRequestsClosingIssue(pid interface{}, issue int, opt *ListMergeRequestsClosingIssueOptions, options ...OptionFunc) ([]*MergeRequest, *Response, error) {
+func (s *IssuesService) ListMergeRequestsClosingIssue(pid interface{}, issue int, opt *ListMergeRequestsClosingIssueOptions, options ...RequestOptionFunc) ([]*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -503,7 +522,7 @@ type ListMergeRequestsRelatedToIssueOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/issues.html#list-merge-requests-related-to-issue
-func (s *IssuesService) ListMergeRequestsRelatedToIssue(pid interface{}, issue int, opt *ListMergeRequestsRelatedToIssueOptions, options ...OptionFunc) ([]*MergeRequest, *Response, error) {
+func (s *IssuesService) ListMergeRequestsRelatedToIssue(pid interface{}, issue int, opt *ListMergeRequestsRelatedToIssueOptions, options ...RequestOptionFunc) ([]*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -531,7 +550,7 @@ func (s *IssuesService) ListMergeRequestsRelatedToIssue(pid interface{}, issue i
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/issues.html#set-a-time-estimate-for-an-issue
-func (s *IssuesService) SetTimeEstimate(pid interface{}, issue int, opt *SetTimeEstimateOptions, options ...OptionFunc) (*TimeStats, *Response, error) {
+func (s *IssuesService) SetTimeEstimate(pid interface{}, issue int, opt *SetTimeEstimateOptions, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	return s.timeStats.setTimeEstimate(pid, "issues", issue, opt, options...)
 }
 
@@ -539,7 +558,7 @@ func (s *IssuesService) SetTimeEstimate(pid interface{}, issue int, opt *SetTime
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/issues.html#reset-the-time-estimate-for-an-issue
-func (s *IssuesService) ResetTimeEstimate(pid interface{}, issue int, options ...OptionFunc) (*TimeStats, *Response, error) {
+func (s *IssuesService) ResetTimeEstimate(pid interface{}, issue int, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	return s.timeStats.resetTimeEstimate(pid, "issues", issue, options...)
 }
 
@@ -547,7 +566,7 @@ func (s *IssuesService) ResetTimeEstimate(pid interface{}, issue int, options ..
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/issues.html#add-spent-time-for-an-issue
-func (s *IssuesService) AddSpentTime(pid interface{}, issue int, opt *AddSpentTimeOptions, options ...OptionFunc) (*TimeStats, *Response, error) {
+func (s *IssuesService) AddSpentTime(pid interface{}, issue int, opt *AddSpentTimeOptions, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	return s.timeStats.addSpentTime(pid, "issues", issue, opt, options...)
 }
 
@@ -555,7 +574,7 @@ func (s *IssuesService) AddSpentTime(pid interface{}, issue int, opt *AddSpentTi
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/issues.html#reset-spent-time-for-an-issue
-func (s *IssuesService) ResetSpentTime(pid interface{}, issue int, options ...OptionFunc) (*TimeStats, *Response, error) {
+func (s *IssuesService) ResetSpentTime(pid interface{}, issue int, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	return s.timeStats.resetSpentTime(pid, "issues", issue, options...)
 }
 
@@ -563,6 +582,6 @@ func (s *IssuesService) ResetSpentTime(pid interface{}, issue int, options ...Op
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/issues.html#get-time-tracking-stats
-func (s *IssuesService) GetTimeSpent(pid interface{}, issue int, options ...OptionFunc) (*TimeStats, *Response, error) {
+func (s *IssuesService) GetTimeSpent(pid interface{}, issue int, options ...RequestOptionFunc) (*TimeStats, *Response, error) {
 	return s.timeStats.getTimeSpent(pid, "issues", issue, options...)
 }

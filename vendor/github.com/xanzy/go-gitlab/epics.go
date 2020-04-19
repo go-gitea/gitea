@@ -71,7 +71,7 @@ type ListGroupEpicsOptions struct {
 // parameters page and per_page to return the list of group epics.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/epics.html#list-epics-for-a-group
-func (s *EpicsService) ListGroupEpics(gid interface{}, opt *ListGroupEpicsOptions, options ...OptionFunc) ([]*Epic, *Response, error) {
+func (s *EpicsService) ListGroupEpics(gid interface{}, opt *ListGroupEpicsOptions, options ...RequestOptionFunc) ([]*Epic, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -95,7 +95,7 @@ func (s *EpicsService) ListGroupEpics(gid interface{}, opt *ListGroupEpicsOption
 // GetEpic gets a single group epic.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/epics.html#single-epic
-func (s *EpicsService) GetEpic(gid interface{}, epic int, options ...OptionFunc) (*Epic, *Response, error) {
+func (s *EpicsService) GetEpic(gid interface{}, epic int, options ...RequestOptionFunc) (*Epic, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -132,7 +132,7 @@ type CreateEpicOptions struct {
 // CreateEpic creates a new group epic.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/epics.html#new-epic
-func (s *EpicsService) CreateEpic(gid interface{}, opt *CreateEpicOptions, options ...OptionFunc) (*Epic, *Response, error) {
+func (s *EpicsService) CreateEpic(gid interface{}, opt *CreateEpicOptions, options ...RequestOptionFunc) (*Epic, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -171,7 +171,7 @@ type UpdateEpicOptions struct {
 // to mark an epic as closed.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/epics.html#update-epic
-func (s *EpicsService) UpdateEpic(gid interface{}, epic int, opt *UpdateEpicOptions, options ...OptionFunc) (*Epic, *Response, error) {
+func (s *EpicsService) UpdateEpic(gid interface{}, epic int, opt *UpdateEpicOptions, options ...RequestOptionFunc) (*Epic, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -195,7 +195,7 @@ func (s *EpicsService) UpdateEpic(gid interface{}, epic int, opt *UpdateEpicOpti
 // DeleteEpic deletes a single group epic.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/epics.html#delete-epic
-func (s *EpicsService) DeleteEpic(gid interface{}, epic int, options ...OptionFunc) (*Response, error) {
+func (s *EpicsService) DeleteEpic(gid interface{}, epic int, options ...RequestOptionFunc) (*Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, err

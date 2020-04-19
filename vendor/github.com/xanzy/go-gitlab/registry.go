@@ -57,7 +57,7 @@ type ListRegistryRepositoriesOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/container_registry.html#list-registry-repositories
-func (s *ContainerRegistryService) ListRegistryRepositories(pid interface{}, opt *ListRegistryRepositoriesOptions, options ...OptionFunc) ([]*RegistryRepository, *Response, error) {
+func (s *ContainerRegistryService) ListRegistryRepositories(pid interface{}, opt *ListRegistryRepositoriesOptions, options ...RequestOptionFunc) ([]*RegistryRepository, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -82,7 +82,7 @@ func (s *ContainerRegistryService) ListRegistryRepositories(pid interface{}, opt
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/container_registry.html#delete-registry-repository
-func (s *ContainerRegistryService) DeleteRegistryRepository(pid interface{}, repository int, options ...OptionFunc) (*Response, error) {
+func (s *ContainerRegistryService) DeleteRegistryRepository(pid interface{}, repository int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ type ListRegistryRepositoryTagsOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/container_registry.html#list-repository-tags
-func (s *ContainerRegistryService) ListRegistryRepositoryTags(pid interface{}, repository int, opt *ListRegistryRepositoryTagsOptions, options ...OptionFunc) ([]*RegistryRepositoryTag, *Response, error) {
+func (s *ContainerRegistryService) ListRegistryRepositoryTags(pid interface{}, repository int, opt *ListRegistryRepositoryTagsOptions, options ...RequestOptionFunc) ([]*RegistryRepositoryTag, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -136,7 +136,7 @@ func (s *ContainerRegistryService) ListRegistryRepositoryTags(pid interface{}, r
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/container_registry.html#get-details-of-a-repository-tag
-func (s *ContainerRegistryService) GetRegistryRepositoryTagDetail(pid interface{}, repository int, tagName string, options ...OptionFunc) (*RegistryRepositoryTag, *Response, error) {
+func (s *ContainerRegistryService) GetRegistryRepositoryTagDetail(pid interface{}, repository int, tagName string, options ...RequestOptionFunc) (*RegistryRepositoryTag, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -165,7 +165,7 @@ func (s *ContainerRegistryService) GetRegistryRepositoryTagDetail(pid interface{
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/container_registry.html#delete-a-repository-tag
-func (s *ContainerRegistryService) DeleteRegistryRepositoryTag(pid interface{}, repository int, tagName string, options ...OptionFunc) (*Response, error) {
+func (s *ContainerRegistryService) DeleteRegistryRepositoryTag(pid interface{}, repository int, tagName string, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ type DeleteRegistryRepositoryTagsOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/container_registry.html#delete-repository-tags-in-bulk
-func (s *ContainerRegistryService) DeleteRegistryRepositoryTags(pid interface{}, repository int, opt *DeleteRegistryRepositoryTagsOptions, options ...OptionFunc) (*Response, error) {
+func (s *ContainerRegistryService) DeleteRegistryRepositoryTags(pid interface{}, repository int, opt *DeleteRegistryRepositoryTagsOptions, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err

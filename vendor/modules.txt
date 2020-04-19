@@ -345,7 +345,7 @@ github.com/gogs/chardet
 github.com/gogs/cron
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 github.com/golang-sql/civil
-# github.com/golang/protobuf v1.3.4
+# github.com/golang/protobuf v1.4.0
 ## explicit
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.1
@@ -368,6 +368,11 @@ github.com/gorilla/mux
 github.com/gorilla/securecookie
 # github.com/gorilla/sessions v1.2.0
 github.com/gorilla/sessions
+# github.com/hashicorp/go-cleanhttp v0.5.1
+github.com/hashicorp/go-cleanhttp
+# github.com/hashicorp/go-retryablehttp v0.6.6
+## explicit
+github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
 github.com/hashicorp/hcl/hcl/ast
@@ -638,7 +643,7 @@ github.com/unknwon/paginater
 github.com/urfave/cli
 # github.com/willf/bitset v1.1.10
 github.com/willf/bitset
-# github.com/xanzy/go-gitlab v0.22.1
+# github.com/xanzy/go-gitlab v0.31.0
 ## explicit
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
@@ -710,7 +715,7 @@ golang.org/x/net/html/charset
 golang.org/x/net/idna
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+# golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/google
@@ -747,6 +752,9 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
+# golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
+## explicit
+golang.org/x/time/rate
 # golang.org/x/tools v0.0.0-20200325010219-a49f79bcc224
 ## explicit
 golang.org/x/tools/cover
@@ -772,7 +780,8 @@ golang.org/x/tools/internal/packagesinternal
 # golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/appengine v1.6.4
+# google.golang.org/appengine v1.6.5
+## explicit
 google.golang.org/appengine
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/internal
@@ -784,6 +793,34 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
+# google.golang.org/protobuf v1.21.0
+google.golang.org/protobuf/encoding/prototext
+google.golang.org/protobuf/encoding/protowire
+google.golang.org/protobuf/internal/descfmt
+google.golang.org/protobuf/internal/descopts
+google.golang.org/protobuf/internal/detrand
+google.golang.org/protobuf/internal/encoding/defval
+google.golang.org/protobuf/internal/encoding/messageset
+google.golang.org/protobuf/internal/encoding/tag
+google.golang.org/protobuf/internal/encoding/text
+google.golang.org/protobuf/internal/errors
+google.golang.org/protobuf/internal/fieldnum
+google.golang.org/protobuf/internal/fieldsort
+google.golang.org/protobuf/internal/filedesc
+google.golang.org/protobuf/internal/filetype
+google.golang.org/protobuf/internal/flags
+google.golang.org/protobuf/internal/genname
+google.golang.org/protobuf/internal/impl
+google.golang.org/protobuf/internal/mapsort
+google.golang.org/protobuf/internal/pragma
+google.golang.org/protobuf/internal/set
+google.golang.org/protobuf/internal/strs
+google.golang.org/protobuf/internal/version
+google.golang.org/protobuf/proto
+google.golang.org/protobuf/reflect/protoreflect
+google.golang.org/protobuf/reflect/protoregistry
+google.golang.org/protobuf/runtime/protoiface
+google.golang.org/protobuf/runtime/protoimpl
 # gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc
 ## explicit
 gopkg.in/alexcesaro/quotedprintable.v3

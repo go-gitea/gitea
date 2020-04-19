@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -87,15 +86,13 @@ type GitlabDownloader struct {
 //   Use either a username/password, personal token entered into the username field, or anonymous/public access
 //   Note: Public access only allows very basic access
 func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDownloader {
-	var client *http.Client
 	var gitlabClient *gitlab.Client
 	var err error
 	if username != "" {
 		if password == "" {
-			gitlabClient = gitlab.NewClient(client, username)
+			gitlabClient, err = gitlab.NewClient(username)
 		} else {
-			gitlabClient, err = gitlab.NewBasicAuthClient(client, baseURL, username, password)
-
+			gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
 		}
 	}
 

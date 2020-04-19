@@ -78,7 +78,7 @@ type AddLicenseOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/license.html#add-a-new-license
-func (s *LicenseService) AddLicense(opt *AddLicenseOptions, options ...OptionFunc) (*License, *Response, error) {
+func (s *LicenseService) AddLicense(opt *AddLicenseOptions, options ...RequestOptionFunc) (*License, *Response, error) {
 	req, err := s.client.NewRequest("POST", "license", opt, options)
 	if err != nil {
 		return nil, nil, err

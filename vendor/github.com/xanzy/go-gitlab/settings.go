@@ -55,11 +55,11 @@ type Settings struct {
 	ContainerRegistryTokenExpireDelay         int               `json:"container_registry_token_expire_delay"`
 	DefaultArtifactsExpireIn                  string            `json:"default_artifacts_expire_in"`
 	DefaultBranchProtection                   int               `json:"default_branch_protection"`
-	DefaultGroupVisibility                    *VisibilityValue  `json:"default_group_visibility"`
+	DefaultGroupVisibility                    VisibilityValue   `json:"default_group_visibility"`
 	DefaultProjectCreation                    int               `json:"default_project_creation"`
 	DefaultProjectsLimit                      int               `json:"default_projects_limit"`
-	DefaultProjectVisibility                  *VisibilityValue  `json:"default_project_visibility"`
-	DefaultSnippetVisibility                  *VisibilityValue  `json:"default_snippet_visibility"`
+	DefaultProjectVisibility                  VisibilityValue   `json:"default_project_visibility"`
+	DefaultSnippetVisibility                  VisibilityValue   `json:"default_snippet_visibility"`
 	DiffMaxPatchBytes                         int               `json:"diff_max_patch_bytes"`
 	DisabledOauthSignInSources                []string          `json:"disabled_oauth_sign_in_sources"`
 	DNSRebindingProtectionEnabled             bool              `json:"dns_rebinding_protection_enabled"`
@@ -205,7 +205,7 @@ func (s Settings) String() string {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/settings.html#get-current-application.settings
-func (s *SettingsService) GetSettings(options ...OptionFunc) (*Settings, *Response, error) {
+func (s *SettingsService) GetSettings(options ...RequestOptionFunc) (*Settings, *Response, error) {
 	req, err := s.client.NewRequest("GET", "application/settings", nil, options)
 	if err != nil {
 		return nil, nil, err
@@ -393,7 +393,7 @@ type UpdateSettingsOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/settings.html#change-application.settings
-func (s *SettingsService) UpdateSettings(opt *UpdateSettingsOptions, options ...OptionFunc) (*Settings, *Response, error) {
+func (s *SettingsService) UpdateSettings(opt *UpdateSettingsOptions, options ...RequestOptionFunc) (*Settings, *Response, error) {
 	req, err := s.client.NewRequest("PUT", "application/settings", opt, options)
 	if err != nil {
 		return nil, nil, err
