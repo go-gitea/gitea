@@ -116,7 +116,7 @@ var checklist = []check{
 	{
 		title:     "Check consistency of database",
 		name:      "check-db-consistency",
-		isDefault: false,
+		isDefault: true,
 		f:         runDoctorCheckDBConsistency,
 	},
 	// more checks please append here
