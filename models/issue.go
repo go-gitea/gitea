@@ -1874,3 +1874,96 @@ func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, orig
 		})
 	return err
 }
+
+// DeleteIssuesByIDs and Objects who depend on them
+func DeleteIssuesByIDs(ids []int64) (err error) {
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	deleteCond := builder.Select("id").From("issue").Where(builder.In("id", ids))
+	var attachmentPaths []string
+	if attachmentPaths, err = deleteIssuesByBuilder(sess, deleteCond); err != nil {
+		return err
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+
+	// Remove issue attachment files.
+	for i := range attachmentPaths {
+		removeAllWithNotice(x, "Delete issue attachment", attachmentPaths[i])
+	}
+
+	return nil
+}
+
+func deleteIssuesByBuilder(sess Engine, issueIDBuilder *builder.Builder) (attachmentPaths []string, err error) {
+
+	// Delete comments and attachments
+	if _, err = sess.In("issue_id", issueIDBuilder).
+		Delete(&Comment{}); err != nil {
+		return
+	}
+
+	// Dependencies for issues in this repository
+	if _, err = sess.In("issue_id", issueIDBuilder).
+		Delete(&IssueDependency{}); err != nil {
+		return
+	}
+
+	// Delete dependencies for issues in other repositories
+	if _, err = sess.In("dependency_id", issueIDBuilder).
+		Delete(&IssueDependency{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", issueIDBuilder).
+		Delete(&IssueUser{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", issueIDBuilder).
+		Delete(&Reaction{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", issueIDBuilder).
+		Delete(&IssueWatch{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", issueIDBuilder).
+		Delete(&Stopwatch{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", issueIDBuilder).
+		Delete(&TrackedTime{}); err != nil {
+		return
+	}
+
+	var attachments []*Attachment
+	if err = sess.In("issue_id", issueIDBuilder).
+		Find(&attachments); err != nil {
+		return
+	}
+	for j := range attachments {
+		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
+	}
+
+	if _, err = sess.In("issue_id", issueIDBuilder).
+		Delete(&Attachment{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("id", issueIDBuilder).Delete(&Issue{}); err != nil {
+		return
+	}
+
+	return
+}
