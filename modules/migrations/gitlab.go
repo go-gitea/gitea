@@ -92,10 +92,9 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 	var err error
 	if username != "" {
 		if password == "" {
-			gitlabClient = gitlab.NewClient(client, username)
+			gitlabClient, err = gitlab.NewClient(username, gitlab.WithHTTPClient(client))
 		} else {
-			gitlabClient, err = gitlab.NewBasicAuthClient(client, baseURL, username, password)
-
+			gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithHTTPClient(client), gitlab.WithBaseURL(baseURL))
 		}
 	}
 
