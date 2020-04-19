@@ -33,7 +33,7 @@ type GitlabDownloaderFactory struct {
 }
 
 // Match returns ture if the migration remote URL matched this downloader factory
-//   To allow self-hosting Gitlab instances, this matches based on the Host or a '#gitlab' fragment
+// To allow self-hosting Gitlab instances, this matches based on the Host or a '#gitlab' fragment
 func (f *GitlabDownloaderFactory) Match(opts base.MigrateOptions) (bool, error) {
 	var matched bool
 
