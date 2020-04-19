@@ -5,14 +5,15 @@
 package image
 
 import (
-	"bytes"
 	"io"
+	"regexp"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 )
 
 // SanitizeSVG remove potential malicious dom elements
-func SanitizeSVG(svgData io.Reader) *bytes.Buffer {
+func SanitizeSVG(svgData io.Reader) string {
 	p := bluemonday.NewPolicy()
 	p.AllowElements("svg", "title", "path", "desc", "g")
 	p.AllowAttrs("id", "viewbox", "role", "aria-labelledby", "xmlns", "xmlns:xlink", "xml:space").OnElements("svg")
@@ -26,5 +27,12 @@ func SanitizeSVG(svgData io.Reader) *bytes.Buffer {
 	//p.AllowAttrs("fill").Matching(regexp.MustCompile(`((http|ftp)s?)|(url *\( *' *//)`)).OnElements("rect") //TODO match opposite
 
 	p.SkipElementsContent("this", "script")
-	return p.SanitizeReader(svgData)
+	cleanedSVG := p.SanitizeReader(svgData).String()
+
+	//Remove empty lines
+	cleanedSVG = strings.TrimSpace(cleanedSVG)
+	r := regexp.MustCompile("\n+") //TODO move this somewhere else
+	cleanedSVG = r.ReplaceAllString(cleanedSVG, "\n")
+
+	return cleanedSVG
 }

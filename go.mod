@@ -109,7 +109,6 @@ require (
 	github.com/yuin/goldmark v1.1.25
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 	go.etcd.io/bbolt v1.3.3 // indirect
-	golang.org/dl v0.0.0-20200414231856-f86334ee252a // indirect
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
