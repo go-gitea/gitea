@@ -6,11 +6,7 @@ package image
 
 import (
 	"bytes"
-	"io"
 	"testing"
-
-	minify "github.com/tdewolff/minify/v2"
-	"github.com/tdewolff/minify/v2/svg"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -346,13 +342,4 @@ func TestSanitizeSVG(t *testing.T) {
 			assert.Equal(t, tt.want, out, "The sanitized svg is not equal")
 		})
 	}
-}
-
-// minifySVG compact svg strings to ease testing (could maybe useful leter in package)
-func minifySVG(svgData io.Reader) (*bytes.Buffer, error) {
-	m := minify.New()
-	m.AddFunc("image/svg+xml", svg.Minify)
-	var out bytes.Buffer
-	err := m.Minify("image/svg+xml", &out, svgData)
-	return &out, err
 }

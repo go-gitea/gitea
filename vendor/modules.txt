@@ -608,18 +608,6 @@ github.com/syndtr/goleveldb/leveldb/opt
 github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
-# github.com/tdewolff/minify/v2 v2.7.3
-## explicit
-github.com/tdewolff/minify/v2
-github.com/tdewolff/minify/v2/css
-github.com/tdewolff/minify/v2/svg
-github.com/tdewolff/minify/v2/xml
-# github.com/tdewolff/parse/v2 v2.4.2
-github.com/tdewolff/parse/v2
-github.com/tdewolff/parse/v2/buffer
-github.com/tdewolff/parse/v2/css
-github.com/tdewolff/parse/v2/strconv
-github.com/tdewolff/parse/v2/xml
 # github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481
 ## explicit
 # github.com/tinylib/msgp v1.1.1
@@ -678,8 +666,6 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/dl v0.0.0-20200414231856-f86334ee252a
-## explicit
 # golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 ## explicit
 golang.org/x/crypto/acme
