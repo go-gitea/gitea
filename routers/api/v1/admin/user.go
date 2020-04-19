@@ -351,10 +351,12 @@ func GetAllUsers(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	users, _, err := models.SearchUsers(&models.SearchUserOptions{
+	listOptions := utils.GetListOptions(ctx)
+
+	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
 		Type:        models.UserTypeIndividual,
 		OrderBy:     models.SearchOrderByAlphabetically,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAllUsers", err)
@@ -366,5 +368,7 @@ func GetAllUsers(ctx *context.APIContext) {
 		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
 	ctx.JSON(http.StatusOK, &results)
 }

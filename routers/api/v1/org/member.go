@@ -20,10 +20,13 @@ import (
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
 	var members []*models.User
-	members, _, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
+
+	listOptions := utils.GetListOptions(ctx)
+
+	members, maxResults, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
 		OrgID:       ctx.Org.Organization.ID,
 		PublicOnly:  publicOnly,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
@@ -34,6 +37,9 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 	for i, member := range members {
 		apiMembers[i] = convert.ToUser(member, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
 	ctx.JSON(http.StatusOK, apiMembers)
 }
 
