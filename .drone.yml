@@ -99,7 +99,19 @@ services:
     image: mysql:5.7
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
-      MYSQL_DATABASE: test
+      MYSQL_DATABASE: test      
+      GOPROXY: off
+      TAGS: bindata sqlite sqlite_unlock_notify
+      GITLAB_READ_TOKEN:
+        from_secret: gitlab_read_token
+    depends_on:
+      - build
+    when:
+      branch:
+        - master
+      event:
+        - push
+        - pull_request
 
   - name: mysql8
     pull: default
@@ -176,6 +188,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -190,6 +203,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -204,6 +218,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -302,6 +317,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -316,6 +332,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
