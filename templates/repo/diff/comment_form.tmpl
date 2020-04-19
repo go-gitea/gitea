@@ -16,10 +16,10 @@
 			<a class="item" data-tab="preview" data-url="{{$.root.Repository.APIURL}}/markdown" data-context="{{$.root.RepoLink}}">{{$.root.i18n.Tr "preview"}}</a>
 		</div>
 		<div class="field">
-			<div class="ui active tab tab-segment" data-tab="write">
+			<div class="ui active tab" data-tab="write">
 				<textarea name="content" placeholder="{{$.root.i18n.Tr "repo.diff.comment.placeholder"}}"></textarea>
 			</div>
-			<div class="ui tab tab-segment markdown" data-tab="preview">
+			<div class="ui tab markdown" data-tab="preview">
 			{{.i18n.Tr "loading"}}
 			</div>
 		</div>
