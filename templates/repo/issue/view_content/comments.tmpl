@@ -22,7 +22,7 @@
 				{{if .OriginalAuthor }}
 					<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{$.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}} {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
 				{{else}}
-					<span class="text grey"><a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}</span>
+					<span class="text grey"><a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}</span>
 				{{end}}
 					{{if not $.Repository.IsArchived}}
 						<div class="ui right actions">
@@ -74,7 +74,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}</span>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
+			</span>
 		</div>
 	{{else if eq .Type 2}}
 		<div class="timeline-item event" id="{{.HashTag}}">
@@ -82,7 +85,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}</span>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
+			</span>
 		</div>
 	{{else if eq .Type 28}}
 		<div class="timeline-item event" id="{{.HashTag}}">
@@ -91,7 +97,7 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey">
-				<a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>  
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$link := printf "%s/commit/%s" $.Repository.HTMLURL $.Issue.PullRequest.MergedCommitID}}
 				{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
 			</span>
@@ -116,7 +122,8 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			{{if eq .RefAction 3}}<del>{{end}}
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$.i18n.Tr $refTr .EventTag $createdStr .RefCommentHTMLURL $refFrom | Safe}}
 			</span>
 			{{if eq .RefAction 3}}</del>{{end}}
@@ -131,8 +138,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.commit_ref_at" .EventTag $createdStr | Safe}}</span>
-
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.commit_ref_at" .EventTag $createdStr | Safe}}
+			</span>
 			<div class="detail">
 				{{svg "octicon-git-commit" 16}}
 				<span class="text grey">{{.Content | Str2html}}</span>
@@ -145,8 +154,10 @@
 				<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 					<img src="{{.Poster.RelAvatarLink}}">
 				</a>
-				<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape) $createdStr | Safe}}{{end}}</span>
+				<span class="text grey">
+					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape) $createdStr | Safe}}{{end}}
+				</span>
 			</div>
 		{{end}}
 	{{else if eq .Type 8}}
@@ -155,8 +166,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-			{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}</span>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
+			</span>
 		</div>
 	{{else if eq .Type 9}}
 		<div class="timeline-item event" id="{{.HashTag}}">
@@ -167,7 +180,7 @@
 						<img src="{{.Assignee.RelAvatarLink}}">
 					</a>
 					<span class="text grey">
-						<a href="{{.Assignee.HomeLink}}">{{.Assignee.GetDisplayName}}</a>
+						<a class="author" href="{{.Assignee.HomeLink}}">{{.Assignee.GetDisplayName}}</a>
 						{{ if eq .Poster.ID .Assignee.ID }}
 							{{$.i18n.Tr "repo.issues.remove_self_assignment" $createdStr | Safe}}
 						{{ else }}
@@ -179,7 +192,7 @@
 						<img src="{{.Assignee.RelAvatarLink}}">
 					</a>
 					<span class="text grey">
-						<a href="{{.Assignee.HomeLink}}">{{.Assignee.GetDisplayName}}</a>
+						<a class="author" href="{{.Assignee.HomeLink}}">{{.Assignee.GetDisplayName}}</a>
 						{{if eq .Poster.ID .AssigneeID}}
 							{{$.i18n.Tr "repo.issues.self_assign_at" $createdStr | Safe}}
 						{{else}}
@@ -195,8 +208,9 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-			{{$.i18n.Tr "repo.issues.change_title_at" (.OldTitle|Escape) (.NewTitle|Escape) $createdStr | Safe}}
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.change_title_at" (.OldTitle|Escape) (.NewTitle|Escape) $createdStr | Safe}}
 			</span>
 		</div>
 	{{else if eq .Type 11}}
@@ -205,8 +219,9 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-			{{$.i18n.Tr "repo.issues.delete_branch_at" (.CommitSHA|Escape) $createdStr | Safe}}
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.delete_branch_at" (.CommitSHA|Escape) $createdStr | Safe}}
 			</span>
 		</div>
 	{{else if eq .Type 12}}
@@ -215,7 +230,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}</span>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}
+			</span>
 		</div>
 	{{else if eq .Type 13}}
 		<div class="timeline-item event" id="{{.HashTag}}">
@@ -223,8 +241,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}</span>
-
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}
+			</span>
 			<div class="detail">
 				{{svg "octicon-clock" 16}}
 				<span class="text grey">{{.Content}}</span>
@@ -236,7 +256,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.add_time_history"  $createdStr | Safe}}</span>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.add_time_history"  $createdStr | Safe}}
+			</span>
 			<div class="detail">
 				{{svg "octicon-clock" 16}}
 				<span class="text grey">{{.Content}}</span>
@@ -248,7 +271,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}</span>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}
+			</span>
 		</div>
 	{{else if eq .Type 16}}
 		<div class="timeline-item event" id="{{.HashTag}}">
@@ -256,8 +282,9 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-			{{$.i18n.Tr "repo.issues.due_date_added" .Content $createdStr | Safe}}
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.due_date_added" .Content $createdStr | Safe}}
 			</span>
 		</div>
 	{{else if eq .Type 17}}
@@ -266,8 +293,9 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-			{{$.i18n.Tr "repo.issues.due_date_modified" (.Content | ParseDeadline) $createdStr | Safe}}
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.due_date_modified" (.Content | ParseDeadline) $createdStr | Safe}}
 			</span>
 		</div>
 	{{else if eq .Type 18}}
@@ -276,8 +304,9 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-			{{$.i18n.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
 			</span>
 		</div>
 	{{else if eq .Type 19}}
@@ -287,7 +316,8 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey">
-				{{$.i18n.Tr "repo.issues.dependency.added_dependency" .Poster.HomeLink (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.dependency.added_dependency" $createdStr | Safe}}
 			</span>
 			{{if .DependentIssue}}
 				<div class="detail">
@@ -311,7 +341,8 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey">
-				{{$.i18n.Tr "repo.issues.dependency.removed_dependency" .Poster.HomeLink (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.dependency.removed_dependency" $createdStr | Safe}}
 			</span>
 			{{if .DependentIssue}}
 				<div class="detail">
@@ -345,7 +376,7 @@
 					{{if .OriginalAuthor }}
 						<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
 					{{else}}
-						<a{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+						<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 					{{end}}
 
 					{{if eq .Review.Type 1}}
@@ -367,7 +398,7 @@
 							{{if .OriginalAuthor }}
 								<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
 							{{else}}
-								<a{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+								<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 							{{end}}
 
 							{{$.i18n.Tr "repo.issues.review.left_comment" | Safe}}
@@ -437,20 +468,20 @@
 												</a>
 												<div class="content">
 													<div class="code-comment-content">
-														<a class="author" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
-														<div class="metadata">
-															<span class="date">{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}</span>
-														</div>
-														<div class="text">
-															<div class="render-content markdown has-emoji">
-															{{if .RenderedContent}}
-																{{.RenderedContent|Str2html}}
-															{{else}}
-																<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
-															{{end}}
+														<span class="text grey">
+															<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+															{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}
+															<div class="text">
+																<div class="render-content markdown has-emoji">
+																{{if .RenderedContent}}
+																	{{.RenderedContent|Str2html}}
+																{{else}}
+																	<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+																{{end}}
+																</div>
+																<div class="raw-content hide">{{.Content}}</div>
 															</div>
-															<div class="raw-content hide">{{.Content}}</div>
-														</div>
+														</span>
 													</div>
 												</div>
 											</div>
@@ -484,14 +515,15 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-
 			{{ if .Content }}
-				<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{$.i18n.Tr "repo.issues.lock_with_reason" .Content $createdStr | Safe}}
+				<span class="text grey">
+					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+					{{$.i18n.Tr "repo.issues.lock_with_reason" .Content $createdStr | Safe}}
 				</span>
 			{{ else }}
-				<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{$.i18n.Tr "repo.issues.lock_no_reason" $createdStr | Safe}}
+				<span class="text grey">
+					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+					{{$.i18n.Tr "repo.issues.lock_no_reason" $createdStr | Safe}}
 				</span>
 			{{ end }}
 		</div>
@@ -501,10 +533,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-
-				<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
-				</span>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
+			</span>
 		</div>
 	{{else if eq .Type 25}}
 		<div class="timeline-item event">
@@ -512,8 +544,9 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
-			{{$.i18n.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
+			<span class="text grey">
+				<a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+				{{$.i18n.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
 			</span>
 		</div>
 	{{else if eq .Type 26}}
@@ -522,7 +555,10 @@
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
-			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.del_time_history"  $createdStr | Safe}}</span>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.del_time_history"  $createdStr | Safe}}
+			</span>
 			<div class="detail">
 				{{svg "octicon-clock" 16}}
 				<span class="text grey">{{.Content}}</span>
@@ -535,7 +571,7 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey">
-				<a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{if .RemovedAssignee}}
 					{{if eq .PosterID .AssigneeID}}
 						{{$.i18n.Tr "repo.issues.review.remove_review_request_self" $createdStr | Safe}}
@@ -547,6 +583,5 @@
 				{{end}}
 			</span>
 		</div>
-
 	{{end}}
 {{end}}
