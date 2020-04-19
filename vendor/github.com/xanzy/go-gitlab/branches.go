@@ -60,7 +60,7 @@ type ListBranchesOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#list-repository-branches
-func (s *BranchesService) ListBranches(pid interface{}, opts *ListBranchesOptions, options ...OptionFunc) ([]*Branch, *Response, error) {
+func (s *BranchesService) ListBranches(pid interface{}, opts *ListBranchesOptions, options ...RequestOptionFunc) ([]*Branch, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -85,7 +85,7 @@ func (s *BranchesService) ListBranches(pid interface{}, opts *ListBranchesOption
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#get-single-repository-branch
-func (s *BranchesService) GetBranch(pid interface{}, branch string, options ...OptionFunc) (*Branch, *Response, error) {
+func (s *BranchesService) GetBranch(pid interface{}, branch string, options ...RequestOptionFunc) (*Branch, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -121,7 +121,7 @@ type ProtectBranchOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#protect-repository-branch
-func (s *BranchesService) ProtectBranch(pid interface{}, branch string, opts *ProtectBranchOptions, options ...OptionFunc) (*Branch, *Response, error) {
+func (s *BranchesService) ProtectBranch(pid interface{}, branch string, opts *ProtectBranchOptions, options ...RequestOptionFunc) (*Branch, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -148,7 +148,7 @@ func (s *BranchesService) ProtectBranch(pid interface{}, branch string, opts *Pr
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#unprotect-repository-branch
-func (s *BranchesService) UnprotectBranch(pid interface{}, branch string, options ...OptionFunc) (*Branch, *Response, error) {
+func (s *BranchesService) UnprotectBranch(pid interface{}, branch string, options ...RequestOptionFunc) (*Branch, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -182,7 +182,7 @@ type CreateBranchOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#create-repository-branch
-func (s *BranchesService) CreateBranch(pid interface{}, opt *CreateBranchOptions, options ...OptionFunc) (*Branch, *Response, error) {
+func (s *BranchesService) CreateBranch(pid interface{}, opt *CreateBranchOptions, options ...RequestOptionFunc) (*Branch, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -207,7 +207,7 @@ func (s *BranchesService) CreateBranch(pid interface{}, opt *CreateBranchOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#delete-repository-branch
-func (s *BranchesService) DeleteBranch(pid interface{}, branch string, options ...OptionFunc) (*Response, error) {
+func (s *BranchesService) DeleteBranch(pid interface{}, branch string, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
@@ -226,7 +226,7 @@ func (s *BranchesService) DeleteBranch(pid interface{}, branch string, options .
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#delete-merged-branches
-func (s *BranchesService) DeleteMergedBranches(pid interface{}, options ...OptionFunc) (*Response, error) {
+func (s *BranchesService) DeleteMergedBranches(pid interface{}, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err

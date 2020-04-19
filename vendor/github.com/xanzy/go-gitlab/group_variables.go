@@ -39,6 +39,7 @@ type GroupVariable struct {
 	Value        string            `json:"value"`
 	VariableType VariableTypeValue `json:"variable_type"`
 	Protected    bool              `json:"protected"`
+	Masked       bool              `json:"masked"`
 }
 
 func (v GroupVariable) String() string {
@@ -56,7 +57,7 @@ type ListGroupVariablesOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html#list-group-variables
-func (s *GroupVariablesService) ListVariables(gid interface{}, opt *ListGroupVariablesOptions, options ...OptionFunc) ([]*GroupVariable, *Response, error) {
+func (s *GroupVariablesService) ListVariables(gid interface{}, opt *ListGroupVariablesOptions, options ...RequestOptionFunc) ([]*GroupVariable, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -81,7 +82,7 @@ func (s *GroupVariablesService) ListVariables(gid interface{}, opt *ListGroupVar
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html#show-variable-details
-func (s *GroupVariablesService) GetVariable(gid interface{}, key string, options ...OptionFunc) (*GroupVariable, *Response, error) {
+func (s *GroupVariablesService) GetVariable(gid interface{}, key string, options ...RequestOptionFunc) (*GroupVariable, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -112,13 +113,14 @@ type CreateGroupVariableOptions struct {
 	Value        *string            `url:"value,omitempty" json:"value,omitempty"`
 	VariableType *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
 	Protected    *bool              `url:"protected,omitempty" json:"protected,omitempty"`
+	Masked       *bool              `url:"masked,omitempty" json:"masked,omitempty"`
 }
 
 // CreateVariable creates a new group variable.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html#create-variable
-func (s *GroupVariablesService) CreateVariable(gid interface{}, opt *CreateGroupVariableOptions, options ...OptionFunc) (*GroupVariable, *Response, error) {
+func (s *GroupVariablesService) CreateVariable(gid interface{}, opt *CreateGroupVariableOptions, options ...RequestOptionFunc) (*GroupVariable, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -148,6 +150,7 @@ type UpdateGroupVariableOptions struct {
 	Value        *string            `url:"value,omitempty" json:"value,omitempty"`
 	VariableType *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
 	Protected    *bool              `url:"protected,omitempty" json:"protected,omitempty"`
+	Masked       *bool              `url:"masked,omitempty" json:"masked,omitempty"`
 }
 
 // UpdateVariable updates the position of an existing
@@ -155,7 +158,7 @@ type UpdateGroupVariableOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html#update-variable
-func (s *GroupVariablesService) UpdateVariable(gid interface{}, key string, opt *UpdateGroupVariableOptions, options ...OptionFunc) (*GroupVariable, *Response, error) {
+func (s *GroupVariablesService) UpdateVariable(gid interface{}, key string, opt *UpdateGroupVariableOptions, options ...RequestOptionFunc) (*GroupVariable, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -180,7 +183,7 @@ func (s *GroupVariablesService) UpdateVariable(gid interface{}, key string, opt 
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html#remove-variable
-func (s *GroupVariablesService) RemoveVariable(gid interface{}, key string, options ...OptionFunc) (*Response, error) {
+func (s *GroupVariablesService) RemoveVariable(gid interface{}, key string, options ...RequestOptionFunc) (*Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, err

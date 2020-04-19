@@ -37,7 +37,7 @@ type ListProjectSnippetsOptions ListOptions
 // ListSnippets gets a list of project snippets.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/project_snippets.html#list-snippets
-func (s *ProjectSnippetsService) ListSnippets(pid interface{}, opt *ListProjectSnippetsOptions, options ...OptionFunc) ([]*Snippet, *Response, error) {
+func (s *ProjectSnippetsService) ListSnippets(pid interface{}, opt *ListProjectSnippetsOptions, options ...RequestOptionFunc) ([]*Snippet, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -62,7 +62,7 @@ func (s *ProjectSnippetsService) ListSnippets(pid interface{}, opt *ListProjectS
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/project_snippets.html#single-snippet
-func (s *ProjectSnippetsService) GetSnippet(pid interface{}, snippet int, options ...OptionFunc) (*Snippet, *Response, error) {
+func (s *ProjectSnippetsService) GetSnippet(pid interface{}, snippet int, options ...RequestOptionFunc) (*Snippet, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -100,7 +100,7 @@ type CreateProjectSnippetOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/project_snippets.html#create-new-snippet
-func (s *ProjectSnippetsService) CreateSnippet(pid interface{}, opt *CreateProjectSnippetOptions, options ...OptionFunc) (*Snippet, *Response, error) {
+func (s *ProjectSnippetsService) CreateSnippet(pid interface{}, opt *CreateProjectSnippetOptions, options ...RequestOptionFunc) (*Snippet, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -138,7 +138,7 @@ type UpdateProjectSnippetOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/project_snippets.html#update-snippet
-func (s *ProjectSnippetsService) UpdateSnippet(pid interface{}, snippet int, opt *UpdateProjectSnippetOptions, options ...OptionFunc) (*Snippet, *Response, error) {
+func (s *ProjectSnippetsService) UpdateSnippet(pid interface{}, snippet int, opt *UpdateProjectSnippetOptions, options ...RequestOptionFunc) (*Snippet, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -165,7 +165,7 @@ func (s *ProjectSnippetsService) UpdateSnippet(pid interface{}, snippet int, opt
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/project_snippets.html#delete-snippet
-func (s *ProjectSnippetsService) DeleteSnippet(pid interface{}, snippet int, options ...OptionFunc) (*Response, error) {
+func (s *ProjectSnippetsService) DeleteSnippet(pid interface{}, snippet int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
@@ -184,7 +184,7 @@ func (s *ProjectSnippetsService) DeleteSnippet(pid interface{}, snippet int, opt
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/project_snippets.html#snippet-content
-func (s *ProjectSnippetsService) SnippetContent(pid interface{}, snippet int, options ...OptionFunc) ([]byte, *Response, error) {
+func (s *ProjectSnippetsService) SnippetContent(pid interface{}, snippet int, options ...RequestOptionFunc) ([]byte, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
