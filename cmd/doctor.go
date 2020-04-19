@@ -510,54 +510,8 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	defer committer.Close()
 	var results []string
 
-	//find issues without existing repository
-	count, err := sess.Table("issue").
-		Join("LEFT", "repository", "issue.repo_id=repository.id").
-		Where("repository.id is NULL").
-		Count("id")
-	if err != nil {
-		return nil, err
-	}
-	if count > 0 {
-		if ctx.Bool("fix") {
-			if _, err = sess.In("id", builder.Select("issue.id").
-				From("issue").
-				Join("LEFT", "repository", "issue.repo_id=repository.id").
-				Where(builder.IsNull{"repository.id"})).
-				Delete(models.Issue{}); err != nil {
-				return nil, err
-			}
-			results = append(results, fmt.Sprintf("%d issues without existing repository deleted", count))
-		} else {
-			results = append(results, fmt.Sprintf("%d issues without existing repository", count))
-		}
-	}
-
-	//find pulls without existing issues
-	count, err = sess.Table("pull_request").
-		Join("LEFT", "issue", "pull_request.issue_id=issue.id").
-		Where("issue.id is NULL").
-		Count("id")
-	if err != nil {
-		return nil, err
-	}
-	if count > 0 {
-		if ctx.Bool("fix") {
-			if _, err = sess.In("id", builder.Select("pull_request.id").
-				From("pull_request").
-				Join("LEFT", "issue", "pull_request.issue_id=issue.id").
-				Where(builder.IsNull{"issue.id"})).
-				Delete(models.PullRequest{}); err != nil {
-				return nil, err
-			}
-			results = append(results, fmt.Sprintf("%d pull requests without existing issue deleted", count))
-		} else {
-			results = append(results, fmt.Sprintf("%d pull requests without existing issue", count))
-		}
-	}
-
 	//find tracked times without existing issues/pulls
-	count, err = sess.Table("tracked_time").
+	count, err := sess.Table("tracked_time").
 		Join("LEFT", "issue", "tracked_time.issue_id=issue.id").
 		Where("issue.id is NULL").
 		Count("id")
