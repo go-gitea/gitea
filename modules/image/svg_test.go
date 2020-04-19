@@ -162,13 +162,27 @@ func TestSanitizeSVG(t *testing.T) {
 <line fill="none" stroke="#000000" stroke-miterlimit="10" x1="541.54" y1="299.573" x2="543.179" y2="536.458"/>
 </svg>`,
 			/* Adjustement from https://github.com/darylldoyle/svg-sanitizer base
-			   --- Expected
-			   +++ Actual
-			   @@ -1,2 +1,2 @@
-			   -<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="0 0 600 600" xml:space="preserve">
-			   +<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="600px" height="600px" viewbox="0 0 600 600" xml:space="preserve">
+			--- Expected
+			+++ Actual
+			@@ -1,2 +1,9 @@
+			-<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="0 0 600 600" xml:space="preserve">
+			+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="600px" height="600px" viewbox="0 0 600 600" xml:space="preserve">
+			+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="119" y1="84.5" x2="454" y2="84.5"/>
+			+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="111.212" y1="102.852" x2="112.032" y2="476.623"/>
+			+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="198.917" y1="510.229" x2="486.622" y2="501.213">
+			+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="484.163" y1="442.196" x2="89.901" y2="60.229"/>
+			+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="101.376" y1="478.262" x2="443.18" y2="75.803"/>
+			+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="457.114" y1="126.623" x2="458.753" y2="363.508"/>
+			+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="541.54" y1="299.573" x2="543.179" y2="536.458"/>
 			*/
-			want: `<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="600px" height="600px" viewbox="0 0 600 600" xml:space="preserve">
+			want: `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="600px" height="600px" viewbox="0 0 600 600" xml:space="preserve">
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="119" y1="84.5" x2="454" y2="84.5"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="111.212" y1="102.852" x2="112.032" y2="476.623"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="198.917" y1="510.229" x2="486.622" y2="501.213">
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="484.163" y1="442.196" x2="89.901" y2="60.229"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="101.376" y1="478.262" x2="443.18" y2="75.803"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="457.114" y1="126.623" x2="458.753" y2="363.508"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="541.54" y1="299.573" x2="543.179" y2="536.458"/>
 </svg>`,
 		},
 		{
@@ -187,18 +201,19 @@ func TestSanitizeSVG(t *testing.T) {
 			/* Adjustement from https://github.com/darylldoyle/svg-sanitizer base
 			--- Expected
 			+++ Actual
-			@@ -1,2 +1 @@
+			@@ -1,2 +1,2 @@
 			-<?xml version="1.0" encoding="utf-8" ?>110
+			-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
+			         +<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
 			@@ -6,4 +6,4 @@
 			 <rect x="0" y="0" width="1000" height="1000"></rect>
 			-<rect fill="url('/benis.svg')" x="0" y="0" width="1000" height="1000"></rect>
 			-<rect fill="url('#benis.svg')" x="0" y="0" width="1000" height="1000"></rect>
 			+<rect x="0" y="0" width="1000" height="1000"></rect>
 			+<rect x="0" y="0" width="1000" height="1000"></rect>
-
 			FIXME: Currently this will block any fill with url.
 			*/
-			want: `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
+			want: `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve">
 <rect x="0" y="0" width="1000" height="1000"></rect>
 <rect x="0" y="0" width="1000" height="1000"></rect>
 <rect x="0" y="0" width="1000" height="1000"></rect>
@@ -280,6 +295,48 @@ func TestSanitizeSVG(t *testing.T) {
 	<a>test 6</a>
 	<a>test 7</a>
 	<a>test 8</a>
+</svg>`,
+		},
+		{
+			name: "svgTestOne",
+			input: `<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 16.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="600px" height="600px" viewBox="0 0 600 600" enable-background="new 0 0 600 600" xml:space="preserve">
+<line onload="alert(2)" fill="none" stroke="#000000" stroke-miterlimit="10" x1="119" y1="84.5" x2="454" y2="84.5"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="111.212" y1="102.852" x2="112.032" y2="476.623"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="198.917" y1="510.229" x2="486.622" y2="501.213"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="484.163" y1="442.196" x2="89.901" y2="60.229"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="101.376" y1="478.262" x2="443.18" y2="75.803"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="457.114" y1="126.623" x2="458.753" y2="363.508"/>
+<this>shouldn't be here</this>
+<script>alert(1);</script>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="541.54" y1="299.573" x2="543.179" y2="536.458"/>
+</svg>`,
+			/* Adjustement from https://github.com/darylldoyle/svg-sanitizer base
+			   Diff:
+			   --- Expected
+			   +++ Actual
+			   @@ -1,3 +1,2 @@
+			   -<?xml version="1.0" encoding="utf-8"?>
+			   -<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="Layer_1" version="1.1" x="0px" y="0px" width="600px" height="600px" viewBox="0 0 600 600" xml:space="preserve">
+			   +<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="600px" height="600px" viewbox="0 0 600 600" xml:space="preserve">
+			    <line fill="none" stroke="#000000" stroke-miterlimit="10" x1="119" y1="84.5" x2="454" y2="84.5"/>
+			   @@ -8,4 +7,2 @@
+			    <line fill="none" stroke="#000000" stroke-miterlimit="10" x1="457.114" y1="126.623" x2="458.753" y2="363.508"/>
+			   -
+			   -
+			    <line fill="none" stroke="#000000" stroke-miterlimit="10" x1="541.54" y1="299.573" x2="543.179" y2="536.458"/>
+			*/
+			want: `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="600px" height="600px" viewbox="0 0 600 600" xml:space="preserve">
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="119" y1="84.5" x2="454" y2="84.5"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="111.212" y1="102.852" x2="112.032" y2="476.623"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="198.917" y1="510.229" x2="486.622" y2="501.213"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="484.163" y1="442.196" x2="89.901" y2="60.229"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="101.376" y1="478.262" x2="443.18" y2="75.803"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="457.114" y1="126.623" x2="458.753" y2="363.508"/>
+<line fill="none" stroke="#000000" stroke-miterlimit="10" x1="541.54" y1="299.573" x2="543.179" y2="536.458"/>
 </svg>`,
 		},
 	}

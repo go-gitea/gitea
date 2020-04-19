@@ -16,22 +16,23 @@ import (
 func SanitizeSVG(svgData io.Reader) string {
 	//TODO init policy at start-up and keep it
 	p := bluemonday.NewPolicy()
-	p.AllowElements("svg", "title", "path", "desc", "g", "a")
+	p.AllowElements("svg", "title", "path", "desc", "g", "a", "line")
 	p.AllowNoAttrs().OnElements("svg", "title", "desc", "g", "a")
 	p.AllowAttrs("id", "viewBox", "role", "aria-labelledby", "xmlns", "xmlns:xlink", "xml:space").OnElements("svg")
-	p.AllowAttrs("version").Matching(regexp.MustCompile(`^\d$`)).OnElements("svg")
+	p.AllowAttrs("version").Matching(regexp.MustCompile(`^\d+(\.\d+)?$`)).OnElements("svg")
 	p.AllowAttrs("id").OnElements("title", "desc")
 	p.AllowAttrs("id", "data-name", "class", "aria-label").OnElements("g")
 	p.AllowAttrs("id", "data-name", "class", "d", "transform", "aria-haspopup").OnElements("path")
 	p.AllowAttrs("x", "y", "width", "height").OnElements("rect", "svg")
-
+	p.AllowAttrs("x1", "y1", "x2", "y2").Matching(regexp.MustCompile(`^\d+(\.\d+)?$`)).OnElements("line")
+	p.AllowAttrs("stroke-miterlimit").Matching(regexp.MustCompile(`^\d+$`)).OnElements("line")
+	p.AllowAttrs("stroke", "fill").Matching(regexp.MustCompile(`^(#\d+)|(\w+)$`)).OnElements("line", "rect")
 	p.AllowAttrs("href", "xlink:href").Matching(regexp.MustCompile(`^#\w+$`)).OnElements("a")
 
 	//TODO find a good way to allow relative url import
 	//var invalidID = regexp.MustCompile(`((http|ftp)s?)|(url *\( *' *//)`)
 	//var validID = regexp.MustCompile(`(?!((http|ftp)s?)|(url *\( *' *//))`) //not supported
 	//p.AllowAttrs("fill").Matching(regexp.MustCompile(`^(\w+)|(url\(#\w+\))$`)).OnElements("rect")
-	p.AllowAttrs("fill").Matching(regexp.MustCompile(`^\w+$`)).OnElements("rect")
 
 	p.SkipElementsContent("this", "script")
 	cleanedSVG := p.SanitizeReader(svgData).String()
