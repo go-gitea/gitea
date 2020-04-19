@@ -646,7 +646,7 @@ Two special environment variables are passed to the render command:
 Gitea supports customizing the sanitization policy for rendered HTML. The example below will support KaTeX output from pandoc.
 
 ```ini
-[markup.sanitizer]
+[markup.sanitizer.1]
 ; Pandoc renders TeX segments as <span>s with the "math" class, optionally
 ; with "inline" or "display" classes depending on context.
 ELEMENT = span
@@ -658,7 +658,11 @@ REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
  - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
  - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
 
-You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time all three are defined is a single policy entry.
+You must define `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` in each numbered section.
+
+To define multiple entries, increment the number in the section (e.g., `[markup.sanitizer.1]` and `[markup.sanitizer.2]`).
+
+**Note**: The above section numbering policy is new; previously the section was `[markup.sanitizer]` and keys could be redefined.
 
 ## Time (`time`)
 
