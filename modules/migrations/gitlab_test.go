@@ -110,7 +110,6 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, releases[len(releases)-1:])
 
-	// downloader.GetIssues()
 	issues, isEnd, err := downloader.GetIssues(1, 2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(issues))
@@ -162,7 +161,6 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	// downloader.GetComments()
 	comments, err := downloader.GetComments(2)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 4, len(comments))
@@ -202,10 +200,9 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, comments[:4])
 
-	// downloader.GetPullRequests()
 	prs, err := downloader.GetPullRequests(1, 1)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(prs))
+	assert.Len(t, prs, 1)
 
 	assert.EqualValues(t, []*base.PullRequest{
 		{
