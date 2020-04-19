@@ -291,7 +291,7 @@ func TestSanitizeSVG(t *testing.T) {
 	}
 }
 
-// minifySVG compact svg strings to ease testing (could maybe usefull leter in package)
+// minifySVG compact svg strings to ease testing (could maybe useful leter in package)
 func minifySVG(svgData io.Reader) (*bytes.Buffer, error) {
 	m := minify.New()
 	m.AddFunc("image/svg+xml", svg.Minify)

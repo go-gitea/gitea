@@ -14,6 +14,7 @@ import (
 
 // SanitizeSVG remove potential malicious dom elements
 func SanitizeSVG(svgData io.Reader) string {
+	//TODO init policy at start-up and keep it
 	p := bluemonday.NewPolicy()
 	p.AllowElements("svg", "title", "path", "desc", "g", "a")
 	p.AllowNoAttrs().OnElements("svg", "title", "desc", "g", "a")
