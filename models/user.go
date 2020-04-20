@@ -844,16 +844,20 @@ func (u *User) IsGhost() bool {
 
 var (
 	reservedUsernames = []string{
-		"attachments",
+		".",
+		"..",
+		".well-known",
 		"admin",
 		"api",
 		"assets",
+		"attachments",
 		"avatars",
 		"commits",
 		"css",
 		"debug",
 		"error",
 		"explore",
+		"fomantic",
 		"ghost",
 		"help",
 		"img",
@@ -861,6 +865,7 @@ var (
 		"issues",
 		"js",
 		"less",
+		"login",
 		"manifest.json",
 		"metrics",
 		"milestones",
@@ -871,16 +876,12 @@ var (
 		"pulls",
 		"raw",
 		"repo",
+		"robots.txt",
+		"search",
 		"stars",
 		"template",
 		"user",
 		"vendor",
-		"login",
-		"robots.txt",
-		".",
-		"..",
-		".well-known",
-		"search",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
