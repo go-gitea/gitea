@@ -66,7 +66,7 @@ function initEditPreviewTab($form) {
       const $this = $(this);
       let context = `{$this.data('context')}/`;
       const treePathEl = $form.find('input#tree_path');
-      if (treePathEl) {
+      if (treePathEl.length > 0) {
         context += treePathEl.val();
       }
       context = context.substring(0, context.lastIndexOf('/'));
