@@ -61,7 +61,8 @@ steps:
       GOARCH: arm64
       TAGS: bindata
     commands:
-      - make backend # test cross compile
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - make build # test cross compile
       - rm ./gitea # clean
     depends_on: [lint-backend]
 
@@ -98,7 +99,7 @@ services:
     image: mysql:5.7
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
-      MYSQL_DATABASE: test
+      MYSQL_DATABASE: test      
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
       GITLAB_READ_TOKEN:
@@ -152,7 +153,8 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - make backend
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - make build
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
@@ -298,7 +300,8 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - make backend
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - make build
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
