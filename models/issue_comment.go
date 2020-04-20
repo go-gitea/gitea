@@ -675,83 +675,7 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 	return updateIssueCols(e, opts.Issue, "updated_unix")
 }
 
-func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
-	// Compose comment action, could be plain comment, close or reopen issue/pull request.
-	// This object will be used to notify watchers in the end of function.
-	act := &Action{
-		ActUserID: opts.Doer.ID,
-		ActUser:   opts.Doer,
-		Content:   fmt.Sprintf("%d|%s", opts.Issue.Index, strings.Split(opts.Content, "\n")[0]),
-		RepoID:    opts.Repo.ID,
-		Repo:      opts.Repo,
-		Comment:   comment,
-		CommentID: comment.ID,
-		IsPrivate: opts.Repo.IsPrivate,
-	}
-	// Check comment type.
-	switch opts.Type {
-	case CommentTypeCode:
-		if comment.ReviewID != 0 {
-			if comment.Review == nil {
-				if err := comment.loadReview(e); err != nil {
-					return err
-				}
-			}
-			if comment.Review.Type <= ReviewTypePending {
-				return nil
-			}
-		}
-		fallthrough
-	case CommentTypeComment:
-		act.OpType = ActionCommentIssue
-	case CommentTypeReopen:
-		act.OpType = ActionReopenIssue
-		if opts.Issue.IsPull {
-			act.OpType = ActionReopenPullRequest
-		}
-	case CommentTypeClose:
-		act.OpType = ActionCloseIssue
-		if opts.Issue.IsPull {
-			act.OpType = ActionClosePullRequest
-		}
-	}
-	// Notify watchers for whatever action comes in, ignore if no action type.
-	if act.OpType > 0 {
-		if err = notifyWatchers(e, act); err != nil {
-			log.Error("notifyWatchers: %v", err)
-		}
-	}
-	return nil
-}
-
-func createStatusComment(e *xorm.Session, doer *User, issue *Issue) (*Comment, error) {
-	cmtType := CommentTypeClose
-	if !issue.IsClosed {
-		cmtType = CommentTypeReopen
-	}
-	return createComment(e, &CreateCommentOptions{
-		Type:  cmtType,
-		Doer:  doer,
-		Repo:  issue.Repo,
-		Issue: issue,
-	})
-}
-
-func createLabelComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, label *Label, add bool) (*Comment, error) {
-	var content string
-	if add {
-		content = "1"
-	}
-	return createComment(e, &CreateCommentOptions{
-		Type:    CommentTypeLabel,
-		Doer:    doer,
-		Repo:    repo,
-		Issue:   issue,
-		Label:   label,
-		Content: content,
-	})
-}
-
+// ToDo Refactor as other creatXYComment did
 func createProjectComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldProjectID, projectID int64) (*Comment, error) {
 	return createComment(e, &CreateCommentOptions{
 		Type:         CommentTypeProject,
@@ -760,17 +684,6 @@ func createProjectComment(e *xorm.Session, doer *User, repo *Repository, issue *
 		Issue:        issue,
 		OldProjectID: oldProjectID,
 		ProjectID:    projectID,
-	})
-}
-
-func createMilestoneComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldMilestoneID, milestoneID int64) (*Comment, error) {
-	return createComment(e, &CreateCommentOptions{
-		Type:           CommentTypeMilestone,
-		Doer:           doer,
-		Repo:           repo,
-		Issue:          issue,
-		OldMilestoneID: oldMilestoneID,
-		MilestoneID:    milestoneID,
 	})
 }
 
