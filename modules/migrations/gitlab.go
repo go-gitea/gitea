@@ -538,7 +538,7 @@ func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, 
 		return nil, err
 	}
 
-	//GitLab only has Approvals witch similar to gitea's approve review's
+	// GitLab's Approvals are equivalent to Gitea's approve reviews
 	approvers := make(map[int]string)
 	for i := range state.Rules {
 		for u := range state.Rules[i].ApprovedBy {
@@ -551,7 +551,7 @@ func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, 
 		reviews = append(reviews, &base.Review{
 			ReviewerID:   int64(id),
 			ReviewerName: name,
-			// GitLab API dont return creation date
+			// GitLab API doesn't return a creation date
 			CreatedAt: time.Now(),
 			// All we get are approvals
 			State: base.ReviewStateApproved,

@@ -86,7 +86,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 	return uploader.repo, nil
 }
 
-// migrateRepository will download information's and upload to Uploader, this is a simple
+// migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
 func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
