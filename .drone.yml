@@ -181,6 +181,8 @@ steps:
     pull: always
     image: golang:1.14
     commands:
+      - mount -t tmpfs tmpfs /tmp
+      - df -h
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
       - make test-mysql-migration integration-test-coverage
@@ -196,6 +198,8 @@ steps:
     pull: always
     image: golang:1.14
     commands:
+      - mount -t tmpfs tmpfs /tmp
+      - df -h
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
@@ -211,6 +215,8 @@ steps:
     pull: always
     image: golang:1.14
     commands:
+      - mount -t tmpfs tmpfs /tmp
+      - df -h
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
       - make test-mssql-migration test-mssql
@@ -311,6 +317,8 @@ steps:
     pull: always
     image: golang:1.14
     commands:
+      - mount -t tmpfs tmpfs /tmp
+      - df -h
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
@@ -325,6 +333,8 @@ steps:
     pull: always
     image: golang:1.14
     commands:
+      - mount -t tmpfs tmpfs /tmp
+      - df -h
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
