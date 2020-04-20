@@ -249,12 +249,12 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 			IsPrivate: repo.IsPrivate,
 		}
 
-		var isHookEventPush = true
 		switch opType {
 		case models.ActionCommitRepo: // Push
 			if opts.IsNewBranch() {
 				notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
 			}
+			notification.NotifyPushCommits(pusher, repo, opts.RefFullName, opts.OldCommitID, opts.NewCommitID, opts.Commits)
 		case models.ActionDeleteBranch: // Delete Branch
 			notification.NotifyDeleteRef(pusher, repo, "branch", opts.RefFullName)
 
@@ -263,12 +263,6 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 
 		case models.ActionDeleteTag: // Delete Tag
 			notification.NotifyDeleteRef(pusher, repo, "tag", opts.RefFullName)
-		default:
-			isHookEventPush = false
-		}
-
-		if isHookEventPush {
-			notification.NotifyPushCommits(pusher, repo, opts.RefFullName, opts.OldCommitID, opts.NewCommitID, opts.Commits)
 		}
 	}
 
