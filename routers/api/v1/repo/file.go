@@ -199,6 +199,10 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
 
+	if apiOpts.BranchName == "" {
+		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
+	}
+
 	opts := &repofiles.UpdateRepoFileOptions{
 		Content:   apiOpts.Content,
 		IsNewFile: true,
@@ -270,6 +274,10 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileResponse"
+
+	if apiOpts.BranchName == "" {
+		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
+	}
 
 	opts := &repofiles.UpdateRepoFileOptions{
 		Content:      apiOpts.Content,
@@ -375,6 +383,10 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
 		return
+	}
+
+	if apiOpts.BranchName == "" {
+		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
 	opts := &repofiles.DeleteRepoFileOptions{
