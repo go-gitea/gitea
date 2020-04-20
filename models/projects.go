@@ -465,7 +465,14 @@ func changeProjectAssign(sess *xorm.Session, doer *User, issue *Issue, oldProjec
 	}
 
 	if oldProjectID > 0 || issue.ProjectID > 0 {
-		if _, err := createProjectComment(sess, doer, issue.Repo, issue, oldProjectID, issue.ProjectID); err != nil {
+		if _, err := createComment(sess, &CreateCommentOptions{
+			Type:         CommentTypeProject,
+			Doer:         doer,
+			Repo:         issue.Repo,
+			Issue:        issue,
+			OldProjectID: oldProjectID,
+			ProjectID:    issue.ProjectID,
+		}); err != nil {
 			return err
 		}
 	}

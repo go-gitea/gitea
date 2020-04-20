@@ -675,18 +675,6 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 	return updateIssueCols(e, opts.Issue, "updated_unix")
 }
 
-// ToDo Refactor as other creatXYComment did
-func createProjectComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldProjectID, projectID int64) (*Comment, error) {
-	return createComment(e, &CreateCommentOptions{
-		Type:         CommentTypeProject,
-		Doer:         doer,
-		Repo:         repo,
-		Issue:        issue,
-		OldProjectID: oldProjectID,
-		ProjectID:    projectID,
-	})
-}
-
 func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
 	var content string
 	var commentType CommentType
