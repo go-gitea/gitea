@@ -7,7 +7,7 @@ package analyze
 import (
 	"path/filepath"
 
-	"github.com/src-d/enry/v2"
+	"github.com/go-enry/go-enry/v2"
 )
 
 // GetCodeLanguageWithCallback detects code language based on file name and content using callback

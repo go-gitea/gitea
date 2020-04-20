@@ -990,6 +990,11 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("Review.LoadCodeComments", err)
 				return
 			}
+
+			if err = comment.LoadResolveDoer(); err != nil {
+				ctx.ServerError("LoadResolveDoer", err)
+				return
+			}
 		}
 	}
 
@@ -1033,6 +1038,11 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("IsUserAllowedToMerge", err)
 				return
 			}
+
+			if ctx.Data["CanMarkConversation"], err = models.CanMarkConversation(issue, ctx.User); err != nil {
+				ctx.ServerError("CanMarkConversation", err)
+				return
+			}
 		}
 
 		prUnit, err := repo.GetUnit(models.UnitTypePullRequests)
@@ -1065,6 +1075,7 @@ func ViewIssue(ctx *context.Context) {
 			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
 			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
 			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
+			ctx.Data["IsBlockedByOutdatedBranch"] = pull.ProtectedBranch.MergeBlockedByOutdatedBranch(pull)
 			ctx.Data["GrantedApprovals"] = cnt
 			ctx.Data["RequireSigned"] = pull.ProtectedBranch.RequireSignedCommits
 		}

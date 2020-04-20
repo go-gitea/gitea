@@ -31,6 +31,13 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 		return err
 	}
 
+	divergence, err := GetDiverging(pr)
+	if err != nil {
+		return err
+	}
+	pr.CommitsAhead = divergence.Ahead
+	pr.CommitsBehind = divergence.Behind
+
 	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr); err != nil {
 		return err
 	}
@@ -212,6 +219,15 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 						if err := models.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
+						divergence, err := GetDiverging(pr)
+						if err != nil {
+							log.Error("GetDiverging: %v", err)
+						} else {
+							err = pr.UpdateCommitDivergence(divergence.Ahead, divergence.Behind)
+							if err != nil {
+								log.Error("UpdateCommitDivergence: %v", err)
+							}
+						}
 					}
 
 					pr.Issue.PullRequest = pr
@@ -229,6 +245,15 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			return
 		}
 		for _, pr := range prs {
+			divergence, err := GetDiverging(pr)
+			if err != nil {
+				log.Error("GetDiverging: %v", err)
+			} else {
+				err = pr.UpdateCommitDivergence(divergence.Ahead, divergence.Behind)
+				if err != nil {
+					log.Error("UpdateCommitDivergence: %v", err)
+				}
+			}
 			AddToTaskQueue(pr)
 		}
 	})

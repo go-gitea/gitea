@@ -1,3 +1,20 @@
+
+ifeq ($(USE_REPO_TEST_DIR),1)
+
+# This rule replaces the whole Makefile when we're trying to use /tmp repository temporary files
+location = $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
+self := $(location)
+
+%:
+	@tmpdir=`mktemp --tmpdir -d` ; \
+	echo Using temporary directory $$tmpdir for test repositories ; \
+	USE_REPO_TEST_DIR= $(MAKE) -f $(self) --no-print-directory REPO_TEST_DIR=$$tmpdir/ $@ ; \
+	STATUS=$$? ; rm -r "$$tmpdir" ; exit $$STATUS
+
+else
+
+# This is the "normal" part of the Makefile
+
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
@@ -136,6 +153,7 @@ help:
 	@echo " - lint              lint everything"
 	@echo " - lint-frontend     lint frontend files"
 	@echo " - lint-backend      lint backend files"
+	@echo " - watch-frontend    watch frontend files and continuously rebuild"
 	@echo " - webpack           build webpack files"
 	@echo " - fomantic          build fomantic files"
 	@echo " - generate          run \"go generate\""
@@ -275,6 +293,10 @@ lint-frontend: node_modules
 	npx eslint web_src/js webpack.config.js
 	npx stylelint web_src/less
 
+.PHONY: watch-frontend
+watch-frontend: node_modules
+	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch
+
 .PHONY: test
 test:
 	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES)
@@ -316,16 +338,20 @@ test-vendor: vendor
 		exit 1; \
 	fi;
 
+generate-ini-sqlite:
+	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+			integrations/sqlite.ini.tmpl > integrations/sqlite.ini
+
 .PHONY: test-sqlite
-test-sqlite: integrations.sqlite.test
+test-sqlite: integrations.sqlite.test generate-ini-sqlite
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
 .PHONY: test-sqlite\#%
-test-sqlite\#%: integrations.sqlite.test
+test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.run $(subst .,/,$*)
 
 .PHONY: test-sqlite-migration
-test-sqlite-migration:  migrations.sqlite.test
+test-sqlite-migration:  migrations.sqlite.test generate-ini-sqlite
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./migrations.sqlite.test
 
 generate-ini-mysql:
@@ -333,6 +359,7 @@ generate-ini-mysql:
 		-e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
 		-e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
 		-e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
+		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
 			integrations/mysql.ini.tmpl > integrations/mysql.ini
 
 .PHONY: test-mysql
@@ -352,6 +379,7 @@ generate-ini-mysql8:
 		-e 's|{{TEST_MYSQL8_DBNAME}}|${TEST_MYSQL8_DBNAME}|g' \
 		-e 's|{{TEST_MYSQL8_USERNAME}}|${TEST_MYSQL8_USERNAME}|g' \
 		-e 's|{{TEST_MYSQL8_PASSWORD}}|${TEST_MYSQL8_PASSWORD}|g' \
+		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
 			integrations/mysql8.ini.tmpl > integrations/mysql8.ini
 
 .PHONY: test-mysql8
@@ -372,6 +400,7 @@ generate-ini-pgsql:
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
 		-e 's|{{TEST_PGSQL_SCHEMA}}|${TEST_PGSQL_SCHEMA}|g' \
+		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
 			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
 
 .PHONY: test-pgsql
@@ -391,6 +420,7 @@ generate-ini-mssql:
 		-e 's|{{TEST_MSSQL_DBNAME}}|${TEST_MSSQL_DBNAME}|g' \
 		-e 's|{{TEST_MSSQL_USERNAME}}|${TEST_MSSQL_USERNAME}|g' \
 		-e 's|{{TEST_MSSQL_PASSWORD}}|${TEST_MSSQL_PASSWORD}|g' \
+		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
 			integrations/mssql.ini.tmpl > integrations/mssql.ini
 
 .PHONY: test-mssql
@@ -406,7 +436,7 @@ test-mssql-migration: migrations.mssql.test generate-ini-mssql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test
 
 .PHONY: bench-sqlite
-bench-sqlite: integrations.sqlite.test
+bench-sqlite: integrations.sqlite.test generate-ini-sqlite
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-mysql
@@ -622,3 +652,6 @@ golangci-lint:
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0; \
 	fi
 	golangci-lint run --timeout 5m
+
+# This endif closes the if at the top of the file
+endif

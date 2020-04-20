@@ -24,6 +24,13 @@ globals:
   SimpleMDE: false
   u2fApi: false
 
+overrides:
+  - files: ["web_src/**/*.worker.js"]
+    env:
+      worker: true
+    rules:
+      no-restricted-globals: [0]
+
 rules:
   arrow-body-style: [0]
   arrow-parens: [2, always]
