@@ -34,7 +34,6 @@ type (
 		Title     string
 		RepoID    int64 `xorm:"INDEX NOT NULL"`
 
-		// Not really needed but helpful
 		CreatorID int64 `xorm:"NOT NULL"`
 
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
