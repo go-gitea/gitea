@@ -1162,7 +1162,7 @@ function initMigration() {
     const authUserName = $('#auth_username').val();
     const cloneAddr = $('#clone_addr').val();
     if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0) &&
-        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com')))) {
+        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com') || cloneAddr.startsWith('http://gitlab.com') || cloneAddr.startsWith('https://gitlab.com')))) {
       $('#migrate_items').show();
     } else {
       $('#migrate_items').hide();
