@@ -64,12 +64,12 @@ function initEditPreviewTab($form) {
     previewFileModes = $previewTab.data('preview-file-modes').split(',');
     $previewTab.on('click', function () {
       const $this = $(this);
-      let context = $this.data('context') + "/";
-      let treePathEl = $form.find('input#tree_path');
+      let context = `{$this.data('context')}/`;
+      const treePathEl = $form.find('input#tree_path');
       if (treePathEl) {
         context += treePathEl.val();
       }
-      context = context.substring(0, context.lastIndexOf("/"));
+      context = context.substring(0, context.lastIndexOf('/'));
       $.post($this.data('url'), {
         _csrf: csrf,
         mode: 'gfm',
