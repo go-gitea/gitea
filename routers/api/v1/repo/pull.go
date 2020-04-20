@@ -464,21 +464,20 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDsError", err)
 			return
 		}
-		if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
-			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
-			return
-		}
 
 		if ctx.Repo.Owner.IsOrganization() {
-			labels, err = models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
 				return
 			}
-			if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
-				ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
-				return
-			}
+
+			labels = append(labels, orgLabels...)
+		}
+
+		if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
+			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
+			return
 		}
 	}
 
