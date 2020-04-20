@@ -646,7 +646,7 @@ Two special environment variables are passed to the render command:
 Gitea supports customizing the sanitization policy for rendered HTML. The example below will support KaTeX output from pandoc.
 
 ```ini
-[markup.sanitizer.1]
+[markup.sanitizer.TeX]
 ; Pandoc renders TeX segments as <span>s with the "math" class, optionally
 ; with "inline" or "display" classes depending on context.
 ELEMENT = span
@@ -658,11 +658,41 @@ REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
  - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
  - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
 
-You must define `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` in each numbered section.
+**Note**: The above section naming policy is new; previously the section was `[markup.sanitizer]` and keys could be redefined.
+Now, a unique identifier must appear in the section name (e.g., `[markup.sanitizer.TeX]`) in order to parse multiple rules.
+This was changed because the implementation with the ini parser used was flawed; the following configs were indistinguishable after parsing:
 
-To define multiple entries, increment the number in the section (e.g., `[markup.sanitizer.1]` and `[markup.sanitizer.2]`).
+```ini
+[markup.sanitizer]
+ELEMENT = a
+ALLOW_ATTR = target
+REGEXP = $1
+ELEMENT = a
+ALLOW_ATTR = rel
+REGEXP = $2
+ELEMENT = img
+ALLOW_ATTR = src
+REGEXP = $3
+```
 
-**Note**: The above section numbering policy is new; previously the section was `[markup.sanitizer]` and keys could be redefined.
+and
+
+```ini
+[markup.sanitizer]
+ELEMENT = a
+ALLOW_ATTR = target
+REGEXP = $1
+ELEMENT = img
+ALLOW_ATTR = rel
+REGEXP = $2
+ELEMENT = img
+ALLOW_ATTR = src
+REGEXP = $3
+```
+
+Because of limitations in the ini library, we are unable to automatically migrate configurations.
+
+We will still parse the first rule from a `[markup.sanitizer]` section if present, but multiple rules must be manually migrated.
 
 ## Time (`time`)
 
