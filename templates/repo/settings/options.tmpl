@@ -345,10 +345,10 @@
 				</div>
 				<!-- TODO brad not sure if should use a unit enabled for this or not -->
 				<div class="ui checkbox">
-					<input name="enable_hook_task_purge" type="checkbox" {{ if .Repository.EnableHookTaskPurge }}checked{{end}}>
+					<input name="enable_hook_task_purge" type="checkbox" {{ if .Repository.IsHookTaskPurgeEnabled }}checked{{end}}>
 					<label>{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_1"}}</label>
 					<!-- TODO brad not sure where/how to store this, s/b disabled if other is unchecked -->
-					<input class="field {{if not .Repository.EnableHookTaskPurge}}disabled{{end}}" id="hook_task_deliveries_to_keep" name="hook_task_deliveries_to_keep" type="number" value="{{ .Repository.NumberWebhookDeliveriesToKeep }}">
+					<input class="field {{if not .Repository.IsHookTaskPurgeEnabled}}disabled{{end}}" id="hook_task_deliveries_to_keep" name="hook_task_deliveries_to_keep" type="number" value="{{ .Repository.NumberWebhookDeliveriesToKeep }}">
 					<label>{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_2"}}</label>
 				</div>
 

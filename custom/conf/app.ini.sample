@@ -857,6 +857,11 @@ UPDATE_EXISTING = true
 ; Interval as a duration between each synchronization. (default every 24h)
 SCHEDULE = @every 24h
 
+; Prune hook_task table
+[cron.prune_hook_task_table]
+RUN_AT_START = true
+SCHEDULE = @every 24h
+
 [git]
 ; The path of git executable. If empty, Gitea searches through the PATH environment.
 PATH =

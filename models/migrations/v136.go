@@ -14,7 +14,7 @@ func addHookTaskPurge(x *xorm.Engine) error {
 
 	type Repository struct {
 		ID                            int64 `xorm:"pk autoincr"`
-		EnableHookTaskPurge           bool  `xorm:"NOT NULL DEFAULT true"`
+		IsHookTaskPurgeEnabled           bool  `xorm:"NOT NULL DEFAULT true"`
 		NumberWebhookDeliveriesToKeep int64 `xorm:"NOT NULL DEFAULT 10"`
 	}
 
@@ -23,6 +23,6 @@ func addHookTaskPurge(x *xorm.Engine) error {
 	}
 
 	_, err := x.Exec("UPDATE repository SET enable_hook_task_purge = ?", number_webhook_deliveries_to_keep = ?
-		setting.Repository.DefaultEnableHookTaskPurge, setting.Repository.DefaultNumberWebhookDeliveriesToKeep)
+		setting.Repository.DefaultIsHookTaskPurgeEnabled, setting.Repository.DefaultNumberWebhookDeliveriesToKeep)
 	return err
 }

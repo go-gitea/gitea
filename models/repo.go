@@ -189,7 +189,7 @@ type Repository struct {
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
-	EnableHookTaskPurge             bool               `xorm:"NOT NULL DEFAULT true"`
+	IsHookTaskPurgeEnabled          bool               `xorm:"NOT NULL DEFAULT true"`
 	NumberWebhookDeliveriesToKeep   int64              `xorm:"NOT NULL DEFAULT 10"`
 	Topics                          []string           `xorm:"TEXT JSON"`
 

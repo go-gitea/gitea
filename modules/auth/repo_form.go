@@ -142,7 +142,7 @@ type RepoSettingForm struct {
 	// Admin settings
 	EnableHealthCheck                     bool
 	EnableCloseIssuesViaCommitInAnyBranch bool
-	EnableHookTaskPurge                   bool
+	IsHookTaskPurgeEnabled                bool
 	NumberWebhookDeliveriesToKeep         int64
 }
 

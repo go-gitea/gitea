@@ -52,6 +52,11 @@ var (
 		UpdateMigrationPosterID struct {
 			Schedule string
 		} `ini:"cron.update_migration_poster_id"`
+		PruneHookTaskTable struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+		} `ini:"cron.prune_hook_task_table"`
 	}{
 		UpdateMirror: struct {
 			Enabled    bool
@@ -121,6 +126,15 @@ var (
 			Schedule string
 		}{
 			Schedule: "@every 24h",
+		},
+		PruneHookTaskTable: struct {
+			Enabled    bool
+			RunAtStart bool
+			Schedule   string
+		}{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@every 24h",
 		},
 	}
 )

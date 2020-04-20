@@ -35,8 +35,8 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *m
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
-		EnableHookTaskPurge              setting.Repository.DefaultEnableHookTaskPurge
-		NumberWebhookDeliveriesToKeep    setting.Repository.DefaultNumberWebhookDeliveriesToKeep
+		IsHookTaskPurgeEnabled:          setting.Repository.DefaultIsHookTaskPurgeEnabled,
+		NumberWebhookDeliveriesToKeep:   setting.Repository.DefaultNumberWebhookDeliveriesToKeep,
 		Status:                          opts.Status,
 		IsEmpty:                         !opts.AutoInit,
 	}

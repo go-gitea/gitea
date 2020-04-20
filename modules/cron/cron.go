@@ -29,6 +29,7 @@ const (
 	syncExternalUsers       = "sync_external_users"
 	deletedBranchesCleanup  = "deleted_branches_cleanup"
 	updateMigrationPosterID = "update_migration_post_id"
+	pruneHookTaskTable      = "prune_hook_task_table"
 )
 
 var c = cron.New()
@@ -130,6 +131,25 @@ func NewContext() {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
 			go WithUnique(deletedBranchesCleanup, models.RemoveOldDeletedBranches)()
+		}
+	}
+	if setting.Cron.PruneHookTaskTable.Enabled {
+		entry, err = c.AddFunc("Prune hook_task table", setting.Cron.PruneHookTaskTable.Schedule, WithUnique(pruneHookTaskTable, func(ctx context.Context) {
+			if err := repo_module.PruneHookTaskTable(ctx); err != nil {
+				log.Error("PruneHookTaskTable: %s", err)
+			}
+		}))
+		if err != nil {
+			log.Fatal("Cron[Repository prune hook_task table]: %v", err)
+		}
+		if setting.Cron.RepoHealthCheck.RunAtStart {
+			entry.Prev = time.Now()
+			entry.ExecTimes++
+			go WithUnique(pruneHookTaskTable, func(ctx context.Context) {
+				if err := repo_module.PruneHookTaskTable(ctx); err != nil {
+					log.Error("PruneHookTaskTable: %s", err)
+				}
+			})()
 		}
 	}
 

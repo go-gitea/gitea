@@ -205,7 +205,7 @@ var migrations = []Migration{
 	// v135 -> 136
 	NewMigration("Add OrgID column to Labels table", addOrgIDLabelColumn),
 	// v136 -> 137
-	NewMigration("Add EnableHookTaskPurge and NumberWebhookDeliveriesToKeep columns to Repository table", addHookTaskPurge)
+	NewMigration("Add IsHookTaskPurgeEnabled and NumberWebhookDeliveriesToKeep columns to Repository table", addHookTaskPurge),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -322,6 +322,14 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
 		}
 
+		if repo.IsHookTaskPurgeEnabled != form.IsHookTaskPurgeEnabled {
+			repo.IsHookTaskPurgeEnabled = form.IsHookTaskPurgeEnabled
+		}
+
+		if repo.NumberWebhookDeliveriesToKeep != form.NumberWebhookDeliveriesToKeep {
+			repo.NumberWebhookDeliveriesToKeep = form.NumberWebhookDeliveriesToKeep
+		}
+
 		if err := models.UpdateRepository(repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
