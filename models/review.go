@@ -457,8 +457,10 @@ func InsertReviews(reviews []*Review) error {
 			c.ReviewID = review.ID
 		}
 
-		if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
-			return err
+		if len(review.Comments) > 0 {
+			if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
+				return err
+			}
 		}
 	}
 
