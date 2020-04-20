@@ -70,7 +70,7 @@ type ListLabelEventsOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/resource_label_events.html#list-project-issue-label-events
-func (s *ResourceLabelEventsService) ListIssueLabelEvents(pid interface{}, issue int, opt *ListLabelEventsOptions, options ...OptionFunc) ([]*LabelEvent, *Response, error) {
+func (s *ResourceLabelEventsService) ListIssueLabelEvents(pid interface{}, issue int, opt *ListLabelEventsOptions, options ...RequestOptionFunc) ([]*LabelEvent, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -95,7 +95,7 @@ func (s *ResourceLabelEventsService) ListIssueLabelEvents(pid interface{}, issue
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/resource_label_events.html#get-single-issue-label-event
-func (s *ResourceLabelEventsService) GetIssueLabelEvent(pid interface{}, issue int, event int, options ...OptionFunc) (*LabelEvent, *Response, error) {
+func (s *ResourceLabelEventsService) GetIssueLabelEvent(pid interface{}, issue int, event int, options ...RequestOptionFunc) (*LabelEvent, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -121,7 +121,7 @@ func (s *ResourceLabelEventsService) GetIssueLabelEvent(pid interface{}, issue i
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/resource_label_events.html#list-group-epic-label-events
-func (s *ResourceLabelEventsService) ListGroupEpicLabelEvents(gid interface{}, epic int, opt *ListLabelEventsOptions, options ...OptionFunc) ([]*LabelEvent, *Response, error) {
+func (s *ResourceLabelEventsService) ListGroupEpicLabelEvents(gid interface{}, epic int, opt *ListLabelEventsOptions, options ...RequestOptionFunc) ([]*LabelEvent, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -146,7 +146,7 @@ func (s *ResourceLabelEventsService) ListGroupEpicLabelEvents(gid interface{}, e
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/resource_label_events.html#get-single-epic-label-event
-func (s *ResourceLabelEventsService) GetGroupEpicLabelEvent(gid interface{}, epic int, event int, options ...OptionFunc) (*LabelEvent, *Response, error) {
+func (s *ResourceLabelEventsService) GetGroupEpicLabelEvent(gid interface{}, epic int, event int, options ...RequestOptionFunc) (*LabelEvent, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -172,7 +172,7 @@ func (s *ResourceLabelEventsService) GetGroupEpicLabelEvent(gid interface{}, epi
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/resource_label_events.html#list-project-merge-request-label-events
-func (s *ResourceLabelEventsService) ListMergeLabelEvents(pid interface{}, request int, opt *ListLabelEventsOptions, options ...OptionFunc) ([]*LabelEvent, *Response, error) {
+func (s *ResourceLabelEventsService) ListMergeLabelEvents(pid interface{}, request int, opt *ListLabelEventsOptions, options ...RequestOptionFunc) ([]*LabelEvent, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -197,7 +197,7 @@ func (s *ResourceLabelEventsService) ListMergeLabelEvents(pid interface{}, reque
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/resource_label_events.html#get-single-merge-request-label-event
-func (s *ResourceLabelEventsService) GetMergeRequestLabelEvent(pid interface{}, request int, event int, options ...OptionFunc) (*LabelEvent, *Response, error) {
+func (s *ResourceLabelEventsService) GetMergeRequestLabelEvent(pid interface{}, request int, event int, options ...RequestOptionFunc) (*LabelEvent, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err

@@ -52,7 +52,7 @@ type ListReleasesOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/releases/index.html#list-releases
-func (s *ReleasesService) ListReleases(pid interface{}, opt *ListReleasesOptions, options ...OptionFunc) ([]*Release, *Response, error) {
+func (s *ReleasesService) ListReleases(pid interface{}, opt *ListReleasesOptions, options ...RequestOptionFunc) ([]*Release, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -77,7 +77,7 @@ func (s *ReleasesService) ListReleases(pid interface{}, opt *ListReleasesOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/releases/index.html#get-a-release-by-a-tag-name
-func (s *ReleasesService) GetRelease(pid interface{}, tagName string, options ...OptionFunc) (*Release, *Response, error) {
+func (s *ReleasesService) GetRelease(pid interface{}, tagName string, options ...RequestOptionFunc) (*Release, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -131,7 +131,7 @@ type CreateReleaseOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/releases/index.html#create-a-release
-func (s *ReleasesService) CreateRelease(pid interface{}, opts *CreateReleaseOptions, options ...OptionFunc) (*Release, *Response, error) {
+func (s *ReleasesService) CreateRelease(pid interface{}, opts *CreateReleaseOptions, options ...RequestOptionFunc) (*Release, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -165,7 +165,7 @@ type UpdateReleaseOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/releases/index.html#update-a-release
-func (s *ReleasesService) UpdateRelease(pid interface{}, tagName string, opts *UpdateReleaseOptions, options ...OptionFunc) (*Release, *Response, error) {
+func (s *ReleasesService) UpdateRelease(pid interface{}, tagName string, opts *UpdateReleaseOptions, options ...RequestOptionFunc) (*Release, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -190,7 +190,7 @@ func (s *ReleasesService) UpdateRelease(pid interface{}, tagName string, opts *U
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/releases/index.html#delete-a-release
-func (s *ReleasesService) DeleteRelease(pid interface{}, tagName string, options ...OptionFunc) (*Release, *Response, error) {
+func (s *ReleasesService) DeleteRelease(pid interface{}, tagName string, options ...RequestOptionFunc) (*Release, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err

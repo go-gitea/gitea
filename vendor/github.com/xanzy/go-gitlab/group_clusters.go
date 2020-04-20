@@ -44,6 +44,7 @@ type GroupCluster struct {
 	ClusterType        string              `json:"cluster_type"`
 	User               *User               `json:"user"`
 	PlatformKubernetes *PlatformKubernetes `json:"platform_kubernetes"`
+	ManagementProject  *ManagementProject  `json:"management_project"`
 	Group              *Group              `json:"group"`
 }
 
@@ -55,7 +56,7 @@ func (v GroupCluster) String() string {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_clusters.html#list-group-clusters
-func (s *GroupClustersService) ListClusters(pid interface{}, options ...OptionFunc) ([]*GroupCluster, *Response, error) {
+func (s *GroupClustersService) ListClusters(pid interface{}, options ...RequestOptionFunc) ([]*GroupCluster, *Response, error) {
 	group, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -80,7 +81,7 @@ func (s *GroupClustersService) ListClusters(pid interface{}, options ...OptionFu
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_clusters.html#get-a-single-group-cluster
-func (s *GroupClustersService) GetCluster(pid interface{}, cluster int, options ...OptionFunc) (*GroupCluster, *Response, error) {
+func (s *GroupClustersService) GetCluster(pid interface{}, cluster int, options ...RequestOptionFunc) (*GroupCluster, *Response, error) {
 	group, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -106,12 +107,13 @@ func (s *GroupClustersService) GetCluster(pid interface{}, cluster int, options 
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_clusters.html#add-existing-cluster-to-group
 type AddGroupClusterOptions struct {
-	Name               *string                            `url:"name,omitempty" json:"name,omitempty"`
-	Domain             *string                            `url:"domain,omitempty" json:"domain,omitempty"`
-	Enabled            *bool                              `url:"enabled,omitempty" json:"enabled,omitempty"`
-	Managed            *bool                              `url:"managed,omitempty" json:"managed,omitempty"`
-	EnvironmentScope   *string                            `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
-	PlatformKubernetes *AddGroupPlatformKubernetesOptions `url:"platform_kubernetes_attributes,omitempty" json:"platform_kubernetes_attributes,omitempty"`
+	Name                *string                            `url:"name,omitempty" json:"name,omitempty"`
+	Domain              *string                            `url:"domain,omitempty" json:"domain,omitempty"`
+	ManagementProjectID *string                            `url:"management_project_id,omitempty" json:"management_project_id,omitempty"`
+	Enabled             *bool                              `url:"enabled,omitempty" json:"enabled,omitempty"`
+	Managed             *bool                              `url:"managed,omitempty" json:"managed,omitempty"`
+	EnvironmentScope    *string                            `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
+	PlatformKubernetes  *AddGroupPlatformKubernetesOptions `url:"platform_kubernetes_attributes,omitempty" json:"platform_kubernetes_attributes,omitempty"`
 }
 
 // AddGroupPlatformKubernetesOptions represents the available PlatformKubernetes options for adding.
@@ -127,7 +129,7 @@ type AddGroupPlatformKubernetesOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_clusters.html#add-existing-cluster-to-group
-func (s *GroupClustersService) AddCluster(pid interface{}, opt *AddGroupClusterOptions, options ...OptionFunc) (*GroupCluster, *Response, error) {
+func (s *GroupClustersService) AddCluster(pid interface{}, opt *AddGroupClusterOptions, options ...RequestOptionFunc) (*GroupCluster, *Response, error) {
 	group, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -153,10 +155,11 @@ func (s *GroupClustersService) AddCluster(pid interface{}, opt *AddGroupClusterO
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_clusters.html#edit-group-cluster
 type EditGroupClusterOptions struct {
-	Name               *string                             `url:"name,omitempty" json:"name,omitempty"`
-	Domain             *string                             `url:"domain,omitempty" json:"domain,omitempty"`
-	EnvironmentScope   *string                             `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
-	PlatformKubernetes *EditGroupPlatformKubernetesOptions `url:"platform_kubernetes_attributes,omitempty" json:"platform_kubernetes_attributes,omitempty"`
+	Name                *string                             `url:"name,omitempty" json:"name,omitempty"`
+	Domain              *string                             `url:"domain,omitempty" json:"domain,omitempty"`
+	EnvironmentScope    *string                             `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
+	PlatformKubernetes  *EditGroupPlatformKubernetesOptions `url:"platform_kubernetes_attributes,omitempty" json:"platform_kubernetes_attributes,omitempty"`
+	ManagementProjectID *string                             `url:"management_project_id,omitempty" json:"management_project_id,omitempty"`
 }
 
 // EditGroupPlatformKubernetesOptions represents the available PlatformKubernetes options for editing.
@@ -170,7 +173,7 @@ type EditGroupPlatformKubernetesOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_clusters.html#edit-group-cluster
-func (s *GroupClustersService) EditCluster(pid interface{}, cluster int, opt *EditGroupClusterOptions, options ...OptionFunc) (*GroupCluster, *Response, error) {
+func (s *GroupClustersService) EditCluster(pid interface{}, cluster int, opt *EditGroupClusterOptions, options ...RequestOptionFunc) (*GroupCluster, *Response, error) {
 	group, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -195,7 +198,7 @@ func (s *GroupClustersService) EditCluster(pid interface{}, cluster int, opt *Ed
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_clusters.html#delete-group-cluster
-func (s *GroupClustersService) DeleteCluster(pid interface{}, cluster int, options ...OptionFunc) (*Response, error) {
+func (s *GroupClustersService) DeleteCluster(pid interface{}, cluster int, options ...RequestOptionFunc) (*Response, error) {
 	group, err := parseID(pid)
 	if err != nil {
 		return nil, err

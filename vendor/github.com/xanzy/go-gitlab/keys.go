@@ -47,7 +47,7 @@ type Key struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/keys.html#get-ssh-key-with-user-by-id-of-an-ssh-key
-func (s *KeysService) GetKeyWithUser(key int, options ...OptionFunc) (*Key, *Response, error) {
+func (s *KeysService) GetKeyWithUser(key int, options ...RequestOptionFunc) (*Key, *Response, error) {
 	u := fmt.Sprintf("keys/%d", key)
 
 	req, err := s.client.NewRequest("GET", u, nil, options)

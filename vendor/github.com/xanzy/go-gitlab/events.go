@@ -82,7 +82,7 @@ type ListContributionEventsOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/events.html#get-user-contribution-events
-func (s *UsersService) ListUserContributionEvents(uid interface{}, opt *ListContributionEventsOptions, options ...OptionFunc) ([]*ContributionEvent, *Response, error) {
+func (s *UsersService) ListUserContributionEvents(uid interface{}, opt *ListContributionEventsOptions, options ...RequestOptionFunc) ([]*ContributionEvent, *Response, error) {
 	user, err := parseID(uid)
 	if err != nil {
 		return nil, nil, err
@@ -106,7 +106,7 @@ func (s *UsersService) ListUserContributionEvents(uid interface{}, opt *ListCont
 // ListCurrentUserContributionEvents gets a list currently authenticated user's events
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/events.html#list-currently-authenticated-user-39-s-events
-func (s *EventsService) ListCurrentUserContributionEvents(opt *ListContributionEventsOptions, options ...OptionFunc) ([]*ContributionEvent, *Response, error) {
+func (s *EventsService) ListCurrentUserContributionEvents(opt *ListContributionEventsOptions, options ...RequestOptionFunc) ([]*ContributionEvent, *Response, error) {
 	req, err := s.client.NewRequest("GET", "events", opt, options)
 	if err != nil {
 		return nil, nil, err
@@ -124,7 +124,7 @@ func (s *EventsService) ListCurrentUserContributionEvents(opt *ListContributionE
 // ListProjectVisibleEvents gets a list of visible events for a particular project
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/events.html#list-a-project-s-visible-events
-func (s *EventsService) ListProjectVisibleEvents(pid interface{}, opt *ListContributionEventsOptions, options ...OptionFunc) ([]*ContributionEvent, *Response, error) {
+func (s *EventsService) ListProjectVisibleEvents(pid interface{}, opt *ListContributionEventsOptions, options ...RequestOptionFunc) ([]*ContributionEvent, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err

@@ -65,7 +65,7 @@ type ListGroupMilestonesOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/group_milestones.html#list-group-milestones
-func (s *GroupMilestonesService) ListGroupMilestones(gid interface{}, opt *ListGroupMilestonesOptions, options ...OptionFunc) ([]*GroupMilestone, *Response, error) {
+func (s *GroupMilestonesService) ListGroupMilestones(gid interface{}, opt *ListGroupMilestonesOptions, options ...RequestOptionFunc) ([]*GroupMilestone, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -90,7 +90,7 @@ func (s *GroupMilestonesService) ListGroupMilestones(gid interface{}, opt *ListG
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/group_milestones.html#get-single-milestone
-func (s *GroupMilestonesService) GetGroupMilestone(gid interface{}, milestone int, options ...OptionFunc) (*GroupMilestone, *Response, error) {
+func (s *GroupMilestonesService) GetGroupMilestone(gid interface{}, milestone int, options ...RequestOptionFunc) (*GroupMilestone, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -126,7 +126,7 @@ type CreateGroupMilestoneOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/group_milestones.html#create-new-milestone
-func (s *GroupMilestonesService) CreateGroupMilestone(gid interface{}, opt *CreateGroupMilestoneOptions, options ...OptionFunc) (*GroupMilestone, *Response, error) {
+func (s *GroupMilestonesService) CreateGroupMilestone(gid interface{}, opt *CreateGroupMilestoneOptions, options ...RequestOptionFunc) (*GroupMilestone, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -163,7 +163,7 @@ type UpdateGroupMilestoneOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/group_milestones.html#edit-milestone
-func (s *GroupMilestonesService) UpdateGroupMilestone(gid interface{}, milestone int, opt *UpdateGroupMilestoneOptions, options ...OptionFunc) (*GroupMilestone, *Response, error) {
+func (s *GroupMilestonesService) UpdateGroupMilestone(gid interface{}, milestone int, opt *UpdateGroupMilestoneOptions, options ...RequestOptionFunc) (*GroupMilestone, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -194,7 +194,7 @@ type GetGroupMilestoneIssuesOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/group_milestones.html#get-all-issues-assigned-to-a-single-milestone
-func (s *GroupMilestonesService) GetGroupMilestoneIssues(gid interface{}, milestone int, opt *GetGroupMilestoneIssuesOptions, options ...OptionFunc) ([]*Issue, *Response, error) {
+func (s *GroupMilestonesService) GetGroupMilestoneIssues(gid interface{}, milestone int, opt *GetGroupMilestoneIssuesOptions, options ...RequestOptionFunc) ([]*Issue, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
@@ -227,7 +227,7 @@ type GetGroupMilestoneMergeRequestsOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/group_milestones.html#get-all-merge-requests-assigned-to-a-single-milestone
-func (s *GroupMilestonesService) GetGroupMilestoneMergeRequests(gid interface{}, milestone int, opt *GetGroupMilestoneMergeRequestsOptions, options ...OptionFunc) ([]*MergeRequest, *Response, error) {
+func (s *GroupMilestonesService) GetGroupMilestoneMergeRequests(gid interface{}, milestone int, opt *GetGroupMilestoneMergeRequestsOptions, options ...RequestOptionFunc) ([]*MergeRequest, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
