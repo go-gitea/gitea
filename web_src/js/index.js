@@ -64,16 +64,16 @@ function initEditPreviewTab($form) {
     previewFileModes = $previewTab.data('preview-file-modes').split(',');
     $previewTab.on('click', function () {
       const $this = $(this);
-      let context = $this.data('context') + "/"
-      let treePathEl = $form.find('input#tree_path')
+      let context = $this.data('context') + "/";
+      let treePathEl = $form.find('input#tree_path');
       if (treePathEl) {
-        let val = treePathEl.val()
-        context += val.substring(0, val.lastIndexOf("/"))
+        context += treePathEl.val();
       }
+      context = context.substring(0, context.lastIndexOf("/"));
       $.post($this.data('url'), {
         _csrf: csrf,
         mode: 'gfm',
-        context: context,
+        context,
         text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
       }, (data) => {
         const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
