@@ -216,6 +216,11 @@ func Profile(ctx *context.Context) {
 			IsClosed: util.OptionalBoolFalse,
 			Type:     models.IndividualType,
 		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
 			ListOptions: models.ListOptions{

@@ -268,7 +268,7 @@ func ViewProject(ctx *context.Context) {
 		idx    int
 	}
 
-	var seen = make(map[int64]data, 0)
+	var seen = make(map[int64]data)
 	var tmplData = make([]data, 0, len(boards)+1)
 
 	uncategorizedBoard := data{
