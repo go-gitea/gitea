@@ -197,6 +197,7 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
 }
 
+// nolint: dupl
 // ChangeMilestonStatus response for change a milestone's status
 func ChangeMilestonStatus(ctx *context.Context) {
 	m, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
