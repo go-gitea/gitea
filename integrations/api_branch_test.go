@@ -80,6 +80,13 @@ func testAPIDeleteBranchProtection(t *testing.T, branchName string, expectedHTTP
 	session.MakeRequest(t, req, expectedHTTPStatus)
 }
 
+func testAPIDeleteBranch(t *testing.T, branchName string, expectedHTTPStatus int) {
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/branches/%s?token=%s", branchName, token)
+	session.MakeRequest(t, req, expectedHTTPStatus)
+}
+
 func TestAPIGetBranch(t *testing.T) {
 	for _, test := range []struct {
 		BranchName string
@@ -106,10 +113,17 @@ func TestAPIBranchProtection(t *testing.T) {
 	// Can only create once
 	testAPICreateBranchProtection(t, "master", http.StatusForbidden)
 
+	// Can't delete a protected branch
+	testAPIDeleteBranch(t, "master", http.StatusForbidden)
+
 	testAPIGetBranchProtection(t, "master", http.StatusOK)
 	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
 		EnablePush: true,
 	}, http.StatusOK)
 
 	testAPIDeleteBranchProtection(t, "master", http.StatusNoContent)
+
+	// Test branch deletion
+	testAPIDeleteBranch(t, "master", http.StatusForbidden)
+	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
 }
