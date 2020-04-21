@@ -39,7 +39,7 @@ func PushingEnvironment(doer *User, repo *Repository) []string {
 	return FullPushingEnvironment(doer, doer, repo, repo.Name, 0)
 }
 
-//  returns an os environment to allow hooks to work on push
+// FullPushingEnvironment returns an os environment to allow hooks to work on push
 func FullPushingEnvironment(author, committer *User, repo *Repository, repoName string, prID int64) []string {
 	start := time.Now()
 	fmt.Printf("\t\t\t\tCalling FullPushingEnvironment TemporaryUploadRepository\n")
