@@ -180,6 +180,46 @@ function updateIssuesMeta(url, action, issueIds, elementId, isAdd) {
   }));
 }
 
+function initNotificationsTable() {
+  const $notificationTable = $('#notification_table');
+  if ($notificationTable) {
+    $notificationTable.find('.button').click(function () {
+      updateNotification(
+        $(this).data('url'),
+        $(this).data('status'),
+        $(this).data('page'),
+        $(this).data('q'),
+        $(this).data('notification-id')
+      ).then((data) => {
+        $('#notification_div').replaceWith(data);
+        initNotificationsTable();
+      });
+      return false;
+    });
+  }
+}
+
+function updateNotification(url, status, page, q, notificationID) {
+  return new Promise(((resolve) => {
+    if (status != "pinned") {
+      $(`#notification_${notificationID}`).remove();
+    }
+    $.ajax({
+      type: 'POST',
+      url,
+      data: {
+        _csrf: csrf,
+        notification_id: notificationID,
+        status,
+        page,
+        q,
+        noredirect: true,
+      },
+      success: resolve
+    });
+  }));
+}
+
 function initRepoStatusChecker() {
   const migrating = $('#repo_migrating');
   $('#repo_migrating_failed').hide();
@@ -2431,6 +2471,11 @@ $(document).ready(async () => {
     window.location = $(this).data('href');
   });
 
+  // make table <td> element clickable like a link
+  $('td[data-href]').click(function () {
+    window.location = $(this).data('href');
+  });
+
   // Dropzone
   const $dropzone = $('#dropzone');
   if ($dropzone.length > 0) {
@@ -2606,6 +2651,7 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups();
+  initNotificationsTable();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
