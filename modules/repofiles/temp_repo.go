@@ -166,11 +166,14 @@ func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPat
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (t *TemporaryUploadRepository) WriteTree() (string, error) {
+	start := time.Now()
+	fmt.Printf("\t\t\tCalling WriteTree on our TemporaryUploadRepository\n")
 	stdout, err := git.NewCommand("write-tree").RunInDir(t.basePath)
 	if err != nil {
 		log.Error("Unable to write tree in temporary repo: %s(%s): Error: %v", t.repo.FullName(), t.basePath, err)
 		return "", fmt.Errorf("Unable to write-tree in temporary repo for: %s Error: %v", t.repo.FullName(), err)
 	}
+	fmt.Printf("\t\t\tTime taken: [%v]\n", time.Since(start))
 	return strings.TrimSpace(stdout), nil
 }
 
@@ -246,6 +249,8 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 
 // Push the provided commitHash to the repository branch by the provided user
 func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, branch string) error {
+	start := time.Now()
+	fmt.Printf("\t\t\tCalling Push on our TemporaryUploadRepository\n")
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
 	if err := git.Push(t.basePath, git.PushOptions{
@@ -266,6 +271,7 @@ func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, b
 		return fmt.Errorf("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
 			t.repo.FullName(), t.basePath, err)
 	}
+	fmt.Printf("\t\t\tTime taken: [%v]\n", time.Since(start))
 	return nil
 }
 
