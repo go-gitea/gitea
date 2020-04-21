@@ -99,8 +99,7 @@ func (p *Project) NumIssues() int {
 func (p *Project) NumClosedIssues() int {
 	c, err := x.Table("issue_project").
 		Join("INNER", "issue", "issue_project.issue_id=issue.id").
-		Where("issue_project.project_id=? AND issue.is_closed=?", p.ID, true).
-		GroupBy("issue.id").Count("issue.id")
+		Where("issue_project.project_id=? AND issue.is_closed=?", p.ID, true).Count("issue.id")
 	if err != nil {
 		return 0
 	}
@@ -111,8 +110,7 @@ func (p *Project) NumClosedIssues() int {
 func (p *Project) NumOpenIssues() int {
 	c, err := x.Table("issue_project").
 		Join("INNER", "issue", "issue_project.issue_id=issue.id").
-		Where("issue_project.project_id=? AND issue.is_closed=?", p.ID, false).
-		GroupBy("issue.id").Count("issue.id")
+		Where("issue_project.project_id=? AND issue.is_closed=?", p.ID, false).Count("issue.id")
 	if err != nil {
 		return 0
 	}
