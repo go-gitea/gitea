@@ -32,13 +32,15 @@ func GetNotificationCount(c *context.Context) {
 		return
 	}
 
-	count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
-	if err != nil {
-		c.ServerError("GetNotificationCount", err)
-		return
-	}
+	c.Data["NotificationUnreadCount"] = func() int64 {
+		count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
+		if err != nil {
+			c.ServerError("GetNotificationCount", err)
+			return -1
+		}
 
-	c.Data["NotificationUnreadCount"] = count
+		return count
+	}
 }
 
 // Notifications is the notifications page

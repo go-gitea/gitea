@@ -32,12 +32,13 @@ function updateNotificationCount() {
     },
     success: (data) => {
       const notificationCount = $('.notification_count');
+      const notificationDependent = $('.notification_dependent');
       if (data.new === 0) {
-        if (!notificationCount.hasClass('hidden')) {
-          notificationCount.addClass('hidden');
-        }
-      } else if (notificationCount.hasClass('hidden')) {
-        notificationCount.removeClass('hidden');
+        notificationCount.addClass('hide');
+        notificationDependent.addClass('hide');
+      } else {
+        notificationCount.removeClass('hide');
+        notificationDependent.removeClass('hide');
       }
       notificationCount.text(data.new);
     },
