@@ -735,6 +735,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						})
 						m.Group("/subscriptions", func() {
 							m.Get("", repo.GetIssueSubscribers)
+							m.Get("/check", reqToken(), repo.CheckIssueSubscription)
 							m.Put("/:user", reqToken(), repo.AddIssueSubscription)
 							m.Delete("/:user", reqToken(), repo.DelIssueSubscription)
 						})
