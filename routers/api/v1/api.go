@@ -652,11 +652,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 					}, reqGitHook(), context.ReferencesGitRepo(true))
 				}, reqToken(), reqAdmin())
 				m.Group("/collaborators", func() {
-					m.Get("", repo.ListCollaborators)
-					m.Combo("/:collaborator").Get(repo.IsCollaborator).
-						Put(bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
-						Delete(repo.DeleteCollaborator)
-				}, reqToken(), reqAdmin())
+					m.Get("", reqAnyRepoReader(), repo.ListCollaborators)
+					m.Combo("/:collaborator").Get(reqAnyRepoReader(), repo.IsCollaborator).
+						Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
+						Delete(reqAdmin(), repo.DeleteCollaborator)
+				}, reqToken())
 				m.Get("/raw/*", context.RepoRefByType(context.RepoRefAny), reqRepoReader(models.UnitTypeCode), repo.GetRawFile)
 				m.Get("/archive/*", reqRepoReader(models.UnitTypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
