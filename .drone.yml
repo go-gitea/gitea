@@ -6,9 +6,6 @@ platform:
   os: linux
   arch: arm64
 
-depends_on:
-  -
-
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
