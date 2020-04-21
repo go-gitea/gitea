@@ -46,7 +46,8 @@
 				<span class="text">
 					<span class="fitted">{{svg "octicon-bell" 16}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "notifications"}}</span>
-					{{ $notificationUnreadCount := call .NotificationUnreadCount}}
+					{{$notificationUnreadCount := 0}}
+					{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
 					<span class="ui red label {{if not $notificationUnreadCount}}hide{{end}} notification_count">
 						{{$notificationUnreadCount}}
 					</span>
