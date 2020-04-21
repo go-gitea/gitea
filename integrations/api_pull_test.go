@@ -60,6 +60,7 @@ func TestAPIMergePullWIP(t *testing.T) {
 
 func TestAPICreatePullSuccess1(t *testing.T) {
 	defer prepareTestEnv(t)()
+
 	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 	// repo10 have code, pulls units.
 	repo11 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 11}).(*models.Repository)

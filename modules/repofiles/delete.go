@@ -7,6 +7,7 @@ package repofiles
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -29,6 +30,8 @@ type DeleteRepoFileOptions struct {
 
 // DeleteRepoFile deletes a file in the given repository
 func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepoFileOptions) (*api.FileResponse, error) {
+	start := time.Now()
+	fmt.Printf("\tDeleting file [%s]\n", opts.TreePath)
 	// If no branch name is set, assume the repo's default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -221,5 +224,6 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("\tTime taken: [%v]\n", time.Since(start))
 	return file, nil
 }
