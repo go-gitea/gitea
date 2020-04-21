@@ -586,8 +586,8 @@
 			</span>
 		</div>
 	{{else if eq .Type 29}}
-		<div class="event">
-			{{svg "octicon-primitive-dot" 16}}
+		<div class="timeline-item event" id="{{.HashTag}}">
+			<span class="badge">{{svg "octicon-project" 16}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
