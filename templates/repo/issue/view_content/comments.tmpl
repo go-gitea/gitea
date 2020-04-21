@@ -586,6 +586,7 @@
 			</span>
 		</div>
 	{{else if eq .Type 29}}
+	  {{if not $.UnitProjectsGlobalDisabled}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-project" 16}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -604,5 +605,6 @@
 				{{end}}
 			</span>
 		</div>
+		{{end}}
 	{{end}}
 {{end}}
