@@ -48,7 +48,7 @@
 					<span class="sr-mobile-only">{{.i18n.Tr "notifications"}}</span>
 					{{$notificationUnreadCount := 0}}
 					{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
-					<span class="ui red label {{if not $notificationUnreadCount}}hide{{end}} notification_count">
+					<span class="ui red label {{if not $notificationUnreadCount}}hidden{{end}} notification_count">
 						{{$notificationUnreadCount}}
 					</span>
 				</span>

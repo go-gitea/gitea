@@ -8,7 +8,7 @@
 			{{ $notificationUnreadCount := call .NotificationUnreadCount}}
 			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item">
 				{{.i18n.Tr "notification.unread"}}
-				<div class="ui label {{if not $notificationUnreadCount}}hide{{end}} notification_count">{{$notificationUnreadCount}}</div>
+				<div class="ui label {{if not $notificationUnreadCount}}hidden{{end}} notification_count">{{$notificationUnreadCount}}</div>
 			</a>
 			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
 				{{.i18n.Tr "notification.read"}}
@@ -16,7 +16,7 @@
 			{{if and (eq .Status 1)}}
 				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
 					{{$.CsrfTokenHtml}}
-					<div class="{{if not $notificationUnreadCount}}hide{{end}} notification_dependent">
+					<div class="{{if not $notificationUnreadCount}}hidden{{end}} notification_dependent">
 						<button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
 							{{svg "octicon-checklist" 16}}
 						</button>

@@ -34,11 +34,11 @@ function updateNotificationCount() {
       const notificationCount = $('.notification_count');
       const notificationDependent = $('.notification_dependent');
       if (data.new === 0) {
-        notificationCount.addClass('hide');
-        notificationDependent.addClass('hide');
+        notificationCount.addClass('hidden');
+        notificationDependent.addClass('hidden');
       } else {
-        notificationCount.removeClass('hide');
-        notificationDependent.removeClass('hide');
+        notificationCount.removeClass('hidden');
+        notificationDependent.removeClass('hidden');
       }
       notificationCount.text(data.new);
     },
