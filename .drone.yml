@@ -7,11 +7,19 @@ platform:
   arch: arm64
 
 depends_on:
-  - compliance
+  -
 
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
+
+services:
+  - name: pgsql
+    pull: default
+    image: postgres:9.5
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_PASSWORD: postgres
 
   - name: ldap
     pull: default
@@ -32,14 +40,13 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
-      - make build
+      - make backend
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
 
-  - name: test-sqlite TestAPIDeleteFile
+  - name: test-sqlite-TestAPIDeleteFile
     pull: always
     image: golang:1.14
     commands:
@@ -49,6 +56,21 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+      USE_REPO_TEST_DIR: 1
+    depends_on:
+      - build
+
+  - name: test-pgsql-TestAPIDeleteFile
+    pull: always
+    image: golang:1.14
+    commands:
+      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
+      - apt-get install -y git-lfs
+      - timeout -s ABRT 40m make test-pgsql-migration test-pgsql#TestAPIDeleteFile
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+      TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
