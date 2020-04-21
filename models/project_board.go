@@ -137,21 +137,6 @@ func deleteProjectBoardByID(e Engine, repoID, projectID, boardID int64) error {
 	return nil
 }
 
-// MoveIssueAcrossProjectBoards move a card from one board to another
-func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
-
-	sess := x.NewSession()
-	defer sess.Close()
-
-	issue.ProjectBoardID = board.ID
-
-	if err := updateIssueCols(sess, issue, "project_board_id"); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
-
 // GetProjectBoard fetches the current board of a project
 func GetProjectBoard(repoID, projectID, boardID int64) (*ProjectBoard, error) {
 	board := &ProjectBoard{

@@ -25,14 +25,12 @@ func addProjectsInfo(x *xorm.Engine) error {
 	)
 
 	type Project struct {
-		ID              int64  `xorm:"pk autoincr"`
-		Title           string `xorm:"INDEX NOT NULL"`
-		Description     string `xorm:"TEXT"`
-		RepoID          int64  `xorm:"NOT NULL"`
-		CreatorID       int64  `xorm:"NOT NULL"`
-		IsClosed        bool   `xorm:"INDEX"`
-		NumIssues       int
-		NumClosedIssues int
+		ID          int64  `xorm:"pk autoincr"`
+		Title       string `xorm:"INDEX NOT NULL"`
+		Description string `xorm:"TEXT"`
+		RepoID      int64  `xorm:"NOT NULL"`
+		CreatorID   int64  `xorm:"NOT NULL"`
+		IsClosed    bool   `xorm:"INDEX"`
 
 		BoardType ProjectBoardType
 		Type      ProjectType
@@ -66,12 +64,15 @@ func addProjectsInfo(x *xorm.Engine) error {
 		return err
 	}
 
-	type Issue struct {
+	// IssueProject saves relation from issue to a project
+	type IssueProject struct {
+		ID             int64
+		IssueID        int64 `xorm:"INDEX"`
 		ProjectID      int64 `xorm:"INDEX"`
 		ProjectBoardID int64 `xorm:"INDEX"`
 	}
 
-	if err := sess.Sync2(new(Issue)); err != nil {
+	if err := sess.Sync2(new(IssueProject)); err != nil {
 		return err
 	}
 

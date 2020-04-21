@@ -1625,6 +1625,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueProject{}); err != nil {
+		return err
+	}
+
 	attachments = attachments[:0]
 	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
 		Where("issue.repo_id = ?", repoID).

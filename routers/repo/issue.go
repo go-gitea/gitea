@@ -681,7 +681,6 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		PosterID:    ctx.User.ID,
 		Poster:      ctx.User,
 		MilestoneID: milestoneID,
-		ProjectID:   projectID,
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
@@ -693,6 +692,13 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		}
 		ctx.ServerError("NewIssue", err)
 		return
+	}
+
+	if projectID > 0 {
+		if err := models.ChangeProjectAssign(issue, ctx.User, projectID); err != nil {
+			ctx.ServerError("ChangeProjectAssign", err)
+			return
+		}
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)

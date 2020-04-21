@@ -10,8 +10,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm"
 )
 
 type (
@@ -40,17 +38,14 @@ const (
 
 // Project is a kanban board
 type Project struct {
-	ID              int64  `xorm:"pk autoincr"`
-	Title           string `xorm:"INDEX NOT NULL"`
-	Description     string `xorm:"TEXT"`
-	RepoID          int64  `xorm:"NOT NULL"`
-	CreatorID       int64  `xorm:"NOT NULL"`
-	IsClosed        bool   `xorm:"INDEX"`
-	NumIssues       int
-	NumClosedIssues int
-	NumOpenIssues   int `xorm:"-"`
-	BoardType       ProjectBoardType
-	Type            ProjectType
+	ID          int64  `xorm:"pk autoincr"`
+	Title       string `xorm:"INDEX NOT NULL"`
+	Description string `xorm:"TEXT"`
+	RepoID      int64  `xorm:"NOT NULL"`
+	CreatorID   int64  `xorm:"NOT NULL"`
+	IsClosed    bool   `xorm:"INDEX"`
+	BoardType   ProjectBoardType
+	Type        ProjectType
 
 	RenderedContent string `xorm:"-"`
 
@@ -76,11 +71,6 @@ func IsProjectTypeValid(p ProjectType) bool {
 	default:
 		return false
 	}
-}
-
-// AfterLoad is invoked from XORM after setting the value of a field of this object.
-func (p *Project) AfterLoad() {
-	p.NumOpenIssues = p.NumIssues - p.NumClosedIssues
 }
 
 // ProjectSearchOptions are options for GetProjects
@@ -248,6 +238,10 @@ func DeleteProjectByRepoID(repoID, id int64) error {
 		return err
 	}
 
+	if err := deleteIssueProjectByProjectID(sess, id); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
 
@@ -297,74 +291,4 @@ func deleteProjectByRepoID(e Engine, repoID, id int64) error {
 func UpdateProject(p *Project) error {
 	_, err := x.ID(p.ID).AllCols().Update(p)
 	return err
-}
-
-// ChangeProjectAssign changes the project associated with an issue
-func ChangeProjectAssign(issue *Issue, doer *User, oldProjectID int64) error {
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := changeProjectAssign(sess, doer, issue, oldProjectID); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
-
-func changeProjectAssign(sess *xorm.Session, doer *User, issue *Issue, oldProjectID int64) error {
-
-	if oldProjectID > 0 {
-		p, err := getProjectByRepoID(sess, issue.RepoID, oldProjectID)
-		if err != nil {
-			return err
-		}
-
-		p.NumIssues--
-		if issue.IsClosed {
-			p.NumClosedIssues--
-		}
-
-		if err := updateProject(sess, p); err != nil {
-			return err
-		}
-	}
-
-	if issue.ProjectID > 0 {
-		p, err := getProjectByRepoID(sess, issue.RepoID, issue.ProjectID)
-		if err != nil {
-			return err
-		}
-
-		p.NumIssues++
-		if issue.IsClosed {
-			p.NumClosedIssues++
-		}
-
-		if err := updateProject(sess, p); err != nil {
-			return err
-		}
-	}
-
-	if err := issue.loadRepo(sess); err != nil {
-		return err
-	}
-
-	if oldProjectID > 0 || issue.ProjectID > 0 {
-		if _, err := createComment(sess, &CreateCommentOptions{
-			Type:         CommentTypeProject,
-			Doer:         doer,
-			Repo:         issue.Repo,
-			Issue:        issue,
-			OldProjectID: oldProjectID,
-			ProjectID:    issue.ProjectID,
-		}); err != nil {
-			return err
-		}
-	}
-
-	return updateIssueCols(sess, issue, "project_id")
 }

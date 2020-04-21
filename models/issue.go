@@ -41,8 +41,6 @@ type Issue struct {
 	Labels           []*Label   `xorm:"-"`
 	MilestoneID      int64      `xorm:"INDEX"`
 	Milestone        *Milestone `xorm:"-"`
-	ProjectID        int64      `xorm:"INDEX"`
-	ProjectBoardID   int64      `xorm:"INDEX"` // If 0, then it has not been added to a specific board in the project
 	Project          *Project   `xorm:"-"`
 	Priority         int
 	AssigneeID       int64        `xorm:"-"`
@@ -278,11 +276,8 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		return
 	}
 
-	if issue.ProjectID > 0 && issue.Project == nil {
-		issue.Project, err = getProjectByRepoID(e, issue.RepoID, issue.ProjectID)
-		if err != nil && !IsErrProjectNotExist(err) {
-			return fmt.Errorf("getProjectByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.ProjectID, err)
-		}
+	if err = issue.loadProject(e); err != nil {
+		return
 	}
 
 	if err = issue.loadAssignees(e); err != nil {
@@ -1153,14 +1148,17 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if opts.ProjectID > 0 {
-		sess.And("issue.project_id=?", opts.ProjectID)
+		sess.Join("INNER", "issue_project", "issue.id = issue_project.issue_id").
+			And("issue_project.project_id=?", opts.ProjectID)
 	}
 
 	if opts.ProjectBoardID != 0 {
 		if opts.ProjectBoardID > 0 {
-			sess.And("issue.project_board_id=?", opts.ProjectBoardID)
+			sess.Join("INNER", "issue_project", "issue.id = issue_project.issue_id").
+				And("issue_project.project_board_id=?", opts.ProjectBoardID)
 		} else {
-			sess.And("issue.project_board_id=?", 0)
+			sess.Join("INNER", "issue_project", "issue.id = issue_project.issue_id").
+				And("issue_project.project_board_id=?", 0)
 		}
 	}
 
