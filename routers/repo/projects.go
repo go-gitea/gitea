@@ -22,8 +22,6 @@ const (
 	tplProjectsNew        base.TplName = "repo/projects/new"
 	tplProjectsView       base.TplName = "repo/projects/view"
 	tplGenericProjectsNew base.TplName = "user/project"
-
-	projectTemplateKey = "ProjectTemplate"
 )
 
 // MustEnableProjects check if projects are enabled in settings

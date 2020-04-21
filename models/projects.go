@@ -353,7 +353,13 @@ func DeleteProjectBoardByID(repoID, projectID, boardID int64) error {
 
 // DeleteProjectByRepoID deletes a project from a repository.
 func DeleteProjectByRepoID(repoID, id int64) error {
-	p, err := GetProjectByRepoID(repoID, id)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	p, err := getProjectByRepoID(sess, repoID, id)
 	if err != nil {
 		if IsErrProjectNotExist(err) {
 			return nil
@@ -361,14 +367,8 @@ func DeleteProjectByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	repo, err := GetRepositoryByID(p.RepoID)
+	repo, err := getRepositoryByID(sess, p.RepoID)
 	if err != nil {
-		return err
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
 		return err
 	}
 
