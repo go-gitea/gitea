@@ -658,8 +658,8 @@ REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
  - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
  - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
 
-**Note**: The above section naming policy is new; previously the section was `[markup.sanitizer]` and keys could be redefined.
-Now, a unique identifier must appear in the section name (e.g., `[markup.sanitizer.TeX]`) in order to parse multiple rules.
+**Note**: The above section naming policy is new to v1.12.0; previously the section was `[markup.sanitizer]` and keys could be redefined in v1.11.0.
+Now, a unique identifier must appear in the section name (e.g., `[markup.sanitizer.TeX]`) in order to parse multiple rules and keys cannot be duplicated.
 This was changed because the implementation with the ini parser used was flawed; the following configs were indistinguishable after parsing:
 
 ```ini

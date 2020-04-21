@@ -965,8 +965,8 @@ SHOW_FOOTER_TEMPLATE_LOAD_TIME = true
 
 [markup.sanitizer.1]
 ; The following keys can appear once to define a sanitation policy rule.
-; This section can appear with an incremenented number to define multiple rules.
-; e.g., [markup.sanitizer.1] -> [markup.sanitizer.2]
+; This section can appear again with a unique alphanmuric string to define multiple rules.
+; e.g., [markup.sanitizer.1] -> [markup.sanitizer.2] -> [markup.sanitizer.TeX]
 ;ELEMENT = span
 ;ALLOW_ATTR = class
 ;REGEXP = ^(info|warning|error)$

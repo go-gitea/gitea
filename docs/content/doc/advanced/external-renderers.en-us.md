@@ -94,3 +94,4 @@ These can be numbers, identifying names, or anything else.
 Once your configuration changes have been made, restart Gitea to have changes take effect.
 
 **Note**: The above section numbering policy is new; previously the section was `[markup.sanitizer]` and keys could be redefined.
+For more information, see the corresponding information in the cheat sheet.
