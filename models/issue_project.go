@@ -4,7 +4,11 @@
 
 package models
 
-import "xorm.io/xorm"
+import (
+	"fmt"
+
+	"xorm.io/xorm"
+)
 
 // IssueProject saves relation from issue to a project
 type IssueProject struct {
@@ -188,18 +192,12 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 	}
 
 	if has {
-		ip.ProjectBoardID = board.ID
-		if _, err := sess.ID(ip.ID).Update(&ip); err != nil {
-			return err
-		}
-	} else {
-		if _, err := sess.Insert(&IssueProject{
-			IssueID:        issue.ID,
-			ProjectID:      board.ProjectID,
-			ProjectBoardID: board.ID,
-		}); err != nil {
-			return err
-		}
+		fmt.Errorf("issue has to be added to a project first")
+	}
+
+	ip.ProjectBoardID = board.ID
+	if _, err := sess.ID(ip.ID).Cols("project_board_id").Update(&ip); err != nil {
+		return err
 	}
 
 	return sess.Commit()
