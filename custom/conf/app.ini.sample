@@ -201,8 +201,10 @@ DESCRIPTION = Gitea (Git with a cup of tea) is a painless self-hosted Git servic
 KEYWORDS = go,git,self-hosted,gitea
 
 [markdown]
-; Enable hard line break extension
-ENABLE_HARD_LINE_BREAK = false
+; Render soft line breaks as hard line breaks, which means a single newline character between
+; paragraphs will cause a line break and adding trailing whitespace to paragraphs is not
+; necessary to force a line break.
+ENABLE_HARD_LINE_BREAK = true
 ; Comma separated list of custom URL-Schemes that are allowed as links when rendering Markdown
 ; for example git,magnet,ftp (more at https://en.wikipedia.org/wiki/List_of_URI_schemes)
 ; URLs starting with http and https are always displayed, whatever is put in this entry.
