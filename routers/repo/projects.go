@@ -132,8 +132,8 @@ func NewRepoProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
 }
 
-// nolint: dupl
 // ChangeProjectStatus updates the status of a project between "open" and "close"
+// nolint: dupl
 func ChangeProjectStatus(ctx *context.Context) {
 	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
