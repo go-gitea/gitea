@@ -19,7 +19,7 @@ import (
 
 const (
 	tplNotification    base.TplName = "user/notification/notification"
-	tplNotificationDiv              = "user/notification/notification_div"
+	tplNotificationDiv base.TplName = "user/notification/notification_div"
 )
 
 // GetNotificationCount is the middleware that sets the notification count in the context
