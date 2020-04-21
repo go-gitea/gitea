@@ -32,11 +32,14 @@ type TemporaryUploadRepository struct {
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
 func NewTemporaryUploadRepository(repo *models.Repository) (*TemporaryUploadRepository, error) {
+	start := time.Now()
+	fmt.Printf("\t\tCreating temporary upload repository\n")
 	basePath, err := models.CreateTemporaryPath("upload")
 	if err != nil {
 		return nil, err
 	}
 	t := &TemporaryUploadRepository{repo: repo, basePath: basePath}
+	fmt.Printf("\t\tTime taken: [%v]\n", time.Since(start))
 	return t, nil
 }
 
@@ -50,6 +53,8 @@ func (t *TemporaryUploadRepository) Close() {
 
 // Clone the base repository to our path and set branch as the HEAD
 func (t *TemporaryUploadRepository) Clone(branch string) error {
+	start := time.Now()
+	fmt.Printf("\t\t\tCloning temporary upload repository\n")
 	if _, err := git.NewCommand("clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath).Run(); err != nil {
 		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
@@ -72,6 +77,7 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 		return err
 	}
 	t.gitRepo = gitRepo
+	fmt.Printf("\t\t\tTime taken: [%v]\n", time.Since(start))
 	return nil
 }
 

@@ -85,7 +85,7 @@ func FromCode(code string) *Emoji {
 // data for "shamrock").
 func FromAlias(alias string) *Emoji {
 	start := time.Now()
-	fmt.Printf("\tIn emoji.FromAlias\n")
+	fmt.Printf("\tIn emoji.FromAlias checking [%s]\n", alias)
 	if strings.HasPrefix(alias, ":") && strings.HasSuffix(alias, ":") {
 		alias = alias[1 : len(alias)-1]
 	}

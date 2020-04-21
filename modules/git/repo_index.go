@@ -6,7 +6,9 @@ package git
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
+	"time"
 )
 
 // ReadTreeToIndex reads a treeish to the index
@@ -86,6 +88,8 @@ func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename stri
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (repo *Repository) WriteTree() (*Tree, error) {
+	start := time.Now()
+	fmt.Printf("\tWriting current index to tree\n")
 	res, err := NewCommand("write-tree").RunInDir(repo.Path)
 	if err != nil {
 		return nil, err
@@ -94,5 +98,6 @@ func (repo *Repository) WriteTree() (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("\tTime taken: [%v]\n", time.Since(start))
 	return NewTree(repo, id), nil
 }

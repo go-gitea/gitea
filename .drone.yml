@@ -255,8 +255,7 @@ steps:
       branch:
         - master
       event:
-        - push
-        - pull_request
+        - tag
 
 ---
 kind: pipeline

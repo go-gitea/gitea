@@ -511,11 +511,14 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 
 // RenderEmoji renders html text with emoji post processors
 func RenderEmoji(text string) template.HTML {
+	start := time.Now()
+	fmt.Printf("Calling RenderEmoji from helper\n")
 	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
 	if err != nil {
 		log.Error("RenderEmoji: %v", err)
 		return template.HTML("")
 	}
+	fmt.Printf("Time taken: [%v]\n", time.Since(start))
 	return template.HTML(renderedText)
 }
 
