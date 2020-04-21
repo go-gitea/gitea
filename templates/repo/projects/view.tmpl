@@ -37,31 +37,37 @@
 		<div class="ui divider"></div>
 	</div>
 
+	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+	{{ range $board := .Boards }}
+		ID: {{$board.Issues}}
+	{{end}}
+
 	<div class="ui container fluid padded" id="project-board">
 
 		<div class="board">
-			{{ range .ProjectBoards }}
+			{{ range $board := .Boards }}
 
 			<div class="ui segment board-column">
-				<div class="ui label board-label" style="style">{{.Board.Title}}</div>
+				<div class="ui label board-label" style="style">{{.Title}}</div>
 
-				{{if $.IsSigned}}
+				{{ if $.IsSigned }}
+				{{ if not (eq .ID 0) }}
 				<div class="ui dropdown jump item poping up right" data-variation="tiny inverted">
 					<span class="ui text">
 						<img class="ui tiny avatar image" width="24" height="24">
 						<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-kebab-horizontal" 24}}</span>
 					</span>
 					<div class="menu user-menu" tabindex="-1">
-						<a class="item show-modal button" data-modal="#edit-project-board-modal-{{.Board.ID}}">
+						<a class="item show-modal button" data-modal="#edit-project-board-modal-{{.ID}}">
 							{{svg "octicon-pencil" 16}}
 							{{$.i18n.Tr "repo.projects.board.edit"}}
 						</a>
-						<a class="item delete-project-board" data-url="{{$.RepoLink}}/projects/{{.Board.ProjectID}}/{{.Board.ID}}">
+						<a class="item delete-project-board" data-url="{{$.RepoLink}}/projects/{{.ProjectID}}/{{.ID}}">
 							{{svg "octicon-trashcan" 16}}
 							{{$.i18n.Tr "repo.projects.board.delete"}}
 						</a>
 
-						<div class="ui small modal edit-project-board" id="edit-project-board-modal-{{.Board.ID}}">
+						<div class="ui small modal edit-project-board" id="edit-project-board-modal-{{.ID}}">
 							<div class="header">
 								{{$.i18n.Tr "repo.projects.board.edit"}}
 							</div>
@@ -74,7 +80,7 @@
 
 									<div class="text right actions">
 										<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
-										<button data-url="{{$.RepoLink}}/projects/{{.Board.ProjectID}}/{{.Board.ID}}" class="ui red button">{{$.i18n.Tr "repo.settings.make_transfer"}}</button>
+										<button data-url="{{$.RepoLink}}/projects/{{.ProjectID}}/{{.ID}}" class="ui red button">{{$.i18n.Tr "repo.settings.make_transfer"}}</button>
 									</div>
 								</form>
 							</div>
@@ -82,11 +88,12 @@
 					</div>
 				</div>
 				{{ end }}
+				{{ end }}
 				<div class="ui divider"></div>
 
-				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{.Board.ProjectID}}/{{.Board.ID}}" data-project="{{.Board.ProjectID}}" data-board="{{.Board.ID}}" id="board_{{.Board.ID}}">
+				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{.ProjectID}}/{{.ID}}" data-project="{{.ProjectID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 
-					{{ $board := .Board }} {{ range .Issues }}
+					{{ range .Issues }}
 					<div class="card board-card" data-issue="{{.ID}}">
 						<div class="content">
 							<div class="header"><a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">{{ .Title }}</a></div>

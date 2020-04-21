@@ -240,7 +240,7 @@ func EditProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 // ViewProject renders the kanban board for a project
 func ViewProject(ctx *context.Context) {
 
-	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	project, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
@@ -250,71 +250,31 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	boards, err := models.GetProjectBoards(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	unCategorizedBoard, err := models.GetUnCategorizedBoard(ctx.Repo.Repository.ID, project.ID)
+	unCategorizedBoard.Title = ctx.Tr("repo.projects.type.uncategorized")
+	if err != nil {
+		ctx.ServerError("GetUnCategorizedBoard", err)
+		return
+	}
+
+	boards, err := models.GetProjectBoards(ctx.Repo.Repository.ID, project.ID)
 	if err != nil {
 		ctx.ServerError("GetProjectBoards", err)
 		return
 	}
 
-	issues, err := models.GetProjectIssues(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
-	if err != nil {
-		ctx.ServerError("GetProjectIssues", err)
+	allBoards := models.ProjectBoards{unCategorizedBoard}
+	allBoards = append(allBoards, boards...)
+
+	if ctx.Data["Issues"], err = allBoards.LoadIssues(); err != nil {
+		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
 
-	type data struct {
-		Board  models.ProjectBoard
-		Issues []*models.Issue
-		idx    int
-	}
-
-	var seen = make(map[int64]data)
-	var tmplData = make([]data, 0, len(boards)+1)
-
-	uncategorizedBoard := data{
-		Board: models.ProjectBoard{
-			ID:        0,
-			ProjectID: ctx.ParamsInt64(":id"),
-			Title:     ctx.Tr("repo.projects.type.uncategorized"),
-		},
-		Issues: []*models.Issue{},
-	}
-
-	tmplData = append(tmplData, uncategorizedBoard)
-
-	for i := range boards {
-		d := data{Board: boards[i], idx: i + 1}
-
-		seen[boards[i].ID] = d
-
-		tmplData = append(tmplData, d)
-	}
-
-	for i := range issues {
-		var currentData data
-		var ok bool
-
-		currentData, ok = seen[issues[i].ProjectBoardID]
-		if !ok {
-			currentData = tmplData[0]
-		}
-
-		currentData.Issues = append(currentData.Issues, issues[i])
-
-		if ok {
-			tmplData[currentData.idx] = currentData
-		} else {
-			tmplData[0] = currentData
-		}
-	}
-
-	ctx.Data["Boards"] = boards
-	ctx.Data["Issues"] = issues
-	ctx.Data["ProjectBoards"] = tmplData
-	ctx.Data["Title"] = p.Title
+	ctx.Data["Project"] = project
+	ctx.Data["Boards"] = allBoards
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["RequiresDraggable"] = true
-	ctx.Data["ProjectID"] = p.ID
 
 	ctx.HTML(200, tplProjectsView)
 }

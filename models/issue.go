@@ -1063,6 +1063,7 @@ type IssuesOptions struct {
 	MentionedID        int64
 	MilestoneID        int64
 	ProjectID          int64
+	ProjectBoardID     int64
 	IsClosed           util.OptionalBool
 	IsPull             util.OptionalBool
 	LabelIDs           []int64
@@ -1153,6 +1154,14 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 	if opts.ProjectID > 0 {
 		sess.And("issue.project_id=?", opts.ProjectID)
+	}
+
+	if opts.ProjectBoardID != 0 {
+		if opts.ProjectBoardID > 0 {
+			sess.And("issue.project_board_id=?", opts.ProjectBoardID)
+		} else {
+			sess.And("issue.project_board_id=?", 0)
+		}
 	}
 
 	switch opts.IsPull {

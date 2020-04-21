@@ -76,11 +76,12 @@ func addProjectsInfo(x *xorm.Engine) error {
 	}
 
 	type ProjectBoard struct {
-		ID        int64 `xorm:"pk autoincr"`
-		ProjectID int64 `xorm:"INDEX NOT NULL"`
-		Title     string
-		RepoID    int64 `xorm:"INDEX NOT NULL"`
+		ID      int64 `xorm:"pk autoincr"`
+		Title   string
+		Default bool
 
+		ProjectID int64 `xorm:"INDEX NOT NULL"`
+		RepoID    int64 `xorm:"INDEX NOT NULL"`
 		CreatorID int64 `xorm:"NOT NULL"`
 
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`

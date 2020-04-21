@@ -25,19 +25,22 @@ type (
 	ProjectBoardType uint8
 
 	// ProjectBoards is a list of all project boards in a repository.
-	ProjectBoards []ProjectBoard
+	ProjectBoards []*ProjectBoard
 
 	// ProjectBoard is used to represent boards on a kanban project
 	ProjectBoard struct {
-		ID        int64 `xorm:"pk autoincr"`
-		ProjectID int64 `xorm:"INDEX NOT NULL"`
-		Title     string
-		RepoID    int64 `xorm:"INDEX NOT NULL"`
+		ID      int64 `xorm:"pk autoincr"`
+		Title   string
+		Default bool //if true it collects issues witch are not signed to a specific board jet
 
+		ProjectID int64 `xorm:"INDEX NOT NULL"`
+		RepoID    int64 `xorm:"INDEX NOT NULL"`
 		CreatorID int64 `xorm:"NOT NULL"`
 
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+
+		Issues []*Issue `xorm:"-"`
 	}
 
 	// ProjectType is used to identify the type of project in question and
@@ -513,18 +516,51 @@ func UpdateProjectBoard(board *ProjectBoard) error {
 }
 
 // GetProjectBoards fetches all boards related to a project
-func GetProjectBoards(repoID, projectID int64) ([]ProjectBoard, error) {
+func GetProjectBoards(repoID, projectID int64) ([]*ProjectBoard, error) {
 
-	var boards = make([]ProjectBoard, 0)
+	var boards = make([]*ProjectBoard, 0)
 
 	sess := x.Where("repo_id=? AND project_id=?", repoID, projectID)
 	return boards, sess.Find(&boards)
 }
 
-// GetProjectIssues fetches issues for a specific project
-func GetProjectIssues(repoID, projectID int64) ([]*Issue, error) {
-	return Issues(&IssuesOptions{
-		RepoIDs:   []int64{repoID},
+// GetUnCategorizedBoard represents a board for issues not assigned to one
+func GetUnCategorizedBoard(repoID, projectID int64) (*ProjectBoard, error) {
+	return &ProjectBoard{
 		ProjectID: projectID,
+		RepoID:    repoID,
+		Title:     "UnCategorized",
+		Default:   true,
+	}, nil
+}
+
+func (b ProjectBoard) LoadIssues() (IssueList, error) {
+	var boardID int64
+	if !b.Default {
+		boardID = b.ID
+
+	} else {
+		// Issues without ProjectBoardID
+		boardID = -1
+	}
+	issues, err := Issues(&IssuesOptions{
+		ProjectBoardID: boardID,
+		ProjectID:      b.ProjectID,
+		RepoIDs:        []int64{b.RepoID},
 	})
+	b.Issues = issues
+	return issues, err
+}
+
+func (bs ProjectBoards) LoadIssues() (IssueList, error) {
+	issues := make(IssueList, 0, len(bs)*10)
+	for i := range bs {
+		il, err := bs[i].LoadIssues()
+		if err != nil {
+			return nil, err
+		}
+		bs[i].Issues = il
+		issues = append(issues, il...)
+	}
+	return issues, nil
 }
