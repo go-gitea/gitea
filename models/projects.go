@@ -146,14 +146,7 @@ func GetProjects(opts ProjectSearchOptions) ([]*Project, error) {
 		sess = sess.Where("is_closed = ?", false)
 	}
 
-	switch opts.Type {
-	case RepositoryType:
-		sess = sess.Where("type = ?", opts.Type)
-
-	case IndividualType:
-		sess = sess.Where("type = ?", opts.Type)
-
-	case OrganizationType:
+	if opts.Type > 0 {
 		sess = sess.Where("type = ?", opts.Type)
 	}
 
