@@ -9,20 +9,6 @@ import (
 	"strings"
 )
 
-// PushUpdateDeleteTags updates a number of delete tags
-func PushUpdateDeleteTags(repo *Repository, tags []string) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return fmt.Errorf("Unable to begin sess in PushUpdateDeleteTags: %v", err)
-	}
-	if err := pushUpdateDeleteTags(sess, repo, tags); err != nil {
-		return err
-	}
-
-	return sess.Commit()
-}
-
 // PushUpdateDeleteTagsContext updates a number of delete tags with context
 func PushUpdateDeleteTagsContext(ctx DBContext, repo *Repository, tags []string) error {
 	return pushUpdateDeleteTags(ctx.e, repo, tags)

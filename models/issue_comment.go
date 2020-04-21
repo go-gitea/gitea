@@ -86,6 +86,10 @@ const (
 	CommentTypeChangeTargetBranch
 	// Delete time manual for time tracking
 	CommentTypeDeleteTimeManual
+	// add or remove Request from one
+	CommentTypeReviewRequest
+	// merge pull request
+	CommentTypeMergePull
 )
 
 // CommentTag defines comment tag type
@@ -118,6 +122,8 @@ type Comment struct {
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *User `xorm:"-"`
+	ResolveDoerID    int64
+	ResolveDoer      *User `xorm:"-"`
 	OldTitle         string
 	NewTitle         string
 	OldRef           string
@@ -414,6 +420,26 @@ func (c *Comment) LoadAssigneeUser() error {
 		}
 	}
 	return nil
+}
+
+// LoadResolveDoer if comment.Type is CommentTypeCode and ResolveDoerID not zero, then load resolveDoer
+func (c *Comment) LoadResolveDoer() (err error) {
+	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
+		return nil
+	}
+	c.ResolveDoer, err = getUserByID(x, c.ResolveDoerID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.ResolveDoer = NewGhostUser()
+			err = nil
+		}
+	}
+	return
+}
+
+// IsResolved check if an code comment is resolved
+func (c *Comment) IsResolved() bool {
+	return c.ResolveDoerID != 0 && c.Type == CommentTypeCode
 }
 
 // LoadDepIssueDetails loads Dependent Issue Details
@@ -765,8 +791,12 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 
 // GetCommentByID returns the comment by given ID.
 func GetCommentByID(id int64) (*Comment, error) {
+	return getCommentByID(x, id)
+}
+
+func getCommentByID(e Engine, id int64) (*Comment, error) {
 	c := new(Comment)
-	has, err := x.ID(id).Get(c)
+	has, err := e.ID(id).Get(c)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -935,7 +965,12 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 	if err := e.In("id", ids).Find(&reviews); err != nil {
 		return nil, err
 	}
+
 	for _, comment := range comments {
+		if err := comment.LoadResolveDoer(); err != nil {
+			return nil, err
+		}
+
 		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
 			// If the review is pending only the author can see the comments (except the review is set)
 			if review.ID == 0 {

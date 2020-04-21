@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -16,12 +17,13 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-// GetSingleCommit get a commit via
-func GetSingleCommit(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha} repository repoGetSingleCommit
+// GetSingleCommitBySHA get a commit via sha
+func GetSingleCommitBySHA(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha} repository repoGetSingleCommitBySHA
 	// ---
 	// summary: Get a single commit from a repository
 	// produces:
@@ -45,16 +47,68 @@ func GetSingleCommit(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Commit"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	sha := ctx.Params(":sha")
+	if !git.SHAPattern.MatchString(sha) {
+		ctx.Error(http.StatusUnprocessableEntity, "no valid sha", fmt.Sprintf("no valid sha: %s", sha))
+		return
+	}
+	getCommit(ctx, sha)
+}
+
+// GetSingleCommitByRef get a commit via ref
+func GetSingleCommitByRef(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref} repository repoGetSingleCommitByRef
+	// ---
+	// summary: Get a single commit from a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: path
+	//   description: a git ref
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Commit"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	ref := ctx.Params("ref")
+
+	if validation.GitRefNamePatternInvalid.MatchString(ref) || !validation.CheckGitRefAdditionalRulesValid(ref) {
+		ctx.Error(http.StatusUnprocessableEntity, "no valid sha", fmt.Sprintf("no valid ref: %s", ref))
+		return
+	}
+
+	getCommit(ctx, ref)
+}
+
+func getCommit(ctx *context.APIContext, identifier string) {
 	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return
 	}
 	defer gitRepo.Close()
-	commit, err := gitRepo.GetCommit(ctx.Params(":sha"))
+	commit, err := gitRepo.GetCommit(identifier)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
 		return
@@ -65,7 +119,6 @@ func GetSingleCommit(ctx *context.APIContext) {
 		ctx.ServerError("toCommit", err)
 		return
 	}
-
 	ctx.JSON(http.StatusOK, json)
 }
 

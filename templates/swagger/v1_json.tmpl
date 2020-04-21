@@ -530,9 +530,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/NotificationCount"
-          },
-          "204": {
-            "description": "No unread notification"
           }
         }
       }
@@ -977,6 +974,189 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/labels": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List an organization's labels",
+        "operationId": "orgListLabels",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LabelList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create a label for an organization",
+        "operationId": "orgCreateLabel",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateLabelOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Label"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/labels/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get a single label",
+        "operationId": "orgGetLabel",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the label to get",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Label"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete a label",
+        "operationId": "orgDeleteLabel",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the label to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Update a label",
+        "operationId": "orgEditLabel",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the label to edit",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditLabelOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Label"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -2089,6 +2269,47 @@
             "$ref": "#/responses/Branch"
           }
         }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a specific branch from a repository",
+        "operationId": "repoDeleteBranch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "branch to delete",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/collaborators": {
@@ -2328,6 +2549,52 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/commits/{ref}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a single commit from a repository",
+        "operationId": "repoGetSingleCommitByRef",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "a git ref",
+            "name": "ref",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Commit"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/commits/{ref}/statuses": {
       "get": {
         "produces": [
@@ -2412,6 +2679,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ContentsListResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -2458,6 +2728,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ContentsResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2605,6 +2878,15 @@
         "responses": {
           "200": {
             "$ref": "#/responses/FileDeleteResponse"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -2793,7 +3075,7 @@
           "repository"
         ],
         "summary": "Get a single commit from a repository",
-        "operationId": "repoGetSingleCommit",
+        "operationId": "repoGetSingleCommitBySHA",
         "parameters": [
           {
             "type": "string",
@@ -2823,6 +3105,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -4925,6 +5210,53 @@
         "responses": {
           "200": {
             "$ref": "#/responses/UserList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/subscriptions/check": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Check if user is subscribed to an issue",
+        "operationId": "issueCheckSubscription",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WatchInfo"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -7167,6 +7499,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/WatchInfo"
+          },
+          "404": {
+            "description": "User is not watching this repo or repo do not exist"
           }
         }
       },
@@ -7251,6 +7586,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, default maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -8055,6 +8402,147 @@
         "responses": {
           "200": {
             "$ref": "#/responses/User"
+          }
+        }
+      }
+    },
+    "/user/applications/oauth2": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "List the authenticated user's oauth2 applications",
+        "operationId": "userGetOauth2Application",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OAuth2ApplicationList"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "creates a new OAuth2 application",
+        "operationId": "userCreateOAuth2Application",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/OAuth2Application"
+          }
+        }
+      }
+    },
+    "/user/applications/oauth2/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "get an OAuth2 Application",
+        "operationId": "userGetOAuth2Application",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "Application ID to be found",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OAuth2Application"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "delete an OAuth2 Application",
+        "operationId": "userDeleteOAuth2Application",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "token to be deleted",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "update an OAuth2 Application, this includes regenerating the client secret",
+        "operationId": "userUpdateOAuth2Application",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "application to be updated",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OAuth2Application"
           }
         }
       }
@@ -9672,6 +10160,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_outdated_branch": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOutdatedBranch"
+        },
         "block_on_rejected_reviews": {
           "type": "boolean",
           "x-go-name": "BlockOnRejectedReviews"
@@ -9722,6 +10214,10 @@
             "type": "string"
           },
           "x-go-name": "MergeWhitelistUsernames"
+        },
+        "protected_file_patterns": {
+          "type": "string",
+          "x-go-name": "ProtectedFilePatterns"
         },
         "push_whitelist_deploy_keys": {
           "type": "boolean",
@@ -9988,6 +10484,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_outdated_branch": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOutdatedBranch"
+        },
         "block_on_rejected_reviews": {
           "type": "boolean",
           "x-go-name": "BlockOnRejectedReviews"
@@ -10033,6 +10533,10 @@
             "type": "string"
           },
           "x-go-name": "MergeWhitelistUsernames"
+        },
+        "protected_file_patterns": {
+          "type": "string",
+          "x-go-name": "ProtectedFilePatterns"
         },
         "push_whitelist_deploy_keys": {
           "type": "boolean",
@@ -10345,6 +10849,24 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateOAuth2ApplicationOptions": {
+      "description": "CreateOAuth2ApplicationOptions holds options to create an oauth2 application",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "redirect_uris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "RedirectURIs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateOrgOption": {
       "description": "CreateOrgOption options for creating an organization",
       "type": "object",
@@ -10486,6 +11008,11 @@
           "description": "Whether the repository should be auto-intialized?",
           "type": "boolean",
           "x-go-name": "AutoInit"
+        },
+        "default_branch": {
+          "description": "DefaultBranch of the repository (used when initializes and in template)",
+          "type": "string",
+          "x-go-name": "DefaultBranch"
         },
         "description": {
           "description": "Description of the repository to create",
@@ -10773,6 +11300,10 @@
           },
           "x-go-name": "ApprovalsWhitelistUsernames"
         },
+        "block_on_outdated_branch": {
+          "type": "boolean",
+          "x-go-name": "BlockOnOutdatedBranch"
+        },
         "block_on_rejected_reviews": {
           "type": "boolean",
           "x-go-name": "BlockOnRejectedReviews"
@@ -10814,6 +11345,10 @@
             "type": "string"
           },
           "x-go-name": "MergeWhitelistUsernames"
+        },
+        "protected_file_patterns": {
+          "type": "string",
+          "x-go-name": "ProtectedFilePatterns"
         },
         "push_whitelist_deploy_keys": {
           "type": "boolean",
@@ -12186,6 +12721,42 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "OAuth2Application": {
+      "type": "object",
+      "title": "OAuth2Application represents an OAuth2 application.",
+      "properties": {
+        "client_id": {
+          "type": "string",
+          "x-go-name": "ClientID"
+        },
+        "client_secret": {
+          "type": "string",
+          "x-go-name": "ClientSecret"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "redirect_uris": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "RedirectURIs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Organization": {
       "description": "Organization represents an organization",
       "type": "object",
@@ -12623,6 +13194,10 @@
         "draft": {
           "type": "boolean",
           "x-go-name": "IsDraft"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
         },
         "id": {
           "type": "integer",
@@ -13677,6 +14252,21 @@
         }
       }
     },
+    "OAuth2Application": {
+      "description": "OAuth2Application",
+      "schema": {
+        "$ref": "#/definitions/OAuth2Application"
+      }
+    },
+    "OAuth2ApplicationList": {
+      "description": "OAuth2ApplicationList represents a list of OAuth2 applications.",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/OAuth2Application"
+        }
+      }
+    },
     "Organization": {
       "description": "Organization",
       "schema": {
@@ -13959,7 +14549,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/EditBranchProtectionOption"
+        "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
       }
     },
     "redirect": {

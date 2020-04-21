@@ -120,10 +120,13 @@ func (a *Action) ShortActUserName() string {
 	return base.EllipsisString(a.GetActUserName(), 20)
 }
 
-// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME
+// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME, or falls back to the username if it is blank.
 func (a *Action) GetDisplayName() string {
 	if setting.UI.DefaultShowFullName {
-		return a.GetActFullName()
+		trimmedFullName := strings.TrimSpace(a.GetActFullName())
+		if len(trimmedFullName) > 0 {
+			return trimmedFullName
+		}
 	}
 	return a.ShortActUserName()
 }
@@ -210,7 +213,7 @@ func (a *Action) getCommentLink(e Engine) string {
 		return "#"
 	}
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = GetCommentByID(a.CommentID)
+		a.Comment, _ = getCommentByID(e, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
