@@ -103,7 +103,11 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
 func (opts *FindNotificationOptions) ToSession(e Engine) *xorm.Session {
-	return opts.setSessionPagination(e.Where(opts.ToCond()))
+	sess := e.Where(opts.ToCond())
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
+	return sess
 }
 
 func getNotifications(e Engine, options FindNotificationOptions) (nl NotificationList, err error) {
