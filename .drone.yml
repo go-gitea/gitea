@@ -61,8 +61,7 @@ steps:
       GOARCH: arm64
       TAGS: bindata
     commands:
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
-      - make build # test cross compile
+      - make backend # test cross compile
       - rm ./gitea # clean
     depends_on: [lint-backend]
 
@@ -100,6 +99,18 @@ services:
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: test
+      GOPROXY: off
+      TAGS: bindata sqlite sqlite_unlock_notify
+      GITLAB_READ_TOKEN:
+        from_secret: gitlab_read_token
+    depends_on:
+      - build
+    when:
+      branch:
+        - master
+      event:
+        - push
+        - pull_request
 
   - name: mysql8
     pull: default
@@ -141,8 +152,7 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
-      - make build
+      - make backend
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
@@ -176,6 +186,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -190,6 +201,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -204,6 +216,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -285,8 +298,7 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
-      - make build
+      - make backend
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
@@ -302,6 +314,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
@@ -316,6 +329,7 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
