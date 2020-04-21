@@ -35,10 +35,10 @@ function updateNotificationCount() {
       const notificationDependent = $('.notification_dependent');
       if (data.new === 0) {
         notificationCount.addClass('hidden');
-        notificationDependent.addClass('hidden');
+        notificationDependent.addClass('hide');
       } else {
         notificationCount.removeClass('hidden');
-        notificationDependent.removeClass('hidden');
+        notificationDependent.removeClass('hide');
       }
       notificationCount.text(data.new);
     },
