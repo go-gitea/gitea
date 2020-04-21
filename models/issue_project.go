@@ -137,17 +137,15 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 
 	oldProjectID := issue.projectID(e)
 
-	if oldProjectID > 0 {
-		if _, err := e.Where("issue_project.issue_id=?", issue.ID).Delete(&IssueProject{}); err != nil {
-			return err
-		}
+	if _, err := e.Where("issue_project.issue_id=?", issue.ID).Delete(&IssueProject{}); err != nil {
+		return err
 	}
 
 	if err := issue.loadRepo(e); err != nil {
 		return err
 	}
 
-	if oldProjectID > 0 || issue.projectID(e) > 0 {
+	if oldProjectID > 0 || newProjectID > 0 {
 		if _, err := createComment(e, &CreateCommentOptions{
 			Type:         CommentTypeProject,
 			Doer:         doer,
