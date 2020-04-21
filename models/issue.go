@@ -332,6 +332,13 @@ func (issue *Issue) GetIsRead(userID int64) error {
 
 // APIURL returns the absolute APIURL to this issue.
 func (issue *Issue) APIURL() string {
+	if issue.Repo == nil {
+		err := issue.LoadRepo()
+		if err != nil {
+			log.Error("Issue[%d].APIURL(): %v", issue.ID, err)
+			return ""
+		}
+	}
 	return fmt.Sprintf("%s/issues/%d", issue.Repo.APIURL(), issue.Index)
 }
 

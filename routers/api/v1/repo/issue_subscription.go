@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -131,6 +132,64 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 	}
 
 	ctx.Status(http.StatusCreated)
+}
+
+// CheckIssueSubscription check if user is subscribed to an issue
+func CheckIssueSubscription(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/subscriptions/check issue issueCheckSubscription
+	// ---
+	// summary: Check if user is subscribed to an issue
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WatchInfo"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		}
+
+		return
+	}
+
+	watching, err := models.CheckIssueWatch(ctx.User, issue)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, api.WatchInfo{
+		Subscribed:    watching,
+		Ignored:       !watching,
+		Reason:        nil,
+		CreatedAt:     issue.CreatedUnix.AsTime(),
+		URL:           issue.APIURL() + "/subscriptions",
+		RepositoryURL: ctx.Repo.Repository.APIURL(),
+	})
 }
 
 // GetIssueSubscribers return subscribers of an issue

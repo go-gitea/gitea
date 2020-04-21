@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -124,7 +123,7 @@ func IsWatching(ctx *context.APIContext) {
 			Reason:        nil,
 			CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
 			URL:           subscriptionURL(ctx.Repo.Repository),
-			RepositoryURL: repositoryURL(ctx.Repo.Repository),
+			RepositoryURL: ctx.Repo.Repository.APIURL(),
 		})
 	} else {
 		ctx.NotFound()
@@ -162,7 +161,7 @@ func Watch(ctx *context.APIContext) {
 		Reason:        nil,
 		CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
 		URL:           subscriptionURL(ctx.Repo.Repository),
-		RepositoryURL: repositoryURL(ctx.Repo.Repository),
+		RepositoryURL: ctx.Repo.Repository.APIURL(),
 	})
 
 }
@@ -197,10 +196,5 @@ func Unwatch(ctx *context.APIContext) {
 
 // subscriptionURL returns the URL of the subscription API endpoint of a repo
 func subscriptionURL(repo *models.Repository) string {
-	return repositoryURL(repo) + "/subscription"
-}
-
-// repositoryURL returns the URL of the API endpoint of a repo
-func repositoryURL(repo *models.Repository) string {
-	return setting.AppURL + "api/v1/" + repo.FullName()
+	return repo.APIURL() + "/subscription"
 }
