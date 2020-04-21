@@ -27,7 +27,7 @@
 
 							<div class="text right actions">
 								<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
-								<button data-url="{{$.RepoLink}}/projects/{{.ProjectID}}" class="ui green button" id="new_board_submit">{{$.i18n.Tr "repo.projects.board.new_submit"}}</button>
+								<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}" class="ui green button" id="new_board_submit">{{$.i18n.Tr "repo.projects.board.new_submit"}}</button>
 							</div>
 						</form>
 					</div>
@@ -57,7 +57,7 @@
 							{{svg "octicon-pencil" 16}}
 							{{$.i18n.Tr "repo.projects.board.edit"}}
 						</a>
-						<a class="item delete-project-board" data-url="{{$.RepoLink}}/projects/{{.ProjectID}}/{{.ID}}">
+						<a class="item delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
 							{{svg "octicon-trashcan" 16}}
 							{{$.i18n.Tr "repo.projects.board.delete"}}
 						</a>
@@ -75,7 +75,7 @@
 
 									<div class="text right actions">
 										<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
-										<button data-url="{{$.RepoLink}}/projects/{{.ProjectID}}/{{.ID}}" class="ui red button">{{$.i18n.Tr "repo.settings.make_transfer"}}</button>
+										<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" class="ui red button">{{$.i18n.Tr "repo.settings.make_transfer"}}</button>
 									</div>
 								</form>
 							</div>
@@ -86,7 +86,7 @@
 				{{ end }}
 				<div class="ui divider"></div>
 
-				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{.ProjectID}}/{{.ID}}" data-project="{{.ProjectID}}" data-board="{{.ID}}" id="board_{{.ID}}">
+				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 
 					{{ range .Issues }}
 					<div class="card board-card" data-issue="{{.ID}}">
