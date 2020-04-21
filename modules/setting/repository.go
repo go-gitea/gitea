@@ -103,7 +103,7 @@ var (
 		DefaultCloseIssuesViaCommitsInAnyBranch: false,
 		EnablePushCreateUser:                    false,
 		EnablePushCreateOrg:                     false,
-		ProjectBoardBasicKanbanType:             []string{"Todo", "In progress", "Done"},
+		ProjectBoardBasicKanbanType:             []string{"To Do", "In Progress", "Done"},
 		ProjectBoardBugTriageType:               []string{"Needs Triage", "High priority", "Low priority", "Closed"},
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
