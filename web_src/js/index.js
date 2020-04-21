@@ -18,6 +18,7 @@ import initDateTimePicker from './features/datetimepicker.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+import initNotificationsTable from './features/notification.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -174,46 +175,6 @@ function updateIssuesMeta(url, action, issueIds, elementId, isAdd) {
         issue_ids: issueIds,
         id: elementId,
         is_add: isAdd
-      },
-      success: resolve
-    });
-  }));
-}
-
-function initNotificationsTable() {
-  const $notificationTable = $('#notification_table');
-  if ($notificationTable) {
-    $notificationTable.find('.button').click(function () {
-      updateNotification(
-        $(this).data('url'),
-        $(this).data('status'),
-        $(this).data('page'),
-        $(this).data('q'),
-        $(this).data('notification-id')
-      ).then((data) => {
-        $('#notification_div').replaceWith(data);
-        initNotificationsTable();
-      });
-      return false;
-    });
-  }
-}
-
-function updateNotification(url, status, page, q, notificationID) {
-  return new Promise(((resolve) => {
-    if (status != "pinned") {
-      $(`#notification_${notificationID}`).remove();
-    }
-    $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        _csrf: csrf,
-        notification_id: notificationID,
-        status,
-        page,
-        q,
-        noredirect: true,
       },
       success: resolve
     });
