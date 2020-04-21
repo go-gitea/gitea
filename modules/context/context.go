@@ -342,8 +342,6 @@ func Contexter() macaron.Handler {
 		ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 
-		ctx.Data["IsKanbanEnabled"] = setting.Repository.EnableKanbanBoard
-
 		c.Map(ctx)
 	}
 }

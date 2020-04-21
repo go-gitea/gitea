@@ -457,7 +457,6 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 		ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
 		ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
-		ctx.Data["IsKanbanEnabled"] = setting.Repository.EnableKanbanBoard
 
 		if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
 			ctx.ServerError("CanUserFork", err)
@@ -815,5 +814,6 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
 		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
+		ctx.Data["UnitTypeProjects"] = models.UnitTypeProjects
 	}
 }

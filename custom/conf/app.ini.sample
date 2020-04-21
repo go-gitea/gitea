@@ -47,12 +47,10 @@ DISABLED_REPO_UNITS =
 ; Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility.
 ; External wiki and issue tracker can't be enabled by default as it requires additional settings.
 ; Disabled repo units will not be added to new repositories regardless if it is in the default list.
-DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
+DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects
 ; Prefix archive files by placing them in a directory named after the repository
 PREFIX_ARCHIVE_FILES = true
-; Enable the kanban board feature system wide.
-ENABLE_KANBAN_BOARD = true
-; Default templates for kanban borards
+; Default templates for project borards
 PROJECT_BOARD_BASIC_KANBAN_TYPE = To Do, In Progress, Done
 PROJECT_BOARD_BUG_TRIAGE_TYPE = Needs Triage, High priority, Low priority, Closed
 

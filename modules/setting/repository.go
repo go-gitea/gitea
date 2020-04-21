@@ -37,7 +37,6 @@ var (
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
 		EnablePushCreateUser                    bool
 		EnablePushCreateOrg                     bool
-		EnableKanbanBoard                       bool
 		ProjectBoardBasicKanbanType             []string
 		ProjectBoardBugTriageType               []string
 		DisabledRepoUnits                       []string
@@ -104,7 +103,6 @@ var (
 		DefaultCloseIssuesViaCommitsInAnyBranch: false,
 		EnablePushCreateUser:                    false,
 		EnablePushCreateOrg:                     false,
-		EnableKanbanBoard:                       true,
 		ProjectBoardBasicKanbanType:             []string{"Todo", "In progress", "Done"},
 		ProjectBoardBugTriageType:               []string{"Needs Triage", "High priority", "Low priority", "Closed"},
 		DisabledRepoUnits:                       []string{},

@@ -101,7 +101,7 @@
 						{{svg "octicon-person" 16}}  {{.i18n.Tr "user.followers"}}
 						<div class="ui label">{{.Owner.NumFollowers}}</div>
 					</a>
-					{{ if .IsKanbanEnabled }}
+					{{ if not .UnitProjectsGlobalDisabled}}
 					<a class='{{if eq .TabName "projects"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=projects">
 						{{svg "octicon-project" 16}}  {{.i18n.Tr "user.projects"}}
 					</a>

@@ -139,9 +139,10 @@
 			{{end}}
 		</div>
 
-
+    {{if not .UnitProjectsGlobalDisabled}}
 		<div class="ui divider"></div>
 
+    <!-- ToDo: check (.Permission.CanWrite $.UnitTypeProjects) if ProjectUnit got sepperated -->
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
 			<span class="text">
 				<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
@@ -179,6 +180,7 @@
 				{{end}}
 			</div>
 		</div>
+		{{end}}
 
 
 		<div class="ui divider"></div>

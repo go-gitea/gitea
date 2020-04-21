@@ -73,7 +73,7 @@
 						<span class="fitted">{{svg "octicon-organization" 16}}</span> {{.i18n.Tr "new_org"}}
 					</a>
 					{{end}}
-					{{ if .IsKanbanEnabled }}
+					{{ if not .UnitProjectsGlobalDisabled}}
 					<a class="item" href="{{AppSubUrl}}/projects/create">
 						{{svg "octicon-plus" 16}} {{ .i18n.Tr "new_project" }}
 					</a>

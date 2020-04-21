@@ -29,7 +29,7 @@ const (
 // MustEnableProjects check if projects are enabled in settings
 func MustEnableProjects(ctx *context.Context) {
 
-	if !setting.Repository.EnableKanbanBoard {
+	if models.UnitTypeProjects.UnitGlobalDisabled() {
 		ctx.NotFound("EnableKanbanBoard", nil)
 		return
 	}
@@ -60,9 +60,9 @@ func Projects(ctx *context.Context) {
 
 	var total int
 	if !isShowClosed {
-		total = int(repo.NumOpenProjects)
+		total = repo.NumOpenProjects
 	} else {
-		total = int(repo.NumClosedProjects)
+		total = repo.NumClosedProjects
 	}
 
 	projects, err := models.GetProjects(models.ProjectSearchOptions{
