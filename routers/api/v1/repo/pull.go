@@ -114,7 +114,6 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-
 	ctx.JSON(http.StatusOK, &apiPrs)
 }
 
@@ -242,10 +241,26 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 			return
 		}
 
-		labelIDs = make([]int64, len(labels))
+		labelIDs = make([]int64, len(form.Labels))
+		orgLabelIDs := make([]int64, len(form.Labels))
+
 		for i := range labels {
 			labelIDs[i] = labels[i].ID
 		}
+
+		if ctx.Repo.Owner.IsOrganization() {
+			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
+				return
+			}
+
+			for i := range orgLabels {
+				orgLabelIDs[i] = orgLabels[i].ID
+			}
+		}
+
+		labelIDs = append(labelIDs, orgLabelIDs...)
 	}
 
 	if form.Milestone > 0 {
@@ -453,6 +468,17 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDsError", err)
 			return
 		}
+
+		if ctx.Repo.Owner.IsOrganization() {
+			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
+				return
+			}
+
+			labels = append(labels, orgLabels...)
+		}
+
 		if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
 			return
@@ -680,11 +706,11 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		} else if models.IsErrMergeUnrelatedHistories(err) {
 			conflictError := err.(models.ErrMergeUnrelatedHistories)
 			ctx.JSON(http.StatusConflict, conflictError)
-		} else if models.IsErrMergePushOutOfDate(err) {
+		} else if git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "Merge", "merge push out of date")
 			return
-		} else if models.IsErrPushRejected(err) {
-			errPushRej := err.(models.ErrPushRejected)
+		} else if git.IsErrPushRejected(err) {
+			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
 				ctx.Error(http.StatusConflict, "Merge", "PushRejected without remote error message")
 				return

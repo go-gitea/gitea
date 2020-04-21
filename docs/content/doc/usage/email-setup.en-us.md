@@ -45,3 +45,19 @@ PASSWD         = `password`
 - To send a test email to validate the settings, go to Gitea > Site Administration > Configuration > SMTP Mailer Configuration.
 
 For the full list of options check the [Config Cheat Sheet]({{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}})
+
+### Gmail
+
+The following configuration should work with GMail's SMTP server:
+
+```ini
+[mailer]
+ENABLED        = true
+HOST           = smtp.gmail.com:465
+FROM           = example@gmail.com
+USER           = example@gmail.com
+PASSWD         = ***
+MAILER_TYPE    = smtp
+IS_TLS_ENABLED = true
+HELO_HOSTNAME  = example.com
+```

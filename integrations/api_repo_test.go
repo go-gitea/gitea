@@ -209,13 +209,31 @@ func getRepo(t *testing.T, repoID int64) *models.Repository {
 func TestAPIViewRepo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
+	var repo api.Repository
+
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
-
-	var repo api.Repository
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, 1, repo.ID)
 	assert.EqualValues(t, "repo1", repo.Name)
+	assert.EqualValues(t, 1, repo.Releases)
+	assert.EqualValues(t, 1, repo.OpenIssues)
+	assert.EqualValues(t, 3, repo.OpenPulls)
+
+	req = NewRequest(t, "GET", "/api/v1/repos/user12/repo10")
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &repo)
+	assert.EqualValues(t, 10, repo.ID)
+	assert.EqualValues(t, "repo10", repo.Name)
+	assert.EqualValues(t, 1, repo.OpenPulls)
+	assert.EqualValues(t, 1, repo.Forks)
+
+	req = NewRequest(t, "GET", "/api/v1/repos/user5/repo4")
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &repo)
+	assert.EqualValues(t, 4, repo.ID)
+	assert.EqualValues(t, "repo4", repo.Name)
+	assert.EqualValues(t, 1, repo.Stars)
 }
 
 func TestAPIOrgRepos(t *testing.T) {

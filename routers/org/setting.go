@@ -24,6 +24,8 @@ const (
 	tplSettingsDelete base.TplName = "org/settings/delete"
 	// tplSettingsHooks template path for render hook settings
 	tplSettingsHooks base.TplName = "org/settings/hooks"
+	// tplSettingsLabels template path for render labels settings
+	tplSettingsLabels base.TplName = "org/settings/labels"
 )
 
 // Settings render the main settings page
@@ -176,4 +178,14 @@ func DeleteWebhook(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Org.OrgLink + "/settings/hooks",
 	})
+}
+
+// Labels render organization labels page
+func Labels(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.labels")
+	ctx.Data["PageIsOrgSettingsLabels"] = true
+	ctx.Data["RequireMinicolors"] = true
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["LabelTemplates"] = models.LabelTemplates
+	ctx.HTML(200, tplSettingsLabels)
 }
