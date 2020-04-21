@@ -7,9 +7,7 @@
 		<div class="ui top attached tabular menu">
 			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item">
 				{{.i18n.Tr "notification.unread"}}
-				{{if .NotificationUnreadCount}}
-					<div class="ui label">{{.NotificationUnreadCount}}</div>
-				{{end}}
+				<div class="ui label {{if not .NotificationUnreadCount}}hidden{{end}} notification_count">{{.NotificationUnreadCount}}</div>
 			</a>
 			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
 				{{.i18n.Tr "notification.read"}}

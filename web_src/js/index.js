@@ -18,7 +18,7 @@ import initDateTimePicker from './features/datetimepicker.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
-import initNotificationsTable from './features/notification.js';
+import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -2613,6 +2613,7 @@ $(document).ready(async () => {
   initTemplateSearch();
   initContextPopups();
   initNotificationsTable();
+  initNotificationCount();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {

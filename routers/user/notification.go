@@ -125,11 +125,7 @@ func getNotifications(c *context.Context) {
 		c.Flash.Error(fmt.Sprintf("ERROR: %d notifications were removed due to missing parts - check the logs", failCount))
 	}
 
-	title := c.Tr("notifications")
-	if status == models.NotificationStatusUnread && total > 0 {
-		title = fmt.Sprintf("(%d) %s", total, title)
-	}
-	c.Data["Title"] = title
+	c.Data["Title"] = c.Tr("notifications")
 	c.Data["Keyword"] = keyword
 	c.Data["Status"] = status
 	c.Data["Notifications"] = notifications

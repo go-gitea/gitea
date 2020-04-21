@@ -1,6 +1,6 @@
-const {csrf} = window.config;
+const {AppSubUrl, csrf} = window.config;
 
-export default async function initNotificationsTable() {
+export async function initNotificationsTable() {
   $('#notification_table .button').click(function () {
     updateNotification(
       $(this).data('url'),
@@ -11,8 +11,36 @@ export default async function initNotificationsTable() {
     ).then((data) => {
       $('#notification_div').replaceWith(data);
       initNotificationsTable();
+      updateNotificationCount();
     });
     return false;
+  });
+}
+
+export async function initNotificationCount() {
+  setInterval(() => {
+    updateNotificationCount();
+  }, 5000);
+}
+
+function updateNotificationCount() {
+  $.ajax({
+    type: 'GET',
+    url: `${AppSubUrl}/api/v1/notifications/new`,
+    data: {
+      _csrf: csrf,
+    },
+    success: (data) => {
+      const notificationCount = $('.notification_count');
+      if (data.new === 0) {
+        if (!notificationCount.hasClass('hidden')) {
+          notificationCount.addClass('hidden');
+        }
+      } else if (notificationCount.hasClass('hidden')) {
+        notificationCount.removeClass('hidden');
+      }
+      notificationCount.text(data.new);
+    },
   });
 }
 
