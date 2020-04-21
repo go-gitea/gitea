@@ -339,19 +339,22 @@
 						<label>{{.i18n.Tr "repo.settings.admin_enable_health_check"}}</label>
 					</div>
 				</div>
-				<div class="ui checkbox">
-					<input name="enable_close_issues_via_commit_in_any_branch" type="checkbox" {{ if .Repository.CloseIssuesViaCommitInAnyBranch }}checked{{end}}>
-					<label>{{.i18n.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
+				<div class="field">
+					<div class="ui checkbox">
+						<input name="enable_close_issues_via_commit_in_any_branch" type="checkbox" {{ if .Repository.CloseIssuesViaCommitInAnyBranch }}checked{{end}}>
+						<label>{{.i18n.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
+					</div>
 				</div>
 				<!-- TODO brad not sure if should use a unit enabled for this or not -->
-				<div class="ui checkbox">
-					<input name="enable_hook_task_purge" type="checkbox" {{ if .Repository.IsHookTaskPurgeEnabled }}checked{{end}}>
-					<label>{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_1"}}</label>
-					<!-- TODO brad not sure where/how to store this, s/b disabled if other is unchecked -->
-					<input class="field {{if not .Repository.IsHookTaskPurgeEnabled}}disabled{{end}}" id="hook_task_deliveries_to_keep" name="hook_task_deliveries_to_keep" type="number" value="{{ .Repository.NumberWebhookDeliveriesToKeep }}">
-					<label>{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_2"}}</label>
+				<div class="field">
+					<div class="ui checkbox">
+						<input name="enable_hook_task_purge" type="checkbox" {{ if .Repository.IsHookTaskPurgeEnabled }}checked{{end}}>
+						<label>{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_1"}}</label>
+						<!-- TODO brad not sure where/how to store this, s/b disabled if other is unchecked -->
+						<input class="field {{if not .Repository.IsHookTaskPurgeEnabled}}disabled{{end}}" id="hook_task_deliveries_to_keep" name="hook_task_deliveries_to_keep" type="number" value="{{ .Repository.NumberWebhookDeliveriesToKeep }}">
+						<span>{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_2"}}</span>
+					</div>
 				</div>
-
 				<div class="ui divider"></div>
 				<div class="field">
 					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>

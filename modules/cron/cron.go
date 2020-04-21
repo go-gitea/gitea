@@ -134,6 +134,7 @@ func NewContext() {
 		}
 	}
 	if setting.Cron.PruneHookTaskTable.Enabled {
+		log.Error("prune hook task enabled")
 		entry, err = c.AddFunc("Prune hook_task table", setting.Cron.PruneHookTaskTable.Schedule, WithUnique(pruneHookTaskTable, func(ctx context.Context) {
 			if err := repo_module.PruneHookTaskTable(ctx); err != nil {
 				log.Error("PruneHookTaskTable: %s", err)
@@ -151,6 +152,8 @@ func NewContext() {
 				}
 			})()
 		}
+	} else {
+		log.Error("prune hook task not enabled :(")
 	}
 
 	entry, err = c.AddFunc("Update migrated repositories' issues and comments' posterid", setting.Cron.UpdateMigrationPosterID.Schedule, WithUnique(updateMigrationPosterID, migrations.UpdateMigrationPosterID))

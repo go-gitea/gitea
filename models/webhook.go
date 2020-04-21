@@ -798,3 +798,9 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 	}
 	return tasks, nil
 }
+
+// DeleteDeliveredHookTasks deletes delivered hook tasks of one repository, leaving the most recent delivered basedon the paramter
+func DeleteDeliveredHookTasks(repoID int64, numberDeliveriesToKeep int64) error {
+	log.Info("delete delivered hook tasks on repo %d with num to keep %d", repoID, numberDeliveriesToKeep)
+	return nil
+}
