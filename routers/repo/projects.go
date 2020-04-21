@@ -262,7 +262,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	allBoards := models.ProjectBoards{unCategorizedBoard}
+	allBoards := models.ProjectBoardList{unCategorizedBoard}
 	allBoards = append(allBoards, boards...)
 
 	if ctx.Data["Issues"], err = allBoards.LoadIssues(); err != nil {

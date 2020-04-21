@@ -187,8 +187,8 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 		return err
 	}
 
-	if has {
-		fmt.Errorf("issue has to be added to a project first")
+	if !has {
+		return fmt.Errorf("issue has to be added to a project first")
 	}
 
 	ip.ProjectBoardID = board.ID
@@ -197,4 +197,9 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 	}
 
 	return sess.Commit()
+}
+
+func (pb *ProjectBoard) removeIssues(e Engine) error {
+	_, err := e.Exec("UPDATE `issue_project` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
+	return err
 }

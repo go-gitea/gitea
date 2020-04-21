@@ -14,8 +14,8 @@ type (
 	// ProjectBoardType is used to represent a project board type
 	ProjectBoardType uint8
 
-	// ProjectBoards is a list of all project boards in a repository.
-	ProjectBoards []*ProjectBoard
+	// ProjectBoardList is a list of all project boards in a repository.
+	ProjectBoardList []*ProjectBoard
 )
 
 const (
@@ -117,7 +117,7 @@ func DeleteProjectBoardByID(repoID, projectID, boardID int64) error {
 }
 
 func deleteProjectBoardByID(e Engine, repoID, projectID, boardID int64) error {
-	board, err := GetProjectBoard(repoID, projectID, boardID)
+	board, err := getProjectBoard(e, repoID, projectID, boardID)
 	if err != nil {
 		if IsErrProjectBoardNotExist(err) {
 			return nil
@@ -126,12 +126,11 @@ func deleteProjectBoardByID(e Engine, repoID, projectID, boardID int64) error {
 		return err
 	}
 
-	if _, err := e.ID(board.ID).Delete(board); err != nil {
+	if err = board.removeIssues(e); err != nil {
 		return err
 	}
 
-	if _, err := e.Exec("UPDATE `issue` SET project_board_id = 0 WHERE project_id = ? AND repo_id = ? AND project_board_id = ? ",
-		board.ProjectID, board.RepoID, board.ID); err != nil {
+	if _, err := e.ID(board.ID).Delete(board); err != nil {
 		return err
 	}
 	return nil
@@ -139,13 +138,17 @@ func deleteProjectBoardByID(e Engine, repoID, projectID, boardID int64) error {
 
 // GetProjectBoard fetches the current board of a project
 func GetProjectBoard(repoID, projectID, boardID int64) (*ProjectBoard, error) {
+	return getProjectBoard(x, repoID, projectID, boardID)
+}
+
+func getProjectBoard(e Engine, repoID, projectID, boardID int64) (*ProjectBoard, error) {
 	board := &ProjectBoard{
 		ID:        boardID,
 		RepoID:    repoID,
 		ProjectID: projectID,
 	}
 
-	has, err := x.Get(board)
+	has, err := e.Get(board)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -200,7 +203,7 @@ func (b ProjectBoard) LoadIssues() (IssueList, error) {
 }
 
 // LoadIssues load issues assigned to the boards
-func (bs ProjectBoards) LoadIssues() (IssueList, error) {
+func (bs ProjectBoardList) LoadIssues() (IssueList, error) {
 	issues := make(IssueList, 0, len(bs)*10)
 	for i := range bs {
 		il, err := bs[i].LoadIssues()
