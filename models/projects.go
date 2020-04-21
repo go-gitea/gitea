@@ -242,6 +242,11 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 	return err
 }
 
+// GetProjectByRepoID returns the projects in a repository.
+func GetProjectByRepoID(repoID, id int64) (*Project, error) {
+	return getProjectByRepoID(x, repoID, id)
+}
+
 func getProjectByRepoID(e Engine, repoID, id int64) (*Project, error) {
 	p := &Project{
 		ID:     id,
@@ -256,11 +261,6 @@ func getProjectByRepoID(e Engine, repoID, id int64) (*Project, error) {
 	}
 
 	return p, nil
-}
-
-// GetProjectByRepoID returns the projects in a repository.
-func GetProjectByRepoID(repoID, id int64) (*Project, error) {
-	return getProjectByRepoID(x, repoID, id)
 }
 
 func updateProject(e Engine, p *Project) error {
@@ -327,6 +327,20 @@ func NewProjectBoard(board *ProjectBoard) error {
 
 // DeleteProjectBoardByID removes all issues references to the project board.
 func DeleteProjectBoardByID(repoID, projectID, boardID int64) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := deleteProjectBoardByID(sess, repoID, projectID, boardID); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func deleteProjectBoardByID(e Engine, repoID, projectID, boardID int64) error {
 	board, err := GetProjectBoard(repoID, projectID, boardID)
 	if err != nil {
 		if IsErrProjectBoardNotExist(err) {
@@ -336,19 +350,15 @@ func DeleteProjectBoardByID(repoID, projectID, boardID int64) error {
 		return err
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if _, err := sess.ID(board.ID).Delete(board); err != nil {
+	if _, err := e.ID(board.ID).Delete(board); err != nil {
 		return err
 	}
 
-	if _, err := x.Exec("UPDATE `issue` SET project_board_id = 0 WHERE project_id = ? AND repo_id = ? AND project_board_id = ? ",
+	if _, err := e.Exec("UPDATE `issue` SET project_board_id = 0 WHERE project_id = ? AND repo_id = ? AND project_board_id = ? ",
 		board.ProjectID, board.RepoID, board.ID); err != nil {
 		return err
 	}
-
-	return sess.Commit()
+	return nil
 }
 
 // DeleteProjectByRepoID deletes a project from a repository.
@@ -359,7 +369,15 @@ func DeleteProjectByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	p, err := getProjectByRepoID(sess, repoID, id)
+	if err := deleteProjectByRepoID(sess, repoID, id); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func deleteProjectByRepoID(e Engine, repoID, id int64) error {
+	p, err := getProjectByRepoID(e, repoID, id)
 	if err != nil {
 		if IsErrProjectNotExist(err) {
 			return nil
@@ -367,21 +385,21 @@ func DeleteProjectByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	repo, err := getRepositoryByID(sess, p.RepoID)
+	repo, err := getRepositoryByID(e, p.RepoID)
 	if err != nil {
 		return err
 	}
 
-	if _, err = sess.ID(p.ID).Delete(new(Project)); err != nil {
+	if _, err = e.ID(p.ID).Delete(new(Project)); err != nil {
 		return err
 	}
 
-	numProjects, err := countRepoProjects(sess, repo.ID)
+	numProjects, err := countRepoProjects(e, repo.ID)
 	if err != nil {
 		return err
 	}
 
-	numClosedProjects, err := countRepoClosedProjects(sess, repo.ID)
+	numClosedProjects, err := countRepoClosedProjects(e, repo.ID)
 	if err != nil {
 		return err
 	}
@@ -389,15 +407,15 @@ func DeleteProjectByRepoID(repoID, id int64) error {
 	repo.NumProjects = int(numProjects)
 	repo.NumClosedProjects = int(numClosedProjects)
 
-	if _, err = sess.ID(repo.ID).Cols("num_projects, num_closed_projects").Update(repo); err != nil {
+	if _, err = e.ID(repo.ID).Cols("num_projects, num_closed_projects").Update(repo); err != nil {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `issue` SET project_id = 0 WHERE project_id = ?", p.ID); err != nil {
+	if _, err = e.Exec("UPDATE `issue` SET project_id = 0 WHERE project_id = ?", p.ID); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return nil
 }
 
 // UpdateProject updates a project
@@ -534,6 +552,7 @@ func GetUnCategorizedBoard(repoID, projectID int64) (*ProjectBoard, error) {
 	}, nil
 }
 
+// LoadIssues load issues assigned to this board
 func (b ProjectBoard) LoadIssues() (IssueList, error) {
 	var boardID int64
 	if !b.Default {
@@ -552,6 +571,7 @@ func (b ProjectBoard) LoadIssues() (IssueList, error) {
 	return issues, err
 }
 
+// LoadIssues load issues assigned to the boards
 func (bs ProjectBoards) LoadIssues() (IssueList, error) {
 	issues := make(IssueList, 0, len(bs)*10)
 	for i := range bs {
