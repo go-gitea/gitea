@@ -54,6 +54,7 @@ export default async function initProject(csrf) {
           contentType: 'application/json',
           method: 'PUT',
         }).done(() => {
+          projectTitle.closest('form').removeClass('dirty');
           setTimeout(window.location.reload(true), 2000);
         });
       });
