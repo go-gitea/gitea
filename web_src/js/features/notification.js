@@ -1,4 +1,4 @@
-const {AppSubUrl, csrf} = window.config;
+const {AppSubUrl, csrf, NotificationSettings} = window.config;
 
 export function initNotificationsTable() {
   $('#notification_table .button').click(function () {
@@ -18,6 +18,10 @@ export function initNotificationsTable() {
 }
 
 export function initNotificationCount() {
+  if (NotificationSettings.MinTimeout <= 0) {
+    return;
+  }
+
   if ($('.notification_count').length > 0) {
     const lastCount = $('.notification_count').text();
     const fn = (callback, timeout, lastCount) => {
@@ -26,14 +30,14 @@ export function initNotificationCount() {
       }, timeout);
     };
 
-    fn(fn, 10000, lastCount);
+    fn(fn, NotificationSettings.MinTimeout, lastCount);
   }
 }
 
 function updateNotificationCount(callback, timeout, lastCount) {
   const currentCount = $('.notification_count').text();
   if (callback && (lastCount !== currentCount)) {
-    callback(callback, 10000, currentCount);
+    callback(callback, NotificationSettings.MinTimeout, currentCount);
     return;
   }
   $.ajax({
@@ -55,9 +59,9 @@ function updateNotificationCount(callback, timeout, lastCount) {
     const currentCount = $('.notification_count').text();
     if (lastCount !== `${data.new}` || currentCount !== `${data.new}`) {
       notificationCount.text(data.new);
-      timeout = 10000;
-    } else if (timeout < 60000) {
-      timeout += 10000;
+      timeout = NotificationSettings.MinTimeout;
+    } else if (timeout < NotificationSettings.MaxTimeout) {
+      timeout += NotificationSettings.TimeoutStep;
     }
     return {
       timeout,
