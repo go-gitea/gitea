@@ -181,16 +181,24 @@ You can then add blocks like the following to your markdown:
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 
 #### Example: STL Preview
-TODO only load when needed
+
 You can display STL file directly in Gitea by adding:
 ```html
-<link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">
-<script src="/Madeleine.js/src/lib/stats.js"></script>
-<script src="/Madeleine.js/src/lib/detector.js"></script>
-<script src="/Madeleine.js/src/lib/three.min.js"></script>
-<script src="/Madeleine.js/src/Madeleine.js"></script>
 <script>
+function lS(src){
+  return new Promise(function(resolve, reject) {
+    let s = document.createElement('script')
+    s.src = src
+    s.addEventListener('load', () => {
+      resolve()
+    })
+    document.body.appendChild(s)
+  });
+}
+
 if($('.view-raw>a[href$=".stl" i]').length){
+  $('body').append('<link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">');
+  Promise.all([lS("/Madeleine.js/src/lib/stats.js"),lS("/Madeleine.js/src/lib/detector.js"), lS("/Madeleine.js/src/lib/three.min.js"), lS("/Madeleine.js/src/Madeleine.js")]).then(function() {
     $('.view-raw').attr('id', 'view-raw').attr('style', 'padding: 0;margin-bottom: -10px;');
     var madeleine = new Madeleine({
       target: 'view-raw',
@@ -198,6 +206,7 @@ if($('.view-raw>a[href$=".stl" i]').length){
       path: '/Madeleine.js/src'
     });
     $('.view-raw>a[href$=".stl"]').remove()
+  });
 }
 </script>
 ```
