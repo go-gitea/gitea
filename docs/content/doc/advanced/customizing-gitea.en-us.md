@@ -180,10 +180,9 @@ You can then add blocks like the following to your markdown:
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 
-#### Example: Mermaid.js
-
-If you would like to dispaly STL file in Gitea's markdown you simply add to file `templates/custom/footer.tmpl`:
+#### Example: STL Preview
 TODO only load when needed
+You can display STL file directly in Gitea by adding:
 ```html
 <link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">
 <script src="/Madeleine.js/src/lib/stats.js"></script>
@@ -202,8 +201,9 @@ if($('.view-raw>a[href$=".stl" i]').length){
 }
 </script>
 ```
+to the file `templates/custom/footer.tmpl`
 
-You then need to download the content of the librairy [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `custom/public/` folder.
+You also need to download the content of the library [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `custom/public/` folder.
 
 You should end-up with a folder structucture similar to:
 ```
@@ -252,6 +252,7 @@ custom/public
            `-- three.min.js
 ```
 
+Then restart gitea and open a STL file on your gitea instance.
 
 ## Customizing Gitea mails
 
