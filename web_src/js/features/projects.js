@@ -25,8 +25,8 @@ export default async function initProject(csrf) {
             },
             contentType: 'application/json',
             type: 'POST',
-            success: () => {
-              // setTimeout(reload(),3000)
+            error: () => {
+              // move board back
             },
           });
         },
@@ -43,6 +43,7 @@ export default async function initProject(csrf) {
       .find('.content > .form > .actions > .red')
       .click(function (e) {
         e.preventDefault();
+
         $.ajax({
           url: $(this).data('url'),
           data: JSON.stringify({title: projectTitle.val()}),
@@ -52,9 +53,7 @@ export default async function initProject(csrf) {
           },
           contentType: 'application/json',
           method: 'PUT',
-          // eslint-disable-next-line no-unused-vars
-        }).done((res) => {
-          // modal.modal('hide');
+        }).done(() => {
           setTimeout(window.location.reload(true), 2000);
         });
       });
@@ -83,7 +82,6 @@ export default async function initProject(csrf) {
 
     $.ajax({
       url: $(this).data('url'),
-
       data: JSON.stringify({title: $('#new_board').val()}),
       headers: {
         'X-Csrf-Token': csrf,
