@@ -200,7 +200,7 @@ if($('.view-raw>a[href$=".stl" i]').length){
   $('body').append('<link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">');
   Promise.all([lS("/Madeleine.js/src/lib/stats.js"),lS("/Madeleine.js/src/lib/detector.js"), lS("/Madeleine.js/src/lib/three.min.js"), lS("/Madeleine.js/src/Madeleine.js")]).then(function() {
     $('.view-raw').attr('id', 'view-raw').attr('style', 'padding: 0;margin-bottom: -10px;');
-    var madeleine = new Madeleine({
+    new Madeleine({
       target: 'view-raw',
       data: $('.view-raw>a[href$=".stl"]').attr('href'),
       path: '/Madeleine.js/src'
