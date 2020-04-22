@@ -12,7 +12,7 @@ import (
 
 // ProjectIssues saves relation from issue to a project
 type ProjectIssues struct {
-	ID        int64
+	ID        int64 `xorm:"pk autoincr"`
 	IssueID   int64 `xorm:"INDEX"`
 	ProjectID int64 `xorm:"INDEX"`
 

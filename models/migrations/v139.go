@@ -57,29 +57,28 @@ func addProjectsInfo(x *xorm.Engine) error {
 		ID                int64
 		NumProjects       int `xorm:"NOT NULL DEFAULT 0"`
 		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
-		NumOpenProjects   int `xorm:"-"`
 	}
 
 	if err := sess.Sync2(new(Repository)); err != nil {
 		return err
 	}
 
-	// IssueProject saves relation from issue to a project
-	type IssueProject struct {
-		ID             int64
+	// ProjectIssues saves relation from issue to a project
+	type ProjectIssues struct {
+		ID             int64 `xorm:"pk autoincr"`
 		IssueID        int64 `xorm:"INDEX"`
 		ProjectID      int64 `xorm:"INDEX"`
 		ProjectBoardID int64 `xorm:"INDEX"`
 	}
 
-	if err := sess.Sync2(new(IssueProject)); err != nil {
+	if err := sess.Sync2(new(ProjectIssues)); err != nil {
 		return err
 	}
 
 	type ProjectBoard struct {
 		ID      int64 `xorm:"pk autoincr"`
 		Title   string
-		Default bool
+		Default bool `xorm:"NOT NULL DEFAULT false"`
 
 		ProjectID int64 `xorm:"INDEX NOT NULL"`
 		RepoID    int64 `xorm:"INDEX NOT NULL"`
@@ -101,6 +100,8 @@ func addProjectsInfo(x *xorm.Engine) error {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 	}
 
+	// enable projects by default on migration
+	// ToDo:do we really need this?
 	const batchSize = 100
 
 	const unitTypeProject int = 8 // see UnitTypeProjects in models/units.go
