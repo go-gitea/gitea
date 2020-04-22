@@ -140,6 +140,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
 
+### UI - Notification (`ui.notification`)
+
+- `MIN_TIMEOUT`: **10s**: These options control how often notification is queried to update the notification count. On page load the notification count will be checked after `MIN_TIMEOUT`. The timeout will increase to `MAX_TIMEOUT` by `TIMEOUT_STEP` if the notification count is unchanged. Set MIN_TIMEOUT to 0 to turn off.
+- `MAX_TIMEOUT`: **60s**.
+- `TIMEOUT_STEP`: **10s**.
+
+
 ## Markdown (`markdown`)
 
 - `ENABLE_HARD_LINE_BREAK`: **true**: Render soft line breaks as hard line breaks, which
