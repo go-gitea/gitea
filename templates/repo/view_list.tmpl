@@ -64,7 +64,7 @@
 					<td>
 						<span class="truncate">
 							{{svg "octicon-file-submodule" 16}}
-							{{$refURL := $commit.RefURL AppUrl $.BranchLink}}
+							{{$refURL := $commit.RefURL AppUrl $.Repository.FullName}}
 							{{if $refURL}}
 								<a href="{{$refURL}}">{{$entry.Name}}</a> @ <a href="{{$refURL}}/commit/{{$commit.RefID}}">{{ShortSha $commit.RefID}}</a>
 							{{else}}
