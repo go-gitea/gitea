@@ -180,6 +180,79 @@ You can then add blocks like the following to your markdown:
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 
+#### Example: Mermaid.js
+
+If you would like to dispaly STL file in Gitea's markdown you simply add to file `templates/custom/footer.tmpl`:
+TODO only load when needed
+```html
+<link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">
+<script src="/Madeleine.js/src/lib/stats.js"></script>
+<script src="/Madeleine.js/src/lib/detector.js"></script>
+<script src="/Madeleine.js/src/lib/three.min.js"></script>
+<script src="/Madeleine.js/src/Madeleine.js"></script>
+<script>
+if($('.view-raw>a[href$=".stl" i]').length){
+    $('.view-raw').attr('id', 'view-raw').attr('style', 'padding: 0;margin-bottom: -10px;');
+    var madeleine = new Madeleine({
+      target: 'view-raw',
+      data: $('.view-raw>a[href$=".stl"]').attr('href'),
+      path: '/Madeleine.js/src'
+    });
+    $('.view-raw>a[href$=".stl"]').remove()
+}
+</script>
+```
+
+You then need to download the content of the librairy [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `custom/public/` folder.
+
+You should end-up with a folder structucture similar to:
+```
+custom/templates
+-- custom
+    `-- footer.tmpl
+custom/public
+-- Madeleine.js
+   |-- LICENSE
+   |-- README.md
+   |-- css
+   |   |-- pygment_trac.css
+   |   `-- stylesheet.css
+   |-- examples
+   |   |-- ajax.html
+   |   |-- index.html
+   |   `-- upload.html
+   |-- images
+   |   |-- bg_hr.png
+   |   |-- blacktocat.png
+   |   |-- icon_download.png
+   |   `-- sprite_download.png
+   |-- models
+   |   |-- dino2.stl
+   |   |-- ducati.stl
+   |   |-- gallardo.stl
+   |   |-- lamp.stl
+   |   |-- octocat.stl
+   |   |-- skull.stl
+   |   `-- treefrog.stl
+   `-- src
+       |-- Madeleine.js
+       |-- css
+       |   `-- Madeleine.css
+       |-- icons
+       |   |-- logo.png
+       |   |-- madeleine.eot
+       |   |-- madeleine.svg
+       |   |-- madeleine.ttf
+       |   `-- madeleine.woff
+       `-- lib
+           |-- MadeleineConverter.js
+           |-- MadeleineLoader.js
+           |-- detector.js
+           |-- stats.js
+           `-- three.min.js
+```
+
+
 ## Customizing Gitea mails
 
 The `custom/templates/mail` folder allows changing the body of every mail of Gitea.
