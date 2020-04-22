@@ -127,7 +127,7 @@ func init() {
 		new(EmailHash),
 		new(Project),
 		new(ProjectBoard),
-		new(IssueProject),
+		new(ProjectIssues),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

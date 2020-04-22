@@ -1155,15 +1155,15 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if opts.ProjectID > 0 {
-		sess.Join("INNER", "issue_project", "issue.id = issue_project.issue_id").
-			And("issue_project.project_id=?", opts.ProjectID)
+		sess.Join("INNER", "project_issues", "issue.id = project_issues.issue_id").
+			And("project_issues.project_id=?", opts.ProjectID)
 	}
 
 	if opts.ProjectBoardID != 0 {
 		if opts.ProjectBoardID > 0 {
-			sess.In("issue.id", builder.Select("issue_id").From("issue_project").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
+			sess.In("issue.id", builder.Select("issue_id").From("project_issues").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
 		} else {
-			sess.In("issue.id", builder.Select("issue_id").From("issue_project").Where(builder.Eq{"project_board_id": 0}))
+			sess.In("issue.id", builder.Select("issue_id").From("project_issues").Where(builder.Eq{"project_board_id": 0}))
 		}
 	}
 

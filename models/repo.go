@@ -1626,7 +1626,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueProject{}); err != nil {
+		Delete(&ProjectIssues{}); err != nil {
 		return err
 	}
 
