@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -58,7 +59,7 @@ func ListMilestones(ctx *context.APIContext) {
 
 	apiMilestones := make([]*api.Milestone, len(milestones))
 	for i := range milestones {
-		apiMilestones[i] = milestones[i].APIFormat()
+		apiMilestones[i] = convert.ToAPIMilestone(milestones[i])
 	}
 	ctx.JSON(http.StatusOK, &apiMilestones)
 }
@@ -100,7 +101,7 @@ func GetMilestone(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.JSON(http.StatusOK, milestone.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToAPIMilestone(milestone))
 }
 
 // CreateMilestone create a milestone for a repository
@@ -147,7 +148,7 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 		ctx.Error(http.StatusInternalServerError, "NewMilestone", err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, milestone.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToAPIMilestone(milestone))
 }
 
 // EditMilestone modify a milestone for a repository
@@ -213,7 +214,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 		ctx.ServerError("UpdateMilestone", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, milestone.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToAPIMilestone(milestone))
 }
 
 // DeleteMilestone delete a milestone for a repository

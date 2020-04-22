@@ -224,7 +224,7 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	counts, err := models.CountMilestones(userRepoCond, isShowClosed)
+	counts, err := models.CountMilestonesByRepoCond(userRepoCond, isShowClosed)
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
@@ -267,7 +267,7 @@ func Milestones(ctx *context.Context) {
 		i++
 	}
 
-	milestoneStats, err := models.GetMilestonesStats(repoCond)
+	milestoneStats, err := models.GetMilestonesStatsByRepoCond(repoCond)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
@@ -277,7 +277,7 @@ func Milestones(ctx *context.Context) {
 	if len(repoIDs) == 0 {
 		totalMilestoneStats = milestoneStats
 	} else {
-		totalMilestoneStats, err = models.GetMilestonesStats(userRepoCond)
+		totalMilestoneStats, err = models.GetMilestonesStatsByRepoCond(userRepoCond)
 		if err != nil {
 			ctx.ServerError("GetMilestoneStats", err)
 			return
