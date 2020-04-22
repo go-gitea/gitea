@@ -47,7 +47,7 @@ function updateNotificationCount(callback, timeout) {
         notificationDependent.removeClass('hide');
       }
       const currentCount = notificationCount.text();
-      if (currentCount !== data.new) {
+      if (currentCount !== `${data.new}`) {
         notificationCount.text(data.new);
         timeout = 10000;
       } else if (timeout < 60000) {
