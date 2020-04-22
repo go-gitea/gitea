@@ -6,9 +6,7 @@
 package emoji
 
 import (
-	"fmt"
 	"strings"
-	"time"
 )
 
 // Gemoji is a set of emoji data.
@@ -84,8 +82,6 @@ func FromCode(code string) *Emoji {
 // "alias" or ":alias:" (ie, "shamrock" or ":shamrock:" will return the Gemoji
 // data for "shamrock").
 func FromAlias(alias string) *Emoji {
-	start := time.Now()
-	fmt.Printf("\tIn emoji.FromAlias checking [%s]\n", alias)
 	if strings.HasPrefix(alias, ":") && strings.HasSuffix(alias, ":") {
 		alias = alias[1 : len(alias)-1]
 	}
@@ -94,7 +90,7 @@ func FromAlias(alias string) *Emoji {
 	if !ok {
 		return nil
 	}
-	fmt.Printf("\tTime taken: [%v]\n", time.Since(start))
+
 	return &GemojiData[i]
 }
 

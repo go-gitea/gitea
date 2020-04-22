@@ -125,9 +125,6 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
 func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
-	start := time.Now()
-	fmt.Printf("\tCreating file [%s]\n", opts.TreePath)
-
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -462,7 +459,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("\tTime taken: [%v]\n", time.Since(start))
 	return file, nil
 }
 

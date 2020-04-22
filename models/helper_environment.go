@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 )
 
 // env keys for git hooks need
@@ -41,8 +40,6 @@ func PushingEnvironment(doer *User, repo *Repository) []string {
 
 // FullPushingEnvironment returns an os environment to allow hooks to work on push
 func FullPushingEnvironment(author, committer *User, repo *Repository, repoName string, prID int64) []string {
-	start := time.Now()
-	fmt.Printf("\t\t\t\tCalling FullPushingEnvironment TemporaryUploadRepository\n")
 	isWiki := "false"
 	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = "true"
@@ -53,7 +50,6 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 
 	// We should add "SSH_ORIGINAL_COMMAND=gitea-internal",
 	// once we have hook and pushing infrastructure working correctly
-	fmt.Printf("\t\t\t\tTime taken: [%v]\n", time.Since(start))
 	return append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,

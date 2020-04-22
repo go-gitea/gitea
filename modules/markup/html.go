@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -65,7 +64,7 @@ var (
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// EmojiShortCodeRegex find emoji by alias like :smile:
-	EmojiShortCodeRegex = regexp.MustCompile(`\:[^:]+\:{1}`)
+	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:{1}`)
 
 	// find emoji literal: search all emoji hex range as many times as they appear as
 	// some emojis (skin color etc..) are just two or more chained together
@@ -876,11 +875,9 @@ func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
 
 // emojiShortCodeProcessor for rendering text like :smile: into emoji
 func emojiShortCodeProcessor(ctx *postProcessCtx, node *html.Node) {
-	start := time.Now()
-	fmt.Printf("in emoji processor\n")
+
 	m := EmojiShortCodeRegex.FindStringSubmatchIndex(node.Data)
 	if m == nil {
-		fmt.Printf("Time taken: [%v]\n", time.Since(start))
 		return
 	}
 
@@ -892,25 +889,19 @@ func emojiShortCodeProcessor(ctx *postProcessCtx, node *html.Node) {
 		s := strings.Join(setting.UI.Reactions, " ") + "gitea"
 		if strings.Contains(s, alias) {
 			replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
-			fmt.Printf("Time taken: [%v]\n", time.Since(start))
 			return
 		}
-		fmt.Printf("Time taken: [%v]\n", time.Since(start))
 		return
 	}
 
 	replaceContent(node, m[0], m[1], createEmoji(converted.Emoji, "emoji", converted.Description))
-	fmt.Printf("Time taken: [%v]\n", time.Since(start))
 }
 
 // emoji processor to match emoji and add emoji class
 func emojiProcessor(ctx *postProcessCtx, node *html.Node) {
-	start := time.Now()
-	fmt.Printf("in emoji processor\n")
 	m := emojiRegex.FindStringSubmatchIndex(node.Data)
 
 	if m == nil {
-		fmt.Printf("Time taken: [%v]\n", time.Since(start))
 		return
 	}
 
@@ -919,7 +910,6 @@ func emojiProcessor(ctx *postProcessCtx, node *html.Node) {
 	if val != nil {
 		replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", val.Description))
 	}
-	fmt.Printf("Time taken: [%v]\n", time.Since(start))
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
