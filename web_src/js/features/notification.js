@@ -43,8 +43,8 @@ function updateNotificationCount(callback, timeout, lastCount) {
   $.ajax({
     type: 'GET',
     url: `${AppSubUrl}/api/v1/notifications/new`,
-    data: {
-      _csrf: csrf,
+    headers: {
+      'X-Csrf-Token': csrf,
     },
   }).then((data) => {
     const notificationCount = $('.notification_count');
