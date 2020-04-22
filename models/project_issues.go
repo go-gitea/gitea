@@ -20,7 +20,7 @@ type ProjectIssues struct {
 	ProjectBoardID int64 `xorm:"INDEX"`
 }
 
-func deleteIssueProjectByProjectID(e Engine, projectID int64) error {
+func deleteProjectIssuesByProjectID(e Engine, projectID int64) error {
 	_, err := e.Where("project_id=?", projectID).Delete(&ProjectIssues{})
 	return err
 }

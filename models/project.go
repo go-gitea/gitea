@@ -36,7 +36,7 @@ const (
 	OrganizationType
 )
 
-// Project is a kanban board
+// Project represents a project board
 type Project struct {
 	ID          int64  `xorm:"pk autoincr"`
 	Title       string `xorm:"INDEX NOT NULL"`
@@ -238,7 +238,7 @@ func DeleteProjectByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	if err := deleteIssueProjectByProjectID(sess, id); err != nil {
+	if err := deleteProjectIssuesByProjectID(sess, id); err != nil {
 		return err
 	}
 

@@ -30,7 +30,7 @@ const (
 	BugTriage
 )
 
-// ProjectBoard is used to represent boards on a kanban project
+// ProjectBoard is used to represent boards on a project
 type ProjectBoard struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Title   string

@@ -42,7 +42,7 @@ func MustEnableProjects(ctx *context.Context) {
 
 // Projects renders the home page of projects
 func Projects(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.kanban_board")
+	ctx.Data["Title"] = ctx.Tr("repo.project_board")
 
 	sortType := ctx.Query("sort")
 
@@ -236,7 +236,7 @@ func EditProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
 }
 
-// ViewProject renders the kanban board for a project
+// ViewProject renders the project board for a project
 func ViewProject(ctx *context.Context) {
 
 	project, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
