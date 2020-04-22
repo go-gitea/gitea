@@ -202,7 +202,7 @@ if($('.view-raw>a[href$=".stl" i]').length){
     $('.view-raw').attr('id', 'view-raw').attr('style', 'padding: 0;margin-bottom: -10px;');
     new Madeleine({
       target: 'view-raw',
-      data: $('.view-raw>a[href$=".stl"]').attr('href'),
+      data: $('.view-raw>a[href$=".stl" i]').attr('href'),
       path: '/Madeleine.js/src'
     });
     $('.view-raw>a[href$=".stl"]').remove()
