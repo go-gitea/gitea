@@ -474,7 +474,7 @@ func (c *Commit) GetBranchName() (string, error) {
 	}
 
 	// name-rev commitID output will be "COMMIT_ID master" or "COMMIT_ID master~12"
-	return strings.Split(strings.Split(string(data), " ")[1], "~")[0], nil
+	return strings.Split(strings.Split(strings.Split(string(data), " ")[1], "~")[0], "\n")[0], nil
 }
 
 // CommitFileStatus represents status of files in a commit.

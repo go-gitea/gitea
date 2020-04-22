@@ -997,7 +997,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		} else if comment.Type == models.CommentTypePullPush {
 			participants = addParticipant(comment.Poster, participants)
-			if err = comment.LoadPushCommits(participants); err != nil {
+			if err = comment.LoadPushCommits(); err != nil {
 				ctx.ServerError("LoadPushCommits", err)
 				return
 			}

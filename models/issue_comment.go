@@ -551,8 +551,8 @@ func (c *Comment) CodeCommentURL() string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
 }
 
-// LoadPushCommits Load push refs commits and add participants
-func (c *Comment) LoadPushCommits(participants []*User) error {
+// LoadPushCommits Load push commits
+func (c *Comment) LoadPushCommits() error {
 	var err error = nil
 	if c.Content == "" {
 		return err
@@ -567,19 +567,6 @@ func (c *Comment) LoadPushCommits(participants []*User) error {
 	c.Commits, err = getCommitsFromCommitIDs(c.Issue.PullRequest.BaseRepo, commitIDs)
 	if err != nil {
 		return err
-	}
-
-	for e := c.Commits.Front(); e != nil; e = e.Next() {
-		if c.Poster.Email != e.Value.(*git.Commit).Author.Email {
-			commiter, err := GetUserByEmail(e.Value.(*git.Commit).Author.Email)
-			if err != nil || commiter == nil {
-				if IsErrUserNotExist(err) {
-					err = nil
-				}
-				return err
-			}
-			participants = append(participants, commiter)
-		}
 	}
 
 	c.Commits = ValidateCommitsWithEmails(c.Commits)
@@ -1071,6 +1058,10 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 
 // CreatePushPullCommend create push code to pull base commend
 func CreatePushPullCommend(pusher *User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
+	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
+		return nil, nil
+	}
+
 	ops := &CreateCommentOptions{
 		Type: CommentTypePullPush,
 		Doer: pusher,
@@ -1081,13 +1072,9 @@ func CreatePushPullCommend(pusher *User, pr *PullRequest, oldCommitID, newCommit
 	messages := ""
 
 	var isForcePush bool
-	if oldCommitID != "" && newCommitID != "" {
-		commitIDs, messages, isForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, nil
+	commitIDs, messages, isForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+	if err != nil {
+		return nil, err
 	}
 
 	ops.LineNum = int64(len(commitIDs))
@@ -1126,18 +1113,33 @@ func CreatePushPullCommend(pusher *User, pr *PullRequest, oldCommitID, newCommit
 }
 
 // getCommitsFromRepo get commit IDs from repo in betwern oldCommitID and newCommitID
-// isForcePush will be true if newCommitID is older than oldCommitID
-func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID string) (commitIDs []string, messages string, isForcePush bool, err error) {
-	if oldCommitID == "" || oldCommitID == git.EmptySHA || newCommitID == "" || newCommitID == git.EmptySHA {
-		return nil, "", false, nil
-	}
-
+// isForcePush will be true if oldCommit isn't on the branch
+// Commit on baseBranch will skip
+func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, messages string, isForcePush bool, err error) {
 	repoPath := repo.RepoPath()
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return nil, "", false, err
 	}
 	defer gitRepo.Close()
+
+	oldCommit, err := gitRepo.GetCommit(oldCommitID)
+	if err != nil {
+		return nil, "", false, err
+	}
+
+	oldCommitBranch, err := oldCommit.GetBranchName()
+	if err != nil {
+		return nil, "", false, err
+	}
+
+	if oldCommitBranch == "undefined" {
+		commitIDs = make([]string, 2)
+		commitIDs[1] = oldCommitID
+		commitIDs[0] = newCommitID
+
+		return commitIDs, "", true, err
+	}
 
 	newCommit, err := gitRepo.GetCommit(newCommitID)
 	if err != nil {
@@ -1154,36 +1156,19 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID string) (co
 	messages = ""
 
 	for e := commits.Front(); e != nil; e = e.Next() {
-		commitID := e.Value.(*git.Commit).ID.String()
-		commitMsg := e.Value.(*git.Commit).Message()
-		commitMsgs := strings.Split(commitMsg, "\n")
-		messages = "* " + commitID[0:10] + " - " + commitMsgs[0] + "  \n " + messages
-		commitIDs = append(commitIDs, commitID)
-	}
-
-	// check is force push by check the parent of commitIDs[commits.Len()-1]
-	isForcePush = true
-	checkCommit, err := gitRepo.GetCommit(commitIDs[commits.Len()-1])
-	if err != nil {
-		return nil, "", false, err
-	}
-
-	var parentCommit *git.Commit
-	parentNum := checkCommit.ParentCount()
-	if parentNum > 0 {
-		for i := 0; i < parentNum; i++ {
-			parentCommit, _ = checkCommit.Parent(i)
-			if parentCommit.ID.String() == oldCommitID {
-				isForcePush = false
-				break
-			}
+		commit := e.Value.(*git.Commit)
+		commitBranch, err := commit.GetBranchName()
+		if err != nil {
+			return nil, "", false, err
 		}
-	}
 
-	if isForcePush {
-		commitIDs = make([]string, 2, 2)
-		commitIDs[1] = oldCommitID
-		commitIDs[0] = newCommitID
+		if commitBranch != baseBranch {
+			commitID := commit.ID.String()
+			commitMsg := commit.Message()
+			commitMsg = strings.Split(commitMsg, "\n")[0]
+			messages = "* " + commitID[0:10] + " - " + commitMsg + "  \n" + messages
+			commitIDs = append(commitIDs, commitID)
+		}
 	}
 
 	return

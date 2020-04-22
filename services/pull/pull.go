@@ -60,12 +60,15 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	// add first push codes command
 	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
-		return nil // just return , It's not important
+		return err
 	}
 	defer baseGitRepo.Close()
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
 		pr.BaseBranch, pr.GetGitRefName())
+	if err != nil {
+		return err
+	}
 
 	if compareInfo.Commits.Len() > 0 {
 		comitIDs := ""
@@ -77,13 +80,13 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 		comitIDs = comitIDs[0 : len(comitIDs)-1]
 
 		ops := &models.CreateCommentOptions{
-			Type:            models.CommentTypePullPush,
-			Doer:            pull.Poster,
-			Repo:            repo,
-			LineNum:         int64(compareInfo.Commits.Len()),
-			Issue:           pr.Issue,
-			RemovedAssignee: false,
-			Content:         comitIDs,
+			Type:        models.CommentTypePullPush,
+			Doer:        pull.Poster,
+			Repo:        repo,
+			LineNum:     int64(compareInfo.Commits.Len()),
+			Issue:       pr.Issue,
+			IsForcePush: false,
+			Content:     comitIDs,
 		}
 
 		_, _ = models.CreateComment(ops)
@@ -271,7 +274,7 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 		addHeadRepoTasks(prs)
 		for _, pr := range prs {
 			comment, err := models.CreatePushPullCommend(doer, pr, oldCommitID, newCommitID)
-			if err == nil {
+			if err == nil && comment != nil {
 				notification.NotifyCreateIssueComment(doer, pr.BaseRepo, pr.Issue, comment)
 			}
 		}
