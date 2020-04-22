@@ -43,7 +43,7 @@
 			{{ range $board := .Boards }}
 
 			<div class="ui segment board-column">
-				<div class="ui label board-label" style="style">{{.Title}}</div>
+				<div class="ui label board-label">{{.Title}}</a></div>
 
 				{{ if $.IsSigned }}
 				{{ if not (eq .ID 0) }}
@@ -89,12 +89,21 @@
 				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 
 					{{ range .Issues }}
+
+					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
 						<div class="content">
-							<div class="header"><a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">{{ .Title }}</a></div>
+							<div class="header">
+								<span class="{{if .IsClosed}}red{{else}}green{{end}}">
+									{{if .IsPull}}{{svg "octicon-git-merge" 16}}
+									{{else if .IsClosed}}{{svg "octicon-issue-closed" 16}}
+									{{else}}{{svg "octicon-issue-opened" 16}}
+									{{end}}
+								</span>
+								<a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">{{ .Title }}</a>
+							</div>
 							<div class="meta">
-								{{ if $board.ID }}
-								<a href="{{$.RepoLink}}/issues?project={{$board.ID}}">{{ $board.ID }}</a> {{ end }} {{ if .MilestoneID }}
+								{{ if .MilestoneID }}
 								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
 									{{svg "octicon-milestone" 16}} {{ .Milestone.Name }}
 								</a>
@@ -103,9 +112,12 @@
 						</div>
 						<div class="extra content">
 							{{ range .Labels }}
-							<a class="ui label has-emoji" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}; margin-bottom: 3px;" title="{{.Description}}">{{.Name}}</a> {{ end }}
+							<a class="ui label has-emoji" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}; margin-bottom: 3px;" title="{{.Description}}">{{.Name}}</a>
+							{{ end }}
 						</div>
 					</div>
+					<!-- stop issue card -->
+
 					{{ end }}
 				</div>
 			</div>
