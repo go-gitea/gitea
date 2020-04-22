@@ -273,7 +273,7 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 
 		addHeadRepoTasks(prs)
 		for _, pr := range prs {
-			comment, err := models.CreatePushPullCommend(doer, pr, oldCommitID, newCommitID)
+			comment, err := models.CreatePushPullComment(doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
 				notification.NotifyCreateIssueComment(doer, pr.BaseRepo, pr.Issue, comment)
 			}

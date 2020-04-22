@@ -1055,8 +1055,8 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 	return err
 }
 
-// CreatePushPullCommend create push code to pull base commend
-func CreatePushPullCommend(pusher *User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
+// CreatePushPullComment create push code to pull base commend
+func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
 	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
 		return nil, nil
 	}
