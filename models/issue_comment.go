@@ -552,8 +552,7 @@ func (c *Comment) CodeCommentURL() string {
 }
 
 // LoadPushCommits Load push commits
-func (c *Comment) LoadPushCommits() error {
-	var err error = nil
+func (c *Comment) LoadPushCommits() (err error) {
 	if c.Content == "" {
 		return err
 	}
