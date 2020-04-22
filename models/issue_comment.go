@@ -564,14 +564,14 @@ func (c *Comment) LoadPushCommits() error {
 			len(commitIDs),
 			c.Line)
 	}
-	c.Commits, err = getCommitsFromCommitIDs(c.Issue.PullRequest.BaseRepo, commitIDs)
+	c.Commits, err = getCommitsFromCommitIDs(c.Issue.Repo, commitIDs)
 	if err != nil {
 		return err
 	}
 
 	c.Commits = ValidateCommitsWithEmails(c.Commits)
-	c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.PullRequest.BaseRepo)
-	c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.PullRequest.BaseRepo)
+	c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.Repo)
+	c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.Repo)
 
 	if c.IsForcePush {
 		c.OldCommit = commitIDs[0]
