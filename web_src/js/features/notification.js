@@ -18,12 +18,18 @@ export async function initNotificationsTable() {
 }
 
 export async function initNotificationCount() {
-  setInterval(() => {
-    updateNotificationCount();
-  }, 5000);
+  if ($('.notification_count').length > 0) {
+    const fn = (callback, timeout) => {
+      setTimeout(() => {
+        updateNotificationCount(callback, timeout);
+      }, timeout);
+    };
+
+    fn(fn, 10000);
+  }
 }
 
-function updateNotificationCount() {
+function updateNotificationCount(callback, timeout) {
   $.ajax({
     type: 'GET',
     url: `${AppSubUrl}/api/v1/notifications/new`,
@@ -40,7 +46,16 @@ function updateNotificationCount() {
         notificationCount.removeClass('hidden');
         notificationDependent.removeClass('hide');
       }
-      notificationCount.text(data.new);
+      const currentCount = notificationCount.text();
+      if (currentCount !== data.new) {
+        notificationCount.text(data.new);
+        timeout = 10000;
+      } else if (timeout < 60000) {
+        timeout += 10000;
+      }
+      if (callback) {
+        callback(callback, timeout);
+      }
     },
   });
 }
