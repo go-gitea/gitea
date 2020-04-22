@@ -12,13 +12,7 @@ import (
 
 func addProjectsInfo(x *xorm.Engine) error {
 
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
+	// Create new tables
 	type (
 		ProjectType      uint8
 		ProjectBoardType uint8
@@ -40,7 +34,7 @@ func addProjectsInfo(x *xorm.Engine) error {
 		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := sess.Sync2(new(Project)); err != nil {
+	if err := x.Sync2(new(Project)); err != nil {
 		return err
 	}
 
@@ -49,7 +43,7 @@ func addProjectsInfo(x *xorm.Engine) error {
 		ProjectID    int64
 	}
 
-	if err := sess.Sync2(new(Comment)); err != nil {
+	if err := x.Sync2(new(Comment)); err != nil {
 		return err
 	}
 
@@ -59,7 +53,7 @@ func addProjectsInfo(x *xorm.Engine) error {
 		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	if err := sess.Sync2(new(Repository)); err != nil {
+	if err := x.Sync2(new(Repository)); err != nil {
 		return err
 	}
 
@@ -71,7 +65,7 @@ func addProjectsInfo(x *xorm.Engine) error {
 		ProjectBoardID int64 `xorm:"INDEX"`
 	}
 
-	if err := sess.Sync2(new(ProjectIssues)); err != nil {
+	if err := x.Sync2(new(ProjectIssues)); err != nil {
 		return err
 	}
 
@@ -88,7 +82,16 @@ func addProjectsInfo(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := sess.Sync2(new(ProjectBoard)); err != nil {
+	if err := x.Sync2(new(ProjectBoard)); err != nil {
+		return err
+	}
+
+	// enable projects by default on migration
+	// ToDo:do we really need this?
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
@@ -100,8 +103,6 @@ func addProjectsInfo(x *xorm.Engine) error {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 	}
 
-	// enable projects by default on migration
-	// ToDo:do we really need this?
 	const batchSize = 100
 
 	const unitTypeProject int = 8 // see UnitTypeProjects in models/units.go
