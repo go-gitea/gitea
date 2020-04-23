@@ -23,25 +23,53 @@ export function initNotificationCount() {
     return;
   }
 
-  if ($('.notification_count').length > 0) {
-    const lastCount = $('.notification_count').text();
-    const fn = (callback, timeout, lastCount) => {
+  const notificationCount = $('.notification_count');
+
+  if (notificationCount.length > 0) {
+    const fn = (timeout, lastCount) => {
       setTimeout(async () => {
-        await updateNotificationCount(callback, timeout, lastCount);
+        await updateNotificationCountWithCallback(fn, timeout, lastCount);
       }, timeout);
     };
 
-    fn(fn, NotificationSettings.MinTimeout, lastCount);
+    fn(NotificationSettings.MinTimeout, notificationCount.text());
   }
 }
 
-async function updateNotificationCount(callback, timeout, lastCount) {
-  let currentCount = $('.notification_count').text();
-  if (callback && (lastCount !== currentCount)) {
-    callback(callback, NotificationSettings.MinTimeout, currentCount);
+async function updateNotificationCountWithCallback(callback, timeout, lastCount) {
+  const currentCount = $('.notification_count').text();
+  if (lastCount !== currentCount) {
+    callback(NotificationSettings.MinTimeout, currentCount);
     return;
   }
 
+  const newCount = await updateNotificationCount();
+  let needsUpdate = false;
+
+  if (lastCount !== newCount) {
+    needsUpdate = true;
+    timeout = NotificationSettings.MinTimeout;
+  } else if (timeout < NotificationSettings.MaxTimeout) {
+    timeout += NotificationSettings.TimeoutStep;
+  }
+
+  callback(timeout, newCount);
+
+  const notificationDiv = $('#notification_div');
+  if (notificationDiv.length > 0 && needsUpdate) {
+    const data = await $.ajax({
+      type: 'GET',
+      url: `${AppSubUrl}/notifications?${notificationDiv.data('params')}`,
+      data: {
+        'div-only': true,
+      }
+    });
+    notificationDiv.replaceWith(data);
+    initNotificationsTable();
+  }
+}
+
+async function updateNotificationCount() {
   const data = await $.ajax({
     type: 'GET',
     url: `${AppSubUrl}/api/v1/notifications/new`,
@@ -57,31 +85,9 @@ async function updateNotificationCount(callback, timeout, lastCount) {
     notificationCount.removeClass('hidden');
   }
 
-  let needsUpdate = false;
-  currentCount = $('.notification_count').text();
-  if (lastCount !== `${data.new}` || currentCount !== `${data.new}`) {
-    notificationCount.text(data.new);
-    needsUpdate = true;
-    timeout = NotificationSettings.MinTimeout;
-  } else if (timeout < NotificationSettings.MaxTimeout) {
-    timeout += NotificationSettings.TimeoutStep;
-  }
+  notificationCount.text(`${data.new}`);
 
-  if (callback) {
-    callback(callback, timeout, `${data.new}`);
-    const notificationDiv = $('#notification_div');
-    if (notificationDiv.length > 0 && needsUpdate) {
-      const data = await $.ajax({
-        type: 'GET',
-        url: `${AppSubUrl}/notifications?${notificationDiv.data('params')}`,
-        data: {
-          'div-only': true,
-        }
-      });
-      notificationDiv.replaceWith(data);
-      initNotificationsTable();
-    }
-  }
+  return `${data.new}`;
 }
 
 async function updateNotification(url, status, page, q, notificationID) {
