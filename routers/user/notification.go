@@ -49,6 +49,10 @@ func Notifications(c *context.Context) {
 	if c.Written() {
 		return
 	}
+	if c.QueryBool("div-only") {
+		c.HTML(http.StatusOK, tplNotificationDiv)
+		return
+	}
 	c.HTML(http.StatusOK, tplNotification)
 }
 
