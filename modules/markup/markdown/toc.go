@@ -27,15 +27,15 @@ func createTOCNode(toc []Header, lang string) ast.Node {
 		}
 	}
 	for _, header := range toc {
-		if header.Level < currentLevel {
+		for currentLevel > header.Level {
 			ul = ul.Parent().(*ast.List)
-		} else if header.Level > currentLevel {
-			for currentLevel < header.Level {
-				newL := ast.NewList('-')
-				ul.AppendChild(ul, newL)
-				currentLevel++
-				ul = newL
-			}
+			currentLevel--
+		}
+		for currentLevel < header.Level {
+			newL := ast.NewList('-')
+			ul.AppendChild(ul, newL)
+			currentLevel++
+			ul = newL
 		}
 		li := ast.NewListItem(currentLevel * 2)
 		a := ast.NewLink()
