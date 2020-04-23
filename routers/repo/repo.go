@@ -83,13 +83,13 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		return nil
 	}
 	if !ctx.User.IsAdmin {
-		orgs_available := []*models.User{}
+		orgsAvailable := []*models.User{}
 		for i := 0; i < len(orgs); i++ {
 			if orgs[i].CanCreateRepo() {
-				orgs_available = append(orgs_available, orgs[i])
+				orgsAvailable = append(orgsAvailable, orgs[i])
 			}
 		}
-		ctx.Data["Orgs"] = orgs_available
+		ctx.Data["Orgs"] = orgsAvailable
 
 		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
