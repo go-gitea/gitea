@@ -916,6 +916,8 @@ REFRESH_TOKEN_EXPIRATION_TIME=730
 INVALIDATE_REFRESH_TOKENS=false
 ; OAuth2 authentication secret for access and refresh tokens, change this to a unique string.
 JWT_SECRET=Bk0yK7Y9g_p56v86KaHqjSbxvNvu3SbKoOdOt2ZcXvU
+; Maximum length of oauth2 token/cookie stored on server
+MAX_TOKEN_LENGTH=32767
 
 [i18n]
 LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR

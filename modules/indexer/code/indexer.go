@@ -68,7 +68,7 @@ func Init() {
 			if err := recover(); err != nil {
 				log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
 				log.Error("The indexer files are likely corrupted and may need to be deleted")
-				log.Error("You can completely remove the \"%s\" directory to make Gitea recreate the indexes", setting.Indexer.RepoPath)
+				log.Error("You can completely remove the %q directory to make Gitea recreate the indexes", setting.Indexer.RepoPath)
 				cancel()
 				indexer.Close()
 				close(waitChannel)
