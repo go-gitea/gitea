@@ -345,15 +345,15 @@
 						<label>{{.i18n.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
 					</div>
 				</div>
-				<!-- TODO brad not sure if should use a unit enabled for this or not -->
 				<div class="field">
 					<div class="ui checkbox">
-						<input name="enable_hook_task_purge" type="checkbox" {{ if .Repository.IsHookTaskPurgeEnabled }}checked{{end}}>
-						<label>{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_1"}}</label>
-						<!-- TODO brad not sure where/how to store this, s/b disabled if other is unchecked -->
-						<input class="field {{if not .Repository.IsHookTaskPurgeEnabled}}disabled{{end}}" id="hook_task_deliveries_to_keep" name="hook_task_deliveries_to_keep" type="number" value="{{ .Repository.NumberWebhookDeliveriesToKeep }}">
-						<span>{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_2"}}</span>
+						<input id="enable_hook_task_purge" name="enable_hook_task_purge" type="checkbox" {{ if .Repository.IsHookTaskPurgeEnabled }}checked{{end}}>
+						<label for="enable_hook_task_purge">{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_1"}}</label>
 					</div>
+				</div>
+				<div class="field {{if not .Repository.IsHookTaskPurgeEnabled}}disabled{{end}}" id="hook_task_deliveries_to_keep_box">
+					<label for="hook_task_deliveries_to_keep">{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_2"}}</label>
+					<input id="hook_task_deliveries_to_keep" name="hook_task_deliveries_to_keep" type="number" value="{{ .Repository.NumberWebhookDeliveriesToKeep }}">
 				</div>
 				<div class="ui divider"></div>
 				<div class="field">
