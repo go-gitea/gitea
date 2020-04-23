@@ -535,6 +535,9 @@ func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error)
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
 func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
+	if user == nil {
+		return false, nil
+	}
 
 	err := pr.LoadProtectedBranch()
 	if err != nil {
@@ -571,14 +574,20 @@ func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
 		}
 	}
 
-	if enoughApprovals := pr.ProtectedBranch.HasEnoughApprovals(pr); !enoughApprovals {
+	if !pr.ProtectedBranch.HasEnoughApprovals(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "Does not have enough approvals",
 		}
 	}
-	if rejected := pr.ProtectedBranch.MergeBlockedByRejectedReview(pr); rejected {
+	if pr.ProtectedBranch.MergeBlockedByRejectedReview(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "There are requested changes",
+		}
+	}
+
+	if pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: "The head branch is behind the base branch",
 		}
 	}
 
