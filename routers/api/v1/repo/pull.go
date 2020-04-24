@@ -241,10 +241,26 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 			return
 		}
 
-		labelIDs = make([]int64, len(labels))
+		labelIDs = make([]int64, len(form.Labels))
+		orgLabelIDs := make([]int64, len(form.Labels))
+
 		for i := range labels {
 			labelIDs[i] = labels[i].ID
 		}
+
+		if ctx.Repo.Owner.IsOrganization() {
+			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
+				return
+			}
+
+			for i := range orgLabels {
+				orgLabelIDs[i] = orgLabels[i].ID
+			}
+		}
+
+		labelIDs = append(labelIDs, orgLabelIDs...)
 	}
 
 	if form.Milestone > 0 {
@@ -452,6 +468,17 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDsError", err)
 			return
 		}
+
+		if ctx.Repo.Owner.IsOrganization() {
+			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
+				return
+			}
+
+			labels = append(labels, orgLabels...)
+		}
+
 		if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
 			return
