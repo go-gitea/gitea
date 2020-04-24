@@ -7,6 +7,7 @@ package user
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -17,7 +18,8 @@ import (
 )
 
 const (
-	tplNotification base.TplName = "user/notification/notification"
+	tplNotification    base.TplName = "user/notification/notification"
+	tplNotificationDiv base.TplName = "user/notification/notification_div"
 )
 
 // GetNotificationCount is the middleware that sets the notification count in the context
@@ -30,17 +32,31 @@ func GetNotificationCount(c *context.Context) {
 		return
 	}
 
-	count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
-	if err != nil {
-		c.ServerError("GetNotificationCount", err)
-		return
-	}
+	c.Data["NotificationUnreadCount"] = func() int64 {
+		count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
+		if err != nil {
+			c.ServerError("GetNotificationCount", err)
+			return -1
+		}
 
-	c.Data["NotificationUnreadCount"] = count
+		return count
+	}
 }
 
 // Notifications is the notifications page
 func Notifications(c *context.Context) {
+	getNotifications(c)
+	if c.Written() {
+		return
+	}
+	if c.QueryBool("div-only") {
+		c.HTML(http.StatusOK, tplNotificationDiv)
+		return
+	}
+	c.HTML(http.StatusOK, tplNotification)
+}
+
+func getNotifications(c *context.Context) {
 	var (
 		keyword = strings.Trim(c.Query("q"), " ")
 		status  models.NotificationStatus
@@ -115,19 +131,13 @@ func Notifications(c *context.Context) {
 		c.Flash.Error(fmt.Sprintf("ERROR: %d notifications were removed due to missing parts - check the logs", failCount))
 	}
 
-	title := c.Tr("notifications")
-	if status == models.NotificationStatusUnread && total > 0 {
-		title = fmt.Sprintf("(%d) %s", total, title)
-	}
-	c.Data["Title"] = title
+	c.Data["Title"] = c.Tr("notifications")
 	c.Data["Keyword"] = keyword
 	c.Data["Status"] = status
 	c.Data["Notifications"] = notifications
 
 	pager.SetDefaultParams(c)
 	c.Data["Page"] = pager
-
-	c.HTML(200, tplNotification)
 }
 
 // NotificationStatusPost is a route for changing the status of a notification
@@ -155,8 +165,17 @@ func NotificationStatusPost(c *context.Context) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, c.Query("page"))
-	c.Redirect(url, 303)
+	if !c.QueryBool("noredirect") {
+		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, c.Query("page"))
+		c.Redirect(url, http.StatusSeeOther)
+	}
+
+	getNotifications(c)
+	if c.Written() {
+		return
+	}
+
+	c.HTML(http.StatusOK, tplNotificationDiv)
 }
 
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
@@ -168,5 +187,5 @@ func NotificationPurgePost(c *context.Context) {
 	}
 
 	url := fmt.Sprintf("%s/notifications", setting.AppSubURL)
-	c.Redirect(url, 303)
+	c.Redirect(url, http.StatusSeeOther)
 }
