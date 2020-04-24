@@ -56,6 +56,9 @@ func ReplaceSanitizer() {
 	// Allow classes for task lists
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list`)).OnElements("ul")
 
+	// Allow icons
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^icon(\s+[\p{L}\p{N}_-]+)+$`)).OnElements("i", "span")
+
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",
 		"accesskey", "action", "align", "alt",

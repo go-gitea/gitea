@@ -844,6 +844,7 @@ gopkg.in/toqueteos/substring.v1
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
 # gopkg.in/yaml.v2 v2.2.8
+## explicit
 gopkg.in/yaml.v2
 # mvdan.cc/xurls/v2 v2.1.0
 ## explicit
