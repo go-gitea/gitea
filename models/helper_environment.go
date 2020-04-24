@@ -63,6 +63,10 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 		ProtectedBranchRepoID+"="+fmt.Sprintf("%d", repo.ID),
 		ProtectedBranchPRID+"="+fmt.Sprintf("%d", prID),
 		"SSH_ORIGINAL_COMMAND=gitea-internal",
+		"GIT_TRACE=true",
+		"GIT_TRACE_PACK_ACCESS=true",
+		"GIT_TRACE_PERFORMANCE=true",
+		"GIT_TRACE_SETUP=true",
 	)
 
 }
