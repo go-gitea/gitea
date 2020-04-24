@@ -200,6 +200,14 @@ AUTHOR = Gitea - Git with a cup of tea
 DESCRIPTION = Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go
 KEYWORDS = go,git,self-hosted,gitea
 
+[ui.notification]
+; Control how often notification is queried to update the notification
+; The timeout will increase to MAX_TIMEOUT in TIMEOUT_STEPs if the notification count is unchanged
+; Set MIN_TIMEOUT to 0 to turn off
+MIN_TIMEOUT = 10s
+MAX_TIMEOUT = 60s
+TIMEOUT_STEP = 10s
+
 [markdown]
 ; Render soft line breaks as hard line breaks, which means a single newline character between
 ; paragraphs will cause a line break and adding trailing whitespace to paragraphs is not

@@ -94,6 +94,11 @@
 			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
 			Heatmap: {{if .EnableHeatmap}}true{{else}}false{{end}},
 			heatmapUser: {{if .HeatmapUser}}'{{.HeatmapUser}}'{{else}}null{{end}},
+			NotificationSettings: {
+				MinTimeout: {{NotificationSettings.MinTimeout}},
+				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
+				MaxTimeout: {{NotificationSettings.MaxTimeout}},
+			},
 		};
 	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">

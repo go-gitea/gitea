@@ -181,6 +181,12 @@ var (
 		SearchRepoDescription bool
 		UseServiceWorker      bool
 
+		Notification struct {
+			MinTimeout  time.Duration
+			TimeoutStep time.Duration
+			MaxTimeout  time.Duration
+		} `ini:"ui.notification"`
+
 		Admin struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -209,6 +215,15 @@ var (
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
+		Notification: struct {
+			MinTimeout  time.Duration
+			TimeoutStep time.Duration
+			MaxTimeout  time.Duration
+		}{
+			MinTimeout:  10 * time.Second,
+			TimeoutStep: 10 * time.Second,
+			MaxTimeout:  60 * time.Second,
+		},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int

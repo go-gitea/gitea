@@ -278,6 +278,13 @@ func NewFuncMap() []template.FuncMap {
 				return ""
 			}
 		},
+		"NotificationSettings": func() map[string]int {
+			return map[string]int{
+				"MinTimeout":  int(setting.UI.Notification.MinTimeout / time.Millisecond),
+				"TimeoutStep": int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+				"MaxTimeout":  int(setting.UI.Notification.MaxTimeout / time.Millisecond),
+			}
+		},
 		"contain": func(s []int64, id int64) bool {
 			for i := 0; i < len(s); i++ {
 				if s[i] == id {
