@@ -145,7 +145,7 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 			return err
 		}
 	}
-	time.Sleep(5000 * time.Millisecond)
+
 	var slowLoad time.Duration = 5000 * time.Millisecond
 
 	if time.Since(start) >= slowLoad {
