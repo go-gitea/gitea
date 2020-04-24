@@ -55,6 +55,7 @@ rules:
   no-param-reassign: [0]
   no-plusplus: [0]
   no-restricted-syntax: [0]
+  no-return-await: [0]
   no-shadow: [0]
   no-unused-vars: [2, {args: all, argsIgnorePattern: ^_, varsIgnorePattern: ^_, ignoreRestSiblings: true}]
   no-use-before-define: [0]
