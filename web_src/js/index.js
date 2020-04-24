@@ -19,6 +19,7 @@ import initDateTimePicker from './features/datetimepicker.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -2433,6 +2434,11 @@ $(document).ready(async () => {
     window.location = $(this).data('href');
   });
 
+  // make table <td> element clickable like a link
+  $('td[data-href]').click(function () {
+    window.location = $(this).data('href');
+  });
+
   // Dropzone
   const $dropzone = $('#dropzone');
   if ($dropzone.length > 0) {
@@ -2608,6 +2614,8 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups();
+  initNotificationsTable();
+  initNotificationCount();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
