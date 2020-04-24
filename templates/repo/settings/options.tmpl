@@ -347,13 +347,13 @@
 				</div>
 				<div class="field">
 					<div class="ui checkbox">
-						<input id="enable_hook_task_purge" name="enable_hook_task_purge" type="checkbox" {{ if .Repository.IsHookTaskPurgeEnabled }}checked{{end}}>
-						<label for="enable_hook_task_purge">{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_1"}}</label>
+						<input class="enable-webhooks-to-keep" id="is_hook_task_purge_enabled" name="is_hook_task_purge_enabled" data-target="#number_webhook_deliveries_to_keep_box" type="checkbox" {{ if .Repository.IsHookTaskPurgeEnabled }}checked{{end}}>
+						<label for="is_hook_task_purge_enabled">{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_1"}}</label>
 					</div>
 				</div>
-				<div class="field {{if not .Repository.IsHookTaskPurgeEnabled}}disabled{{end}}" id="hook_task_deliveries_to_keep_box">
-					<label for="hook_task_deliveries_to_keep">{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_2"}}</label>
-					<input id="hook_task_deliveries_to_keep" name="hook_task_deliveries_to_keep" type="number" value="{{ .Repository.NumberWebhookDeliveriesToKeep }}">
+				<div class="field {{if not .Repository.IsHookTaskPurgeEnabled}}disabled{{end}}" id="number_webhook_deliveries_to_keep_box">
+					<label for="number_webhook_deliveries_to_keep">{{.i18n.Tr "repo.settings.admin_enable_hook_task_purge_2"}}</label>
+					<input id="number_webhook_deliveries_to_keep" name="number_webhook_deliveries_to_keep" type="number" value="{{ .Repository.NumberWebhookDeliveriesToKeep }}">
 				</div>
 				<div class="ui divider"></div>
 				<div class="field">

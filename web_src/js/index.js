@@ -756,6 +756,17 @@ async function initRepository() {
         if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).addClass('disabled');
       }
     });
+
+    // Enable number of webhooks to keep.
+    $('.enable-webhooks-to-keep').change(function () {
+      if (this.checked) {
+        $($(this).data('target')).removeClass('disabled');
+        if (!$(this).data('context')) $($(this).data('context')).addClass('disabled');
+      } else {
+        $($(this).data('target')).addClass('disabled');
+        if (!$(this).data('context')) $($(this).data('context')).removeClass('disabled');
+      }
+    });
   }
 
   // Labels

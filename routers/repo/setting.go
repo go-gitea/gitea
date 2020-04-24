@@ -326,7 +326,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			repo.IsHookTaskPurgeEnabled = form.IsHookTaskPurgeEnabled
 		}
 
-		if repo.NumberWebhookDeliveriesToKeep != form.NumberWebhookDeliveriesToKeep {
+		if form.IsHookTaskPurgeEnabled && repo.NumberWebhookDeliveriesToKeep != form.NumberWebhookDeliveriesToKeep {
 			repo.NumberWebhookDeliveriesToKeep = form.NumberWebhookDeliveriesToKeep
 		}
 
