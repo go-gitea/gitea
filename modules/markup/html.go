@@ -351,6 +351,27 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 			visitText = false
 		} else if node.Data == "code" || node.Data == "pre" {
 			return
+		} else if node.Data == "i" {
+			for _, attr := range node.Attr {
+				if attr.Key != "class" {
+					continue
+				}
+				classes := strings.Split(attr.Val, " ")
+				for i, class := range classes {
+					if class == "icon" {
+						classes[0], classes[i] = classes[i], classes[0]
+						attr.Val = strings.Join(classes, " ")
+
+						// Remove all children of icons
+						child := node.FirstChild
+						for child != nil {
+							node.RemoveChild(child)
+							child = node.FirstChild
+						}
+						break
+					}
+				}
+			}
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
 			ctx.visitNode(n, visitText)
