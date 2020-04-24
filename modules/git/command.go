@@ -145,14 +145,16 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 			return err
 		}
 	}
+	time.Sleep(5000 * time.Millisecond)
+	var slowLoad time.Duration = 5000 * time.Millisecond
 
-	if strings.Contains(strings.Join(c.args, " "), "fetch origin") {
+	if time.Since(start) >= slowLoad {
 		fmt.Printf("cmd: %+v\n", cmd)
 		fmt.Printf("out: %+v\n", cmd.Stdout)
 		fmt.Printf("err: %+v\n", cmd.Stderr)
 		fmt.Printf("time taken: %v\n\n", time.Since(start))
-
 	}
+
 	if err := cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {
 		return err
 	}
