@@ -21,7 +21,7 @@
     "dropzone": "5.7.0",
     "fast-glob": "3.2.2",
     "fomantic-ui": "2.8.4",
-    "highlight.js": "9.18.1",
+    "highlight.js": "10.0.0",
     "imports-loader": "0.8.0",
     "jquery": "3.5.0",
     "jquery-datetimepicker": "2.5.21",
@@ -42,7 +42,7 @@
     "vue-calendar-heatmap": "0.8.4",
     "vue-loader": "15.9.1",
     "vue-template-compiler": "2.6.11",
-    "webpack": "4.42.1",
+    "webpack": "4.43.0",
     "webpack-cli": "3.3.11",
     "webpack-fix-style-only-entries": "0.4.0",
     "worker-loader": "2.0.0"
@@ -51,9 +51,9 @@
     "eslint": "6.8.0",
     "eslint-config-airbnb-base": "14.1.0",
     "eslint-plugin-import": "2.20.2",
-    "stylelint": "13.3.2",
+    "stylelint": "13.3.3",
     "stylelint-config-standard": "20.0.0",
-    "updates": "10.2.8"
+    "updates": "10.2.10"
   },
   "browserslist": [
     "defaults"
