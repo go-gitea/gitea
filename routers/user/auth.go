@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/recaptcha"
@@ -991,7 +992,8 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 	ctx.Redirect(setting.AppSubURL + "/user/login")
 }
 
-func handleSignOut(ctx *context.Context) {
+// HandleSignOut resets the session and sets the cookies
+func HandleSignOut(ctx *context.Context) {
 	_ = ctx.Session.Delete("uid")
 	_ = ctx.Session.Delete("uname")
 	_ = ctx.Session.Delete("socialId")
@@ -1006,7 +1008,13 @@ func handleSignOut(ctx *context.Context) {
 
 // SignOut sign out from login status
 func SignOut(ctx *context.Context) {
-	handleSignOut(ctx)
+	if ctx.User != nil {
+		eventsource.GetManager().SendMessageBlocking(ctx.User.ID, &eventsource.Event{
+			Name: "logout",
+			Data: ctx.Session.ID(),
+		})
+	}
+	HandleSignOut(ctx)
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 

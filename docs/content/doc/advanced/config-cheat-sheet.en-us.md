@@ -142,9 +142,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ### UI - Notification (`ui.notification`)
 
-- `MIN_TIMEOUT`: **10s**: These options control how often notification is queried to update the notification count. On page load the notification count will be checked after `MIN_TIMEOUT`. The timeout will increase to `MAX_TIMEOUT` by `TIMEOUT_STEP` if the notification count is unchanged. Set MIN_TIMEOUT to 0 to turn off.
+- `MIN_TIMEOUT`: **10s**: These options control how often notification endpoint is polled to update the notification count. On page load the notification count will be checked after `MIN_TIMEOUT`. The timeout will increase to `MAX_TIMEOUT` by `TIMEOUT_STEP` if the notification count is unchanged. Set MIN_TIMEOUT to 0 to turn off.
 - `MAX_TIMEOUT`: **60s**.
 - `TIMEOUT_STEP`: **10s**.
+- `EVENT_SOURCE_UPDATE_TIME`: **10s**: This setting determines how often the database is queried to update notification counts. If the browser client has `EventSource` - the `EventSource` will be used in preference to polling the notification endpoint.
 
 
 ## Markdown (`markdown`)

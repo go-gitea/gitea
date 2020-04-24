@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
+	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
@@ -123,6 +124,7 @@ func GlobalInit(ctx context.Context) {
 		if err := task.Init(); err != nil {
 			log.Fatal("Failed to initialize task scheduler: %v", err)
 		}
+		eventsource.GetManager().Init()
 	}
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")
