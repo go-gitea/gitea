@@ -142,6 +142,8 @@ func (n *nilWriter) WriteString(s string) (int, error) {
 func runHookPreReceive(c *cli.Context) error {
 	start := time.Now()
 	if os.Getenv(models.EnvIsInternal) == "true" {
+		fmt.Printf("%v internal\n", time.Now().Format("15:04:05.000000"))
+		fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 		return nil
 	}
 
