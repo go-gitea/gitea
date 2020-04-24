@@ -553,30 +553,79 @@ func (c *Comment) CodeCommentURL() string {
 
 // LoadPushCommits Load push commits
 func (c *Comment) LoadPushCommits() (err error) {
-	if c.Content == "" {
-		return err
+	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullPush {
+		return nil
 	}
 
 	commitIDs := strings.Split(c.Content, ":")
-	if int64(len(commitIDs)) != c.Line {
-		return fmt.Errorf("LoadPushCommits: len of commitIDs is wrong %d - %d",
-			len(commitIDs),
-			c.Line)
-	}
-	c.Commits, err = getCommitsFromCommitIDs(c.Issue.Repo, commitIDs)
-	if err != nil {
-		return err
-	}
-
-	c.Commits = ValidateCommitsWithEmails(c.Commits)
-	c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.Repo)
-	c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.Repo)
 
 	if c.IsForcePush {
 		c.OldCommit = commitIDs[0]
 		c.NewCommit = commitIDs[1]
+	} else {
+		repoPath := c.Issue.Repo.RepoPath()
+		gitRepo, err := git.OpenRepository(repoPath)
+		if err != nil {
+			return err
+		}
+		defer gitRepo.Close()
+
+		c.Commits = gitRepo.GetCommitsFromIDs(commitIDs)
+		c.Commits = ValidateCommitsWithEmails(c.Commits)
+		c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.Repo)
+		c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.Repo)
 	}
+
 	return err
+}
+
+// LoadPullPushDefaultNotify load default notify message in Content
+// with Mardown style for Pull Push commits comment
+func (c *Comment) LoadPullPushDefaultNotify() (err error) {
+	if c.Type != CommentTypePullPush {
+		return nil
+	}
+	if err = c.LoadIssue(); err != nil {
+		return
+	}
+	if err = c.Issue.LoadRepo(); err != nil {
+		return
+	}
+	if err = c.Issue.LoadPullRequest(); err != nil {
+		return
+	}
+
+	message := "@" + c.Poster.Name
+	if c.IsForcePush {
+		commitIDs := strings.Split(c.Content, ":")
+		message += " force-pushed the " + c.Issue.PullRequest.HeadBranch + " branch from " + commitIDs[0] + " to " + commitIDs[1]
+	} else {
+		if c.Commits == nil {
+			repoPath := c.Issue.Repo.RepoPath()
+			gitRepo, err := git.OpenRepository(repoPath)
+			if err != nil {
+				return err
+			}
+			defer gitRepo.Close()
+			commitIDs := strings.Split(c.Content, ":")
+			c.Commits = gitRepo.GetCommitsFromIDs(commitIDs)
+		}
+
+		if c.Commits.Len() == 1 {
+			message += fmt.Sprintf(" pushed 1 commit to %s:  \n ", c.Issue.Repo.Name)
+		} else {
+			message += fmt.Sprintf(" pushed %d commits to %s:  \n ", c.Commits.Len(), c.Issue.Repo.Name)
+		}
+
+		for e := c.Commits.Front(); e != nil; e = e.Next() {
+			commitMsg := strings.Split(e.Value.(*git.Commit).Message(), "\n")[0]
+			message += "* " + e.Value.(*git.Commit).ID.String()[0:10] + " - " + commitMsg + "  \n"
+		}
+	}
+
+	c.Content = message
+
+	return
 }
 
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
@@ -1068,15 +1117,13 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 	}
 
 	var commitIDs []string
-	messages := ""
 
 	var isForcePush bool
-	commitIDs, messages, isForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+	commitIDs, isForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 	if err != nil {
 		return nil, err
 	}
 
-	ops.LineNum = int64(len(commitIDs))
 	ops.Issue = pr.Issue
 	ops.IsForcePush = isForcePush
 
@@ -1089,24 +1136,6 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 	ops.Content = commitIDlist[0 : len(commitIDlist)-1]
 
 	comment, err = CreateComment(ops)
-	if err != nil {
-		return
-	}
-
-	// Prepare the contents for notify
-	prmessages := "@" + ops.Doer.Name
-	if ops.IsForcePush {
-		prmessages += " force-pushed the " + pr.HeadBranch + " branch from " + oldCommitID + " to " + newCommitID
-	} else {
-		if ops.LineNum == 1 {
-			prmessages += fmt.Sprintf(" pushed 1 commit to %s:  \n ", pr.HeadBranch)
-		} else {
-			prmessages += fmt.Sprintf(" pushed %d commits to %s:  \n ", ops.LineNum, pr.HeadBranch)
-		}
-		prmessages += messages
-	}
-
-	comment.Content = prmessages
 
 	return
 }
@@ -1114,22 +1143,22 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 // getCommitsFromRepo get commit IDs from repo in betwern oldCommitID and newCommitID
 // isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
-func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, messages string, isForcePush bool, err error) {
+func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
 	repoPath := repo.RepoPath()
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
-		return nil, "", false, err
+		return nil, false, err
 	}
 	defer gitRepo.Close()
 
 	oldCommit, err := gitRepo.GetCommit(oldCommitID)
 	if err != nil {
-		return nil, "", false, err
+		return nil, false, err
 	}
 
 	oldCommitBranch, err := oldCommit.GetBranchName()
 	if err != nil {
-		return nil, "", false, err
+		return nil, false, err
 	}
 
 	if oldCommitBranch == "undefined" {
@@ -1137,64 +1166,33 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 		commitIDs[1] = oldCommitID
 		commitIDs[0] = newCommitID
 
-		return commitIDs, "", true, err
+		return commitIDs, true, err
 	}
 
 	newCommit, err := gitRepo.GetCommit(newCommitID)
 	if err != nil {
-		return nil, "", false, err
+		return nil, false, err
 	}
 
 	var commits *list.List
 	commits, err = newCommit.CommitsBeforeUntil(oldCommitID)
 	if err != nil {
-		return nil, "", false, err
+		return nil, false, err
 	}
 
 	commitIDs = make([]string, 0, commits.Len())
-	messages = ""
 
 	for e := commits.Front(); e != nil; e = e.Next() {
 		commit := e.Value.(*git.Commit)
 		commitBranch, err := commit.GetBranchName()
 		if err != nil {
-			return nil, "", false, err
+			return nil, false, err
 		}
 
 		if commitBranch != baseBranch {
-			commitID := commit.ID.String()
-			commitMsg := commit.Message()
-			commitMsg = strings.Split(commitMsg, "\n")[0]
-			messages = "* " + commitID[0:10] + " - " + commitMsg + "  \n" + messages
-			commitIDs = append(commitIDs, commitID)
+			commitIDs = append(commitIDs, commit.ID.String())
 		}
 	}
 
 	return
-}
-
-// getCommitsFromCommitIDs get commits from commitIDs
-func getCommitsFromCommitIDs(repo *Repository, commitIDs []string) (commits *list.List, err error) {
-	if commitIDs == nil {
-		return nil, nil
-	}
-
-	repoPath := repo.RepoPath()
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	defer gitRepo.Close()
-
-	commits = list.New()
-
-	for _, commitID := range commitIDs {
-		commit, err := gitRepo.GetCommit(commitID)
-		if err != nil {
-			return nil, err
-		}
-		commits.PushBack(commit)
-	}
-
-	return commits, nil
 }

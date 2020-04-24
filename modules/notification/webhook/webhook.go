@@ -392,10 +392,6 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 
 func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
-	if comment.Type == models.CommentTypePullPush {
-		return
-	}
-
 	mode, _ := models.AccessLevel(doer, repo)
 
 	var err error

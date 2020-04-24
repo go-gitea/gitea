@@ -31,10 +31,6 @@ func NewNotifier() base.Notifier {
 
 func (r *indexerNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
-	if comment.Type == models.CommentTypePullPush {
-		return
-	}
-
 	if comment.Type == models.CommentTypeComment {
 		if issue.Comments == nil {
 			if err := issue.LoadDiscussComments(); err != nil {

@@ -89,9 +89,6 @@ func (a *actionNotifier) NotifyIssueChangeStatus(doer *models.User, issue *model
 // NotifyCreateIssueComment notifies comment on an issue to notifiers
 func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
-	if comment.Type == models.CommentTypePullPush {
-		return
-	}
 	act := &models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,

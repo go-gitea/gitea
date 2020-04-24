@@ -38,7 +38,7 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 	} else if comment.Type == models.CommentTypeCode {
 		act = models.ActionCommentIssue
 	} else if comment.Type == models.CommentTypePullPush {
-		act = models.ActionCommentIssue
+		act = 0
 	}
 
 	if err := mailer.MailParticipantsComment(comment, act, issue); err != nil {
@@ -118,4 +118,13 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 	if err := mailer.MailParticipants(pr.Issue, doer, models.ActionMergePullRequest); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
+}
+
+func (m *mailNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
+	if err := comment.LoadPullPushDefaultNotify(); err != nil {
+		log.Error("comment.loadPullPushDefaultNotify: %v", err)
+		comment.Content = " "
+	}
+
+	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment)
 }
