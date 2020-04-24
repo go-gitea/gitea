@@ -146,7 +146,7 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 		}
 	}
 
-	var slowLoad time.Duration = 5000 * time.Millisecond
+	var slowLoad = 5000 * time.Millisecond
 
 	if time.Since(start) >= slowLoad {
 		fmt.Printf("cmd: %+v\n", cmd)
