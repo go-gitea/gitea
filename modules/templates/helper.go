@@ -564,11 +564,11 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
 		return "repo-clone"
 	case models.ActionApprovePullRequest:
-		return "eye"
+		return "check"
 	case models.ActionRejectPullRequest:
-		return "x"
+		return "request-changes"
 	default:
-		return "invalid type"
+		return "question"
 	}
 }
 
