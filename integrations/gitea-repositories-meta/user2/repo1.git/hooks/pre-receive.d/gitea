@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-time "$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" pre-receive
+"$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" pre-receive
