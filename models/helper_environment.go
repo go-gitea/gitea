@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // env keys for git hooks need
@@ -28,6 +29,7 @@ const (
 // or if you absolutely are sure that post-receive and pre-receive will do nothing
 // We provide the full pushing-environment for other hook providers
 func InternalPushingEnvironment(doer *User, repo *Repository) []string {
+	fmt.Printf("%v InternalPushingEnvironment\n", time.Now().Format("15:04:05.000000"))
 	return append(PushingEnvironment(doer, repo),
 		EnvIsInternal+"=true",
 	)
@@ -40,6 +42,8 @@ func PushingEnvironment(doer *User, repo *Repository) []string {
 
 // FullPushingEnvironment returns an os environment to allow hooks to work on push
 func FullPushingEnvironment(author, committer *User, repo *Repository, repoName string, prID int64) []string {
+	start := time.Now()
+	fmt.Printf("%v FullPushingEnvironment\n", time.Now().Format("15:04:05.000000"))
 	isWiki := "false"
 	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = "true"
@@ -50,6 +54,7 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 
 	// We should add "SSH_ORIGINAL_COMMAND=gitea-internal",
 	// once we have hook and pushing infrastructure working correctly
+	fmt.Printf("FullPushingEnvironment time taken: %v\n\n", time.Since(start))
 	return append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,

@@ -140,6 +140,7 @@ func (n *nilWriter) WriteString(s string) (int, error) {
 }
 
 func runHookPreReceive(c *cli.Context) error {
+	start := time.Now()
 	if os.Getenv(models.EnvIsInternal) == "true" {
 		return nil
 	}
@@ -264,18 +265,26 @@ Gitea or set your environment appropriately.`, "")
 		fmt.Fprintf(out, "\n")
 		lastline = 0
 	}
-
+	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 	fmt.Fprintf(out, "Checked %d references in total\n", total)
 	return nil
 }
 
 func runHookUpdate(c *cli.Context) error {
 	// Update is empty and is kept only for backwards compatibility
+	start := time.Now()
+	fmt.Printf("%v\t running hookUpdate\n", time.Now().Format("15:04:05.000000"))
+	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 	return nil
 }
 
 func runHookPostReceive(c *cli.Context) error {
+	start := time.Now()
+	fmt.Printf("%v running hookPostReceive\n", time.Now().Format("15:04:05.000000"))
+
 	if os.Getenv(models.EnvIsInternal) == "true" {
+		fmt.Printf("%v internal\n", time.Now().Format("15:04:05.000000"))
+		fmt.Printf("hook post-receive time taken: %v\n\n", time.Since(start))
 		return nil
 	}
 
@@ -350,10 +359,12 @@ Gitea or set your environment appropriately.`, "")
 		total++
 
 		if count >= hookBatchSize {
+			fmt.Printf("%v\t processing references\n", time.Now().Format("15:04:05.000000"))
 			fmt.Fprintf(out, " Processing %d references\n", count)
 			hookOptions.OldCommitIDs = oldCommitIDs
 			hookOptions.NewCommitIDs = newCommitIDs
 			hookOptions.RefFullNames = refFullNames
+			fmt.Printf("%v\t checking private.HookPostReceive", time.Now().Format("15:04:05.000000"))
 			resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 			if resp == nil {
 				_ = dWriter.Close()
@@ -407,7 +418,7 @@ Gitea or set your environment appropriately.`, "")
 	}
 	_ = dWriter.Close()
 	hookPrintResults(results)
-
+	fmt.Printf("hook post-receive time taken: %v\n\n", time.Since(start))
 	return nil
 }
 
