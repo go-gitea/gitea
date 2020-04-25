@@ -457,7 +457,7 @@ func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error)
 
 // GetCommitsFromIDs get commits from commit IDs
 func (repo *Repository) GetCommitsFromIDs(commitIDs []string) (commits *list.List) {
-	if commitIDs == nil || len(commitIDs) == 0 {
+	if len(commitIDs) == 0 {
 		return nil
 	}
 
