@@ -342,9 +342,9 @@ func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byt
 		}
 		var err error
 		if n.IsChecked {
-			_, err = w.WriteString(`<span class="ui checked disabled checkbox"><input type="checkbox" checked="" disabled="disabled"` + end + `<label>`)
+			_, err = w.WriteString(`<span class="ui checked checkbox"><input type="checkbox" checked="" readonly="readonly"` + end + `<label>`)
 		} else {
-			_, err = w.WriteString(`<span class="ui disabled checkbox"><input type="checkbox" disabled="disabled"` + end + `<label>`)
+			_, err = w.WriteString(`<span class="ui checkbox"><input type="checkbox" readonly="readonly"` + end + `<label>`)
 		}
 		if err != nil {
 			return ast.WalkStop, err
