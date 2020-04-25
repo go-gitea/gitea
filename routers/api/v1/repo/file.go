@@ -155,13 +155,13 @@ func GetEditorconfig(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, def)
 }
 
-// CanWriteFiles returns true if repository is editable and user has proper access level.
-func CanWriteFiles(r *context.Repository) bool {
+// canWriteFiles returns true if repository is editable and user has proper access level.
+func canWriteFiles(r *context.Repository) bool {
 	return r.Permission.CanWrite(models.UnitTypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
 }
 
-// CanReadFiles returns true if repository is readable and user has proper access level.
-func CanReadFiles(r *context.Repository) bool {
+// canReadFiles returns true if repository is readable and user has proper access level.
+func canReadFiles(r *context.Repository) bool {
 	return r.Permission.CanRead(models.UnitTypeCode)
 }
 
@@ -198,6 +198,10 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
+
+	if apiOpts.BranchName == "" {
+		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
+	}
 
 	opts := &repofiles.UpdateRepoFileOptions{
 		Content:   apiOpts.Content,
@@ -271,6 +275,10 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	//   "200":
 	//     "$ref": "#/responses/FileResponse"
 
+	if apiOpts.BranchName == "" {
+		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
+	}
+
 	opts := &repofiles.UpdateRepoFileOptions{
 		Content:      apiOpts.Content,
 		SHA:          apiOpts.SHA,
@@ -313,7 +321,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 
 // Called from both CreateFile or UpdateFile to handle both
 func createOrUpdateFile(ctx *context.APIContext, opts *repofiles.UpdateRepoFileOptions) (*api.FileResponse, error) {
-	if !CanWriteFiles(ctx.Repo) {
+	if !canWriteFiles(ctx.Repo) {
 		return nil, models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
@@ -369,12 +377,16 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	//   "404":
 	//     "$ref": "#/responses/error"
 
-	if !CanWriteFiles(ctx.Repo) {
+	if !canWriteFiles(ctx.Repo) {
 		ctx.Error(http.StatusForbidden, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
 		return
+	}
+
+	if apiOpts.BranchName == "" {
+		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
 	opts := &repofiles.DeleteRepoFileOptions{
@@ -462,7 +474,7 @@ func GetContents(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !CanReadFiles(ctx.Repo) {
+	if !canReadFiles(ctx.Repo) {
 		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
