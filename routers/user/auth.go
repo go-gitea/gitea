@@ -1001,6 +1001,7 @@ func handleSignOut(ctx *context.Context) {
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	ctx.SetCookie("lang", "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
+	ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)                                                            // logout default should set redirect to to default
 }
 
 // SignOut sign out from login status
