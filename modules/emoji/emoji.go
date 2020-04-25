@@ -6,7 +6,9 @@
 package emoji
 
 import (
+	"fmt"
 	"strings"
+	"time"
 )
 
 // Gemoji is a set of emoji data.
@@ -36,6 +38,8 @@ var (
 
 func init() {
 	// initialize
+	start := time.Now()
+	fmt.Printf("%v emoji init()\n", time.Now().Format("15:04:05.000000"))
 	codeMap = make(map[string]int, len(GemojiData))
 	aliasMap = make(map[string]int, len(GemojiData))
 
@@ -65,6 +69,7 @@ func init() {
 	// create replacers
 	codeReplacer = strings.NewReplacer(codePairs...)
 	aliasReplacer = strings.NewReplacer(aliasPairs...)
+	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 }
 
 // FromCode retrieves the emoji data based on the provided unicode code (ie,
