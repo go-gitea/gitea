@@ -57,7 +57,11 @@ func ReplaceSanitizer() {
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list`)).OnElements("ul")
 
 	// Allow icons
-	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^icon(\s+[\p{L}\p{N}_-]+)+$`)).OnElements("i", "span")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^icon(\s+[\p{L}\p{N}_-]+)+$`)).OnElements("i")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(ui disabled checkbox)|(ui checked disabled checkbox))$`)).OnElements("span")
+
+	// Allow unlabelled labels
+	sanitizer.policy.AllowNoAttrs().OnElements("label")
 
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",
