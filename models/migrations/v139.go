@@ -82,9 +82,5 @@ func addProjectsInfo(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(ProjectBoard)); err != nil {
-		return err
-	}
-
-	return nil
+	return x.Sync2(new(ProjectBoard))
 }
