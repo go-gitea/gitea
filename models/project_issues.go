@@ -41,6 +41,7 @@ func (i *Issue) loadProject(e Engine) (err error) {
 		var p Project
 		if _, err = e.Table("project").
 			Join("INNER", "project_issues", "project.id=project_issues.project_id").
+			Where("project_issues.issue_id = ?", i.ID).
 			Get(&p); err != nil {
 			return err
 		}
