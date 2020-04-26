@@ -4,6 +4,8 @@
 
 package log
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"bufio"
 	"compress/gzip"
@@ -255,5 +257,6 @@ func (log *FileLogger) GetName() string {
 }
 
 func init() {
+	traceinit.Trace("./modules/log/file.go")
 	Register("file", NewFileLogger)
 }

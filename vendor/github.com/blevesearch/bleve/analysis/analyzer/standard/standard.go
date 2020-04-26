@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package standard
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"github.com/blevesearch/bleve/analysis"
@@ -48,5 +49,6 @@ func AnalyzerConstructor(config map[string]interface{}, cache *registry.Cache) (
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/analyzer/standard/standard.go")
 	registry.RegisterAnalyzer(Name, AnalyzerConstructor)
 }

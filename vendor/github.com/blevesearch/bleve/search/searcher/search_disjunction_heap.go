@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package searcher
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -30,6 +31,7 @@ var reflectStaticSizeDisjunctionHeapSearcher int
 var reflectStaticSizeSearcherCurr int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/searcher/search_disjunction_heap.go")
 	var dhs DisjunctionHeapSearcher
 	reflectStaticSizeDisjunctionHeapSearcher = int(reflect.TypeOf(dhs).Size())
 

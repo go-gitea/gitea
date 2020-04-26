@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package scorer
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -27,6 +28,7 @@ import (
 var reflectStaticSizeTermQueryScorer int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/scorer/scorer_term.go")
 	var tqs TermQueryScorer
 	reflectStaticSizeTermQueryScorer = int(reflect.TypeOf(tqs).Size())
 }

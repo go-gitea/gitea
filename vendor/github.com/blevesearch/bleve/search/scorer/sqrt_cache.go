@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package scorer
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"math"
@@ -23,6 +24,7 @@ var SqrtCache []float64
 const MaxSqrtCache = 64
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/scorer/sqrt_cache.go")
 	SqrtCache = make([]float64, MaxSqrtCache)
 	for i := 0; i < MaxSqrtCache; i++ {
 		SqrtCache[i] = math.Sqrt(float64(i))

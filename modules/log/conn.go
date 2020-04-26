@@ -5,6 +5,8 @@
 
 package log
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"encoding/json"
 	"io"
@@ -120,5 +122,6 @@ func (log *ConnLogger) GetName() string {
 }
 
 func init() {
+	traceinit.Trace("./modules/log/conn.go")
 	Register("conn", NewConn)
 }

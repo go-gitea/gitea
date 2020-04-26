@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package geo
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"math"
@@ -67,6 +68,7 @@ var asinDelta = asinMaxValueForTabs / (asinTabsSize - 1)
 var asinIndexer = 1 / asinDelta
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/geo/sloppy.go")
 	// initializes the tables used for the sloppy math functions
 
 	// sin and cos

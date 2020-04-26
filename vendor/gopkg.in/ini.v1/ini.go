@@ -16,6 +16,7 @@
 
 // Package ini provides INI file read and write functionality in Go.
 package ini
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"regexp"
@@ -62,6 +63,7 @@ var (
 )
 
 func init() {
+traceinit.Trace("./vendor/gopkg.in/ini.v1/ini.go")
 	if runtime.GOOS == "windows" {
 		LineBreak = "\r\n"
 	}

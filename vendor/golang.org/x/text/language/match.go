@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package language
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"errors"
@@ -713,6 +714,7 @@ func isExactEquivalent(l language.Language) bool {
 var notEquivalent []language.Language
 
 func init() {
+traceinit.Trace("./vendor/golang.org/x/text/language/match.go")
 	// Create a list of all languages for which canonicalization may alter the
 	// script or region.
 	for _, lm := range language.AliasMap {

@@ -5,6 +5,7 @@
 // +build aix,ppc64
 
 package cpu
+import "code.gitea.io/gitea/traceinit"
 
 const cacheLineSize = 128
 
@@ -16,6 +17,7 @@ const (
 )
 
 func init() {
+traceinit.Trace("./vendor/golang.org/x/sys/cpu/cpu_aix_ppc64.go")
 	impl := getsystemcfg(_SC_IMPL)
 	if impl&_IMPL_POWER8 != 0 {
 		PPC64.IsPOWER8 = true

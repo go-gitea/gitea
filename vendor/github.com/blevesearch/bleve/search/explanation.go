@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package search
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/json"
@@ -25,6 +26,7 @@ import (
 var reflectStaticSizeExplanation int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/explanation.go")
 	var e Explanation
 	reflectStaticSizeExplanation = int(reflect.TypeOf(e).Size())
 }

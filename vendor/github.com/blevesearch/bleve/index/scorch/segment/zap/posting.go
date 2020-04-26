@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package zap
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/binary"
@@ -31,6 +32,7 @@ var reflectStaticSizePosting int
 var reflectStaticSizeLocation int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/scorch/segment/zap/posting.go")
 	var pl PostingsList
 	reflectStaticSizePostingsList = int(reflect.TypeOf(pl).Size())
 	var pi PostingsIterator

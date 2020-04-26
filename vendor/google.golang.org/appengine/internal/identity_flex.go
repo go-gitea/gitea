@@ -5,7 +5,9 @@
 // +build appenginevm
 
 package internal
+import "code.gitea.io/gitea/traceinit"
 
 func init() {
+traceinit.Trace("./vendor/google.golang.org/appengine/internal/identity_flex.go")
 	appengineFlex = true
 }

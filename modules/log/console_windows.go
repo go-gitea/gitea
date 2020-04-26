@@ -4,6 +4,8 @@
 
 package log
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"os"
 
@@ -29,6 +31,7 @@ func enableVTMode(console windows.Handle) bool {
 }
 
 func init() {
+	traceinit.Trace("./modules/log/console_windows.go")
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		CanColorStdout = enableVTMode(windows.Stdout)
 	} else {

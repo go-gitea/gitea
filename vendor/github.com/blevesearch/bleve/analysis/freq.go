@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package analysis
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
@@ -24,6 +25,7 @@ var reflectStaticSizeTokenLocation int
 var reflectStaticSizeTokenFreq int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/freq.go")
 	var tl TokenLocation
 	reflectStaticSizeTokenLocation = int(reflect.TypeOf(tl).Size())
 	var tf TokenFreq

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package document
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -26,6 +27,7 @@ import (
 var reflectStaticSizeNumericField int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/document/field_numeric.go")
 	var f NumericField
 	reflectStaticSizeNumericField = int(reflect.TypeOf(f).Size())
 }

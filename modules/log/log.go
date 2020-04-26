@@ -4,6 +4,8 @@
 
 package log
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"os"
 	"runtime"
@@ -249,6 +251,7 @@ func (l *LoggerAsWriter) Log(msg string) {
 }
 
 func init() {
+	traceinit.Trace("./modules/log/log.go")
 	_, filename, _, _ := runtime.Caller(0)
 	prefix = strings.TrimSuffix(filename, "modules/log/log.go")
 }

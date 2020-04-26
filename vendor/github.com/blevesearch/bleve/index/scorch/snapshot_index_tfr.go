@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package scorch
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -28,6 +29,7 @@ import (
 var reflectStaticSizeIndexSnapshotTermFieldReader int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/scorch/snapshot_index_tfr.go")
 	var istfr IndexSnapshotTermFieldReader
 	reflectStaticSizeIndexSnapshotTermFieldReader = int(reflect.TypeOf(istfr).Size())
 }

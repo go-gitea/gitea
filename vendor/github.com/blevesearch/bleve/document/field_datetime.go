@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package document
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -28,6 +29,7 @@ import (
 var reflectStaticSizeDateTimeField int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/document/field_datetime.go")
 	var f DateTimeField
 	reflectStaticSizeDateTimeField = int(reflect.TypeOf(f).Size())
 }

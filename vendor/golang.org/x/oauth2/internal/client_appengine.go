@@ -5,9 +5,11 @@
 // +build appengine
 
 package internal
+import "code.gitea.io/gitea/traceinit"
 
 import "google.golang.org/appengine/urlfetch"
 
 func init() {
+traceinit.Trace("./vendor/golang.org/x/oauth2/internal/client_appengine.go")
 	appengineClientHook = urlfetch.Client
 }

@@ -1,4 +1,5 @@
 package pam
+import "code.gitea.io/gitea/traceinit"
 
 import "sync"
 
@@ -9,6 +10,7 @@ var cb struct {
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/msteinert/pam/callback.go")
 	cb.m = make(map[int]interface{})
 }
 

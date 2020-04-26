@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package proto
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"google.golang.org/protobuf/internal/errors"
@@ -30,5 +31,6 @@ type Message = protoreflect.ProtoMessage
 var Error error
 
 func init() {
+traceinit.Trace("./vendor/google.golang.org/protobuf/proto/proto.go")
 	Error = errors.Error
 }

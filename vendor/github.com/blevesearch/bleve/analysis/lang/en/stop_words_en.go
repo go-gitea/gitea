@@ -1,4 +1,5 @@
 package en
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"github.com/blevesearch/bleve/analysis"
@@ -340,5 +341,6 @@ func TokenMapConstructor(config map[string]interface{}, cache *registry.Cache) (
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/lang/en/stop_words_en.go")
 	registry.RegisterTokenMap(StopName, TokenMapConstructor)
 }

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package en
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"github.com/blevesearch/bleve/analysis"
@@ -29,5 +30,6 @@ func StopTokenFilterConstructor(config map[string]interface{}, cache *registry.C
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/lang/en/stop_filter_en.go")
 	registry.RegisterTokenFilter(StopName, StopTokenFilterConstructor)
 }

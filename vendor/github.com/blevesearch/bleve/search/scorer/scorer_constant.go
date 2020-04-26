@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package scorer
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -26,6 +27,7 @@ import (
 var reflectStaticSizeConstantScorer int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/scorer/scorer_constant.go")
 	var cs ConstantScorer
 	reflectStaticSizeConstantScorer = int(reflect.TypeOf(cs).Size())
 }

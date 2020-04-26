@@ -1,6 +1,7 @@
 // Package buffer implements a buffer for serialization, consisting of a chain of []byte-s to
 // reduce copying and to allow reuse of individual chunks.
 package buffer
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"io"
@@ -30,6 +31,7 @@ func initBuffers() {
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/mailru/easyjson/buffer/pool.go")
 	initBuffers()
 }
 

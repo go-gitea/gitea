@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package appengine
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"time"
@@ -137,6 +138,7 @@ func SignBytes(c context.Context, bytes []byte) (keyName string, signature []byt
 }
 
 func init() {
+traceinit.Trace("./vendor/google.golang.org/appengine/identity.go")
 	internal.RegisterErrorCodeMap("app_identity_service", pb.AppIdentityServiceError_ErrorCode_name)
 	internal.RegisterErrorCodeMap("modules", modpb.ModulesServiceError_ErrorCode_name)
 }

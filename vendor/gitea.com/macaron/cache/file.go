@@ -14,6 +14,7 @@
 // under the License.
 
 package cache
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"crypto/md5"
@@ -204,5 +205,6 @@ func (c *FileCacher) StartAndGC(opt Options) error {
 }
 
 func init() {
+traceinit.Trace("./vendor/gitea.com/macaron/cache/file.go")
 	Register("file", NewFileCacher())
 }

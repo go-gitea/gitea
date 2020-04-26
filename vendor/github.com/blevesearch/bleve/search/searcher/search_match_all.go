@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package searcher
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
@@ -26,6 +27,7 @@ import (
 var reflectStaticSizeMatchAllSearcher int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/searcher/search_match_all.go")
 	var mas MatchAllSearcher
 	reflectStaticSizeMatchAllSearcher = int(reflect.TypeOf(mas).Size())
 }

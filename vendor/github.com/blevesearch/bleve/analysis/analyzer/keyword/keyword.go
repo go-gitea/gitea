@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package keyword
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"github.com/blevesearch/bleve/analysis"
@@ -34,5 +35,6 @@ func AnalyzerConstructor(config map[string]interface{}, cache *registry.Cache) (
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/analyzer/keyword/keyword.go")
 	registry.RegisterAnalyzer(Name, AnalyzerConstructor)
 }

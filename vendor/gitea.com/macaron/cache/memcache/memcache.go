@@ -14,6 +14,7 @@
 // under the License.
 
 package cache
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"strings"
@@ -88,5 +89,6 @@ func (c *MemcacheCacher) StartAndGC(opt cache.Options) error {
 }
 
 func init() {
+traceinit.Trace("./vendor/gitea.com/macaron/cache/memcache/memcache.go")
 	cache.Register("memcache", &MemcacheCacher{})
 }

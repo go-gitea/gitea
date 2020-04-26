@@ -14,6 +14,7 @@
 // under the License.
 
 package session
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -235,5 +236,6 @@ func (p *RedisProvider) Count() int {
 func (_ *RedisProvider) GC() {}
 
 func init() {
+traceinit.Trace("./vendor/gitea.com/macaron/session/redis/redis.go")
 	session.Register("redis", &RedisProvider{})
 }

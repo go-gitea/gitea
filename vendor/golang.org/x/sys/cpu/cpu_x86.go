@@ -5,10 +5,12 @@
 // +build 386 amd64 amd64p32
 
 package cpu
+import "code.gitea.io/gitea/traceinit"
 
 const cacheLineSize = 64
 
 func init() {
+traceinit.Trace("./vendor/golang.org/x/sys/cpu/cpu_x86.go")
 	Initialized = true
 
 	maxID, _, _, _ := cpuid(0, 0)

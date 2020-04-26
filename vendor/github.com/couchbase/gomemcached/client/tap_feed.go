@@ -1,4 +1,5 @@
 package memcached
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -32,6 +33,7 @@ const tapMutationExtraLen = 16
 var tapOpcodeNames map[TapOpcode]string
 
 func init() {
+traceinit.Trace("./vendor/github.com/couchbase/gomemcached/client/tap_feed.go")
 	tapOpcodeNames = map[TapOpcode]string{
 		TapBeginBackfill:   "BeginBackfill",
 		TapEndBackfill:     "EndBackfill",

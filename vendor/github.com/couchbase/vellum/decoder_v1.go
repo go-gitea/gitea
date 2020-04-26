@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package vellum
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -22,6 +23,7 @@ import (
 )
 
 func init() {
+traceinit.Trace("./vendor/github.com/couchbase/vellum/decoder_v1.go")
 	registerDecoder(versionV1, func(data []byte) decoder {
 		return newDecoderV1(data)
 	})

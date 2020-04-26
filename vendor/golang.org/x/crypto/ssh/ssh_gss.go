@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package ssh
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/asn1"
@@ -12,6 +13,7 @@ import (
 var krb5OID []byte
 
 func init() {
+traceinit.Trace("./vendor/golang.org/x/crypto/ssh/ssh_gss.go")
 	krb5OID, _ = asn1.Marshal(krb5Mesh)
 }
 

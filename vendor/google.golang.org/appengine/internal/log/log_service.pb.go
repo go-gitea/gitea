@@ -2,6 +2,7 @@
 // source: google.golang.org/appengine/internal/log/log_service.proto
 
 package log
+import "code.gitea.io/gitea/traceinit"
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -1190,6 +1191,7 @@ func (m *LogUsageResponse) GetSummary() *LogUsageRecord {
 }
 
 func init() {
+traceinit.Trace("./vendor/google.golang.org/appengine/internal/log/log_service.pb.go")
 	proto.RegisterType((*LogServiceError)(nil), "appengine.LogServiceError")
 	proto.RegisterType((*UserAppLogLine)(nil), "appengine.UserAppLogLine")
 	proto.RegisterType((*UserAppLogGroup)(nil), "appengine.UserAppLogGroup")

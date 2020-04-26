@@ -1,4 +1,5 @@
 package pq
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bufio"
@@ -49,6 +50,7 @@ func (d *Driver) Open(name string) (driver.Conn, error) {
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/lib/pq/conn.go")
 	sql.Register("postgres", &Driver{})
 }
 

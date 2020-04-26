@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package document
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
@@ -24,6 +25,7 @@ import (
 var reflectStaticSizeCompositeField int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/document/field_composite.go")
 	var cf CompositeField
 	reflectStaticSizeCompositeField = int(reflect.TypeOf(cf).Size())
 }

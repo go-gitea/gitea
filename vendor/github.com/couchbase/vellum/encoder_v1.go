@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package vellum
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/binary"
@@ -27,6 +28,7 @@ const stateFinal = 1 << 6
 const footerSizeV1 = 16
 
 func init() {
+traceinit.Trace("./vendor/github.com/couchbase/vellum/encoder_v1.go")
 	registerEncoder(versionV1, func(w io.Writer) encoder {
 		return newEncoderV1(w)
 	})

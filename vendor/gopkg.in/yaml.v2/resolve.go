@@ -1,4 +1,5 @@
 package yaml
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/base64"
@@ -18,6 +19,7 @@ var resolveTable = make([]byte, 256)
 var resolveMap = make(map[string]resolveMapItem)
 
 func init() {
+traceinit.Trace("./vendor/gopkg.in/yaml.v2/resolve.go")
 	t := resolveTable
 	t[int('+')] = 'S' // Sign
 	t[int('-')] = 'S'

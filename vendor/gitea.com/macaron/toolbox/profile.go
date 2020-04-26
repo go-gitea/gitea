@@ -14,6 +14,7 @@
 // under the License.
 
 package toolbox
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -65,6 +66,7 @@ func StopCPUProfile() error {
 }
 
 func init() {
+traceinit.Trace("./vendor/gitea.com/macaron/toolbox/profile.go")
 	pid = os.Getpid()
 }
 

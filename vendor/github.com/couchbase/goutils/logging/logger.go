@@ -8,6 +8,7 @@
 //  and limitations under the License.
 
 package logging
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"os"
@@ -477,6 +478,7 @@ func Stackf(level Level, fmt string, args ...interface{}) {
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/couchbase/goutils/logging/logger.go")
 	logger := NewLogger(os.Stderr, INFO, TEXTFORMATTER)
 	SetLogger(logger)
 }

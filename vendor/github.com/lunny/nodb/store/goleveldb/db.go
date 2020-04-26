@@ -1,4 +1,5 @@
 package goleveldb
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"github.com/syndtr/goleveldb/leveldb"
@@ -182,6 +183,7 @@ func (db *DB) NewSnapshot() (driver.ISnapshot, error) {
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/lunny/nodb/store/goleveldb/db.go")
 	driver.Register(Store{})
 	driver.Register(MemStore{})
 }

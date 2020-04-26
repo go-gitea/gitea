@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package index
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
@@ -25,6 +26,7 @@ import (
 var reflectStaticSizeAnalysisResult int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/analysis.go")
 	var ar AnalysisResult
 	reflectStaticSizeAnalysisResult = int(reflect.TypeOf(ar).Size())
 }

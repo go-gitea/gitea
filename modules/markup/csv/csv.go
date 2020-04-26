@@ -4,6 +4,8 @@
 
 package markup
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"bytes"
 	"encoding/csv"
@@ -19,6 +21,7 @@ import (
 var quoteRegexp = regexp.MustCompile(`["'][\s\S]+?["']`)
 
 func init() {
+	traceinit.Trace("./modules/markup/csv/csv.go")
 	markup.RegisterParser(Parser{})
 
 }

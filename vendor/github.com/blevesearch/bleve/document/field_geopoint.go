@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package document
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -27,6 +28,7 @@ import (
 var reflectStaticSizeGeoPointField int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/document/field_geopoint.go")
 	var f GeoPointField
 	reflectStaticSizeGeoPointField = int(reflect.TypeOf(f).Size())
 }

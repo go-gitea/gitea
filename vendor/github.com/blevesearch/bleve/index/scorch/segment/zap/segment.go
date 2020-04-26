@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package zap
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -34,6 +35,7 @@ import (
 var reflectStaticSizeSegmentBase int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/scorch/segment/zap/segment.go")
 	var sb SegmentBase
 	reflectStaticSizeSegmentBase = int(unsafe.Sizeof(sb))
 }

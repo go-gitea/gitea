@@ -4,6 +4,8 @@
 
 package validation
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"net"
 	"net/url"
@@ -18,6 +20,7 @@ var loopbackIPBlocks []*net.IPNet
 var externalTrackerRegex = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
 
 func init() {
+	traceinit.Trace("./modules/validation/helpers.go")
 	for _, cidr := range []string{
 		"127.0.0.0/8", // IPv4 loopback
 		"::1/128",     // IPv6 loopback

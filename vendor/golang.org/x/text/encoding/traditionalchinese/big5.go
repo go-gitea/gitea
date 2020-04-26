@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package traditionalchinese
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"unicode/utf8"
@@ -192,6 +193,7 @@ func (big5Encoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err e
 }
 
 func init() {
+traceinit.Trace("./vendor/golang.org/x/text/encoding/traditionalchinese/big5.go")
 	// Check that the hard-coded encode switch covers all tables.
 	if numEncodeTables != 8 {
 		panic("bad numEncodeTables")

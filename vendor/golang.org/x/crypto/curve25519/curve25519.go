@@ -6,6 +6,7 @@
 // performs scalar multiplication on the elliptic curve known as Curve25519.
 // See RFC 7748.
 package curve25519 // import "golang.org/x/crypto/curve25519"
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"crypto/subtle"
@@ -42,7 +43,10 @@ var Basepoint []byte
 
 var basePoint = [32]byte{9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
-func init() { Basepoint = basePoint[:] }
+func init() { Basepoint = basePoint[:] 
+traceinit.Trace("./vendor/golang.org/x/crypto/curve25519/curve25519.go")
+}
+
 
 func checkBasepoint() {
 	if subtle.ConstantTimeCompare(Basepoint, []byte{

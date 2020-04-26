@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package index
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -29,6 +30,7 @@ var reflectStaticSizeTermFieldDoc int
 var reflectStaticSizeTermFieldVector int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/index.go")
 	var tfd TermFieldDoc
 	reflectStaticSizeTermFieldDoc = int(reflect.TypeOf(tfd).Size())
 	var tfv TermFieldVector

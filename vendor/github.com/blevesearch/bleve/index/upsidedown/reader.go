@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package upsidedown
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -29,6 +30,7 @@ var reflectStaticSizeUpsideDownCouchTermFieldReader int
 var reflectStaticSizeUpsideDownCouchDocIDReader int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/upsidedown/reader.go")
 	var tfr UpsideDownCouchTermFieldReader
 	reflectStaticSizeUpsideDownCouchTermFieldReader =
 		int(reflect.TypeOf(tfr).Size())

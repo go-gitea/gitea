@@ -4,6 +4,7 @@
 // license that can be found in the LICENSE file.
 
 package jwalterweatherman
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"io"
@@ -41,6 +42,7 @@ func reloadDefaultNotepad() {
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/spf13/jwalterweatherman/default_notepad.go")
 	defaultNotepad = NewNotepad(LevelError, LevelWarn, os.Stdout, ioutil.Discard, "", log.Ldate|log.Ltime)
 	reloadDefaultNotepad()
 }

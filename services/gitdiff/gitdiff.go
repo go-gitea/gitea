@@ -5,6 +5,8 @@
 
 package gitdiff
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"bufio"
 	"bytes"
@@ -248,6 +250,7 @@ LOOP:
 var diffMatchPatch = diffmatchpatch.New()
 
 func init() {
+	traceinit.Trace("./services/gitdiff/gitdiff.go")
 	diffMatchPatch.DiffEditCost = 100
 }
 

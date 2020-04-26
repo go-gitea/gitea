@@ -4,6 +4,8 @@
 
 package queue
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"fmt"
 	"sync"
@@ -168,5 +170,6 @@ func (q *WrappedUniqueQueue) IsEmpty() bool {
 }
 
 func init() {
+	traceinit.Trace("./modules/queue/unique_queue_wrapped.go")
 	queuesMap[WrappedUniqueQueueType] = NewWrappedUniqueQueue
 }

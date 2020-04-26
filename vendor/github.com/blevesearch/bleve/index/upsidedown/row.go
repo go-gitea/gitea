@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package upsidedown
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -30,6 +31,7 @@ var reflectStaticSizeTermFrequencyRow int
 var reflectStaticSizeTermVector int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/upsidedown/row.go")
 	var tfr TermFrequencyRow
 	reflectStaticSizeTermFrequencyRow = int(reflect.TypeOf(tfr).Size())
 	var tv TermVector

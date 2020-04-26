@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package scorch
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -26,6 +27,7 @@ import (
 var reflectStaticSizeIndexSnapshotDocIDReader int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/scorch/snapshot_index_doc.go")
 	var isdr IndexSnapshotDocIDReader
 	reflectStaticSizeIndexSnapshotDocIDReader = int(reflect.TypeOf(isdr).Size())
 }

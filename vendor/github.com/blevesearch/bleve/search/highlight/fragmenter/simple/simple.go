@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package simple
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"unicode/utf8"
@@ -138,5 +139,6 @@ func Constructor(config map[string]interface{}, cache *registry.Cache) (highligh
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/highlight/fragmenter/simple/simple.go")
 	registry.RegisterFragmenter(Name, Constructor)
 }

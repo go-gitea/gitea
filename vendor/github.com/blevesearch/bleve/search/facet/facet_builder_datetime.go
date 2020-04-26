@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package facet
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
@@ -28,6 +29,7 @@ var reflectStaticSizeDateTimeFacetBuilder int
 var reflectStaticSizedateTimeRange int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/facet/facet_builder_datetime.go")
 	var dtfb DateTimeFacetBuilder
 	reflectStaticSizeDateTimeFacetBuilder = int(reflect.TypeOf(dtfb).Size())
 	var dtr dateTimeRange

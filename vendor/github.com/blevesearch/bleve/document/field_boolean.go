@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package document
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -25,6 +26,7 @@ import (
 var reflectStaticSizeBooleanField int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/document/field_boolean.go")
 	var f BooleanField
 	reflectStaticSizeBooleanField = int(reflect.TypeOf(f).Size())
 }

@@ -2,6 +2,7 @@
 // source: google.golang.org/appengine/internal/base/api_base.proto
 
 package base
+import "code.gitea.io/gitea/traceinit"
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -277,6 +278,7 @@ func (m *VoidProto) XXX_DiscardUnknown() {
 var xxx_messageInfo_VoidProto proto.InternalMessageInfo
 
 func init() {
+traceinit.Trace("./vendor/google.golang.org/appengine/internal/base/api_base.pb.go")
 	proto.RegisterType((*StringProto)(nil), "appengine.base.StringProto")
 	proto.RegisterType((*Integer32Proto)(nil), "appengine.base.Integer32Proto")
 	proto.RegisterType((*Integer64Proto)(nil), "appengine.base.Integer64Proto")

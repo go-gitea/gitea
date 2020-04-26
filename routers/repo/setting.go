@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/traceinit"
 
 	"github.com/unknwon/com"
 	"mvdan.cc/xurls/v2"
@@ -818,6 +819,7 @@ func DeleteDeployKey(ctx *context.Context) {
 }
 
 func init() {
+	traceinit.Trace("./routers/repo/setting.go")
 	var err error
 	validFormAddress, err = xurls.StrictMatchingScheme(`(https?)|(git)://`)
 	if err != nil {

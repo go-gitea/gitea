@@ -2,6 +2,7 @@
 // source: google.golang.org/appengine/internal/app_identity/app_identity_service.proto
 
 package app_identity
+import "code.gitea.io/gitea/traceinit"
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -545,6 +546,7 @@ func (m *GetDefaultGcsBucketNameResponse) GetDefaultGcsBucketName() string {
 }
 
 func init() {
+traceinit.Trace("./vendor/google.golang.org/appengine/internal/app_identity/app_identity_service.pb.go")
 	proto.RegisterType((*AppIdentityServiceError)(nil), "appengine.AppIdentityServiceError")
 	proto.RegisterType((*SignForAppRequest)(nil), "appengine.SignForAppRequest")
 	proto.RegisterType((*SignForAppResponse)(nil), "appengine.SignForAppResponse")

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package bleve
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"expvar"
@@ -57,6 +58,7 @@ func newConfiguration() *configuration {
 var Config *configuration
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/config.go")
 	bootStart := time.Now()
 
 	// build the default configuration

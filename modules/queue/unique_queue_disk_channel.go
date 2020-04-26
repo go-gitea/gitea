@@ -4,6 +4,8 @@
 
 package queue
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"context"
 	"sync"
@@ -237,5 +239,6 @@ func (q *PersistableChannelUniqueQueue) Terminate() {
 }
 
 func init() {
+	traceinit.Trace("./modules/queue/unique_queue_disk_channel.go")
 	queuesMap[PersistableChannelUniqueQueueType] = NewPersistableChannelUniqueQueue
 }

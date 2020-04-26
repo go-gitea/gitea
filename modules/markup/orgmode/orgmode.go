@@ -4,6 +4,8 @@
 
 package markup
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"bytes"
 	"fmt"
@@ -17,6 +19,7 @@ import (
 )
 
 func init() {
+	traceinit.Trace("./modules/markup/orgmode/orgmode.go")
 	markup.RegisterParser(Parser{})
 }
 

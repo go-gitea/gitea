@@ -7,6 +7,7 @@
 //
 // This package is a work in progress and makes no API stability promises.
 package autocert
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -48,6 +49,7 @@ var createCertRetryAfter = time.Minute
 var pseudoRand *lockedMathRand
 
 func init() {
+traceinit.Trace("./vendor/golang.org/x/crypto/acme/autocert/autocert.go")
 	src := mathrand.NewSource(time.Now().UnixNano())
 	pseudoRand = &lockedMathRand{rnd: mathrand.New(src)}
 }

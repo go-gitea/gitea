@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package simplifiedchinese
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"unicode/utf8"
@@ -262,6 +263,7 @@ func (e gbkEncoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err 
 }
 
 func init() {
+traceinit.Trace("./vendor/golang.org/x/text/encoding/simplifiedchinese/gbk.go")
 	// Check that the hard-coded encode switch covers all tables.
 	if numEncodeTables != 5 {
 		panic("bad numEncodeTables")

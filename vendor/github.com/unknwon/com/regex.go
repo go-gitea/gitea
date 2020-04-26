@@ -13,6 +13,7 @@
 // under the License.
 
 package com
+import "code.gitea.io/gitea/traceinit"
 
 import "regexp"
 
@@ -32,6 +33,7 @@ var (
 )
 
 func init() {
+traceinit.Trace("./vendor/github.com/unknwon/com/regex.go")
 	regex_email = regexp.MustCompile(regex_email_pattern)
 	regex_strict_email = regexp.MustCompile(regex_strict_email_pattern)
 	regex_url = regexp.MustCompile(regex_url_pattern)

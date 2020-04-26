@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package upsidedown
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/binary"
@@ -24,6 +25,7 @@ var dictionaryTermIncr []byte
 var dictionaryTermDecr []byte
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/upsidedown/row_merge.go")
 	dictionaryTermIncr = make([]byte, 8)
 	binary.LittleEndian.PutUint64(dictionaryTermIncr, uint64(1))
 	dictionaryTermDecr = make([]byte, 8)

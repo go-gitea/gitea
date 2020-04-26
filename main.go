@@ -5,11 +5,13 @@
 
 // Gitea (git with a cup of tea) is a painless self-hosted Git Service.
 package main // import "code.gitea.io/gitea"
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -39,6 +41,7 @@ var (
 )
 
 func init() {
+	traceinit.Trace("./main.go")
 	start := time.Now()
 	fmt.Printf("\t%v gitea init()\n", time.Now().Format("15:04:05.000000"))
 	setting.AppVer = Version
@@ -52,6 +55,12 @@ func init() {
 }
 
 func main() {
+	var err error
+	err = pprof.StartCPUProfile(os.Stderr)
+	if err != nil {
+		fmt.Printf("\t%v StartCPUProfile error\n", time.Now().Format("15:04:05.000000"))
+	}
+	defer pprof.StopCPUProfile()
 	start := time.Now()
 	fmt.Printf("%v Gitea main()\n", time.Now().Format("15:04:05.000000"))
 	app := cli.NewApp()
@@ -112,7 +121,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		setFlagsAndBeforeOnSubcommands(&app.Commands[i], defaultFlags, establishCustomPath)
 	}
 
-	err := app.Run(os.Args)
+	err = app.Run(os.Args)
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)
 	}
@@ -128,8 +137,6 @@ func setFlagsAndBeforeOnSubcommands(command *cli.Command, defaultFlags []cli.Fla
 }
 
 func establishCustomPath(ctx *cli.Context) error {
-	start := time.Now()
-	fmt.Printf("%v establishCustomPath\n", time.Now().Format("15:04:05.000000"))
 	var providedCustom string
 	var providedConf string
 	var providedWorkPath string
@@ -162,7 +169,7 @@ func establishCustomPath(ctx *cli.Context) error {
 		cli.ShowVersion(ctx)
 		os.Exit(0)
 	}
-	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
+
 	return nil
 }
 
@@ -173,13 +180,10 @@ func setAppHelpTemplates() {
 }
 
 func adjustHelpTemplate(originalTemplate string) string {
-	start := time.Now()
-	fmt.Printf("\t\t%v adjustHelpTemplate\n", time.Now().Format("15:04:05.000000"))
 	overrided := ""
 	if _, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
 		overrided = "(GITEA_CUSTOM)"
 	}
-	fmt.Printf("\t\ttime taken: %v\n\n", time.Since(start))
 
 	return fmt.Sprintf(`%s
 DEFAULT CONFIGURATION:

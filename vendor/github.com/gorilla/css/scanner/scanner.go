@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package scanner
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -174,6 +175,7 @@ var matchOrder = []tokenType{
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/gorilla/css/scanner/scanner.go")
 	// replace macros and compile regexps for productions.
 	replaceMacro := func(s string) string {
 		return "(?:" + macros[s[1:len(s)-1]] + ")"

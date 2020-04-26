@@ -4,6 +4,8 @@
 
 package queue
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"context"
 	"encoding/json"
@@ -91,6 +93,7 @@ type PoolWorkers struct {
 type PoolWorkersList []*PoolWorkers
 
 func init() {
+	traceinit.Trace("./modules/queue/manager.go")
 	_ = GetManager()
 }
 

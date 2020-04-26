@@ -4,6 +4,8 @@
 
 package queue
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"context"
 	"fmt"
@@ -128,5 +130,6 @@ func (q *ChannelUniqueQueue) Name() string {
 }
 
 func init() {
+	traceinit.Trace("./modules/queue/unique_queue_channel.go")
 	queuesMap[ChannelUniqueQueueType] = NewChannelUniqueQueue
 }

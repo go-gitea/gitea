@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package unicode
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"github.com/blevesearch/segment"
@@ -115,6 +116,7 @@ func UnicodeTokenizerConstructor(config map[string]interface{}, cache *registry.
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/tokenizer/unicode/unicode.go")
 	registry.RegisterTokenizer(Name, UnicodeTokenizerConstructor)
 }
 

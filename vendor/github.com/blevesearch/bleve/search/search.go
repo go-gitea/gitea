@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package search
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -28,6 +29,7 @@ var reflectStaticSizeSearchContext int
 var reflectStaticSizeLocation int
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/search.go")
 	var dm DocumentMatch
 	reflectStaticSizeDocumentMatch = int(reflect.TypeOf(dm).Size())
 	var sc SearchContext

@@ -4,6 +4,8 @@
 
 package integrations
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"context"
 	"encoding/json"
@@ -146,6 +148,7 @@ func (log *TestLogger) GetName() string {
 }
 
 func init() {
+	traceinit.Trace("./integrations/testlogger.go")
 	log.Register("test", NewTestLogger)
 	_, filename, _, _ := runtime.Caller(0)
 	prefix = strings.TrimSuffix(filename, "integrations/testlogger.go")

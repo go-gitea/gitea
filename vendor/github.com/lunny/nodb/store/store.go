@@ -1,4 +1,5 @@
 package store
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -48,4 +49,5 @@ func Repair(cfg *config.Config) error {
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/lunny/nodb/store/store.go")
 }

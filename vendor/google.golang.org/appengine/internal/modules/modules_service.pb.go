@@ -2,6 +2,7 @@
 // source: google.golang.org/appengine/internal/modules/modules_service.proto
 
 package modules
+import "code.gitea.io/gitea/traceinit"
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -729,6 +730,7 @@ func (m *GetHostnameResponse) GetHostname() string {
 }
 
 func init() {
+traceinit.Trace("./vendor/google.golang.org/appengine/internal/modules/modules_service.pb.go")
 	proto.RegisterType((*ModulesServiceError)(nil), "appengine.ModulesServiceError")
 	proto.RegisterType((*GetModulesRequest)(nil), "appengine.GetModulesRequest")
 	proto.RegisterType((*GetModulesResponse)(nil), "appengine.GetModulesResponse")

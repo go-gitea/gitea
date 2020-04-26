@@ -17,6 +17,7 @@
 // copy-on-write data structure.
 
 package gtreap
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -78,5 +79,6 @@ func (s *Store) Writer() (store.KVWriter, error) {
 }
 
 func init() {
+traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/store/gtreap/store.go")
 	registry.RegisterKVStore(Name, New)
 }

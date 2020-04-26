@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 package tags
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -80,6 +81,7 @@ var (
 )
 
 func init() {
+traceinit.Trace("./vendor/xorm.io/xorm/tags/tag.go")
 	for k := range schemas.SqlTypes {
 		defaultTagHandlers[k] = SQLTypeTagHandler
 	}

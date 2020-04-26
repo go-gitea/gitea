@@ -5,8 +5,10 @@
 // +build !386,!amd64,!amd64p32,!arm64
 
 package cpu
+import "code.gitea.io/gitea/traceinit"
 
 func init() {
+traceinit.Trace("./vendor/golang.org/x/sys/cpu/cpu_linux.go")
 	if err := readHWCAP(); err != nil {
 		return
 	}

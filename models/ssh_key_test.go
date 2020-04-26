@@ -5,6 +5,8 @@
 
 package models
 
+import "code.gitea.io/gitea/traceinit"
+
 import (
 	"strings"
 	"testing"
@@ -15,6 +17,7 @@ import (
 )
 
 func init() {
+	traceinit.Trace("./models/ssh_key_test.go")
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
 }
