@@ -4,7 +4,7 @@
 
 package queue
 
-//import "code.gitea.io/gitea/traceinit"
+import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -172,10 +172,10 @@ func (q *WrappedUniqueQueue) IsEmpty() bool {
 	return false
 }
 
-// func init() {
-// 	start := time.Now()
-// 	fmt.Printf("%v in unique_que_wrap init()\n", time.Now().Format("15:04:05.000000"))
-// 	traceinit.Trace("./modules/queue/unique_queue_wrapped.go")
-// 	queuesMap[WrappedUniqueQueueType] = NewWrappedUniqueQueue
-// 	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
-// }
+func init() {
+	start := time.Now()
+	fmt.Printf("%v in unique_que_wrap init()\n", time.Now().Format("15:04:05.000000"))
+	traceinit.Trace("./modules/queue/unique_queue_wrapped.go")
+	queuesMap[WrappedUniqueQueueType] = NewWrappedUniqueQueue
+	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
+}
