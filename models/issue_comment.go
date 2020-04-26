@@ -579,55 +579,6 @@ func (c *Comment) LoadPushCommits() (err error) {
 	return err
 }
 
-// LoadPullPushDefaultNotify load default notify message in Content
-// with Mardown style for Pull Push commits comment
-func (c *Comment) LoadPullPushDefaultNotify() (err error) {
-	if c.Type != CommentTypePullPush {
-		return nil
-	}
-	if err = c.LoadIssue(); err != nil {
-		return
-	}
-	if err = c.Issue.LoadRepo(); err != nil {
-		return
-	}
-	if err = c.Issue.LoadPullRequest(); err != nil {
-		return
-	}
-
-	message := "@" + c.Poster.Name
-	if c.IsForcePush {
-		commitIDs := strings.Split(c.Content, ":")
-		message += " force-pushed the " + c.Issue.PullRequest.HeadBranch + " branch from " + commitIDs[0] + " to " + commitIDs[1]
-	} else {
-		if c.Commits == nil {
-			repoPath := c.Issue.Repo.RepoPath()
-			gitRepo, err := git.OpenRepository(repoPath)
-			if err != nil {
-				return err
-			}
-			defer gitRepo.Close()
-			commitIDs := strings.Split(c.Content, ":")
-			c.Commits = gitRepo.GetCommitsFromIDs(commitIDs)
-		}
-
-		if c.Commits.Len() == 1 {
-			message += fmt.Sprintf(" pushed 1 commit to %s:  \n ", c.Issue.Repo.Name)
-		} else {
-			message += fmt.Sprintf(" pushed %d commits to %s:  \n ", c.Commits.Len(), c.Issue.Repo.Name)
-		}
-
-		for e := c.Commits.Front(); e != nil; e = e.Next() {
-			commitMsg := strings.Split(e.Value.(*git.Commit).Message(), "\n")[0]
-			message += "* " + e.Value.(*git.Commit).ID.String()[0:10] + " - " + commitMsg + "  \n"
-		}
-	}
-
-	c.Content = message
-
-	return
-}
-
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {

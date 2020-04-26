@@ -121,10 +121,27 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 }
 
 func (m *mailNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
-	if err := comment.LoadPullPushDefaultNotify(); err != nil {
-		log.Error("comment.loadPullPushDefaultNotify: %v", err)
-		comment.Content = " "
+	var err error
+	if err = comment.LoadIssue(); err != nil {
+		log.Error("comment.LoadIssue: %v", err)
+		return
 	}
+	if err = comment.Issue.LoadRepo(); err != nil {
+		log.Error("comment.Issue.LoadRepo: %v", err)
+		return
+	}
+	if err = comment.Issue.LoadPullRequest(); err != nil {
+		log.Error("comment.Issue.LoadPullRequest: %v", err)
+		return
+	}
+	if err = comment.Issue.PullRequest.LoadBaseRepo(); err != nil {
+		log.Error("comment.Issue.PullRequest.LoadBaseRepo: %v", err)
+		return
+	}
+	if err := comment.LoadPushCommits(); err != nil {
+		log.Error("comment.LoadPushCommits: %v", err)
+	}
+	comment.Content = ""
 
 	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment)
 }
