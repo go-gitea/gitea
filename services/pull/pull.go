@@ -69,24 +69,27 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	if err != nil {
 		return err
 	}
-	comitIDs := ""
-	for e := compareInfo.Commits.Front(); e != nil; e = e.Next() {
-		commitID := e.Value.(*git.Commit).ID.String()
-		comitIDs = commitID + ":" + comitIDs
+
+	if compareInfo.Commits.Len() > 0 {
+		comitIDs := ""
+		for e := compareInfo.Commits.Front(); e != nil; e = e.Next() {
+			commitID := e.Value.(*git.Commit).ID.String()
+			comitIDs = commitID + ":" + comitIDs
+		}
+
+		comitIDs = comitIDs[0 : len(comitIDs)-1]
+
+		ops := &models.CreateCommentOptions{
+			Type:        models.CommentTypePullPush,
+			Doer:        pull.Poster,
+			Repo:        repo,
+			Issue:       pr.Issue,
+			IsForcePush: false,
+			Content:     comitIDs,
+		}
+
+		_, _ = models.CreateComment(ops)
 	}
-
-	comitIDs = comitIDs[0 : len(comitIDs)-1]
-
-	ops := &models.CreateCommentOptions{
-		Type:        models.CommentTypePullPush,
-		Doer:        pull.Poster,
-		Repo:        repo,
-		Issue:       pr.Issue,
-		IsForcePush: false,
-		Content:     comitIDs,
-	}
-
-	_, _ = models.CreateComment(ops)
 
 	return nil
 }
