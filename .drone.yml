@@ -309,7 +309,8 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite#TestAPIDeleteFile
+      - apt-get install -y strace
+      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite#TestAPICreatePullSuccess1
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -321,9 +322,7 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
-      - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
+      - echo
     environment:
       GOPROXY: off
       TAGS: bindata
