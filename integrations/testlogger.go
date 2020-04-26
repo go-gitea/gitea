@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"runtime/debug"
 	"strings"
 	"sync"
 	"testing"
@@ -102,8 +101,8 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	}
 
 	start := time.Now()
-	debug.FreeOSMemory()
-	fmt.Fprintf(os.Stdout, "    FreeOSMemory() took %dms\n", time.Since(start).Milliseconds())
+	runtime.GC()
+	fmt.Fprintf(os.Stdout, "    runtime.GC() took %dms\n", time.Since(start).Milliseconds())
 
 	writerCloser.setT(&t)
 	return func() {

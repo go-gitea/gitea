@@ -56,12 +56,10 @@ func ReplaceSanitizer() {
 	// Allow classes for task lists
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list`)).OnElements("ul")
 
-	// Allow classes for emojis
-	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("span")
+	// Allow icons and classed for emojis
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("img")
-	// Allow icons
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^icon(\s+[\p{L}\p{N}_-]+)+$`)).OnElements("i")
-	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(ui checkbox)|(ui checked checkbox))$`)).OnElements("span")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(emoji)|((icon(\s+[\p{L}\p{N}_-]+)+)|(ui checkbox)|(ui checked checkbox))$`)).OnElements("span")
 
 	// Allow unlabelled labels
 	sanitizer.policy.AllowNoAttrs().OnElements("label")
