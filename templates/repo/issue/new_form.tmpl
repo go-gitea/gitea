@@ -136,7 +136,7 @@
 				</div>
 			</div>
 
-			{{if not .UnitProjectsGlobalDisabled}}
+			{{if .IsProjectsEnabled}}
 			<div class="ui divider"></div>
 
 			<input id="project_id" name="project_id" type="hidden" value="{{.project_id}}">
