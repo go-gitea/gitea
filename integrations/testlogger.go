@@ -10,12 +10,15 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/traceinit"
 )
 
 var prefix string
@@ -98,6 +101,11 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	} else {
 		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
 	}
+
+	start := time.Now()
+	debug.FreeOSMemory()
+	fmt.Fprintf(os.Stdout, "    FreeOSMemory() took %dms\n", time.Since(start).Milliseconds())
+
 	writerCloser.setT(&t)
 	return func() {
 		if err := queue.GetManager().FlushAll(context.Background(), -1); err != nil {

@@ -20,6 +20,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"testing"
 
@@ -213,6 +214,9 @@ func initIntegrationTest() {
 		defer db.Close()
 	}
 	routers.GlobalInit(graceful.GetManager().HammerContext())
+
+	res := debug.SetGCPercent(30)
+	log.Printf("SetGCPercent(30) returned %d\n", res)
 }
 
 func prepareTestEnv(t testing.TB, skip ...int) func() {
