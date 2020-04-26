@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
 date +%H:%M:%S; echo "Running post-receive.d/gitea"
-"$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" post-receive 2>"$GITEA_ROOT/cpu.prof"
-go tool pprof --text "$GITEA_ROOT/gitea" "$GITEA_ROOT/cpu.prof"
+"$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF"
 echo "Gitea done"; date +%H:%M:%S
