@@ -5,6 +5,9 @@
 package language
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"bytes"
 	"errors"
 	"fmt"
@@ -101,7 +104,12 @@ func makeScanner(b []byte) scanner {
 	return scan
 }
 
-func (s *scanner) init() {
+func (s *scanner) init () {
+traceinit.Trace("vendor/golang.org/x/text/internal/language/parse.go")
+
+
+
+
 	for i, c := range s.b {
 		if c == '_' {
 			s.b[i] = '-'

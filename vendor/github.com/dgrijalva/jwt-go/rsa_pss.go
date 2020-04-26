@@ -3,6 +3,9 @@
 package jwt
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -21,7 +24,12 @@ var (
 	SigningMethodPS512 *SigningMethodRSAPSS
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/dgrijalva/jwt-go/rsa_pss.go")
+
+
+
+
 	// PS256
 	SigningMethodPS256 = &SigningMethodRSAPSS{
 		&SigningMethodRSA{

@@ -1,6 +1,9 @@
 package decimal
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -23,7 +26,12 @@ var (
 	int1e5        big.Int
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/denisenkom/go-mssqldb/internal/decimal/decimal.go")
+
+
+
+
 	var acc float64 = 1
 	for i := 0; i <= 38; i++ {
 		scaletblflt64[i] = acc

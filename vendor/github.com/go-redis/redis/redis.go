@@ -1,6 +1,9 @@
 package redis
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"context"
 	"fmt"
 	"log"
@@ -15,7 +18,12 @@ import (
 // Nil reply Redis returns when key does not exist.
 const Nil = proto.Nil
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-redis/redis/redis.go")
+
+
+
+
 	SetLogger(log.New(os.Stderr, "redis: ", log.LstdFlags|log.Lshortfile))
 }
 
@@ -35,7 +43,12 @@ type baseClient struct {
 	onClose func() error // hook called when client is closed
 }
 
-func (c *baseClient) init() {
+func (c *baseClient) init () {
+traceinit.Trace("vendor/github.com/go-redis/redis/redis.go")
+
+
+
+
 	c.process = c.defaultProcess
 	c.processPipeline = c.defaultProcessPipeline
 	c.processTxPipeline = c.defaultProcessTxPipeline
@@ -408,7 +421,12 @@ func NewClient(opt *Options) *Client {
 	return &c
 }
 
-func (c *Client) init() {
+func (c *Client) init () {
+traceinit.Trace("vendor/github.com/go-redis/redis/redis.go")
+
+
+
+
 	c.cmdable.setProcessor(c.Process)
 }
 

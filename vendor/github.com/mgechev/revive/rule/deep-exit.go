@@ -1,6 +1,9 @@
 package rule
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"fmt"
 	"go/ast"
 

@@ -33,7 +33,12 @@ var (
 	swaggerSchema *Schema
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-openapi/spec/spec.go")
+
+
+
+
 	jsonSchema = MustLoadJSONSchemaDraft04()
 	swaggerSchema = MustLoadSwagger20Schema()
 }

@@ -1,6 +1,9 @@
 package mssql
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"fmt"
 	"strings"
 	"syscall"
@@ -13,7 +16,12 @@ var (
 	sec_fn                *SecurityFunctionTable
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/denisenkom/go-mssqldb/sspi_windows.go")
+
+
+
+
 	ptr, _, _ := initSecurityInterface.Call()
 	sec_fn = (*SecurityFunctionTable)(unsafe.Pointer(ptr))
 }

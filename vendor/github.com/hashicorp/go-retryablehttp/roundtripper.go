@@ -1,6 +1,9 @@
 package retryablehttp
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"net/http"
 	"sync"
 )
@@ -22,7 +25,12 @@ type RoundTripper struct {
 }
 
 // init initializes the underlying retryable client.
-func (rt *RoundTripper) init() {
+func (rt *RoundTripper) init () {
+traceinit.Trace("vendor/github.com/hashicorp/go-retryablehttp/roundtripper.go")
+
+
+
+
 	if rt.Client == nil {
 		rt.Client = NewClient()
 	}

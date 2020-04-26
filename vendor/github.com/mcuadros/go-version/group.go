@@ -1,6 +1,9 @@
 package version
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"regexp"
 	"strconv"
 	"strings"
@@ -267,7 +270,12 @@ var (
 	regexpCache *PCRegMap
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/mcuadros/go-version/group.go")
+
+
+
+
 	regexpCache = new(PCRegMap)
 	regexpCache.m = make(map[string]*regexp.Regexp)
 }

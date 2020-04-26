@@ -7,6 +7,9 @@
 package proxy // import "golang.org/x/net/proxy"
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"errors"
 	"net"
 	"net/url"
@@ -133,7 +136,12 @@ func (e *envOnce) Get() string {
 	return e.val
 }
 
-func (e *envOnce) init() {
+func (e *envOnce) init () {
+traceinit.Trace("vendor/golang.org/x/net/proxy/proxy.go")
+
+
+
+
 	for _, n := range e.names {
 		e.val = os.Getenv(n)
 		if e.val != "" {

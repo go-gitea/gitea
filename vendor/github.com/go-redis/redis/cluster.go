@@ -1,6 +1,9 @@
 package redis
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -76,7 +79,12 @@ type ClusterOptions struct {
 	TLSConfig *tls.Config
 }
 
-func (opt *ClusterOptions) init() {
+func (opt *ClusterOptions) init () {
+traceinit.Trace("vendor/github.com/go-redis/redis/cluster.go")
+
+
+
+
 	if opt.MaxRedirects == -1 {
 		opt.MaxRedirects = 0
 	} else if opt.MaxRedirects == 0 {
@@ -681,7 +689,12 @@ func NewClusterClient(opt *ClusterOptions) *ClusterClient {
 	return c
 }
 
-func (c *ClusterClient) init() {
+func (c *ClusterClient) init () {
+traceinit.Trace("vendor/github.com/go-redis/redis/cluster.go")
+
+
+
+
 	c.cmdable.setProcessor(c.Process)
 }
 

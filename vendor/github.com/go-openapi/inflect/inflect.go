@@ -1,6 +1,9 @@
 package inflect
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"fmt"
 	"regexp"
 	"strconv"
@@ -528,7 +531,12 @@ func (rs *Ruleset) Ordinalize(str string) string {
 
 var defaultRuleset *Ruleset
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-openapi/inflect/inflect.go")
+
+
+
+
 	defaultRuleset = NewDefaultRuleset()
 }
 

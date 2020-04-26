@@ -15,6 +15,9 @@
 package spec
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"fmt"
 	"log"
 	"os"
@@ -30,7 +33,12 @@ var (
 	specLogger *log.Logger
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-openapi/spec/debug.go")
+
+
+
+
 	debugOptions()
 }
 

@@ -7,6 +7,9 @@
 package fsnotify
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"errors"
 
 	"golang.org/x/sys/unix"

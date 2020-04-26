@@ -5,6 +5,9 @@
 package impl
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"fmt"
 	"reflect"
 	"strconv"
@@ -65,7 +68,12 @@ func getMessageInfo(mt reflect.Type) *MessageInfo {
 	return mr.ProtoMessageInfo()
 }
 
-func (mi *MessageInfo) init() {
+func (mi *MessageInfo) init () {
+traceinit.Trace("vendor/google.golang.org/protobuf/internal/impl/message.go")
+
+
+
+
 	// This function is called in the hot path. Inline the sync.Once logic,
 	// since allocating a closure for Once.Do is expensive.
 	// Keep init small to ensure that it can be inlined.

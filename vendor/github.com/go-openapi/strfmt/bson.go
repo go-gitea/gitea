@@ -15,6 +15,9 @@
 package strfmt
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"database/sql/driver"
 	"fmt"
 
@@ -24,7 +27,12 @@ import (
 	bsonprim "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-openapi/strfmt/bson.go")
+
+
+
+
 	var id ObjectId
 	// register this format in the default registry
 	Default.Add("bsonobjectid", &id, IsBSONObjectID)

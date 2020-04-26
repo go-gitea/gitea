@@ -1,6 +1,9 @@
 package humanize
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"errors"
 	"math"
 	"regexp"
@@ -40,7 +43,12 @@ func revfmap(in map[float64]string) map[string]float64 {
 
 var riParseRegex *regexp.Regexp
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/dustin/go-humanize/si.go")
+
+
+
+
 	ri := `^([\-0-9.]+)\s?([`
 	for _, v := range siPrefixTable {
 		ri += v

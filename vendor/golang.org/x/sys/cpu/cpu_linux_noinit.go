@@ -6,4 +6,9 @@
 
 package cpu
 
-func doinit() {}
+func doinit () {
+traceinit.Trace("vendor/golang.org/x/sys/cpu/cpu_linux_noinit.go")
+
+
+
+}

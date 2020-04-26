@@ -1,6 +1,9 @@
 package imports
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"bytes"
 	"context"
 	"encoding/json"

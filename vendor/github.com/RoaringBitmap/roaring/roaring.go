@@ -6,6 +6,9 @@
 package roaring
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"bytes"
 	"encoding/base64"
 	"fmt"
@@ -255,7 +258,12 @@ func (ii *intIterator) HasNext() bool {
 	return ii.pos < ii.highlowcontainer.size()
 }
 
-func (ii *intIterator) init() {
+func (ii *intIterator) init () {
+traceinit.Trace("vendor/github.com/RoaringBitmap/roaring/roaring.go")
+
+
+
+
 	if ii.highlowcontainer.size() > ii.pos {
 		ii.iter = ii.highlowcontainer.getContainerAtIndex(ii.pos).getShortIterator()
 		ii.hs = uint32(ii.highlowcontainer.getKeyAtIndex(ii.pos)) << 16
@@ -316,7 +324,12 @@ func (ii *intReverseIterator) HasNext() bool {
 	return ii.pos >= 0
 }
 
-func (ii *intReverseIterator) init() {
+func (ii *intReverseIterator) init () {
+traceinit.Trace("vendor/github.com/RoaringBitmap/roaring/roaring.go")
+
+
+
+
 	if ii.pos >= 0 {
 		ii.iter = ii.highlowcontainer.getContainerAtIndex(ii.pos).getReverseIterator()
 		ii.hs = uint32(ii.highlowcontainer.getKeyAtIndex(ii.pos)) << 16
@@ -356,7 +369,12 @@ type manyIntIterator struct {
 	highlowcontainer *roaringArray
 }
 
-func (ii *manyIntIterator) init() {
+func (ii *manyIntIterator) init () {
+traceinit.Trace("vendor/github.com/RoaringBitmap/roaring/roaring.go")
+
+
+
+
 	if ii.highlowcontainer.size() > ii.pos {
 		ii.iter = ii.highlowcontainer.getContainerAtIndex(ii.pos).getManyIterator()
 		ii.hs = uint32(ii.highlowcontainer.getKeyAtIndex(ii.pos)) << 16

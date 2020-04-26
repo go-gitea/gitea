@@ -15,6 +15,9 @@
 package swag
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"reflect"
 	"strings"
 	"unicode"
@@ -36,7 +39,12 @@ var isInitialism func(string) bool
 // The default is to prefix with "X"
 var GoNamePrefixFunc func(string) string
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-openapi/swag/util.go")
+
+
+
+
 	// Taken from https://github.com/golang/lint/blob/3390df4df2787994aea98de825b964ac7944b817/lint.go#L732-L769
 	var configuredInitialisms = map[string]bool{
 		"ACL":   true,

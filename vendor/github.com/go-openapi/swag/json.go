@@ -15,6 +15,9 @@
 package swag
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"bytes"
 	"encoding/json"
 	"log"
@@ -36,7 +39,12 @@ const comma = byte(',')
 
 var closers map[byte]byte
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-openapi/swag/json.go")
+
+
+
+
 	closers = map[byte]byte{
 		'{': '}',
 		'[': ']',

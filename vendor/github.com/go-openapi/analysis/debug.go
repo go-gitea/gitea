@@ -15,6 +15,9 @@
 package analysis
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"fmt"
 	"log"
 	"os"
@@ -30,7 +33,12 @@ var (
 	analysisLogger *log.Logger
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-openapi/analysis/debug.go")
+
+
+
+
 	debugOptions()
 }
 

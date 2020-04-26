@@ -3,12 +3,20 @@
 package sqlite3
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"database/sql"
 	"database/sql/driver"
 	"errors"
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/mattn/go-sqlite3/static_mock.go")
+
+
+
+
 	sql.Register("sqlite3", &SQLiteDriverMock{})
 }
 

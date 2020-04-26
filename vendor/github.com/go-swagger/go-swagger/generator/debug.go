@@ -15,6 +15,9 @@
 package generator
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"encoding/json"
 	"fmt"
 	"log"
@@ -31,7 +34,12 @@ var (
 	generatorLogger *log.Logger
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-swagger/go-swagger/generator/debug.go")
+
+
+
+
 	debugOptions()
 }
 

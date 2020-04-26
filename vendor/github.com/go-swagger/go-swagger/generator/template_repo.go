@@ -1,6 +1,9 @@
 package generator
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -113,7 +116,12 @@ var FuncMap template.FuncMap = map[string]interface{}{
 	"stringContains":     strings.Contains,
 }
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-swagger/go-swagger/generator/template_repo.go")
+
+
+
+
 	templates = NewRepository(FuncMap)
 }
 

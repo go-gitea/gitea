@@ -22,6 +22,9 @@ The key features are:
 Let's start with an example that shows the sessions API in a nutshell:
 
 	import (
+"code.gitea.io/gitea/traceinit"
+
+
 		"net/http"
 		"github.com/gorilla/sessions"
 	)
@@ -106,7 +109,12 @@ so it is easy to register new datatypes for storage in sessions:
 
 	type M map[string]interface{}
 
-	func init() {
+	func init () {
+traceinit.Trace("vendor/github.com/gorilla/sessions/doc.go")
+
+
+
+
 
 		gob.Register(&Person{})
 		gob.Register(&M{})

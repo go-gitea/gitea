@@ -7,6 +7,9 @@
 package gopathwalk
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"bufio"
 	"bytes"
 	"fmt"
@@ -118,7 +121,12 @@ type walker struct {
 }
 
 // init initializes the walker based on its Options
-func (w *walker) init() {
+func (w *walker) init () {
+traceinit.Trace("vendor/golang.org/x/tools/internal/gopathwalk/walk.go")
+
+
+
+
 	var ignoredPaths []string
 	if w.root.Type == RootModuleCache {
 		ignoredPaths = []string{"cache"}

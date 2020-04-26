@@ -5,6 +5,9 @@
 package cpu
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"io/ioutil"
 )
 

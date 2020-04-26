@@ -15,6 +15,9 @@
 package spec
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"encoding/json"
 	"fmt"
 	"log"
@@ -28,7 +31,12 @@ import (
 // PathLoader function to use when loading remote refs
 var PathLoader func(string) (json.RawMessage, error)
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-openapi/spec/schema_loader.go")
+
+
+
+
 	PathLoader = func(path string) (json.RawMessage, error) {
 		data, err := swag.LoadFromFileOrHTTP(path)
 		if err != nil {

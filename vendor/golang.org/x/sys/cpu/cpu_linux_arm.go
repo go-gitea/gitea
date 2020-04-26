@@ -4,7 +4,12 @@
 
 package cpu
 
-func doinit() {
+func doinit () {
+traceinit.Trace("vendor/golang.org/x/sys/cpu/cpu_linux_arm.go")
+
+
+
+
 	ARM.HasSWP = isSet(hwCap, hwcap_SWP)
 	ARM.HasHALF = isSet(hwCap, hwcap_HALF)
 	ARM.HasTHUMB = isSet(hwCap, hwcap_THUMB)

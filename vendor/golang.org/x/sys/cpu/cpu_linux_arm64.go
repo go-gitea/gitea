@@ -32,7 +32,12 @@ const (
 	hwcap_ASIMDFHM = 1 << 23
 )
 
-func doinit() {
+func doinit () {
+traceinit.Trace("vendor/golang.org/x/sys/cpu/cpu_linux_arm64.go")
+
+
+
+
 	if err := readHWCAP(); err != nil {
 		// failed to read /proc/self/auxv, try reading registers directly
 		readARM64Registers()

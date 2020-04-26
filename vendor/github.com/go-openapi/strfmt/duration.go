@@ -15,6 +15,9 @@
 package strfmt
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -27,7 +30,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-openapi/strfmt/duration.go")
+
+
+
+
 	d := Duration(0)
 	// register this format in the default registry
 	Default.Add("duration", &d, IsDuration)

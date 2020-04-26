@@ -1,6 +1,9 @@
 package diff
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -265,7 +268,12 @@ func readStringFromByteStream(b []byte) (string, error) {
 	return j, nil
 }
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-swagger/go-swagger/cmd/swagger/commands/diff/difftypes.go")
+
+
+
+
 	for key, val := range toStringSpecChangeCode {
 		toIDSpecChangeCode[val] = key
 	}

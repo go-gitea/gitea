@@ -1,6 +1,9 @@
 package yaml
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"encoding"
 	"fmt"
 	"io"
@@ -52,7 +55,12 @@ func newEncoderWithWriter(w io.Writer) *encoder {
 	return e
 }
 
-func (e *encoder) init() {
+func (e *encoder) init () {
+traceinit.Trace("vendor/gopkg.in/yaml.v2/encode.go")
+
+
+
+
 	if e.doneInit {
 		return
 	}

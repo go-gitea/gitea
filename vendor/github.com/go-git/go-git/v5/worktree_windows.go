@@ -3,6 +3,9 @@
 package git
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"os"
 	"syscall"
 	"time"
@@ -10,7 +13,9 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-git/go-git/v5/worktree_windows.go")
+
 	fillSystemInfo = func(e *index.Entry, sys interface{}) {
 		if os, ok := sys.(*syscall.Win32FileAttributeData); ok {
 			seconds := os.CreationTime.Nanoseconds() / 1000000000

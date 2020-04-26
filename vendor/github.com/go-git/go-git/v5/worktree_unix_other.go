@@ -3,13 +3,21 @@
 package git
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"syscall"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-git/go-git/v5/worktree_unix_other.go")
+
+
+
+
 	fillSystemInfo = func(e *index.Entry, sys interface{}) {
 		if os, ok := sys.(*syscall.Stat_t); ok {
 			e.CreatedAt = time.Unix(int64(os.Atim.Sec), int64(os.Atim.Nsec))

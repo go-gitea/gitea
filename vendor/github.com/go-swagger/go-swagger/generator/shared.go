@@ -15,6 +15,9 @@
 package generator
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"bytes"
 	"errors"
 	"fmt"
@@ -1107,7 +1110,12 @@ func prefixForName(arg string) string {
 	return "Nr"
 }
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-swagger/go-swagger/generator/shared.go")
+
+
+
+
 	// this makes the ToGoName func behave with the special
 	// prefixing rule above
 	swag.GoNamePrefixFunc = prefixForName

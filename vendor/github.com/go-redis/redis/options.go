@@ -1,6 +1,9 @@
 package redis
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -97,7 +100,12 @@ type Options struct {
 	TLSConfig *tls.Config
 }
 
-func (opt *Options) init() {
+func (opt *Options) init () {
+traceinit.Trace("vendor/github.com/go-redis/redis/options.go")
+
+
+
+
 	if opt.Network == "" {
 		opt.Network = "tcp"
 	}

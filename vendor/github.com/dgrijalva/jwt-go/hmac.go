@@ -1,6 +1,9 @@
 package jwt
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"crypto"
 	"crypto/hmac"
 	"errors"
@@ -21,7 +24,12 @@ var (
 	ErrSignatureInvalid = errors.New("signature is invalid")
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/dgrijalva/jwt-go/hmac.go")
+
+
+
+
 	// HS256
 	SigningMethodHS256 = &SigningMethodHMAC{"HS256", crypto.SHA256}
 	RegisterSigningMethod(SigningMethodHS256.Alg(), func() SigningMethod {

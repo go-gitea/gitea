@@ -186,6 +186,9 @@ static int _sqlite3_limit(sqlite3* db, int limitId, int newLimit) {
 */
 import "C"
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"context"
 	"database/sql"
 	"database/sql/driver"
@@ -226,7 +229,12 @@ const (
 	columnTimestamp string = "timestamp"
 )
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/mattn/go-sqlite3/sqlite3.go")
+
+
+
+
 	sql.Register("sqlite3", &SQLiteDriver{})
 }
 

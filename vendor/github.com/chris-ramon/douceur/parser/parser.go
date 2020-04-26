@@ -1,6 +1,9 @@
 package parser
 
 import (
+"code.gitea.io/gitea/traceinit"
+
+
 	"errors"
 	"fmt"
 	"regexp"
@@ -30,7 +33,12 @@ type Parser struct {
 	embedLevel int
 }
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/chris-ramon/douceur/parser/parser.go")
+
+
+
+
 	importantRegexp = regexp.MustCompile(importantSuffixRegexp)
 }
 

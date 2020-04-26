@@ -9,7 +9,12 @@ type CompatibilityPolicy struct {
 
 var compatibility CompatibilityPolicy
 
-func init() {
+func init () {
+traceinit.Trace("vendor/github.com/go-swagger/go-swagger/cmd/swagger/commands/diff/compatibility.go")
+
+
+
+
 	compatibility = CompatibilityPolicy{
 		ForResponse: map[SpecChangeCode]Compatibility{
 			AddedRequiredProperty:   Breaking,
