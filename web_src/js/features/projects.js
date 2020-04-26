@@ -81,9 +81,11 @@ export default async function initProject(csrf) {
   $('#new_board_submit').click(function (e) {
     e.preventDefault();
 
+    const boardTitle = $('#new_board');
+
     $.ajax({
       url: $(this).data('url'),
-      data: JSON.stringify({title: $('#new_board').val()}),
+      data: JSON.stringify({title: boardTitle.val()}),
       headers: {
         'X-Csrf-Token': csrf,
         'X-Remote': true,
@@ -91,6 +93,7 @@ export default async function initProject(csrf) {
       contentType: 'application/json',
       method: 'POST',
     }).done(() => {
+      boardTitle.closest('form').removeClass('dirty');
       setTimeout(window.location.reload(true), 2000);
     });
   });
