@@ -4,7 +4,7 @@
 
 package queue
 
-import "code.gitea.io/gitea/traceinit"
+//import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
