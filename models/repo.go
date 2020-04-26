@@ -307,6 +307,8 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 			parent = repo.BaseRepo.innerAPIFormat(e, mode, true)
 		}
 	}
+
+	//check enabled/disabled units
 	hasIssues := false
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
@@ -353,6 +355,10 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
 	}
+	hasProjects := false
+	if _, err := repo.getUnit(e, UnitTypeProjects); err == nil {
+		hasProjects = true
+	}
 
 	repo.mustOwner(e)
 
@@ -390,6 +396,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		ExternalTracker:           externalTracker,
 		InternalTracker:           internalTracker,
 		HasWiki:                   hasWiki,
+		HasProjects:               hasProjects,
 		ExternalWiki:              externalWiki,
 		HasPullRequests:           hasPullRequests,
 		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
