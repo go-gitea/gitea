@@ -253,7 +253,7 @@ func (w wrappedConn) Close() error {
 		defer func() {
 			if err := recover(); err != nil {
 				select {
-				case GetManager().IsHammer():
+				case <-GetManager().IsHammer():
 					// Likely deadlocked request released at hammertime
 					log.Warn("Panic during connection close! %v. Likely there has been a deadlocked request which has been released by forced shutdown.", err)
 				default:
