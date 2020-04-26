@@ -22,7 +22,7 @@ var (
 	GlobalCommandArgs []string
 
 	// DefaultCommandExecutionTimeout default command execution timeout duration
-	DefaultCommandExecutionTimeout = 60 * time.Second
+	DefaultCommandExecutionTimeout = 360 * time.Second
 )
 
 // DefaultLocale is the default LC_ALL to run git commands in.

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/test"
 
@@ -20,7 +21,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	link, exists := htmlDoc.doc.Find("form").Attr("action")
+	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 
 	postData := map[string]string{
@@ -63,6 +64,9 @@ func TestViewReleases(t *testing.T) {
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	session.MakeRequest(t, req, http.StatusOK)
+
+	// if CI is to slow this test fail, so lets wait a bit
+	time.Sleep(time.Millisecond * 100)
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {

@@ -166,7 +166,6 @@ type Repository struct {
 	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenMilestones   int `xorm:"-"`
-	NumReleases         int `xorm:"-"`
 
 	IsPrivate  bool `xorm:"INDEX"`
 	IsEmpty    bool `xorm:"INDEX"`
@@ -175,8 +174,9 @@ type Repository struct {
 	*Mirror    `xorm:"-"`
 	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
-	RenderingMetas map[string]string `xorm:"-"`
-	Units          []*RepoUnit       `xorm:"-"`
+	RenderingMetas  map[string]string `xorm:"-"`
+	Units           []*RepoUnit       `xorm:"-"`
+	PrimaryLanguage *LanguageStat     `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -185,7 +185,8 @@ type Repository struct {
 	TemplateID                      int64              `xorm:"INDEX"`
 	TemplateRepo                    *Repository        `xorm:"-"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
-	IndexerStatus                   *RepoIndexerStatus `xorm:"-"`
+	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
+	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
@@ -351,6 +352,8 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 
 	repo.mustOwner(e)
 
+	numReleases, _ := GetReleaseCountByRepoID(repo.ID, FindReleasesOptions{IncludeDrafts: false, IncludeTags: true})
+
 	return &api.Repository{
 		ID:                        repo.ID,
 		Owner:                     repo.Owner.APIFormat(),
@@ -374,7 +377,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		Watchers:                  repo.NumWatches,
 		OpenIssues:                repo.NumOpenIssues,
 		OpenPulls:                 repo.NumOpenPulls,
-		Releases:                  repo.NumReleases,
+		Releases:                  int(numReleases),
 		DefaultBranch:             repo.DefaultBranch,
 		Created:                   repo.CreatedUnix.AsTime(),
 		Updated:                   repo.UpdatedUnix.AsTime(),
@@ -618,6 +621,64 @@ func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 // of the repository,
 func (repo *Repository) GetAssignees() (_ []*User, err error) {
 	return repo.getAssignees(x)
+}
+
+func (repo *Repository) getReviewersPrivate(e Engine, doerID, posterID int64) (users []*User, err error) {
+	users = make([]*User, 0, 20)
+
+	if err = e.
+		SQL("SELECT * FROM `user` WHERE id in (SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?)) ORDER BY name",
+			repo.ID, AccessModeRead,
+			doerID, posterID).
+		Find(&users); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (repo *Repository) getReviewersPublic(e Engine, doerID, posterID int64) (_ []*User, err error) {
+
+	users := make([]*User, 0)
+
+	const SQLCmd = "SELECT * FROM `user` WHERE id IN ( " +
+		"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?) " +
+		"UNION " +
+		"SELECT user_id FROM `watch` WHERE repo_id = ? AND user_id NOT IN ( ?, ?) AND mode IN (?, ?) " +
+		") ORDER BY name"
+
+	if err = e.
+		SQL(SQLCmd,
+			repo.ID, AccessModeRead, doerID, posterID,
+			repo.ID, doerID, posterID, RepoWatchModeNormal, RepoWatchModeAuto).
+		Find(&users); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) (users []*User, err error) {
+	if err = repo.getOwner(e); err != nil {
+		return nil, err
+	}
+
+	if repo.IsPrivate ||
+		(repo.Owner.IsOrganization() && repo.Owner.Visibility == api.VisibleTypePrivate) {
+		users, err = repo.getReviewersPrivate(x, doerID, posterID)
+	} else {
+		users, err = repo.getReviewersPublic(x, doerID, posterID)
+	}
+	return
+}
+
+// GetReviewers get all users can be requested to review
+// for private rpo , that return all users that have read access or higher to the repository.
+// but for public rpo, that return all users that have write access or higher to the repository,
+// and all repo watchers.
+// TODO: may be we should hava a busy choice for users to block review request to them.
+func (repo *Repository) GetReviewers(doerID, posterID int64) (_ []*User, err error) {
+	return repo.getReviewers(x, doerID, posterID)
 }
 
 // GetMilestoneByID returns the milestone belongs to repository by given ID.
@@ -927,6 +988,7 @@ type CreateRepoOptions struct {
 	IssueLabels    string
 	License        string
 	Readme         string
+	DefaultBranch  string
 	IsPrivate      bool
 	IsMirror       bool
 	AutoInit       bool
@@ -1415,8 +1477,10 @@ func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes [
 		return err
 	}
 
-	if _, err = sess.Insert(units); err != nil {
-		return err
+	if len(units) > 0 {
+		if _, err = sess.Insert(units); err != nil {
+			return err
+		}
 	}
 
 	return sess.Commit()
@@ -1504,6 +1568,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Notification{RepoID: repoID},
 		&CommitStatus{RepoID: repoID},
 		&RepoIndexerStatus{RepoID: repoID},
+		&LanguageStat{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
 		&Task{RepoID: repoID},
 	); err != nil {
@@ -1514,6 +1579,18 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Delete comments and attachments
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	// Dependencies for issues in this repository
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueDependency{}); err != nil {
+		return err
+	}
+
+	// Delete dependencies for issues in other repositories
+	if _, err = sess.In("dependency_id", deleteCond).
+		Delete(&IssueDependency{}); err != nil {
 		return err
 	}
 
@@ -1534,6 +1611,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Stopwatch{}); err != nil {
+		return err
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&TrackedTime{}); err != nil {
 		return err
 	}
 
@@ -1569,6 +1651,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
 		return err
+	}
+
+	if len(repo.Topics) > 0 {
+		if err = removeTopicsFromRepo(sess, repo.ID); err != nil {
+			return err
+		}
 	}
 
 	// FIXME: Remove repository files should be executed after transaction succeed.
@@ -1610,6 +1698,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if err = sess.Commit(); err != nil {
+		sess.Close()
 		if len(deployKeys) > 0 {
 			// We need to rewrite the public keys because the commit failed
 			if err2 := RewriteAllPublicKeys(); err2 != nil {

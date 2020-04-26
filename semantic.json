@@ -1,5 +1,5 @@
 {
-  "version": "2.8.3",
+  "version": "2.8.4",
   "base": "node_modules/fomantic-ui",
   "paths": {
     "source": {
@@ -22,6 +22,7 @@
   "admin": false,
   "components": [
     "accordion",
+    "api",
     "breadcrumb",
     "button",
     "checkbox",

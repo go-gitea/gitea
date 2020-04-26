@@ -29,12 +29,14 @@ var (
 	// mentionPattern matches all mentions in the form of "@user"
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_][0-9a-zA-Z-_.]+[0-9a-zA-Z-_])(?:\s|[:,;.?!]\s|[:,;.?!]?$|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([#!][0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	// spaceTrimmedPattern let's us find the trailing space
+	spaceTrimmedPattern = regexp.MustCompile(`(?:.*[0-9a-zA-Z-_])\s`)
 
 	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
 	issueKeywordsOnce                             sync.Once
@@ -172,10 +174,24 @@ func FindAllMentionsMarkdown(content string) []string {
 // FindAllMentionsBytes matches mention patterns in given content
 // and returns a list of locations for the unvalidated user names, including the @ prefix.
 func FindAllMentionsBytes(content []byte) []RefSpan {
-	mentions := mentionPattern.FindAllSubmatchIndex(content, -1)
-	ret := make([]RefSpan, len(mentions))
-	for i, val := range mentions {
-		ret[i] = RefSpan{Start: val[2], End: val[3]}
+	// Sadly we can't use FindAllSubmatchIndex because our pattern checks for starting and
+	// trailing spaces (\s@mention,\s), so if we get two consecutive references, the space
+	// from the second reference will be "eaten" by the first one:
+	// ...\s@mention1\s@mention2\s...	--> ...`\s@mention1\s`, (not) `@mention2,\s...`
+	ret := make([]RefSpan, 0, 5)
+	pos := 0
+	for {
+		match := mentionPattern.FindSubmatchIndex(content[pos:])
+		if match == nil {
+			break
+		}
+		ret = append(ret, RefSpan{Start: match[2] + pos, End: match[3] + pos})
+		notrail := spaceTrimmedPattern.FindSubmatchIndex(content[match[2]+pos : match[3]+pos])
+		if notrail == nil {
+			pos = match[3] + pos
+		} else {
+			pos = match[3] + pos + notrail[1] - notrail[3]
+		}
 	}
 	return ret
 }
@@ -252,18 +268,43 @@ func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableR
 func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference {
 
 	ret := make([]*rawReference, 0, 10)
+	pos := 0
 
-	matches := issueNumericPattern.FindAllSubmatchIndex(content, -1)
-	for _, match := range matches {
-		if ref := getCrossReference(content, match[2], match[3], false, false); ref != nil {
+	// Sadly we can't use FindAllSubmatchIndex because our pattern checks for starting and
+	// trailing spaces (\s#ref,\s), so if we get two consecutive references, the space
+	// from the second reference will be "eaten" by the first one:
+	// ...\s#ref1\s#ref2\s...	--> ...`\s#ref1\s`, (not) `#ref2,\s...`
+	for {
+		match := issueNumericPattern.FindSubmatchIndex(content[pos:])
+		if match == nil {
+			break
+		}
+		if ref := getCrossReference(content, match[2]+pos, match[3]+pos, false, false); ref != nil {
 			ret = append(ret, ref)
+		}
+		notrail := spaceTrimmedPattern.FindSubmatchIndex(content[match[2]+pos : match[3]+pos])
+		if notrail == nil {
+			pos = match[3] + pos
+		} else {
+			pos = match[3] + pos + notrail[1] - notrail[3]
 		}
 	}
 
-	matches = crossReferenceIssueNumericPattern.FindAllSubmatchIndex(content, -1)
-	for _, match := range matches {
-		if ref := getCrossReference(content, match[2], match[3], false, false); ref != nil {
+	pos = 0
+
+	for {
+		match := crossReferenceIssueNumericPattern.FindSubmatchIndex(content[pos:])
+		if match == nil {
+			break
+		}
+		if ref := getCrossReference(content, match[2]+pos, match[3]+pos, false, false); ref != nil {
 			ret = append(ret, ref)
+		}
+		notrail := spaceTrimmedPattern.FindSubmatchIndex(content[match[2]+pos : match[3]+pos])
+		if notrail == nil {
+			pos = match[3] + pos
+		} else {
+			pos = match[3] + pos + notrail[1] - notrail[3]
 		}
 	}
 

@@ -23,7 +23,7 @@ environment variable and to add the go bin directory or directories
 
 Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
 required to build the JavaScript and CSS files. The minimum supported Node.js
-version is 10 and the latest LTS version is recommended.
+version is {{< min-node-version >}} and the latest LTS version is recommended.
 
 **Note**: When executing make tasks that require external tools, like
 `make misspell-check`, Gitea will automatically download and build these as
@@ -31,23 +31,23 @@ necessary. To be able to use these, you must have the `"$GOPATH/bin"` directory
 on the executable path. If you don't add the go bin directory to the
 executable path, you will have to manage this yourself.
 
-**Note 2**: Go version 1.11 or higher is required. However, it is recommended to
+**Note 2**: Go version {{< min-go-version >}} or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
 <a href='{{< relref "doc/advanced/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>
 
 ## Download
 
-First, retrieve the source code. The easiest way is to use the Go tool. Use the
-following commands to fetch the source and switch into the source directory.
-Go is quite opinionated about where it expects its source code, and simply
-cloning the Gitea repository to an arbitrary path is likely to lead to
-problems - the fixing of which is out of scope for this document.
+First, we must retrieve the source code. Since, the advent of go modules, the
+simplest way of doing this is to use git directly as we no longer have to have
+gitea built from within the GOPATH. 
 
 ```bash
-go get -d -u code.gitea.io/gitea
-cd "$GOPATH/src/code.gitea.io/gitea"
+git clone https://github.com/go-gitea/gitea
 ```
+
+(Previous versions of this document recommended using `go get`. This is
+no longer necessary.)
 
 Decide which version of Gitea to build and install. Currently, there are
 multiple options to choose from. The `master` branch represents the current
@@ -81,8 +81,8 @@ git checkout v{{< version >}}  # or git checkout pr-xyz
 
 To build from source, the following programs must be present on the system:
 
-- `go` 1.11.0 or higher, see [here](https://golang.org/dl/)
-- `node` 10.0.0 or higher with `npm`, see [here](https://nodejs.org/en/download/)
+- `go` {{< min-go-version >}} or higher, see [here](https://golang.org/dl/)
+- `node` {{< min-node-version >}} or higher with `npm`, see [here](https://nodejs.org/en/download/)
 - `make`, see <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>here</a>
 
 Various [make tasks](https://github.com/go-gitea/gitea/blob/master/Makefile)
@@ -112,6 +112,17 @@ recommended way to build from source is therefore:
 
 ```bash
 TAGS="bindata sqlite sqlite_unlock_notify" make build
+```
+
+The `build` target is split into two sub-targets:
+
+- `make backend` which requires [Go {{< min-go-version >}}](https://golang.org/dl/) or greater.
+- `make frontend` which requires [Node.js {{< min-node-version >}}](https://nodejs.org/en/download/) or greater.
+
+If pre-built frontend files are present it is possible to only build the backend:
+
+```bash
+TAGS="bindata" make backend
 ```
 
 ## Test
@@ -146,3 +157,23 @@ Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable a
 with the appropriate `TAGS` as above.
 
 Running `gitea help` will allow you to review what the computed settings will be for your `gitea`.
+
+## Cross Build
+
+The `go` compiler toolchain supports cross-compiling to different architecture targets that are supported by the toolchain. See [`GOOS` and `GOARCH` environment variable](https://golang.org/doc/install/source#environment) for the list of supported targets. Cross compilation is helpful if you want to build Gitea for less-powerful systems (such as Raspberry Pi).
+
+To cross build Gitea with build tags (`TAGS`), you also need a C cross compiler which targets the same architecture as selected by the `GOOS` and `GOARCH` variables. For example, to cross build for Linux ARM64 (`GOOS=linux` and `GOARCH=arm64`), you need the `aarch64-unknown-linux-gnu-gcc` cross compiler. This is required because Gitea build tags uses `cgo`'s foreign-function interface (FFI).
+
+Cross-build Gitea for Linux ARM64, without any tags:
+
+```
+GOOS=linux GOARCH=arm64 make build
+```
+
+Cross-build Gitea for Linux ARM64, with recommended build tags:
+
+```
+CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sqlite_unlock_notify" make build
+```
+
+Replace `CC`, `GOOS`, and `GOARCH` as appropriate for your architecture target.

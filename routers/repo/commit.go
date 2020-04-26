@@ -70,7 +70,7 @@ func Commits(ctx *context.Context) {
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
@@ -139,7 +139,7 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
@@ -185,7 +185,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
@@ -206,6 +206,8 @@ func FileHistory(ctx *context.Context) {
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireTribute"] = true
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
@@ -242,11 +244,11 @@ func Diff(ctx *context.Context) {
 	parents := make([]string, commit.ParentCount())
 	for i := 0; i < commit.ParentCount(); i++ {
 		sha, err := commit.ParentID(i)
-		parents[i] = sha.String()
 		if err != nil {
 			ctx.NotFound("repo.Diff", err)
 			return
 		}
+		parents[i] = sha.String()
 	}
 
 	ctx.Data["CommitID"] = commitID
@@ -267,11 +269,17 @@ func Diff(ctx *context.Context) {
 	setPathsCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
-	ctx.Data["Verification"] = models.ParseCommitWithSignature(commit)
+	verification := models.ParseCommitWithSignature(commit)
+	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = models.ValidateCommitWithEmail(commit)
 	ctx.Data["Diff"] = diff
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
+
+	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
+		ctx.ServerError("CalculateTrustStatus", err)
+		return
+	}
 
 	note := &git.Note{}
 	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)
@@ -290,10 +298,10 @@ func Diff(ctx *context.Context) {
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
 func RawDiff(ctx *context.Context) {
-	if err := gitdiff.GetRawDiff(
+	if err := git.GetRawDiff(
 		models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
 		ctx.Params(":sha"),
-		gitdiff.RawDiffType(ctx.Params(":ext")),
+		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
 		ctx.ServerError("GetRawDiff", err)

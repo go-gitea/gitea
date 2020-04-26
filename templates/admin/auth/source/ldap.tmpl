@@ -47,6 +47,11 @@
 		<input id="admin_filter" name="admin_filter" value="{{.admin_filter}}">
 	</div>
 	<div class="field">
+		<label for="restricted_filter">{{.i18n.Tr "admin.auths.restricted_filter"}}</label>
+		<input id="restricted_filter" name="admin_filter" value="{{.restricted_filter}}">
+		<p class="help">{{.i18n.Tr "admin.auths.restricted_filter_helper"}}</p>
+	</div>
+	<div class="field">
 		<label for="attribute_username">{{.i18n.Tr "admin.auths.attribute_username"}}</label>
 		<input id="attribute_username" name="attribute_username" value="{{.attribute_username}}" placeholder="{{.i18n.Tr "admin.auths.attribute_username_placeholder"}}">
 	</div>

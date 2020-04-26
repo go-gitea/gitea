@@ -18,6 +18,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -87,6 +88,9 @@ var (
 
 	// ErrUnsupportedLoginType login source is unknown error
 	ErrUnsupportedLoginType = errors.New("Login source is unknown")
+
+	// Characters prohibited in a user name (anything except A-Za-z0-9_.-)
+	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
 // User represents the object of individual and member of organization.
@@ -234,6 +238,9 @@ func (u *User) GetEmail() string {
 
 // APIFormat converts a User to api.User
 func (u *User) APIFormat() *api.User {
+	if u == nil {
+		return nil
+	}
 	return &api.User{
 		ID:        u.ID,
 		UserName:  u.Name,
@@ -732,9 +739,11 @@ func (u *User) DisplayName() string {
 // GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
 // returns username otherwise.
 func (u *User) GetDisplayName() string {
-	trimmed := strings.TrimSpace(u.FullName)
-	if len(trimmed) > 0 && setting.UI.DefaultShowFullName {
-		return trimmed
+	if setting.UI.DefaultShowFullName {
+		trimmed := strings.TrimSpace(u.FullName)
+		if len(trimmed) > 0 {
+			return trimmed
+		}
 	}
 	return u.Name
 }
@@ -835,16 +844,20 @@ func (u *User) IsGhost() bool {
 
 var (
 	reservedUsernames = []string{
-		"attachments",
+		".",
+		"..",
+		".well-known",
 		"admin",
 		"api",
 		"assets",
+		"attachments",
 		"avatars",
 		"commits",
 		"css",
 		"debug",
 		"error",
 		"explore",
+		"fomantic",
 		"ghost",
 		"help",
 		"img",
@@ -852,7 +865,10 @@ var (
 		"issues",
 		"js",
 		"less",
+		"login",
+		"manifest.json",
 		"metrics",
+		"milestones",
 		"new",
 		"notifications",
 		"org",
@@ -860,16 +876,12 @@ var (
 		"pulls",
 		"raw",
 		"repo",
+		"robots.txt",
+		"search",
 		"stars",
 		"template",
 		"user",
 		"vendor",
-		"login",
-		"robots.txt",
-		".",
-		"..",
-		".well-known",
-		"search",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
@@ -901,6 +913,11 @@ func isUsableName(names, patterns []string, name string) error {
 
 // IsUsableUsername returns an error when a username is reserved
 func IsUsableUsername(name string) error {
+	// Validate username make sure it satisfies requirement.
+	if alphaDashDotPattern.MatchString(name) {
+		// Note: usually this error is normally caught up earlier in the UI
+		return ErrNameCharsNotAllowed{Name: name}
+	}
 	return isUsableName(reservedUsernames, reservedUserPatterns, name)
 }
 
@@ -1020,7 +1037,7 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 		data := com.ToStr(user.ID) + email + user.LowerName + user.Passwd + user.Rands
 
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
-			emailAddress := &EmailAddress{Email: email}
+			emailAddress := &EmailAddress{UID: user.ID, Email: email}
 			if has, _ := x.Get(emailAddress); has {
 				return emailAddress
 			}
@@ -1042,12 +1059,22 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return ErrUserAlreadyExist{newUserName}
 	}
 
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+		return fmt.Errorf("Change repo owner name: %v", err)
+	}
+
 	// Do not fail if directory does not exist
 	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	return nil
+	return sess.Commit()
 }
 
 // checkDupEmail checks whether there are the same email with the user
@@ -1241,6 +1268,10 @@ func deleteUser(e *xorm.Session, u *User) error {
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted.
 func DeleteUser(u *User) (err error) {
+	if u.IsOrganization() {
+		return fmt.Errorf("%s is an organization not a user", u.Name)
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1283,21 +1314,6 @@ func DeleteInactivateUsers() (err error) {
 // UserPath returns the path absolute path of user repositories.
 func UserPath(userName string) string {
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
-}
-
-// GetUserByKeyID get user information by user's public key id
-func GetUserByKeyID(keyID int64) (*User, error) {
-	var user User
-	has, err := x.Join("INNER", "public_key", "`public_key`.owner_id = `user`.id").
-		Where("`public_key`.id=?", keyID).
-		Get(&user)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, ErrUserNotExist{0, "", keyID}
-	}
-	return &user, nil
 }
 
 func getUserByID(e Engine, id int64) (*User, error) {
@@ -1369,8 +1385,19 @@ func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
 		Find(&ous)
 }
 
+// GetUserNamesByIDs returns usernames for all resolved users from a list of Ids.
+func GetUserNamesByIDs(ids []int64) ([]string, error) {
+	unames := make([]string, 0, len(ids))
+	err := x.In("id", ids).
+		Table("user").
+		Asc("name").
+		Cols("name").
+		Find(&unames)
+	return unames, err
+}
+
 // GetUsersByIDs returns all resolved users from a list of Ids.
-func GetUsersByIDs(ids []int64) ([]*User, error) {
+func GetUsersByIDs(ids []int64) (UserList, error) {
 	ous := make([]*User, 0, len(ids))
 	if len(ids) == 0 {
 		return ous, nil
@@ -1449,6 +1476,11 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(email string) (*User, error) {
+	return GetUserByEmailContext(DefaultDBContext(), email)
+}
+
+// GetUserByEmailContext returns the user object by given e-mail if exists with db context
+func GetUserByEmailContext(ctx DBContext, email string) (*User, error) {
 	if len(email) == 0 {
 		return nil, ErrUserNotExist{0, email, 0}
 	}
@@ -1456,7 +1488,7 @@ func GetUserByEmail(email string) (*User, error) {
 	email = strings.ToLower(email)
 	// First try to find the user by primary email
 	user := &User{Email: email}
-	has, err := x.Get(user)
+	has, err := ctx.e.Get(user)
 	if err != nil {
 		return nil, err
 	}
@@ -1466,19 +1498,19 @@ func GetUserByEmail(email string) (*User, error) {
 
 	// Otherwise, check in alternative list for activated email addresses
 	emailAddress := &EmailAddress{Email: email, IsActivated: true}
-	has, err = x.Get(emailAddress)
+	has, err = ctx.e.Get(emailAddress)
 	if err != nil {
 		return nil, err
 	}
 	if has {
-		return GetUserByID(emailAddress.UID)
+		return getUserByID(ctx.e, emailAddress.UID)
 	}
 
 	// Finally, if email address is the protected email address:
 	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
 		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
 		user := &User{LowerName: username}
-		has, err := x.Get(user)
+		has, err := ctx.e.Get(user)
 		if err != nil {
 			return nil, err
 		}
@@ -1844,15 +1876,16 @@ func SyncExternalUsers(ctx context.Context) {
 					log.Trace("SyncExternalUsers[%s]: Creating user %s", s.Name, su.Username)
 
 					usr = &User{
-						LowerName:   strings.ToLower(su.Username),
-						Name:        su.Username,
-						FullName:    fullName,
-						LoginType:   s.Type,
-						LoginSource: s.ID,
-						LoginName:   su.Username,
-						Email:       su.Mail,
-						IsAdmin:     su.IsAdmin,
-						IsActive:    true,
+						LowerName:    strings.ToLower(su.Username),
+						Name:         su.Username,
+						FullName:     fullName,
+						LoginType:    s.Type,
+						LoginSource:  s.ID,
+						LoginName:    su.Username,
+						Email:        su.Mail,
+						IsAdmin:      su.IsAdmin,
+						IsRestricted: su.IsRestricted,
+						IsActive:     true,
 					}
 
 					err = CreateUser(usr)
@@ -1875,6 +1908,7 @@ func SyncExternalUsers(ctx context.Context) {
 
 					// Check if user data has changed
 					if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
+						(len(s.LDAP().RestrictedFilter) > 0 && usr.IsRestricted != su.IsRestricted) ||
 						!strings.EqualFold(usr.Email, su.Mail) ||
 						usr.FullName != fullName ||
 						!usr.IsActive {
@@ -1887,9 +1921,13 @@ func SyncExternalUsers(ctx context.Context) {
 						if len(s.LDAP().AdminFilter) > 0 {
 							usr.IsAdmin = su.IsAdmin
 						}
+						// Change existing restricted flag only if RestrictedFilter option is set
+						if !usr.IsAdmin && len(s.LDAP().RestrictedFilter) > 0 {
+							usr.IsRestricted = su.IsRestricted
+						}
 						usr.IsActive = true
 
-						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_active")
+						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
 						if err != nil {
 							log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
 						}

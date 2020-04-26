@@ -30,6 +30,7 @@ type PullRequestMeta struct {
 type RepositoryMeta struct {
 	ID       int64  `json:"id"`
 	Name     string `json:"name"`
+	Owner    string `json:"owner"`
 	FullName string `json:"full_name"`
 }
 
