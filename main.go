@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -56,11 +55,6 @@ func init() {
 
 func main() {
 	var err error
-	err = pprof.StartCPUProfile(os.Stderr)
-	if err != nil {
-		fmt.Printf("\t%v StartCPUProfile error\n", time.Now().Format("15:04:05.000000"))
-	}
-	defer pprof.StopCPUProfile()
 	start := time.Now()
 	fmt.Printf("%v Gitea main()\n", time.Now().Format("15:04:05.000000"))
 	app := cli.NewApp()
