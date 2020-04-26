@@ -1,7 +1,6 @@
 package yaml
 
 import (
-"code.gitea.io/gitea/traceinit"
 
 
 	"encoding"
@@ -66,10 +65,6 @@ func newParserFromReader(r io.Reader) *parser {
 }
 
 func (p *parser) init () {
-traceinit.Trace("vendor/gopkg.in/yaml.v2/decode.go")
-
-
-
 
 	if p.doneInit {
 		return
