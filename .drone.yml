@@ -167,7 +167,7 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - make unit-test-coverage test-check
+      - echo
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
@@ -180,7 +180,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - make test-mysql-migration integration-test-coverage
+      - echo
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -195,7 +195,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
+      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8#TestAPIDeleteFile
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -210,7 +210,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - make test-mssql-migration test-mssql
+      - echo
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -223,7 +223,7 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - make coverage
+      - echo
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -297,7 +297,7 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - make backend
+      - echo
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
