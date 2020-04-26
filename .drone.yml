@@ -310,7 +310,7 @@ steps:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
       - apt-get install -y strace
-      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite#TestAPICreatePullSuccess1
+      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite#TestAPIDeleteFile
     environment:
       GOPROXY: off
       TAGS: bindata
