@@ -32,7 +32,7 @@ func init() {
 type GitlabDownloaderFactory struct {
 }
 
-// Match returns ture if the migration remote URL matched this downloader factory
+// Match returns true if the migration remote URL matched this downloader factory
 func (f *GitlabDownloaderFactory) Match(opts base.MigrateOptions) (bool, error) {
 	var matched bool
 
@@ -492,11 +492,12 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		}
 
 		// Add the PR ID to the Issue Count because PR and Issues share ID space in Gitea
-		newPRnumber := g.issueCount + int64(pr.IID)
+		newPRNumber := g.issueCount + int64(pr.IID)
 
 		allPRs = append(allPRs, &base.PullRequest{
 			Title:          pr.Title,
-			Number:         int64(newPRnumber),
+			Number:         newPRNumber,
+			OriginalNumber: int64(pr.IID),
 			PosterName:     pr.Author.Username,
 			PosterID:       int64(pr.Author.ID),
 			Content:        pr.Description,
@@ -532,5 +533,30 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 // GetReviews returns pull requests review
 func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
 
-	return nil, nil
+	state, _, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber))
+	if err != nil {
+		return nil, err
+	}
+
+	// GitLab's Approvals are equivalent to Gitea's approve reviews
+	approvers := make(map[int]string)
+	for i := range state.Rules {
+		for u := range state.Rules[i].ApprovedBy {
+			approvers[state.Rules[i].ApprovedBy[u].ID] = state.Rules[i].ApprovedBy[u].Username
+		}
+	}
+
+	var reviews = make([]*base.Review, 0, len(approvers))
+	for id, name := range approvers {
+		reviews = append(reviews, &base.Review{
+			ReviewerID:   int64(id),
+			ReviewerName: name,
+			// GitLab API doesn't return a creation date
+			CreatedAt: time.Now(),
+			// All we get are approvals
+			State: base.ReviewStateApproved,
+		})
+	}
+
+	return reviews, nil
 }

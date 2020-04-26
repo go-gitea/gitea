@@ -102,6 +102,11 @@
 				{{ end }}
 			],
 			{{end}}
+			NotificationSettings: {
+				MinTimeout: {{NotificationSettings.MinTimeout}},
+				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
+				MaxTimeout: {{NotificationSettings.MaxTimeout}},
+			},
 		};
 	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">
