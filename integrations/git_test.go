@@ -512,7 +512,10 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		setting.Repository.EnablePushCreateUser = true
 
 		// Assert that cloning from a non-existent repository does not create it and that it definitely wasn't create above
-		t.Run("FailToCloneFromNonExistentRepository", doGitCloneFail(tmpDir, u))
+		cloneTmpDir, err := ioutil.TempDir("", ctx.Reponame)
+		assert.NoError(t, err)
+		defer os.RemoveAll(cloneTmpDir)
+		t.Run("FailToCloneFromNonExistentRepository", doGitCloneFail(cloneTmpDir, u))
 
 		// Then "Push To Create"x
 		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
