@@ -10,6 +10,7 @@ import "code.gitea.io/gitea/traceinit"
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -36,48 +37,55 @@ var (
 
 	// aliasReplacer is the string replacer for emoji aliases.
 	aliasReplacer *strings.Replacer
+
+	once sync.Once
 )
 
-func init() {
-	traceinit.Trace("./modules/emoji/emoji.go")
-	// initialize
-	start := time.Now()
-	fmt.Printf("%v emoji init()\n", time.Now().Format("15:04:05.000000"))
-	codeMap = make(map[string]int, len(GemojiData))
-	aliasMap = make(map[string]int, len(GemojiData))
+func loadMap() {
 
-	// process emoji codes and aliases
-	codePairs := make([]string, 0)
-	aliasPairs := make([]string, 0)
-	for i, e := range GemojiData {
-		if e.Emoji == "" || len(e.Aliases) == 0 {
-			continue
-		}
+	once.Do(func() {
+		traceinit.Trace("./modules/emoji/emoji.go")
+		// initialize
+		start := time.Now()
+		fmt.Printf("%v emoji init()\n", time.Now().Format("15:04:05.000000"))
+		codeMap = make(map[string]int, len(GemojiData))
+		aliasMap = make(map[string]int, len(GemojiData))
 
-		// setup codes
-		codeMap[e.Emoji] = i
-		codePairs = append(codePairs, e.Emoji, ":"+e.Aliases[0]+":")
-
-		// setup aliases
-		for _, a := range e.Aliases {
-			if a == "" {
+		// process emoji codes and aliases
+		codePairs := make([]string, 0)
+		aliasPairs := make([]string, 0)
+		for i, e := range GemojiData {
+			if e.Emoji == "" || len(e.Aliases) == 0 {
 				continue
 			}
 
-			aliasMap[a] = i
-			aliasPairs = append(aliasPairs, ":"+a+":", e.Emoji)
-		}
-	}
+			// setup codes
+			codeMap[e.Emoji] = i
+			codePairs = append(codePairs, e.Emoji, ":"+e.Aliases[0]+":")
 
-	// create replacers
-	codeReplacer = strings.NewReplacer(codePairs...)
-	aliasReplacer = strings.NewReplacer(aliasPairs...)
-	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
+			// setup aliases
+			for _, a := range e.Aliases {
+				if a == "" {
+					continue
+				}
+
+				aliasMap[a] = i
+				aliasPairs = append(aliasPairs, ":"+a+":", e.Emoji)
+			}
+		}
+
+		// create replacers
+		codeReplacer = strings.NewReplacer(codePairs...)
+		aliasReplacer = strings.NewReplacer(aliasPairs...)
+		fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
+
+	})
 }
 
 // FromCode retrieves the emoji data based on the provided unicode code (ie,
 // "\u2618" will return the Gemoji data for "shamrock").
 func FromCode(code string) *Emoji {
+	loadMap()
 	i, ok := codeMap[code]
 	if !ok {
 		return nil
@@ -90,6 +98,7 @@ func FromCode(code string) *Emoji {
 // "alias" or ":alias:" (ie, "shamrock" or ":shamrock:" will return the Gemoji
 // data for "shamrock").
 func FromAlias(alias string) *Emoji {
+	loadMap()
 	if strings.HasPrefix(alias, ":") && strings.HasSuffix(alias, ":") {
 		alias = alias[1 : len(alias)-1]
 	}
@@ -106,11 +115,13 @@ func FromAlias(alias string) *Emoji {
 // alias (in the form of ":alias:") (ie, "\u2618" will be converted to
 // ":shamrock:").
 func ReplaceCodes(s string) string {
+	loadMap()
 	return codeReplacer.Replace(s)
 }
 
 // ReplaceAliases replaces all aliases of the form ":alias:" with its
 // corresponding unicode value.
 func ReplaceAliases(s string) string {
+	loadMap()
 	return aliasReplacer.Replace(s)
 }
