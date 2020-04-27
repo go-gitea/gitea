@@ -507,6 +507,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		// Create a temporary directory
 		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
 		assert.NoError(t, err)
+		defer os.RemoveAll(tmpDir)
 
 		// Assert that cloning from a non-existent repository does not create it
 		t.Run("FailToCloneFromNonExistentRepository", doGitCloneFail(tmpDir, u))
