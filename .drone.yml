@@ -141,6 +141,9 @@ steps:
   - name: fetch-tags
     pull: default
     image: docker:git
+    volumes:
+    - name: memtmp
+      path: /tmp
     commands:
       - git fetch --tags --force
     when:
@@ -151,6 +154,9 @@ steps:
   - name: build
     pull: always
     image: golang:1.14
+    volumes:
+    - name: memtmp
+      path: /tmp
     commands:
       - make backend
     environment:
@@ -161,12 +167,18 @@ steps:
   - name: tag-pre-condition
     pull: always
     image: alpine/git
+    volumes:
+    - name: memtmp
+      path: /tmp
     commands:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
   - name: unit-test
     pull: always
     image: golang:1.14
+    volumes:
+    - name: memtmp
+      path: /tmp
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -232,6 +244,9 @@ steps:
   - name: generate-coverage
     pull: always
     image: golang:1.14
+    volumes:
+    - name: memtmp
+      path: /tmp
     commands:
       - make coverage
     environment:
@@ -301,6 +316,9 @@ steps:
   - name: fetch-tags
     pull: default
     image: docker:git
+    volumes:
+    - name: memtmp
+      path: /tmp
     commands:
       - git fetch --tags --force
     when:
@@ -311,6 +329,9 @@ steps:
   - name: build
     pull: always
     image: golang:1.14
+    volumes:
+    - name: memtmp
+      path: /tmp
     commands:
       - make backend
     environment:
