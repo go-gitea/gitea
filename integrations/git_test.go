@@ -509,9 +509,6 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.RemoveAll(tmpDir)
 
-		// Assert that cloning from a non-existent repository does not create it
-		t.Run("FailToCloneFromNonExistentRepository", doGitCloneFail(tmpDir, u))
-
 		// Now create local repository to push as our test and set its origin
 		t.Run("InitTestRepository", doGitInitTestRepository(tmpDir))
 		t.Run("AddRemote", doGitAddRemote(tmpDir, "origin", u))
@@ -520,9 +517,20 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		setting.Repository.EnablePushCreateUser = false
 		t.Run("FailToPushAndCreateTestRepository", doGitPushTestRepositoryFail(tmpDir, "origin", "master"))
 
-		// Enable "Push To Create" and push
+		// Enable "Push To Create"
 		setting.Repository.EnablePushCreateUser = true
+
+		// Assert that cloning from a non-existent repository does not create it and that it definitely wasn't create above
+		t.Run("FailToCloneFromNonExistentRepository", doGitCloneFail(tmpDir, u))
+
+		// Then "Push To Create"
 		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
+
+		// Finally, fetch repo from database and ensure the correct repository has been created
+		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		assert.NoError(t, err)
+		assert.False(t, repo.IsEmpty)
+		assert.True(t, repo.IsPrivate)
 
 		// Now add a remote that is invalid to "Push To Create"
 		invalidCtx := ctx
@@ -532,12 +540,6 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 
 		// Fail to "Push To Create" the invalid
 		t.Run("FailToPushAndCreateInvalidTestRepository", doGitPushTestRepositoryFail(tmpDir, "invalid", "master"))
-
-		// Finally, fetch repo from database and ensure the correct repository has been created
-		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
-		assert.NoError(t, err)
-		assert.False(t, repo.IsEmpty)
-		assert.True(t, repo.IsPrivate)
 	}
 }
 
