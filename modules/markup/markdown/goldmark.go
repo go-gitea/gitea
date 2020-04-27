@@ -328,7 +328,6 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*TaskCheckBoxListItem)
 	if entering {
-		n.Dump(source, 0)
 		if n.Attributes() != nil {
 			_, _ = w.WriteString("<li")
 			html.RenderAttributes(w, n, html.ListItemAttributeFilter)
