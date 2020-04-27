@@ -9,6 +9,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
+// ToPullReview convert a review to api format
 func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) {
 
 	if err := r.LoadAttributes(); err != nil {
@@ -41,6 +42,7 @@ func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) 
 	return result, nil
 }
 
+// ToPullReviewList convert a list of review to it's api format
 func ToPullReviewList(rl []*models.Review, doer *models.User) ([]*api.PullReview, error) {
 	result := make([]*api.PullReview, 0, len(rl))
 	for i := range rl {
@@ -57,6 +59,7 @@ func ToPullReviewList(rl []*models.Review, doer *models.User) ([]*api.PullReview
 	return result, nil
 }
 
+// ToPullReviewCommentList convert the CodeComments of an review to it's api format
 func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.PullReviewComment, error) {
 	if err := review.LoadAttributes(); err != nil {
 		return nil, err

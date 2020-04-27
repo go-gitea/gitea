@@ -13279,8 +13279,51 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "PullRequestReview": {
-      "description": "PullRequestReview represents a pull request review",
+    "PullReview": {
+      "description": "PullReview represents a pull request review",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "commit_id": {
+          "type": "string",
+          "x-go-name": "CommitID"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "official": {
+          "type": "boolean",
+          "x-go-name": "Official"
+        },
+        "pull_request_url": {
+          "type": "string",
+          "x-go-name": "PRURL"
+        },
+        "stale": {
+          "type": "boolean",
+          "x-go-name": "Stale"
+        },
+        "state": {
+          "$ref": "#/definitions/ReviewStateType"
+        },
+        "submitted_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Submitted"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "PullReviewComment": {
+      "description": "PullReviewComment represents a comment on a pull request",
       "type": "object",
       "properties": {
         "body": {
@@ -13296,45 +13339,22 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
-        "id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ID"
-        },
-        "pull_request_url": {
-          "type": "string",
-          "x-go-name": "PRURL"
-        },
-        "type": {
-          "type": "string",
-          "x-go-name": "Type"
-        },
-        "user": {
-          "$ref": "#/definitions/User"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "PullRequestReviewComment": {
-      "description": "PullRequestReviewComment represents a comment on a pull request",
-      "type": "object",
-      "properties": {
-        "body": {
-          "type": "string",
-          "x-go-name": "Body"
-        },
-        "commit_id": {
-          "type": "string",
-          "x-go-name": "CommitID"
-        },
         "diff_hunk": {
           "type": "string",
           "x-go-name": "DiffHunk"
         },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
         "id": {
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "original_commit_id": {
+          "type": "string",
+          "x-go-name": "OrigCommitID"
         },
         "original_position": {
           "type": "integer",
@@ -13357,7 +13377,12 @@
         },
         "pull_request_url": {
           "type": "string",
-          "x-go-name": "PRURL"
+          "x-go-name": "HTMLPullURL"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
         },
         "user": {
           "$ref": "#/definitions/User"
@@ -13706,6 +13731,11 @@
           "x-go-name": "Owner"
         }
       },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ReviewStateType": {
+      "description": "ReviewStateType review state type",
+      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "SearchResults": {
@@ -14549,13 +14579,13 @@
     "PullReview": {
       "description": "PullReview",
       "schema": {
-        "$ref": "#/definitions/PullRequestReview"
+        "$ref": "#/definitions/PullReview"
       }
     },
     "PullReviewComment": {
       "description": "PullComment",
       "schema": {
-        "$ref": "#/definitions/PullRequestReviewComment"
+        "$ref": "#/definitions/PullReviewComment"
       }
     },
     "PullReviewCommentList": {
@@ -14563,7 +14593,7 @@
       "schema": {
         "type": "array",
         "items": {
-          "$ref": "#/definitions/PullRequestReviewComment"
+          "$ref": "#/definitions/PullReviewComment"
         }
       }
     },
@@ -14572,7 +14602,7 @@
       "schema": {
         "type": "array",
         "items": {
-          "$ref": "#/definitions/PullRequestReview"
+          "$ref": "#/definitions/PullReview"
         }
       }
     },
