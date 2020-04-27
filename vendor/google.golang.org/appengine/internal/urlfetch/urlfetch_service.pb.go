@@ -2,7 +2,6 @@
 // source: google.golang.org/appengine/internal/urlfetch/urlfetch_service.proto
 
 package urlfetch
-import "code.gitea.io/gitea/traceinit"
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -463,7 +462,6 @@ func (m *URLFetchResponse_Header) GetValue() string {
 }
 
 func init() {
-traceinit.Trace("./vendor/google.golang.org/appengine/internal/urlfetch/urlfetch_service.pb.go")
 	proto.RegisterType((*URLFetchServiceError)(nil), "appengine.URLFetchServiceError")
 	proto.RegisterType((*URLFetchRequest)(nil), "appengine.URLFetchRequest")
 	proto.RegisterType((*URLFetchRequest_Header)(nil), "appengine.URLFetchRequest.Header")

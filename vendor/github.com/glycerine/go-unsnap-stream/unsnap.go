@@ -1,9 +1,6 @@
 package unsnap
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -491,12 +488,7 @@ const _COMPRESSION_THRESHOLD = .125
 
 var crctab *crc32.Table
 
-func init () {
-traceinit.Trace("vendor/github.com/glycerine/go-unsnap-stream/unsnap.go")
-
-
-
-
+func init() {
 	crctab = crc32.MakeTable(crc32.Castagnoli) // this is correct table, matches the crc32c.c code used by python
 }
 

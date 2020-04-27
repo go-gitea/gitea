@@ -6,9 +6,4 @@
 
 package cpu
 
-func doinit () {
-traceinit.Trace("vendor/golang.org/x/sys/cpu/cpu_other_arm64.go")
-
-
-
-}
+func doinit() {}

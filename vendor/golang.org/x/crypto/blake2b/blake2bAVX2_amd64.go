@@ -5,12 +5,10 @@
 // +build go1.7,amd64,!gccgo,!appengine
 
 package blake2b
-import "code.gitea.io/gitea/traceinit"
 
 import "golang.org/x/sys/cpu"
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/crypto/blake2b/blake2bAVX2_amd64.go")
 	useAVX2 = cpu.X86.HasAVX2
 	useAVX = cpu.X86.HasAVX
 	useSSE4 = cpu.X86.HasSSE41

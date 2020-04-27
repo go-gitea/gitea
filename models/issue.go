@@ -5,8 +5,6 @@
 
 package models
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"fmt"
 	"regexp"
@@ -81,7 +79,7 @@ const issueMaxDupIndexAttempts = 3
 const maxIssueIDs = 950
 
 func init() {
-	traceinit.Trace("./models/issue.go")
+
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }

@@ -5,12 +5,10 @@
 // +build amd64,!gccgo,!appengine
 
 package argon2
-import "code.gitea.io/gitea/traceinit"
 
 import "golang.org/x/sys/cpu"
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/crypto/argon2/blamka_amd64.go")
 	useSSE4 = cpu.X86.HasSSE41
 }
 

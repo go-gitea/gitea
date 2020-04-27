@@ -14,7 +14,6 @@
 // under the License.
 
 package session
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -26,7 +25,6 @@ import (
 )
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/session/utils.go")
 	gob.Register([]interface{}{})
 	gob.Register(map[int]interface{}{})
 	gob.Register(map[string]interface{}{})

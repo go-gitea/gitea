@@ -4,9 +4,6 @@
 package isatty
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"errors"
 	"strings"
 	"syscall"
@@ -29,12 +26,7 @@ var (
 	procNtQueryObject                = ntdll.NewProc("NtQueryObject")
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/mattn/go-isatty/isatty_windows.go")
-
-
-
-
+func init() {
 	// Check if GetFileInformationByHandleEx is available.
 	if procGetFileInformationByHandleEx.Find() != nil {
 		procGetFileInformationByHandleEx = nil

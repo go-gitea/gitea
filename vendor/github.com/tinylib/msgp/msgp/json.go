@@ -1,5 +1,4 @@
 package msgp
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bufio"
@@ -20,7 +19,6 @@ var defuns [_maxtype]func(jsWriter, *Reader) (int, error)
 // note: there is an initialization loop if
 // this isn't set up during init()
 func init() {
-traceinit.Trace("./vendor/github.com/tinylib/msgp/msgp/json.go")
 	// since none of these functions are inline-able,
 	// there is not much of a penalty to the indirect
 	// call. however, this is best expressed as a jump-table...

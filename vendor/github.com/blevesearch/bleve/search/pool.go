@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package search
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
@@ -22,7 +21,6 @@ import (
 var reflectStaticSizeDocumentMatchPool int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/pool.go")
 	var dmp DocumentMatchPool
 	reflectStaticSizeDocumentMatchPool = int(reflect.TypeOf(dmp).Size())
 }

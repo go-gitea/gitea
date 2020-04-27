@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package query
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/json"
@@ -46,7 +45,6 @@ var MinRFC3339CompatibleTime time.Time
 var MaxRFC3339CompatibleTime time.Time
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/query/date_range.go")
 	MinRFC3339CompatibleTime, _ = time.Parse(time.RFC3339, "1677-12-01T00:00:00Z")
 	MaxRFC3339CompatibleTime, _ = time.Parse(time.RFC3339, "2262-04-11T11:59:59Z")
 }

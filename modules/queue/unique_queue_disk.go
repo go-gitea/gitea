@@ -4,8 +4,6 @@
 
 package queue
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"gitea.com/lunny/levelqueue"
 )
@@ -102,6 +100,6 @@ func (fifo *LevelUniqueQueueByteFIFO) Close() error {
 }
 
 func init() {
-	traceinit.Trace("./modules/queue/unique_queue_disk.go")
+
 	queuesMap[LevelUniqueQueueType] = NewLevelUniqueQueue
 }

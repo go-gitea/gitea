@@ -20,7 +20,6 @@
 //
 // The built-in stopwords list is defined in EnglishStopWords.
 package en
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"github.com/blevesearch/bleve/analysis"
@@ -67,6 +66,5 @@ func AnalyzerConstructor(config map[string]interface{}, cache *registry.Cache) (
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/lang/en/analyzer_en.go")
 	registry.RegisterAnalyzer(AnalyzerName, AnalyzerConstructor)
 }

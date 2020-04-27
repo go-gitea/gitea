@@ -14,7 +14,6 @@
 // under the License.
 
 package session
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"database/sql"
@@ -196,6 +195,5 @@ func (p *MysqlProvider) GC() {
 }
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/session/mysql/mysql.go")
 	session.Register("mysql", &MysqlProvider{})
 }

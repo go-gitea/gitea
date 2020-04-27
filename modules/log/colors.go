@@ -4,8 +4,6 @@
 
 package log
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"fmt"
 	"io"
@@ -424,7 +422,6 @@ func fmtString(s fmt.State, c rune) string {
 }
 
 func init() {
-	traceinit.Trace("./modules/log/colors.go")
 	for attr, from := range colorAttributeToString {
 		colorAttributeFromString[strings.ToLower(from)] = attr
 	}

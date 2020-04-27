@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package scorch
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"container/heap"
@@ -50,7 +49,6 @@ type asynchSegmentResult struct {
 var reflectStaticSizeIndexSnapshot int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/scorch/snapshot_index.go")
 	var is interface{} = IndexSnapshot{}
 	reflectStaticSizeIndexSnapshot = int(reflect.TypeOf(is).Size())
 	var err error

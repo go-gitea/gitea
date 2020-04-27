@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package flexible
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -61,6 +60,5 @@ func DateTimeParserConstructor(config map[string]interface{}, cache *registry.Ca
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/datetime/flexible/flexible.go")
 	registry.RegisterDateTimeParser(Name, DateTimeParserConstructor)
 }

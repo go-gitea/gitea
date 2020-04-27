@@ -5,7 +5,6 @@
 package mux
 
 import (
-
 	"errors"
 	"fmt"
 	"net/http"
@@ -39,9 +38,7 @@ func NewRouter() *Router {
 //
 // Or, for Google App Engine, register it in a init() function:
 //
-//     func init () {
-
-
+//     func init() {
 //         http.Handle("/", router)
 //     }
 //

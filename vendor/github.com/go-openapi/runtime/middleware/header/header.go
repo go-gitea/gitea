@@ -10,9 +10,6 @@
 package header
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"net/http"
 	"strings"
 	"time"
@@ -28,12 +25,7 @@ const (
 	isSpace
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/go-openapi/runtime/middleware/header/header.go")
-
-
-
-
+func init() {
 	// OCTET      = <any 8-bit sequence of data>
 	// CHAR       = <any US-ASCII character (octets 0 - 127)>
 	// CTL        = <any US-ASCII control character (octets 0 - 31) and DEL (127)>

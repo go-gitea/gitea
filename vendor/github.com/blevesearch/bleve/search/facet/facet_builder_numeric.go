@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package facet
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
@@ -28,7 +27,6 @@ var reflectStaticSizeNumericFacetBuilder int
 var reflectStaticSizenumericRange int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/facet/facet_builder_numeric.go")
 	var nfb NumericFacetBuilder
 	reflectStaticSizeNumericFacetBuilder = int(reflect.TypeOf(nfb).Size())
 	var nr numericRange

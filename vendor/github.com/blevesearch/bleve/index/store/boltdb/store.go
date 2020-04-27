@@ -21,7 +21,6 @@
 // operations in exchange of losing integrity guarantees if indexation aborts
 // without closing the index. Use it when rebuilding indexes from zero.
 package boltdb
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -178,6 +177,5 @@ func (bs *Store) Compact() error {
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/store/boltdb/store.go")
 	registry.RegisterKVStore(Name, New)
 }

@@ -7,8 +7,6 @@
 
 package main
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"flag"
 	"fmt"
@@ -253,7 +251,7 @@ var help bool
 var originalUsage = flag.Usage
 
 func init() {
-	traceinit.Trace("./build/lint.go")
+
 	flag.Usage = func() {
 		originalUsage()
 	}

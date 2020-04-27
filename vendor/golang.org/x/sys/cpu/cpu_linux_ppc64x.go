@@ -20,12 +20,7 @@ const (
 	_PPC_FEATURE2_SCV  = 0x00100000
 )
 
-func doinit () {
-traceinit.Trace("vendor/golang.org/x/sys/cpu/cpu_linux_ppc64x.go")
-
-
-
-
+func doinit() {
 	// HWCAP2 feature bits
 	PPC64.IsPOWER8 = isSet(hwCap2, _PPC_FEATURE2_ARCH_2_07)
 	PPC64.IsPOWER9 = isSet(hwCap2, _PPC_FEATURE2_ARCH_3_00)

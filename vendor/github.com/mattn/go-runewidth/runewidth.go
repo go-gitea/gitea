@@ -1,9 +1,6 @@
 package runewidth
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"os"
 )
 
@@ -20,12 +17,7 @@ var (
 	DefaultCondition = &Condition{}
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/mattn/go-runewidth/runewidth.go")
-
-
-
-
+func init() {
 	handleEnv()
 }
 

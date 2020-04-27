@@ -5,8 +5,6 @@
 
 package auth
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"reflect"
 	"strings"
@@ -54,7 +52,7 @@ type Form interface {
 }
 
 func init() {
-	traceinit.Trace("./modules/auth/auth.go")
+
 	binding.SetNameMapper(com.ToSnakeCase)
 }
 

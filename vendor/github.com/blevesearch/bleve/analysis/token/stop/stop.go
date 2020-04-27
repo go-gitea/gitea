@@ -20,7 +20,6 @@
 // "stop_token_map" (string): the name of the token map identifying tokens to
 // remove.
 package stop
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -67,6 +66,5 @@ func StopTokensFilterConstructor(config map[string]interface{}, cache *registry.
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/token/stop/stop.go")
 	registry.RegisterTokenFilter(Name, StopTokensFilterConstructor)
 }

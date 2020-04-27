@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package porter
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -50,6 +49,5 @@ func PorterStemmerConstructor(config map[string]interface{}, cache *registry.Cac
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/token/porter/porter.go")
 	registry.RegisterTokenFilter(Name, PorterStemmerConstructor)
 }

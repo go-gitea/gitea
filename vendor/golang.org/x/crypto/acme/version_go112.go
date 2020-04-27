@@ -5,12 +5,10 @@
 // +build go1.12
 
 package acme
-import "code.gitea.io/gitea/traceinit"
 
 import "runtime/debug"
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/crypto/acme/version_go112.go")
 	// Set packageVersion if the binary was built in modules mode and x/crypto
 	// was not replaced with a different module.
 	info, ok := debug.ReadBuildInfo()

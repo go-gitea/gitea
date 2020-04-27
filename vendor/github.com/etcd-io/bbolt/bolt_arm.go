@@ -11,12 +11,7 @@ const maxAllocSize = 0xFFFFFFF
 // Are unaligned load/stores broken on this arch?
 var brokenUnaligned bool
 
-func init () {
-traceinit.Trace("vendor/github.com/etcd-io/bbolt/bolt_arm.go")
-
-
-
-
+func init() {
 	// Simple check to see whether this arch handles unaligned load/stores
 	// correctly.
 

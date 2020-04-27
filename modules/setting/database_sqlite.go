@@ -6,14 +6,12 @@
 
 package setting
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
 func init() {
-	traceinit.Trace("./modules/setting/database_sqlite.go")
+
 	EnableSQLite3 = true
 	SupportedDatabases = append(SupportedDatabases, "SQLite3")
 }

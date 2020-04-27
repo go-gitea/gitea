@@ -49,8 +49,7 @@
 //    	)
 //    )
 //
-//    func init () {
-
+//    func init() {
 //    	// Metrics have to be registered to be exposed:
 //    	prometheus.MustRegister(cpuTemp)
 //    	prometheus.MustRegister(hdFailures)

@@ -2,7 +2,6 @@
 // source: metrics.proto
 
 package io_prometheus_client // import "github.com/prometheus/client_model/go"
-import "code.gitea.io/gitea/traceinit"
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -573,7 +572,6 @@ func (m *MetricFamily) GetMetric() []*Metric {
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/prometheus/client_model/go/metrics.pb.go")
 	proto.RegisterType((*LabelPair)(nil), "io.prometheus.client.LabelPair")
 	proto.RegisterType((*Gauge)(nil), "io.prometheus.client.Gauge")
 	proto.RegisterType((*Counter)(nil), "io.prometheus.client.Counter")

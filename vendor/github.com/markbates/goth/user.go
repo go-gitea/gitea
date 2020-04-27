@@ -1,5 +1,4 @@
 package goth
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/gob"
@@ -7,7 +6,6 @@ import (
 )
 
 func init() {
-traceinit.Trace("./vendor/github.com/markbates/goth/user.go")
 	gob.Register(User{})
 }
 

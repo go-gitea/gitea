@@ -6,9 +6,6 @@
 package jwalterweatherman
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -109,12 +106,7 @@ func NewNotepad(
 }
 
 // init creates the loggers for each level depending on the notepad thresholds.
-func (n *Notepad) init () {
-traceinit.Trace("vendor/github.com/spf13/jwalterweatherman/notepad.go")
-
-
-
-
+func (n *Notepad) init() {
 	logAndOut := io.MultiWriter(n.outHandle, n.logHandle)
 
 	for t, logger := range n.loggers {

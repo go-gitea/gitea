@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 package dialects
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"context"
@@ -265,6 +264,5 @@ func regDrvsNDialects() bool {
 }
 
 func init() {
-traceinit.Trace("./vendor/xorm.io/xorm/dialects/dialect.go")
 	regDrvsNDialects()
 }

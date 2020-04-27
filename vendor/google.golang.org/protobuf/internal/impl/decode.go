@@ -5,7 +5,6 @@
 package impl
 
 import (
-
 	"math/bits"
 
 	"google.golang.org/protobuf/encoding/protowire"

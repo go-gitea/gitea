@@ -12,7 +12,6 @@
 // limitations under the License.
 
 package promhttp
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bufio"
@@ -103,7 +102,6 @@ func (d pusherDelegator) Push(target string, opts *http.PushOptions) error {
 var pickDelegator = make([]func(*responseWriterDelegator) delegator, 32)
 
 func init() {
-traceinit.Trace("./vendor/github.com/prometheus/client_golang/prometheus/promhttp/delegator.go")
 	// TODO(beorn7): Code generation would help here.
 	pickDelegator[0] = func(d *responseWriterDelegator) delegator { // 0
 		return d

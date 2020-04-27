@@ -1,8 +1,6 @@
 package yaml
 
 import (
-
-
 	"encoding"
 	"encoding/base64"
 	"fmt"
@@ -64,8 +62,7 @@ func newParserFromReader(r io.Reader) *parser {
 	return &p
 }
 
-func (p *parser) init () {
-
+func (p *parser) init() {
 	if p.doneInit {
 		return
 	}

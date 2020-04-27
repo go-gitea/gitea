@@ -4,8 +4,6 @@
 
 package models
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"fmt"
 	"regexp"
@@ -17,7 +15,7 @@ import (
 )
 
 func init() {
-	traceinit.Trace("./models/topic.go")
+
 	tables = append(tables,
 		new(Topic),
 		new(RepoTopic),

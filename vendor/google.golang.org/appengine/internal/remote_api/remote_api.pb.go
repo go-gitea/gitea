@@ -2,7 +2,6 @@
 // source: google.golang.org/appengine/internal/remote_api/remote_api.proto
 
 package remote_api
-import "code.gitea.io/gitea/traceinit"
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -313,7 +312,6 @@ func (m *Response) GetRpcError() *RpcError {
 }
 
 func init() {
-traceinit.Trace("./vendor/google.golang.org/appengine/internal/remote_api/remote_api.pb.go")
 	proto.RegisterType((*Request)(nil), "remote_api.Request")
 	proto.RegisterType((*ApplicationError)(nil), "remote_api.ApplicationError")
 	proto.RegisterType((*RpcError)(nil), "remote_api.RpcError")

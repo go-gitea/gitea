@@ -1,5 +1,4 @@
 package match
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"sync"
@@ -48,7 +47,6 @@ var segmentsByRuneLength [5][]int = [5][]int{
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/gobwas/glob/match/segments.go")
 	for i := cacheToAndHigher; i >= cacheFrom; i >>= 1 {
 		func(i int) {
 			segmentsPools[i-1] = sync.Pool{New: func() interface{} {

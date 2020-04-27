@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package html
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"github.com/blevesearch/bleve/registry"
@@ -86,6 +85,5 @@ func Constructor(config map[string]interface{}, cache *registry.Cache) (highligh
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/highlight/format/html/html.go")
 	registry.RegisterFragmentFormatter(Name, Constructor)
 }

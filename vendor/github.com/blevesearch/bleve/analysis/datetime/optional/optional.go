@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package optional
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"time"
@@ -42,6 +41,5 @@ func DateTimeParserConstructor(config map[string]interface{}, cache *registry.Ca
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/datetime/optional/optional.go")
 	registry.RegisterDateTimeParser(Name, DateTimeParserConstructor)
 }

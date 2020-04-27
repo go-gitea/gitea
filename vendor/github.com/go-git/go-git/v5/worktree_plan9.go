@@ -1,21 +1,13 @@
 package git
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"syscall"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/format/index"
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/go-git/go-git/v5/worktree_plan9.go")
-
-
-
-
+func init() {
 	fillSystemInfo = func(e *index.Entry, sys interface{}) {
 		if os, ok := sys.(*syscall.Dir); ok {
 			// Plan 9 doesn't have a CreatedAt field.

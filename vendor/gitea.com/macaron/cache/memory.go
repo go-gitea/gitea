@@ -14,7 +14,6 @@
 // under the License.
 
 package cache
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"errors"
@@ -176,6 +175,5 @@ func (c *MemoryCacher) StartAndGC(opt Options) error {
 }
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/cache/memory.go")
 	Register("memory", NewMemoryCacher())
 }

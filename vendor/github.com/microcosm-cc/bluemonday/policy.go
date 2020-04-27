@@ -32,9 +32,6 @@ package bluemonday
 //TODO sgutzwiller create map of styles to default handlers
 //TODO sgutzwiller create handlers for various attributes
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"net/url"
 	"regexp"
 	"strings"
@@ -172,12 +169,7 @@ type stylePolicyBuilder struct {
 type urlPolicy func(url *url.URL) (allowUrl bool)
 
 // init initializes the maps if this has not been done already
-func (p *Policy) init () {
-traceinit.Trace("vendor/github.com/microcosm-cc/bluemonday/policy.go")
-
-
-
-
+func (p *Policy) init() {
 	if !p.initialized {
 		p.elsAndAttrs = make(map[string]map[string]attrPolicy)
 		p.elsMatchingAndAttrs = make(map[*regexp.Regexp]map[string]attrPolicy)

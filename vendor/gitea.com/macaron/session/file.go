@@ -14,7 +14,6 @@
 // under the License.
 
 package session
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -263,6 +262,5 @@ func (p *FileProvider) GC() {
 }
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/session/file.go")
 	Register("file", &FileProvider{})
 }

@@ -5,7 +5,6 @@
 // found in the LICENSE file.
 
 package leveldb
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/binary"
@@ -68,7 +67,6 @@ const (
 var keyMaxNumBytes = make([]byte, 8)
 
 func init() {
-traceinit.Trace("./vendor/github.com/syndtr/goleveldb/leveldb/key.go")
 	binary.LittleEndian.PutUint64(keyMaxNumBytes, keyMaxNum)
 }
 

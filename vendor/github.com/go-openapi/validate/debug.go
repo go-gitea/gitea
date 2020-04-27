@@ -15,9 +15,6 @@
 package validate
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"fmt"
 	"log"
 	"os"
@@ -33,12 +30,7 @@ var (
 	validateLogger *log.Logger
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/go-openapi/validate/debug.go")
-
-
-
-
+func init() {
 	debugOptions()
 }
 

@@ -7,7 +7,6 @@
 // Package svc provides everything required to build Windows service.
 //
 package svc
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"errors"
@@ -117,7 +116,6 @@ var (
 )
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/sys/windows/svc/service.go")
 	k := windows.NewLazySystemDLL("kernel32.dll")
 	cSetEvent = k.NewProc("SetEvent").Addr()
 	cWaitForSingleObject = k.NewProc("WaitForSingleObject").Addr()

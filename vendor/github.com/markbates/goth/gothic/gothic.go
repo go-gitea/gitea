@@ -6,7 +6,6 @@ to the authentication process, feel free and use Goth directly.
 See https://github.com/markbates/goth/blob/master/examples/main.go to see this in action.
 */
 package gothic
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -43,7 +42,6 @@ type key int
 const ProviderParamKey key = iota
 
 func init() {
-traceinit.Trace("./vendor/github.com/markbates/goth/gothic/gothic.go")
 	key := []byte(os.Getenv("SESSION_SECRET"))
 	keySet = len(key) != 0
 

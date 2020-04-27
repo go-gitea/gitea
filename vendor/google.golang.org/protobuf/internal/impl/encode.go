@@ -5,7 +5,6 @@
 package impl
 
 import (
-
 	"math"
 	"sort"
 	"sync/atomic"

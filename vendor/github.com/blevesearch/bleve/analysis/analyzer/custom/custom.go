@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package custom
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -102,7 +101,6 @@ func AnalyzerConstructor(config map[string]interface{}, cache *registry.Cache) (
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/analyzer/custom/custom.go")
 	registry.RegisterAnalyzer(Name, AnalyzerConstructor)
 }
 

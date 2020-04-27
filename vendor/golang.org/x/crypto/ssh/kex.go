@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 package ssh
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"crypto"
@@ -388,7 +387,6 @@ func (kex *ecdh) Server(c packetConn, rand io.Reader, magics *handshakeMagics, p
 var kexAlgoMap = map[string]kexAlgorithm{}
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/crypto/ssh/kex.go")
 	// This is the group called diffie-hellman-group1-sha1 in RFC
 	// 4253 and Oakley Group 2 in RFC 2409.
 	p, _ := new(big.Int).SetString("FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381FFFFFFFFFFFFFFFF", 16)

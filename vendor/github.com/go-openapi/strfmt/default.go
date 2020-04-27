@@ -15,9 +15,6 @@
 package strfmt
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"database/sql/driver"
 	"encoding/base64"
 	"encoding/json"
@@ -128,12 +125,7 @@ func IsEmail(str string) bool {
 	return e == nil && addr.Address != ""
 }
 
-func init () {
-traceinit.Trace("vendor/github.com/go-openapi/strfmt/default.go")
-
-
-
-
+func init() {
 	// register formats in the default registry:
 	//   - byte
 	//   - creditcard

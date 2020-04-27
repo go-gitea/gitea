@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package bleve
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/json"
@@ -35,7 +34,6 @@ var reflectStaticSizeSearchResult int
 var reflectStaticSizeSearchStatus int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search.go")
 	var sr SearchResult
 	reflectStaticSizeSearchResult = int(reflect.TypeOf(sr).Size())
 	var ss SearchStatus

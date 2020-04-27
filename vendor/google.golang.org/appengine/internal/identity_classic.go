@@ -5,7 +5,6 @@
 // +build appengine
 
 package internal
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"appengine"
@@ -14,7 +13,6 @@ import (
 )
 
 func init() {
-traceinit.Trace("./vendor/google.golang.org/appengine/internal/identity_classic.go")
 	appengineStandard = true
 }
 

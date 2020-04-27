@@ -1,5 +1,4 @@
 package websspi
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"context"
@@ -611,7 +610,6 @@ func (a *Authenticator) WithAuth(next http.Handler) http.Handler {
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/quasoft/websspi/websspi_windows.go")
 	gob.Register(&CtxtHandle{})
 	gob.Register(&UserInfo{})
 }

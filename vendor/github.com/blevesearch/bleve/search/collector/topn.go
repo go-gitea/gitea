@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package collector
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"context"
@@ -28,7 +27,6 @@ import (
 var reflectStaticSizeTopNCollector int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/collector/topn.go")
 	var coll TopNCollector
 	reflectStaticSizeTopNCollector = int(reflect.TypeOf(coll).Size())
 }

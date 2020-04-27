@@ -15,9 +15,6 @@
 package loads
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
@@ -49,12 +46,7 @@ var (
 	defaultLoader *loader
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/go-openapi/loads/spec.go")
-
-
-
-
+func init() {
 	defaultLoader = &loader{Match: func(_ string) bool { return true }, Fn: JSONDoc}
 	loaders = defaultLoader
 	spec.PathLoader = loaders.Fn

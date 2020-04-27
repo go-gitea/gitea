@@ -14,7 +14,6 @@
 // under the License.
 
 package cache
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -175,6 +174,5 @@ func (c *RedisCacher) StartAndGC(opts cache.Options) error {
 }
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/cache/redis/redis.go")
 	cache.Register("redis", &RedisCacher{})
 }

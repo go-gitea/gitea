@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package upsidedown
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
@@ -26,7 +25,6 @@ import (
 var reflectStaticSizeIndexReader int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/upsidedown/index_reader.go")
 	var ir IndexReader
 	reflectStaticSizeIndexReader = int(reflect.TypeOf(ir).Size())
 }

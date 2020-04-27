@@ -5,8 +5,6 @@
 
 package setting
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"encoding/base64"
 	"fmt"
@@ -440,7 +438,7 @@ func getWorkPath(appPath string) string {
 }
 
 func init() {
-	traceinit.Trace("./modules/setting/setting.go")
+
 	start := time.Now()
 	fmt.Printf("%v settings init()\n", time.Now().Format("15:04:05.000000"))
 	IsWindows = runtime.GOOS == "windows"

@@ -15,9 +15,6 @@
 package main
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"io/ioutil"
 	"log"
 	"os"
@@ -28,12 +25,7 @@ import (
 	flags "github.com/jessevdk/go-flags"
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/go-swagger/go-swagger/cmd/swagger/swagger.go")
-
-
-
-
+func init() {
 	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
 }
 

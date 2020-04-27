@@ -4,8 +4,6 @@
 
 package queue
 
-import "code.gitea.io/gitea/traceinit"
-
 import "github.com/go-redis/redis"
 
 // RedisUniqueQueueType is the type for redis queue
@@ -124,6 +122,6 @@ func (fifo *RedisUniqueByteFIFO) Has(data []byte) (bool, error) {
 }
 
 func init() {
-	traceinit.Trace("./modules/queue/unique_queue_redis.go")
+
 	queuesMap[RedisUniqueQueueType] = NewRedisUniqueQueue
 }

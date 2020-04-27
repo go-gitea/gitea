@@ -14,7 +14,6 @@
 // under the License.
 
 package macaron
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -31,7 +30,6 @@ var (
 )
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/macaron/logger.go")
 	ColorLog = runtime.GOOS != "windows"
 }
 

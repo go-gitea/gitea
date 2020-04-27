@@ -18,7 +18,6 @@
 // default
 
 package viper
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -66,7 +65,6 @@ type RemoteResponse struct {
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/spf13/viper/viper.go")
 	v = New()
 }
 

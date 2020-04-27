@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package scorer
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
@@ -25,7 +24,6 @@ import (
 var reflectStaticSizeConjunctionQueryScorer int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/scorer/scorer_conjunction.go")
 	var cqs ConjunctionQueryScorer
 	reflectStaticSizeConjunctionQueryScorer = int(reflect.TypeOf(cqs).Size())
 }

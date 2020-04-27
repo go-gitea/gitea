@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package scorer
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -26,7 +25,6 @@ import (
 var reflectStaticSizeDisjunctionQueryScorer int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/scorer/scorer_disjunction.go")
 	var dqs DisjunctionQueryScorer
 	reflectStaticSizeDisjunctionQueryScorer = int(reflect.TypeOf(dqs).Size())
 }

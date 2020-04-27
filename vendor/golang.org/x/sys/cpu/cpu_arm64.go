@@ -3,14 +3,12 @@
 // license that can be found in the LICENSE file.
 
 package cpu
-import "code.gitea.io/gitea/traceinit"
 
 import "runtime"
 
 const cacheLineSize = 64
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/sys/cpu/cpu_arm64.go")
 	switch runtime.GOOS {
 	case "android", "darwin":
 		// Android and iOS don't seem to allow reading these registers.

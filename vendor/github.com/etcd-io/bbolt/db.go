@@ -1,7 +1,6 @@
 package bbolt
 
 import (
-
 	"errors"
 	"fmt"
 	"hash/fnv"

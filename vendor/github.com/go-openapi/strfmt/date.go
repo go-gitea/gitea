@@ -15,9 +15,6 @@
 package strfmt
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -27,12 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/go-openapi/strfmt/date.go")
-
-
-
-
+func init() {
 	d := Date{}
 	// register this format in the default registry
 	Default.Add("date", &d, IsDate)

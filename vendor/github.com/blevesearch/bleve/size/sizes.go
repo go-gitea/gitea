@@ -13,14 +13,12 @@
 // limitations under the License.
 
 package size
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
 )
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/size/sizes.go")
 	var b bool
 	SizeOfBool = int(reflect.TypeOf(b).Size())
 	var f32 float32

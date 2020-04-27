@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package bleve
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"context"
@@ -376,7 +375,6 @@ var facetResultEmptySize int
 var documentEmptySize int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/index_impl.go")
 	var dm search.DocumentMatch
 	documentMatchEmptySize = dm.Size()
 

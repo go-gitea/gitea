@@ -12,12 +12,7 @@ const (
 	hwcap_MIPS_MSA = 1 << 1
 )
 
-func doinit () {
-traceinit.Trace("vendor/golang.org/x/sys/cpu/cpu_linux_mips64x.go")
-
-
-
-
+func doinit() {
 	// HWCAP feature bits
 	MIPS64X.HasMSA = isSet(hwCap, hwcap_MIPS_MSA)
 }

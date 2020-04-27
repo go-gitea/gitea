@@ -7,7 +7,6 @@
 // This package is under development. The API may change without notice and
 // without preserving backward compatibility.
 package bidirule
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"errors"
@@ -249,7 +248,6 @@ func (t *Transformer) Span(src []byte, atEOF bool) (n int, err error) {
 var asciiTable [128]bidi.Properties
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/text/secure/bidirule/bidirule.go")
 	for i := range asciiTable {
 		p, _ := bidi.LookupRune(rune(i))
 		asciiTable[i] = p

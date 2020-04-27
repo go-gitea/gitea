@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 package japanese
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"unicode/utf8"
@@ -219,7 +218,6 @@ func (eucJPEncoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err 
 }
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/text/encoding/japanese/eucjp.go")
 	// Check that the hard-coded encode switch covers all tables.
 	if numEncodeTables != 6 {
 		panic("bad numEncodeTables")

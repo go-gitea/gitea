@@ -30,7 +30,6 @@
 package bluemonday
 
 import (
-
 	"bytes"
 	"io"
 	"net/url"

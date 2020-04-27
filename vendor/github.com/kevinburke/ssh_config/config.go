@@ -28,7 +28,6 @@
 // BUG: the Match directive is currently unsupported; parsing a config with
 // a Match directive will trigger an error.
 package ssh_config
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -629,7 +628,6 @@ func (inc *Include) String() string {
 var matchAll *Pattern
 
 func init() {
-traceinit.Trace("./vendor/github.com/kevinburke/ssh_config/config.go")
 	var err error
 	matchAll, err = NewPattern("*")
 	if err != nil {

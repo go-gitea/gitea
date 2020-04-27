@@ -15,7 +15,6 @@
 // Package lowercase implements a TokenFilter which converts
 // tokens to lower case according to unicode rules.
 package lowercase
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -48,7 +47,6 @@ func LowerCaseFilterConstructor(config map[string]interface{}, cache *registry.C
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/token/lowercase/lowercase.go")
 	registry.RegisterTokenFilter(Name, LowerCaseFilterConstructor)
 }
 

@@ -1,6 +1,5 @@
 // Package gomemcached is binary protocol packet formats and constants.
 package gomemcached
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -202,7 +201,6 @@ var CommandNames map[CommandCode]string
 var StatusNames map[Status]string
 
 func init() {
-traceinit.Trace("./vendor/github.com/couchbase/gomemcached/mc_constants.go")
 	CommandNames = make(map[CommandCode]string)
 	CommandNames[GET] = "GET"
 	CommandNames[SET] = "SET"

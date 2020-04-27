@@ -3,9 +3,6 @@
 package toml
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"errors"
 	"fmt"
 	"math"
@@ -439,12 +436,7 @@ func parseToml(flow []token) *Tree {
 	return result
 }
 
-func init () {
-traceinit.Trace("vendor/github.com/pelletier/go-toml/parser.go")
-
-
-
-
+func init() {
 	numberUnderscoreInvalidRegexp = regexp.MustCompile(`([^\d]_|_[^\d])|_$|^_`)
 	hexNumberUnderscoreInvalidRegexp = regexp.MustCompile(`(^0x_)|([^\da-f]_|_[^\da-f])|_$|^_`)
 }

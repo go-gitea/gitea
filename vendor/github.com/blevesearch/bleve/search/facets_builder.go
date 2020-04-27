@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package search
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"reflect"
@@ -30,7 +29,6 @@ var reflectStaticSizeNumericRangeFacet int
 var reflectStaticSizeDateRangeFacet int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/facets_builder.go")
 	var fb FacetsBuilder
 	reflectStaticSizeFacetsBuilder = int(reflect.TypeOf(fb).Size())
 	var fr FacetResult

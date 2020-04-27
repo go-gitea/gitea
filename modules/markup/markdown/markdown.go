@@ -5,8 +5,6 @@
 
 package markdown
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"bytes"
 	"fmt"
@@ -98,7 +96,7 @@ var (
 )
 
 func init() {
-	traceinit.Trace("./modules/markup/markdown/markdown.go")
+
 	start := time.Now()
 	fmt.Printf("%v markdown init()\n", time.Now().Format("15:04:05.000000"))
 	markup.RegisterParser(Parser{})

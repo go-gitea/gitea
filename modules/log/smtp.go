@@ -5,8 +5,6 @@
 
 package log
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"encoding/json"
 	"net/smtp"
@@ -105,6 +103,6 @@ func (log *SMTPLogger) GetName() string {
 }
 
 func init() {
-	traceinit.Trace("./modules/log/smtp.go")
+
 	Register("smtp", NewSMTPLogger)
 }

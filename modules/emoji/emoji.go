@@ -5,8 +5,6 @@
 
 package emoji
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"fmt"
 	"strings"
@@ -44,7 +42,7 @@ var (
 func loadMap() {
 
 	once.Do(func() {
-		traceinit.Trace("./modules/emoji/emoji.go")
+
 		// initialize
 		start := time.Now()
 		fmt.Printf("%v emoji init()\n", time.Now().Format("15:04:05.000000"))

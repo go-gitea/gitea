@@ -13,7 +13,6 @@
 // under the License.
 
 package session
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -204,6 +203,5 @@ func (p *NodbProvider) Count() int {
 func (p *NodbProvider) GC() {}
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/session/nodb/nodb.go")
 	session.Register("nodb", &NodbProvider{})
 }

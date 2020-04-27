@@ -5,8 +5,6 @@
 
 package log
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"encoding/json"
 	"io"
@@ -76,6 +74,6 @@ func (log *ConsoleLogger) GetName() string {
 }
 
 func init() {
-	traceinit.Trace("./modules/log/console.go")
+
 	Register("console", NewConsoleLogger)
 }

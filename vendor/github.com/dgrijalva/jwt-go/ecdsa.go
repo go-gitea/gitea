@@ -1,9 +1,6 @@
 package jwt
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -32,12 +29,7 @@ var (
 	SigningMethodES512 *SigningMethodECDSA
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/dgrijalva/jwt-go/ecdsa.go")
-
-
-
-
+func init() {
 	// ES256
 	SigningMethodES256 = &SigningMethodECDSA{"ES256", crypto.SHA256, 32, 256}
 	RegisterSigningMethod(SigningMethodES256.Alg(), func() SigningMethod {

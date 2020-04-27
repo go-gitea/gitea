@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package single
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"github.com/blevesearch/bleve/analysis"
@@ -46,6 +45,5 @@ func SingleTokenTokenizerConstructor(config map[string]interface{}, cache *regis
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/tokenizer/single/single.go")
 	registry.RegisterTokenizer(Name, SingleTokenTokenizerConstructor)
 }

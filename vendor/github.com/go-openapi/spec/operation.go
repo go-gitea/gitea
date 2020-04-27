@@ -15,9 +15,6 @@
 package spec
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
@@ -27,12 +24,7 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/go-openapi/spec/operation.go")
-
-
-
-
+func init() {
 	//gob.Register(map[string][]interface{}{})
 	gob.Register(map[string]interface{}{})
 	gob.Register([]interface{}{})

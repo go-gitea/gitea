@@ -12,7 +12,6 @@
 // It may want to export this functionality at some point, but at this point
 // this is only available for use within x/text.
 package compact // import "golang.org/x/text/internal/language/compact"
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"sort"
@@ -54,7 +53,6 @@ func (id ID) Tag() language.Tag {
 var specialTags []language.Tag
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/text/internal/language/compact/compact.go")
 	tags := strings.Split(specialTagsStr, " ")
 	specialTags = make([]language.Tag, len(tags))
 	for i, t := range tags {

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package unicodenorm
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -76,6 +75,5 @@ func UnicodeNormalizeFilterConstructor(config map[string]interface{}, cache *reg
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/token/unicodenorm/unicodenorm.go")
 	registry.RegisterTokenFilter(Name, UnicodeNormalizeFilterConstructor)
 }

@@ -1,5 +1,4 @@
 package msgp
-import "code.gitea.io/gitea/traceinit"
 
 // size of every object on the wire,
 // plus type information. gives us
@@ -41,7 +40,6 @@ var sizes = [256]bytespec{
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/tinylib/msgp/msgp/elsize.go")
 	// set up fixed fields
 
 	// fixint

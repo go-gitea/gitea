@@ -1,9 +1,6 @@
 package redis
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"context"
 	"errors"
 	"fmt"
@@ -78,12 +75,7 @@ type RingOptions struct {
 	IdleCheckFrequency time.Duration
 }
 
-func (opt *RingOptions) init () {
-traceinit.Trace("vendor/github.com/go-redis/redis/ring.go")
-
-
-
-
+func (opt *RingOptions) init() {
 	if opt.HeartbeatFrequency == 0 {
 		opt.HeartbeatFrequency = 500 * time.Millisecond
 	}

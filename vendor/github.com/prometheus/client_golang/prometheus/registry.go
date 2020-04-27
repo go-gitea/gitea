@@ -12,7 +12,6 @@
 // limitations under the License.
 
 package prometheus
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -58,7 +57,6 @@ var (
 )
 
 func init() {
-traceinit.Trace("./vendor/github.com/prometheus/client_golang/prometheus/registry.go")
 	MustRegister(NewProcessCollector(ProcessCollectorOpts{}))
 	MustRegister(NewGoCollector())
 }

@@ -12,9 +12,6 @@
 package stack
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"bytes"
 	"errors"
 	"fmt"
@@ -366,12 +363,7 @@ func pathSuffix(path string) string {
 
 var runtimePath string
 
-func init () {
-traceinit.Trace("vendor/github.com/go-stack/stack/stack.go")
-
-
-
-
+func init() {
 	var pcs [3]uintptr
 	runtime.Callers(0, pcs[:])
 	frames := runtime.CallersFrames(pcs[:])

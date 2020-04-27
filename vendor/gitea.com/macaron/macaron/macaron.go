@@ -14,7 +14,6 @@
 
 // Package macaron is a high productive and modular web framework in Go.
 package macaron
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"io"
@@ -309,7 +308,6 @@ func safeEnv() string {
 }
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/macaron/macaron.go")
 	setENV(os.Getenv("MACARON_ENV"))
 }
 

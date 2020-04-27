@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 package flate
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"io"
@@ -802,7 +801,6 @@ func (w *huffmanBitWriter) writeTokens(tokens []token, leCodes, oeCodes []hcode)
 var huffOffset *huffmanEncoder
 
 func init() {
-traceinit.Trace("./vendor/github.com/klauspost/compress/flate/huffman_bit_writer.go")
 	w := newHuffmanBitWriter(nil)
 	w.offsetFreq[0] = 1
 	huffOffset = newHuffmanEncoder(offsetCodeCount)

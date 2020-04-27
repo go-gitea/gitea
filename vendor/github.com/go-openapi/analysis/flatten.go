@@ -15,9 +15,6 @@
 package analysis
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"fmt"
 	"log"
 	"net/http"
@@ -534,12 +531,7 @@ var (
 	validMethods map[string]struct{}
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/go-openapi/analysis/flatten.go")
-
-
-
-
+func init() {
 	ignoredKeys = map[string]struct{}{
 		"schema":     {},
 		"properties": {},

@@ -30,12 +30,7 @@ This declares an integer flag, -flagname, stored in the pointer ip, with type *i
 	var ip = flag.Int("flagname", 1234, "help message for flagname")
 If you like, you can bind the flag to a variable using the Var() functions.
 	var flagvar int
-	func init () {
-traceinit.Trace("vendor/github.com/spf13/pflag/flag.go")
-
-
-
-
+	func init() {
 		flag.IntVar(&flagvar, "flagname", 1234, "help message for flagname")
 	}
 Or you can create custom flags that satisfy the Value interface (with
@@ -61,12 +56,7 @@ that give one-letter shorthands for flags. You can use these by appending
 'P' to the name of any function that defines a flag.
 	var ip = flag.IntP("flagname", "f", 1234, "help message")
 	var flagvar bool
-	func init () {
-traceinit.Trace("vendor/github.com/spf13/pflag/flag.go")
-
-
-
-
+	func init() {
 		flag.BoolVarP("boolname", "b", true, "help message")
 	}
 	flag.VarP(&flagVar, "varname", "v", 1234, "help message")
@@ -109,9 +99,6 @@ flag set.
 package pflag
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"bytes"
 	"errors"
 	goflag "flag"

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package simple
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"container/heap"
@@ -218,6 +217,5 @@ func Constructor(config map[string]interface{}, cache *registry.Cache) (highligh
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/highlight/highlighter/simple/highlighter_simple.go")
 	registry.RegisterHighlighter(Name, Constructor)
 }

@@ -57,7 +57,6 @@ traces.
 */
 
 package roaring
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -138,7 +137,6 @@ var smatActionMap = smat.ActionMap{
 var smatRunningPercentActions []smat.PercentAction
 
 func init() {
-traceinit.Trace("./vendor/github.com/RoaringBitmap/roaring/smat.go")
 	var ids []int
 	for actionId := range smatActionMap {
 		ids = append(ids, int(actionId))

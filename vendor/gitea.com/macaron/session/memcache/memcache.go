@@ -14,7 +14,6 @@
 // under the License.
 
 package session
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -200,6 +199,5 @@ func (p *MemcacheProvider) Count() int {
 func (p *MemcacheProvider) GC() {}
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/session/memcache/memcache.go")
 	session.Register("memcache", &MemcacheProvider{})
 }

@@ -5,8 +5,6 @@
 
 package graceful
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"crypto/tls"
 	"io/ioutil"
@@ -31,7 +29,7 @@ var (
 )
 
 func init() {
-	traceinit.Trace("./modules/graceful/server.go")
+
 	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
 }
 

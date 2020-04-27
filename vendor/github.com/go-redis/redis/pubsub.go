@@ -1,9 +1,6 @@
 package redis
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"errors"
 	"fmt"
 	"sync"
@@ -42,12 +39,7 @@ type PubSub struct {
 	ping   chan struct{}
 }
 
-func (c *PubSub) init () {
-traceinit.Trace("vendor/github.com/go-redis/redis/pubsub.go")
-
-
-
-
+func (c *PubSub) init() {
 	c.exit = make(chan struct{})
 }
 

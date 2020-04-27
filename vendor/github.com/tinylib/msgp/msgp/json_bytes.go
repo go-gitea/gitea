@@ -1,5 +1,4 @@
 package msgp
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bufio"
@@ -13,7 +12,6 @@ import (
 var unfuns [_maxtype]func(jsWriter, []byte, []byte) ([]byte, []byte, error)
 
 func init() {
-traceinit.Trace("./vendor/github.com/tinylib/msgp/msgp/json_bytes.go")
 
 	// NOTE(pmh): this is best expressed as a jump table,
 	// but gc doesn't do that yet. revisit post-go1.5.

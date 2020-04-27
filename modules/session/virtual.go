@@ -4,8 +4,6 @@
 
 package session
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"container/list"
 	"encoding/json"
@@ -104,7 +102,7 @@ func (o *VirtualSessionProvider) GC() {
 }
 
 func init() {
-	traceinit.Trace("./modules/session/virtual.go")
+
 	session.Register("VirtualSession", &VirtualSessionProvider{})
 }
 

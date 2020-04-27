@@ -5,7 +5,6 @@
 package impl
 
 import (
-
 	"fmt"
 	"math"
 	"math/bits"

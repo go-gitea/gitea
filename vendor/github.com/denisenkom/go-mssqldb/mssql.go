@@ -1,9 +1,6 @@
 package mssql
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"context"
 	"database/sql"
 	"database/sql/driver"
@@ -31,12 +28,7 @@ type ReturnStatus int32
 var driverInstance = &Driver{processQueryText: true}
 var driverInstanceNoProcess = &Driver{processQueryText: false}
 
-func init () {
-traceinit.Trace("vendor/github.com/denisenkom/go-mssqldb/mssql.go")
-
-
-
-
+func init() {
 	sql.Register("mssql", driverInstance)
 	sql.Register("sqlserver", driverInstanceNoProcess)
 	createDialer = func(p *connectParams) Dialer {

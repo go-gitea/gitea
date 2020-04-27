@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package document
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -25,7 +24,6 @@ import (
 var reflectStaticSizeDocument int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/document/document.go")
 	var d Document
 	reflectStaticSizeDocument = int(reflect.TypeOf(d).Size())
 }

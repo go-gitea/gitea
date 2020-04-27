@@ -14,7 +14,6 @@
 // under the License.
 
 package session
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"container/list"
@@ -214,6 +213,5 @@ func (p *MemProvider) GC() {
 }
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/session/memory.go")
 	Register("memory", &MemProvider{list: list.New(), data: make(map[string]*list.Element)})
 }

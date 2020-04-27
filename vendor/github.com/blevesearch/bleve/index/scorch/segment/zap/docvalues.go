@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package zap
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -32,7 +31,6 @@ import (
 var reflectStaticSizedocValueReader int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/scorch/segment/zap/docvalues.go")
 	var dvi docValueReader
 	reflectStaticSizedocValueReader = int(reflect.TypeOf(dvi).Size())
 }

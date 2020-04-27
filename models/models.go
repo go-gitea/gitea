@@ -5,8 +5,6 @@
 
 package models
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"context"
 	"database/sql"
@@ -67,7 +65,7 @@ var (
 )
 
 func init() {
-	traceinit.Trace("./models/models.go")
+
 	start := time.Now()
 	fmt.Printf("%v models init()\n", time.Now().Format("15:04:05.000000"))
 	tables = append(tables,

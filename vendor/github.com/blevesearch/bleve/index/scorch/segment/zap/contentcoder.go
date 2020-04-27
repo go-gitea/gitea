@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package zap
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"bytes"
@@ -27,7 +26,6 @@ import (
 var reflectStaticSizeMetaData int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/scorch/segment/zap/contentcoder.go")
 	var md MetaData
 	reflectStaticSizeMetaData = int(reflect.TypeOf(md).Size())
 }

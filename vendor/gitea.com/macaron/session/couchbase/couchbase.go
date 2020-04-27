@@ -14,7 +14,6 @@
 // under the License.
 
 package session
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"strings"
@@ -224,6 +223,5 @@ func (p *CouchbaseProvider) Count() int {
 func (p *CouchbaseProvider) GC() {}
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/session/couchbase/couchbase.go")
 	session.Register("couchbase", &CouchbaseProvider{})
 }

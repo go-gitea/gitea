@@ -15,7 +15,6 @@
 //go:generate protoc --gofast_out=. upsidedown.proto
 
 package upsidedown
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/binary"
@@ -1049,7 +1048,6 @@ func (udc *UpsideDownCouch) fieldIndexOrNewRow(name string) (uint16, *FieldRow) 
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/upsidedown/upsidedown.go")
 	registry.RegisterIndexType(Name, NewUpsideDownCouch)
 }
 

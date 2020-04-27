@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package searcher
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -28,7 +27,6 @@ import (
 var reflectStaticSizePhraseSearcher int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/searcher/search_phrase.go")
 	var ps PhraseSearcher
 	reflectStaticSizePhraseSearcher = int(reflect.TypeOf(ps).Size())
 }

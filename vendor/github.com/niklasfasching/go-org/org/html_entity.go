@@ -1,18 +1,10 @@
 package org
 
-import (
-	"code.gitea.io/gitea/traceinit"
-	"strings"
-)
+import "strings"
 
 var htmlEntityReplacer *strings.Replacer
 
-func init () {
-traceinit.Trace("vendor/github.com/niklasfasching/go-org/org/html_entity.go")
-
-
-
-
+func init() {
 	htmlEntities = append(htmlEntities,
 		"---", "—",
 		"--", "–",

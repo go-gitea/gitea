@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 package packages
-import "code.gitea.io/gitea/traceinit"
 
 // See doc.go for package documentation and implementation notes.
 
@@ -306,7 +305,6 @@ type Package struct {
 }
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/tools/go/packages/packages.go")
 	packagesinternal.GetForTest = func(p interface{}) string {
 		return p.(*Package).forTest
 	}

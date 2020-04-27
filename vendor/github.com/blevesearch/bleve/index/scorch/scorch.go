@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package scorch
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"encoding/json"
@@ -609,7 +608,6 @@ func (s *Scorch) unmarkIneligibleForRemoval(filename string) {
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/index/scorch/scorch.go")
 	registry.RegisterIndexType(Name, NewScorch)
 }
 

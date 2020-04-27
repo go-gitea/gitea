@@ -4,8 +4,6 @@
 
 package queue
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"errors"
 	"strings"
@@ -145,6 +143,6 @@ func (fifo *RedisByteFIFO) Len() int64 {
 }
 
 func init() {
-	traceinit.Trace("./modules/queue/queue_redis.go")
+
 	queuesMap[RedisQueueType] = NewRedisQueue
 }

@@ -1,7 +1,6 @@
 // Package webbrowser provides a simple API for opening web pages on your
 // default browser.
 package webbrowser
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"errors"
@@ -68,7 +67,6 @@ func Open(s string) (err error) {
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/toqueteos/webbrowser/webbrowser.go")
 	// Register the default Browser for current OS, if it exists.
 	if os, ok := osCommand[runtime.GOOS]; ok {
 		Candidates = append(Candidates, browserCommand{os.cmd, os.args})

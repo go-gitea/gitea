@@ -47,12 +47,7 @@ func (s *simpleCache) Set(uri string, data interface{}) {
 
 var resCache ResolutionCache
 
-func init () {
-traceinit.Trace("vendor/github.com/go-openapi/spec/cache.go")
-
-
-
-
+func init() {
 	resCache = initResolutionCache()
 }
 

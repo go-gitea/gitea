@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 package sessions
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"context"
@@ -167,7 +166,6 @@ func (s *Registry) Save(w http.ResponseWriter) error {
 // Helpers --------------------------------------------------------------------
 
 func init() {
-traceinit.Trace("./vendor/github.com/gorilla/sessions/sessions.go")
 	gob.Register([]interface{}{})
 }
 

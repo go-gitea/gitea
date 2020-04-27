@@ -5,7 +5,6 @@
 
 // Gitea (git with a cup of tea) is a painless self-hosted Git Service.
 package main // import "code.gitea.io/gitea"
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"fmt"
@@ -40,7 +39,7 @@ var (
 )
 
 func init() {
-	traceinit.Trace("./main.go")
+
 	start := time.Now()
 	fmt.Printf("\t%v gitea init()\n", time.Now().Format("15:04:05.000000"))
 	setting.AppVer = Version

@@ -7,9 +7,6 @@
 package bsoncodec
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"errors"
 	"reflect"
 	"sync"
@@ -58,12 +55,7 @@ var ErrNotInterface = errors.New("The provided type is not an interface")
 
 var defaultRegistry *Registry
 
-func init () {
-traceinit.Trace("vendor/go.mongodb.org/mongo-driver/bson/bsoncodec/registry.go")
-
-
-
-
+func init() {
 	defaultRegistry = buildDefaultRegistry()
 }
 

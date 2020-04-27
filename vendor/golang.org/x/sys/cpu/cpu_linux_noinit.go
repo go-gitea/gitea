@@ -6,6 +6,4 @@
 
 package cpu
 
-func doinit () {
-
-}
+func doinit() {}

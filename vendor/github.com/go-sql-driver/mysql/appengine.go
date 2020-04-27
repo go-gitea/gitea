@@ -11,17 +11,9 @@
 package mysql
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"google.golang.org/appengine/cloudsql"
 )
 
-func init () {
-traceinit.Trace("vendor/github.com/go-sql-driver/mysql/appengine.go")
-
-
-
-
+func init() {
 	RegisterDial("cloudsql", cloudsql.Dial)
 }

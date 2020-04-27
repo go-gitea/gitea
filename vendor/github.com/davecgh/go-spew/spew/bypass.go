@@ -23,9 +23,6 @@
 package spew
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"reflect"
 	"unsafe"
 )
@@ -105,12 +102,7 @@ func unsafeReflectValue(v reflect.Value) reflect.Value {
 
 // Sanity checks against future reflect package changes
 // to the type or semantics of the Value.flag field.
-func init () {
-traceinit.Trace("vendor/github.com/davecgh/go-spew/spew/bypass.go")
-
-
-
-
+func init() {
 	field, ok := reflect.TypeOf(reflect.Value{}).FieldByName("flag")
 	if !ok {
 		panic("reflect.Value has no flag field")

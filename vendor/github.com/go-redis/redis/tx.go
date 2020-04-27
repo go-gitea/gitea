@@ -1,7 +1,6 @@
 package redis
 
 import (
-
 	"github.com/go-redis/redis/internal/pool"
 	"github.com/go-redis/redis/internal/proto"
 )

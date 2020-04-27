@@ -5,7 +5,6 @@
 // Package urlfetch provides an http.RoundTripper implementation
 // for fetching URLs via App Engine's urlfetch service.
 package urlfetch // import "google.golang.org/appengine/urlfetch"
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"errors"
@@ -206,7 +205,6 @@ func (t *Transport) RoundTrip(req *http.Request) (res *http.Response, err error)
 }
 
 func init() {
-traceinit.Trace("./vendor/google.golang.org/appengine/urlfetch/urlfetch.go")
 	internal.RegisterErrorCodeMap("urlfetch", pb.URLFetchServiceError_ErrorCode_name)
 	internal.RegisterTimeoutErrorCode("urlfetch", int32(pb.URLFetchServiceError_DEADLINE_EXCEEDED))
 }

@@ -15,9 +15,6 @@
 package vellum
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"bytes"
 )
 
@@ -63,12 +60,7 @@ func NewMergeIterator(itrs []Iterator, f MergeFunc) (*MergeIterator, error) {
 	return rv, nil
 }
 
-func (m *MergeIterator) init () {
-traceinit.Trace("vendor/github.com/couchbase/vellum/merge_iterator.go")
-
-
-
-
+func (m *MergeIterator) init() {
 	for i, itr := range m.itrs {
 		m.currKs[i], m.currVs[i] = itr.Current()
 	}

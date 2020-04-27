@@ -1,7 +1,6 @@
 package jwt
 
 import (
-
 	"sync"
 )
 

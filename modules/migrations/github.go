@@ -5,8 +5,6 @@
 
 package migrations
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"context"
 	"fmt"
@@ -31,7 +29,7 @@ var (
 )
 
 func init() {
-	traceinit.Trace("./modules/migrations/github.go")
+
 	RegisterDownloaderFactory(&GithubDownloaderV3Factory{})
 }
 

@@ -14,7 +14,6 @@
 // under the License.
 
 package session
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"database/sql"
@@ -197,6 +196,5 @@ func (p *PostgresProvider) GC() {
 }
 
 func init() {
-traceinit.Trace("./vendor/gitea.com/macaron/session/postgres/postgres.go")
 	session.Register("postgres", &PostgresProvider{})
 }

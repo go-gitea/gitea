@@ -5,7 +5,6 @@
 // +build go1.9
 
 package blake2b
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"crypto"
@@ -13,7 +12,6 @@ import (
 )
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/crypto/blake2b/register.go")
 	newHash256 := func() hash.Hash {
 		h, _ := New256(nil)
 		return h

@@ -98,12 +98,7 @@ func (s *facilityList) Has(fs ...facility) bool {
 	return true
 }
 
-func doinit () {
-traceinit.Trace("vendor/golang.org/x/sys/cpu/cpu_linux_s390x.go")
-
-
-
-
+func doinit() {
 	// test HWCAP bit vector
 	has := func(featureMask uint) bool {
 		return hwCap&featureMask == featureMask

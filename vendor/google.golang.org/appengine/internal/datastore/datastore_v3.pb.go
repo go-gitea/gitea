@@ -2,7 +2,6 @@
 // source: google.golang.org/appengine/internal/datastore/datastore_v3.proto
 
 package datastore
-import "code.gitea.io/gitea/traceinit"
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
@@ -4042,7 +4041,6 @@ func (m *CommitResponse_Version) GetVersion() int64 {
 }
 
 func init() {
-traceinit.Trace("./vendor/google.golang.org/appengine/internal/datastore/datastore_v3.pb.go")
 	proto.RegisterType((*Action)(nil), "appengine.Action")
 	proto.RegisterType((*PropertyValue)(nil), "appengine.PropertyValue")
 	proto.RegisterType((*PropertyValue_PointValue)(nil), "appengine.PropertyValue.PointValue")

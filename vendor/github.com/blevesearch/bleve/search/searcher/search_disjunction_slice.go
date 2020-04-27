@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package searcher
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"math"
@@ -29,7 +28,6 @@ import (
 var reflectStaticSizeDisjunctionSliceSearcher int
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/search/searcher/search_disjunction_slice.go")
 	var ds DisjunctionSliceSearcher
 	reflectStaticSizeDisjunctionSliceSearcher = int(reflect.TypeOf(ds).Size())
 }

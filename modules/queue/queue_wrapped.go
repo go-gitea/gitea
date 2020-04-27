@@ -4,8 +4,6 @@
 
 package queue
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"context"
 	"fmt"
@@ -275,6 +273,6 @@ func (q *WrappedQueue) Terminate() {
 }
 
 func init() {
-	traceinit.Trace("./modules/queue/queue_wrapped.go")
+
 	queuesMap[WrappedQueueType] = NewWrappedQueue
 }

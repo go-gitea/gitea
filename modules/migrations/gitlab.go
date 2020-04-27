@@ -4,8 +4,6 @@
 
 package migrations
 
-import "code.gitea.io/gitea/traceinit"
-
 import (
 	"context"
 	"errors"
@@ -27,7 +25,7 @@ var (
 )
 
 func init() {
-	traceinit.Trace("./modules/migrations/gitlab.go")
+
 	RegisterDownloaderFactory(&GitlabDownloaderFactory{})
 }
 

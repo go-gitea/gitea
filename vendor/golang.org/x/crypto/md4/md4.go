@@ -8,7 +8,6 @@
 // where compatibility with legacy systems, not security, is the goal. Instead,
 // use a secure hash like SHA-256 (from crypto/sha256).
 package md4 // import "golang.org/x/crypto/md4"
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"crypto"
@@ -16,7 +15,6 @@ import (
 )
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/crypto/md4/md4.go")
 	crypto.RegisterHash(crypto.MD4, New)
 }
 

@@ -15,9 +15,6 @@
 package generator
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"fmt"
 	"log"
 	"path"
@@ -60,12 +57,7 @@ const (
 // swaggerTypeMapping contains a mapping from go type to swagger type or format
 var swaggerTypeName map[string]string
 
-func init () {
-traceinit.Trace("vendor/github.com/go-swagger/go-swagger/generator/types.go")
-
-
-
-
+func init() {
 	swaggerTypeName = make(map[string]string)
 	for k, v := range typeMapping {
 		swaggerTypeName[v] = k

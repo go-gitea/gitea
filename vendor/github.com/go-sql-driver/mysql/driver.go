@@ -17,9 +17,6 @@
 package mysql
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"database/sql"
 	"database/sql/driver"
 	"net"
@@ -170,11 +167,6 @@ func (d MySQLDriver) Open(dsn string) (driver.Conn, error) {
 	return mc, nil
 }
 
-func init () {
-traceinit.Trace("vendor/github.com/go-sql-driver/mysql/driver.go")
-
-
-
-
+func init() {
 	sql.Register("mysql", &MySQLDriver{})
 }

@@ -15,9 +15,6 @@
 package swag
 
 import (
-"code.gitea.io/gitea/traceinit"
-
-
 	"math"
 	"strconv"
 	"strings"
@@ -56,12 +53,7 @@ func IsFloat64AJSONInteger(f float64) bool {
 
 var evaluatesAsTrue map[string]struct{}
 
-func init () {
-traceinit.Trace("vendor/github.com/go-openapi/swag/convert.go")
-
-
-
-
+func init() {
 	evaluatesAsTrue = map[string]struct{}{
 		"true":     {},
 		"1":        {},

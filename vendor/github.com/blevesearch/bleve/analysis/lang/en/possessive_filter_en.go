@@ -13,7 +13,6 @@
 // limitations under the License.
 
 package en
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"unicode/utf8"
@@ -64,6 +63,5 @@ func PossessiveFilterConstructor(config map[string]interface{}, cache *registry.
 }
 
 func init() {
-traceinit.Trace("./vendor/github.com/blevesearch/bleve/analysis/lang/en/possessive_filter_en.go")
 	registry.RegisterTokenFilter(PossessiveName, PossessiveFilterConstructor)
 }

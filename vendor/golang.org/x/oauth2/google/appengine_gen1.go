@@ -7,7 +7,6 @@
 // This file applies to App Engine first generation runtimes (<= Go 1.9).
 
 package google
-import "code.gitea.io/gitea/traceinit"
 
 import (
 	"context"
@@ -20,7 +19,6 @@ import (
 )
 
 func init() {
-traceinit.Trace("./vendor/golang.org/x/oauth2/google/appengine_gen1.go")
 	appengineTokenFunc = appengine.AccessToken
 	appengineAppIDFunc = appengine.AppID
 }

@@ -11,8 +11,7 @@ var NoneSignatureTypeDisallowedError error
 type signingMethodNone struct{}
 type unsafeNoneMagicConstant string
 
-func init () {
-
+func init() {
 	SigningMethodNone = &signingMethodNone{}
 	NoneSignatureTypeDisallowedError = NewValidationError("'none' signature type is not allowed", ValidationErrorSignatureInvalid)
 
