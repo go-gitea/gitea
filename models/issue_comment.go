@@ -560,6 +560,9 @@ func (c *Comment) LoadPushCommits() (err error) {
 	commitIDs := strings.Split(c.Content, ":")
 
 	if c.IsForcePush {
+		if len(commitIDs) != 2 {
+			return nil
+		}
 		c.OldCommit = commitIDs[0]
 		c.NewCommit = commitIDs[1]
 	} else {
