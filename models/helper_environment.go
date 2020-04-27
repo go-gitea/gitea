@@ -28,7 +28,6 @@ const (
 // or if you absolutely are sure that post-receive and pre-receive will do nothing
 // We provide the full pushing-environment for other hook providers
 func InternalPushingEnvironment(doer *User, repo *Repository) []string {
-	fmt.Printf("%v InternalPushingEnvironment\n", time.Now().Format("15:04:05.000000"))
 	return append(PushingEnvironment(doer, repo),
 		EnvIsInternal+"=true",
 	)
