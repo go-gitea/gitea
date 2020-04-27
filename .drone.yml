@@ -15,20 +15,20 @@ steps:
     pull: always
     image: node:12
     commands:
-      - echo
+      - make node_modules
 
   - name: lint-frontend
     pull: always
     image: node:12
     commands:
-      - echo
+      - make lint-frontend
     depends_on: [deps-frontend]
 
   - name: lint-backend
     pull: always
     image: golang:1.14
     commands:
-      - echo
+      - make lint-backend
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
@@ -38,7 +38,7 @@ steps:
     pull: always
     image: node:10 # this step is kept at the lowest version of node that we support
     commands:
-      - echo
+      - make frontend
     depends_on: [lint-frontend]
 
   - name: build-backend-no-gcc
@@ -48,7 +48,7 @@ steps:
       GO111MODULE: on
       GOPROXY: off
     commands:
-      - echo # test if build succeeds without the sqlite tag
+      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
     depends_on: [lint-backend]
 
   - name: build-backend-arm64
@@ -61,7 +61,8 @@ steps:
       GOARCH: arm64
       TAGS: bindata
     commands:
-      - echo # test cross compile
+      - make backend # test cross compile
+      - rm ./gitea # clean
     depends_on: [lint-backend]
 
   - name: build-backend-386
@@ -73,7 +74,7 @@ steps:
       GOOS: linux
       GOARCH: 386
     commands:
-      - echo # test if compatible with 32 bit
+      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
     depends_on: [lint-backend]
 
 ---
@@ -167,7 +168,7 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - echo
+      - make unit-test-coverage test-check
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
@@ -180,7 +181,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - echo
+      - make test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -195,7 +196,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8#TestAPIDeleteFile
+      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -210,7 +211,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - echo
+      - make test-mssql-migration test-mssql
     environment:
       GOPROXY: off
       TAGS: bindata
@@ -309,10 +310,9 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - apt-get install -y strace
-      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite#TestAPIDeleteFile
+      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
-      GOPROXY: on
+      GOPROXY: off
       TAGS: bindata
       USE_REPO_TEST_DIR: 1
     depends_on:
@@ -322,7 +322,9 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - echo
+      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
+      - apt-get install -y git-lfs
+      - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off
       TAGS: bindata
