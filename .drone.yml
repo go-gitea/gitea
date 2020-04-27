@@ -858,6 +858,6 @@ steps:
         from_secret: discord_webhook_token
 ---
 kind: signature
-hmac: 9d0f560fde813881e249374cc4ca08356e2e2d465e459b93e3b079e41c051ec0
+hmac: 0d90639104af9e9899c21208d9002a340991538968ed8eb237056ea88fa05369
 
 ...
