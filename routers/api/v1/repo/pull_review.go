@@ -381,8 +381,6 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 		return
 	}
 	ctx.JSON(http.StatusOK, apiReview)
-
-	return
 }
 
 // SubmitPullReview submit a pending review to an pull request
@@ -474,7 +472,6 @@ func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions)
 		return
 	}
 	ctx.JSON(http.StatusOK, apiReview)
-	return
 }
 
 func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, event api.ReviewStateType, body string) (reviewType models.ReviewType, isWrong bool) {
