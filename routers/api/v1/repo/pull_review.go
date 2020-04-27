@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListPullReviews lists all reviews of a pull request
@@ -37,6 +38,14 @@ func ListPullReviews(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReviewList"
@@ -64,8 +73,9 @@ func ListPullReviews(ctx *context.APIContext) {
 	}
 
 	allReviews, err := models.FindReviews(models.FindReviewOptions{
-		Type:    models.ReviewTypeUnknown,
-		IssueID: pr.IssueID,
+		ListOptions: utils.GetListOptions(ctx),
+		Type:        models.ReviewTypeUnknown,
+		IssueID:     pr.IssueID,
 	})
 
 	if err != nil {
