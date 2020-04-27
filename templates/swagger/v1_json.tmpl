@@ -6710,7 +6710,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "List all reviews for a pull request.",
+        "summary": "List all reviews for a pull request",
         "operationId": "repoListPullReviews",
         "parameters": [
           {
@@ -6756,6 +6756,59 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a review to an pull request",
+        "operationId": "repoCreatePullReview",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreatePullRequestOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReview"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/pulls/{index}/reviews/{id}": {
@@ -6766,7 +6819,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get a specific review for a pull request.",
+        "summary": "Get a specific review for a pull request",
         "operationId": "repoGetPullReview",
         "parameters": [
           {
@@ -6806,6 +6859,67 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Submit a pending review to an pull request",
+        "operationId": "repoSubmitPullReview",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SubmitPullReviewOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReview"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -6871,7 +6985,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get a specific review for a pull request.",
+        "summary": "Get a specific review for a pull request",
         "operationId": "repoGetPullReviewComments",
         "parameters": [
           {
@@ -11176,6 +11290,59 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreatePullReviewComment": {
+      "description": "CreatePullReviewComment represent a review comment for creation api",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "new_position": {
+          "description": "if comment to new file line or 0",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NewLineNum"
+        },
+        "old_position": {
+          "description": "if comment to old file line or 0",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OldLineNum"
+        },
+        "path": {
+          "description": "the tree path",
+          "type": "string",
+          "x-go-name": "Path"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreatePullReviewOptions": {
+      "description": "CreatePullReviewOptions are options to create a pull review",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CreatePullReviewComment"
+          },
+          "x-go-name": "Comments"
+        },
+        "commit_id": {
+          "type": "string",
+          "x-go-name": "CommitID"
+        },
+        "event": {
+          "$ref": "#/definitions/ReviewStateType"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateReleaseOption": {
       "description": "CreateReleaseOption options when creating a release",
       "type": "object",
@@ -13388,7 +13555,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "PullReviewComment": {
-      "description": "PullReviewComment represents a comment on a pull request",
+      "description": "PullReviewComment represents a comment on a pull request review",
       "type": "object",
       "properties": {
         "body": {
@@ -13899,6 +14066,20 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "IssueIndex"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "SubmitPullReviewOptions": {
+      "description": "SubmitPullReviewOptions are options to submit a pending pull review",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "event": {
+          "$ref": "#/definitions/ReviewStateType"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14908,7 +15089,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
+        "$ref": "#/definitions/SubmitPullReviewOptions"
       }
     },
     "redirect": {

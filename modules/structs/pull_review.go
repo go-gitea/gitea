@@ -23,7 +23,7 @@ const (
 	// ReviewStateUnknown state of pr is unknown
 	ReviewStateRequestReview ReviewStateType = "REQUEST_REVIEW"
 	// ReviewStateUnknown state of pr is unknown
-	ReviewStateUnknown ReviewStateType = "UNKNOWN"
+	ReviewStateUnknown ReviewStateType = ""
 )
 
 // PullReview represents a pull request review
@@ -43,7 +43,7 @@ type PullReview struct {
 	HTMLPullURL string `json:"pull_request_url"`
 }
 
-// PullReviewComment represents a comment on a pull request
+// PullReviewComment represents a comment on a pull request review
 type PullReviewComment struct {
 	ID       int64  `json:"id"`
 	Body     string `json:"body"`
@@ -64,4 +64,29 @@ type PullReviewComment struct {
 
 	HTMLURL     string `json:"html_url"`
 	HTMLPullURL string `json:"pull_request_url"`
+}
+
+// CreatePullReviewOptions are options to create a pull review
+type CreatePullReviewOptions struct {
+	Event    ReviewStateType           `json:"event"`
+	Body     string                    `json:"body"`
+	CommitID string                    `json:"commit_id"`
+	Comments []CreatePullReviewComment `json:"comments"`
+}
+
+// CreatePullReviewComment represent a review comment for creation api
+type CreatePullReviewComment struct {
+	// the tree path
+	Path string `json:"path"`
+	Body string `json:"body"`
+	// if comment to old file line or 0
+	OldLineNum int64 `json:"old_position"`
+	// if comment to new file line or 0
+	NewLineNum int64 `json:"new_position"`
+}
+
+// SubmitPullReviewOptions are options to submit a pending pull review
+type SubmitPullReviewOptions struct {
+	Event ReviewStateType `json:"event"`
+	Body  string          `json:"body"`
 }

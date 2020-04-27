@@ -795,12 +795,16 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 						m.Group("/reviews", func() {
-							m.Combo("").Get(repo.ListPullReviews)
+							m.Combo("").
+								Get(repo.ListPullReviews).
+								Post(reqToken(), bind(api.CreatePullRequestOption{}), repo.CreatePullReview)
 							m.Group("/:id", func() {
 								m.Combo("").
 									Get(repo.GetPullReview).
-									Delete(repo.DeletePullReview)
-								m.Combo("/comments").Get(repo.GetPullReviewComments)
+									Delete(reqToken(), repo.DeletePullReview).
+									Post(reqToken(), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
+								m.Combo("/comments").
+									Get(repo.GetPullReviewComments)
 							})
 						})
 
