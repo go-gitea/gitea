@@ -1,0 +1,27 @@
+<div class="ui new-label segment hide">
+	<form class="ui form" action="{{$.Link}}/new" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="ui grid">
+			<div class="three wide column">
+				<div class="ui small input">
+					<input class="new-label-input emoji-input" name="title" placeholder="{{.i18n.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
+				</div>
+			</div>
+			<div class="three wide column">
+				<div class="ui small fluid input">
+					<input class="new-label-desc-input" name="description" placeholder="{{.i18n.Tr "repo.issues.new_label_desc_placeholder"}}" maxlength="200">
+				</div>
+			</div>
+			<div class="color picker column">
+				<input class="color-picker" name="color" value="#70c24a" required maxlength="7">
+			</div>
+			<div class="column precolors">
+				{{template "repo/issue/label_precolors"}}
+			</div>
+			<div class="buttons">
+				<div class="ui blue small basic cancel button">{{.i18n.Tr "repo.milestones.cancel"}}</div>
+				<button class="ui green small button">{{.i18n.Tr "repo.issues.create_label"}}</button>
+			</div>
+		</div>
+	</form>
+</div>

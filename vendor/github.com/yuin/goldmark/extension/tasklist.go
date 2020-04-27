@@ -92,9 +92,9 @@ func (r *TaskCheckBoxHTMLRenderer) renderTaskCheckBox(w util.BufWriter, source [
 		w.WriteString(`<input disabled="" type="checkbox"`)
 	}
 	if r.XHTML {
-		w.WriteString(" />")
+		w.WriteString(" /> ")
 	} else {
-		w.WriteString(">")
+		w.WriteString("> ")
 	}
 	return gast.WalkContinue, nil
 }

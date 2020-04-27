@@ -14,7 +14,7 @@ func TestSignOut(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
-	req := NewRequest(t, "GET", "/user/logout")
+	req := NewRequest(t, "POST", "/user/logout")
 	session.MakeRequest(t, req, http.StatusFound)
 
 	// try to view a private repo, should fail

@@ -29,21 +29,21 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.Equal(t, int64(2), pr.Issue.ID)
 }
 
-func TestPullRequest_GetBaseRepo(t *testing.T) {
+func TestPullRequest_LoadBaseRepo(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	assert.NoError(t, pr.GetBaseRepo())
+	assert.NoError(t, pr.LoadBaseRepo())
 	assert.NotNil(t, pr.BaseRepo)
 	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
-	assert.NoError(t, pr.GetBaseRepo())
+	assert.NoError(t, pr.LoadBaseRepo())
 	assert.NotNil(t, pr.BaseRepo)
 	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
 }
 
-func TestPullRequest_GetHeadRepo(t *testing.T) {
+func TestPullRequest_LoadHeadRepo(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	assert.NoError(t, pr.GetHeadRepo())
+	assert.NoError(t, pr.LoadHeadRepo())
 	assert.NotNil(t, pr.HeadRepo)
 	assert.Equal(t, pr.HeadRepoID, pr.HeadRepo.ID)
 }

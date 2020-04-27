@@ -5,9 +5,9 @@
 package integrations
 
 import (
-	"crypto/rand"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -70,8 +70,8 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
 		t.Run("MergeFork", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
 			t.Run("CreatePRAndMerge", doMergeFork(httpContext, forkedUserCtx, "master", httpContext.Username+":master"))
-			t.Run("DeleteRepository", doAPIDeleteRepository(httpContext))
 			rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 		})
@@ -110,8 +110,8 @@ func testGit(t *testing.T, u *url.URL) {
 
 			t.Run("BranchProtectMerge", doBranchProtectPRMerge(&sshContext, dstPath))
 			t.Run("MergeFork", func(t *testing.T) {
+				defer PrintCurrentTest(t)()
 				t.Run("CreatePRAndMerge", doMergeFork(sshContext, forkedUserCtx, "master", sshContext.Username+":master"))
-				t.Run("DeleteRepository", doAPIDeleteRepository(sshContext))
 				rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 				mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			})
@@ -293,17 +293,34 @@ func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 
 func generateCommitWithNewData(size int, repoPath, email, fullName, prefix string) (string, error) {
 	//Generate random file
-	data := make([]byte, size)
-	_, err := rand.Read(data)
-	if err != nil {
-		return "", err
+	bufSize := 4 * 1024
+	if bufSize > size {
+		bufSize = size
 	}
+
+	buffer := make([]byte, bufSize)
+
 	tmpFile, err := ioutil.TempFile(repoPath, prefix)
 	if err != nil {
 		return "", err
 	}
 	defer tmpFile.Close()
-	_, err = tmpFile.Write(data)
+	written := 0
+	for written < size {
+		n := size - written
+		if n > bufSize {
+			n = bufSize
+		}
+		_, err := rand.Read(buffer[:n])
+		if err != nil {
+			return "", err
+		}
+		n, err = tmpFile.Write(buffer[:n])
+		if err != nil {
+			return "", err
+		}
+		written += n
+	}
 	if err != nil {
 		return "", err
 	}
@@ -351,6 +368,17 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected")(t)
 			assert.NoError(t, err)
 		})
+		t.Run("GenerateCommit", func(t *testing.T) {
+			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			assert.NoError(t, err)
+		})
+		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected-2"))
+		var pr2 api.PullRequest
+		t.Run("CreatePullRequest", func(t *testing.T) {
+			pr2, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "unprotected", "unprotected-2")(t)
+			assert.NoError(t, err)
+		})
+		t.Run("MergePR2", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr2.Index))
 		t.Run("MergePR", doAPIMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 		t.Run("ProtectProtectedBranchWhitelist", doProtectBranch(ctx, "protected", baseCtx.Username))
@@ -402,14 +430,69 @@ func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string) 
 
 func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) func(t *testing.T) {
 	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
 		var pr api.PullRequest
 		var err error
 		t.Run("CreatePullRequest", func(t *testing.T) {
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
 		})
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		var diffStr string
+		t.Run("GetDiff", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			diffStr = resp.Body.String()
+		})
 		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
-
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		t.Run("EnsureDiffNoChange", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, diffStr, resp.Body.String())
+		})
+		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		t.Run("EnsureDiffNoChange", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, diffStr, resp.Body.String())
+		})
+		t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
+		t.Run("EnsureCanSeePull", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			ctx.Session.MakeRequest(t, req, http.StatusOK)
+		})
+		t.Run("EnsureDiffNoChange", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
+			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, diffStr, resp.Body.String())
+		})
 	}
 }
 
@@ -449,6 +532,13 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		_, err = git.NewCommand("remote", "add", "origin", u.String()).RunInDir(tmpDir)
 		assert.NoError(t, err)
 
+		invalidCtx := ctx
+		invalidCtx.Reponame = fmt.Sprintf("invalid/repo-tmp-push-create-%s", u.Scheme)
+		u.Path = invalidCtx.GitPath()
+
+		_, err = git.NewCommand("remote", "add", "invalid", u.String()).RunInDir(tmpDir)
+		assert.NoError(t, err)
+
 		// Push to create disabled
 		setting.Repository.EnablePushCreateUser = false
 		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
@@ -456,6 +546,12 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 
 		// Push to create enabled
 		setting.Repository.EnablePushCreateUser = true
+
+		// Invalid repo
+		_, err = git.NewCommand("push", "invalid", "master").RunInDir(tmpDir)
+		assert.Error(t, err)
+
+		// Valid repo
 		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
 		assert.NoError(t, err)
 
@@ -464,5 +560,16 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
 		assert.True(t, repo.IsPrivate)
+	}
+}
+
+func doBranchDelete(ctx APITestContext, owner, repo, branch string) func(*testing.T) {
+	return func(t *testing.T) {
+		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/branches", url.PathEscape(owner), url.PathEscape(repo)))
+
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/branches/delete?name=%s", url.PathEscape(owner), url.PathEscape(repo), url.QueryEscape(branch)), map[string]string{
+			"_csrf": csrf,
+		})
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
 	}
 }

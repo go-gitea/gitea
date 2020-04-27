@@ -5,15 +5,6 @@
 package queue
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"reflect"
-	"sync"
-	"time"
-
-	"code.gitea.io/gitea/modules/log"
-
 	"gitea.com/lunny/levelqueue"
 )
 
@@ -22,27 +13,13 @@ const LevelQueueType Type = "level"
 
 // LevelQueueConfiguration is the configuration for a LevelQueue
 type LevelQueueConfiguration struct {
-	DataDir      string
-	QueueLength  int
-	BatchLength  int
-	Workers      int
-	MaxWorkers   int
-	BlockTimeout time.Duration
-	BoostTimeout time.Duration
-	BoostWorkers int
-	Name         string
+	ByteFIFOQueueConfiguration
+	DataDir string
 }
 
 // LevelQueue implements a disk library queue
 type LevelQueue struct {
-	pool       *WorkerPool
-	queue      *levelqueue.Queue
-	closed     chan struct{}
-	terminated chan struct{}
-	lock       sync.Mutex
-	exemplar   interface{}
-	workers    int
-	name       string
+	*ByteFIFOQueue
 }
 
 // NewLevelQueue creates a ledis local queue
@@ -53,159 +30,69 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	}
 	config := configInterface.(LevelQueueConfiguration)
 
-	internal, err := levelqueue.Open(config.DataDir)
+	byteFIFO, err := NewLevelQueueByteFIFO(config.DataDir)
 	if err != nil {
 		return nil, err
 	}
 
-	dataChan := make(chan Data, config.QueueLength)
-	ctx, cancel := context.WithCancel(context.Background())
+	byteFIFOQueue, err := NewByteFIFOQueue(LevelQueueType, byteFIFO, handle, config.ByteFIFOQueueConfiguration, exemplar)
+	if err != nil {
+		return nil, err
+	}
 
 	queue := &LevelQueue{
-		pool: &WorkerPool{
-			baseCtx:            ctx,
-			cancel:             cancel,
-			batchLength:        config.BatchLength,
-			handle:             handle,
-			dataChan:           dataChan,
-			blockTimeout:       config.BlockTimeout,
-			boostTimeout:       config.BoostTimeout,
-			boostWorkers:       config.BoostWorkers,
-			maxNumberOfWorkers: config.MaxWorkers,
-		},
-		queue:      internal,
-		exemplar:   exemplar,
-		closed:     make(chan struct{}),
-		terminated: make(chan struct{}),
-		workers:    config.Workers,
-		name:       config.Name,
+		ByteFIFOQueue: byteFIFOQueue,
 	}
-	queue.pool.qid = GetManager().Add(queue, LevelQueueType, config, exemplar, queue.pool)
+	queue.qid = GetManager().Add(queue, LevelQueueType, config, exemplar)
 	return queue, nil
 }
 
-// Run starts to run the queue
-func (l *LevelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
-	atShutdown(context.Background(), l.Shutdown)
-	atTerminate(context.Background(), l.Terminate)
+var _ (ByteFIFO) = &LevelQueueByteFIFO{}
 
-	go func() {
-		_ = l.pool.AddWorkers(l.workers, 0)
-	}()
-
-	go l.readToChan()
-
-	log.Trace("LevelQueue: %s Waiting til closed", l.name)
-	<-l.closed
-
-	log.Trace("LevelQueue: %s Waiting til done", l.name)
-	l.pool.Wait()
-
-	log.Trace("LevelQueue: %s Waiting til cleaned", l.name)
-	ctx, cancel := context.WithCancel(context.Background())
-	atTerminate(ctx, cancel)
-	l.pool.CleanUp(ctx)
-	cancel()
-	log.Trace("LevelQueue: %s Cleaned", l.name)
-
+// LevelQueueByteFIFO represents a ByteFIFO formed from a LevelQueue
+type LevelQueueByteFIFO struct {
+	internal *levelqueue.Queue
 }
 
-func (l *LevelQueue) readToChan() {
-	for {
-		select {
-		case <-l.closed:
-			// tell the pool to shutdown.
-			l.pool.cancel()
-			return
-		default:
-			bs, err := l.queue.RPop()
-			if err != nil {
-				if err != levelqueue.ErrNotFound {
-					log.Error("LevelQueue: %s Error on RPop: %v", l.name, err)
-				}
-				time.Sleep(time.Millisecond * 100)
-				continue
-			}
-
-			if len(bs) == 0 {
-				time.Sleep(time.Millisecond * 100)
-				continue
-			}
-
-			var data Data
-			if l.exemplar != nil {
-				t := reflect.TypeOf(l.exemplar)
-				n := reflect.New(t)
-				ne := n.Elem()
-				err = json.Unmarshal(bs, ne.Addr().Interface())
-				data = ne.Interface().(Data)
-			} else {
-				err = json.Unmarshal(bs, &data)
-			}
-			if err != nil {
-				log.Error("LevelQueue: %s Failed to unmarshal with error: %v", l.name, err)
-				time.Sleep(time.Millisecond * 100)
-				continue
-			}
-
-			log.Trace("LevelQueue %s: Task found: %#v", l.name, data)
-			l.pool.Push(data)
-
-		}
-	}
-}
-
-// Push will push the indexer data to queue
-func (l *LevelQueue) Push(data Data) error {
-	if l.exemplar != nil {
-		// Assert data is of same type as r.exemplar
-		value := reflect.ValueOf(data)
-		t := value.Type()
-		exemplarType := reflect.ValueOf(l.exemplar).Type()
-		if !t.AssignableTo(exemplarType) || data == nil {
-			return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, l.exemplar, l.name)
-		}
-	}
-	bs, err := json.Marshal(data)
+// NewLevelQueueByteFIFO creates a ByteFIFO formed from a LevelQueue
+func NewLevelQueueByteFIFO(dataDir string) (*LevelQueueByteFIFO, error) {
+	internal, err := levelqueue.Open(dataDir)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return l.queue.LPush(bs)
+
+	return &LevelQueueByteFIFO{
+		internal: internal,
+	}, nil
 }
 
-// Shutdown this queue and stop processing
-func (l *LevelQueue) Shutdown() {
-	l.lock.Lock()
-	defer l.lock.Unlock()
-	log.Trace("LevelQueue: %s Shutdown", l.name)
-	select {
-	case <-l.closed:
-	default:
-		close(l.closed)
-	}
-}
-
-// Terminate this queue and close the queue
-func (l *LevelQueue) Terminate() {
-	log.Trace("LevelQueue: %s Terminating", l.name)
-	l.Shutdown()
-	l.lock.Lock()
-	select {
-	case <-l.terminated:
-		l.lock.Unlock()
-	default:
-		close(l.terminated)
-		l.lock.Unlock()
-		if err := l.queue.Close(); err != nil && err.Error() != "leveldb: closed" {
-			log.Error("Error whilst closing internal queue in %s: %v", l.name, err)
+// PushFunc will push data into the fifo
+func (fifo *LevelQueueByteFIFO) PushFunc(data []byte, fn func() error) error {
+	if fn != nil {
+		if err := fn(); err != nil {
+			return err
 		}
-
 	}
+	return fifo.internal.LPush(data)
 }
 
-// Name returns the name of this queue
-func (l *LevelQueue) Name() string {
-	return l.name
+// Pop pops data from the start of the fifo
+func (fifo *LevelQueueByteFIFO) Pop() ([]byte, error) {
+	data, err := fifo.internal.RPop()
+	if err != nil && err != levelqueue.ErrNotFound {
+		return nil, err
+	}
+	return data, nil
+}
+
+// Close this fifo
+func (fifo *LevelQueueByteFIFO) Close() error {
+	return fifo.internal.Close()
+}
+
+// Len returns the length of the fifo
+func (fifo *LevelQueueByteFIFO) Len() int64 {
+	return fifo.internal.Len()
 }
 
 func init() {

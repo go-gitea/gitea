@@ -553,6 +553,23 @@ func GetTeam(orgID int64, name string) (*Team, error) {
 	return getTeam(x, orgID, name)
 }
 
+// GetTeamIDsByNames returns a slice of team ids corresponds to names.
+func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
+	ids := make([]int64, 0, len(names))
+	for _, name := range names {
+		u, err := GetTeam(orgID, name)
+		if err != nil {
+			if ignoreNonExistent {
+				continue
+			} else {
+				return nil, err
+			}
+		}
+		ids = append(ids, u.ID)
+	}
+	return ids, nil
+}
+
 // getOwnerTeam returns team by given team name and organization.
 func getOwnerTeam(e Engine, orgID int64) (*Team, error) {
 	return getTeam(e, orgID, ownerTeamName)
@@ -572,6 +589,22 @@ func getTeamByID(e Engine, teamID int64) (*Team, error) {
 // GetTeamByID returns team by given ID.
 func GetTeamByID(teamID int64) (*Team, error) {
 	return getTeamByID(x, teamID)
+}
+
+// GetTeamNamesByID returns team's lower name from a list of team ids.
+func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
+	if len(teamIDs) == 0 {
+		return []string{}, nil
+	}
+
+	var teamNames []string
+	err := x.Table("team").
+		Select("lower_name").
+		In("id", teamIDs).
+		Asc("name").
+		Find(&teamNames)
+
+	return teamNames, err
 }
 
 // UpdateTeam updates information of team.
@@ -884,19 +917,12 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 		}
 
 		// Remove watches from now unaccessible
-		has, err := hasAccess(e, userID, repo)
-		if err != nil {
-			return err
-		} else if has {
-			continue
-		}
-
-		if err = watchRepo(e, userID, repo.ID, false); err != nil {
+		if err := repo.reconsiderWatches(e, userID); err != nil {
 			return err
 		}
 
-		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := removeIssueWatchersByRepoID(e, userID, repo.ID); err != nil {
+		// Remove issue assignments from now unaccessible
+		if err := repo.reconsiderIssueAssignees(e, userID); err != nil {
 			return err
 		}
 	}
@@ -1039,12 +1065,14 @@ func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
 		return err
 	}
 
-	if _, err = sess.Insert(units); err != nil {
-		errRollback := sess.Rollback()
-		if errRollback != nil {
-			log.Error("UpdateTeamUnits sess.Rollback: %v", errRollback)
+	if len(units) > 0 {
+		if _, err = sess.Insert(units); err != nil {
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("UpdateTeamUnits sess.Rollback: %v", errRollback)
+			}
+			return err
 		}
-		return err
 	}
 
 	return sess.Commit()
