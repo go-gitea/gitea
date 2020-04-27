@@ -5,9 +5,9 @@
 package integrations
 
 import (
-	"crypto/rand"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -291,17 +291,34 @@ func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 
 func generateCommitWithNewData(size int, repoPath, email, fullName, prefix string) (string, error) {
 	//Generate random file
-	data := make([]byte, size)
-	_, err := rand.Read(data)
-	if err != nil {
-		return "", err
+	bufSize := 4 * 1024
+	if bufSize > size {
+		bufSize = size
 	}
+
+	buffer := make([]byte, bufSize)
+
 	tmpFile, err := ioutil.TempFile(repoPath, prefix)
 	if err != nil {
 		return "", err
 	}
 	defer tmpFile.Close()
-	_, err = tmpFile.Write(data)
+	written := 0
+	for written < size {
+		n := size - written
+		if n > bufSize {
+			n = bufSize
+		}
+		_, err := rand.Read(buffer[:n])
+		if err != nil {
+			return "", err
+		}
+		n, err = tmpFile.Write(buffer[:n])
+		if err != nil {
+			return "", err
+		}
+		written += n
+	}
 	if err != nil {
 		return "", err
 	}
@@ -484,9 +501,6 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 
 		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
 		assert.NoError(t, err)
-
-		_, err = git.NewCommand("clone", u.String()).RunInDir(tmpDir)
-		assert.Error(t, err)
 
 		err = git.InitRepository(tmpDir, false)
 		assert.NoError(t, err)
