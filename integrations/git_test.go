@@ -499,63 +499,40 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer PrintCurrentTest(t)()
+
+		// create a context for a currently non-existent repository
 		ctx.Reponame = fmt.Sprintf("repo-tmp-push-create-%s", u.Scheme)
 		u.Path = ctx.GitPath()
 
+		// Create a temporary directory
 		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
 		assert.NoError(t, err)
 
-		err = git.InitRepository(tmpDir, false)
-		assert.NoError(t, err)
+		// Assert that cloning from a non-existent repository does not create it
+		t.Run("FailToCloneFromNonExistentRepository", doGitCloneFail(tmpDir, u))
 
-		_, err = os.Create(filepath.Join(tmpDir, "test.txt"))
-		assert.NoError(t, err)
+		// Now create local repository to push as our test and set its origin
+		t.Run("InitTestRepository", doGitInitTestRepository(tmpDir))
+		t.Run("AddRemote", doGitAddRemote(tmpDir, "origin", u))
 
-		err = git.AddChanges(tmpDir, true)
-		assert.NoError(t, err)
+		// Disable "Push To Create" and attempt to push
+		setting.Repository.EnablePushCreateUser = false
+		t.Run("FailToPushAndCreateTestRepository", doGitPushTestRepositoryFail(tmpDir, "origin", "master"))
 
-		err = git.CommitChanges(tmpDir, git.CommitChangesOptions{
-			Committer: &git.Signature{
-				Email: "user2@example.com",
-				Name:  "User Two",
-				When:  time.Now(),
-			},
-			Author: &git.Signature{
-				Email: "user2@example.com",
-				Name:  "User Two",
-				When:  time.Now(),
-			},
-			Message: fmt.Sprintf("Testing push create @ %v", time.Now()),
-		})
-		assert.NoError(t, err)
+		// Enable "Push To Create" and push
+		setting.Repository.EnablePushCreateUser = true
+		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
 
-		_, err = git.NewCommand("remote", "add", "origin", u.String()).RunInDir(tmpDir)
-		assert.NoError(t, err)
-
+		// Now add a remote that is invalid to "Push To Create"
 		invalidCtx := ctx
 		invalidCtx.Reponame = fmt.Sprintf("invalid/repo-tmp-push-create-%s", u.Scheme)
 		u.Path = invalidCtx.GitPath()
+		t.Run("AddInvalidRemote", doGitAddRemote(tmpDir, "invalid", u))
 
-		_, err = git.NewCommand("remote", "add", "invalid", u.String()).RunInDir(tmpDir)
-		assert.NoError(t, err)
+		// Fail to "Push To Create" the invalid
+		t.Run("FailToPushAndCreateInvalidTestRepository", doGitPushTestRepositoryFail(tmpDir, "invalid", "master"))
 
-		// Push to create disabled
-		setting.Repository.EnablePushCreateUser = false
-		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
-		assert.Error(t, err)
-
-		// Push to create enabled
-		setting.Repository.EnablePushCreateUser = true
-
-		// Invalid repo
-		_, err = git.NewCommand("push", "invalid", "master").RunInDir(tmpDir)
-		assert.Error(t, err)
-
-		// Valid repo
-		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
-		assert.NoError(t, err)
-
-		// Fetch repo from database
+		// Finally, fetch repo from database and ensure the correct repository has been created
 		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
