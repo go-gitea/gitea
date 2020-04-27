@@ -260,26 +260,27 @@ func ListIssues(ctx *context.APIContext) {
 	if part := strings.Split(ctx.Query("milestones"), ","); len(part) > 0 {
 		for i := range part {
 			mile, err := models.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
-			if err != nil {
-				if models.IsErrMilestoneNotExist(err) {
-					id, err := strconv.ParseInt(part[i], 10, 64)
-					if err != nil {
-						continue
-					}
-					mile, err = models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, id)
-					if err != nil {
-						if models.IsErrMilestoneNotExist(err) {
-							continue
-						}
-						ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
-						return
-					}
-				} else {
-					ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoIDANDName", err)
-					return
-				}
+			if err == nil {
+				mileIDs = append(mileIDs, mile.ID)
+				continue
 			}
-			mileIDs = append(mileIDs, mile.ID)
+			if !models.IsErrMilestoneNotExist(err) {
+				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoIDANDName", err)
+				return
+			}
+			id, err := strconv.ParseInt(part[i], 10, 64)
+			if err != nil {
+				continue
+			}
+			mile, err = models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, id)
+			if err == nil {
+				mileIDs = append(mileIDs, mile.ID)
+				continue
+			}
+			if models.IsErrMilestoneNotExist(err) {
+				continue
+			}
+			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
 		}
 	}
 
