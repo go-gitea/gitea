@@ -835,3 +835,8 @@ steps:
         from_secret: discord_webhook_id
       webhook_token:
         from_secret: discord_webhook_token
+---
+kind: signature
+hmac: 9d0f560fde813881e249374cc4ca08356e2e2d465e459b93e3b079e41c051ec0
+
+...
