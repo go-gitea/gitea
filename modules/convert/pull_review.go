@@ -16,16 +16,21 @@ func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) 
 		return nil, err
 	}
 
+	auth := false
+	if doer != nil {
+		auth = doer.IsAdmin || doer.ID == r.ReviewerID
+	}
+
 	result := &api.PullReview{
-		ID:        r.ID,
-		Reviewer:  ToUser(r.Reviewer, doer != nil, doer.IsAdmin || doer.ID == r.ReviewerID),
-		State:     api.ReviewStateUnknown,
-		Body:      r.Content,
-		CommitID:  r.CommitID,
-		Stale:     r.Stale,
-		Official:  r.Official,
-		Submitted: r.CreatedUnix.AsTime(),
-		PRURL:     r.Issue.HTMLURL(),
+		ID:          r.ID,
+		Reviewer:    ToUser(r.Reviewer, doer != nil, auth),
+		State:       api.ReviewStateUnknown,
+		Body:        r.Content,
+		CommitID:    r.CommitID,
+		Stale:       r.Stale,
+		Official:    r.Official,
+		Submitted:   r.CreatedUnix.AsTime(),
+		HTMLPullURL: r.Issue.HTMLURL(),
 	}
 
 	switch r.Type {
@@ -67,13 +72,18 @@ func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.P
 
 	apiComments := make([]*api.PullReviewComment, 0, len(review.CodeComments))
 
+	auth := false
+	if doer != nil {
+		auth = doer.IsAdmin || doer.ID == review.ReviewerID
+	}
+
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, comment := range comments {
 				apiComment := &api.PullReviewComment{
 					ID:           comment.ID,
 					Body:         comment.Content,
-					Reviewer:     ToUser(review.Reviewer, doer != nil, doer.IsAdmin || doer.ID == review.ReviewerID),
+					Reviewer:     ToUser(review.Reviewer, doer != nil, auth),
 					ReviewID:     review.ID,
 					Created:      comment.CreatedUnix.AsTime(),
 					Updated:      comment.UpdatedUnix.AsTime(),
