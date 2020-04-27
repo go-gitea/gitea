@@ -86,15 +86,23 @@ func (r *Review) LoadCodeComments() error {
 }
 
 func (r *Review) loadIssue(e Engine) (err error) {
-	r.Issue, err = getIssueByID(e, r.IssueID)
+	if r.Issue == nil {
+		r.Issue, err = getIssueByID(e, r.IssueID)
+	}
 	return
 }
 
 func (r *Review) loadReviewer(e Engine) (err error) {
-	if r.ReviewerID == 0 {
-		return nil
+	if r.Reviewer == nil {
+		if r.ReviewerID == 0 {
+			return nil
+		}
+		r.Reviewer, err = getUserByID(e, r.ReviewerID)
+		if err != nil && IsErrUserNotExist(err) {
+			r.Reviewer = NewGhostUser()
+			err = nil
+		}
 	}
-	r.Reviewer, err = getUserByID(e, r.ReviewerID)
 	return
 }
 

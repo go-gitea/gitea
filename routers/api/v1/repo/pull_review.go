@@ -226,12 +226,6 @@ func GetPullReviewComments(ctx *context.APIContext) {
 		return
 	}
 
-	err = review.Issue.LoadRepo()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
-		return
-	}
-
 	apiComments, err := convert.ToPullReviewCommentList(review, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convertToPullReviewCommentList", err)

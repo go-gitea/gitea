@@ -5,6 +5,8 @@
 package convert
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -42,6 +44,8 @@ func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) 
 		result.State = api.ReviewStateComment
 	case models.ReviewTypePending:
 		result.State = api.ReviewStatePending
+	case models.ReviewTypeRequest:
+		result.State = api.ReviewStateRequestReview
 	}
 
 	return result, nil
@@ -90,7 +94,7 @@ func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.P
 					Path:         comment.TreePath,
 					CommitID:     comment.CommitSHA,
 					OrigCommitID: comment.OldRef,
-					DiffHunk:     comment.Patch,
+					DiffHunk:     patch2diff(comment.Patch),
 					HTMLURL:      comment.HTMLURL(),
 					HTMLPullURL:  review.Issue.APIURL(),
 				}
@@ -105,4 +109,12 @@ func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.P
 		}
 	}
 	return apiComments, nil
+}
+
+func patch2diff(patch string) string {
+	split := strings.Split(patch, "\n@@")
+	if len(split) == 2 {
+		return "@@" + split[1]
+	}
+	return ""
 }
