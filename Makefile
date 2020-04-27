@@ -344,6 +344,7 @@ generate-ini-sqlite:
 
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test generate-ini-sqlite
+	df -h ; cat /proc/meminfo || true
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
 
 .PHONY: test-sqlite\#%
@@ -364,6 +365,7 @@ generate-ini-mysql:
 
 .PHONY: test-mysql
 test-mysql: integrations.mysql.test generate-ini-mysql
+	df -h ; cat /proc/meminfo || true
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
 
 .PHONY: test-mysql\#%
@@ -384,6 +386,7 @@ generate-ini-mysql8:
 
 .PHONY: test-mysql8
 test-mysql8: integrations.mysql8.test generate-ini-mysql8
+	df -h ; cat /proc/meminfo || true
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./integrations.mysql8.test
 
 .PHONY: test-mysql8\#%
@@ -405,6 +408,7 @@ generate-ini-pgsql:
 
 .PHONY: test-pgsql
 test-pgsql: integrations.pgsql.test generate-ini-pgsql
+	df -h ; cat /proc/meminfo || true
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
 
 .PHONY: test-pgsql\#%
@@ -425,6 +429,7 @@ generate-ini-mssql:
 
 .PHONY: test-mssql
 test-mssql: integrations.mssql.test generate-ini-mssql
+	df -h ; cat /proc/meminfo || true
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.mssql.test
 
 .PHONY: test-mssql\#%
