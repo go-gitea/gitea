@@ -312,7 +312,7 @@ steps:
       - apt-get install -y strace
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite#TestAPIDeleteFile
     environment:
-      GOPROXY: off
+      GOPROXY: on
       TAGS: bindata
       USE_REPO_TEST_DIR: 1
     depends_on:
