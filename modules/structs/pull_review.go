@@ -20,7 +20,7 @@ const (
 	ReviewStateComment ReviewStateType = "COMMENT"
 	// ReviewStateRequestChanges changes for pr are requested
 	ReviewStateRequestChanges ReviewStateType = "REQUEST_CHANGES"
-	// ReviewStateUnknown state of pr is unknown
+	// ReviewStateRequestReview review is requested from user
 	ReviewStateRequestReview ReviewStateType = "REQUEST_REVIEW"
 	// ReviewStateUnknown state of pr is unknown
 	ReviewStateUnknown ReviewStateType = ""
