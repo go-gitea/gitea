@@ -252,7 +252,6 @@ type PushOptions struct {
 func Push(repoPath string, opts PushOptions) error {
 	start := time.Now()
 	cmd := NewCommand("push")
-	cmd.AddArguments("-v")
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}

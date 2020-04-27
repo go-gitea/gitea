@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 date +%H:%M:%S; echo "Running update.d/gitea"
-strace -f -s 2000 -tTfe trace=open,read,write "$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" update $1 $2 $3
+"$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" update $1 $2 $3
 echo "Gitea done"; date +%H:%M:%S

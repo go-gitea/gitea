@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 )
 
 // env keys for git hooks need
@@ -42,8 +41,6 @@ func PushingEnvironment(doer *User, repo *Repository) []string {
 
 // FullPushingEnvironment returns an os environment to allow hooks to work on push
 func FullPushingEnvironment(author, committer *User, repo *Repository, repoName string, prID int64) []string {
-	start := time.Now()
-	fmt.Printf("%v FullPushingEnvironment\n", time.Now().Format("15:04:05.000000"))
 	isWiki := "false"
 	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = "true"
@@ -54,7 +51,6 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 
 	// We should add "SSH_ORIGINAL_COMMAND=gitea-internal",
 	// once we have hook and pushing infrastructure working correctly
-	fmt.Printf("FullPushingEnvironment time taken: %v\n\n", time.Since(start))
 	return append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,
@@ -68,10 +64,6 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 		ProtectedBranchRepoID+"="+fmt.Sprintf("%d", repo.ID),
 		ProtectedBranchPRID+"="+fmt.Sprintf("%d", prID),
 		"SSH_ORIGINAL_COMMAND=gitea-internal",
-		"GIT_TRACE=true",
-		"GIT_TRACE_PACK_ACCESS=true",
-		"GIT_TRACE_PERFORMANCE=true",
-		"GIT_TRACE_SETUP=true",
 	)
 
 }

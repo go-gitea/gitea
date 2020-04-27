@@ -295,7 +295,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.14
+    image: golang:1.13
     commands:
       - make backend
     environment:
@@ -305,7 +305,7 @@ steps:
 
   - name: test-sqlite
     pull: always
-    image: golang:1.14
+    image: golang:1.13
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs

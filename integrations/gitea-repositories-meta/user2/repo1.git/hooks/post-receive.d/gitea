@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 date +%H:%M:%S; echo "Running post-receive.d/gitea"
-strace -f -s 2000 -tTfe trace=open,read,write "$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" post-receive
+"$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" post-receive
 echo "Gitea done"; date +%H:%M:%S
