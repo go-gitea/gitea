@@ -8,33 +8,57 @@ import (
 	"time"
 )
 
-// PullRequestReview represents a pull request review
-type PullRequestReview struct {
-	ID       int64  `json:"id"`
-	PRURL    string `json:"pull_request_url"`
-	Reviewer *User  `json:"user"`
-	Body     string `json:"body"`
-	CommitID string `json:"commit_id"`
-	Type     string `json:"type"`
+// ReviewStateType review state type
+type ReviewStateType string
 
+const (
+	// ReviewStateApproved pr is approved
+	ReviewStateApproved ReviewStateType = "APPROVED"
+	// ReviewStatePending pr state is pending
+	ReviewStatePending ReviewStateType = "PENDING"
+	// ReviewStateComment is a comment review
+	ReviewStateComment ReviewStateType = "COMMENT"
+	// ReviewStateRequestChanges changes for pr are requested
+	ReviewStateRequestChanges ReviewStateType = "REQUEST_CHANGES"
+	// ReviewStateUnknown state of pr is unknown
+	ReviewStateUnknown ReviewStateType = "UNKNOWN"
+)
+
+// PullReview represents a pull request review
+type PullReview struct {
+	ID       int64           `json:"id"`
+	Reviewer *User           `json:"user"`
+	State    ReviewStateType `json:"state"`
+	Body     string          `json:"body"`
+	CommitID string          `json:"commit_id"`
+	Stale    bool            `json:"stale"`
+	Official bool            `json:"official"`
 	// swagger:strfmt date-time
-	Created time.Time `json:"created_at"`
+	Submitted time.Time `json:"submitted_at"`
 
-	// TODO: is there a way to get a URL to the review itself?
-	// HTMLURL  string `json:"html_url"`
+	PRURL string `json:"pull_request_url"`
 }
 
-// PullRequestReviewComment represents a comment on a pull request
-type PullRequestReviewComment struct {
-	ID         int64  `json:"id"`
-	URL        string `json:"url"`
-	PRURL      string `json:"pull_request_url"`
-	ReviewID   int64  `json:"pull_request_review_id"`
-	Path       string `json:"path"`
-	CommitID   string `json:"commit_id"`
-	DiffHunk   string `json:"diff_hunk"`
-	LineNum    uint64 `json:"position"`
-	OldLineNum uint64 `json:"original_position"`
-	Reviewer   *User  `json:"user"`
-	Body       string `json:"body"`
+// PullReviewComment represents a comment on a pull request
+type PullReviewComment struct {
+	ID       int64  `json:"id"`
+	Body     string `json:"body"`
+	Reviewer *User  `json:"user"`
+	ReviewID int64  `json:"pull_request_review_id"`
+
+	InReplayToID int64 `json:"in_reply_to_id"`
+	// swagger:strfmt date-time
+	Created time.Time `json:"created_at"`
+	// swagger:strfmt date-time
+	Updated time.Time `json:"updated_at"`
+
+	Path         string `json:"path"`
+	CommitID     string `json:"commit_id"`
+	OrigCommitID string `json:"original_commit_id"`
+	DiffHunk     string `json:"diff_hunk"`
+	LineNum      uint64 `json:"position"`
+	OldLineNum   uint64 `json:"original_position"`
+
+	HTMLURL     string `json:"html_url"`
+	HTMLPullURL string `json:"pull_request_url"`
 }

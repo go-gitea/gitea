@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/convert"
 )
 
 // ListPullReviews lists all reviews of a pull request
@@ -72,42 +72,10 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	var apiReviews []structs.PullRequestReview
-	for _, review := range allReviews {
-		// show pending reviews only for the user who created them
-		if review.Type == models.ReviewTypePending && review.ReviewerID != ctx.User.ID {
-			continue
-		}
-
-		if err = review.LoadReviewer(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadReviewer", err)
-			return
-		}
-
-		var reviewType string
-		switch review.Type {
-		case models.ReviewTypeApprove:
-			reviewType = "APPROVE"
-		case models.ReviewTypeReject:
-			reviewType = "REJECT"
-		case models.ReviewTypeComment:
-			reviewType = "COMMENT"
-		case models.ReviewTypePending:
-			reviewType = "PENDING"
-		default:
-			reviewType = "UNKNOWN"
-
-		}
-
-		apiReviews = append(apiReviews, structs.PullRequestReview{
-			ID:       review.ID,
-			PRURL:    pr.Issue.APIURL(),
-			Reviewer: review.Reviewer.APIFormat(),
-			Body:     review.Content,
-			Created:  review.CreatedUnix.AsTime(),
-			CommitID: review.CommitID,
-			Type:     reviewType,
-		})
+	apiReviews, err := convert.ToPullReviewList(allReviews, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convertToPullReviewList", err)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, &apiReviews)
@@ -176,51 +144,18 @@ func GetPullReview(ctx *context.APIContext) {
 	}
 
 	// make sure that the user has access to this review if it is pending
-	if review.Type == models.ReviewTypePending && review.ReviewerID != ctx.User.ID {
+	if review.Type == models.ReviewTypePending && (ctx.User.IsAdmin || review.ReviewerID != ctx.User.ID) {
 		ctx.NotFound("GetReviewByID", err)
 		return
 	}
 
-	if err = pr.LoadIssue(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
+	apiReview, err := convert.ToPullReview(review, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convertToPullReview", err)
 		return
 	}
 
-	if err = pr.Issue.LoadRepo(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
-		return
-	}
-
-	if err = review.LoadReviewer(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadReviewer", err)
-		return
-	}
-
-	var reviewType string
-	switch review.Type {
-	case models.ReviewTypeApprove:
-		reviewType = "APPROVE"
-	case models.ReviewTypeReject:
-		reviewType = "REJECT"
-	case models.ReviewTypeComment:
-		reviewType = "COMMENT"
-	case models.ReviewTypePending:
-		reviewType = "PENDING"
-	default:
-		reviewType = "UNKNOWN"
-
-	}
-	apiReview := structs.PullRequestReview{
-		ID:       review.ID,
-		PRURL:    pr.Issue.APIURL(),
-		Reviewer: review.Reviewer.APIFormat(),
-		Body:     review.Content,
-		Created:  review.CreatedUnix.AsTime(),
-		CommitID: review.CommitID,
-		Type:     reviewType,
-	}
-
-	ctx.JSON(http.StatusOK, &apiReview)
+	ctx.JSON(http.StatusOK, apiReview)
 }
 
 // GetPullReviewComments lists all comments of a pull request review
@@ -291,55 +226,17 @@ func GetPullReviewComments(ctx *context.APIContext) {
 		return
 	}
 
-	err = pr.LoadIssue()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
-		return
-	}
-
-	err = review.LoadAttributes()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
-		return
-	}
-
-	err = review.LoadCodeComments()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadCodeComments", err)
-		return
-	}
-
 	err = review.Issue.LoadRepo()
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
 		return
 	}
 
-	var apiComments []structs.PullRequestReviewComment
-
-	for _, lines := range review.CodeComments {
-		for _, comments := range lines {
-			for _, comment := range comments {
-				apiComment := structs.PullRequestReviewComment{
-					ID:       comment.ID,
-					URL:      comment.HTMLURL(),
-					PRURL:    review.Issue.APIURL(),
-					ReviewID: review.ID,
-					Path:     comment.TreePath,
-					CommitID: comment.CommitSHA,
-					DiffHunk: comment.Patch,
-					Reviewer: review.Reviewer.APIFormat(),
-					Body:     comment.Content,
-				}
-				if comment.Line < 0 {
-					apiComment.OldLineNum = comment.UnsignedLine()
-				} else {
-					apiComment.LineNum = comment.UnsignedLine()
-				}
-				apiComments = append(apiComments, apiComment)
-			}
-		}
+	apiComments, err := convert.ToPullReviewCommentList(review, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convertToPullReviewCommentList", err)
+		return
 	}
 
-	ctx.JSON(http.StatusOK, &apiComments)
+	ctx.JSON(http.StatusOK, apiComments)
 }

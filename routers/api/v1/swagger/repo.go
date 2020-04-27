@@ -145,28 +145,28 @@ type swaggerResponsePullRequestList struct {
 // swagger:response PullReview
 type swaggerResponsePullReview struct {
 	// in:body
-	Body api.PullRequestReview `json:"body"`
+	Body api.PullReview `json:"body"`
 }
 
 // PullReviewList
 // swagger:response PullReviewList
 type swaggerResponsePullReviewList struct {
 	// in:body
-	Body []api.PullRequestReview `json:"body"`
+	Body []api.PullReview `json:"body"`
 }
 
 // PullComment
 // swagger:response PullReviewComment
 type swaggerPullReviewComment struct {
 	// in:body
-	Body api.PullRequestReviewComment `json:"body"`
+	Body api.PullReviewComment `json:"body"`
 }
 
 // PullCommentList
 // swagger:response PullReviewCommentList
 type swaggerResponsePullReviewCommentList struct {
 	// in:body
-	Body []api.PullRequestReviewComment `json:"body"`
+	Body []api.PullReviewComment `json:"body"`
 }
 
 // Status

@@ -110,6 +110,12 @@ func (r *Review) loadAttributes(e Engine) (err error) {
 	if err = r.loadIssue(e); err != nil {
 		return
 	}
+	if err = r.loadCodeComments(e); err != nil {
+		return
+	}
+	if err = r.loadCodeComments(e); err != nil {
+		return
+	}
 	return
 }
 
