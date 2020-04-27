@@ -433,66 +433,57 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 		defer PrintCurrentTest(t)()
 		var pr api.PullRequest
 		var err error
+
+		// Create a test pullrequest
 		t.Run("CreatePullRequest", func(t *testing.T) {
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
 		})
-		t.Run("EnsureCanSeePull", func(t *testing.T) {
-			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-		})
+
+		// Ensure the PR page works
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+
+		// Then get the diff string
 		var diffStr string
 		t.Run("GetDiff", func(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
 			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 			diffStr = resp.Body.String()
 		})
+
+		// Now: Merge the PR & make sure that doesn't break the PR page or change its diff
 		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
-		t.Run("EnsureCanSeePull", func(t *testing.T) {
-			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-		})
-		t.Run("EnsureDiffNoChange", func(t *testing.T) {
-			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, diffStr, resp.Body.String())
-		})
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffStr))
+
+		// Then: Delete the head branch & make sure that doesn't break the PR page or change its diff
 		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
-		t.Run("EnsureCanSeePull", func(t *testing.T) {
-			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-		})
-		t.Run("EnsureDiffNoChange", func(t *testing.T) {
-			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, diffStr, resp.Body.String())
-		})
-		t.Run("DeleteRepository", doAPIDeleteRepository(ctx))
-		t.Run("EnsureCanSeePull", func(t *testing.T) {
-			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			ctx.Session.MakeRequest(t, req, http.StatusOK)
-		})
-		t.Run("EnsureDiffNoChange", func(t *testing.T) {
-			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, diffStr, resp.Body.String())
-		})
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffStr))
+
+		// Delete the head repository & make sure that doesn't break the PR page or change its diff
+		t.Run("DeleteHeadRepository", doAPIDeleteRepository(ctx))
+		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffStr))
+	}
+}
+
+func doEnsureCanSeePull(ctx APITestContext, pr api.PullRequest) func(t *testing.T) {
+	return func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
+	}
+}
+
+func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffStr string) func(t *testing.T) {
+	return func(t *testing.T) {
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, diffStr, resp.Body.String())
 	}
 }
 
@@ -523,7 +514,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		// Assert that cloning from a non-existent repository does not create it and that it definitely wasn't create above
 		t.Run("FailToCloneFromNonExistentRepository", doGitCloneFail(tmpDir, u))
 
-		// Then "Push To Create"
+		// Then "Push To Create"x
 		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
 
 		// Finally, fetch repo from database and ensure the correct repository has been created
