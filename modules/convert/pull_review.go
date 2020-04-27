@@ -57,33 +57,37 @@ func ToPullReviewList(rl []*models.Review, doer *models.User) ([]*api.PullReview
 	return result, nil
 }
 
-func ToPullReviewCommentList(r *models.Review, doer *models.User) ([]*api.PullReviewComment, error) {
-	if err := r.LoadAttributes(); err != nil {
+func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.PullReviewComment, error) {
+	if err := review.LoadAttributes(); err != nil {
 		return nil, err
 	}
 
-	apiComments := make([]*api.PullReviewComment, 0, len(r.CodeComments))
+	apiComments := make([]*api.PullReviewComment, 0, len(review.CodeComments))
 
-	for _, lines := range r.CodeComments {
+	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, comment := range comments {
-				apiComment := api.PullReviewComment{
-					ID:          comment.ID,
-					HTMLURL:     comment.HTMLURL(),
-					HTMLPullURL: r.Issue.APIURL(),
-					ReviewID:    r.ID,
-					Path:        comment.TreePath,
-					CommitID:    comment.CommitSHA,
-					DiffHunk:    comment.Patch,
-					Reviewer:    ToUser(r.Reviewer, doer != nil, doer.IsAdmin || doer.ID == r.ReviewerID),
-					Body:        comment.Content,
+				apiComment := &api.PullReviewComment{
+					ID:           comment.ID,
+					Body:         comment.Content,
+					Reviewer:     ToUser(review.Reviewer, doer != nil, doer.IsAdmin || doer.ID == review.ReviewerID),
+					ReviewID:     review.ID,
+					Created:      comment.CreatedUnix.AsTime(),
+					Updated:      comment.UpdatedUnix.AsTime(),
+					Path:         comment.TreePath,
+					CommitID:     comment.CommitSHA,
+					OrigCommitID: comment.OldRef,
+					DiffHunk:     comment.Patch,
+					HTMLURL:      comment.HTMLURL(),
+					HTMLPullURL:  review.Issue.APIURL(),
 				}
+
 				if comment.Line < 0 {
 					apiComment.OldLineNum = comment.UnsignedLine()
 				} else {
 					apiComment.LineNum = comment.UnsignedLine()
 				}
-				apiComments = append(apiComments, &apiComment)
+				apiComments = append(apiComments, apiComment)
 			}
 		}
 	}

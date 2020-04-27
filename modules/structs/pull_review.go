@@ -46,7 +46,6 @@ type PullReviewComment struct {
 	Reviewer *User  `json:"user"`
 	ReviewID int64  `json:"pull_request_review_id"`
 
-	InReplayToID int64 `json:"in_reply_to_id"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
