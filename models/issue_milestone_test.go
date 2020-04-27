@@ -11,6 +11,7 @@ import (
 
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/builder"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -71,7 +72,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(repoID int64, state api.StateType) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		milestones, err := GetMilestonesByRepoID(repo.ID, state)
+		milestones, err := GetMilestonesByRepoID(repo.ID, state, ListOptions{})
 		assert.NoError(t, err)
 
 		var n int
@@ -105,7 +106,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	test(3, api.StateClosed)
 	test(3, api.StateAll)
 
-	milestones, err := GetMilestonesByRepoID(NonexistentID, api.StateOpen)
+	milestones, err := GetMilestonesByRepoID(NonexistentID, api.StateOpen, ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 0)
 }
@@ -158,10 +159,11 @@ func TestUpdateMilestone(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	milestone := AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
-	milestone.Name = "newMilestoneName"
+	milestone.Name = " newMilestoneName  "
 	milestone.Content = "newMilestoneContent"
-	assert.NoError(t, UpdateMilestone(milestone))
-	AssertExistsAndLoadBean(t, milestone)
+	assert.NoError(t, UpdateMilestone(milestone, milestone.IsClosed))
+	milestone = AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
+	assert.EqualValues(t, "newMilestoneName", milestone.Name)
 	CheckConsistencyFor(t, &Milestone{})
 }
 
@@ -369,7 +371,7 @@ func TestGetMilestonesStats(t *testing.T) {
 	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 
-	milestoneStats, err := GetMilestonesStats([]int64{repo1.ID, repo2.ID})
+	milestoneStats, err := GetMilestonesStats(builder.In("repo_id", []int64{repo1.ID, repo2.ID}))
 	assert.NoError(t, err)
 	assert.EqualValues(t, repo1.NumOpenMilestones+repo2.NumOpenMilestones, milestoneStats.OpenCount)
 	assert.EqualValues(t, repo1.NumClosedMilestones+repo2.NumClosedMilestones, milestoneStats.ClosedCount)

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -220,14 +221,15 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	} else {
 		repo, err = repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
-			Name:        form.RepoName,
-			Description: form.Description,
-			Gitignores:  form.Gitignores,
-			IssueLabels: form.IssueLabels,
-			License:     form.License,
-			Readme:      form.Readme,
-			IsPrivate:   form.Private || setting.Repository.ForcePrivate,
-			AutoInit:    form.AutoInit,
+			Name:          form.RepoName,
+			Description:   form.Description,
+			Gitignores:    form.Gitignores,
+			IssueLabels:   form.IssueLabels,
+			License:       form.License,
+			Readme:        form.Readme,
+			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
+			DefaultBranch: form.DefaultBranch,
+			AutoInit:      form.AutoInit,
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
@@ -419,7 +421,7 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := models.GetReleasesByRepoIDAndNames(curRepo.ID, tagNames)
+	releases, err := models.GetReleasesByRepoIDAndNames(models.DefaultDBContext(), curRepo.ID, tagNames)
 	if err != nil {
 		if models.IsErrAttachmentNotExist(err) {
 			ctx.Error(404)
@@ -507,7 +509,10 @@ func Download(ctx *context.Context) {
 
 	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
 	if !com.IsFile(archivePath) {
-		if err := commit.CreateArchive(archivePath, archiveType); err != nil {
+		if err := commit.CreateArchive(archivePath, git.CreateArchiveOpts{
+			Format: archiveType,
+			Prefix: setting.Repository.PrefixArchiveFiles,
+		}); err != nil {
 			ctx.ServerError("Download -> CreateArchive "+archivePath, err)
 			return
 		}

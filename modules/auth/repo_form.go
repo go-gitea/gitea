@@ -27,15 +27,16 @@ import (
 
 // CreateRepoForm form for creating repository
 type CreateRepoForm struct {
-	UID         int64  `binding:"Required"`
-	RepoName    string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Private     bool
-	Description string `binding:"MaxSize(255)"`
-	AutoInit    bool
-	Gitignores  string
-	IssueLabels string
-	License     string
-	Readme      string
+	UID           int64  `binding:"Required"`
+	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Private       bool
+	Description   string `binding:"MaxSize(255)"`
+	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
+	AutoInit      bool
+	Gitignores    string
+	IssueLabels   string
+	License       string
+	Readme        string
 
 	RepoTemplate int64
 	GitContent   bool
@@ -172,8 +173,10 @@ type ProtectBranchForm struct {
 	ApprovalsWhitelistUsers  string
 	ApprovalsWhitelistTeams  string
 	BlockOnRejectedReviews   bool
+	BlockOnOutdatedBranch    bool
 	DismissStaleApprovals    bool
 	RequireSignedCommits     bool
+	ProtectedFilePatterns    string
 }
 
 // Validate validates the fields
@@ -190,18 +193,27 @@ func (f *ProtectBranchForm) Validate(ctx *macaron.Context, errs binding.Errors) 
 
 // WebhookForm form for changing web hook
 type WebhookForm struct {
-	Events       string
-	Create       bool
-	Delete       bool
-	Fork         bool
-	Issues       bool
-	IssueComment bool
-	Release      bool
-	Push         bool
-	PullRequest  bool
-	Repository   bool
-	Active       bool
-	BranchFilter string `binding:"GlobPattern"`
+	Events               string
+	Create               bool
+	Delete               bool
+	Fork                 bool
+	Issues               bool
+	IssueAssign          bool
+	IssueLabel           bool
+	IssueMilestone       bool
+	IssueComment         bool
+	Release              bool
+	Push                 bool
+	PullRequest          bool
+	PullRequestAssign    bool
+	PullRequestLabel     bool
+	PullRequestMilestone bool
+	PullRequestComment   bool
+	PullRequestReview    bool
+	PullRequestSync      bool
+	Repository           bool
+	Active               bool
+	BranchFilter         string `binding:"GlobPattern"`
 }
 
 // PushOnly if the hook will be triggered when push
@@ -302,6 +314,20 @@ func (f *NewTelegramHookForm) Validate(ctx *macaron.Context, errs binding.Errors
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewMatrixHookForm form for creating Matrix hook
+type NewMatrixHookForm struct {
+	HomeserverURL string `binding:"Required;ValidUrl"`
+	RoomID        string `binding:"Required"`
+	AccessToken   string `binding:"Required"`
+	MessageType   int
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewMatrixHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // NewMSTeamsHookForm form for creating MS Teams hook
 type NewMSTeamsHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
@@ -310,6 +336,17 @@ type NewMSTeamsHookForm struct {
 
 // Validate validates the fields
 func (f *NewMSTeamsHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// NewFeishuHookForm form for creating feishu hook
+type NewFeishuHookForm struct {
+	PayloadURL string `binding:"Required;ValidUrl"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewFeishuHookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 

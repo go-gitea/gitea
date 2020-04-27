@@ -157,12 +157,12 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 			ctx.ServerError("OpenRepository", err)
 			return nil, nil, nil, nil, "", ""
 		}
+		defer headGitRepo.Close()
 	}
 
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
 	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
-		headGitRepo.Close()
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -173,42 +173,40 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				baseRepo,
 				permBase)
 		}
-		headGitRepo.Close()
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}
 
-	// user should have permission to read headrepo's codes
-	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
-	if err != nil {
-		headGitRepo.Close()
-		ctx.ServerError("GetUserRepoPermission", err)
-		return nil, nil, nil, nil, "", ""
-	}
-	if !permHead.CanRead(models.UnitTypeCode) {
-		if log.IsTrace() {
-			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
-				ctx.User,
-				headRepo,
-				permHead)
+	if !isSameRepo {
+		// user should have permission to read headrepo's codes
+		permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return nil, nil, nil, nil, "", ""
 		}
-		headGitRepo.Close()
-		ctx.NotFound("ParseCompareInfo", nil)
-		return nil, nil, nil, nil, "", ""
+		if !permHead.CanRead(models.UnitTypeCode) {
+			if log.IsTrace() {
+				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
+					ctx.User,
+					headRepo,
+					permHead)
+			}
+			ctx.NotFound("ParseCompareInfo", nil)
+			return nil, nil, nil, nil, "", ""
+		}
 	}
 
 	// Check if head branch is valid.
-	headIsCommit := ctx.Repo.GitRepo.IsCommitExist(headBranch)
+	headIsCommit := headGitRepo.IsCommitExist(headBranch)
 	headIsBranch := headGitRepo.IsBranchExist(headBranch)
 	headIsTag := headGitRepo.IsTagExist(headBranch)
 	if !headIsCommit && !headIsBranch && !headIsTag {
 		// Check if headBranch is short sha commit hash
-		if headCommit, _ := ctx.Repo.GitRepo.GetCommit(headBranch); headCommit != nil {
+		if headCommit, _ := headGitRepo.GetCommit(headBranch); headCommit != nil {
 			headBranch = headCommit.ID.String()
 			ctx.Data["HeadBranch"] = headBranch
 			headIsCommit = true
 		} else {
-			headGitRepo.Close()
 			ctx.NotFound("IsRefExist", nil)
 			return nil, nil, nil, nil, "", ""
 		}
@@ -229,14 +227,12 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				baseRepo,
 				permBase)
 		}
-		headGitRepo.Close()
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
+	compareInfo, err := headGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranch, headBranch)
 	if err != nil {
-		headGitRepo.Close()
 		ctx.ServerError("GetCompareInfo", err)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -320,7 +316,7 @@ func PrepareCompareDiff(
 	}
 
 	compareInfo.Commits = models.ValidateCommitsWithEmails(compareInfo.Commits)
-	compareInfo.Commits = models.ParseCommitsWithSignature(compareInfo.Commits)
+	compareInfo.Commits = models.ParseCommitsWithSignature(compareInfo.Commits, headRepo)
 	compareInfo.Commits = models.ParseCommitsWithStatus(compareInfo.Commits, headRepo)
 	ctx.Data["Commits"] = compareInfo.Commits
 	ctx.Data["CommitCount"] = compareInfo.Commits.Len()
@@ -339,7 +335,6 @@ func PrepareCompareDiff(
 	} else {
 		title = headBranch
 	}
-
 	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
@@ -383,7 +378,8 @@ func CompareDiff(ctx *context.Context) {
 	}
 	defer headGitRepo.Close()
 
-	if err := parseBaseRepoInfo(ctx, headRepo); err != nil {
+	var err error
+	if err = parseBaseRepoInfo(ctx, headRepo); err != nil {
 		ctx.ServerError("parseBaseRepoInfo", err)
 		return
 	}
@@ -416,7 +412,7 @@ func CompareDiff(ctx *context.Context) {
 
 		if !nothingToCompare {
 			// Setup information for new form.
-			RetrieveRepoMetas(ctx, ctx.Repo.Repository)
+			RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
 			if ctx.Written() {
 				return
 			}
@@ -435,6 +431,8 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)
+
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
 	ctx.HTML(200, tplCompare)
 }

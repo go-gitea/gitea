@@ -1,0 +1,59 @@
+<div class="ui small basic delete modal">
+		<div class="ui icon header">
+			<i class="trash icon"></i>
+			{{.i18n.Tr "repo.issues.label_deletion"}}
+		</div>
+		<div class="content">
+			<p>{{.i18n.Tr "repo.issues.label_deletion_desc"}}</p>
+		</div>
+		<div class="actions">
+			<div class="ui red basic inverted cancel button">
+				<i class="remove icon"></i>
+				{{.i18n.Tr "modal.no"}}
+			</div>
+			<div class="ui green basic inverted ok button">
+				<i class="checkmark icon"></i>
+				{{.i18n.Tr "modal.yes"}}
+			</div>
+		</div>
+	</div>
+
+	<div class="ui small edit-label modal">
+		<div class="header">
+			{{.i18n.Tr "repo.issues.label_modify"}}
+		</div>
+		<div class="content">
+			<form class="ui edit-label form" action="{{$.Link}}/edit" method="post">
+				{{.CsrfTokenHtml}}
+				<input id="label-modal-id" name="id" type="hidden">
+				<div class="ui grid">
+					<div class="three wide column">
+						<div class="ui small input">
+							<input class="new-label-input emoji-input" name="title" placeholder="{{.i18n.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
+						</div>
+					</div>
+					<div class="five wide column">
+						<div class="ui small fluid input">
+							<input class="new-label-desc-input" name="description" placeholder="{{.i18n.Tr "repo.issues.new_label_desc_placeholder"}}" maxlength="200">
+						</div>
+					</div>
+					<div class="color picker column">
+						<input class="color-picker" name="color" value="#70c24a" required maxlength="7">
+					</div>
+					<div class="column precolors">
+						{{template "repo/issue/label_precolors"}}
+					</div>
+				</div>
+			</form>
+		</div>
+		<div class="actions">
+			<div class="ui negative button">
+				{{.i18n.Tr "modal.no"}}
+			</div>
+			<div class="ui positive right labeled icon button">
+				{{.i18n.Tr "modal.modify"}}
+				<i class="checkmark icon"></i>
+			</div>
+		</div>
+	</div>
+	

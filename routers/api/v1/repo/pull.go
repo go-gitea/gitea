@@ -16,9 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -41,10 +41,6 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: page
-	//   in: query
-	//   description: Page number
-	//   type: integer
 	// - name: state
 	//   in: query
 	//   description: "State of pull request: open or closed (optional)"
@@ -68,12 +64,22 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	//   items:
 	//     type: integer
 	//     format: int64
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
 
+	listOptions := utils.GetListOptions(ctx)
+
 	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
-		Page:        ctx.QueryInt("page"),
+		ListOptions: listOptions,
 		State:       ctx.QueryTrim("state"),
 		SortType:    ctx.QueryTrim("sort"),
 		Labels:      ctx.QueryStrings("labels"),
@@ -95,18 +101,19 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
 		}
-		if err = prs[i].GetBaseRepo(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetBaseRepo", err)
+		if err = prs[i].LoadBaseRepo(); err != nil {
+			ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
 			return
 		}
-		if err = prs[i].GetHeadRepo(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetHeadRepo", err)
+		if err = prs[i].LoadHeadRepo(); err != nil {
+			ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 			return
 		}
 		apiPrs[i] = convert.ToAPIPullRequest(prs[i])
 	}
 
-	ctx.SetLinkHeader(int(maxResults), models.ItemsPerPage)
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
 	ctx.JSON(http.StatusOK, &apiPrs)
 }
 
@@ -150,12 +157,12 @@ func GetPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.GetBaseRepo(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetBaseRepo", err)
+	if err = pr.LoadBaseRepo(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
 		return
 	}
-	if err = pr.GetHeadRepo(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetHeadRepo", err)
+	if err = pr.LoadHeadRepo(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr))
@@ -234,10 +241,26 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 			return
 		}
 
-		labelIDs = make([]int64, len(labels))
+		labelIDs = make([]int64, len(form.Labels))
+		orgLabelIDs := make([]int64, len(form.Labels))
+
 		for i := range labels {
 			labelIDs[i] = labels[i].ID
 		}
+
+		if ctx.Repo.Owner.IsOrganization() {
+			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
+				return
+			}
+
+			for i := range orgLabels {
+				orgLabelIDs[i] = orgLabels[i].ID
+			}
+		}
+
+		labelIDs = append(labelIDs, orgLabelIDs...)
 	}
 
 	if form.Milestone > 0 {
@@ -318,8 +341,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		ctx.Error(http.StatusInternalServerError, "NewPullRequest", err)
 		return
 	}
-
-	notification.NotifyNewPullRequest(pr)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr))
@@ -447,6 +468,17 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDsError", err)
 			return
 		}
+
+		if ctx.Repo.Owner.IsOrganization() {
+			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
+				return
+			}
+
+			labels = append(labels, orgLabels...)
+		}
+
 		if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
 			return
@@ -575,8 +607,8 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err = pr.GetHeadRepo(); err != nil {
-		ctx.ServerError("GetHeadRepo", err)
+	if err = pr.LoadHeadRepo(); err != nil {
+		ctx.ServerError("LoadHeadRepo", err)
 		return
 	}
 
@@ -600,13 +632,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
-		return
-	}
-
-	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, perm, ctx.User)
+	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
 		return
@@ -680,8 +706,16 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		} else if models.IsErrMergeUnrelatedHistories(err) {
 			conflictError := err.(models.ErrMergeUnrelatedHistories)
 			ctx.JSON(http.StatusConflict, conflictError)
-		} else if models.IsErrMergePushOutOfDate(err) {
+		} else if git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "Merge", "merge push out of date")
+			return
+		} else if git.IsErrPushRejected(err) {
+			errPushRej := err.(*git.ErrPushRejected)
+			if len(errPushRej.Message) == 0 {
+				ctx.Error(http.StatusConflict, "Merge", "PushRejected without remote error message")
+				return
+			}
+			ctx.Error(http.StatusConflict, "Merge", "PushRejected with remote message: "+errPushRej.Message)
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "Merge", err)

@@ -22,6 +22,8 @@ it is just a matter of:
 * add some configuration to your `app.ini` file
 * restart your Gitea instance
 
+This supports rendering of whole files. If you want to render code blocks in markdown you would need to do something with javascript. See some examples on the [Customizing Gitea](../customizing-gitea) page.
+
 ## Installing external binaries
 
 In order to get file rendering through external binaries, their associated packages must be installed. 
@@ -34,7 +36,7 @@ FROM gitea/gitea:{{< version >}}
 COPY custom/app.ini /data/gitea/conf/app.ini
 [...]
 
-RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng python-dev py-pip python3-dev py3-pip py3-zmq
+RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng python-dev py-pip python3-dev py3-pip py3-pyzmq
 # install any other package you need for your external renderers
 
 RUN pip3 install --upgrade pip

@@ -6,7 +6,6 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -44,7 +43,7 @@ func (*NullNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models.R
 }
 
 // NotifyMergePullRequest places a place holder function
-func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 }
 
 // NotifyPullRequestSynchronized places a place holder function
@@ -85,6 +84,10 @@ func (*NullNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.I
 
 // NotifyIssueChangeAssignee places a place holder function
 func (*NullNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
+}
+
+// NotifyPullRewiewRequest places a place holder function
+func (*NullNotifier) NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
 }
 
 // NotifyIssueClearLabels places a place holder function

@@ -69,7 +69,7 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 			return fmt.Errorf("git update-server-info: %v", err)
 		}
 
-		if err = models.CreateDelegateHooks(repoPath); err != nil {
+		if err = createDelegateHooks(repoPath); err != nil {
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
 		return nil
@@ -82,6 +82,8 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 	if err = repo.UpdateSize(ctx); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
-
+	if err := models.CopyLanguageStat(oldRepo, repo); err != nil {
+		log.Error("Copy language stat from oldRepo failed")
+	}
 	return repo, models.CopyLFS(ctx, repo, oldRepo)
 }

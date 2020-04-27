@@ -16,6 +16,7 @@ import (
 	giteautil "code.gitea.io/gitea/modules/util"
 
 	"github.com/yuin/goldmark"
+	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
@@ -48,16 +49,18 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 				common.FootnoteExtension,
 				extension.NewTypographer(
 					extension.WithTypographicSubstitutions(extension.TypographicSubstitutions{
-						extension.EnDash: nil,
-						extension.EmDash: nil,
+						extension.EnDash:   nil,
+						extension.EmDash:   nil,
+						extension.Ellipsis: nil,
 					}),
 				),
+				meta.Meta,
 			),
 			goldmark.WithParserOptions(
 				parser.WithAttribute(),
 				parser.WithAutoHeadingID(),
 				parser.WithASTTransformers(
-					util.Prioritized(&GiteaASTTransformer{}, 10000),
+					util.Prioritized(&ASTTransformer{}, 10000),
 				),
 			),
 			goldmark.WithRendererOptions(
@@ -68,7 +71,7 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 		// Override the original Tasklist renderer!
 		converter.Renderer().AddOptions(
 			renderer.WithNodeRenderers(
-				util.Prioritized(NewTaskCheckBoxHTMLRenderer(), 1000),
+				util.Prioritized(NewHTMLRenderer(), 10),
 			),
 		)
 
@@ -82,7 +85,6 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 	if err := converter.Convert(giteautil.NormalizeEOL(body), &buf, parser.WithContext(pc)); err != nil {
 		log.Error("Unable to render: %v", err)
 	}
-
 	return markup.SanitizeReader(&buf).Bytes()
 }
 

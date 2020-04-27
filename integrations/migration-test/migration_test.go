@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 	"xorm.io/xorm"
 )
 
@@ -54,6 +56,11 @@ func initMigrationTest(t *testing.T) func() {
 	}
 
 	setting.NewContext()
+
+	assert.True(t, len(setting.RepoRootPath) != 0)
+	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+
 	setting.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)
@@ -126,7 +133,7 @@ func restoreOldDB(t *testing.T, version string) bool {
 		err := os.MkdirAll(path.Dir(setting.Database.Path), os.ModePerm)
 		assert.NoError(t, err)
 
-		db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d", setting.Database.Path, setting.Database.Timeout))
+		db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate", setting.Database.Path, setting.Database.Timeout))
 		assert.NoError(t, err)
 		defer db.Close()
 
@@ -167,6 +174,32 @@ func restoreOldDB(t *testing.T, version string) bool {
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name))
 		assert.NoError(t, err)
 		db.Close()
+
+		// Check if we need to setup a specific schema
+		if len(setting.Database.Schema) != 0 {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+			if !assert.NoError(t, err) {
+				return false
+			}
+			schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
+			if !assert.NoError(t, err) || !assert.NotEmpty(t, schrows) {
+				return false
+			}
+
+			if !schrows.Next() {
+				// Create and setup a DB schema
+				_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema))
+				assert.NoError(t, err)
+			}
+			schrows.Close()
+
+			// Make the user's default search path the created schema; this will affect new connections
+			_, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema))
+			assert.NoError(t, err)
+
+			db.Close()
+		}
 
 		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))

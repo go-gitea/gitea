@@ -86,7 +86,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 	return uploader.repo, nil
 }
 
-// migrateRepository will download informations and upload to Uploader, this is a simple
+// migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
 func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
@@ -181,7 +181,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		}
 	}
 
-	var commentBatchSize = uploader.MaxBatchInsertSize("comment")
+	var (
+		commentBatchSize = uploader.MaxBatchInsertSize("comment")
+		reviewBatchSize  = uploader.MaxBatchInsertSize("review")
+	)
 
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
@@ -248,6 +251,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				continue
 			}
 
+			// plain comments
 			var allComments = make([]*base.Comment, 0, commentBatchSize)
 			for _, pr := range prs {
 				comments, err := downloader.GetComments(pr.Number)
@@ -266,6 +270,41 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			}
 			if len(allComments) > 0 {
 				if err := uploader.CreateComments(allComments...); err != nil {
+					return err
+				}
+			}
+
+			// migrate reviews
+			var allReviews = make([]*base.Review, 0, reviewBatchSize)
+			for _, pr := range prs {
+				number := pr.Number
+
+				// on gitlab migrations pull number change
+				if pr.OriginalNumber > 0 {
+					number = pr.OriginalNumber
+				}
+
+				reviews, err := downloader.GetReviews(number)
+				if pr.OriginalNumber > 0 {
+					for i := range reviews {
+						reviews[i].IssueIndex = pr.Number
+					}
+				}
+				if err != nil {
+					return err
+				}
+
+				allReviews = append(allReviews, reviews...)
+
+				if len(allReviews) >= reviewBatchSize {
+					if err := uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
+						return err
+					}
+					allReviews = allReviews[reviewBatchSize:]
+				}
+			}
+			if len(allReviews) > 0 {
+				if err := uploader.CreateReviews(allReviews...); err != nil {
 					return err
 				}
 			}

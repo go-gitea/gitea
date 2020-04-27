@@ -6,7 +6,6 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -25,6 +24,7 @@ type Notifier interface {
 	NotifyIssueChangeStatus(*models.User, *models.Issue, *models.Comment, bool)
 	NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64)
 	NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment)
+	NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment)
 	NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string)
 	NotifyIssueClearLabels(doer *models.User, issue *models.Issue)
 	NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string)
@@ -32,7 +32,7 @@ type Notifier interface {
 		addedLabels []*models.Label, removedLabels []*models.Label)
 
 	NotifyNewPullRequest(*models.PullRequest)
-	NotifyMergePullRequest(*models.PullRequest, *models.User, *git.Repository)
+	NotifyMergePullRequest(*models.PullRequest, *models.User)
 	NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest)
 	NotifyPullRequestReview(*models.PullRequest, *models.Review, *models.Comment)
 	NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string)

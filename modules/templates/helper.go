@@ -85,7 +85,7 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
-		"AvatarLink":    base.AvatarLink,
+		"AvatarLink":    models.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
@@ -93,6 +93,7 @@ func NewFuncMap() []template.FuncMap {
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"RawTimeSince":  timeutil.RawTimeSince,
 		"FileSize":      base.FileSize,
+		"PrettyNumber":  base.PrettyNumber,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
@@ -182,6 +183,13 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
+		"Json": func(in interface{}) string {
+			out, err := json.Marshal(in)
+			if err != nil {
+				return ""
+			}
+			return string(out)
+		},
 		"JsonPrettyPrint": func(in string) string {
 			var out bytes.Buffer
 			err := json.Indent(&out, []byte(in), "", "  ")
@@ -270,6 +278,13 @@ func NewFuncMap() []template.FuncMap {
 				return ""
 			}
 		},
+		"NotificationSettings": func() map[string]int {
+			return map[string]int{
+				"MinTimeout":  int(setting.UI.Notification.MinTimeout / time.Millisecond),
+				"TimeoutStep": int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+				"MaxTimeout":  int(setting.UI.Notification.MaxTimeout / time.Millisecond),
+			}
+		},
 		"contain": func(s []int64, id int64) bool {
 			for i := 0; i < len(s); i++ {
 				if s[i] == id {
@@ -277,6 +292,9 @@ func NewFuncMap() []template.FuncMap {
 				}
 			}
 			return false
+		},
+		"svg": func(icon string, size int) template.HTML {
+			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
 		},
 	}}
 }
@@ -426,31 +444,6 @@ func Sha1(str string) string {
 	return base.EncodeSha1(str)
 }
 
-// ReplaceLeft replaces all prefixes 'oldS' in 's' with 'newS'.
-func ReplaceLeft(s, oldS, newS string) string {
-	oldLen, newLen, i, n := len(oldS), len(newS), 0, 0
-	for ; i < len(s) && strings.HasPrefix(s[i:], oldS); n++ {
-		i += oldLen
-	}
-
-	// simple optimization
-	if n == 0 {
-		return s
-	}
-
-	// allocating space for the new string
-	curLen := n*newLen + len(s[i:])
-	replacement := make([]byte, curLen)
-
-	j := 0
-	for ; j < n*newLen; j += newLen {
-		copy(replacement[j:j+newLen], newS)
-	}
-
-	copy(replacement[j:], s[i:])
-	return string(replacement)
-}
-
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func RenderCommitMessage(msg, urlPrefix string, metas map[string]string) template.HTML {
 	return RenderCommitMessageLink(msg, urlPrefix, "", metas)
@@ -571,11 +564,11 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
 		return "repo-clone"
 	case models.ActionApprovePullRequest:
-		return "eye"
+		return "check"
 	case models.ActionRejectPullRequest:
-		return "x"
+		return "request-changes"
 	default:
-		return "invalid type"
+		return "question"
 	}
 }
 

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -12,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 
 	"github.com/unknwon/com"
 )
@@ -33,9 +35,13 @@ func Search(ctx *context.APIContext) {
 	//   description: ID of the user to search for
 	//   type: integer
 	//   format: int64
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: maximum number of users to return
+	//   description: page size of results, maximum page size is 50
 	//   type: integer
 	// responses:
 	//   "200":
@@ -51,10 +57,10 @@ func Search(ctx *context.APIContext) {
 	//             "$ref": "#/definitions/User"
 
 	opts := &models.SearchUserOptions{
-		Keyword:  strings.Trim(ctx.Query("q"), " "),
-		UID:      com.StrTo(ctx.Query("uid")).MustInt64(),
-		Type:     models.UserTypeIndividual,
-		PageSize: com.StrTo(ctx.Query("limit")).MustInt(),
+		Keyword:     strings.Trim(ctx.Query("q"), " "),
+		UID:         com.StrTo(ctx.Query("uid")).MustInt64(),
+		Type:        models.UserTypeIndividual,
+		ListOptions: utils.GetListOptions(ctx),
 	}
 
 	users, _, err := models.SearchUsers(opts)

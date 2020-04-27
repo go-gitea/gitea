@@ -134,12 +134,12 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
-		r.Permission.CanWrite(models.UnitTypeIssues) || issue.IsPoster(user.ID) || isAssigned)
+		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
-func (r *Repository) CanCreateIssueDependencies(user *models.User) bool {
-	return r.Permission.CanWrite(models.UnitTypeIssues) && r.Repository.IsDependenciesEnabled()
+func (r *Repository) CanCreateIssueDependencies(user *models.User, isPull bool) bool {
+	return r.Repository.IsDependenciesEnabled() && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
 // GetCommitsCount returns cached commit count for current view
@@ -439,7 +439,7 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 		}
 
-		count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 			IncludeDrafts: false,
 			IncludeTags:   true,
 		})
@@ -447,7 +447,6 @@ func RepoAssignment() macaron.Handler {
 			ctx.ServerError("GetReleaseCountByRepoID", err)
 			return
 		}
-		ctx.Repo.Repository.NumReleases = int(count)
 
 		ctx.Data["Title"] = owner.Name + "/" + repo.Name
 		ctx.Data["Repository"] = repo

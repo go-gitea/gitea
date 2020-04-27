@@ -290,7 +290,7 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	}
 
 	for _, node := range nodes {
-		ctx.visitNode(node)
+		ctx.visitNode(node, true)
 	}
 
 	// Create buffer in which the data will be placed again. We know that the
@@ -313,7 +313,7 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	return res, nil
 }
 
-func (ctx *postProcessCtx) visitNode(node *html.Node) {
+func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 	// Add user-content- to IDs if they don't already have them
 	for idx, attr := range node.Attr {
 		if attr.Key == "id" && !(strings.HasPrefix(attr.Val, "user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
@@ -323,13 +323,58 @@ func (ctx *postProcessCtx) visitNode(node *html.Node) {
 	// We ignore code, pre and already generated links.
 	switch node.Type {
 	case html.TextNode:
-		ctx.textNode(node)
+		if visitText {
+			ctx.textNode(node)
+		}
 	case html.ElementNode:
-		if node.Data == "a" || node.Data == "code" || node.Data == "pre" {
+		if node.Data == "img" {
+			attrs := node.Attr
+			for idx, attr := range attrs {
+				if attr.Key != "src" {
+					continue
+				}
+				link := []byte(attr.Val)
+				if len(link) > 0 && !IsLink(link) {
+					prefix := ctx.urlPrefix
+					if ctx.isWikiMarkdown {
+						prefix = util.URLJoin(prefix, "wiki", "raw")
+					}
+					prefix = strings.Replace(prefix, "/src/", "/media/", 1)
+
+					lnk := string(link)
+					lnk = util.URLJoin(prefix, lnk)
+					link = []byte(lnk)
+				}
+				node.Attr[idx].Val = string(link)
+			}
+		} else if node.Data == "a" {
+			visitText = false
+		} else if node.Data == "code" || node.Data == "pre" {
 			return
+		} else if node.Data == "i" {
+			for _, attr := range node.Attr {
+				if attr.Key != "class" {
+					continue
+				}
+				classes := strings.Split(attr.Val, " ")
+				for i, class := range classes {
+					if class == "icon" {
+						classes[0], classes[i] = classes[i], classes[0]
+						attr.Val = strings.Join(classes, " ")
+
+						// Remove all children of icons
+						child := node.FirstChild
+						for child != nil {
+							node.RemoveChild(child)
+							child = node.FirstChild
+						}
+						break
+					}
+				}
+			}
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			ctx.visitNode(n)
+			ctx.visitNode(n, visitText)
 		}
 	}
 	// ignore everything else
@@ -636,11 +681,11 @@ func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if matchOrg == ctx.metas["user"] && matchRepo == ctx.metas["repo"] {
 		// TODO if m[4]:m[5] is not nil, then link is to a comment,
 		// and we should indicate that in the text somehow
-		replaceContent(node, m[0], m[1], createLink(link, id, "issue"))
+		replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
 
 	} else {
 		orgRepoID := matchOrg + "/" + matchRepo + id
-		replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "issue"))
+		replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "ref-issue"))
 	}
 }
 
@@ -676,7 +721,7 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
 	if exttrack && !ref.IsPull {
 		ctx.metas["index"] = ref.Issue
-		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "issue")
+		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "ref-issue")
 	} else {
 		// Path determines the type of link that will be rendered. It's unknown at this point whether
 		// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
@@ -686,9 +731,9 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 			path = "pulls"
 		}
 		if ref.Owner == "" {
-			link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], path, ref.Issue), reftext, "issue")
+			link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], path, ref.Issue), reftext, "ref-issue")
 		} else {
-			link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "issue")
+			link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "ref-issue")
 		}
 	}
 

@@ -8,6 +8,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,6 +25,7 @@ func TestLevelQueue(t *testing.T) {
 		}
 	}
 
+	var lock sync.Mutex
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
@@ -32,21 +34,29 @@ func TestLevelQueue(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	queue, err := NewLevelQueue(handle, LevelQueueConfiguration{
-		DataDir:      tmpDir,
-		BatchLength:  2,
-		Workers:      1,
-		MaxWorkers:   10,
-		QueueLength:  20,
-		BlockTimeout: 1 * time.Second,
-		BoostTimeout: 5 * time.Minute,
-		BoostWorkers: 5,
+		ByteFIFOQueueConfiguration: ByteFIFOQueueConfiguration{
+			WorkerPoolConfiguration: WorkerPoolConfiguration{
+				QueueLength:  20,
+				BatchLength:  2,
+				BlockTimeout: 1 * time.Second,
+				BoostTimeout: 5 * time.Minute,
+				BoostWorkers: 5,
+				MaxWorkers:   10,
+			},
+			Workers: 1,
+		},
+		DataDir: tmpDir,
 	}, &testData{})
 	assert.NoError(t, err)
 
 	go queue.Run(func(_ context.Context, shutdown func()) {
+		lock.Lock()
 		queueShutdown = append(queueShutdown, shutdown)
+		lock.Unlock()
 	}, func(_ context.Context, terminate func()) {
+		lock.Lock()
 		queueTerminate = append(queueTerminate, terminate)
+		lock.Unlock()
 	})
 
 	test1 := testData{"A", 1}
@@ -70,9 +80,12 @@ func TestLevelQueue(t *testing.T) {
 	err = queue.Push(test1)
 	assert.Error(t, err)
 
+	lock.Lock()
 	for _, callback := range queueShutdown {
 		callback()
 	}
+	lock.Unlock()
+
 	time.Sleep(200 * time.Millisecond)
 	err = queue.Push(&test1)
 	assert.NoError(t, err)
@@ -83,31 +96,41 @@ func TestLevelQueue(t *testing.T) {
 		assert.Fail(t, "Handler processing should have stopped")
 	default:
 	}
+	lock.Lock()
 	for _, callback := range queueTerminate {
 		callback()
 	}
+	lock.Unlock()
 
 	// Reopen queue
 	queue, err = NewWrappedQueue(handle,
 		WrappedQueueConfiguration{
 			Underlying: LevelQueueType,
 			Config: LevelQueueConfiguration{
-				DataDir:      tmpDir,
-				BatchLength:  2,
-				Workers:      1,
-				MaxWorkers:   10,
-				QueueLength:  20,
-				BlockTimeout: 1 * time.Second,
-				BoostTimeout: 5 * time.Minute,
-				BoostWorkers: 5,
+				ByteFIFOQueueConfiguration: ByteFIFOQueueConfiguration{
+					WorkerPoolConfiguration: WorkerPoolConfiguration{
+						QueueLength:  20,
+						BatchLength:  2,
+						BlockTimeout: 1 * time.Second,
+						BoostTimeout: 5 * time.Minute,
+						BoostWorkers: 5,
+						MaxWorkers:   10,
+					},
+					Workers: 1,
+				},
+				DataDir: tmpDir,
 			},
 		}, &testData{})
 	assert.NoError(t, err)
 
 	go queue.Run(func(_ context.Context, shutdown func()) {
+		lock.Lock()
 		queueShutdown = append(queueShutdown, shutdown)
+		lock.Unlock()
 	}, func(_ context.Context, terminate func()) {
+		lock.Lock()
 		queueTerminate = append(queueTerminate, terminate)
+		lock.Unlock()
 	})
 
 	result3 := <-handleChan
@@ -117,10 +140,13 @@ func TestLevelQueue(t *testing.T) {
 	result4 := <-handleChan
 	assert.Equal(t, test2.TestString, result4.TestString)
 	assert.Equal(t, test2.TestInt, result4.TestInt)
+
+	lock.Lock()
 	for _, callback := range queueShutdown {
 		callback()
 	}
 	for _, callback := range queueTerminate {
 		callback()
 	}
+	lock.Unlock()
 }
