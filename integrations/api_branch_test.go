@@ -14,8 +14,6 @@ import (
 )
 
 func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
-	defer prepareTestEnv(t)()
-
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branches/%s?token=%s", branchName, token)
@@ -88,6 +86,7 @@ func testAPIDeleteBranch(t *testing.T, branchName string, expectedHTTPStatus int
 }
 
 func TestAPIGetBranch(t *testing.T) {
+	defer prepareTestEnv(t)()
 	for _, test := range []struct {
 		BranchName string
 		Exists     bool
