@@ -70,6 +70,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
 		t.Run("MergeFork", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
 			t.Run("CreatePRAndMerge", doMergeFork(httpContext, forkedUserCtx, "master", httpContext.Username+":master"))
 			rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
@@ -109,6 +110,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 			t.Run("BranchProtectMerge", doBranchProtectPRMerge(&sshContext, dstPath))
 			t.Run("MergeFork", func(t *testing.T) {
+				defer PrintCurrentTest(t)()
 				t.Run("CreatePRAndMerge", doMergeFork(sshContext, forkedUserCtx, "master", sshContext.Username+":master"))
 				rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 				mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
@@ -428,6 +430,7 @@ func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string) 
 
 func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) func(t *testing.T) {
 	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
 		var pr api.PullRequest
 		var err error
 		t.Run("CreatePullRequest", func(t *testing.T) {
