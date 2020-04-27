@@ -797,7 +797,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Group("/reviews", func() {
 							m.Combo("").Get(repo.ListPullReviews)
 							m.Group("/:id", func() {
-								m.Combo("").Get(repo.GetPullReview)
+								m.Combo("").
+									Get(repo.GetPullReview).
+									Delete(repo.DeletePullReview)
 								m.Combo("/comments").Get(repo.GetPullReviewComments)
 							})
 						})

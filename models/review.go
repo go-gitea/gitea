@@ -74,6 +74,9 @@ type Review struct {
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
+	if err = r.loadIssue(e); err != nil {
+		return err
+	}
 	if r.CodeComments == nil {
 		r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
 	}
@@ -666,4 +669,34 @@ func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) 
 	}
 
 	return true, nil
+}
+
+// DeleteReview delete a review and it's code comments
+func DeleteReview(r *Review) error {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := r.loadCodeComments(sess); err != nil {
+		return err
+	}
+
+	opts := FindCommentsOptions{
+		Type:     CommentTypeCode,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+
+	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
+		return err
+	}
+
+	if _, err := sess.ID(r.ID).Delete(new(Review)); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
