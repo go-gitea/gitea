@@ -31,7 +31,7 @@ func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) 
 		CommitID:          r.CommitID,
 		Stale:             r.Stale,
 		Official:          r.Official,
-		CodeCommentsCount: len(r.CodeComments),
+		CodeCommentsCount: r.GetCodeCommentsCount(),
 		Submitted:         r.CreatedUnix.AsTime(),
 		HTMLPullURL:       r.Issue.HTMLURL(),
 	}

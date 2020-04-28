@@ -83,6 +83,26 @@ func (r *Review) loadCodeComments(e Engine) (err error) {
 	return
 }
 
+// GetCodeCommentsCount return count of CodeComments a Review has
+func (r *Review) GetCodeCommentsCount() int {
+	//Find comments
+	opts := FindCommentsOptions{
+		Type:     CommentTypeCode,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+	conds := opts.toConds()
+	if r.ID == 0 {
+		conds = conds.And(builder.Eq{"invalidated": false})
+	}
+
+	count, err := x.Where(conds).Count(new(Comment))
+	if err != nil {
+		return 0
+	}
+	return int(count)
+}
+
 // LoadCodeComments loads CodeComments
 func (r *Review) LoadCodeComments() error {
 	return r.loadCodeComments(x)
