@@ -250,6 +250,17 @@ type wrappedConn struct {
 
 func (w wrappedConn) Close() error {
 	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
+		defer func() {
+			if err := recover(); err != nil {
+				select {
+				case <-GetManager().IsHammer():
+					// Likely deadlocked request released at hammertime
+					log.Warn("Panic during connection close! %v. Likely there has been a deadlocked request which has been released by forced shutdown.", err)
+				default:
+					log.Error("Panic during connection close! %v", err)
+				}
+			}
+		}()
 		w.server.wg.Done()
 	}
 	return w.Conn.Close()
