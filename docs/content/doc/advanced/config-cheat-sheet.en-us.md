@@ -140,9 +140,18 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
 
+### UI - Notification (`ui.notification`)
+
+- `MIN_TIMEOUT`: **10s**: These options control how often notification is queried to update the notification count. On page load the notification count will be checked after `MIN_TIMEOUT`. The timeout will increase to `MAX_TIMEOUT` by `TIMEOUT_STEP` if the notification count is unchanged. Set MIN_TIMEOUT to 0 to turn off.
+- `MAX_TIMEOUT`: **60s**.
+- `TIMEOUT_STEP`: **10s**.
+
+
 ## Markdown (`markdown`)
 
-- `ENABLE_HARD_LINE_BREAK`: **false**: Enable Markdown's hard line break extension.
+- `ENABLE_HARD_LINE_BREAK`: **true**: Render soft line breaks as hard line breaks, which
+  means a single newline character between paragraphs will cause a line break and adding
+  trailing whitespace to paragraphs is not necessary to force a line break.
 - `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
   URL hyperlinks to be rendered in Markdown. URLs beginning in http and https are
   always displayed
@@ -585,6 +594,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
 - `INVALIDATE_REFRESH_TOKEN`: **false**: Check if refresh token got already used
 - `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
+- `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
 
 ## i18n (`i18n`)
 
@@ -667,10 +677,11 @@ Multiple sanitisation rules can be defined by adding unique subsections, e.g. `[
 
 ## Task (`task`)
 
--  Task queue configuration has been moved to `queue.task` however, the below configuration values are kept for backwards compatibilityx:
+Task queue configuration has been moved to `queue.task`. However, the below configuration values are kept for backwards compatibility:
+
 - `QUEUE_TYPE`: **channel**: Task queue type, could be `channel` or `redis`.
 - `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
-- `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If there redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
+- `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
 
 ## Migrations (`migrations`)
 

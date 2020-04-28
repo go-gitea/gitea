@@ -18,6 +18,7 @@ import initDateTimePicker from './features/datetimepicker.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -64,10 +65,16 @@ function initEditPreviewTab($form) {
     previewFileModes = $previewTab.data('preview-file-modes').split(',');
     $previewTab.on('click', function () {
       const $this = $(this);
+      let context = `{$this.data('context')}/`;
+      const treePathEl = $form.find('input#tree_path');
+      if (treePathEl.length > 0) {
+        context += treePathEl.val();
+      }
+      context = context.substring(0, context.lastIndexOf('/'));
       $.post($this.data('url'), {
         _csrf: csrf,
         mode: 'gfm',
-        context: $this.data('context'),
+        context,
         text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
       }, (data) => {
         const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
@@ -1162,7 +1169,7 @@ function initMigration() {
     const authUserName = $('#auth_username').val();
     const cloneAddr = $('#clone_addr').val();
     if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0) &&
-        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com')))) {
+        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com') || cloneAddr.startsWith('http://gitlab.com') || cloneAddr.startsWith('https://gitlab.com')))) {
       $('#migrate_items').show();
     } else {
       $('#migrate_items').hide();
@@ -2425,6 +2432,11 @@ $(document).ready(async () => {
     window.location = $(this).data('href');
   });
 
+  // make table <td> element clickable like a link
+  $('td[data-href]').click(function () {
+    window.location = $(this).data('href');
+  });
+
   // Dropzone
   const $dropzone = $('#dropzone');
   if ($dropzone.length > 0) {
@@ -2600,6 +2612,8 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups();
+  initNotificationsTable();
+  initNotificationCount();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
