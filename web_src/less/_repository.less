@@ -2175,6 +2175,7 @@
         &.dropdown .menu {
             right: 0 !important;
             left: auto !important;
+            min-width: 15em;
 
             > .header {
                 margin: .75rem 0 .5rem;
@@ -2183,6 +2184,7 @@
             > .item {
                 float: left;
                 padding: .5rem .5rem !important;
+                font-size: 1.5em;
 
                 img.emoji {
                     margin-right: 0;
@@ -2196,29 +2198,29 @@
         display: flex;
 
         .ui.label {
-            padding: .4em;
-            padding-right: 1em;
-            padding-left: 1em;
+            max-height: 40px;
+            padding: 9px 15px 7px;
             border: 0;
             border-right: 1px solid;
             border-radius: 0;
             margin: 0;
             font-size: 14px;
+            font-weight: 100;
             border-color: inherit !important;
 
             &.disabled {
                 cursor: default;
                 opacity: .5;
             }
-
-            > img {
-                height: 1.5em !important;
-            }
         }
 
         .ui.label.basic.blue {
             background-color: #f1f8ff !important;
             border-color: inherit !important;
+        }
+
+        .reaction-count {
+            margin-left: 4px;
         }
 
         .select-reaction {
@@ -2228,6 +2230,9 @@
 
             &:not(.active) a {
                 display: none;
+            }
+            > svg {
+                vertical-align: middle;
             }
         }
 

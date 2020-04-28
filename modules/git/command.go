@@ -98,7 +98,6 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 // RunInDirTimeoutEnvFullPipelineFunc executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
 func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
-
 	if timeout == -1 {
 		timeout = DefaultCommandExecutionTimeout
 	}
@@ -119,6 +118,8 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 		cmd.Env = env
 		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
 	}
+
+	cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
