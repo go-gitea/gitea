@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 date +%H:%M:%S; echo "Running post-receive.d/gitea"
-"$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" post-receive
+GODEBUG=asyncpreemptoff=1 "$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" post-receive
 echo "Gitea done"; date +%H:%M:%S
