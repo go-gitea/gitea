@@ -5,8 +5,6 @@
 package repo
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -460,7 +458,6 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 	issue, err := models.GetIssueByID(ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			fmt.Println(err)
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetIssueByID", err)
