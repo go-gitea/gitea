@@ -404,8 +404,12 @@
 						</span>
 					</div>
 					<div class="ui attached segment">
-						<div class="detail">
-							<span class="text black has-emoji">{{.Content}}</span>
+						<div class="render-content markdown has-emoji">
+							{{if .RenderedContent}}
+								{{.RenderedContent|Str2html}}
+							{{else}}
+								<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+							{{end}}
 						</div>
 					</div>
 				</div>
