@@ -1,0 +1,16 @@
+-
+  id: 1
+  title: First project
+  repo_id: 2
+  creator_id: 2
+  board_type: 1
+  type: 2
+
+
+-
+  id: 2
+  title: second project
+  repo_id: 3
+  creator_id: 3
+  board_type: 1
+  type: 2
