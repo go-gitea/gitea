@@ -66,6 +66,7 @@ func ListTasks() TaskTable {
 		eMap[e.Description] = e
 	}
 	lock.Lock()
+	defer lock.Unlock()
 	tTable := make([]*TaskTableRow, 0, len(tasks))
 	for _, task := range tasks {
 		spec := "-"
@@ -88,7 +89,6 @@ func ListTasks() TaskTable {
 		})
 		task.lock.Unlock()
 	}
-	lock.Unlock()
 
 	return tTable
 }
