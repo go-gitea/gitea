@@ -80,6 +80,7 @@ func HookPostReceive(ownerName, repoName string, opts HookOptions) (*HookPostRec
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 	)
+
 	req := newInternalRequest(reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
@@ -96,6 +97,7 @@ func HookPostReceive(ownerName, repoName string, opts HookOptions) (*HookPostRec
 	}
 	res := &HookPostReceiveResult{}
 	_ = json.NewDecoder(resp.Body).Decode(res)
+
 	return res, ""
 }
 

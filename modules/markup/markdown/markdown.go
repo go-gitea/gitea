@@ -7,9 +7,7 @@ package markdown
 
 import (
 	"bytes"
-	"fmt"
 	"sync"
-	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -96,10 +94,7 @@ var (
 )
 
 func init() {
-	start := time.Now()
-	fmt.Printf("%v markdown init()\n", time.Now().Format("15:04:05.000000"))
 	markup.RegisterParser(Parser{})
-	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 }
 
 // Parser implements markup.Parser
