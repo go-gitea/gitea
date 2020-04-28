@@ -1,4 +1,2 @@
 #!/usr/bin/env bash
-date +%H:%M:%S; echo "Running updates.d/gitea"
 "$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" update $1 $2 $3
-echo "Gitea done"; date +%H:%M:%S

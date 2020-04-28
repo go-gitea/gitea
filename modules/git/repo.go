@@ -250,7 +250,6 @@ type PushOptions struct {
 
 // Push pushs local commits to given remote branch.
 func Push(repoPath string, opts PushOptions) error {
-	start := time.Now()
 	cmd := NewCommand("push")
 	if opts.Force {
 		cmd.AddArguments("-f")
@@ -280,10 +279,6 @@ func Push(repoPath string, opts PushOptions) error {
 	if errbuf.Len() > 0 && err != nil {
 		return fmt.Errorf("%v - %s", err, errbuf.String())
 	}
-
-	fmt.Printf("cmd: %+v\n", cmd)
-	fmt.Printf("out: %+v\n", errbuf.String())
-	fmt.Printf("time taken: %v\n\n", time.Since(start))
 
 	return err
 }
