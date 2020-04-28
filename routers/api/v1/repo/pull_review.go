@@ -308,6 +308,11 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 		return
 	}
 
+	if err := pr.Issue.LoadRepo(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "pr.Issue.LoadRepo", err)
+		return
+	}
+
 	// create review comments
 	for _, c := range opts.Comments {
 		line := c.NewLineNum
@@ -396,7 +401,7 @@ func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions)
 	}
 
 	if review.Type != models.ReviewTypePending {
-		ctx.JSON(http.StatusUnprocessableEntity, fmt.Errorf("only a pending review can be submitted"))
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("only a pending review can be submitted"))
 		return
 	}
 
@@ -416,9 +421,15 @@ func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions)
 		return
 	}
 
+	// if review stay pending return
+	if reviewType == models.ReviewTypePending {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("review stay pending"))
+		return
+	}
+
 	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pr.GetGitRefName())
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.Error(http.StatusInternalServerError, "GitRepo: GetRefCommitID", err)
 		return
 	}
 
@@ -440,7 +451,7 @@ func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions)
 
 func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, event api.ReviewStateType, body string) (reviewType models.ReviewType, isWrong bool) {
 	if err := pr.LoadIssue(); err != nil {
-		ctx.InternalServerError(err)
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return -1, true
 	}
 
@@ -448,7 +459,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 	case api.ReviewStateApproved:
 		// can not approve your own PR
 		if pr.Issue.IsPoster(ctx.User.ID) {
-			ctx.JSON(http.StatusUnprocessableEntity, fmt.Errorf("approve your own pull is not allowed"))
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("approve your own pull is not allowed"))
 			return -1, true
 		}
 		reviewType = models.ReviewTypeApprove
@@ -456,7 +467,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 	case api.ReviewStateRequestChanges:
 		// can not reject your own PR
 		if pr.Issue.IsPoster(ctx.User.ID) {
-			ctx.JSON(http.StatusUnprocessableEntity, fmt.Errorf("reject your own pull is not allowed"))
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("reject your own pull is not allowed"))
 			return -1, true
 		}
 		reviewType = models.ReviewTypeReject
@@ -469,7 +480,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 
 	// reject reviews with empty body if not approve type
 	if reviewType != models.ReviewTypeApprove && len(strings.TrimSpace(body)) == 0 {
-		ctx.JSON(http.StatusUnprocessableEntity, fmt.Errorf("review event %s need body", event))
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("review event %s need body", event))
 		return -1, true
 	}
 
