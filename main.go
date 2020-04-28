@@ -11,7 +11,6 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/modules/log"
@@ -39,8 +38,6 @@ var (
 )
 
 func init() {
-	start := time.Now()
-	fmt.Printf("\t%v gitea init()\n", time.Now().Format("15:04:05.000000"))
 	setting.AppVer = Version
 	setting.AppBuiltWith = formatBuiltWith()
 
@@ -48,13 +45,9 @@ func init() {
 	originalAppHelpTemplate = cli.AppHelpTemplate
 	originalCommandHelpTemplate = cli.CommandHelpTemplate
 	originalSubcommandHelpTemplate = cli.SubcommandHelpTemplate
-	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 }
 
 func main() {
-	var err error
-	start := time.Now()
-	fmt.Printf("%v Gitea main()\n", time.Now().Format("15:04:05.000000"))
 	app := cli.NewApp()
 	app.Name = "Gitea"
 	app.Usage = "A painless self-hosted Git service"
@@ -113,11 +106,10 @@ arguments - which can alternatively be run by running the subcommand web.`
 		setFlagsAndBeforeOnSubcommands(&app.Commands[i], defaultFlags, establishCustomPath)
 	}
 
-	err = app.Run(os.Args)
+	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal("Failed to run app with %s: %v", os.Args, err)
 	}
-	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 }
 
 func setFlagsAndBeforeOnSubcommands(command *cli.Command, defaultFlags []cli.Flag, before cli.BeforeFunc) {

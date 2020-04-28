@@ -40,8 +40,6 @@ type WrappedUniqueQueue struct {
 // task cannot be processed twice or more at the same time. Uniqueness is
 // only guaranteed whilst the task is waiting in the queue.
 func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error) {
-	start := time.Now()
-	fmt.Printf("%v NewWrappedUniqueQueue\n", time.Now().Format("2006-01-02 15:04:05.000000"))
 	configInterface, err := toConfig(WrappedUniqueQueueConfiguration{}, cfg)
 	if err != nil {
 		return nil, err
@@ -93,7 +91,6 @@ func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 		}
 	}
 	_ = GetManager().Add(queue, WrappedUniqueQueueType, config, exemplar)
-	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 	return wrapped, nil
 }
 
@@ -171,9 +168,5 @@ func (q *WrappedUniqueQueue) IsEmpty() bool {
 }
 
 func init() {
-	start := time.Now()
-	fmt.Printf("%v in unique_que_wrap init()\n", time.Now().Format("15:04:05.000000"))
-
 	queuesMap[WrappedUniqueQueueType] = NewWrappedUniqueQueue
-	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 }
