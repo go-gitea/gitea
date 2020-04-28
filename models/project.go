@@ -170,8 +170,18 @@ func getProjectByRepoID(e Engine, repoID, id int64) (*Project, error) {
 	return p, nil
 }
 
+// UpdateProject updates project properties
+func UpdateProject(p *Project) error {
+	return updateProject(x, p)
+}
+
 func updateProject(e Engine, p *Project) error {
-	_, err := e.ID(p.ID).AllCols().Update(p)
+	p.UpdatedUnix = timeutil.TimeStampNow()
+	_, err := e.ID(p.ID).Cols(
+		"title",
+		"description",
+		"updated_unix",
+	).Update(p)
 	return err
 }
 
@@ -285,10 +295,4 @@ func deleteProjectByRepoID(e Engine, repoID, id int64) error {
 	}
 
 	return nil
-}
-
-// UpdateProject updates a project
-func UpdateProject(p *Project) error {
-	_, err := x.ID(p.ID).AllCols().Update(p)
-	return err
 }

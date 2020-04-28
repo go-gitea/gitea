@@ -161,7 +161,16 @@ func getProjectBoard(e Engine, repoID, projectID, boardID int64) (*ProjectBoard,
 
 // UpdateProjectBoard updates the title of a project board
 func UpdateProjectBoard(board *ProjectBoard) error {
-	_, err := x.ID(board.ID).AllCols().Update(board)
+	return updateProjectBoard(x, board)
+}
+
+func updateProjectBoard(e Engine, board *ProjectBoard) error {
+	board.UpdatedUnix = timeutil.TimeStampNow()
+	_, err := e.ID(board.ID).Cols(
+		"title",
+		"default",
+		"updated_unix",
+	).Update(board)
 	return err
 }
 
