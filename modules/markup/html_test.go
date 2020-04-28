@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/emoji"
 	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -226,6 +227,50 @@ func TestRender_email(t *testing.T) {
 	test(
 		"email@domain..com",
 		`<p>email@domain..com</p>`)
+}
+
+func TestRender_emoji(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+	setting.StaticURLPrefix = AppURL
+
+	test := func(input, expected string) {
+		expected = strings.Replace(expected, "&", "&amp;", -1)
+		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+	}
+
+	// Make sure we can successfully match every emoji in our dataset with regex
+	for i := range emoji.GemojiData {
+		test(
+			emoji.GemojiData[i].Emoji,
+			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
+	}
+	for i := range emoji.GemojiData {
+		test(
+			":"+emoji.GemojiData[i].Aliases[0]+":",
+			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
+	}
+
+	//Text that should be turned into or recognized as emoji
+	test(
+		":gitea:",
+		`<p><span class="emoji" aria-label="gitea"><img src="`+setting.StaticURLPrefix+`/img/emoji/gitea.png"/></span></p>`)
+
+	test(
+		"Some text with 😄 in the middle",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+	test(
+		"Some text with :smile: in the middle",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+
+	// should match nothing
+	test(
+		"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+		`<p>2001:0db8:85a3:0000:0000:8a2e:0370:7334</p>`)
+	test(
+		":not exist:",
+		`<p>:not exist:</p>`)
 }
 
 func TestRender_ShortLinks(t *testing.T) {
