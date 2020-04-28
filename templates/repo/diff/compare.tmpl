@@ -5,7 +5,7 @@
 
 	{{if .PageIsComparePull}}
 		<h2 class="ui header">
-			{{if not .Repository.IsArchived}}
+			{{if and $.IsSigned (not .Repository.IsArchived)}}
 				{{.i18n.Tr "repo.pulls.compare_changes"}}
 				<div class="sub header">{{.i18n.Tr "repo.pulls.compare_changes_desc"}}</div>
 			{{ else }}
@@ -64,22 +64,24 @@
         	<div class="ui segment">
         		{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
         	</div>
-        {{else}}
-        	{{if not .Repository.IsArchived}}
-        	<div class="ui info message show-form-container">
-        		<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
-        	</div>
-        	{{ else }}
-        		<div class="ui warning message">
-        			{{.i18n.Tr "repo.archive.title"}}
-        		</div>
-        	{{ end }}
-        	<div class="pullrequest-form" style="display: none">
-        		{{template "repo/issue/new_form" .}}
-        	</div>
-        	{{template "repo/commits_table" .}}
-        	{{template "repo/diff/box" .}}
-        {{end}}
+		{{else}}
+			{{if and $.IsSigned (not .Repository.IsArchived)}}
+				<div class="ui info message show-form-container">
+					<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
+				</div>
+			{{else if .Repository.IsArchived}}
+				<div class="ui warning message">
+					{{.i18n.Tr "repo.archive.title"}}
+				</div>
+			{{end}}
+			{{if $.IsSigned}}
+				<div class="pullrequest-form" style="display: none">
+					{{template "repo/issue/new_form" .}}
+				</div>
+			{{end}}
+			{{template "repo/commits_table" .}}
+			{{template "repo/diff/box" .}}
+		{{end}}
 	{{else}}
 		{{template "repo/commits_table" .}}
 		{{template "repo/diff/box" .}}
