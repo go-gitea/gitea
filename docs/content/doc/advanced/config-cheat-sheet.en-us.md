@@ -658,41 +658,7 @@ REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
  - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
  - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
 
-**Note**: The above section naming policy is new to v1.12.0; previously the section was `[markup.sanitizer]` and keys could be redefined in v1.11.0.
-Now, a unique identifier must appear in the section name (e.g., `[markup.sanitizer.TeX]`) in order to parse multiple rules and keys cannot be duplicated.
-This was changed because the implementation with the ini parser used was flawed; the following configs were indistinguishable after parsing:
-
-```ini
-[markup.sanitizer]
-ELEMENT = a
-ALLOW_ATTR = target
-REGEXP = $1
-ELEMENT = a
-ALLOW_ATTR = rel
-REGEXP = $2
-ELEMENT = img
-ALLOW_ATTR = src
-REGEXP = $3
-```
-
-and
-
-```ini
-[markup.sanitizer]
-ELEMENT = a
-ALLOW_ATTR = target
-REGEXP = $1
-ELEMENT = img
-ALLOW_ATTR = rel
-REGEXP = $2
-ELEMENT = img
-ALLOW_ATTR = src
-REGEXP = $3
-```
-
-Because of limitations in the ini library, we are unable to automatically migrate configurations.
-
-We will still parse the first rule from a `[markup.sanitizer]` section if present, but multiple rules must be manually migrated.
+Multiple sanitisation rules can be defined by adding unique subsections, e.g. `[markup.sanitizer.TeX-2]`.
 
 ## Time (`time`)
 

@@ -88,10 +88,9 @@ RENDER_COMMAND  = pandoc -f markdown -t html --katex
 
 You must define `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` in each section.
 
-To define multiple entries, define different section names (e.g., `[markup.sanitizer.1]` and `[markup.sanitizer.2]`).
-These can be numbers, identifying names, or anything else.
+To define multiple entries, add a unique alphanumeric suffix (e.g., `[markup.sanitizer.1]` and `[markup.sanitizer.something]`).
 
 Once your configuration changes have been made, restart Gitea to have changes take effect.
 
-**Note**: The above section numbering policy is new; previously the section was `[markup.sanitizer]` and keys could be redefined.
-For more information, see the corresponding information in the cheat sheet.
+**Note**: Prior to Gitea 1.12 there was a single `markup.sanitiser` section with keys that were redefined for multiple rules, however,
+there were significant problems with this method of configuration necessitating configuration through multiple sections.
