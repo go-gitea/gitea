@@ -700,12 +700,22 @@ func DeleteReview(r *Review) error {
 		return err
 	}
 
-	if err := r.loadCodeComments(sess); err != nil {
-		return err
+	if r.ID == 0 {
+		return fmt.Errorf("review is not allowed to be 0")
 	}
 
 	opts := FindCommentsOptions{
 		Type:     CommentTypeCode,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+
+	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
+		return err
+	}
+
+	opts = FindCommentsOptions{
+		Type:     CommentTypeReview,
 		IssueID:  r.IssueID,
 		ReviewID: r.ID,
 	}

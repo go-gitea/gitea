@@ -255,42 +255,6 @@ func DeletePullReview(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func prepareSingleReview(ctx *context.APIContext) (r *models.Review, statusSet bool) {
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
-			ctx.NotFound("GetPullRequestByIndex", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
-		}
-		return nil, true
-	}
-
-	review, err := models.GetReviewByID(ctx.ParamsInt64(":id"))
-	if err != nil {
-		if models.IsErrReviewNotExist(err) {
-			ctx.NotFound("GetReviewByID", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
-		}
-		return nil, true
-	}
-
-	// validate the the review is for the given PR
-	if review.IssueID != pr.IssueID {
-		ctx.NotFound("ReviewNotInPR", err)
-		return nil, true
-	}
-
-	// make sure that the user has access to this review if it is pending
-	if review.Type == models.ReviewTypePending && review.ReviewerID != ctx.User.ID {
-		ctx.NotFound("GetReviewByID", err)
-		return nil, true
-	}
-
-	return review, false
-}
-
 // CreatePullReview create a review to an pull request
 func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews repository repoCreatePullReview
@@ -319,7 +283,7 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 	//   in: body
 	//   required: true
 	//   schema:
-	//     "$ref": "#/definitions/CreatePullRequestOption"
+	//     "$ref": "#/definitions/CreatePullReviewOptions"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullReview"
@@ -510,4 +474,40 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 	}
 
 	return reviewType, false
+}
+
+func prepareSingleReview(ctx *context.APIContext) (r *models.Review, statusSet bool) {
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound("GetPullRequestByIndex", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
+		}
+		return nil, true
+	}
+
+	review, err := models.GetReviewByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrReviewNotExist(err) {
+			ctx.NotFound("GetReviewByID", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
+		}
+		return nil, true
+	}
+
+	// validate the the review is for the given PR
+	if review.IssueID != pr.IssueID {
+		ctx.NotFound("ReviewNotInPR", err)
+		return nil, true
+	}
+
+	// make sure that the user has access to this review if it is pending
+	if review.Type == models.ReviewTypePending && review.ReviewerID != ctx.User.ID {
+		ctx.NotFound("GetReviewByID", err)
+		return nil, true
+	}
+
+	return review, false
 }

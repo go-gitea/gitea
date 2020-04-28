@@ -797,7 +797,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Group("/reviews", func() {
 							m.Combo("").
 								Get(repo.ListPullReviews).
-								Post(reqToken(), bind(api.CreatePullRequestOption{}), repo.CreatePullReview)
+								Post(reqToken(), bind(api.CreatePullReviewOptions{}), repo.CreatePullReview)
 							m.Group("/:id", func() {
 								m.Combo("").
 									Get(repo.GetPullReview).
