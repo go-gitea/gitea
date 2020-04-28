@@ -28,13 +28,14 @@ const (
 
 // PullReview represents a pull request review
 type PullReview struct {
-	ID       int64           `json:"id"`
-	Reviewer *User           `json:"user"`
-	State    ReviewStateType `json:"state"`
-	Body     string          `json:"body"`
-	CommitID string          `json:"commit_id"`
-	Stale    bool            `json:"stale"`
-	Official bool            `json:"official"`
+	ID                int64           `json:"id"`
+	Reviewer          *User           `json:"user"`
+	State             ReviewStateType `json:"state"`
+	Body              string          `json:"body"`
+	CommitID          string          `json:"commit_id"`
+	Stale             bool            `json:"stale"`
+	Official          bool            `json:"official"`
+	CodeCommentsCount int             `json:"comments_count"`
 	// swagger:strfmt date-time
 	Submitted time.Time `json:"submitted_at"`
 

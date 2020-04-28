@@ -24,15 +24,16 @@ func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) 
 	}
 
 	result := &api.PullReview{
-		ID:          r.ID,
-		Reviewer:    ToUser(r.Reviewer, doer != nil, auth),
-		State:       api.ReviewStateUnknown,
-		Body:        r.Content,
-		CommitID:    r.CommitID,
-		Stale:       r.Stale,
-		Official:    r.Official,
-		Submitted:   r.CreatedUnix.AsTime(),
-		HTMLPullURL: r.Issue.HTMLURL(),
+		ID:                r.ID,
+		Reviewer:          ToUser(r.Reviewer, doer != nil, auth),
+		State:             api.ReviewStateUnknown,
+		Body:              r.Content,
+		CommitID:          r.CommitID,
+		Stale:             r.Stale,
+		Official:          r.Official,
+		CodeCommentsCount: len(r.CodeComments),
+		Submitted:         r.CreatedUnix.AsTime(),
+		HTMLPullURL:       r.Issue.HTMLURL(),
 	}
 
 	switch r.Type {
