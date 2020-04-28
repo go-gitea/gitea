@@ -45,7 +45,7 @@ func loadMap() {
 
 		// initialize
 		start := time.Now()
-		fmt.Printf("%v emoji init()\n", time.Now().Format("15:04:05.000000"))
+		fmt.Printf("%v emoji sync once\n", time.Now().Format("15:04:05.000000"))
 		codeMap = make(map[string]int, len(GemojiData))
 		aliasMap = make(map[string]int, len(GemojiData))
 

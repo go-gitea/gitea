@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/charset"
@@ -248,8 +249,10 @@ LOOP:
 var diffMatchPatch = diffmatchpatch.New()
 
 func init() {
-
+	start := time.Now()
+	fmt.Printf("%v running services/gitdiff/gitdiff.go init\n", time.Now().Format("15:04:05.000000"))
 	diffMatchPatch.DiffEditCost = 100
+	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 }
 
 // GetComputedInlineDiffFor computes inline diff for the given line.

@@ -10,7 +10,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 
@@ -65,9 +64,6 @@ var (
 )
 
 func init() {
-
-	start := time.Now()
-	fmt.Printf("%v models init()\n", time.Now().Format("15:04:05.000000"))
 	tables = append(tables,
 		new(User),
 		new(PublicKey),
@@ -135,7 +131,6 @@ func init() {
 	for _, name := range gonicNames {
 		names.LintGonicMapper[name] = true
 	}
-	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 }
 
 func getEngine() (*xorm.Engine, error) {

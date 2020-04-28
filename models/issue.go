@@ -79,7 +79,6 @@ const issueMaxDupIndexAttempts = 3
 const maxIssueIDs = 950
 
 func init() {
-
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 }

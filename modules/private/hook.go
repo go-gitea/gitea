@@ -76,20 +76,16 @@ func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) 
 
 // HookPostReceive updates services and users
 func HookPostReceive(ownerName, repoName string, opts HookOptions) (*HookPostReceiveResult, string) {
-	start := time.Now()
-	fmt.Printf("%v running private HookPostReceive\n", time.Now().Format("2006-01-02 15:04:05.000000"))
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/post-receive/%s/%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 	)
-	fmt.Printf("%v making internal request:\n", time.Now().Format("15:04:05.000000"))
 	req := newInternalRequest(reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
 	jsonBytes, _ := json.Marshal(opts)
 	req.Body(jsonBytes)
 	resp, err := req.Response()
-	fmt.Printf("%v request finished:\n", time.Now().Format("15:04:05.000000"))
 	if err != nil {
 		return nil, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
 	}
@@ -100,7 +96,6 @@ func HookPostReceive(ownerName, repoName string, opts HookOptions) (*HookPostRec
 	}
 	res := &HookPostReceiveResult{}
 	_ = json.NewDecoder(resp.Body).Decode(res)
-	fmt.Printf("time taken: %v\n\n", time.Since(start))
 	return res, ""
 }
 

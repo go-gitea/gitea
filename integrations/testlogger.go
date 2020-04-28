@@ -146,7 +146,6 @@ func (log *TestLogger) GetName() string {
 }
 
 func init() {
-
 	log.Register("test", NewTestLogger)
 	_, filename, _, _ := runtime.Caller(0)
 	prefix = strings.TrimSuffix(filename, "integrations/testlogger.go")

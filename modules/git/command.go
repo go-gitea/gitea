@@ -98,7 +98,6 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 // RunInDirTimeoutEnvFullPipelineFunc executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
 func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
-	start := time.Now()
 	if timeout == -1 {
 		timeout = DefaultCommandExecutionTimeout
 	}
@@ -119,10 +118,7 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 		cmd.Env = env
 		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
 	}
-	cmd.Env = append(cmd.Env, "GIT_TRACE=true")
-	cmd.Env = append(cmd.Env, "GIT_TRACE_PACK_ACCESS=true")
-	cmd.Env = append(cmd.Env, "GIT_TRACE_PERFORMANCE=true")
-	cmd.Env = append(cmd.Env, "GIT_TRACE_SETUP=true")
+
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -144,15 +140,6 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 			cancel()
 			return err
 		}
-	}
-
-	var slowLoad = 5000 * time.Millisecond
-
-	if time.Since(start) >= slowLoad {
-		fmt.Printf("cmd: %+v\n", cmd)
-		fmt.Printf("out: %+v\n", cmd.Stdout)
-		fmt.Printf("err: %+v\n", cmd.Stderr)
-		fmt.Printf("time taken: %v\n\n", time.Since(start))
 	}
 
 	if err := cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {

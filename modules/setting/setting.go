@@ -438,9 +438,6 @@ func getWorkPath(appPath string) string {
 }
 
 func init() {
-
-	start := time.Now()
-	fmt.Printf("%v settings init()\n", time.Now().Format("15:04:05.000000"))
 	IsWindows = runtime.GOOS == "windows"
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
 	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
@@ -450,7 +447,6 @@ func init() {
 		log.Fatal("Failed to get app path: %v", err)
 	}
 	AppWorkPath = getWorkPath(AppPath)
-	fmt.Printf("\ttime taken: %v\n\n", time.Since(start))
 }
 
 func forcePathSeparator(path string) {
