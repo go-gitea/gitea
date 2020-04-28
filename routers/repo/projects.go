@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -503,7 +503,6 @@ func CreateProjectPost(ctx *context.Context, form auth.UserCreateProjectForm) {
 	}
 
 	var projectType = models.IndividualType
-	fmt.Println(user.IsOrganization())
 	if user.IsOrganization() {
 		projectType = models.OrganizationType
 	}
