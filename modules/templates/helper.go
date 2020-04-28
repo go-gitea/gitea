@@ -25,6 +25,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
@@ -139,6 +140,9 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderEmoji":                    RenderEmoji,
+		"RenderEmojiPlain":               emoji.ReplaceAliases,
+		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
 		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
@@ -510,6 +514,29 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 		return ""
 	}
 	return template.HTML(renderedMessage)
+}
+
+// RenderEmoji renders html text with emoji post processors
+func RenderEmoji(text string) template.HTML {
+	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
+	if err != nil {
+		log.Error("RenderEmoji: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedText)
+}
+
+//ReactionToEmoji renders emoji for use in reactions
+func ReactionToEmoji(reaction string) template.HTML {
+	val := emoji.FromCode(reaction)
+	if val != nil {
+		return template.HTML(val.Emoji)
+	}
+	val = emoji.FromAlias(reaction)
+	if val != nil {
+		return template.HTML(val.Emoji)
+	}
+	return template.HTML(fmt.Sprintf(`<img src=%s/img/emoji/%s.png></img>`, setting.StaticURLPrefix, reaction))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
