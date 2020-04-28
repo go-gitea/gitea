@@ -128,6 +128,5 @@ func (q *ChannelUniqueQueue) Name() string {
 }
 
 func init() {
-
 	queuesMap[ChannelUniqueQueueType] = NewChannelUniqueQueue
 }

@@ -237,6 +237,5 @@ func (q *PersistableChannelUniqueQueue) Terminate() {
 }
 
 func init() {
-
 	queuesMap[PersistableChannelUniqueQueueType] = NewPersistableChannelUniqueQueue
 }

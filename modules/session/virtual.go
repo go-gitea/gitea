@@ -102,7 +102,6 @@ func (o *VirtualSessionProvider) GC() {
 }
 
 func init() {
-
 	session.Register("VirtualSession", &VirtualSessionProvider{})
 }
 

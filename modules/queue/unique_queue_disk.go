@@ -100,6 +100,5 @@ func (fifo *LevelUniqueQueueByteFIFO) Close() error {
 }
 
 func init() {
-
 	queuesMap[LevelUniqueQueueType] = NewLevelUniqueQueue
 }

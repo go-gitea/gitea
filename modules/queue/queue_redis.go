@@ -143,6 +143,5 @@ func (fifo *RedisByteFIFO) Len() int64 {
 }
 
 func init() {
-
 	queuesMap[RedisQueueType] = NewRedisQueue
 }

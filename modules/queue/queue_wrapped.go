@@ -273,6 +273,5 @@ func (q *WrappedQueue) Terminate() {
 }
 
 func init() {
-
 	queuesMap[WrappedQueueType] = NewWrappedQueue
 }

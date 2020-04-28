@@ -17,7 +17,6 @@ import (
 )
 
 func init() {
-
 	markup.RegisterParser(Parser{})
 }
 

@@ -74,6 +74,5 @@ func (log *ConsoleLogger) GetName() string {
 }
 
 func init() {
-
 	Register("console", NewConsoleLogger)
 }

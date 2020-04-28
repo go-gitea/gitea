@@ -25,7 +25,6 @@ var (
 )
 
 func init() {
-
 	RegisterDownloaderFactory(&GitlabDownloaderFactory{})
 }
 

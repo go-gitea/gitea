@@ -52,7 +52,6 @@ type Form interface {
 }
 
 func init() {
-
 	binding.SetNameMapper(com.ToSnakeCase)
 }
 

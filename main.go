@@ -39,7 +39,6 @@ var (
 )
 
 func init() {
-
 	start := time.Now()
 	fmt.Printf("\t%v gitea init()\n", time.Now().Format("15:04:05.000000"))
 	setting.AppVer = Version

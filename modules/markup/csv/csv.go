@@ -19,7 +19,6 @@ import (
 var quoteRegexp = regexp.MustCompile(`["'][\s\S]+?["']`)
 
 func init() {
-
 	markup.RegisterParser(Parser{})
 
 }

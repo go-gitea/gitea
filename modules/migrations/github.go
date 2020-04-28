@@ -29,7 +29,6 @@ var (
 )
 
 func init() {
-
 	RegisterDownloaderFactory(&GithubDownloaderV3Factory{})
 }
 

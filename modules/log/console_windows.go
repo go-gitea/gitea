@@ -29,7 +29,6 @@ func enableVTMode(console windows.Handle) bool {
 }
 
 func init() {
-
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		CanColorStdout = enableVTMode(windows.Stdout)
 	} else {

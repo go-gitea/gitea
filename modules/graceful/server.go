@@ -29,7 +29,6 @@ var (
 )
 
 func init() {
-
 	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
 }
 

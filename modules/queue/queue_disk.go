@@ -96,6 +96,5 @@ func (fifo *LevelQueueByteFIFO) Len() int64 {
 }
 
 func init() {
-
 	queuesMap[LevelQueueType] = NewLevelQueue
 }

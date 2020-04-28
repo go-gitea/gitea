@@ -233,6 +233,5 @@ func addFlashErr(ctx *macaron.Context, err string) {
 // fails (or if negotiation should continue), which would prevent other authentication methods
 // to execute at all.
 func init() {
-
 	Register(&SSPI{})
 }

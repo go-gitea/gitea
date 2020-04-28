@@ -15,7 +15,6 @@ import (
 )
 
 func init() {
-
 	tables = append(tables,
 		new(Topic),
 		new(RepoTopic),

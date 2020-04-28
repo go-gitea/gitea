@@ -120,6 +120,5 @@ func (log *ConnLogger) GetName() string {
 }
 
 func init() {
-
 	Register("conn", NewConn)
 }

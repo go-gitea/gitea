@@ -103,6 +103,5 @@ func (log *SMTPLogger) GetName() string {
 }
 
 func init() {
-
 	Register("smtp", NewSMTPLogger)
 }

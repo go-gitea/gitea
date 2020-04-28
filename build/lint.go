@@ -251,7 +251,6 @@ var help bool
 var originalUsage = flag.Usage
 
 func init() {
-
 	flag.Usage = func() {
 		originalUsage()
 	}

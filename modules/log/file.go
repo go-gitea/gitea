@@ -255,6 +255,5 @@ func (log *FileLogger) GetName() string {
 }
 
 func init() {
-
 	Register("file", NewFileLogger)
 }

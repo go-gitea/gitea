@@ -818,7 +818,6 @@ func DeleteDeployKey(ctx *context.Context) {
 }
 
 func init() {
-
 	var err error
 	validFormAddress, err = xurls.StrictMatchingScheme(`(https?)|(git)://`)
 	if err != nil {

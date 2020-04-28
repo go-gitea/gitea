@@ -91,7 +91,6 @@ type PoolWorkers struct {
 type PoolWorkersList []*PoolWorkers
 
 func init() {
-
 	_ = GetManager()
 }
 

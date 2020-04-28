@@ -122,6 +122,5 @@ func (fifo *RedisUniqueByteFIFO) Has(data []byte) (bool, error) {
 }
 
 func init() {
-
 	queuesMap[RedisUniqueQueueType] = NewRedisUniqueQueue
 }
