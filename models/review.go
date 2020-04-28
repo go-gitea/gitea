@@ -101,10 +101,6 @@ func (r *Review) loadReviewer(e Engine) (err error) {
 			return nil
 		}
 		r.Reviewer, err = getUserByID(e, r.ReviewerID)
-		if err != nil && IsErrUserNotExist(err) {
-			r.Reviewer = NewGhostUser()
-			err = nil
-		}
 	}
 	return
 }
