@@ -28,7 +28,7 @@ func Events(ctx *context.Context) {
 	ctx.Resp.WriteHeader(http.StatusOK)
 
 	// Listen to connection close and un-register messageChan
-	notify := ctx.Resp.(http.CloseNotifier).CloseNotify()
+	notify := ctx.Req.Context().Done()
 	ctx.Resp.Flush()
 
 	shutdownCtx := graceful.GetManager().ShutdownContext()

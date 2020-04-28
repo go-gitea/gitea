@@ -101,6 +101,9 @@ func (e *Event) WriteTo(w io.Writer) (int64, error) {
 	if e.Retry != 0 {
 		nint, err = fmt.Fprintf(w, "retry: %d\n", int64(e.Retry/time.Millisecond))
 		sum += int64(nint)
+		if err != nil {
+			return sum, err
+		}
 	}
 
 	nint, err = w.Write([]byte("\n"))
