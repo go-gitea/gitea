@@ -119,6 +119,8 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 		cmd.Env = env
 		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
 	}
+
+	cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
