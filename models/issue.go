@@ -609,7 +609,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed, isMergeP
 		return nil, err
 	}
 	for idx := range issue.Labels {
-		if err = updateLabel(e, issue.Labels[idx]); err != nil {
+		if err = updateLabelCols(e, issue.Labels[idx], "num_issues", "num_closed_issue"); err != nil {
 			return nil, err
 		}
 	}
