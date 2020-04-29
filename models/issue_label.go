@@ -103,7 +103,7 @@ func (label *Label) CalOpenOrgIssues(repoID, labelID int64) {
 	}
 }
 
-// RenderText applys any rendering for display in templates
+// RenderText applies any rendering for display in templates
 func (label *Label) RenderText() {
 	label.Name = emoji.ReplaceAliases(label.Name)
 	label.Description = emoji.ReplaceAliases(label.Description)
