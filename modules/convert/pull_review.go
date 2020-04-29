@@ -13,9 +13,11 @@ import (
 
 // ToPullReview convert a review to api format
 func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) {
-
 	if err := r.LoadAttributes(); err != nil {
-		return nil, err
+		if !models.IsErrUserNotExist(err) {
+			return nil, err
+		}
+		r.Reviewer = models.NewGhostUser()
 	}
 
 	auth := false
@@ -72,7 +74,10 @@ func ToPullReviewList(rl []*models.Review, doer *models.User) ([]*api.PullReview
 // ToPullReviewCommentList convert the CodeComments of an review to it's api format
 func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.PullReviewComment, error) {
 	if err := review.LoadAttributes(); err != nil {
-		return nil, err
+		if !models.IsErrUserNotExist(err) {
+			return nil, err
+		}
+		review.Reviewer = models.NewGhostUser()
 	}
 
 	apiComments := make([]*api.PullReviewComment, 0, len(review.CodeComments))

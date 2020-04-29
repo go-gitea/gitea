@@ -131,7 +131,7 @@ func GetPullReview(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	review, statusSet := prepareSingleReview(ctx)
+	review, _, statusSet := prepareSingleReview(ctx)
 	if statusSet {
 		return
 	}
@@ -181,7 +181,7 @@ func GetPullReviewComments(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	review, statusSet := prepareSingleReview(ctx)
+	review, _, statusSet := prepareSingleReview(ctx)
 	if statusSet {
 		return
 	}
@@ -233,7 +233,7 @@ func DeletePullReview(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	review, statusSet := prepareSingleReview(ctx)
+	review, _, statusSet := prepareSingleReview(ctx)
 	if statusSet {
 		return
 	}
@@ -395,23 +395,13 @@ func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions)
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	review, isWrong := prepareSingleReview(ctx)
+	review, pr, isWrong := prepareSingleReview(ctx)
 	if isWrong {
 		return
 	}
 
 	if review.Type != models.ReviewTypePending {
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("only a pending review can be submitted"))
-		return
-	}
-
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
-			ctx.NotFound("GetPullRequestByIndex", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
-		}
 		return
 	}
 
@@ -487,7 +477,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 	return reviewType, false
 }
 
-func prepareSingleReview(ctx *context.APIContext) (r *models.Review, statusSet bool) {
+func prepareSingleReview(ctx *context.APIContext) (r *models.Review, pr *models.PullRequest, statusSet bool) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -495,7 +485,7 @@ func prepareSingleReview(ctx *context.APIContext) (r *models.Review, statusSet b
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
 		}
-		return nil, true
+		return nil, nil, true
 	}
 
 	review, err := models.GetReviewByID(ctx.ParamsInt64(":id"))
@@ -505,20 +495,27 @@ func prepareSingleReview(ctx *context.APIContext) (r *models.Review, statusSet b
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
 		}
-		return nil, true
+		return nil, nil, true
 	}
 
 	// validate the the review is for the given PR
 	if review.IssueID != pr.IssueID {
-		ctx.NotFound("ReviewNotInPR", err)
-		return nil, true
+		ctx.NotFound("ReviewNotInPR")
+		return nil, nil, true
 	}
 
 	// make sure that the user has access to this review if it is pending
-	if review.Type == models.ReviewTypePending && review.ReviewerID != ctx.User.ID {
-		ctx.NotFound("GetReviewByID", err)
-		return nil, true
+	if review.Type == models.ReviewTypePending && review.ReviewerID != ctx.User.ID && !ctx.User.IsAdmin {
+		ctx.NotFound("GetReviewByID")
+		return nil, nil, true
 	}
 
-	return review, false
+	if err := review.LoadAttributes(); err != nil {
+		if !models.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusInternalServerError, "ReviewLoadAttributes", err)
+			return nil, nil, true
+		}
+	}
+
+	return review, pr, false
 }
