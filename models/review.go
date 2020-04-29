@@ -74,12 +74,13 @@ type Review struct {
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
+	if r.CodeComments != nil {
+		return
+	}
 	if err = r.loadIssue(e); err != nil {
-		return err
+		return
 	}
-	if r.CodeComments == nil {
-		r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
-	}
+	r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
 	return
 }
 
@@ -89,9 +90,10 @@ func (r *Review) LoadCodeComments() error {
 }
 
 func (r *Review) loadIssue(e Engine) (err error) {
-	if r.Issue == nil {
-		r.Issue, err = getIssueByID(e, r.IssueID)
+	if r.Issue != nil {
+		return
 	}
+	r.Issue, err = getIssueByID(e, r.IssueID)
 	return
 }
 

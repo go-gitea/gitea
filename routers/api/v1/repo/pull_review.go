@@ -439,12 +439,13 @@ func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions)
 	ctx.JSON(http.StatusOK, apiReview)
 }
 
-func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, event api.ReviewStateType, body string) (reviewType models.ReviewType, isWrong bool) {
+func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, event api.ReviewStateType, body string) (models.ReviewType, bool) {
 	if err := pr.LoadIssue(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return -1, true
 	}
 
+	var reviewType models.ReviewType
 	switch event {
 	case api.ReviewStateApproved:
 		// can not approve your own PR
@@ -477,7 +478,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 	return reviewType, false
 }
 
-func prepareSingleReview(ctx *context.APIContext) (r *models.Review, pr *models.PullRequest, statusSet bool) {
+func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullRequest, bool) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -510,11 +511,9 @@ func prepareSingleReview(ctx *context.APIContext) (r *models.Review, pr *models.
 		return nil, nil, true
 	}
 
-	if err := review.LoadAttributes(); err != nil {
-		if !models.IsErrUserNotExist(err) {
-			ctx.Error(http.StatusInternalServerError, "ReviewLoadAttributes", err)
-			return nil, nil, true
-		}
+	if err := review.LoadAttributes(); err != nil && !models.IsErrUserNotExist(err) {
+		ctx.Error(http.StatusInternalServerError, "ReviewLoadAttributes", err)
+		return nil, nil, true
 	}
 
 	return review, pr, false
