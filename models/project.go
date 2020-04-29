@@ -19,20 +19,18 @@ type (
 		Translation string
 	}
 
-	// ProjectType is used to identify the type of project in question and
-	// ownership
+	// ProjectType is used to identify the type of project in question and ownership
 	ProjectType uint8
 )
 
 const (
-	// IndividualType is a type of project board that is owned by an
-	// individual.
+	// IndividualType is a type of project board that is owned by an individual
 	IndividualType ProjectType = iota + 1
 
-	// RepositoryType is a project that is tied to a repository.
+	// RepositoryType is a project that is tied to a repository
 	RepositoryType
 
-	// OrganizationType is a project that is tied to an organisation.
+	// OrganizationType is a project that is tied to an organisation
 	OrganizationType
 )
 
@@ -149,7 +147,7 @@ func NewProject(p *Project) error {
 	return sess.Commit()
 }
 
-// GetProjectByRepoID returns the projects in a repository.
+// GetProjectByRepoID returns the projects in a repository
 func GetProjectByRepoID(repoID, id int64) (*Project, error) {
 	return getProjectByRepoID(x, repoID, id)
 }

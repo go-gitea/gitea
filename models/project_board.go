@@ -15,7 +15,7 @@ type (
 	// ProjectBoardType is used to represent a project board type
 	ProjectBoardType uint8
 
-	// ProjectBoardList is a list of all project boards in a repository.
+	// ProjectBoardList is a list of all project boards in a repository
 	ProjectBoardList []*ProjectBoard
 )
 
@@ -26,8 +26,7 @@ const (
 	// BasicKanban is a project board type that has basic predefined columns
 	BasicKanban
 
-	// BugTriage is a project board type that has predefined columns suited to
-	// hunting down bugs
+	// BugTriage is a project board type that has predefined columns suited to hunting down bugs
 	BugTriage
 )
 
