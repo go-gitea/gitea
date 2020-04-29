@@ -124,7 +124,7 @@ have the generic name `gitea`. Do not change this, i.e. to include the version n
 
 ### 1. Restarting gitea with systemd (recommended)
 
-As explained before, we recommended to to use service system as systemd. In this case ```systemctl restart gitea``` should be enough.
+As explained before, we recommend to use systemd as service manager. In this case ```systemctl restart gitea``` should be enough.
 
 ### 2. Restarting gitea without systemd
 
