@@ -4,6 +4,9 @@
   "engines": {
     "node": ">=10"
   },
+  "scripts": {
+    "postinstall": "patch-package"
+  },
   "dependencies": {
     "@babel/core": "7.9.0",
     "@babel/plugin-proposal-object-rest-spread": "7.9.5",
@@ -13,7 +16,6 @@
     "@primer/octicons": "9.6.0",
     "babel-loader": "8.1.0",
     "clipboard": "2.0.6",
-    "copy-webpack-plugin": "5.1.1",
     "core-js": "3.6.5",
     "css-loader": "3.5.2",
     "cssnano": "4.1.10",
@@ -29,6 +31,7 @@
     "less-loader": "5.0.0",
     "mini-css-extract-plugin": "0.9.0",
     "optimize-css-assets-webpack-plugin": "5.0.3",
+    "patch-package": "6.2.2",
     "postcss-loader": "3.0.0",
     "postcss-preset-env": "6.7.0",
     "postcss-safe-parser": "4.0.2",

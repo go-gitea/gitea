@@ -573,7 +573,7 @@ release-sources: | $(DIST_DIRS) node_modules
 	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
-node_modules: package-lock.json
+node_modules: package-lock.json patches/*
 	npm install --no-save
 	@touch node_modules
 
