@@ -589,7 +589,7 @@ fomantic: $(FOMANTIC_DEST)
 $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
 	rm -rf $(FOMANTIC_DEST_DIR)
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
-	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
+	cp -r web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
 	cp web_src/fomantic/css.js node_modules/fomantic-ui/tasks/build/css.js
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 	@touch $(FOMANTIC_DEST)
