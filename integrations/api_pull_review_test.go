@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -22,7 +23,7 @@ func TestAPIPullReview(t *testing.T) {
 	// test ListPullReviews
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token)
+	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var reviews []*api.PullReview
@@ -47,7 +48,7 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, true, reviews[5].Official)
 
 	// test GetPullReview
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, reviews[3].ID, token)
+	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, reviews[3].ID, token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var review api.PullReview
 	DecodeJSON(t, resp, &review)
@@ -60,7 +61,7 @@ func TestAPIPullReview(t *testing.T) {
 
 	// test GetPullReviewComments
 	comment := models.AssertExistsAndLoadBean(t, &models.Comment{ID: 7}).(*models.Comment)
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/%d/reviews/%d/comments?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, 10, token)
+	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d/comments?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, 10, token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var reviewComments []*api.PullReviewComment
 	DecodeJSON(t, resp, &reviewComments)
@@ -72,8 +73,48 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, comment.HTMLURL(), reviewComments[0].HTMLURL)
 
 	// test CreatePullReview
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
+		Body: "body1",
+		// Event: "" # will result in PENDING
+		Comments: []api.CreatePullReviewComment{{
+			Path:       "README.md",
+			Body:       "first new line",
+			OldLineNum: 0,
+			NewLineNum: 1,
+		}, {
+			Path:       "README.md",
+			Body:       "first old line",
+			OldLineNum: 1,
+			NewLineNum: 0,
+		},
+		},
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &review)
+	assert.EqualValues(t, 6, review.ID)
+	assert.EqualValues(t, "PENDING", review.State)
+	assert.EqualValues(t, 2, review.CodeCommentsCount)
 
 	// test SubmitPullReview
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token), &api.SubmitPullReviewOptions{
+		Event: "APPROVED",
+		Body:  "just two nits",
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &review)
+	assert.EqualValues(t, 6, review.ID)
+	assert.EqualValues(t, "APPROVED", review.State)
+	assert.EqualValues(t, 2, review.CodeCommentsCount)
 
 	// test DeletePullReview
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
+		Body:  "just a comment",
+		Event: "COMMENT",
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &review)
+	assert.EqualValues(t, "COMMENT", review.State)
+	assert.EqualValues(t, 0, review.CodeCommentsCount)
+	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token)
+	resp = session.MakeRequest(t, req, http.StatusNoContent)
 }
