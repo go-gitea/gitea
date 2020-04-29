@@ -212,7 +212,7 @@ func ChangeProjectStatus(p *Project, isClosed bool) error {
 	}
 
 	p.IsClosed = isClosed
-	if err = updateProject(sess, p); err != nil {
+	if _, err = sess.ID(p.ID).Cols("is_closed").Update(p); err != nil {
 		return err
 	}
 
