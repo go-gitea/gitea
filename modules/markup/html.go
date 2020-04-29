@@ -6,6 +6,7 @@ package markup
 
 import (
 	"bytes"
+	"fmt"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/common"
@@ -60,6 +62,13 @@ var (
 
 	// blackfriday extensions create IDs like fn:user-content-footnote
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
+
+	// EmojiShortCodeRegex find emoji by alias like :smile:
+	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:{1}`)
+
+	// find emoji literal: search all emoji hex range as many times as they appear as
+	// some emojis (skin color etc..) are just two or more chained together
+	emojiRegex = regexp.MustCompile(`[\x{1F000}-\x{1FFFF}|\x{2000}-\x{32ff}|\x{fe4e5}-\x{fe4ee}|\x{200D}|\x{FE0F}|\x{e0000}-\x{e007f}]+`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
@@ -154,6 +163,8 @@ var defaultProcessors = []processor{
 	issueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
+	emojiProcessor,
+	emojiShortCodeProcessor,
 }
 
 type postProcessCtx struct {
@@ -194,6 +205,8 @@ var commitMessageProcessors = []processor{
 	issueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
+	emojiProcessor,
+	emojiShortCodeProcessor,
 }
 
 // RenderCommitMessage will use the same logic as PostProcess, but will disable
@@ -226,6 +239,13 @@ var commitMessageSubjectProcessors = []processor{
 	mentionProcessor,
 	issueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
+	emojiShortCodeProcessor,
+	emojiProcessor,
+}
+
+var emojiProcessors = []processor{
+	emojiShortCodeProcessor,
+	emojiProcessor,
 }
 
 // RenderCommitMessageSubject will use the same logic as PostProcess and
@@ -265,6 +285,17 @@ func RenderDescriptionHTML(
 		procs: []processor{
 			descriptionLinkProcessor,
 		},
+	}
+	return ctx.postProcess(rawHTML)
+}
+
+// RenderEmoji for when we want to just process emoji and shortcodes
+// in various places it isn't already run through the normal markdown procesor
+func RenderEmoji(
+	rawHTML []byte,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		procs: emojiProcessors,
 	}
 	return ctx.postProcess(rawHTML)
 }
@@ -319,7 +350,12 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 		if attr.Key == "id" && !(strings.HasPrefix(attr.Val, "user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
 			node.Attr[idx].Val = "user-content-" + attr.Val
 		}
+
+		if attr.Key == "class" && attr.Val == "emoji" {
+			visitText = false
+		}
 	}
+
 	// We ignore code, pre and already generated links.
 	switch node.Type {
 	case html.TextNode:
@@ -403,6 +439,54 @@ func createKeyword(content string) *html.Node {
 	}
 	span.AppendChild(text)
 
+	return span
+}
+
+func createEmoji(content, class, name string) *html.Node {
+	span := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.Span.String(),
+		Attr: []html.Attribute{},
+	}
+	if class != "" {
+		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
+	}
+	if name != "" {
+		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: name})
+	}
+
+	text := &html.Node{
+		Type: html.TextNode,
+		Data: content,
+	}
+
+	span.AppendChild(text)
+	return span
+}
+
+func createCustomEmoji(alias, class string) *html.Node {
+
+	span := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.Span.String(),
+		Attr: []html.Attribute{},
+	}
+	if class != "" {
+		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
+		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
+	}
+
+	img := &html.Node{
+		Type:     html.ElementNode,
+		DataAtom: atom.Img,
+		Data:     "img",
+		Attr:     []html.Attribute{},
+	}
+	if class != "" {
+		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
+	}
+
+	span.AppendChild(img)
 	return span
 }
 
@@ -808,6 +892,45 @@ func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	}
 
 	replaceContent(node, start, end, createCodeLink(urlFull, text, "commit"))
+}
+
+// emojiShortCodeProcessor for rendering text like :smile: into emoji
+func emojiShortCodeProcessor(ctx *postProcessCtx, node *html.Node) {
+
+	m := EmojiShortCodeRegex.FindStringSubmatchIndex(node.Data)
+	if m == nil {
+		return
+	}
+
+	alias := node.Data[m[0]:m[1]]
+	alias = strings.Replace(alias, ":", "", -1)
+	converted := emoji.FromAlias(alias)
+	if converted == nil {
+		// check if this is a custom reaction
+		s := strings.Join(setting.UI.Reactions, " ") + "gitea"
+		if strings.Contains(s, alias) {
+			replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
+			return
+		}
+		return
+	}
+
+	replaceContent(node, m[0], m[1], createEmoji(converted.Emoji, "emoji", converted.Description))
+}
+
+// emoji processor to match emoji and add emoji class
+func emojiProcessor(ctx *postProcessCtx, node *html.Node) {
+	m := emojiRegex.FindStringSubmatchIndex(node.Data)
+
+	if m == nil {
+		return
+	}
+
+	codepoint := node.Data[m[0]:m[1]]
+	val := emoji.FromCode(codepoint)
+	if val != nil {
+		replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", val.Description))
+	}
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
