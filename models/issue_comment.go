@@ -574,9 +574,13 @@ func (c *Comment) LoadPushCommits() (err error) {
 		defer gitRepo.Close()
 
 		c.Commits = gitRepo.GetCommitsFromIDs(commitIDs)
-		c.Commits = ValidateCommitsWithEmails(c.Commits)
-		c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.Repo)
-		c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.Repo)
+		if c.Commits.Len() > 0 {
+			c.Commits = ValidateCommitsWithEmails(c.Commits)
+			c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.Repo)
+			c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.Repo)
+		} else {
+			c.Commits = nil
+		}
 	}
 
 	return err

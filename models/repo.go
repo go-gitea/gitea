@@ -264,6 +264,17 @@ func (repo *Repository) HTMLURL() string {
 	return setting.AppURL + repo.FullName()
 }
 
+// CommitLink make link to by commit full ID
+// note: won't check whether it's an right id
+func (repo *Repository) CommitLink(commitID string) (result string) {
+	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
+		result = ""
+	} else {
+		result = repo.HTMLURL() + "/commit/" + commitID
+	}
+	return
+}
+
 // APIURL returns the repository API URL
 func (repo *Repository) APIURL() string {
 	return setting.AppURL + path.Join("api/v1/repos", repo.FullName())

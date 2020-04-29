@@ -583,7 +583,7 @@
 				{{end}}
 			</span>
 		</div>
-	{{else if eq .Type 29}}
+	{{else if and (eq .Type 29) (or .Commits .IsForcePush)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-repo-force-push" 16}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -592,9 +592,7 @@
 			<span class="text grey">
 				<a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{ if .IsForcePush }}
-					{{ $oldCommitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl $.Issue.PullRequest.BaseRepo.OwnerName $.Issue.PullRequest.BaseRepo.Name .OldCommit }}
-					{{ $newCommitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl $.Issue.PullRequest.BaseRepo.OwnerName $.Issue.PullRequest.BaseRepo.Name .NewCommit }}
-					{{$.i18n.Tr "repo.issues.force_push_codes" $.Issue.PullRequest.HeadBranch (ShortSha .OldCommit) $oldCommitLink (ShortSha .NewCommit) $newCommitLink $createdStr | Safe}}
+					{{$.i18n.Tr "repo.issues.force_push_codes" $.Issue.PullRequest.HeadBranch (ShortSha .OldCommit) ($.Issue.Repo.CommitLink .OldCommit)  (ShortSha .NewCommit) ($.Issue.Repo.CommitLink .NewCommit) $createdStr | Safe}}
 				{{else}}
 					{{$.i18n.Tr (TrN $.i18n.Lang .Commits.Len "repo.issues.push_commit_1" "repo.issues.push_commits_n") .Commits.Len $createdStr | Safe}}
 				{{end}}

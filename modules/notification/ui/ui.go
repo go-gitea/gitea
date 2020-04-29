@@ -109,9 +109,7 @@ func (ns *notificationService) NotifyPullRequestPushCommits(doer *models.User, p
 	var opts = issueNotificationOpts{
 		IssueID:              pr.IssueID,
 		NotificationAuthorID: doer.ID,
-	}
-	if comment != nil {
-		opts.CommentID = comment.ID
+		CommentID:            comment.ID,
 	}
 	_ = ns.issueQueue.Push(opts)
 }
