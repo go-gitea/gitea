@@ -85,7 +85,6 @@ func (r *Review) loadCodeComments(e Engine) (err error) {
 
 // GetCodeCommentsCount return count of CodeComments a Review has
 func (r *Review) GetCodeCommentsCount() int {
-	//Find comments
 	opts := FindCommentsOptions{
 		Type:     CommentTypeCode,
 		IssueID:  r.IssueID,
@@ -116,12 +115,10 @@ func (r *Review) loadIssue(e Engine) (err error) {
 }
 
 func (r *Review) loadReviewer(e Engine) (err error) {
-	if r.Reviewer == nil {
-		if r.ReviewerID == 0 {
-			return nil
-		}
-		r.Reviewer, err = getUserByID(e, r.ReviewerID)
+	if r.Reviewer != nil || r.ReviewerID == 0 {
+		return nil
 	}
+	r.Reviewer, err = getUserByID(e, r.ReviewerID)
 	return
 }
 
