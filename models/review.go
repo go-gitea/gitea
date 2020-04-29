@@ -83,25 +83,6 @@ func (r *Review) loadCodeComments(e Engine) (err error) {
 	return
 }
 
-// GetCodeCommentsCount return count of CodeComments a Review has
-func (r *Review) GetCodeCommentsCount() int {
-	opts := FindCommentsOptions{
-		Type:     CommentTypeCode,
-		IssueID:  r.IssueID,
-		ReviewID: r.ID,
-	}
-	conds := opts.toConds()
-	if r.ID == 0 {
-		conds = conds.And(builder.Eq{"invalidated": false})
-	}
-
-	count, err := x.Where(conds).Count(new(Comment))
-	if err != nil {
-		return 0
-	}
-	return int(count)
-}
-
 // LoadCodeComments loads CodeComments
 func (r *Review) LoadCodeComments() error {
 	return r.loadCodeComments(x)
@@ -726,4 +707,38 @@ func DeleteReview(r *Review) error {
 	}
 
 	return sess.Commit()
+}
+
+// GetCodeCommentsCount return count of CodeComments a Review has
+func (r *Review) GetCodeCommentsCount() int {
+	opts := FindCommentsOptions{
+		Type:     CommentTypeCode,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+	conds := opts.toConds()
+	if r.ID == 0 {
+		conds = conds.And(builder.Eq{"invalidated": false})
+	}
+
+	count, err := x.Where(conds).Count(new(Comment))
+	if err != nil {
+		return 0
+	}
+	return int(count)
+}
+
+// HTMLURL formats a URL-string to the related review issue-comment
+func (r *Review) HTMLURL() string {
+	opts := FindCommentsOptions{
+		Type:     CommentTypeReview,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+	comment := new(Comment)
+	has, err := x.Where(opts.toConds()).Get(comment)
+	if err != nil || !has {
+		return ""
+	}
+	return comment.HTMLURL()
 }

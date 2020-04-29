@@ -39,8 +39,7 @@ type PullReview struct {
 	// swagger:strfmt date-time
 	Submitted time.Time `json:"submitted_at"`
 
-	// HTMLURL  string `json:"html_url"` // ToDo: blocked by https://github.com/go-gitea/gitea/issues/11226
-
+	HTMLURL     string `json:"html_url"`
 	HTMLPullURL string `json:"pull_request_url"`
 }
 
