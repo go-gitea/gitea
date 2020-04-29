@@ -4,17 +4,11 @@
 		{{svg "octicon-plus-small" 16}}
 		{{svg "octicon-smiley" 16}}
 	</a>
-	<div class="menu has-emoji">
+	<div class="menu">
 		<div class="header">{{ .ctx.i18n.Tr "repo.pick_reaction"}}</div>
 		<div class="divider"></div>
 		{{range $value := AllowedReactions}}
-			{{if eq $value "hooray"}}
-				<div class="item" data-content="hooray">:tada:</div>
-			{{else if eq $value "laugh"}}
-				<div class="item" data-content="laugh">:laughing:</div>
-			{{else}}
-				<div class="item" data-content="{{$value}}">:{{$value}}:</div>
-			{{end}}
+			<div class="item reaction" data-content="{{$value}}">{{ReactionToEmoji $value}}</div>
 		{{end}}
 	</div>
 </div>
