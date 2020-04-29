@@ -1232,9 +1232,19 @@ i.icon.centerlock {
 /* limit width of all direct dropdown menu children */
 /* https://github.com/go-gitea/gitea/pull/10835 */
 .dropdown:not(.selection) > .menu > * {
-    max-width: 300px;
+    max-width: 340px;
     overflow-x: hidden;
     text-overflow: ellipsis;
+
+    .editor-toolbar {
+        overflow-x: overlay;
+    }
+
+    @media only screen and (max-width: 768px) {
+        .CodeMirror,.CodeMirror-scroll{
+            min-height: 200px;
+        }
+    }
 }
 
 .text-label {
