@@ -1021,7 +1021,8 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 
-	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	//Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
+	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
 
 	ctx.HTML(200, tplSignUp)
 }
