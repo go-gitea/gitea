@@ -128,7 +128,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
-- `REACTIONS`: All available reactions. Allow users react with different emoji's.
+- `REACTIONS`: All available reactions users can choose on issues/prs and comments
+    Values can be emoji alias (:smile:) or a unicode emoji.
+    For custom reactions, add a tightly cropped square image to public/emoji/img/reaction_name.png
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **true**: Whether to enable a Service Worker to cache frontend assets.
@@ -677,10 +679,11 @@ You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time
 
 ## Task (`task`)
 
--  Task queue configuration has been moved to `queue.task` however, the below configuration values are kept for backwards compatibilityx:
+Task queue configuration has been moved to `queue.task`. However, the below configuration values are kept for backwards compatibility:
+
 - `QUEUE_TYPE`: **channel**: Task queue type, could be `channel` or `redis`.
 - `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
-- `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If there redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
+- `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
 
 ## Migrations (`migrations`)
 
