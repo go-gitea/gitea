@@ -107,7 +107,7 @@ endif
 
 GO_SOURCES_OWN := $(filter-out vendor/% %/bindata.go, $(GO_SOURCES))
 
-FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
+FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables web_src/fomantic/css.js
 FOMANTIC_DEST := public/fomantic/semantic.min.js public/fomantic/semantic.min.css
 FOMANTIC_DEST_DIR := public/fomantic
 
@@ -573,7 +573,7 @@ release-sources: | $(DIST_DIRS) node_modules
 	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
-node_modules: package-lock.json patches/*
+node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
 
@@ -590,6 +590,7 @@ $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
 	rm -rf $(FOMANTIC_DEST_DIR)
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp web_src/fomantic/_site/globals/* node_modules/fomantic-ui/src/_site/globals/
+	cp web_src/fomantic/css.js node_modules/fomantic-ui/tasks/build/css.js
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 	@touch $(FOMANTIC_DEST)
 

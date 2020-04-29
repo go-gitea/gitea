@@ -1,7 +1,6 @@
 * text=auto eol=lf
 /vendor/** -text -eol
 /public/vendor/** -text -eol
-/patches/** -text -eol
 
 conf/* linguist-vendored
 docker/* linguist-vendored
