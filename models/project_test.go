@@ -35,7 +35,7 @@ func TestGetProjects(t *testing.T) {
 
 	assert.NoError(t, PrepareTestDatabase())
 
-	projects, err := GetProjects(ProjectSearchOptions{RepoID: 2})
+	projects, err := GetProjects(ProjectSearchOptions{RepoID: 1})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
@@ -56,7 +56,7 @@ func TestProject(t *testing.T) {
 		Type:        RepositoryType,
 		BoardType:   BasicKanban,
 		Title:       "New Project",
-		RepoID:      2,
+		RepoID:      1,
 		CreatedUnix: timeutil.TimeStampNow(),
 		CreatorID:   2,
 	}
@@ -78,7 +78,7 @@ func TestProject(t *testing.T) {
 	assert.NoError(t, ChangeProjectStatus(project, true))
 
 	// Retrieve from DB afresh to check if it is truly closed
-	projectFromDB, err = GetProjectByRepoID(2, project.ID)
+	projectFromDB, err = GetProjectByRepoID(1, project.ID)
 	assert.NoError(t, err)
 
 	assert.True(t, projectFromDB.IsClosed)
