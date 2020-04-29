@@ -29,10 +29,6 @@ export function initNotificationCount() {
     // Try to connect to the event source first
     const source = new EventSource(`${AppSubUrl}/user/events`);
     source.addEventListener('notification-count', async (e) => {
-      if (e.origin !== window.location.origin) {
-        return;
-      }
-
       try {
         const data = JSON.parse(e.data);
 
@@ -50,7 +46,7 @@ export function initNotificationCount() {
       }
     });
     source.addEventListener('logout', async (e) => {
-      if (e.origin !== window.location.origin || e.data !== 'here') {
+      if (e.data !== 'here') {
         return;
       }
       source.close();
