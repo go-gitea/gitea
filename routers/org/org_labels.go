@@ -19,7 +19,6 @@ func RetrieveLabels(ctx *context.Context) {
 	}
 	for _, l := range labels {
 		l.CalOpenIssues()
-		l.RenderText()
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)

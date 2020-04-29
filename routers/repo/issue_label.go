@@ -59,7 +59,6 @@ func RetrieveLabels(ctx *context.Context) {
 
 	for _, l := range labels {
 		l.CalOpenIssues()
-		l.RenderText()
 	}
 
 	ctx.Data["Labels"] = labels
@@ -72,7 +71,6 @@ func RetrieveLabels(ctx *context.Context) {
 		}
 		for _, l := range orgLabels {
 			l.CalOpenOrgIssues(ctx.Repo.Repository.ID, l.ID)
-			l.RenderText()
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 

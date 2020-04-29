@@ -556,10 +556,6 @@ func Issues(ctx *context.Context) {
 		if isPullList {
 			commitStatus[issue.PullRequest.ID], _ = pull_service.GetLastCommitStatus(issue.PullRequest)
 		}
-
-		for _, l := range issue.Labels {
-			l.RenderText()
-		}
 	}
 
 	userIssueStatsOpts := models.UserIssueStatsOptions{
