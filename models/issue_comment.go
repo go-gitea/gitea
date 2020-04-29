@@ -334,6 +334,7 @@ func (c *Comment) LoadLabel() error {
 		return err
 	} else if has {
 		c.Label = &label
+		c.Label.RenderText()
 	} else {
 		// Ignore Label is deleted, but not clear this table
 		log.Warn("Commit %d cannot load label %d", c.ID, c.LabelID)

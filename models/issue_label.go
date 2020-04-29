@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/emoji"
+
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -99,6 +101,12 @@ func (label *Label) CalOpenOrgIssues(repoID, labelID int64) {
 	for _, count := range counts {
 		label.NumOpenRepoIssues += count
 	}
+}
+
+// RenderText applys any rendering for display in templates
+func (label *Label) RenderText() {
+	label.Name = emoji.ReplaceAliases(label.Name)
+	label.Description = emoji.ReplaceAliases(label.Description)
 }
 
 // LoadSelectedLabelsAfterClick calculates the set of selected labels when a label is clicked

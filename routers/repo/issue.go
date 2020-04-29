@@ -242,6 +242,9 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 
 			commitStatus[issues[i].PullRequest.ID], _ = pull_service.GetLastCommitStatus(issues[i].PullRequest)
 		}
+		for _, l := range issues[i].Labels {
+			l.RenderText()
+		}
 	}
 
 	ctx.Data["Issues"] = issues
@@ -268,10 +271,14 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		}
 
 		ctx.Data["OrgLabels"] = orgLabels
+		for _, l := range orgLabels {
+			l.RenderText()
+		}
 		labels = append(labels, orgLabels...)
 	}
 
 	for _, l := range labels {
+		l.RenderText()
 		l.LoadSelectedLabelsAfterClick(labelIDs)
 	}
 	ctx.Data["Labels"] = labels
@@ -791,6 +798,9 @@ func ViewIssue(ctx *context.Context) {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+	for _, l := range labels {
+		l.RenderText()
+	}
 	ctx.Data["Labels"] = labels
 
 	if repo.Owner.IsOrganization() {
@@ -798,6 +808,9 @@ func ViewIssue(ctx *context.Context) {
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
+		}
+		for _, l := range orgLabels {
+			l.RenderText()
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 
