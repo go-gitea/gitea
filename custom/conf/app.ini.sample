@@ -976,8 +976,10 @@ SHOW_FOOTER_VERSION = true
 ; Show template execution time in the footer
 SHOW_FOOTER_TEMPLATE_LOAD_TIME = true
 
-[markup.sanitizer]
-; The following keys can be used multiple times to define sanitation policy rules.
+[markup.sanitizer.1]
+; The following keys can appear once to define a sanitation policy rule.
+; This section can appear multiple times by adding a unique alphanumeric suffix to define multiple rules.
+; e.g., [markup.sanitizer.1] -> [markup.sanitizer.2] -> [markup.sanitizer.TeX]
 ;ELEMENT = span
 ;ALLOW_ATTR = class
 ;REGEXP = ^(info|warning|error)$
