@@ -1038,7 +1038,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 
 	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
-	if setting.Service.DisableRegistration {
+	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
 		ctx.Error(403)
 		return
 	}
