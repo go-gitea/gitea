@@ -21,7 +21,7 @@ export function initNotificationsTable() {
 export function initNotificationCount() {
   const notificationCount = $('.notification_count');
 
-  if (notificationCount.length <= 0) {
+  if (!notificationCount.length) {
     return;
   }
 
@@ -33,17 +33,21 @@ export function initNotificationCount() {
         return;
       }
 
-      const data = JSON.parse(e.data);
+      try {
+        const data = JSON.parse(e.data);
 
-      const notificationCount = $('.notification_count');
-      if (data.Count === 0) {
-        notificationCount.addClass('hidden');
-      } else {
-        notificationCount.removeClass('hidden');
+        const notificationCount = $('.notification_count');
+        if (data.Count === 0) {
+          notificationCount.addClass('hidden');
+        } else {
+          notificationCount.removeClass('hidden');
+        }
+
+        notificationCount.text(`${data.Count}`);
+        await updateNotificationTable();
+      } catch (error) {
+        console.error(error);
       }
-
-      notificationCount.text(`${data.Count}`);
-      await updateNotificationTable();
     });
     source.addEventListener('logout', async (e) => {
       if (e.origin !== window.location.origin || e.data !== 'here') {
