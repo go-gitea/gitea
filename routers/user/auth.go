@@ -1001,6 +1001,7 @@ func handleSignOut(ctx *context.Context) {
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	ctx.SetCookie("lang", "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
+	ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)                                                            // logout default should set redirect to to default
 }
 
 // SignOut sign out from login status
@@ -1020,7 +1021,8 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 
-	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	//Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
+	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
 
 	ctx.HTML(200, tplSignUp)
 }
@@ -1037,7 +1039,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 
 	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
-	if setting.Service.DisableRegistration {
+	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
 		ctx.Error(403)
 		return
 	}

@@ -31,7 +31,7 @@
 			<li class="item">
 			<div class="ui grid middle aligned">
 				<div class="four wide column">
-					<div class="ui label has-emoji" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag" 16}} {{.Name}}</div>
+					<div class="ui label" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag" 16}} {{.Name | RenderEmojiPlain}}</div>
 				</div>
 				<div class="six wide column">
 					<div class="ui has-emoji">
@@ -74,7 +74,7 @@
 					<li class="item">
 					<div class="ui grid middle aligned">
 						<div class="three wide column">
-							<div class="ui label has-emoji" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag" 16}} {{.Name}}</div>
+							<div class="ui label" style="color: {{.ForegroundColor}}; background-color: {{.Color}}">{{svg "octicon-tag" 16}} {{.Name | RenderEmojiPlain}}</div>
 						</div>
 						<div class="seven wide column">
 							<div class="ui has-emoji">
@@ -94,4 +94,3 @@
 		{{end}}
 	</div>
 </div>
-
