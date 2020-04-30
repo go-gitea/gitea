@@ -3769,6 +3769,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of this milestones. Non existent milestones are discarded",
+            "name": "milestones",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
