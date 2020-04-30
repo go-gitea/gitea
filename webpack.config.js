@@ -1,6 +1,5 @@
 const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
-const CopyPlugin = require('copy-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -210,10 +209,6 @@ module.exports = {
     new SpriteLoaderPlugin({
       plainSprite: true,
     }),
-    new CopyPlugin([
-      // workaround for https://github.com/go-gitea/gitea/issues/10653
-      {from: 'node_modules/fomantic-ui/dist/semantic.min.css', to: 'fomantic/semantic.min.css'},
-    ]),
   ],
   performance: {
     hints: false,
