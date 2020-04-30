@@ -5315,8 +5315,11 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Already subscribed"
+          },
           "201": {
-            "$ref": "#/responses/empty"
+            "description": "Successfully Subscribed"
           },
           "304": {
             "description": "User can only subscribe itself if he is no admin"
@@ -5370,8 +5373,11 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Already unsubscribed"
+          },
           "201": {
-            "$ref": "#/responses/empty"
+            "description": "Successfully Unsubscribed"
           },
           "304": {
             "description": "User can only subscribe itself if he is no admin"
