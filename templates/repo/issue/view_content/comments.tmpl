@@ -155,7 +155,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape) $createdStr | Safe}}{{end}}
+					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape|RenderEmojiPlain) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape|RenderEmojiPlain) $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{end}}
