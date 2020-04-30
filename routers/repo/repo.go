@@ -61,7 +61,6 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
-	ctx.Data["Orgs"] = orgs
 
 	// Not equal means current user is an organization.
 	if uid == ctx.User.ID || uid == 0 {
@@ -84,6 +83,14 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		return nil
 	}
 	if !ctx.User.IsAdmin {
+		orgsAvailable := []*models.User{}
+		for i := 0; i < len(orgs); i++ {
+			if orgs[i].CanCreateRepo() {
+				orgsAvailable = append(orgsAvailable, orgs[i])
+			}
+		}
+		ctx.Data["Orgs"] = orgsAvailable
+
 		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
@@ -92,6 +99,8 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 			ctx.Error(403)
 			return nil
 		}
+	} else {
+		ctx.Data["Orgs"] = orgs
 	}
 	return org
 }
@@ -111,10 +120,6 @@ func getRepoPrivate(ctx *context.Context) bool {
 
 // Create render creating repository page
 func Create(ctx *context.Context) {
-	if !ctx.User.CanCreateRepo() {
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
-	}
-
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	// Give default value for template to render.
@@ -142,7 +147,11 @@ func Create(ctx *context.Context) {
 		}
 	}
 
-	ctx.HTML(200, tplCreate)
+	if !ctx.User.CanCreateRepo() {
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
+	} else {
+		ctx.HTML(200, tplCreate)
+	}
 }
 
 func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
