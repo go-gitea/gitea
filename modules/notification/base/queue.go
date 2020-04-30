@@ -555,40 +555,40 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 			for _, notifier := range q.notifiers {
 				notifier.NotifyPullRequestSynchronized(doer, pr)
 			}
-		case "NotifyPullRewiewRequest":
+		case "NotifyPullReviewRequest":
 
 			var doer *models.User
 			err = json.Unmarshal(call.Args[0], &doer)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyPullRewiewRequest", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyPullReviewRequest", err)
 				continue
 			}
 			var issue *models.Issue
 			err = json.Unmarshal(call.Args[1], &issue)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyPullRewiewRequest", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyPullReviewRequest", err)
 				continue
 			}
 			var reviewer *models.User
 			err = json.Unmarshal(call.Args[2], &reviewer)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.User", "NotifyPullRewiewRequest", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.User", "NotifyPullReviewRequest", err)
 				continue
 			}
 			var isRequest bool
 			err = json.Unmarshal(call.Args[3], &isRequest)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "bool", "NotifyPullRewiewRequest", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "bool", "NotifyPullReviewRequest", err)
 				continue
 			}
 			var comment *models.Comment
 			err = json.Unmarshal(call.Args[4], &comment)
 			if err != nil {
-				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[4]), "*models.Comment", "NotifyPullRewiewRequest", err)
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[4]), "*models.Comment", "NotifyPullReviewRequest", err)
 				continue
 			}
 			for _, notifier := range q.notifiers {
-				notifier.NotifyPullRewiewRequest(doer, issue, reviewer, isRequest, comment)
+				notifier.NotifyPullReviewRequest(doer, issue, reviewer, isRequest, comment)
 			}
 		case "NotifyPushCommits":
 
@@ -1494,8 +1494,8 @@ func (q *QueueNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *mod
 	})
 }
 
-// NotifyPullRewiewRequest is a placeholder function
-func (q *QueueNotifier) NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+// NotifyPullReviewRequest is a placeholder function
+func (q *QueueNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
 	args := make([][]byte, 0)
 	var err error
 	var bs []byte
@@ -1531,7 +1531,7 @@ func (q *QueueNotifier) NotifyPullRewiewRequest(doer *models.User, issue *models
 	args = append(args, bs)
 
 	q.internal.Push(&FunctionCall{
-		Name: "NotifyPullRewiewRequest",
+		Name: "NotifyPullReviewRequest",
 		Args: args,
 	})
 }

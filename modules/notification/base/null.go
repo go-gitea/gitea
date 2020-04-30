@@ -101,8 +101,8 @@ func (*NullNotifier) NotifyPullRequestReview(unknown0 *models.PullRequest, unkno
 // NotifyPullRequestSynchronized is a placeholder function
 func (*NullNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {}
 
-// NotifyPullRewiewRequest is a placeholder function
-func (*NullNotifier) NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+// NotifyPullReviewRequest is a placeholder function
+func (*NullNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
 }
 
 // NotifyPushCommits is a placeholder function
