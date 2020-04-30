@@ -13,7 +13,6 @@
     "@primer/octicons": "9.6.0",
     "babel-loader": "8.1.0",
     "clipboard": "2.0.6",
-    "copy-webpack-plugin": "5.1.1",
     "core-js": "3.6.5",
     "css-loader": "3.5.2",
     "cssnano": "4.1.10",
