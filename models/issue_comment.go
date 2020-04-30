@@ -580,6 +580,7 @@ func (c *Comment) LoadPushCommits() (err error) {
 			c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.Repo)
 		} else {
 			c.Commits = nil
+			c.Content = ""
 		}
 	}
 
