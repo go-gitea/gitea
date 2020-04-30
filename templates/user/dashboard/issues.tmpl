@@ -123,7 +123,7 @@
 								especially on mobile views. */}}
 								<span style="line-height: 2.5">
 									{{range .}}
-										<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+										<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name | RenderEmojiPlain}}</a>
 									{{end}}
 								</span>
 							{{end}}
