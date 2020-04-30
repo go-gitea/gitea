@@ -1063,7 +1063,7 @@ type IssuesOptions struct {
 	AssigneeID         int64
 	PosterID           int64
 	MentionedID        int64
-	MilestoneID        int64
+	MilestoneIDs       []int64
 	ProjectID          int64
 	ProjectBoardID     int64
 	IsClosed           util.OptionalBool
@@ -1150,8 +1150,8 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 			And("issue_user.uid = ?", opts.MentionedID)
 	}
 
-	if opts.MilestoneID > 0 {
-		sess.And("issue.milestone_id=?", opts.MilestoneID)
+	if len(opts.MilestoneIDs) > 0 {
+		sess.In("issue.milestone_id", opts.MilestoneIDs)
 	}
 
 	if opts.ProjectID > 0 {
