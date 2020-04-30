@@ -69,7 +69,7 @@ func ListMembers(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
 		}
-		publicOnly = !isMember
+		publicOnly = !isMember && !ctx.User.IsAdmin
 	}
 	listMembers(ctx, publicOnly)
 }
