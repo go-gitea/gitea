@@ -467,8 +467,8 @@ func InsertReviews(reviews []*Review) error {
 	return sess.Commit()
 }
 
-// AddRewiewRequest add a review request from one reviewer
-func AddRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Comment, err error) {
+// AddReviewRequest add a review request from one reviewer
+func AddReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Comment, err error) {
 	review, err := GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
 	if err != nil {
 		return
@@ -534,8 +534,8 @@ func AddRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Commen
 	return comment, sess.Commit()
 }
 
-//RemoveRewiewRequest remove a review request from one reviewer
-func RemoveRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Comment, err error) {
+//RemoveReviewRequest remove a review request from one reviewer
+func RemoveReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Comment, err error) {
 	review, err := GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
 	if err != nil {
 		return
