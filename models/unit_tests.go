@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
 	"gopkg.in/testfixtures.v2"
-	"xorm.io/core"
 	"xorm.io/xorm"
+	"xorm.io/xorm/names"
 )
 
 // NonexistentID an ID that will never exist
@@ -88,11 +88,11 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 // CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
 func CreateTestEngine(fixturesDir string) error {
 	var err error
-	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
+	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
 	if err != nil {
 		return err
 	}
-	x.SetMapper(core.GonicMapper{})
+	x.SetMapper(names.GonicMapper{})
 	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
 		return err
 	}

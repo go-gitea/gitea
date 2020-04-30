@@ -150,8 +150,8 @@ Mermaid will detect and use tags with `class="language-mermaid"`.
 #### Example: PlantUML
 
 You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by using a PlantUML server.
-The data is encoded and sent to the PlantUML server which generates the picture. There is an online 
-demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you 
+The data is encoded and sent to the PlantUML server which generates the picture. There is an online
+demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you
 can set up your own [PlantUML server](https://plantuml.com/server) instead. To set up PlantUML rendering,
 copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
 `custom/public` folder. Then add the following to `custom/footer.tmpl`:
@@ -173,12 +173,95 @@ You can then add blocks like the following to your markdown:
     ```plantuml
         Alice -> Bob: Authentication Request
         Bob --> Alice: Authentication Response
-        
+
         Alice -> Bob: Another authentication Request
         Alice <-- Bob: Another authentication Response
     ```
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
+
+#### Example: STL Preview
+
+You can display STL file directly in Gitea by adding:
+```html
+<script>
+function lS(src){
+  return new Promise(function(resolve, reject) {
+    let s = document.createElement('script')
+    s.src = src
+    s.addEventListener('load', () => {
+      resolve()
+    })
+    document.body.appendChild(s)
+  });
+}
+
+if($('.view-raw>a[href$=".stl" i]').length){
+  $('body').append('<link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">');
+  Promise.all([lS("/Madeleine.js/src/lib/stats.js"),lS("/Madeleine.js/src/lib/detector.js"), lS("/Madeleine.js/src/lib/three.min.js"), lS("/Madeleine.js/src/Madeleine.js")]).then(function() {
+    $('.view-raw').attr('id', 'view-raw').attr('style', 'padding: 0;margin-bottom: -10px;');
+    new Madeleine({
+      target: 'view-raw',
+      data: $('.view-raw>a[href$=".stl" i]').attr('href'),
+      path: '/Madeleine.js/src'
+    });
+    $('.view-raw>a[href$=".stl"]').remove()
+  });
+}
+</script>
+```
+to the file `templates/custom/footer.tmpl`
+
+You also need to download the content of the library [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `custom/public/` folder.
+
+You should end-up with a folder structucture similar to:
+```
+custom/templates
+-- custom
+    `-- footer.tmpl
+custom/public
+-- Madeleine.js
+   |-- LICENSE
+   |-- README.md
+   |-- css
+   |   |-- pygment_trac.css
+   |   `-- stylesheet.css
+   |-- examples
+   |   |-- ajax.html
+   |   |-- index.html
+   |   `-- upload.html
+   |-- images
+   |   |-- bg_hr.png
+   |   |-- blacktocat.png
+   |   |-- icon_download.png
+   |   `-- sprite_download.png
+   |-- models
+   |   |-- dino2.stl
+   |   |-- ducati.stl
+   |   |-- gallardo.stl
+   |   |-- lamp.stl
+   |   |-- octocat.stl
+   |   |-- skull.stl
+   |   `-- treefrog.stl
+   `-- src
+       |-- Madeleine.js
+       |-- css
+       |   `-- Madeleine.css
+       |-- icons
+       |   |-- logo.png
+       |   |-- madeleine.eot
+       |   |-- madeleine.svg
+       |   |-- madeleine.ttf
+       |   `-- madeleine.woff
+       `-- lib
+           |-- MadeleineConverter.js
+           |-- MadeleineLoader.js
+           |-- detector.js
+           |-- stats.js
+           `-- three.min.js
+```
+
+Then restart gitea and open a STL file on your gitea instance.
 
 ## Customizing Gitea mails
 
@@ -234,6 +317,9 @@ Locales may change between versions, so keeping track of your customized locales
 ### Readmes
 
 To add a custom Readme, add a markdown formatted file (without an `.md` extension) to `custom/options/readme`
+
+**NOTE:** readme templates support **variable expansion**.  
+currently there are `{Name}` (name of repository), `{Description}`, `{CloneURL.SSH}`, `{CloneURL.HTTPS}` and `{OwnerName}`
 
 ### Reactions
 

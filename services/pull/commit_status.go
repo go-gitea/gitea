@@ -35,6 +35,11 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*models.CommitStatus, re
 
 		if targetStatus == "" {
 			targetStatus = structs.CommitStatusPending
+			commitStatuses = append(commitStatuses, &models.CommitStatus{
+				State:       targetStatus,
+				Context:     ctx,
+				Description: "Pending",
+			})
 		}
 		if targetStatus.NoBetterThan(returnedStatus) {
 			returnedStatus = targetStatus

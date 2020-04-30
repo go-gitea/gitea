@@ -552,6 +552,41 @@ func (q *QueueNotifier) handle(data ...queue.Data) {
 			for _, notifier := range q.notifiers {
 				notifier.NotifyPullRequestSynchronized(doer, pr)
 			}
+		case "NotifyPullRewiewRequest":
+
+			var doer *models.User
+			err = json.Unmarshal(call.Args[0], &doer)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[0]), "*models.User", "NotifyPullRewiewRequest", err)
+				continue
+			}
+			var issue *models.Issue
+			err = json.Unmarshal(call.Args[1], &issue)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[1]), "*models.Issue", "NotifyPullRewiewRequest", err)
+				continue
+			}
+			var reviewer *models.User
+			err = json.Unmarshal(call.Args[2], &reviewer)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[2]), "*models.User", "NotifyPullRewiewRequest", err)
+				continue
+			}
+			var isRequest bool
+			err = json.Unmarshal(call.Args[3], &isRequest)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[3]), "bool", "NotifyPullRewiewRequest", err)
+				continue
+			}
+			var comment *models.Comment
+			err = json.Unmarshal(call.Args[4], &comment)
+			if err != nil {
+				log.Error("Unable to unmarshal %s to %s in call to %s: %v", string(call.Args[4]), "*models.Comment", "NotifyPullRewiewRequest", err)
+				continue
+			}
+			for _, notifier := range q.notifiers {
+				notifier.NotifyPullRewiewRequest(doer, issue, reviewer, isRequest, comment)
+			}
 		case "NotifyPushCommits":
 
 			var pusher *models.User
@@ -1452,6 +1487,48 @@ func (q *QueueNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *mod
 
 	q.internal.Push(&FunctionCall{
 		Name: "NotifyPullRequestSynchronized",
+		Args: args,
+	})
+}
+
+// NotifyPullRewiewRequest is a placeholder function
+func (q *QueueNotifier) NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+	args := make([][]byte, 0)
+	var err error
+	var bs []byte
+	bs, err = json.Marshal(&doer)
+	if err != nil {
+		log.Error("Unable to marshall doer: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&issue)
+	if err != nil {
+		log.Error("Unable to marshall issue: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&reviewer)
+	if err != nil {
+		log.Error("Unable to marshall reviewer: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&isRequest)
+	if err != nil {
+		log.Error("Unable to marshall isRequest: %v", err)
+		return
+	}
+	args = append(args, bs)
+	bs, err = json.Marshal(&comment)
+	if err != nil {
+		log.Error("Unable to marshall comment: %v", err)
+		return
+	}
+	args = append(args, bs)
+
+	q.internal.Push(&FunctionCall{
+		Name: "NotifyPullRewiewRequest",
 		Args: args,
 	})
 }

@@ -188,6 +188,74 @@ var migrations = []Migration{
 	NewMigration("Fix topic repository count", fixTopicRepositoryCount),
 	// v127 -> v128
 	NewMigration("add repository code language statistics", addLanguageStats),
+	// v128 -> v129
+	NewMigration("fix merge base for pull requests", fixMergeBase),
+	// v129 -> v130
+	NewMigration("remove dependencies from deleted repositories", purgeUnusedDependencies),
+	// v130 -> v131
+	NewMigration("Expand webhooks for more granularity", expandWebhooks),
+	// v131 -> v132
+	NewMigration("Add IsSystemWebhook column to webhooks table", addSystemWebhookColumn),
+	// v132 -> v133
+	NewMigration("Add Branch Protection Protected Files Column", addBranchProtectionProtectedFilesColumn),
+	// v133 -> v134
+	NewMigration("Add EmailHash Table", addEmailHashTable),
+	// v134 -> v135
+	NewMigration("Refix merge base for merged pull requests", refixMergeBase),
+	// v135 -> v136
+	NewMigration("Add OrgID column to Labels table", addOrgIDLabelColumn),
+	// v136 -> v137
+	NewMigration("Add CommitsAhead and CommitsBehind Column to PullRequest Table", addCommitDivergenceToPulls),
+	// v137 -> v138
+	NewMigration("Add Branch Protection Block Outdated Branch", addBlockOnOutdatedBranch),
+	// v138 -> v139
+	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
+}
+
+// GetCurrentDBVersion returns the current db version
+func GetCurrentDBVersion(x *xorm.Engine) (int64, error) {
+	if err := x.Sync(new(Version)); err != nil {
+		return -1, fmt.Errorf("sync: %v", err)
+	}
+
+	currentVersion := &Version{ID: 1}
+	has, err := x.Get(currentVersion)
+	if err != nil {
+		return -1, fmt.Errorf("get: %v", err)
+	}
+	if !has {
+		return -1, nil
+	}
+	return currentVersion.Version, nil
+}
+
+// ExpectedVersion returns the expected db version
+func ExpectedVersion() int64 {
+	return int64(minDBVersion + len(migrations))
+}
+
+// EnsureUpToDate will check if the db is at the correct version
+func EnsureUpToDate(x *xorm.Engine) error {
+	currentDB, err := GetCurrentDBVersion(x)
+	if err != nil {
+		return err
+	}
+
+	if currentDB < 0 {
+		return fmt.Errorf("Database has not been initialised")
+	}
+
+	if minDBVersion > currentDB {
+		return fmt.Errorf("DB version %d (<= %d) is too old for auto-migration. Upgrade to Gitea 1.6.4 first then upgrade to this version", currentDB, minDBVersion)
+	}
+
+	expected := ExpectedVersion()
+
+	if currentDB != expected {
+		return fmt.Errorf(`Current database version %d is not equal to the expected version %d. Please run "gitea [--config /path/to/app.ini] migrate" to update the database version`, currentDB, expected)
+	}
+
+	return nil
 }
 
 // Migrate database to current version

@@ -917,19 +917,12 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 		}
 
 		// Remove watches from now unaccessible
-		has, err := hasAccess(e, userID, repo)
-		if err != nil {
-			return err
-		} else if has {
-			continue
-		}
-
-		if err = watchRepo(e, userID, repo.ID, false); err != nil {
+		if err := repo.reconsiderWatches(e, userID); err != nil {
 			return err
 		}
 
-		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := removeIssueWatchersByRepoID(e, userID, repo.ID); err != nil {
+		// Remove issue assignments from now unaccessible
+		if err := repo.reconsiderIssueAssignees(e, userID); err != nil {
 			return err
 		}
 	}
@@ -1072,12 +1065,14 @@ func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
 		return err
 	}
 
-	if _, err = sess.Insert(units); err != nil {
-		errRollback := sess.Rollback()
-		if errRollback != nil {
-			log.Error("UpdateTeamUnits sess.Rollback: %v", errRollback)
+	if len(units) > 0 {
+		if _, err = sess.Insert(units); err != nil {
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("UpdateTeamUnits sess.Rollback: %v", errRollback)
+			}
+			return err
 		}
-		return err
 	}
 
 	return sess.Commit()

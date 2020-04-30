@@ -109,6 +109,9 @@ func CreateNewBranch(doer *models.User, repo *models.Repository, oldBranchName, 
 		Branch: branchName,
 		Env:    models.PushingEnvironment(doer, repo),
 	}); err != nil {
+		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
+			return err
+		}
 		return fmt.Errorf("Push: %v", err)
 	}
 
@@ -156,6 +159,9 @@ func CreateNewBranchFromCommit(doer *models.User, repo *models.Repository, commi
 		Branch: branchName,
 		Env:    models.PushingEnvironment(doer, repo),
 	}); err != nil {
+		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
+			return err
+		}
 		return fmt.Errorf("Push: %v", err)
 	}
 

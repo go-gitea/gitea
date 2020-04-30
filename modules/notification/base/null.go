@@ -65,7 +65,8 @@ func (*NullNotifier) NotifyIssueChangeStatus(unknown0 *models.User, unknown1 *mo
 }
 
 // NotifyIssueChangeTitle is a placeholder function
-func (*NullNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {}
+func (*NullNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+}
 
 // NotifyIssueClearLabels is a placeholder function
 func (*NullNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {}
@@ -96,6 +97,10 @@ func (*NullNotifier) NotifyPullRequestReview(unknown0 *models.PullRequest, unkno
 
 // NotifyPullRequestSynchronized is a placeholder function
 func (*NullNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {}
+
+// NotifyPullRewiewRequest is a placeholder function
+func (*NullNotifier) NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+}
 
 // NotifyPushCommits is a placeholder function
 func (*NullNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName string, oldCommitID string, newCommitID string, commits *repository.PushCommits) {

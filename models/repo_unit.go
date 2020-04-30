@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/unknwon/com"
-	"xorm.io/core"
 	"xorm.io/xorm"
+	"xorm.io/xorm/convert"
 )
 
 // RepoUnit describes all units of a repository
@@ -21,7 +21,7 @@ type RepoUnit struct {
 	ID          int64
 	RepoID      int64              `xorm:"INDEX(s)"`
 	Type        UnitType           `xorm:"INDEX(s)"`
-	Config      core.Conversion    `xorm:"TEXT"`
+	Config      convert.Conversion `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 
