@@ -36,72 +36,8 @@
 {{end}}
 {{if .RequireTribute}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/tribute/tribute.min.js"></script>
-	<script>
-		var issuesTribute = new Tribute({
-			values: [
-			{{ range .Assignees }}
-			{key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-			name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'},
-			{{ end }}
-			],
-			noMatchTemplate: function () { return null },
-			menuItemTemplate: function (item) {
-				var user = item.original;
-				var item = $('<div/>')
-				item.append($('<img/>', {'src': user.avatar}))
-				item.append($('<span/>', {'class': 'name'}).text(user.name))
-				if (user.fullname && user.fullname != '') {
-					item.append($('<span/>', {'class': 'fullname'}).text(user.fullname))
-				}
-				return item.html();
-			}
-		});
-		var content = document.getElementById('content');
-		if (content != null) {
-			issuesTribute.attach(content);
-		}
-	</script>
-	<script>
-		var emojiTribute = new Tribute({
-			collection: [{
-				trigger: ':',
-				requireLeadingSpace: true,
-				values: function (text, cb) {
-					var array = emojify.emojiNames;
-					var data = [];
-					for(var j=0; j<array.length; j++) {
-						if(array[j].indexOf(text) !== -1) {
-							data.push(array[j]);
-							if(data.length > 5) {
-								break;
-							}
-						}
-					}
-					cb(data);
-				},
-				lookup: function (item) {
-					return item;
-				},
-				selectTemplate: function (item) {
-					if (typeof item === 'undefined') return null;
-					return ':' + item.original + ':';
-				},
-				menuItemTemplate: function (item) {
-					return '<img class="emoji" src="{{StaticUrlPrefix}}/vendor/plugins/emojify/images/' + item.original + '.png"/>' + item.original;
-				}
-			}]
-		});
-		var emojiInputs = document.querySelectorAll('.emoji-input');
-		if (emojiInputs.length > 0) {
-			emojiTribute.attach(emojiInputs);
-		}
-		var content = document.getElementById('content');
-		if (content != null) {
-			emojiTribute.attach(document.getElementById('content'));
-		}
-	</script>
 {{end}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/emojify/emojify.custom.js"></script>
+
 	<script src="{{StaticUrlPrefix}}/fomantic/semantic.min.js?v={{MD5 AppVer}}"></script>
 	<script src="{{StaticUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>
 {{template "custom/footer" .}}

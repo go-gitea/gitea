@@ -20,9 +20,9 @@ globals:
   __webpack_public_path__: true
   CodeMirror: false
   Dropzone: false
-  emojify: false
   SimpleMDE: false
   u2fApi: false
+  Tribute: false
 
 overrides:
   - files: ["web_src/**/*.worker.js"]
