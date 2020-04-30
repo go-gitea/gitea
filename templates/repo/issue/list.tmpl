@@ -211,7 +211,7 @@
 					</div>
 					{{end}}
 					<div class="ui {{if .IsClosed}}{{if .IsPull}}{{if .PullRequest.HasMerged}}purple{{else}}red{{end}}{{else}}red{{end}}{{else}}{{if .IsRead}}white{{else}}green{{end}}{{end}} label">#{{.Index}}</div>
-					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
+					<a class="title" href="{{$.Link}}/{{.Index}}">{{RenderEmoji .Title}}</a>
 
 					{{if .IsPull }}
 						{{if (index $.CommitStatus .PullRequest.ID)}}

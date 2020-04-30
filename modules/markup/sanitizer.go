@@ -63,6 +63,10 @@ func ReplaceSanitizer() {
 	// Allow unlabelled labels
 	sanitizer.policy.AllowNoAttrs().OnElements("label")
 
+	// Allow classes for emojis
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("span")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("img")
+
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",
 		"accesskey", "action", "align", "alt",
