@@ -75,7 +75,11 @@
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
+				{{if .Issue.IsPull }}
+					{{$.i18n.Tr "repo.pulls.reopened_at" .EventTag $createdStr | Safe}}
+				{{else}}
+					{{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
+				{{end}}
 			</span>
 		</div>
 	{{else if eq .Type 2}}
@@ -86,7 +90,11 @@
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
+				{{if .Issue.IsPull }}
+					{{$.i18n.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
+				{{else}}
+					{{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
+				{{end}}
 			</span>
 		</div>
 	{{else if eq .Type 28}}
