@@ -51,7 +51,7 @@
 							<span class="info">{{.i18n.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item has-emoji label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash" 16}}{{else if .IsSelected}}{{svg "octicon-check" 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash" 16}}{{else if .IsSelected}}{{svg "octicon-check" 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmojiPlain}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -154,8 +154,8 @@
 						</span>
 						<div class="menu">
 							{{range .Labels}}
-								<div class="item issue-action has-emoji" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check" 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check" 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmojiPlain}}
 								</div>
 							{{end}}
 						</div>
@@ -220,7 +220,7 @@
 					{{end}}
 
 					{{range .Labels}}
-						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmojiPlain}}</a>
 					{{end}}
 
 					{{if .NumComments}}
