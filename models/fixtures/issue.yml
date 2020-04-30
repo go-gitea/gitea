@@ -32,6 +32,7 @@
   poster_id: 1
   name: issue3
   content: content for the third issue
+  milestone_id: 3
   is_closed: false
   is_pull: true
   created_unix: 946684820
