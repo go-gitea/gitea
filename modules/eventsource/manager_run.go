@@ -22,7 +22,7 @@ func (m *Manager) Init() {
 
 // Run runs the manager within a provided context
 func (m *Manager) Run(ctx context.Context) {
-	then := timeutil.TimeStampNow() - 2000
+	then := timeutil.TimeStampNow().Add(-2)
 	timer := time.NewTicker(setting.UI.Notification.EventSourceUpdateTime)
 loop:
 	for {
@@ -31,7 +31,7 @@ loop:
 			timer.Stop()
 			break loop
 		case <-timer.C:
-			now := timeutil.TimeStampNow() - 2000
+			now := timeutil.TimeStampNow().Add(-2)
 
 			uidCounts, err := models.GetUIDsAndNotificationCounts(then, now)
 			if err != nil {
