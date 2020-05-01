@@ -45,8 +45,8 @@ func (m *Manager) Unregister(uid int64, channel <-chan *Event) {
 	m.mutex.Lock()
 	messenger, ok := m.messengers[uid]
 	if !ok {
-		messenger = NewMessenger(uid)
-		m.messengers[uid] = messenger
+		m.mutex.Unlock()
+		return
 	}
 	m.mutex.Unlock()
 	messenger.Unregister(channel)
