@@ -43,13 +43,14 @@ func (m *Manager) Register(uid int64) <-chan *Event {
 // Unregister message channel
 func (m *Manager) Unregister(uid int64, channel <-chan *Event) {
 	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	messenger, ok := m.messengers[uid]
 	if !ok {
-		m.mutex.Unlock()
 		return
 	}
-	m.mutex.Unlock()
-	messenger.Unregister(channel)
+	if messenger.Unregister(channel) {
+		delete(m.messengers, uid)
+	}
 }
 
 // UnregisterAll message channels

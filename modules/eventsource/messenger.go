@@ -32,7 +32,7 @@ func (m *Messenger) Register() <-chan *Event {
 }
 
 // Unregister removes the provider chan []byte
-func (m *Messenger) Unregister(channel <-chan *Event) {
+func (m *Messenger) Unregister(channel <-chan *Event) bool {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	for i, toRemove := range m.channels {
@@ -42,6 +42,7 @@ func (m *Messenger) Unregister(channel <-chan *Event) {
 			break
 		}
 	}
+	return len(m.channels) == 0
 }
 
 // UnregisterAll removes all chan []byte
