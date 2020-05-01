@@ -24,14 +24,14 @@ type (
 )
 
 const (
-	// ProjectIndividualType is a type of project board that is owned by an individual
-	ProjectIndividualType ProjectType = iota + 1
+	// ProjectTypeIndividual is a type of project board that is owned by an individual
+	ProjectTypeIndividual ProjectType = iota + 1
 
-	// ProjectRepositoryType is a project that is tied to a repository
-	ProjectRepositoryType
+	// ProjectTypeRepository is a project that is tied to a repository
+	ProjectTypeRepository
 
-	// ProjectOrganizationType is a project that is tied to an organisation
-	ProjectOrganizationType
+	// ProjectTypeOrganization is a project that is tied to an organisation
+	ProjectTypeOrganization
 )
 
 // Project represents a project board
@@ -64,7 +64,7 @@ func GetProjectsConfig() []ProjectsConfig {
 // IsProjectTypeValid checks if a project typeis valid
 func IsProjectTypeValid(p ProjectType) bool {
 	switch p {
-	case ProjectRepositoryType:
+	case ProjectTypeRepository:
 		return true
 	default:
 		return false
@@ -184,13 +184,13 @@ func updateProject(e Engine, p *Project) error {
 }
 
 func countRepoProjects(e Engine, repoID int64) (int64, error) {
-	return e.Where("repo_id=? AND type=?", repoID, ProjectRepositoryType).
+	return e.Where("repo_id=? AND type=?", repoID, ProjectTypeRepository).
 		Count(new(Project))
 }
 
 func countRepoClosedProjects(e Engine, repoID int64) (int64, error) {
 	return e.
-		Where("repo_id=? AND type=? AND is_closed=?", repoID, ProjectRepositoryType, true).
+		Where("repo_id=? AND type=? AND is_closed=?", repoID, ProjectTypeRepository, true).
 		Count(new(Project))
 }
 

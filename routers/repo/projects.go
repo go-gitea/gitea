@@ -66,7 +66,7 @@ func Projects(ctx *context.Context) {
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		SortType: sortType,
-		Type:     models.ProjectRepositoryType,
+		Type:     models.ProjectTypeRepository,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -120,7 +120,7 @@ func NewRepoProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 		Description: form.Content,
 		CreatorID:   ctx.User.ID,
 		BoardType:   form.BoardType,
-		Type:        models.ProjectRepositoryType,
+		Type:        models.ProjectTypeRepository,
 	}); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
@@ -499,9 +499,9 @@ func CreateProjectPost(ctx *context.Context, form auth.UserCreateProjectForm) {
 		return
 	}
 
-	var projectType = models.ProjectIndividualType
+	var projectType = models.ProjectTypeIndividual
 	if user.IsOrganization() {
-		projectType = models.ProjectOrganizationType
+		projectType = models.ProjectTypeOrganization
 	}
 
 	if err := models.NewProject(&models.Project{

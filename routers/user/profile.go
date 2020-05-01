@@ -214,7 +214,7 @@ func Profile(ctx *context.Context) {
 		ctx.Data["OpenProjects"], err = models.GetProjects(models.ProjectSearchOptions{
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
-			Type:     models.ProjectIndividualType,
+			Type:     models.ProjectTypeIndividual,
 		})
 		if err != nil {
 			ctx.ServerError("GetProjects", err)

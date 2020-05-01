@@ -20,9 +20,9 @@ func TestIsProjectTypeValid(t *testing.T) {
 		typ   ProjectType
 		valid bool
 	}{
-		{ProjectIndividualType, false},
-		{ProjectRepositoryType, true},
-		{ProjectOrganizationType, false},
+		{ProjectTypeIndividual, false},
+		{ProjectTypeRepository, true},
+		{ProjectTypeOrganization, false},
 		{UnknownType, false},
 	}
 
@@ -53,7 +53,7 @@ func TestProject(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	project := &Project{
-		Type:        ProjectRepositoryType,
+		Type:        ProjectTypeRepository,
 		BoardType:   BasicKanban,
 		Title:       "New Project",
 		RepoID:      1,
