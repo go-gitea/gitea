@@ -43,7 +43,7 @@
 					{{end}}
 				</div>
 				<div class="ui attached segment">
-					<div class="render-content markdown has-emoji">
+					<div class="render-content markdown">
 						{{if .RenderedContent}}
 							{{.RenderedContent|Str2html}}
 						{{else}}
@@ -163,7 +163,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape|RenderEmojiPlain) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape|RenderEmojiPlain) $createdStr | Safe}}{{end}}
+					{{if .Content}}{{$.i18n.Tr "repo.issues.add_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape|RenderEmoji) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_label_at" .Label.ForegroundColor .Label.Color (.Label.Name|Escape|RenderEmoji) $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{end}}
@@ -412,7 +412,7 @@
 						</span>
 					</div>
 					<div class="ui attached segment">
-						<div class="render-content markdown has-emoji">
+						<div class="render-content markdown">
 							{{if .RenderedContent}}
 								{{.RenderedContent|Str2html}}
 							{{else}}
@@ -483,7 +483,7 @@
 															<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 															{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}
 															<div class="text">
-																<div class="render-content markdown has-emoji">
+																<div class="render-content markdown">
 																{{if .RenderedContent}}
 																	{{.RenderedContent|Str2html}}
 																{{else}}
