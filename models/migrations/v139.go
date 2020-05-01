@@ -75,7 +75,6 @@ func addProjectsInfo(x *xorm.Engine) error {
 		Default bool `xorm:"NOT NULL DEFAULT false"`
 
 		ProjectID int64 `xorm:"INDEX NOT NULL"`
-		RepoID    int64 `xorm:"INDEX NOT NULL"`
 		CreatorID int64 `xorm:"NOT NULL"`
 
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
