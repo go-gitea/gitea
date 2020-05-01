@@ -332,6 +332,13 @@ func (issue *Issue) GetIsRead(userID int64) error {
 
 // APIURL returns the absolute APIURL to this issue.
 func (issue *Issue) APIURL() string {
+	if issue.Repo == nil {
+		err := issue.LoadRepo()
+		if err != nil {
+			log.Error("Issue[%d].APIURL(): %v", issue.ID, err)
+			return ""
+		}
+	}
 	return fmt.Sprintf("%s/issues/%d", issue.Repo.APIURL(), issue.Index)
 }
 
@@ -602,7 +609,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed, isMergeP
 		return nil, err
 	}
 	for idx := range issue.Labels {
-		if err = updateLabel(e, issue.Labels[idx]); err != nil {
+		if err = updateLabelCols(e, issue.Labels[idx], "num_issues", "num_closed_issue"); err != nil {
 			return nil, err
 		}
 	}
@@ -1051,7 +1058,7 @@ type IssuesOptions struct {
 	AssigneeID         int64
 	PosterID           int64
 	MentionedID        int64
-	MilestoneID        int64
+	MilestoneIDs       []int64
 	IsClosed           util.OptionalBool
 	IsPull             util.OptionalBool
 	LabelIDs           []int64
@@ -1136,8 +1143,8 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 			And("issue_user.uid = ?", opts.MentionedID)
 	}
 
-	if opts.MilestoneID > 0 {
-		sess.And("issue.milestone_id=?", opts.MilestoneID)
+	if len(opts.MilestoneIDs) > 0 {
+		sess.In("issue.milestone_id", opts.MilestoneIDs)
 	}
 
 	switch opts.IsPull {

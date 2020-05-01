@@ -3769,6 +3769,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of this milestones. Non existent milestones are discarded",
+            "name": "milestones",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -5217,6 +5223,53 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/subscriptions/check": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Check if user is subscribed to an issue",
+        "operationId": "issueCheckSubscription",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WatchInfo"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{index}/subscriptions/{user}": {
       "put": {
         "consumes": [
@@ -5262,8 +5315,11 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Already subscribed"
+          },
           "201": {
-            "$ref": "#/responses/empty"
+            "description": "Successfully Subscribed"
           },
           "304": {
             "description": "User can only subscribe itself if he is no admin"
@@ -5317,8 +5373,11 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Already unsubscribed"
+          },
           "201": {
-            "$ref": "#/responses/empty"
+            "description": "Successfully Unsubscribed"
           },
           "304": {
             "description": "User can only subscribe itself if he is no admin"
