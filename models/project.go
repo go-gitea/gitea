@@ -39,7 +39,7 @@ type Project struct {
 	ID          int64  `xorm:"pk autoincr"`
 	Title       string `xorm:"INDEX NOT NULL"`
 	Description string `xorm:"TEXT"`
-	RepoID      int64  `xorm:"NOT NULL"`
+	RepoID      int64  `xorm:"INDEX"`
 	CreatorID   int64  `xorm:"NOT NULL"`
 	IsClosed    bool   `xorm:"INDEX"`
 	BoardType   ProjectBoardType
@@ -64,7 +64,7 @@ func GetProjectsConfig() []ProjectsConfig {
 // IsProjectTypeValid checks if a project typeis valid
 func IsProjectTypeValid(p ProjectType) bool {
 	switch p {
-	case IndividualType, RepositoryType, OrganizationType:
+	case RepositoryType:
 		return true
 	default:
 		return false
