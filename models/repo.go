@@ -1582,58 +1582,74 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&LanguageStat{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
 		&Task{RepoID: repoID},
-		&ProjectBoard{RepoID: repoID},
-		&Project{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
+	// Projects
+
+	deleteRepoCond := builder.Select("id").From("project").Where(builder.Eq{"repo_id": repoID})
+
+	// Delete project boards for projects in this repository
+	if _, err = sess.In("project_id", deleteRepoCond).
+		Delete(&ProjectBoard{}); err != nil {
+		return err
+	}
+
+	// Delete project issues for projects in this repository
+	if _, err = sess.In("project_id", deleteRepoCond).
+		Delete(&ProjectIssues{}); err != nil {
+		return err
+	}
+
+	// delete projects in this repository
+	if err = deleteBeans(sess, &Project{RepoID: repoID}); err != nil {
+		return fmt.Errorf("deleteBeans: %v", err)
+	}
+
+	// Issues
+
+	deleteIssueCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
 	// Delete comments and attachments
-	if _, err = sess.In("issue_id", deleteCond).
+	if _, err = sess.In("issue_id", deleteIssueCond).
 		Delete(&Comment{}); err != nil {
 		return err
 	}
 
 	// Dependencies for issues in this repository
-	if _, err = sess.In("issue_id", deleteCond).
+	if _, err = sess.In("issue_id", deleteIssueCond).
 		Delete(&IssueDependency{}); err != nil {
 		return err
 	}
 
 	// Delete dependencies for issues in other repositories
-	if _, err = sess.In("dependency_id", deleteCond).
+	if _, err = sess.In("dependency_id", deleteIssueCond).
 		Delete(&IssueDependency{}); err != nil {
 		return err
 	}
 
-	if _, err = sess.In("issue_id", deleteCond).
+	if _, err = sess.In("issue_id", deleteIssueCond).
 		Delete(&IssueUser{}); err != nil {
 		return err
 	}
 
-	if _, err = sess.In("issue_id", deleteCond).
+	if _, err = sess.In("issue_id", deleteIssueCond).
 		Delete(&Reaction{}); err != nil {
 		return err
 	}
 
-	if _, err = sess.In("issue_id", deleteCond).
+	if _, err = sess.In("issue_id", deleteIssueCond).
 		Delete(&IssueWatch{}); err != nil {
 		return err
 	}
 
-	if _, err = sess.In("issue_id", deleteCond).
+	if _, err = sess.In("issue_id", deleteIssueCond).
 		Delete(&Stopwatch{}); err != nil {
 		return err
 	}
 
-	if _, err = sess.In("issue_id", deleteCond).
+	if _, err = sess.In("issue_id", deleteIssueCond).
 		Delete(&TrackedTime{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&ProjectIssues{}); err != nil {
 		return err
 	}
 
@@ -1648,7 +1664,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
 	}
 
-	if _, err = sess.In("issue_id", deleteCond).
+	if _, err = sess.In("issue_id", deleteIssueCond).
 		Delete(&Attachment{}); err != nil {
 		return err
 	}

@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -133,13 +135,17 @@ func NewRepoProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 // ChangeProjectStatus updates the status of a project between "open" and "close"
 // nolint: dupl
 func ChangeProjectStatus(ctx *context.Context) {
-	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
-			ctx.ServerError("GetProjectByRepoID", err)
+			ctx.ServerError("GetProjectByID", err)
 		}
+		return
+	}
+	if p.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("", nil)
 		return
 	}
 
@@ -169,8 +175,22 @@ func ChangeProjectStatus(ctx *context.Context) {
 
 // DeleteProject delete a project
 func DeleteProject(ctx *context.Context) {
-	if err := models.DeleteProjectByRepoID(ctx.Repo.Repository.ID, ctx.QueryInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteProjectByRepoID: " + err.Error())
+	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrProjectNotExist(err) {
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetProjectByID", err)
+		}
+		return
+	}
+	if p.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("", nil)
+		return
+	}
+
+	if err := models.DeleteProjectByID(p.ID); err != nil {
+		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
@@ -186,13 +206,17 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["PageIsEditProjects"] = true
 
-	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
-			ctx.ServerError("GetProjectByRepoID", err)
+			ctx.ServerError("GetProjectByID", err)
 		}
+		return
+	}
+	if p.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("", nil)
 		return
 	}
 
@@ -213,13 +237,17 @@ func EditProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 		return
 	}
 
-	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
-			ctx.ServerError("GetProjectByRepoID", err)
+			ctx.ServerError("GetProjectByID", err)
 		}
+		return
+	}
+	if p.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("", nil)
 		return
 	}
 
@@ -237,24 +265,28 @@ func EditProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 // ViewProject renders the project board for a project
 func ViewProject(ctx *context.Context) {
 
-	project, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
-			ctx.ServerError("GetProjectByRepoID", err)
+			ctx.ServerError("GetProjectByID", err)
 		}
 		return
 	}
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("", nil)
+		return
+	}
 
-	unCategorizedBoard, err := models.GetUnCategorizedBoard(ctx.Repo.Repository.ID, project.ID)
+	unCategorizedBoard, err := models.GetUnCategorizedBoard(project.ID)
 	unCategorizedBoard.Title = ctx.Tr("repo.projects.type.uncategorized")
 	if err != nil {
 		ctx.ServerError("GetUnCategorizedBoard", err)
 		return
 	}
 
-	boards, err := models.GetProjectBoards(ctx.Repo.Repository.ID, project.ID)
+	boards, err := models.GetProjectBoards(project.ID)
 	if err != nil {
 		ctx.ServerError("GetProjectBoards", err)
 		return
@@ -317,7 +349,36 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := models.DeleteProjectBoardByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"), ctx.ParamsInt64(":boardID")); err != nil {
+	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrProjectNotExist(err) {
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetProjectByID", err)
+		}
+		return
+	}
+
+	pb, err := models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if pb.ProjectID != ctx.ParamsInt64(":id") {
+		ctx.JSON(422, map[string]string{
+			"message": fmt.Sprintf("ProjectBoard[%d] is not in Project[%d] as expected", pb.ID, project.ID),
+		})
+		return
+	}
+
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.JSON(422, map[string]string{
+			"message": fmt.Sprintf("ProjectBoard[%d] is not in Repository[%d] as expected", pb.ID, ctx.Repo.Repository.ID),
+		})
+		return
+	}
+
+	if err := models.DeleteProjectBoardByID(ctx.ParamsInt64(":boardID")); err != nil {
 		ctx.ServerError("DeleteProjectBoardByID", err)
 		return
 	}
@@ -337,21 +398,18 @@ func AddBoardToProjectPost(ctx *context.Context, form auth.EditProjectBoardTitle
 		return
 	}
 
-	projectID := ctx.ParamsInt64(":id")
-
-	_, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, projectID)
+	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
-			ctx.ServerError("GetProjectByRepoID", err)
+			ctx.ServerError("GetProjectByID", err)
 		}
 		return
 	}
 
 	if err := models.NewProjectBoard(&models.ProjectBoard{
-		ProjectID: projectID,
-		RepoID:    ctx.Repo.Repository.ID,
+		ProjectID: project.ID,
 		Title:     form.Title,
 		CreatorID: ctx.User.ID,
 	}); err != nil {
@@ -381,14 +439,32 @@ func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitle
 		return
 	}
 
-	board, err := models.GetProjectBoard(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"), ctx.ParamsInt64(":boardID"))
+	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrProjectBoardNotExist(err) {
-			ctx.NotFound("", err)
+		if models.IsErrProjectNotExist(err) {
+			ctx.NotFound("", nil)
 		} else {
-			ctx.ServerError("GetProjectBoard", err)
+			ctx.ServerError("GetProjectByID", err)
 		}
+		return
+	}
 
+	board, err := models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if board.ProjectID != ctx.ParamsInt64(":id") {
+		ctx.JSON(422, map[string]string{
+			"message": fmt.Sprintf("ProjectBoard[%d] is not in Project[%d] as expected", board.ID, project.ID),
+		})
+		return
+	}
+
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.JSON(422, map[string]string{
+			"message": fmt.Sprintf("ProjectBoard[%d] is not in Repository[%d] as expected", board.ID, ctx.Repo.Repository.ID),
+		})
 		return
 	}
 
@@ -423,13 +499,17 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		return
 	}
 
-	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
-			ctx.ServerError("GetProjectByRepoID", err)
+			ctx.ServerError("GetProjectByID", err)
 		}
+		return
+	}
+	if p.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("", nil)
 		return
 	}
 
@@ -444,13 +524,17 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		}
 
 	} else {
-		board, err = models.GetProjectBoard(ctx.Repo.Repository.ID, p.ID, ctx.ParamsInt64(":boardID"))
+		board, err = models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
 		if err != nil {
 			if models.IsErrProjectBoardNotExist(err) {
 				ctx.NotFound("", nil)
 			} else {
 				ctx.ServerError("GetProjectBoard", err)
 			}
+			return
+		}
+		if board.ProjectID != p.ID {
+			ctx.NotFound("", nil)
 			return
 		}
 	}

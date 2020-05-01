@@ -1558,8 +1558,7 @@ func (err ErrLabelNotExist) Error() string {
 
 // ErrProjectNotExist represents a "ProjectNotExist" kind of error.
 type ErrProjectNotExist struct {
-	ID     int64
-	RepoID int64
+	ID int64
 }
 
 // IsErrProjectNotExist checks if an error is a ErrProjectNotExist
@@ -1569,14 +1568,12 @@ func IsErrProjectNotExist(err error) bool {
 }
 
 func (err ErrProjectNotExist) Error() string {
-	return fmt.Sprintf("projects does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
+	return fmt.Sprintf("projects does not exist [id: %d]", err.ID)
 }
 
 // ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
 type ErrProjectBoardNotExist struct {
-	BoardID   int64
-	RepoID    int64
-	ProjectID int64
+	BoardID int64
 }
 
 // IsErrProjectBoardNotExist checks if an error is a ErrProjectBoardNotExist
@@ -1586,7 +1583,7 @@ func IsErrProjectBoardNotExist(err error) bool {
 }
 
 func (err ErrProjectBoardNotExist) Error() string {
-	return fmt.Sprintf("project board does not exist [board_id: %d, repo_id: %d, project_id: %d]", err.BoardID, err.RepoID, err.ProjectID)
+	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
 }
 
 //    _____  .__.__                   __

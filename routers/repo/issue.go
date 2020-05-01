@@ -532,13 +532,16 @@ func NewIssue(ctx *context.Context) {
 
 	projectID := ctx.QueryInt64("project")
 	if projectID > 0 {
-		project, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, projectID)
+		project, err := models.GetProjectByID(projectID)
 		if err != nil {
-			log.Error("GetProjectByRepoID: %d: %v", projectID, err)
+			log.Error("GetProjectByID: %d: %v", projectID, err)
+		} else if project.RepoID != ctx.Repo.Repository.ID {
+			log.Error("GetProjectByID: %d: %v", projectID, fmt.Errorf("project[%d] not in repo [%d]", project.ID, ctx.Repo.Repository.ID))
 		} else {
 			ctx.Data["project_id"] = projectID
 			ctx.Data["Project"] = project
 		}
+
 	}
 
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
@@ -599,15 +602,19 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 		ctx.Data["milestone_id"] = milestoneID
 	}
 
-	projectID := form.ProjectID
-	if projectID > 0 {
-		ctx.Data["Project"], err = models.GetProjectByRepoID(ctx.Repo.Repository.ID, projectID)
+	if form.ProjectID > 0 {
+		p, err := models.GetProjectByID(form.ProjectID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
 			return nil, nil, 0, 0
 		}
+		if p.RepoID != ctx.Repo.Repository.ID {
+			ctx.NotFound("", nil)
+			return nil, nil, 0, 0
+		}
 
-		ctx.Data["project_id"] = projectID
+		ctx.Data["Project"] = p
+		ctx.Data["project_id"] = form.ProjectID
 	}
 
 	// Check assignees
@@ -644,7 +651,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 		assigneeIDs = append(assigneeIDs, form.AssigneeID)
 	}
 
-	return labelIDs, assigneeIDs, milestoneID, projectID
+	return labelIDs, assigneeIDs, milestoneID, form.ProjectID
 }
 
 // NewIssuePost response for creating new issue

@@ -147,22 +147,19 @@ func NewProject(p *Project) error {
 	return sess.Commit()
 }
 
-// GetProjectByRepoID returns the projects in a repository
-func GetProjectByRepoID(repoID, id int64) (*Project, error) {
-	return getProjectByRepoID(x, repoID, id)
+// GetProjectByID returns the projects in a repository
+func GetProjectByID(id int64) (*Project, error) {
+	return getProjectByID(x, id)
 }
 
-func getProjectByRepoID(e Engine, repoID, id int64) (*Project, error) {
-	p := &Project{
-		ID:     id,
-		RepoID: repoID,
-	}
+func getProjectByID(e Engine, id int64) (*Project, error) {
+	p := new(Project)
 
-	has, err := e.Get(p)
+	has, err := e.ID(id).Get(p)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrProjectNotExist{id, repoID}
+		return nil, ErrProjectNotExist{ID: id}
 	}
 
 	return p, nil
@@ -233,15 +230,15 @@ func ChangeProjectStatus(p *Project, isClosed bool) error {
 	return sess.Commit()
 }
 
-// DeleteProjectByRepoID deletes a project from a repository.
-func DeleteProjectByRepoID(repoID, id int64) error {
+// DeleteProjectByID deletes a project from a repository.
+func DeleteProjectByID(id int64) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := deleteProjectByRepoID(sess, repoID, id); err != nil {
+	if err := deleteProjectByID(sess, id); err != nil {
 		return err
 	}
 
@@ -252,8 +249,8 @@ func DeleteProjectByRepoID(repoID, id int64) error {
 	return sess.Commit()
 }
 
-func deleteProjectByRepoID(e Engine, repoID, id int64) error {
-	p, err := getProjectByRepoID(e, repoID, id)
+func deleteProjectByID(e Engine, id int64) error {
+	p, err := getProjectByID(e, id)
 	if err != nil {
 		if IsErrProjectNotExist(err) {
 			return nil

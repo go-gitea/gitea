@@ -37,7 +37,6 @@ type ProjectBoard struct {
 	Default bool //if true it collects issues witch are not signed to a specific board jet
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
-	RepoID    int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -87,7 +86,6 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 			CreatorID:   project.CreatorID,
 			Title:       v,
 			ProjectID:   project.ID,
-			RepoID:      project.RepoID,
 		})
 	}
 
@@ -102,22 +100,22 @@ func NewProjectBoard(board *ProjectBoard) error {
 }
 
 // DeleteProjectBoardByID removes all issues references to the project board.
-func DeleteProjectBoardByID(repoID, projectID, boardID int64) error {
+func DeleteProjectBoardByID(boardID int64) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := deleteProjectBoardByID(sess, repoID, projectID, boardID); err != nil {
+	if err := deleteProjectBoardByID(sess, boardID); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-func deleteProjectBoardByID(e Engine, repoID, projectID, boardID int64) error {
-	board, err := getProjectBoard(e, repoID, projectID, boardID)
+func deleteProjectBoardByID(e Engine, boardID int64) error {
+	board, err := getProjectBoard(e, boardID)
 	if err != nil {
 		if IsErrProjectBoardNotExist(err) {
 			return nil
@@ -137,22 +135,18 @@ func deleteProjectBoardByID(e Engine, repoID, projectID, boardID int64) error {
 }
 
 // GetProjectBoard fetches the current board of a project
-func GetProjectBoard(repoID, projectID, boardID int64) (*ProjectBoard, error) {
-	return getProjectBoard(x, repoID, projectID, boardID)
+func GetProjectBoard(boardID int64) (*ProjectBoard, error) {
+	return getProjectBoard(x, boardID)
 }
 
-func getProjectBoard(e Engine, repoID, projectID, boardID int64) (*ProjectBoard, error) {
-	board := &ProjectBoard{
-		ID:        boardID,
-		RepoID:    repoID,
-		ProjectID: projectID,
-	}
+func getProjectBoard(e Engine, boardID int64) (*ProjectBoard, error) {
+	board := new(ProjectBoard)
 
-	has, err := e.Get(board)
+	has, err := e.ID(boardID).Get(board)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrProjectBoardNotExist{RepoID: repoID, BoardID: boardID, ProjectID: projectID}
+		return nil, ErrProjectBoardNotExist{BoardID: boardID}
 	}
 
 	return board, nil
@@ -174,19 +168,18 @@ func updateProjectBoard(e Engine, board *ProjectBoard) error {
 }
 
 // GetProjectBoards fetches all boards related to a project
-func GetProjectBoards(repoID, projectID int64) ([]*ProjectBoard, error) {
+func GetProjectBoards(projectID int64) ([]*ProjectBoard, error) {
 
-	var boards = make([]*ProjectBoard, 0)
+	var boards = make([]*ProjectBoard, 0, 5)
 
-	sess := x.Where("repo_id=? AND project_id=?", repoID, projectID)
+	sess := x.Where("project_id=?", projectID)
 	return boards, sess.Find(&boards)
 }
 
 // GetUnCategorizedBoard represents a board for issues not assigned to one
-func GetUnCategorizedBoard(repoID, projectID int64) (*ProjectBoard, error) {
+func GetUnCategorizedBoard(projectID int64) (*ProjectBoard, error) {
 	return &ProjectBoard{
 		ProjectID: projectID,
-		RepoID:    repoID,
 		Title:     "UnCategorized",
 		Default:   true,
 	}, nil
@@ -205,7 +198,6 @@ func (b ProjectBoard) LoadIssues() (IssueList, error) {
 	issues, err := Issues(&IssuesOptions{
 		ProjectBoardID: boardID,
 		ProjectID:      b.ProjectID,
-		RepoIDs:        []int64{b.RepoID},
 	})
 	b.Issues = issues
 	return issues, err
