@@ -63,14 +63,14 @@ func TestProject(t *testing.T) {
 
 	assert.NoError(t, NewProject(project))
 
-	_, err := GetProjectByID(project.RepoID, project.ID)
+	_, err := GetProjectByID(project.ID)
 	assert.NoError(t, err)
 
 	// Update project
 	project.Title = "Updated title"
 	assert.NoError(t, UpdateProject(project))
 
-	projectFromDB, err := GetProjectByID(project.RepoID, project.ID)
+	projectFromDB, err := GetProjectByID(project.ID)
 	assert.NoError(t, err)
 
 	assert.Equal(t, project.Title, projectFromDB.Title)
@@ -78,7 +78,7 @@ func TestProject(t *testing.T) {
 	assert.NoError(t, ChangeProjectStatus(project, true))
 
 	// Retrieve from DB afresh to check if it is truly closed
-	projectFromDB, err = GetProjectByID(1, project.ID)
+	projectFromDB, err = GetProjectByID(project.ID)
 	assert.NoError(t, err)
 
 	assert.True(t, projectFromDB.IsClosed)
