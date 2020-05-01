@@ -80,7 +80,7 @@
 			</div>
 		{{end}}
 		<div class="ui {{if .sidebarPresent}}grid equal width{{end}}" style="margin-top: 1rem;">
-			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markdown has-emoji">
+			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markdown">
 				{{.content | Str2html}}
 			</div>
 			{{if .sidebarPresent}}
