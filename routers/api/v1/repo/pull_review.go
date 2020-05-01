@@ -439,6 +439,7 @@ func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions)
 	ctx.JSON(http.StatusOK, apiReview)
 }
 
+// preparePullReviewType return ReviewType and false or nil and true if an error happen
 func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, event api.ReviewStateType, body string) (models.ReviewType, bool) {
 	if err := pr.LoadIssue(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
@@ -478,6 +479,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 	return reviewType, false
 }
 
+// prepareSingleReview return review, related pull and false or nil, nil and true if an error happen
 func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullRequest, bool) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
