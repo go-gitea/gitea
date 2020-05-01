@@ -65,7 +65,7 @@ func (e *Event) WriteTo(w io.Writer) (int64, error) {
 	sum := int64(0)
 	nint := 0
 	n, err := wrapNewlines(w, []byte("event: "), []byte(e.Name))
-	sum += int64(n)
+	sum += n
 	if err != nil {
 		return sum, err
 	}
@@ -85,7 +85,7 @@ func (e *Event) WriteTo(w io.Writer) (int64, error) {
 			}
 		}
 		n, err := wrapNewlines(w, []byte("data: "), data)
-		sum += int64(n)
+		sum += n
 		if err != nil {
 			return sum, err
 		}
@@ -93,7 +93,7 @@ func (e *Event) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	n, err = wrapNewlines(w, []byte("id: "), []byte(e.ID))
-	sum += int64(n)
+	sum += n
 	if err != nil {
 		return sum, err
 	}
