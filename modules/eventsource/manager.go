@@ -56,11 +56,11 @@ func (m *Manager) Unregister(uid int64, channel <-chan *Event) {
 // UnregisterAll message channels
 func (m *Manager) UnregisterAll() {
 	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	for _, messenger := range m.messengers {
 		messenger.UnregisterAll()
 	}
 	m.messengers = map[int64]*Messenger{}
-	m.mutex.Unlock()
 }
 
 // SendMessage sends a message to a particular user

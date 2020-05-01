@@ -74,7 +74,7 @@ loop:
 			go unregister()
 			break loop
 		case <-shutdownCtx.Done():
-			unregister()
+			go unregister()
 			break loop
 		case event, ok := <-messageChan:
 			if !ok {
