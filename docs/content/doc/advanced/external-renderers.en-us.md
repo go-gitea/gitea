@@ -73,7 +73,7 @@ IS_INPUT_FILE = false
 If your external markup relies on additional classes and attributes on the generated HTML elements, you might need to enable custom sanitizer policies. Gitea uses the [`bluemonday`](https://godoc.org/github.com/microcosm-cc/bluemonday) package as our HTML sanitizier. The example below will support [KaTeX](https://katex.org/) output from [`pandoc`](https://pandoc.org/).
 
 ```ini
-[markup.sanitizer]
+[markup.sanitizer.TeX]
 ; Pandoc renders TeX segments as <span>s with the "math" class, optionally
 ; with "inline" or "display" classes depending on context.
 ELEMENT = span
@@ -86,6 +86,11 @@ FILE_EXTENSIONS = .md,.markdown
 RENDER_COMMAND  = pandoc -f markdown -t html --katex
 ```
 
-You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time all three are defined is a single policy entry. All three must be defined, but `REGEXP` may be blank to allow unconditional whitelisting of that attribute.
+You must define `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` in each section.
+
+To define multiple entries, add a unique alphanumeric suffix (e.g., `[markup.sanitizer.1]` and `[markup.sanitizer.something]`).
 
 Once your configuration changes have been made, restart Gitea to have changes take effect.
+
+**Note**: Prior to Gitea 1.12 there was a single `markup.sanitiser` section with keys that were redefined for multiple rules, however,
+there were significant problems with this method of configuration necessitating configuration through multiple sections.
