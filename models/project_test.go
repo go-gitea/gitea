@@ -20,9 +20,9 @@ func TestIsProjectTypeValid(t *testing.T) {
 		typ   ProjectType
 		valid bool
 	}{
-		{ProjectIndividualType, true},
+		{ProjectIndividualType, false},
 		{ProjectRepositoryType, true},
-		{ProjectOrganizationType, true},
+		{ProjectOrganizationType, false},
 		{UnknownType, false},
 	}
 
