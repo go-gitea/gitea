@@ -71,7 +71,7 @@ func ListPullReviews(ctx *context.APIContext) {
 	}
 
 	if err = pr.Issue.LoadRepo(); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
+		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
 		return
 	}
 
