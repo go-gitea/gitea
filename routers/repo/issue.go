@@ -393,7 +393,7 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
-		Type:     models.RepositoryType,
+		Type:     models.ProjectRepositoryType,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -404,7 +404,7 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
-		Type:     models.RepositoryType,
+		Type:     models.ProjectRepositoryType,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
