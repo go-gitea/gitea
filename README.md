@@ -39,8 +39,8 @@ or if sqlite support is required:
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go 1.11](https://golang.org/dl/) or greater.
-- `make frontend` which requires [Node.js 10.0.0](https://nodejs.org/en/download/) or greater.
+- `make backend` which requires [Go 1.12](https://golang.org/dl/) or greater.
+- `make frontend` which requires [Node.js 10.13](https://nodejs.org/en/download/) or greater.
 
 If pre-built frontend files are present it is possible to only build the backend:
 

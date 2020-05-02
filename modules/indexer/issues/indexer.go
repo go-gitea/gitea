@@ -147,6 +147,7 @@ func InitIssueIndexer(syncReindex bool) {
 				if err := recover(); err != nil {
 					log.Error("PANIC whilst initializing issue indexer: %v\nStacktrace: %s", err, log.Stack(2))
 					log.Error("The indexer files are likely corrupted and may need to be deleted")
+					log.Error("You can completely remove the %q directory to make Gitea recreate the indexes", setting.Indexer.IssuePath)
 					holder.cancel()
 					log.Fatal("PID: %d Unable to initialize the Bleve Issue Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.IssuePath, err)
 				}
@@ -155,7 +156,7 @@ func InitIssueIndexer(syncReindex bool) {
 			exist, err := issueIndexer.Init()
 			if err != nil {
 				holder.cancel()
-				log.Fatal("Unable to initialize Bleve Issue Indexer: %v", err)
+				log.Fatal("Unable to initialize Bleve Issue Indexer at path: %s Error: %v", setting.Indexer.IssuePath, err)
 			}
 			populate = !exist
 			holder.set(issueIndexer)
@@ -172,11 +173,11 @@ func InitIssueIndexer(syncReindex bool) {
 			graceful.GetManager().RunWithShutdownFns(func(_, atTerminate func(context.Context, func())) {
 				issueIndexer, err := NewElasticSearchIndexer(setting.Indexer.IssueConnStr, "gitea_issues")
 				if err != nil {
-					log.Fatal("Unable to initialize Elastic Search Issue Indexer: %v", err)
+					log.Fatal("Unable to initialize Elastic Search Issue Indexer at connection: %s Error: %v", setting.Indexer.IssueConnStr, err)
 				}
 				exist, err := issueIndexer.Init()
 				if err != nil {
-					log.Fatal("Unable to issueIndexer.Init: %v", err)
+					log.Fatal("Unable to issueIndexer.Init with connection %s Error: %v", setting.Indexer.IssueConnStr, err)
 				}
 				populate = !exist
 				holder.set(issueIndexer)

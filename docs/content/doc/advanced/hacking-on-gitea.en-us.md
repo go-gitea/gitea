@@ -25,7 +25,7 @@ environment variable and to add the go bin directory or directories
 
 Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
 required to build the JavaScript and CSS files. The minimum supported Node.js
-version is 10 and the latest LTS version is recommended.
+version is {{< min-node-version >}} and the latest LTS version is recommended.
 
 You will also need make.
 <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>
@@ -36,17 +36,12 @@ necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
 on the executable path. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
 
-**Note 2**: Go version 1.11 or higher is required; however, it is important
+**Note 2**: Go version {{< min-go-version >}} or higher is required; however, it is important
 to note that our continuous integration will check that the formatting of the
 source code is not changed by `gofmt` using `make fmt-check`. Unfortunately,
 the results of `gofmt` can differ by the version of `go`. It is therefore
-recommended to install the version of go that our continuous integration is
-running. At the time of writing this is Go version 1.12; however, this can be
-checked by looking at the
-[master `.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml)
-(At the time of writing
-[line 67](https://github.com/go-gitea/gitea/blob/8917d66571a95f3da232a0c27bc1300210d10fde/.drone.yml#L67)
-is the relevant line - but this may change.)
+recommended to install the version of Go that our continuous integration is
+running. As of last update, it should be Go version {{< go-version >}}.
 
 ## Downloading and cloning the Gitea source code
 
@@ -133,10 +128,28 @@ make revive vet misspell-check
 
 ### Working on JS and CSS
 
-Edit files in `web_src` and run the linter and build the files in `public`:
+For simple changes, edit files in `web_src`, run the build and start the server to test:
 
 ```bash
-make webpack
+make build && ./gitea
+```
+
+For more involved changes use the `watch-frontend` task to continuously rebuild files when their sources change. The `bindata` tag must be absent to ensure the file system will be used for files in `public`. First, build and run the backend:
+
+```bash
+make backend && ./gitea
+```
+
+With the backend running, open another terminal and run:
+
+```bash
+make watch-frontend
+```
+
+Before committing, make sure the linters pass:
+
+```bash
+make lint-frontend
 ```
 
 Note: When working on frontend code, it is advisable to set `USE_SERVICE_WORKER` to `false` in `app.ini` which will prevent undesirable caching of frontend assets.

@@ -5,43 +5,105 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/models"
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
 
-func addLockedResourceTable(x *xorm.Engine) error {
-
-	type LockedResource struct {
-		LockType string `xorm:"pk VARCHAR(30)"`
-		LockKey  int64  `xorm:"pk"`
-		Counter  int64  `xorm:"NOT NULL DEFAULT 0"`
+func fixMergeBase(x *xorm.Engine) error {
+	type Repository struct {
+		ID        int64 `xorm:"pk autoincr"`
+		OwnerID   int64 `xorm:"UNIQUE(s) index"`
+		OwnerName string
+		LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Name      string `xorm:"INDEX NOT NULL"`
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
+	type PullRequest struct {
+		ID         int64 `xorm:"pk autoincr"`
+		Index      int64
+		HeadRepoID int64 `xorm:"INDEX"`
+		BaseRepoID int64 `xorm:"INDEX"`
+		HeadBranch string
+		BaseBranch string
+		MergeBase  string `xorm:"VARCHAR(40)"`
 
-	if err := sess.Begin(); err != nil {
-		return err
+		HasMerged      bool   `xorm:"INDEX"`
+		MergedCommitID string `xorm:"VARCHAR(40)"`
 	}
 
-	if err := sess.Sync2(new(LockedResource)); err != nil {
-		return err
+	var limit = setting.Database.IterateBufferSize
+	if limit <= 0 {
+		limit = 50
 	}
 
-	// Remove data we're goint to rebuild
-	if _, err := sess.Delete(&LockedResource{LockType: models.IssueLockedEnumerator}); err != nil {
-		return err
+	i := 0
+	for {
+		prs := make([]PullRequest, 0, 50)
+		if err := x.Limit(limit, i).Asc("id").Find(&prs); err != nil {
+			return fmt.Errorf("Find: %v", err)
+		}
+		if len(prs) == 0 {
+			break
+		}
+
+		i += len(prs)
+		for _, pr := range prs {
+			baseRepo := &Repository{ID: pr.BaseRepoID}
+			has, err := x.Table("repository").Get(baseRepo)
+			if err != nil {
+				return fmt.Errorf("Unable to get base repo %d %v", pr.BaseRepoID, err)
+			}
+			if !has {
+				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
+				continue
+			}
+			userPath := filepath.Join(setting.RepoRootPath, strings.ToLower(baseRepo.OwnerName))
+			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
+
+			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
+
+			if !pr.HasMerged {
+				var err error
+				pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.BaseBranch, gitRefName).RunInDir(repoPath)
+				if err != nil {
+					var err2 error
+					pr.MergeBase, err2 = git.NewCommand("rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
+					if err2 != nil {
+						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err, err2)
+						continue
+					}
+				}
+			} else {
+				parentsString, err := git.NewCommand("rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
+				if err != nil {
+					log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
+					continue
+				}
+				parents := strings.Split(strings.TrimSpace(parentsString), " ")
+				if len(parents) < 2 {
+					continue
+				}
+
+				args := append([]string{"merge-base", "--"}, parents[1:]...)
+				args = append(args, gitRefName)
+
+				pr.MergeBase, err = git.NewCommand(args...).RunInDir(repoPath)
+				if err != nil {
+					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
+					continue
+				}
+			}
+			pr.MergeBase = strings.TrimSpace(pr.MergeBase)
+			x.ID(pr.ID).Cols("merge_base").Update(pr)
+		}
 	}
 
-	// Create current data for all repositories with issues and PRs
-	if _, err := sess.Exec("INSERT INTO locked_resource (lock_type, lock_key, counter) "+
-		"SELECT ?, max_data.repo_id, max_data.max_index "+
-		"FROM ( SELECT issue.repo_id AS repo_id, max(issue.`index`) AS max_index "+
-		"FROM issue GROUP BY issue.repo_id) AS max_data",
-		models.IssueLockedEnumerator); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return nil
 }

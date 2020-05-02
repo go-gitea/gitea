@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package models
 
 import (
@@ -44,11 +48,12 @@ func TestReview_LoadCodeComments(t *testing.T) {
 }
 
 func TestReviewType_Icon(t *testing.T) {
-	assert.Equal(t, "eye", ReviewTypeApprove.Icon())
-	assert.Equal(t, "x", ReviewTypeReject.Icon())
+	assert.Equal(t, "check", ReviewTypeApprove.Icon())
+	assert.Equal(t, "request-changes", ReviewTypeReject.Icon())
 	assert.Equal(t, "comment", ReviewTypeComment.Icon())
 	assert.Equal(t, "comment", ReviewTypeUnknown.Icon())
-	assert.Equal(t, "comment", ReviewType(4).Icon())
+	assert.Equal(t, "primitive-dot", ReviewTypeRequest.Icon())
+	assert.Equal(t, "comment", ReviewType(6).Icon())
 }
 
 func TestFindReviews(t *testing.T) {
@@ -126,9 +131,11 @@ func TestGetReviewersByIssueID(t *testing.T) {
 
 	allReviews, err := GetReviewersByIssueID(issue.ID)
 	assert.NoError(t, err)
-	for i, review := range allReviews {
-		assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
-		assert.Equal(t, expectedReviews[i].Type, review.Type)
-		assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
+	if assert.Len(t, allReviews, 3) {
+		for i, review := range allReviews {
+			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
+			assert.Equal(t, expectedReviews[i].Type, review.Type)
+			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
+		}
 	}
 }

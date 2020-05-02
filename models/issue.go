@@ -73,8 +73,9 @@ var (
 	issueTasksDonePat *regexp.Regexp
 )
 
-const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
-const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
+const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
+const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
+const maxIssueIDs = 950
 
 // IssueLockedEnumerator is the name of the locked_resource used to
 // numerate issues in a repository.
@@ -334,6 +335,13 @@ func (issue *Issue) GetIsRead(userID int64) error {
 
 // APIURL returns the absolute APIURL to this issue.
 func (issue *Issue) APIURL() string {
+	if issue.Repo == nil {
+		err := issue.LoadRepo()
+		if err != nil {
+			log.Error("Issue[%d].APIURL(): %v", issue.ID, err)
+			return ""
+		}
+	}
 	return fmt.Sprintf("%s/issues/%d", issue.Repo.APIURL(), issue.Index)
 }
 
@@ -461,7 +469,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return err
 	}
 	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		return ErrLabelNotExist{}
+		return ErrRepoLabelNotExist{}
 	}
 
 	if err = issue.clearLabels(sess, doer); err != nil {
@@ -556,7 +564,7 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*Comment, error) {
+func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed, isMergePull bool) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := getIssueByID(e, issue.ID)
 	if err != nil {
@@ -604,7 +612,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*C
 		return nil, err
 	}
 	for idx := range issue.Labels {
-		if err = updateLabel(e, issue.Labels[idx]); err != nil {
+		if err = updateLabelCols(e, issue.Labels[idx], "num_issues", "num_closed_issue"); err != nil {
 			return nil, err
 		}
 	}
@@ -622,6 +630,8 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*C
 	cmtType := CommentTypeClose
 	if !issue.IsClosed {
 		cmtType = CommentTypeReopen
+	} else if isMergePull {
+		cmtType = CommentTypeMergePull
 	}
 
 	return createComment(e, &CreateCommentOptions{
@@ -647,7 +657,7 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (*Comment, error) {
 		return nil, err
 	}
 
-	comment, err := issue.changeStatus(sess, doer, isClosed)
+	comment, err := issue.changeStatus(sess, doer, isClosed, false)
 	if err != nil {
 		return nil, err
 	}
@@ -900,7 +910,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 		for _, label := range labels {
 			// Silently drop invalid labels.
-			if label.RepoID != opts.Repo.ID {
+			if label.RepoID != opts.Repo.ID && label.OrgID != opts.Repo.OwnerID {
 				continue
 			}
 
@@ -1033,16 +1043,18 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
 	ListOptions
-	RepoIDs     []int64 // include all repos if empty
-	AssigneeID  int64
-	PosterID    int64
-	MentionedID int64
-	MilestoneID int64
-	IsClosed    util.OptionalBool
-	IsPull      util.OptionalBool
-	LabelIDs    []int64
-	SortType    string
-	IssueIDs    []int64
+	RepoIDs            []int64 // include all repos if empty
+	AssigneeID         int64
+	PosterID           int64
+	MentionedID        int64
+	MilestoneIDs       []int64
+	IsClosed           util.OptionalBool
+	IsPull             util.OptionalBool
+	LabelIDs           []int64
+	IncludedLabelNames []string
+	ExcludedLabelNames []string
+	SortType           string
+	IssueIDs           []int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
 }
@@ -1087,6 +1099,9 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if len(opts.IssueIDs) > 0 {
+		if len(opts.IssueIDs) > maxIssueIDs {
+			opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
+		}
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
@@ -1117,8 +1132,8 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 			And("issue_user.uid = ?", opts.MentionedID)
 	}
 
-	if opts.MilestoneID > 0 {
-		sess.And("issue.milestone_id=?", opts.MilestoneID)
+	if len(opts.MilestoneIDs) > 0 {
+		sess.In("issue.milestone_id", opts.MilestoneIDs)
 	}
 
 	switch opts.IsPull {
@@ -1137,6 +1152,14 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 				sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
 			}
 		}
+	}
+
+	if len(opts.IncludedLabelNames) > 0 {
+		sess.In("issue.id", BuildLabelNamesIssueIDsCondition(opts.IncludedLabelNames))
+	}
+
+	if len(opts.ExcludedLabelNames) > 0 {
+		sess.And(builder.NotIn("issue.id", BuildLabelNamesIssueIDsCondition(opts.ExcludedLabelNames)))
 	}
 }
 
@@ -1163,6 +1186,26 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 		countMap[c.RepoID] = c.Count
 	}
 	return countMap, nil
+}
+
+// GetRepoIDsForIssuesOptions find all repo ids for the given options
+func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error) {
+	repoIDs := make([]int64, 0, 5)
+	sess := x.NewSession()
+	defer sess.Close()
+
+	opts.setupSession(sess)
+
+	accessCond := accessibleRepositoryCondition(user)
+	if err := sess.Where(accessCond).
+		Join("INNER", "repository", "`issue`.repo_id = `repository`.id").
+		Distinct("issue.repo_id").
+		Table("issue").
+		Find(&repoIDs); err != nil {
+		return nil, err
+	}
+
+	return repoIDs, nil
 }
 
 // Issues returns a list of issues by given conditions.
@@ -1302,6 +1345,9 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			Where("issue.repo_id = ?", opts.RepoID)
 
 		if len(opts.IssueIDs) > 0 {
+			if len(opts.IssueIDs) > maxIssueIDs {
+				opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
+			}
 			sess.In("issue.id", opts.IssueIDs)
 		}
 
@@ -1371,6 +1417,7 @@ type UserIssueStatsOptions struct {
 	FilterMode  int
 	IsPull      bool
 	IsClosed    bool
+	IssueIDs    []int64
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1382,6 +1429,12 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull})
 	if len(opts.RepoIDs) > 0 {
 		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
+	}
+	if len(opts.IssueIDs) > 0 {
+		if len(opts.IssueIDs) > maxIssueIDs {
+			opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
+		}
+		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
 	}
 
 	switch opts.FilterMode {

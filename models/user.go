@@ -279,6 +279,7 @@ func (u *User) MaxCreationLimit() int {
 }
 
 // CanCreateRepo returns if user login can create a repository
+// NOTE: functions calling this assume a failure due to repository count limit; if new checks are added, those functions should be revised
 func (u *User) CanCreateRepo() bool {
 	if u.IsAdmin {
 		return true
@@ -844,16 +845,20 @@ func (u *User) IsGhost() bool {
 
 var (
 	reservedUsernames = []string{
-		"attachments",
+		".",
+		"..",
+		".well-known",
 		"admin",
 		"api",
 		"assets",
+		"attachments",
 		"avatars",
 		"commits",
 		"css",
 		"debug",
 		"error",
 		"explore",
+		"fomantic",
 		"ghost",
 		"help",
 		"img",
@@ -861,6 +866,7 @@ var (
 		"issues",
 		"js",
 		"less",
+		"login",
 		"manifest.json",
 		"metrics",
 		"milestones",
@@ -871,16 +877,12 @@ var (
 		"pulls",
 		"raw",
 		"repo",
+		"robots.txt",
+		"search",
 		"stars",
 		"template",
 		"user",
 		"vendor",
-		"login",
-		"robots.txt",
-		".",
-		"..",
-		".well-known",
-		"search",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
@@ -1313,21 +1315,6 @@ func DeleteInactivateUsers() (err error) {
 // UserPath returns the path absolute path of user repositories.
 func UserPath(userName string) string {
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
-}
-
-// GetUserByKeyID get user information by user's public key id
-func GetUserByKeyID(keyID int64) (*User, error) {
-	var user User
-	has, err := x.Join("INNER", "public_key", "`public_key`.owner_id = `user`.id").
-		Where("`public_key`.id=?", keyID).
-		Get(&user)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, ErrUserNotExist{0, "", keyID}
-	}
-	return &user, nil
 }
 
 func getUserByID(e Engine, id int64) (*User, error) {
@@ -1890,15 +1877,16 @@ func SyncExternalUsers(ctx context.Context) {
 					log.Trace("SyncExternalUsers[%s]: Creating user %s", s.Name, su.Username)
 
 					usr = &User{
-						LowerName:   strings.ToLower(su.Username),
-						Name:        su.Username,
-						FullName:    fullName,
-						LoginType:   s.Type,
-						LoginSource: s.ID,
-						LoginName:   su.Username,
-						Email:       su.Mail,
-						IsAdmin:     su.IsAdmin,
-						IsActive:    true,
+						LowerName:    strings.ToLower(su.Username),
+						Name:         su.Username,
+						FullName:     fullName,
+						LoginType:    s.Type,
+						LoginSource:  s.ID,
+						LoginName:    su.Username,
+						Email:        su.Mail,
+						IsAdmin:      su.IsAdmin,
+						IsRestricted: su.IsRestricted,
+						IsActive:     true,
 					}
 
 					err = CreateUser(usr)
@@ -1921,6 +1909,7 @@ func SyncExternalUsers(ctx context.Context) {
 
 					// Check if user data has changed
 					if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
+						(len(s.LDAP().RestrictedFilter) > 0 && usr.IsRestricted != su.IsRestricted) ||
 						!strings.EqualFold(usr.Email, su.Mail) ||
 						usr.FullName != fullName ||
 						!usr.IsActive {
@@ -1933,9 +1922,13 @@ func SyncExternalUsers(ctx context.Context) {
 						if len(s.LDAP().AdminFilter) > 0 {
 							usr.IsAdmin = su.IsAdmin
 						}
+						// Change existing restricted flag only if RestrictedFilter option is set
+						if !usr.IsAdmin && len(s.LDAP().RestrictedFilter) > 0 {
+							usr.IsRestricted = su.IsRestricted
+						}
 						usr.IsActive = true
 
-						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_active")
+						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
 						if err != nil {
 							log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
 						}
