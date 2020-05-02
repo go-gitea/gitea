@@ -295,7 +295,7 @@ func (ls *Source) ProcessUserEntry(entry *ldap.Entry, l *ldap.Conn) *SearchResul
 		}
 	}
 
-	var isAdmin = false;
+	var isAdmin = false
 	if adminFilterSet && adminGroupFilterSet {
 		isAdmin = isInAdminGroup && checkAdmin(l, ls, entry.DN)
 	} else if adminFilterSet {
