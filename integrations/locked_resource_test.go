@@ -6,11 +6,13 @@ package integrations
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,6 +34,16 @@ type waitResult struct {
 
 func TestLockedResource(t *testing.T) {
 	defer prepareTestEnv(t)()
+
+	// Skip SQLite3 test if we're using _txlock=immediate because we won't be able
+	// to create multiple update sessions with that setting in place which invalidates
+	// the test (although the locking mechanism is still useful).
+	connstr, err := setting.DBConnStr()
+	assert.NoError(t, err)
+	if strings.Contains(strings.ToLower(connstr), "_txlock=immediate") {
+		log.Info("TestLockedResource: test skipped for SQLite because _txlock=immediate is set.")
+		return
+	}
 
 	// We need to check whether two goroutines block each other
 	// Sadly, there's no way to ensure the second goroutine is
