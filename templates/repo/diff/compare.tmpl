@@ -59,7 +59,7 @@
 
 	{{if .IsNothingToCompare}}
     	<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare"}}</div>
-	{{else if .PageIsComparePull}}
+	{{else if and .PageIsComparePull (gt .CommitCount 0)}}
 		{{if .HasPullRequest}}
         	<div class="ui segment">
         		{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
