@@ -58,9 +58,17 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusCreated)
 	testSubscription(issue1, false)
 
+	req = NewRequest(t, "DELETE", urlStr)
+	session.MakeRequest(t, req, http.StatusOK)
+	testSubscription(issue1, false)
+
 	issue5Repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issue5.RepoID}).(*models.Repository)
 	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s?token=%s", issue5Repo.OwnerName, issue5Repo.Name, issue5.Index, owner.Name, token)
 	req = NewRequest(t, "PUT", urlStr)
 	session.MakeRequest(t, req, http.StatusCreated)
+	testSubscription(issue5, true)
+
+	req = NewRequest(t, "PUT", urlStr)
+	session.MakeRequest(t, req, http.StatusOK)
 	testSubscription(issue5, true)
 }
