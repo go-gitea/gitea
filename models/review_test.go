@@ -131,9 +131,11 @@ func TestGetReviewersByIssueID(t *testing.T) {
 
 	allReviews, err := GetReviewersByIssueID(issue.ID)
 	assert.NoError(t, err)
-	for i, review := range allReviews {
-		assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
-		assert.Equal(t, expectedReviews[i].Type, review.Type)
-		assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
+	if assert.Len(t, allReviews, 3) {
+		for i, review := range allReviews {
+			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
+			assert.Equal(t, expectedReviews[i].Type, review.Type)
+			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
+		}
 	}
 }
