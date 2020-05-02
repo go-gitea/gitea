@@ -67,27 +67,27 @@ var (
 		},
 		cli.StringFlag{
 			Name:  "member-group-filter",
-			Usage: "An LDAP filter specifying if a group should be allowed to login.",
+			Usage: "An LDAP filter specifying if a group should be allowed to login. If both user filter and member group filter are set, the user must satisfy both conditions to log in.",
 		},
 		cli.StringFlag{
 			Name:  "admin-group-filter",
-			Usage: "An LDAP filter specifying an admin user group.",
+			Usage: "An LDAP filter specifying an admin user group. If both admin filter and admin group filter are set, the user must satisfy both conditions to get admin privileges.",
 		},
 		cli.StringFlag{
 			Name:  "restricted-group-filter",
-			Usage: "An LDAP filter specifying a restricted user group.",
+			Usage: "An LDAP filter specifying a restricted user group. If both restricted filter and restricted group filter are set, the user must satisfy both conditions to be a restricted user.",
 		},
 		cli.StringFlag{
 			Name:  "user-filter",
-			Usage: "An LDAP filter declaring how to find the user record that is attempting to authenticate.",
+			Usage: "An LDAP filter declaring how to find the user record that is attempting to authenticate. If both user filter and member group filter are set, the user must satisfy both conditions to log in.",
 		},
 		cli.StringFlag{
 			Name:  "admin-filter",
-			Usage: "An LDAP filter specifying if a user should be given administrator privileges.",
+			Usage: "An LDAP filter specifying if a user should be given administrator privileges. If both admin filter and admin group filter are set, the user must satisfy both conditions to get admin privileges.",
 		},
 		cli.StringFlag{
 			Name:  "restricted-filter",
-			Usage: "An LDAP filter specifying if a user should be given restricted status.",
+			Usage: "An LDAP filter specifying if a user should be given restricted status. Use an asterisk ('*') to set all users that do not match Admin Filter as restricted. If both restricted filter and restricted group filter are set, the user must satisfy both conditions to be a restricted user.",
 		},
 		cli.BoolFlag{
 			Name:  "allow-deactivate-all",

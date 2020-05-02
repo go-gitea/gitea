@@ -41,10 +41,12 @@
 	<div class="required field">
 		<label for="filter">{{.i18n.Tr "admin.auths.filter"}}</label>
 		<input id="filter" name="filter" value="{{.filter}}" placeholder="e.g. (&(objectClass=posixAccount)(uid=%s))">
+		<p class="help">{{.i18n.Tr "admin.auths.filter_helper"}}</p>
 	</div>
 	<div class="field">
 		<label for="admin_filter">{{.i18n.Tr "admin.auths.admin_filter"}}</label>
 		<input id="admin_filter" name="admin_filter" value="{{.admin_filter}}">
+		<p class="help">{{.i18n.Tr "admin.auths.admin_filter_helper"}}</p>
 	</div>
 	<div class="field">
 		<label for="restricted_filter">{{.i18n.Tr "admin.auths.restricted_filter"}}</label>
@@ -67,14 +69,17 @@
 	<div class="field">
 		<label for="member_group_filter">{{.i18n.Tr "admin.auths.member_group_filter"}}</label>
 		<input id="member_group_filter" name="member_group_filter" value="{{.member_group_filter}}" placeholder="e.g. (cn=developers)">
+		<p class="help">{{.i18n.Tr "admin.auths.filter_helper"}}</p>
 	</div>
 	<div class="field">
 		<label for="admin_group_filter">{{.i18n.Tr "admin.auths.admin_group_filter"}}</label>
 		<input id="admin_group_filter" name="admin_group_filter" value="{{.admin_group_filter}}" placeholder="e.g. (cn=admins)">
+		<p class="help">{{.i18n.Tr "admin.auths.admin_filter_helper"}}</p>
 	</div>
 	<div class="field">
 		<label for="restricted_group_filter">{{.i18n.Tr "admin.auths.restricted_group_filter"}}</label>
 		<input id="restricted_group_filter" name="restricted_group_filter" value="{{.restricted_group_filter}}" placeholder="e.g. (cn=restricted)">
+		<p class="help">{{.i18n.Tr "admin.auths.restricted_group_filter_helper"}}</p>
 	</div>
 	<div class="field">
 		<label for="attribute_username">{{.i18n.Tr "admin.auths.attribute_username"}}</label>
