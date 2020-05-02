@@ -860,7 +860,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		return fmt.Errorf("GetLockedResource(%s)", IssueLockedEnumerator)
 	}
 	idxresource.Counter++
-	if err := idxresource.UpdateValue(); err != nil {
+	if err := idxresource.UpdateValue(e); err != nil {
 		return fmt.Errorf("locked.UpdateValue(%s)", IssueLockedEnumerator)
 	}
 	opts.Issue.Index = idxresource.Counter

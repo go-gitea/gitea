@@ -16,8 +16,6 @@ type LockedResource struct {
 	LockType string `xorm:"pk VARCHAR(30)"`
 	LockKey  int64  `xorm:"pk"`
 	Counter  int64  `xorm:"NOT NULL DEFAULT 0"`
-
-	engine Engine `xorm:"-"`
 }
 
 // GetLockedResource gets or creates a pessimistic lock on the given type and key
@@ -36,25 +34,22 @@ func GetLockedResource(e Engine, lockType string, lockKey int64) (*LockedResourc
 		return nil, fmt.Errorf("unexpected upsert fail  %s:%d", lockType, lockKey)
 	}
 
-	// Once active, the locked resource is tied to a specific session
-	resource.engine = e
-
 	return resource, nil
 }
 
 // UpdateValue updates the value of the counter of a locked resource
-func (r *LockedResource) UpdateValue() error {
+func (r *LockedResource) UpdateValue(e Engine) error {
 	// Bypass ORM to support lock_type == "" and lock_key == 0
-	_, err := r.engine.Exec("UPDATE locked_resource SET counter = ? WHERE lock_type = ? AND lock_key = ?",
+	_, err := e.Exec("UPDATE locked_resource SET counter = ? WHERE lock_type = ? AND lock_key = ?",
 		r.Counter, r.LockType, r.LockKey)
 	return err
 }
 
 // Delete deletes the locked resource from the database,
 // but the key remains locked until the end of the transaction
-func (r *LockedResource) Delete() error {
+func (r *LockedResource) Delete(e Engine) error {
 	// Bypass ORM to support lock_type == "" and lock_key == 0
-	_, err := r.engine.Exec("DELETE FROM locked_resource WHERE lock_type = ? AND lock_key = ?", r.LockType, r.LockKey)
+	_, err := e.Exec("DELETE FROM locked_resource WHERE lock_type = ? AND lock_key = ?", r.LockType, r.LockKey)
 	return err
 }
 

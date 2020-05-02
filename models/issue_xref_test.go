@@ -133,7 +133,7 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	idxresource, err := GetLockedResource(sess, IssueLockedEnumerator, repo)
 	assert.NoError(t, err)
 	idxresource.Counter++
-	assert.NoError(t, idxresource.UpdateValue())
+	assert.NoError(t, idxresource.UpdateValue(sess))
 	i.Index = idxresource.Counter
 	_, err = sess.Insert(i)
 	assert.NoError(t, err)

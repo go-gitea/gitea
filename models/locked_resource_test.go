@@ -14,7 +14,7 @@ import (
 func TestLockedResource(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	withSession := func(t *testing.T, f func(t *testing.T, sess *xorm.Session) bool) {
+	withTransaction := func(t *testing.T, f func(t *testing.T, sess *xorm.Session) bool) {
 		sess := x.NewSession()
 		defer sess.Close()
 		err := sess.Begin()
@@ -29,31 +29,31 @@ func TestLockedResource(t *testing.T) {
 	}
 
 	// Get lock, increment counter value
-	withSession(t, func(t *testing.T, sess *xorm.Session) bool {
+	withTransaction(t, func(t *testing.T, sess *xorm.Session) bool {
 		resource, err := GetLockedResource(sess, "test-1", 1)
 		if !assert.NoError(t, err) || !assert.NotEmpty(t, resource) || !assert.Equal(t, int64(0), resource.Counter) {
 			return false
 		}
 		resource.Counter++
-		err = resource.UpdateValue()
+		err = resource.UpdateValue(sess)
 		return assert.NoError(t, err)
 	})
 
 	// Get lock, check counter value
-	withSession(t, func(t *testing.T, sess *xorm.Session) bool {
+	withTransaction(t, func(t *testing.T, sess *xorm.Session) bool {
 		resource, err := GetLockedResource(sess, "test-1", 1)
 		return assert.NoError(t, err) && assert.NotEmpty(t, resource) && assert.Equal(t, int64(1), resource.Counter)
 	})
 
 	// Make sure LockKey == 0 is supported and we're not
 	// affecting other records
-	withSession(t, func(t *testing.T, sess *xorm.Session) bool {
+	withTransaction(t, func(t *testing.T, sess *xorm.Session) bool {
 		resource, err := GetLockedResource(sess, "test-1", 0)
 		if !assert.NoError(t, err) || !assert.NotEmpty(t, resource) || !assert.Equal(t, int64(0), resource.Counter) {
 			return false
 		}
 		resource.Counter = 77
-		return assert.NoError(t, resource.UpdateValue())
+		return assert.NoError(t, resource.UpdateValue(sess))
 	})
 	resource, err := GetLockedResource(x, "test-1", 0)
 	assert.NoError(t, err)
@@ -64,35 +64,35 @@ func TestLockedResource(t *testing.T) {
 	AssertExistsAndLoadBean(t, &LockedResource{LockType: "test-1", LockKey: 1})
 
 	// Attempt temp lock on an existing key, expect error
-	withSession(t, func(t *testing.T, sess *xorm.Session) bool {
+	withTransaction(t, func(t *testing.T, sess *xorm.Session) bool {
 		err := TemporarilyLockResourceKey(sess, "test-1", 1)
 		// Must give error
 		return assert.Error(t, err)
 	})
 
 	// Delete lock
-	withSession(t, func(t *testing.T, sess *xorm.Session) bool {
+	withTransaction(t, func(t *testing.T, sess *xorm.Session) bool {
 		resource, err := GetLockedResource(sess, "test-1", 1)
 		if !assert.NoError(t, err) || !assert.NotEmpty(t, resource) {
 			return false
 		}
-		return assert.NoError(t, resource.Delete())
+		return assert.NoError(t, resource.Delete(sess))
 	})
 	AssertNotExistsBean(t, &LockedResource{LockType: "test-1", LockKey: 1})
 
 	// Get lock, then delete by key
-	withSession(t, func(t *testing.T, sess *xorm.Session) bool {
+	withTransaction(t, func(t *testing.T, sess *xorm.Session) bool {
 		resource, err := GetLockedResource(sess, "test-1", 2)
 		return assert.NoError(t, err) && assert.NotEmpty(t, resource)
 	})
 	AssertExistsAndLoadBean(t, &LockedResource{LockType: "test-1", LockKey: 2})
-	withSession(t, func(t *testing.T, sess *xorm.Session) bool {
+	withTransaction(t, func(t *testing.T, sess *xorm.Session) bool {
 		return assert.NoError(t, DeleteLockedResourceKey(sess, "test-1", 2))
 	})
 	AssertNotExistsBean(t, &LockedResource{LockType: "test-1", LockKey: 2})
 
 	// Attempt temp lock on an valid key, expect success
-	withSession(t, func(t *testing.T, sess *xorm.Session) bool {
+	withTransaction(t, func(t *testing.T, sess *xorm.Session) bool {
 		return assert.NoError(t, TemporarilyLockResourceKey(sess, "test-1", 1))
 	})
 
