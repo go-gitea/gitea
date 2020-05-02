@@ -605,7 +605,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 	if form.ProjectID > 0 {
 		p, err := models.GetProjectByID(form.ProjectID)
 		if err != nil {
-			ctx.ServerError("GetMilestoneByID", err)
+			ctx.ServerError("GetProjectByID", err)
 			return nil, nil, 0, 0
 		}
 		if p.RepoID != ctx.Repo.Repository.ID {
