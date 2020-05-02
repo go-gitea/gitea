@@ -61,7 +61,7 @@
 							<span class="info">{{.i18n.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item has-emoji label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash" 16}}{{else if contain $.SelLabelIDs .ID}}{{svg "octicon-check" 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash" 16}}{{else if contain $.SelLabelIDs .ID}}{{svg "octicon-check" 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -148,8 +148,8 @@
 						</span>
 						<div class="menu">
 							{{range .Labels}}
-								<div class="item issue-action has-emoji" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check" 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check" 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 								</div>
 							{{end}}
 						</div>
@@ -187,7 +187,7 @@
 					</div>
 					{{end}}
 					<div class="ui {{if .IsClosed}}{{if .IsPull}}{{if .PullRequest.HasMerged}}purple{{else}}red{{end}}{{else}}red{{end}}{{else}}{{if .IsRead}}white{{else}}green{{end}}{{end}} label">#{{.Index}}</div>
-					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+					<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
 
 					{{if .IsPull }}
 						{{if (index $.CommitStatus .PullRequest.ID)}}
@@ -196,7 +196,7 @@
 					{{end}}
 
 					{{range .Labels}}
-						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name | RenderEmoji}}</a>
 					{{end}}
 
 					{{if .NumComments}}
