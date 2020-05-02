@@ -6,6 +6,7 @@
 package user
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -89,6 +90,17 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 		UID:  ctx.User.ID,
 		Name: form.Name,
 	}
+
+	exist, err := models.AccessTokenByNameExists(t)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if exist {
+		ctx.Error(http.StatusBadRequest, "AccessTokenByNameExists", errors.New("access token name has been used already"))
+		return
+	}
+
 	if err := models.NewAccessToken(t); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAccessToken", err)
 		return
@@ -289,17 +301,12 @@ func UpdateOauth2Application(ctx *context.APIContext, data api.CreateOAuth2Appli
 	//     "$ref": "#/responses/OAuth2Application"
 	appID := ctx.ParamsInt64(":id")
 
-	err := models.UpdateOAuth2Application(models.UpdateOAuth2ApplicationOptions{
+	app, err := models.UpdateOAuth2Application(models.UpdateOAuth2ApplicationOptions{
 		Name:         data.Name,
 		UserID:       ctx.User.ID,
 		ID:           appID,
 		RedirectURIs: data.RedirectURIs,
 	})
-	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", "error updating oauth2 application")
-		return
-	}
-	app, err := models.GetOAuth2ApplicationByID(appID)
 	if err != nil {
 		if models.IsErrOauthClientIDInvalid(err) || models.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
@@ -308,12 +315,11 @@ func UpdateOauth2Application(ctx *context.APIContext, data api.CreateOAuth2Appli
 		}
 		return
 	}
-	secret, err := app.GenerateClientSecret()
+	app.ClientSecret, err = app.GenerateClientSecret()
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", "error updating application secret")
 		return
 	}
-	app.ClientSecret = secret
 
 	ctx.JSON(http.StatusOK, convert.ToOAuth2Application(app))
 }

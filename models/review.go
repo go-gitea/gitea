@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
@@ -73,9 +74,13 @@ type Review struct {
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
-	if r.CodeComments == nil {
-		r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	if r.CodeComments != nil {
+		return
 	}
+	if err = r.loadIssue(e); err != nil {
+		return
+	}
+	r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
 	return
 }
 
@@ -85,12 +90,15 @@ func (r *Review) LoadCodeComments() error {
 }
 
 func (r *Review) loadIssue(e Engine) (err error) {
+	if r.Issue != nil {
+		return
+	}
 	r.Issue, err = getIssueByID(e, r.IssueID)
 	return
 }
 
 func (r *Review) loadReviewer(e Engine) (err error) {
-	if r.ReviewerID == 0 {
+	if r.Reviewer != nil || r.ReviewerID == 0 {
 		return nil
 	}
 	r.Reviewer, err = getUserByID(e, r.ReviewerID)
@@ -103,10 +111,13 @@ func (r *Review) LoadReviewer() error {
 }
 
 func (r *Review) loadAttributes(e Engine) (err error) {
-	if err = r.loadReviewer(e); err != nil {
+	if err = r.loadIssue(e); err != nil {
 		return
 	}
-	if err = r.loadIssue(e); err != nil {
+	if err = r.loadCodeComments(e); err != nil {
+		return
+	}
+	if err = r.loadReviewer(e); err != nil {
 		return
 	}
 	return
@@ -135,6 +146,7 @@ func GetReviewByID(id int64) (*Review, error) {
 
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
+	ListOptions
 	Type         ReviewType
 	IssueID      int64
 	ReviewerID   int64
@@ -161,6 +173,9 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 func findReviews(e Engine, opts FindReviewOptions) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 	sess := e.Where(opts.toCond())
+	if opts.Page > 0 {
+		sess = opts.ListOptions.setSessionPagination(sess)
+	}
 	return reviews, sess.
 		Asc("created_unix").
 		Asc("id").
@@ -456,16 +471,18 @@ func InsertReviews(reviews []*Review) error {
 			c.ReviewID = review.ID
 		}
 
-		if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
-			return err
+		if len(review.Comments) > 0 {
+			if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
+				return err
+			}
 		}
 	}
 
 	return sess.Commit()
 }
 
-// AddRewiewRequest add a review request from one reviewer
-func AddRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Comment, err error) {
+// AddReviewRequest add a review request from one reviewer
+func AddReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Comment, err error) {
 	review, err := GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
 	if err != nil {
 		return
@@ -531,8 +548,8 @@ func AddRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Commen
 	return comment, sess.Commit()
 }
 
-//RemoveRewiewRequest remove a review request from one reviewer
-func RemoveRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Comment, err error) {
+//RemoveReviewRequest remove a review request from one reviewer
+func RemoveReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Comment, err error) {
 	review, err := GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
 	if err != nil {
 		return
@@ -593,4 +610,137 @@ func RemoveRewiewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 	}
 
 	return comment, sess.Commit()
+}
+
+// MarkConversation Add or remove Conversation mark for a code comment
+func MarkConversation(comment *Comment, doer *User, isResolve bool) (err error) {
+	if comment.Type != CommentTypeCode {
+		return nil
+	}
+
+	if isResolve {
+		if comment.ResolveDoerID != 0 {
+			return nil
+		}
+
+		if _, err = x.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
+			return err
+		}
+	} else {
+		if comment.ResolveDoerID == 0 {
+			return nil
+		}
+
+		if _, err = x.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CanMarkConversation  Add or remove Conversation mark for a code comment permission check
+// the PR writer , offfcial reviewer and poster can do it
+func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) {
+	if doer == nil || issue == nil {
+		return false, fmt.Errorf("issue or doer is nil")
+	}
+
+	if doer.ID != issue.PosterID {
+		if err = issue.LoadRepo(); err != nil {
+			return false, err
+		}
+
+		perm, err := GetUserRepoPermission(issue.Repo, doer)
+		if err != nil {
+			return false, err
+		}
+
+		permResult = perm.CanAccess(AccessModeWrite, UnitTypePullRequests)
+		if !permResult {
+			if permResult, err = IsOfficialReviewer(issue, doer); err != nil {
+				return false, err
+			}
+		}
+
+		if !permResult {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+// DeleteReview delete a review and it's code comments
+func DeleteReview(r *Review) error {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if r.ID == 0 {
+		return fmt.Errorf("review is not allowed to be 0")
+	}
+
+	opts := FindCommentsOptions{
+		Type:     CommentTypeCode,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+
+	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
+		return err
+	}
+
+	opts = FindCommentsOptions{
+		Type:     CommentTypeReview,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+
+	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
+		return err
+	}
+
+	if _, err := sess.ID(r.ID).Delete(new(Review)); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+// GetCodeCommentsCount return count of CodeComments a Review has
+func (r *Review) GetCodeCommentsCount() int {
+	opts := FindCommentsOptions{
+		Type:     CommentTypeCode,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+	conds := opts.toConds()
+	if r.ID == 0 {
+		conds = conds.And(builder.Eq{"invalidated": false})
+	}
+
+	count, err := x.Where(conds).Count(new(Comment))
+	if err != nil {
+		return 0
+	}
+	return int(count)
+}
+
+// HTMLURL formats a URL-string to the related review issue-comment
+func (r *Review) HTMLURL() string {
+	opts := FindCommentsOptions{
+		Type:     CommentTypeReview,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+	comment := new(Comment)
+	has, err := x.Where(opts.toConds()).Get(comment)
+	if err != nil || !has {
+		return ""
+	}
+	return comment.HTMLURL()
 }

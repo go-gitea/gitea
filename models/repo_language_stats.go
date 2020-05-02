@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/src-d/enry/v2"
+	"github.com/go-enry/go-enry/v2"
 )
 
 // LanguageStat describes language statistics of a repository

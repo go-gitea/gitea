@@ -523,29 +523,27 @@ func (issues IssueList) GetApprovalCounts() (map[int64][]*ReviewCount, error) {
 }
 
 func (issues IssueList) getApprovalCounts(e Engine) (map[int64][]*ReviewCount, error) {
-	rCounts := make([]*ReviewCount, 0, 6*len(issues))
+	rCounts := make([]*ReviewCount, 0, 2*len(issues))
 	ids := make([]int64, len(issues))
 	for i, issue := range issues {
 		ids[i] = issue.ID
 	}
 	sess := e.In("issue_id", ids)
-	err := sess.Select("issue_id, type, count(id) as `count`").Where("official = ?", true).GroupBy("issue_id, type").OrderBy("issue_id").Table("review").Find(&rCounts)
+	err := sess.Select("issue_id, type, count(id) as `count`").
+		Where("official = ?", true).
+		GroupBy("issue_id, type").
+		OrderBy("issue_id").
+		Table("review").
+		Find(&rCounts)
 	if err != nil {
 		return nil, err
 	}
 
 	approvalCountMap := make(map[int64][]*ReviewCount, len(issues))
-	if len(rCounts) > 0 {
-		start := 0
-		lastID := rCounts[0].IssueID
-		for i, current := range rCounts[1:] {
-			if lastID != current.IssueID {
-				approvalCountMap[lastID] = rCounts[start:i]
-				start = i
-				lastID = current.IssueID
-			}
-		}
-		approvalCountMap[lastID] = rCounts[start:]
+
+	for _, c := range rCounts {
+		approvalCountMap[c.IssueID] = append(approvalCountMap[c.IssueID], c)
 	}
+
 	return approvalCountMap, nil
 }

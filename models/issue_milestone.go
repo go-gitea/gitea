@@ -109,15 +109,12 @@ func NewMilestone(m *Milestone) (err error) {
 }
 
 func getMilestoneByRepoID(e Engine, repoID, id int64) (*Milestone, error) {
-	m := &Milestone{
-		ID:     id,
-		RepoID: repoID,
-	}
-	has, err := e.Get(m)
+	m := new(Milestone)
+	has, err := e.ID(id).Where("repo_id=?", repoID).Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrMilestoneNotExist{id, repoID}
+		return nil, ErrMilestoneNotExist{ID: id, RepoID: repoID}
 	}
 	return m, nil
 }
@@ -127,6 +124,19 @@ func GetMilestoneByRepoID(repoID, id int64) (*Milestone, error) {
 	return getMilestoneByRepoID(x, repoID, id)
 }
 
+// GetMilestoneByRepoIDANDName return a milestone if one exist by name and repo
+func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) {
+	var mile Milestone
+	has, err := x.Where("repo_id=? AND name=?", repoID, name).Get(&mile)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrMilestoneNotExist{Name: name, RepoID: repoID}
+	}
+	return &mile, nil
+}
+
 // GetMilestoneByID returns the milestone via id .
 func GetMilestoneByID(id int64) (*Milestone, error) {
 	var m Milestone
@@ -134,7 +144,7 @@ func GetMilestoneByID(id int64) (*Milestone, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrMilestoneNotExist{id, 0}
+		return nil, ErrMilestoneNotExist{ID: id, RepoID: 0}
 	}
 	return &m, nil
 }
