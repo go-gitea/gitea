@@ -243,8 +243,13 @@ func (ls *Source) ProcessUserEntry(entry *ldap.Entry, l *ldap.Conn) *SearchResul
 		sshPublicKey = entry.GetAttributeValues(ls.AttributeSSHPublicKey)
 	}
 
-	var hasAdminGroup = false
-	var hasRestrictedGroup = false
+	adminFilterSet := len(strings.TrimSpace(ls.AdminFilter)) > 0
+	adminGroupFilterSet := len(strings.TrimSpace(ls.AdminGroupFilter)) > 0
+	restrictedFilterSet := len(strings.TrimSpace(ls.RestrictedFilter)) > 0
+	restrictedGroupFilterSet := len(strings.TrimSpace(ls.RestrictedGroupFilter)) > 0
+
+	var isInAdminGroup = false
+	var isInRestrictedGroup = false
 	if len(strings.TrimSpace(ls.GroupSearchBase)) > 0 && len(strings.TrimSpace(ls.GroupSearchFilter)) > 0 {
 		var groupUID string
 		if len(strings.TrimSpace(ls.UserAttributeInGroup)) > 0 {
@@ -275,26 +280,39 @@ func (ls *Source) ProcessUserEntry(entry *ldap.Entry, l *ldap.Conn) *SearchResul
 			}
 		}
 
-		if len(strings.TrimSpace(ls.AdminGroupFilter)) > 0 {
-			hasAdminGroup = ls.CheckGroupFilter(l, sr, ls.AdminGroupFilter)
-			if hasAdminGroup {
+		if adminGroupFilterSet {
+			isInAdminGroup = ls.CheckGroupFilter(l, sr, ls.AdminGroupFilter)
+			if isInAdminGroup {
 				log.Info("LDAP user %s is in admin group!", username)
 			}
 		}
 
-		if len(strings.TrimSpace(ls.RestrictedGroupFilter)) > 0 {
-			hasRestrictedGroup = ls.CheckGroupFilter(l, sr, ls.RestrictedGroupFilter)
-			if hasRestrictedGroup && !hasAdminGroup {
+		if restrictedGroupFilterSet {
+			isInRestrictedGroup = ls.CheckGroupFilter(l, sr, ls.RestrictedGroupFilter)
+			if isInRestrictedGroup {
 				log.Info("LDAP user %s is in restricted group!", username)
 			}
 		}
 	}
 
-	var isRestricted = false
+	var isAdmin = false;
+	if adminFilterSet && adminGroupFilterSet {
+		isAdmin = isInAdminGroup && checkAdmin(l, ls, entry.DN)
+	} else if adminFilterSet {
+		isAdmin = checkAdmin(l, ls, entry.DN)
+	} else if adminGroupFilterSet {
+		isAdmin = isInAdminGroup
+	}
 
-	isAdmin := hasAdminGroup || checkAdmin(l, ls, entry.DN)
+	var isRestricted = false
 	if !isAdmin {
-		isRestricted = hasRestrictedGroup || checkRestricted(l, ls, entry.DN)
+		if restrictedFilterSet && restrictedGroupFilterSet {
+			isRestricted = isInRestrictedGroup && checkRestricted(l, ls, entry.DN)
+		} else if restrictedFilterSet {
+			isRestricted = checkRestricted(l, ls, entry.DN)
+		} else if restrictedGroupFilterSet {
+			isRestricted = isInRestrictedGroup
+		}
 	}
 
 	return &SearchResult{
