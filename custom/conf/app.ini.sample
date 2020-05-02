@@ -649,6 +649,8 @@ MAILER_TYPE = smtp
 SENDMAIL_PATH = sendmail
 ; Specify any extra sendmail arguments
 SENDMAIL_ARGS =
+; Timeout for Sendmail
+SENDMAIL_TIMEOUT = 5m
 
 [cache]
 ; if the cache enabled

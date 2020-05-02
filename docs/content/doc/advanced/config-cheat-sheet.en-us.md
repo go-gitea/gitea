@@ -410,6 +410,7 @@ set name for unique queues. Individual queues will default to
    - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
+- `SENDMAIL_TIMEOUT`: **5m**: default timeout for sending email through sendmail
 - ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
 
 ## Cache (`cache`)
