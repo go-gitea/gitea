@@ -52,6 +52,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Name:  "skip-repository, R",
 			Usage: "Skip the repository dumping",
 		},
+		cli.BoolFlag{
+			Name:  "skip-log, L",
+			Usage: "Skip the log dumping",
+		},
 	},
 }
 
@@ -151,7 +155,12 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	if com.IsExist(setting.LogRootPath) {
+	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,
+	// ensuring that it's clear the dump is skipped whether the directory's initialized
+	// yet or not.
+	if ctx.IsSet("skip-log") && ctx.Bool("skip-log") {
+		log.Info("Skip dumping log files")
+	} else if com.IsExist(setting.LogRootPath) {
 		if err := z.AddDir("log", setting.LogRootPath); err != nil {
 			fatal("Failed to include log: %v", err)
 		}

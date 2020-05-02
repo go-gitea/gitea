@@ -196,18 +196,34 @@ type UpdateOAuth2ApplicationOptions struct {
 }
 
 // UpdateOAuth2Application updates an oauth2 application
-func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) error {
-	return updateOAuth2Application(x, opts)
+func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+	defer sess.Close()
+
+	app, err := getOAuth2ApplicationByID(sess, opts.ID)
+	if err != nil {
+		return nil, err
+	}
+	if app.UID != opts.UserID {
+		return nil, fmt.Errorf("UID missmatch")
+	}
+
+	app.Name = opts.Name
+	app.RedirectURIs = opts.RedirectURIs
+
+	if err = updateOAuth2Application(sess, app); err != nil {
+		return nil, err
+	}
+	app.ClientSecret = ""
+
+	return app, sess.Commit()
 }
 
-func updateOAuth2Application(e Engine, opts UpdateOAuth2ApplicationOptions) error {
-	app := &OAuth2Application{
-		ID:           opts.ID,
-		UID:          opts.UserID,
-		Name:         opts.Name,
-		RedirectURIs: opts.RedirectURIs,
-	}
-	if _, err := e.ID(opts.ID).Update(app); err != nil {
+func updateOAuth2Application(e Engine, app *OAuth2Application) error {
+	if _, err := e.ID(app.ID).Update(app); err != nil {
 		return err
 	}
 	return nil
