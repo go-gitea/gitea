@@ -6714,6 +6714,333 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/reviews": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List all reviews for a pull request",
+        "operationId": "repoListPullReviews",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReviewList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a review to an pull request",
+        "operationId": "repoCreatePullReview",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreatePullReviewOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReview"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}/reviews/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a specific review for a pull request",
+        "operationId": "repoGetPullReview",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReview"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Submit a pending review to an pull request",
+        "operationId": "repoSubmitPullReview",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SubmitPullReviewOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReview"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a specific review from a pull request",
+        "operationId": "repoDeletePullReview",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}/reviews/{id}/comments": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a specific review for a pull request",
+        "operationId": "repoGetPullReviewComments",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReviewCommentList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/raw/{filepath}": {
       "get": {
         "produces": [
@@ -10975,6 +11302,59 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreatePullReviewComment": {
+      "description": "CreatePullReviewComment represent a review comment for creation api",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "new_position": {
+          "description": "if comment to new file line or 0",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NewLineNum"
+        },
+        "old_position": {
+          "description": "if comment to old file line or 0",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OldLineNum"
+        },
+        "path": {
+          "description": "the tree path",
+          "type": "string",
+          "x-go-name": "Path"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreatePullReviewOptions": {
+      "description": "CreatePullReviewOptions are options to create a pull review",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CreatePullReviewComment"
+          },
+          "x-go-name": "Comments"
+        },
+        "commit_id": {
+          "type": "string",
+          "x-go-name": "CommitID"
+        },
+        "event": {
+          "$ref": "#/definitions/ReviewStateType"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateReleaseOption": {
       "description": "CreateReleaseOption options when creating a release",
       "type": "object",
@@ -13143,6 +13523,126 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "PullReview": {
+      "description": "PullReview represents a pull request review",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "comments_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CodeCommentsCount"
+        },
+        "commit_id": {
+          "type": "string",
+          "x-go-name": "CommitID"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "official": {
+          "type": "boolean",
+          "x-go-name": "Official"
+        },
+        "pull_request_url": {
+          "type": "string",
+          "x-go-name": "HTMLPullURL"
+        },
+        "stale": {
+          "type": "boolean",
+          "x-go-name": "Stale"
+        },
+        "state": {
+          "$ref": "#/definitions/ReviewStateType"
+        },
+        "submitted_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Submitted"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "PullReviewComment": {
+      "description": "PullReviewComment represents a comment on a pull request review",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "commit_id": {
+          "type": "string",
+          "x-go-name": "CommitID"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "diff_hunk": {
+          "type": "string",
+          "x-go-name": "DiffHunk"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "original_commit_id": {
+          "type": "string",
+          "x-go-name": "OrigCommitID"
+        },
+        "original_position": {
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "OldLineNum"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "position": {
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "LineNum"
+        },
+        "pull_request_review_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ReviewID"
+        },
+        "pull_request_url": {
+          "type": "string",
+          "x-go-name": "HTMLPullURL"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Reaction": {
       "description": "Reaction contain one reaction",
       "type": "object",
@@ -13486,6 +13986,11 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ReviewStateType": {
+      "description": "ReviewStateType review state type",
+      "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "SearchResults": {
       "description": "SearchResults results of a successful search",
       "type": "object",
@@ -13582,6 +14087,20 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "IssueIndex"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "SubmitPullReviewOptions": {
+      "description": "SubmitPullReviewOptions are options to submit a pending pull review",
+      "type": "object",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "event": {
+          "$ref": "#/definitions/ReviewStateType"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14324,6 +14843,36 @@
         }
       }
     },
+    "PullReview": {
+      "description": "PullReview",
+      "schema": {
+        "$ref": "#/definitions/PullReview"
+      }
+    },
+    "PullReviewComment": {
+      "description": "PullComment",
+      "schema": {
+        "$ref": "#/definitions/PullReviewComment"
+      }
+    },
+    "PullReviewCommentList": {
+      "description": "PullCommentList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/PullReviewComment"
+        }
+      }
+    },
+    "PullReviewList": {
+      "description": "PullReviewList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/PullReview"
+        }
+      }
+    },
     "Reaction": {
       "description": "Reaction",
       "schema": {
@@ -14561,7 +15110,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateOAuth2ApplicationOptions"
+        "$ref": "#/definitions/SubmitPullReviewOptions"
       }
     },
     "redirect": {
