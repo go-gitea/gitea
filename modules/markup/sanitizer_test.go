@@ -38,6 +38,11 @@ func Test_Sanitizer(t *testing.T) {
 
 		// <kbd> tags
 		`<kbd>Ctrl + C</kbd>`, `<kbd>Ctrl + C</kbd>`,
+		`<i class="dropdown icon">NAUGHTY</i>`, `<i>NAUGHTY</i>`,
+		`<i class="icon dropdown"></i>`, `<i class="icon dropdown"></i>`,
+		`<span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>unchecked</label></span>`, `<span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>unchecked</label></span>`,
+		`<span class="emoji dropdown">NAUGHTY</span>`, `<span>NAUGHTY</span>`,
+		`<span class="emoji">contents</span>`, `<span class="emoji">contents</span>`,
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
