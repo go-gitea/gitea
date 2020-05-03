@@ -969,8 +969,14 @@
                 }
 
                 .ui.form {
-                    .field:first-child {
-                        clear: none;
+                    .field {
+                        &:first-child {
+                            clear: none;
+                        }
+
+                        &.footer {
+                            overflow: hidden;
+                        }
                     }
 
                     textarea {
@@ -1040,17 +1046,6 @@
 
                 .segments {
                     box-shadow: none;
-                }
-            }
-
-            .ui.form {
-                .field.footer {
-                    overflow: hidden;
-                    .controls.right {
-                        :last-child {
-                            margin-right: 0 !important;
-                        }
-                    }
                 }
             }
         }
@@ -2868,4 +2863,9 @@ td.blob-excerpt {
 .repository.file .repository-summary {
     height: 48px;
     overflow: hidden;
+}
+
+.ui .right .ui.button {
+    margin-left: .25em;
+    margin-right: 0;
 }
