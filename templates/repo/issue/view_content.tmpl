@@ -88,7 +88,7 @@
 							{{.CsrfTokenHtml}}
 							<input id="status" name="status" type="hidden">
 							<div class="field footer">
-								<div class="text right controls">
+								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 										{{if .Issue.IsClosed}}
 											<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
@@ -139,7 +139,7 @@
 								{{.CsrfTokenHtml}}
 								<input id="status" name="status" type="hidden">
 								<div class="field footer">
-									<div class="text right controls">
+									<div class="text right">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 											{{if .Issue.IsClosed}}
 												<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
@@ -203,7 +203,7 @@
 		</div>
 		{{end}}
 		<div class="field footer">
-			<div class="text right edit controls">
+			<div class="text right edit">
 				<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
 				<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
 			</div>
