@@ -174,6 +174,7 @@ type Comment struct {
 	Commits     *list.List `xorm:"-"`
 	OldCommit   string     `xorm:"-"`
 	NewCommit   string     `xorm:"-"`
+	CommitsNum  int64      `xorm:"-"`
 	IsForcePush bool
 }
 
@@ -574,13 +575,11 @@ func (c *Comment) LoadPushCommits() (err error) {
 		defer gitRepo.Close()
 
 		c.Commits = gitRepo.GetCommitsFromIDs(commitIDs)
-		if c.Commits.Len() > 0 {
+		c.CommitsNum = int64(c.Commits.Len())
+		if c.CommitsNum > 0 {
 			c.Commits = ValidateCommitsWithEmails(c.Commits)
 			c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.Repo)
 			c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.Repo)
-		} else {
-			c.Commits = nil
-			c.Content = ""
 		}
 	}
 

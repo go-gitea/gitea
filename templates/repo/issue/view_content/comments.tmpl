@@ -595,7 +595,7 @@
 				{{end}}
 			</span>
 		</div>
-	{{else if and (eq .Type 29) (or .Commits .IsForcePush)}}
+	{{else if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-repo-force-push" 16}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
