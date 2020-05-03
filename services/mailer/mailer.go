@@ -7,6 +7,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -244,7 +246,14 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	args = append(args, setting.MailService.SendmailArgs...)
 	args = append(args, to...)
 	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
-	cmd := exec.Command(setting.MailService.SendmailPath, args...)
+
+	pm := process.GetManager()
+	desc := fmt.Sprintf("SendMail: %s %v", setting.MailService.SendmailPath, args)
+
+	ctx, cancel := context.WithTimeout(graceful.GetManager().HammerContext(), setting.MailService.SendmailTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, setting.MailService.SendmailPath, args...)
 	pipe, err := cmd.StdinPipe()
 
 	if err != nil {
@@ -255,12 +264,15 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 		return err
 	}
 
+	pid := pm.Add(desc, cancel)
+
 	_, err = msg.WriteTo(pipe)
 
 	// we MUST close the pipe or sendmail will hang waiting for more of the message
 	// Also we should wait on our sendmail command even if something fails
 	closeError = pipe.Close()
 	waitError = cmd.Wait()
+	pm.Remove(pid)
 	if err != nil {
 		return err
 	} else if closeError != nil {
