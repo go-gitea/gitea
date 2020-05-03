@@ -284,6 +284,8 @@ func RenderDescriptionHTML(
 		urlPrefix: urlPrefix,
 		procs: []processor{
 			descriptionLinkProcessor,
+			emojiShortCodeProcessor,
+			emojiProcessor,
 		},
 	}
 	return ctx.postProcess(rawHTML)
