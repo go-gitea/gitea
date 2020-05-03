@@ -74,10 +74,10 @@
 						<td class="message">
 							<span class="message-wrapper">
 							{{if $.PageIsWiki}}
-								<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary}}</span>
+								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji}}</span>
 							{{else }}
 								{{ $commitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl $.Username $.Reponame .ID }}
-								<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
+								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 							{{end}}
 							</span>
 							{{if IsMultilineCommitMessage .Message}}
