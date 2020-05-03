@@ -704,6 +704,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	m.Post("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
 
+	// Grouping for those endpoints not requiring authentication
+	m.Group("/:username/:reponame", func() {
+		m.Group("/milestone", func() {
+			m.Get("/:id", repo.MilestoneIssuesAndPulls)
+		}, reqRepoIssuesOrPullsReader, context.RepoRef())
+	}, context.RepoAssignment(), context.UnitTypes())
+
+	// Grouping for those endpoints that do require authentication
 	m.Group("/:username/:reponame", func() {
 		m.Group("/issues", func() {
 			m.Combo("/new").Get(context.RepoRef(), repo.NewIssue).
@@ -761,9 +769,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/:id/:action", repo.ChangeMilestonStatus)
 			m.Post("/delete", repo.DeleteMilestone)
 		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
-		m.Group("/milestone", func() {
-			m.Get("/:id", repo.MilestoneIssuesAndPulls)
-		}, reqRepoIssuesOrPullsReader, context.RepoRef())
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.CompareDiff).
 			Post(context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
