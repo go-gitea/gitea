@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
@@ -28,7 +29,13 @@ type Set struct {
 func OpenSet(dataDir string) (*Set, error) {
 	db, err := leveldb.OpenFile(dataDir, nil)
 	if err != nil {
-		return nil, err
+		if !errors.IsCorrupted(err) {
+			return nil, err
+		}
+		db, err = leveldb.RecoverFile(dataDir, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return NewSet(db, []byte(setPrefixStr), true)
 }
