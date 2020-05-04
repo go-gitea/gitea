@@ -62,6 +62,18 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		return nil
 	}
 
+	if !ctx.User.IsAdmin {
+		orgsAvailable := []*models.User{}
+		for i := 0; i < len(orgs); i++ {
+			if orgs[i].CanCreateRepo() {
+				orgsAvailable = append(orgsAvailable, orgs[i])
+			}
+		}
+		ctx.Data["Orgs"] = orgsAvailable
+	} else {
+		ctx.Data["Orgs"] = orgs
+	}
+
 	// Not equal means current user is an organization.
 	if uid == ctx.User.ID || uid == 0 {
 		return ctx.User
@@ -83,14 +95,6 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		return nil
 	}
 	if !ctx.User.IsAdmin {
-		orgsAvailable := []*models.User{}
-		for i := 0; i < len(orgs); i++ {
-			if orgs[i].CanCreateRepo() {
-				orgsAvailable = append(orgsAvailable, orgs[i])
-			}
-		}
-		ctx.Data["Orgs"] = orgsAvailable
-
 		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
