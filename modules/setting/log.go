@@ -261,7 +261,6 @@ func newLogService() {
 			continue
 		}
 
-		fmt.Println(name)
 		sec, err := Cfg.GetSection("log." + name + ".default")
 		if err != nil {
 			sec, err = Cfg.GetSection("log." + name)
