@@ -33,17 +33,18 @@
 					<textarea name="content">{{.content}}</textarea>
 				</div>
 
-				<label>{{.i18n.Tr "repo.projects.template.desc"}}</label>
-				<div class="ui selection dropdown">
-					<input type="hidden" name="board_type" value="{{.type}}">
-					<div class="default text">{{.i18n.Tr "repo.projects.template.desc_helper"}}</div>
-					<div class="menu">
-
-						{{range $element := .ProjectTypes}}
-						<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.i18n.Tr $element.Translation}}</div>
-						{{end}}
+				{{if not .PageIsEditProjects}}
+					<label>{{.i18n.Tr "repo.projects.template.desc"}}</label>
+					<div class="ui selection dropdown">
+						<input type="hidden" name="board_type" value="{{.type}}">
+						<div class="default text">{{.i18n.Tr "repo.projects.template.desc_helper"}}</div>
+						<div class="menu">
+							{{range $element := .ProjectTypes}}
+								<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.i18n.Tr $element.Translation}}</div>
+							{{end}}
+						</div>
 					</div>
-				</div>
+				{{end}}
 			</div>
 			<div class="ui container">
 				<div class="ui divider"></div>
@@ -56,11 +57,10 @@
 						{{.i18n.Tr "repo.projects.modify"}}
 					</button>
 					{{else}}
-
 						<button class="ui green button">
 							{{.i18n.Tr "repo.projects.create"}}
 						</button>
-						{{end}}
+					{{end}}
 				</div>
 			</div>
 
