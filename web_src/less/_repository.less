@@ -2843,7 +2843,9 @@ tbody.commit-list {
 
 .board-column > .cards {
     margin: 0 !important;
-    min-height: 35px;
+    display: list-item;
+    height: 92%;
+    padding: 5px;
 
     .card .meta > a.milestone {
         color: #999999;
@@ -2869,6 +2871,10 @@ tbody.commit-list {
 
 .board-card {
     margin: 3px !important;
+    width: 100%;
+    background-color: white;
+    border-radius: 5px;
+    cursor: pointer;
 }
 
 .board-card .header {
