@@ -730,29 +730,8 @@ func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCoun
 	sql := `SELECT user_id, count(*) AS count FROM notification ` +
 		`WHERE user_id IN (SELECT user_id FROM notification WHERE updated_unix >= ? AND ` +
 		`updated_unix < ?) AND status = ? GROUP BY user_id`
-
-	res, err := x.Query(sql, since, until, NotificationStatusUnread)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(res) == 0 {
-		return []UserIDCount{}, nil
-	}
-
-	uidCounts := make([]UserIDCount, len(res))
-	for i, result := range res {
-		uid, err := strconv.ParseInt(string(result["user_id"]), 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		count, err := strconv.ParseInt(string(result["count"]), 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		uidCounts[i] = UserIDCount{uid, count}
-	}
-	return uidCounts, err
+	var res []UserIDCount
+	return res, x.SQL(sql, since, until, NotificationStatusUnread).Find(&res)
 }
 
 func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
