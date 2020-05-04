@@ -279,6 +279,7 @@ func (u *User) MaxCreationLimit() int {
 }
 
 // CanCreateRepo returns if user login can create a repository
+// NOTE: functions calling this assume a failure due to repository count limit; if new checks are added, those functions should be revised
 func (u *User) CanCreateRepo() bool {
 	if u.IsAdmin {
 		return true
