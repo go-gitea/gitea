@@ -636,3 +636,16 @@ func (pr *PullRequest) updateCommitDivergence(e Engine, ahead, behind int) error
 func (pr *PullRequest) IsSameRepo() bool {
 	return pr.BaseRepoID == pr.HeadRepoID
 }
+
+// GetPullRequestByHeadBranch returns a pr by head branch
+func GetPullRequestByHeadBranch(headBranch string, repo *Repository) (pr *PullRequest, err error) {
+	pr = &PullRequest{}
+	exists, err := x.Where("head_branch = ? AND head_repo_id = ?", headBranch, repo.ID).Get(pr)
+	if !exists {
+		return nil, ErrPullRequestNotExist{
+			HeadBranch: headBranch,
+			HeadRepoID: repo.ID,
+		}
+	}
+	return
+}

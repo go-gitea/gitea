@@ -810,6 +810,34 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
+	lastCommitStatus, err := pr.GetLastCommitStatus()
+	if err != nil {
+		return
+	}
+	if form.MergeWhenChecksSucceed && !lastCommitStatus.State.IsSuccess() {
+		err = models.ScheduleAutoMerge(&models.ScheduledPullRequestMerge{
+			PullID:     pr.ID,
+			UserID:     ctx.User.ID,
+			MergeStyle: models.MergeStyle(form.Do),
+			Message:    message,
+		})
+		if err != nil {
+			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		}
+		ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_success"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		return
+	}
+	// Removing an auto merge pull request is something we can execute whether or not a pull request auto merge was
+	// scheduled before, hece we can remove it without checking for its existence.
+	err = models.RemoveScheduledMergeRequest(&models.ScheduledPullRequestMerge{PullID: pr.ID})
+	if err != nil {
+		ctx.ServerError("RemoveScheduledMergeRequest", err)
+		return
+	}
+
 	if err = pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
@@ -858,6 +886,33 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+}
+
+// CancelAutoMergePullRequest cancels a scheduled pr
+func CancelAutoMergePullRequest(ctx *context.Context) {
+	issue := checkPullInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+	pr := issue.PullRequest
+	exists, scheduledInfo, err := models.GetScheduledMergeRequestByPullID(pr.ID)
+	if err != nil {
+		ctx.ServerError("GetScheduledMergeRequestByPullID", err)
+		return
+	}
+	if !exists {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.pull_request_not_scheduled"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		return
+	}
+	err = models.RemoveScheduledMergeRequest(scheduledInfo)
+	if err != nil {
+		ctx.ServerError("RemoveScheduledMergeRequest", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.pulls.pull_request_schedule_canceled"))
+	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 }
 
 func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {

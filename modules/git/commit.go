@@ -467,6 +467,7 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 }
 
 // GetBranchName gets the closes branch name (as returned by 'git name-rev')
+// FIXME: This get only one branch, but one commit can be part of multiple branches
 func (c *Commit) GetBranchName() (string, error) {
 	data, err := NewCommand("name-rev", c.ID.String()).RunInDirBytes(c.repo.Path)
 	if err != nil {
@@ -475,6 +476,25 @@ func (c *Commit) GetBranchName() (string, error) {
 
 	// name-rev commitID output will be "COMMIT_ID master" or "COMMIT_ID master~12"
 	return strings.Split(strings.Split(string(data), " ")[1], "~")[0], nil
+}
+
+// GetBranchNames returns all branches a commit is part of
+func (c *Commit) GetBranchNames() (branchNames []string, err error) {
+	data, err := NewCommand("name-rev", c.ID.String()).RunInDirBytes(c.repo.Path)
+	if err != nil {
+		return
+	}
+
+	namesRaw := strings.Split(string(data), "\n")
+	for _, s := range namesRaw {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		branchNames = append(branchNames, strings.Split(strings.Split(s, " ")[1], "~")[0])
+	}
+
+	return
 }
 
 // CommitFileStatus represents status of files in a commit.

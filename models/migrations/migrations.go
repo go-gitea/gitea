@@ -210,6 +210,8 @@ var migrations = []Migration{
 	NewMigration("Add Branch Protection Block Outdated Branch", addBlockOnOutdatedBranch),
 	// v138 -> v139
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
+	// v139 -> v140
+	NewMigration("Add auto merge table", addAutoMergeTable),
 }
 
 // GetCurrentDBVersion returns the current db version
