@@ -104,6 +104,11 @@
 				</div>
 
 				{{if eq .TabName "activity"}}
+					{{if .Owner.KeepActivityPrivate}}
+						<div class="ui info message">
+							<p>{{.i18n.Tr "user.disabled_public_activity"}}</p>
+						</div>
+					{{end}}
 					{{if .EnableHeatmap}}
 						<div id="user-heatmap" style="padding-right: 40px">
 							<activity-heatmap :locale="locale" :suburl="suburl" :user="heatmapUser">
