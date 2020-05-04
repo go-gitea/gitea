@@ -1,5 +1,5 @@
 ---
-date: "2016-12-01T16:00:00+02:00"
+date: "2020-03-19T19:27:00+02:00"
 title: "Installation with Docker"
 slug: "install-with-docker"
 weight: 10
@@ -253,7 +253,8 @@ You can configure some of Gitea's settings via environment variables:
 
 * `APP_NAME`: **"Gitea: Git with a cup of tea"**: Application name, used in the page title.
 * `RUN_MODE`: **dev**: For performance and other purposes, change this to `prod` when deployed to a production environment.
-* `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed clone URL in Gitea's UI.
+* `DOMAIN`: **localhost**: Domain name of this server, used for the displayed http clone URL in Gitea's UI.
+* `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed ssh clone URL in Gitea's UI. If the install page is enabled, SSH Domain Server takes DOMAIN value in the form (which overwrite this setting on save).
 * `SSH_PORT`: **22**: SSH port displayed in clone URL.
 * `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
 * `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
