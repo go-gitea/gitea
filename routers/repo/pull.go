@@ -810,11 +810,11 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	lastCommitStatus, err := pr.GetLastCommitStatus()
+	lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(pr)
 	if err != nil {
 		return
 	}
-	if form.MergeWhenChecksSucceed && !lastCommitStatus.State.IsSuccess() {
+	if form.MergeWhenChecksSucceed && !lastCommitStatus.IsSuccess() {
 		err = models.ScheduleAutoMerge(&models.ScheduledPullRequestMerge{
 			PullID:     pr.ID,
 			UserID:     ctx.User.ID,

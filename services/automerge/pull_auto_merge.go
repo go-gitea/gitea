@@ -67,7 +67,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		// We get the latest sha commit hash again to handle the case where the check of a previous push
 		// did not succeed or was not finished yet.
 
-		err = pr.GetHeadRepo()
+		pr.HeadRepo, err = models.GetRepositoryByID(pr.HeadRepoID)
 		if err != nil {
 			return err
 		}
