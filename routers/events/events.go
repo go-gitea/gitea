@@ -23,7 +23,6 @@ func Events(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", "text/event-stream")
 	ctx.Resp.Header().Set("Cache-Control", "no-cache")
 	ctx.Resp.Header().Set("Connection", "keep-alive")
-	ctx.Resp.Header().Set("Access-Control-Allow-Origin", "*")
 	ctx.Resp.Header().Set("X-Accel-Buffering", "no")
 	ctx.Resp.WriteHeader(http.StatusOK)
 
