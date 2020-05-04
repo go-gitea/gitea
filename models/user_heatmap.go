@@ -19,7 +19,7 @@ type UserHeatmapData struct {
 func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
-	if (user.KeepActivityPrivate) {
+	if user.KeepActivityPrivate {
 		return hdata, nil
 	}
 
