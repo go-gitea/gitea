@@ -155,6 +155,6 @@ func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...s
 	if timeout <= 0 {
 		timeout = -1
 	}
-	_, err := NewCommand("fsck").SetParentContext(ctx).AddArguments(args...).RunInDirTimeout(timeout, repoPath)
+	_, err := NewCommandContext(ctx, "fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
 	return err
 }
