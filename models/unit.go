@@ -141,10 +141,10 @@ func loadUnitConfig() {
 func (u UnitType) UnitGlobalDisabled() bool {
 	for _, ud := range DisabledRepoUnits {
 		if u == ud {
-			return true
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // CanDisable checks if this unit type can be disabled.
