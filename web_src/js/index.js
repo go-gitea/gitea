@@ -3085,7 +3085,7 @@ function initFilterBranchTagDropdown(selector) {
           if (!this.showCreateNewBranch) {
             return;
           }
-          this.$refs.newBranchForm.trigger('submit');
+          $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
           const vm = this;
