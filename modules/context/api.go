@@ -212,6 +212,11 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	var message = "Not Found"
 	var errors []string
 	for _, obj := range objs {
+		// Ignore nil
+		if obj == nil {
+			continue
+		}
+
 		if err, ok := obj.(error); ok {
 			errors = append(errors, err.Error())
 		} else {
