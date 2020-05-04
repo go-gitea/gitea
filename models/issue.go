@@ -76,7 +76,7 @@ var (
 
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
-const issueMaxDupIndexAttempts = 3
+const issueMaxDupIndexAttempts = 10
 const maxIssueIDs = 950
 
 func init() {
@@ -962,8 +962,8 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 }
 
 func getIssueIndex(repo *Repository) (int64, error) {
-	// retry ten times to retreive the issue index
-	for i := 0; i < 10; i++ {
+	// retry serval times to retrieve the issue index
+	for i := 0; i < issueMaxDupIndexAttempts; i++ {
 		res, err := x.Exec("UPDATE repository SET last_issue_index=last_issue_index+1 WHERE id = ? AND last_issue_index=?",
 			repo.ID, repo.LastIssueIndex,
 		)
