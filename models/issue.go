@@ -6,6 +6,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -848,19 +849,9 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Milestone validation should happen before insert actual object.
-	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
-		Where("repo_id=?", opts.Issue.RepoID).
-		Insert(opts.Issue); err != nil {
+	if _, err := e.Insert(opts.Issue); err != nil {
 		return ErrNewIssueInsert{err}
 	}
-
-	inserted, err := getIssueByID(e, opts.Issue.ID)
-	if err != nil {
-		return err
-	}
-
-	// Patch Index with the value calculated by the database
-	opts.Issue.Index = inserted.Index
 
 	if opts.Issue.MilestoneID > 0 {
 		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
@@ -938,24 +929,13 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
-	i := 0
-	for {
-		if err = newIssueAttempt(repo, issue, labelIDs, uuids); err == nil {
-			return nil
-		}
-		if !IsErrNewIssueInsert(err) {
-			return err
-		}
-		if i++; i == issueMaxDupIndexAttempts {
-			break
-		}
-		log.Error("NewIssue: error attempting to insert the new issue; will retry. Original error: %v", err)
+	idx, err := getIssueIndex(repo)
+	if err != nil {
+		return err
 	}
-	return fmt.Errorf("NewIssue: too many errors attempting to insert the new issue. Last error was: %v", err)
-}
 
-func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
+	issue.Index = idx
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -979,6 +959,33 @@ func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, uuids []s
 	}
 
 	return nil
+}
+
+func getIssueIndex(repo *Repository) (int64, error) {
+	// retry ten times to retreive the issue index
+	for i := 0; i < 10; i++ {
+		res, err := x.Exec("UPDATE repository SET last_issue_index=last_issue_index+1 WHERE id = ? AND last_issue_index=?",
+			repo.ID, repo.LastIssueIndex,
+		)
+		if err != nil {
+			return 0, err
+		}
+		cnt, err := res.RowsAffected()
+		if err != nil {
+			return 0, err
+		}
+		if cnt == 1 {
+			repo.LastIssueIndex++
+			return repo.LastIssueIndex, nil
+		}
+
+		// reload LastIssueIndex from database
+		repo, err = getRepositoryByID(x, repo.ID)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return 0, errors.New("Retrieve the last issue index failed")
 }
 
 // GetIssueByIndex returns raw issue without loading attributes by index in a repository.

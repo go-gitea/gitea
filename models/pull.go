@@ -408,24 +408,13 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
-	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
-	i := 0
-	for {
-		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr); err == nil {
-			return nil
-		}
-		if !IsErrNewIssueInsert(err) {
-			return err
-		}
-		if i++; i == issueMaxDupIndexAttempts {
-			break
-		}
-		log.Error("NewPullRequest: error attempting to insert the new issue; will retry. Original error: %v", err)
+	idx, err := getIssueIndex(repo)
+	if err != nil {
+		return err
 	}
-	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
-}
 
-func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
+	pull.Index = idx
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
