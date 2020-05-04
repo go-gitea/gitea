@@ -319,9 +319,9 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
-	if opts.Actor == nil || opts.Actor.IsAdmin == false {
+	if opts.Actor == nil || !opts.Actor.IsAdmin {
 		if opts.RequestedUser.KeepActivityPrivate && actorID != opts.RequestedUser.ID {
-			return make([]*Action, 0, 0), nil
+			return make([]*Action, 0), nil
 		}
 	}
 
