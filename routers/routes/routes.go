@@ -878,7 +878,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/:period", repo.ActivityAuthors)
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
-		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
+		m.Group("/archive", func() {
+			m.Post("/status/*", repo.DownloadStatus)
+			m.Get("/*", repo.Download)
+			m.Post("/*", repo.InitiateDownload)
+		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Get("/status", reqRepoCodeReader, repo.Status)
 

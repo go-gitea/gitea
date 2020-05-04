@@ -8,24 +8,20 @@ package repo
 import (
 	"fmt"
 	"net/url"
-	"os"
-	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
+	archiver_service "code.gitea.io/gitea/services/archiver"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -458,80 +454,57 @@ func RedirectDownload(ctx *context.Context) {
 	ctx.Error(404)
 }
 
-// Download download an archive of a repository
-func Download(ctx *context.Context) {
-	var (
-		uri         = ctx.Params("*")
-		refName     string
-		ext         string
-		archivePath string
-		archiveType git.ArchiveType
-	)
+// DownloadStatus checks the status of a download, because archiving may take a
+// while.  It does so by creating an archive request from the archiver service,
+// then just examining the completion status.
+func DownloadStatus(ctx *context.Context) {
+	uri := ctx.Params("*")
+	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
-	switch {
-	case strings.HasSuffix(uri, ".zip"):
-		ext = ".zip"
-		archivePath = path.Join(ctx.Repo.GitRepo.Path, "archives/zip")
-		archiveType = git.ZIP
-	case strings.HasSuffix(uri, ".tar.gz"):
-		ext = ".tar.gz"
-		archivePath = path.Join(ctx.Repo.GitRepo.Path, "archives/targz")
-		archiveType = git.TARGZ
-	default:
-		log.Trace("Unknown format: %s", uri)
+	if aReq == nil {
 		ctx.Error(404)
 		return
 	}
-	refName = strings.TrimSuffix(uri, ext)
 
-	if !com.IsDir(archivePath) {
-		if err := os.MkdirAll(archivePath, os.ModePerm); err != nil {
-			ctx.ServerError("Download -> os.MkdirAll(archivePath)", err)
-			return
-		}
-	}
+	complete := aReq.IsComplete()
+	ctx.JSON(200, map[string]interface{}{
+		"archiving": !complete,
+		"complete":  complete,
+	})
+}
 
-	// Get corresponding commit.
-	var (
-		commit *git.Commit
-		err    error
-	)
-	gitRepo := ctx.Repo.GitRepo
-	if gitRepo.IsBranchExist(refName) {
-		commit, err = gitRepo.GetBranchCommit(refName)
-		if err != nil {
-			ctx.ServerError("GetBranchCommit", err)
-			return
-		}
-	} else if gitRepo.IsTagExist(refName) {
-		commit, err = gitRepo.GetTagCommit(refName)
-		if err != nil {
-			ctx.ServerError("GetTagCommit", err)
-			return
-		}
-	} else if len(refName) >= 4 && len(refName) <= 40 {
-		commit, err = gitRepo.GetCommit(refName)
-		if err != nil {
-			ctx.NotFound("GetCommit", nil)
-			return
-		}
+// Download an archive of a repository
+func Download(ctx *context.Context) {
+	uri := ctx.Params("*")
+	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
+
+	if aReq.IsComplete() {
+		ctx.ServeFile(aReq.GetArchivePath(), ctx.Repo.Repository.Name+"-"+aReq.GetArchiveName())
 	} else {
-		ctx.NotFound("Download", nil)
+		ctx.Error(404)
+	}
+}
+
+// InitiateDownload will enqueue an archival request, as needed.  It may submit
+// a request that's already in-progress, but the archiver service will just
+// kind of drop it on the floor if this is the case.
+func InitiateDownload(ctx *context.Context) {
+	uri := ctx.Params("*")
+	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
+
+	if aReq == nil {
 		return
 	}
 
-	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
-	if !com.IsFile(archivePath) {
-		if err := commit.CreateArchive(archivePath, git.CreateArchiveOpts{
-			Format: archiveType,
-			Prefix: setting.Repository.PrefixArchiveFiles,
-		}); err != nil {
-			ctx.ServerError("Download -> CreateArchive "+archivePath, err)
-			return
-		}
+	complete := aReq.IsComplete()
+	if !complete {
+		archiver_service.ArchiveRepository(aReq)
 	}
 
-	ctx.ServeFile(archivePath, ctx.Repo.Repository.Name+"-"+refName+ext)
+	ctx.JSON(200, map[string]interface{}{
+		"archiving": !complete,
+		"complete":  complete,
+	})
 }
 
 // Status returns repository's status

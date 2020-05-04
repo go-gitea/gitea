@@ -698,6 +698,86 @@ function initIssueComments() {
   });
 }
 
+function initArchiveStatusChecker($target, url, statusUrl) {
+  $.ajax({
+    url: statusUrl,
+    type: 'POST',
+    data: {
+      _csrf: csrf,
+    },
+    complete(xhr) {
+      if (xhr.status === 200) {
+        if (!xhr.responseJSON) {
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          return;
+        }
+
+        if (xhr.responseJSON.complete) {
+          // Null out the status URL.  We don't need to query status again.
+          // getArchive() will clear the loading indicator here, as needed.
+          getArchive($target, url, null);
+          return;
+        }
+
+        setTimeout(() => {
+          initArchiveStatusChecker($target, url, statusUrl);
+        }, 2000);
+      } else {
+        $target.closest('.dropdown').children('i').removeClass('loading');
+      }
+    }
+  });
+}
+
+function getArchive($target, url, statusUrl) {
+  $.ajax({
+    url,
+    type: 'POST',
+    data: {
+      _csrf: csrf,
+    },
+    complete(xhr) {
+      if (xhr.status === 200) {
+        if (!xhr.responseJSON) {
+          // XXX Shouldn't happen?
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          return;
+        }
+
+        if (!xhr.responseJSON.complete && statusUrl !== null) {
+          $target.closest('.dropdown').children('i').addClass('loading');
+          setTimeout(() => {
+            initArchiveStatusChecker($target, url, statusUrl);
+          }, 2000);
+        } else {
+          // We don't need to continue checking.
+          $target.closest('.dropdown').children('i').removeClass('loading');
+          window.location.href = url;
+        }
+      }
+    }
+  });
+}
+
+function initArchiveLinks() {
+  if ($('.archive-link').length === 0) {
+    return;
+  }
+
+  $('.archive-link').on('click', function (event) {
+    const url = $(this).data('url');
+    if (typeof url === 'undefined') {
+      return;
+    }
+    const statusUrl = $(this).data('status');
+    if (typeof statusUrl === 'undefined') {
+      return;
+    }
+
+    getArchive($(event.target), url, statusUrl);
+  });
+}
+
 async function initRepository() {
   if ($('.repository').length === 0) {
     return;
@@ -2565,6 +2645,7 @@ $(document).ready(async () => {
 
   initCommentForm();
   initInstall();
+  initArchiveLinks();
   initRepository();
   initMigration();
   initWikiForm();
