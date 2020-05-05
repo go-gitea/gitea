@@ -132,8 +132,8 @@ func TestArchive_Basic(t *testing.T) {
 	ArchiveRepository(zipReq)
 
 	// Sleep two seconds to make sure the queue doesn't change.
-	two_seconds, _ := time.ParseDuration("2s")
-	time.Sleep(two_seconds)
+	twoSeconds, _ := time.ParseDuration("2s")
+	time.Sleep(twoSeconds)
 	assert.Equal(t, 3, len(archiveInProgress))
 
 	// Release them all, they'll then stall at the archiveQueueReleaseCond while
