@@ -56,7 +56,7 @@ func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
 	assert.NotEqual(t, nowQueued, numQueued)
 
 	// Also make sure that we released only one.
-	assert.Equal(t, nowQueued, numQueued + 1)
+	assert.Equal(t, nowQueued, numQueued+1)
 }
 
 func TestArchive_Basic(t *testing.T) {
