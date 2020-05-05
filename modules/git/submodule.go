@@ -12,6 +12,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 var scpSyntax = regexp.MustCompile(`^([a-zA-Z0-9_]+@)?([a-zA-Z0-9._-]+):(.*)$`)
@@ -73,7 +75,7 @@ func getRefURL(refURL, urlPrefix, repoFullName string) string {
 			}
 
 			if urlPrefixHostname == refHostname {
-				return util.URLJoin(prefixURL, path.Clean(pth))
+				return util.URLJoin(urlPrefix, path.Clean(pth))
 			}
 			return "http://" + refHostname + pth
 		}
@@ -94,7 +96,7 @@ func getRefURL(refURL, urlPrefix, repoFullName string) string {
 	for _, scheme := range supportedSchemes {
 		if ref.Scheme == scheme {
 			if urlPrefixHostname == refHostname {
-				return util.URLJoin(prefixURL, path.Clean(ref.Path))
+				return util.URLJoin(urlPrefix, path.Clean(ref.Path))
 			} else if ref.Scheme == "http" || ref.Scheme == "https" {
 				if len(ref.User.Username()) > 0 {
 					return ref.Scheme + "://" + fmt.Sprintf("%v", ref.User) + "@" + ref.Host + ref.Path
