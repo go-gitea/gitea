@@ -21,10 +21,6 @@ var queueMutex sync.Mutex
 
 func TestMain(m *testing.M) {
 	models.MainTest(m, filepath.Join("..", ".."))
-
-	archiveQueueMutex = &queueMutex
-	archiveQueueStartCond = sync.NewCond(&queueMutex)
-	archiveQueueReleaseCond = sync.NewCond(&queueMutex)
 }
 
 func allComplete(inFlight []*ArchiveRequest) bool {
@@ -78,6 +74,15 @@ func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
 
 func TestArchive_Basic(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
+
+	archiveQueueMutex = &queueMutex
+	archiveQueueStartCond = sync.NewCond(&queueMutex)
+	archiveQueueReleaseCond = sync.NewCond(&queueMutex)
+	defer func() {
+		archiveQueueMutex = nil
+		archiveQueueStartCond = nil
+		archiveQueueReleaseCond = nil
+	}()
 
 	ctx := test.MockContext(t, "user27/repo49")
 	firstCommit, secondCommit := "51f84af23134", "aacbdfe9e1c4"
