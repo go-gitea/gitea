@@ -37,6 +37,21 @@ func allComplete(inFlight []*ArchiveRequest) bool {
 	return true
 }
 
+func waitForCount(t *testing.T, num int) {
+	var numQueued int
+
+	// Wait for 3 seconds to hit the queue.
+	timeout := time.Now().Add(3 * time.Second)
+	for {
+		numQueued = len(archiveInProgress)
+		if numQueued == num || time.Now().After(timeout) {
+			break
+		}
+	}
+
+	assert.Equal(t, num, len(archiveInProgress))
+}
+
 func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
 	var nowQueued, numQueued int
 
@@ -58,7 +73,7 @@ func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
 	assert.NotEqual(t, nowQueued, numQueued)
 
 	// Also make sure that we released only one.
-	assert.Equal(t, nowQueued, numQueued+1)
+	assert.Equal(t, nowQueued, numQueued-1)
 }
 
 func TestArchive_Basic(t *testing.T) {
@@ -106,16 +121,20 @@ func TestArchive_Basic(t *testing.T) {
 	inFlight[2] = secondReq
 
 	ArchiveRepository(zipReq)
-	assert.Equal(t, len(archiveInProgress), 1)
+	waitForCount(t, 1)
 	ArchiveRepository(tgzReq)
-	assert.Equal(t, len(archiveInProgress), 2)
+	waitForCount(t, 2)
 	ArchiveRepository(secondReq)
-	assert.Equal(t, len(archiveInProgress), 3)
+	waitForCount(t, 3)
 
 	// Make sure sending an unprocessed request through doesn't affect the queue
 	// count.
 	ArchiveRepository(zipReq)
-	assert.Equal(t, len(archiveInProgress), 3)
+
+	// Sleep two seconds to make sure the queue doesn't change.
+	two_seconds, _ := time.ParseDuration("2s")
+	time.Sleep(two_seconds)
+	assert.Equal(t, 3, len(archiveInProgress))
 
 	// Release them all, they'll then stall at the archiveQueueReleaseCond while
 	// we examine the queue state.
