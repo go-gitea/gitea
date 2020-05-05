@@ -476,7 +476,7 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 	return orgs, x.Where("id IN ("+
 		"SELECT `user`.id FROM `user` "+
 		"INNER JOIN `team_user` ON `team_user`.org_id = `user`.id "+
-		"INNER JOIN `team` on `team`.id = `team_user`.team_id "+
+		"INNER JOIN `team` ON `team`.id = `team_user`.team_id "+
 		"WHERE `team_user`.uid = ? AND "+
 		"(`team`.authorize = ? OR `team`.can_create_org_repo = ?) "+
 		"GROUP BY `user`.id)", userID, AccessModeOwner, true).
