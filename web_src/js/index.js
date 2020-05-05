@@ -65,7 +65,7 @@ function initEditPreviewTab($form) {
     previewFileModes = $previewTab.data('preview-file-modes').split(',');
     $previewTab.on('click', function () {
       const $this = $(this);
-      let context = `{$this.data('context')}/`;
+      let context = `${$this.data('context')}/`;
       const treePathEl = $form.find('input#tree_path');
       if (treePathEl.length > 0) {
         context += treePathEl.val();
@@ -3085,7 +3085,7 @@ function initFilterBranchTagDropdown(selector) {
           if (!this.showCreateNewBranch) {
             return;
           }
-          this.$refs.newBranchForm.trigger('submit');
+          $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
           const vm = this;
