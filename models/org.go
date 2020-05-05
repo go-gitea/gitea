@@ -471,14 +471,20 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 // GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
 // are allowed to create repos.
 func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
-	orgs := make([]*User, 0, 10)
+	orgIDs := make([]int64, 0, 10)
 
-	return orgs, x.Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
+	// because xorm do not return all cols, we have to collect IDs first and return user based on them afterwards
+	if err := x.Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
 		Where("`team_user`.uid=?", userID).
 		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})).
-		Desc("`user`.updated_unix").
-		Find(&orgs)
+		Desc("`user`.updated_unix").GroupBy("user.id").Table("user").Cols("user.id").
+		Find(&orgIDs); err != nil {
+		return nil, err
+	}
+
+	orgs := make([]*User, 0, len(orgIDs))
+	return orgs, x.In("id", orgIDs).Find(&orgs)
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.
