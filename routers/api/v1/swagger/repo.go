@@ -260,3 +260,10 @@ type swaggerTopicNames struct {
 	//in: body
 	Body api.TopicName `json:"body"`
 }
+
+// Compare
+// swagger:response Compare
+type swaggerCompare struct {
+	//in: body
+	Body api.Compare `json:"body"`
+}

@@ -782,6 +782,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("/trees/:sha", context.RepoRef(), repo.GetTree)
 					m.Get("/blobs/:sha", context.RepoRef(), repo.GetBlob)
 					m.Get("/tags/:sha", context.RepoRef(), repo.GetTag)
+					m.Get("/compare/*", context.ReferencesGitRepo(false), repo.GetCompare)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)

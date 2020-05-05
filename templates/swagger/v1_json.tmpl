@@ -2266,6 +2266,52 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/compare/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a comparison of the two versions via shaes / branches / tags",
+        "operationId": "repoGetCompare",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The version to compare, use '...' to split",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Compare"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/refs": {
       "get": {
         "produces": [
@@ -8459,6 +8505,40 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Compare": {
+      "type": "object",
+      "title": "Compare information.",
+      "properties": {
+        "base_commit_id": {
+          "type": "string",
+          "x-go-name": "BaseCommitID"
+        },
+        "commit_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CommitCount"
+        },
+        "commits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Commit"
+          },
+          "x-go-name": "Commits"
+        },
+        "diff": {
+          "$ref": "#/definitions/Diff"
+        },
+        "head_commit_id": {
+          "type": "string",
+          "x-go-name": "HeadCommitID"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ContentsResponse": {
       "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
       "type": "object",
@@ -9195,6 +9275,199 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Diff": {
+      "type": "object",
+      "title": "Diff represents a difference between two git trees.",
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiffFile"
+          },
+          "x-go-name": "Files"
+        },
+        "is_incomplete": {
+          "type": "boolean",
+          "x-go-name": "IsIncomplete"
+        },
+        "total_addition": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalAddition"
+        },
+        "total_deletion": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalDeletion"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "DiffFile": {
+      "type": "object",
+      "title": "DiffFile represents a file diff.",
+      "properties": {
+        "addition": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Addition"
+        },
+        "deletion": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deletion"
+        },
+        "index": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Index"
+        },
+        "is_bin": {
+          "type": "boolean",
+          "x-go-name": "IsBin"
+        },
+        "is_created": {
+          "type": "boolean",
+          "x-go-name": "IsCreated"
+        },
+        "is_deleted": {
+          "type": "boolean",
+          "x-go-name": "IsDeleted"
+        },
+        "is_incomplete": {
+          "type": "boolean",
+          "x-go-name": "IsIncomplete"
+        },
+        "is_lfs_file": {
+          "type": "boolean",
+          "x-go-name": "IsLFSFile"
+        },
+        "is_renamed": {
+          "type": "boolean",
+          "x-go-name": "IsRenamed"
+        },
+        "is_submoudule": {
+          "type": "boolean",
+          "x-go-name": "IsSubmodule"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "old_name": {
+          "type": "string",
+          "x-go-name": "OldName"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiffSection"
+          },
+          "x-go-name": "Sections"
+        },
+        "type": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "DiffLine": {
+      "type": "object",
+      "title": "DiffLine represents a line difference in a DiffSection.",
+      "properties": {
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Comment"
+          },
+          "x-go-name": "Comments"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "left_idx": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LeftIdx"
+        },
+        "right_idx": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RightIdx"
+        },
+        "section_info": {
+          "$ref": "#/definitions/DiffLineSectionInfo"
+        },
+        "type": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "DiffLineSectionInfo": {
+      "description": "DiffLineSectionInfo represents diff line section meta data",
+      "type": "object",
+      "properties": {
+        "last_left_idx": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LastLeftIdx"
+        },
+        "last_right_idx": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LastRightIdx"
+        },
+        "left_hunk_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LeftHunkSize"
+        },
+        "left_idx": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LeftIdx"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "right_hunk_size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RightHunkSize"
+        },
+        "right_idx": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RightIdx"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "DiffSection": {
+      "type": "object",
+      "title": "DiffSection represents a section of a DiffFile.",
+      "properties": {
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DiffLine"
+          },
+          "x-go-name": "Lines"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -11725,6 +11998,12 @@
           "format": "int64",
           "description": "Total commit count"
         }
+      }
+    },
+    "Compare": {
+      "description": "Compare",
+      "schema": {
+        "$ref": "#/definitions/Compare"
       }
     },
     "ContentsListResponse": {
