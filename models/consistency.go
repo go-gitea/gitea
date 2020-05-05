@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 // consistencyCheckable a type that can be tested for database consistency
@@ -166,4 +167,120 @@ func (team *Team) checkForConsistency(t *testing.T) {
 func (action *Action) checkForConsistency(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: action.RepoID}).(*Repository)
 	assert.Equal(t, repo.IsPrivate, action.IsPrivate, "action: %+v", action)
+}
+
+// CountCorruptLabels return count of labels witch are broken and not accessible via ui anymore
+func CountCorruptLabels() (int64, error) {
+	noref, err := x.Table("label").Where("repo_id=? AND org_id=?", 0, 0).Count("label.id")
+	if err != nil {
+		return 0, err
+	}
+	norepo, err := x.Table("label").
+		Join("LEFT", "repository", "label.repo_id=repository.id").
+		Where("repository.id is NULL AND label.repo_id > 0").
+		Count("id")
+	if err != nil {
+		return 0, err
+	}
+	noorg, err := x.Table("label").
+		Join("LEFT", "repository", "label.repo_id=user.id").
+		Where("user.id is NULL AND label.org_id > 0").
+		Count("id")
+	if err != nil {
+		return 0, err
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	return noref + norepo + noorg, nil
+}
+
+// DeleteCorruptLabels delete labels witch are broken and not accessible via ui anymore
+func DeleteCorruptLabels() error {
+	// delete labels with no reference
+	if _, err := x.Table("label").Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
+		return err
+	}
+
+	// delete labels with none existing repos
+	if _, err := x.In("id", builder.Select("label.id").
+		From("label").
+		Join("LEFT", "repository", "label.repo_id=repository.id").
+		Where(builder.IsNull{"repository.id"}).And(builder.Gt{"label.repo_id": 0})).
+		Delete(Label{}); err != nil {
+		return err
+	}
+
+	// delete labels with none existing orgs
+	if _, err := x.In("id", builder.Select("label.id").
+		From("label").
+		Join("LEFT", "user", "label.org_id=user.id").
+		Where(builder.IsNull{"user.id"}).And(builder.Gt{"label.org_id": 0})).
+		Delete(Label{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CountCorruptIssues count issues without a repo
+func CountCorruptIssues() (int64, error) {
+	return x.Table("issue").
+		Join("LEFT", "repository", "issue.repo_id=repository.id").
+		Where("repository.id is NULL").
+		Count("id")
+}
+
+// DeleteCorruptIssues delete issues without a repo
+func DeleteCorruptIssues() error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	var ids []int64
+	var err error
+
+	if err = sess.Table("issue").Select("issue.id").
+		Join("LEFT", "repository", "issue.repo_id=repository.id").
+		Where("repository.id is NULL").
+		Find(&ids); err != nil {
+		return err
+	}
+
+	deleteCond := builder.Select("id").From("issue").Where(builder.In("id", ids))
+	var attachmentPaths []string
+	if attachmentPaths, err = deleteIssuesByBuilder(sess, deleteCond); err != nil {
+		return err
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+
+	// Remove issue attachment files.
+	for i := range attachmentPaths {
+		removeAllWithNotice(x, "Delete issue attachment", attachmentPaths[i])
+	}
+	return nil
+}
+
+// CountCorruptObject count subjects with have no existing refobject anymore
+func CountCorruptObject(subject, refobject, joinCond string) (int64, error) {
+	return x.Table(subject).
+		Join("LEFT", refobject, joinCond).
+		Where(refobject + ".id is NULL").
+		Count("id")
+}
+
+// DeleteCorruptObject delete subjects with have no existing refobject anymore
+func DeleteCorruptObject(subject, refobject, joinCond string) error {
+	_, err := x.In("id", builder.Select(subject+".id").
+		From(subject).
+		Join("LEFT", refobject, joinCond).
+		Where(builder.IsNull{refobject + ".id"})).
+		Delete(subject)
+	return err
 }
