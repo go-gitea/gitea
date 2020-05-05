@@ -41,6 +41,12 @@ type ArchiveRequest struct {
 var archiveInProgress []*ArchiveRequest
 var archiveMutex sync.Mutex
 
+// These facilitate testing, by allowing the unit tests to control (to some extent)
+// the goroutine used for processing the queue.
+var archiveQueueMutex *sync.Mutex
+var archiveQueueStartCond *sync.Cond
+var archiveQueueReleaseCond *sync.Cond
+
 // GetArchivePath returns the path from which we can serve this archive.
 func (aReq *ArchiveRequest) GetArchivePath() string {
 	return aReq.archivePath
@@ -216,10 +222,25 @@ func ArchiveRepository(request *ArchiveRequest) {
 		archiveInProgress = append(archiveInProgress, request)
 		archiveMutex.Unlock()
 
+		// Wait to start, if we have the Cond for it.  This is currently only
+		// useful for testing, so that the start and release of queued entries
+		// can be controlled to examine the queue.
+		if archiveQueueStartCond != nil {
+			archiveQueueMutex.Lock()
+			archiveQueueStartCond.Wait()
+			archiveQueueMutex.Unlock()
+		}
+
 		// Drop the mutex while we process the request.  This may take a long
 		// time, and it's not necessary now that we've added the reequest to
 		// archiveInProgress.
 		doArchive(request)
+
+		if archiveQueueReleaseCond != nil {
+			archiveQueueMutex.Lock()
+			archiveQueueReleaseCond.Wait()
+			archiveQueueMutex.Unlock()
+		}
 
 		// Purge this request from the list.  To do so, we'll just take the
 		// index at which we ended up at and swap the final element into that
