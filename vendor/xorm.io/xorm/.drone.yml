@@ -3,8 +3,7 @@ kind: pipeline
 name: testing
 steps:
 - name: test-vet
-  pull: default
-  image: golang:1.12
+  image: golang:1.11
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
@@ -16,44 +15,77 @@ steps:
     - pull_request
 
 - name: test-sqlite
-  pull: default
   image: golang:1.12
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
   commands:
-  - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -coverprofile=coverage1-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -cache=true -coverprofile=coverage1-2.txt -covermode=atomic"
+  - make test-sqlite
+  - TEST_CACHE_ENABLE=true make test-sqlite
+  - TEST_QUOTE_POLICY=reserved make test-sqlite
+  - go test ./caches/... ./contexts/... ./convert/... ./core/... ./dialects/... \
+    ./log/... ./migrate/... ./names/... ./schemas/... ./tags/... \
+    ./internal/json/... ./internal/statements/... ./internal/utils/... \
+
   when:
     event:
     - push
     - pull_request
 
 - name: test-mysql
-  pull: default
   image: golang:1.12
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
+    TEST_MYSQL_HOST: mysql
+    TEST_MYSQL_CHARSET: utf8
+    TEST_MYSQL_DBNAME: xorm_test
+    TEST_MYSQL_USERNAME: root
+    TEST_MYSQL_PASSWORD:
   commands:
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -coverprofile=coverage2-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -cache=true -coverprofile=coverage2-2.txt -covermode=atomic"
+  - make test-mysql
+  - TEST_CACHE_ENABLE=true make test-mysql
+  - TEST_QUOTE_POLICY=reserved make test-mysql
+  when:
+    event:
+    - push
+    - pull_request
+
+- name: test-mysql8
+  image: golang:1.12
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
+    TEST_MYSQL_HOST: mysql8
+    TEST_MYSQL_CHARSET: utf8mb4
+    TEST_MYSQL_DBNAME: xorm_test
+    TEST_MYSQL_USERNAME: root
+    TEST_MYSQL_PASSWORD:
+  commands:
+  - make test-mysql
+  - TEST_CACHE_ENABLE=true make test-mysql
+  - TEST_QUOTE_POLICY=reserved make test-mysql
   when:
     event:
     - push
     - pull_request
 
 - name: test-mysql-utf8mb4
-  pull: default
   image: golang:1.12
   depends_on:
-    - test-mysql
+  - test-mysql
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
+    TEST_MYSQL_HOST: mysql
+    TEST_MYSQL_CHARSET: utf8mb4
+    TEST_MYSQL_DBNAME: xorm_test
+    TEST_MYSQL_USERNAME: root
+    TEST_MYSQL_PASSWORD:
   commands:
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -coverprofile=coverage2.1-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -cache=true -coverprofile=coverage2.1-2.txt -covermode=atomic"
+  - make test-mysql
+  - TEST_CACHE_ENABLE=true make test-mysql
+  - TEST_QUOTE_POLICY=reserved make test-mysql
   when:
     event:
     - push
@@ -67,9 +99,14 @@ steps:
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
+    TEST_MYSQL_HOST: mysql:3306
+    TEST_MYSQL_DBNAME: xorm_test
+    TEST_MYSQL_USERNAME: root
+    TEST_MYSQL_PASSWORD:
   commands:
-  - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -coverprofile=coverage3-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic"
+  - make test-mymysql
+  - TEST_CACHE_ENABLE=true make test-mymysql
+  - TEST_QUOTE_POLICY=reserved make test-mymysql
   when:
     event:
     - push
@@ -81,9 +118,14 @@ steps:
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
+    TEST_PGSQL_HOST: pgsql
+    TEST_PGSQL_DBNAME: xorm_test
+    TEST_PGSQL_USERNAME: postgres
+    TEST_PGSQL_PASSWORD: postgres
   commands:
-  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -coverprofile=coverage4-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -cache=true -coverprofile=coverage4-2.txt -covermode=atomic"
+  - make test-postgres
+  - TEST_CACHE_ENABLE=true make test-postgres
+  - TEST_QUOTE_POLICY=reserved make test-postgres
   when:
     event:
     - push
@@ -92,12 +134,20 @@ steps:
 - name: test-postgres-schema
   pull: default
   image: golang:1.12
+  depends_on:
+  - test-postgres
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
+    TEST_PGSQL_HOST: pgsql
+    TEST_PGSQL_SCHEMA: xorm
+    TEST_PGSQL_DBNAME: xorm_test
+    TEST_PGSQL_USERNAME: postgres
+    TEST_PGSQL_PASSWORD: postgres
   commands:
-  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic"
+  - make test-postgres
+  - TEST_CACHE_ENABLE=true make test-postgres
+  - TEST_QUOTE_POLICY=reserved make test-postgres
   when:
     event:
     - push
@@ -109,9 +159,14 @@ steps:
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
+    TEST_MSSQL_HOST: mssql
+    TEST_MSSQL_DBNAME: xorm_test
+    TEST_MSSQL_USERNAME: sa
+    TEST_MSSQL_PASSWORD: "yourStrong(!)Password"
   commands:
-  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -coverprofile=coverage6-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic"
+  - make test-mssql
+  - TEST_CACHE_ENABLE=true make test-mssql
+  - TEST_QUOTE_POLICY=reserved make test-mssql
   when:
     event:
     - push
@@ -123,9 +178,33 @@ steps:
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
+    TEST_TIDB_HOST: "tidb:4000"
+    TEST_TIDB_DBNAME: xorm_test
+    TEST_TIDB_USERNAME: root
+    TEST_TIDB_PASSWORD:
   commands:
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(tidb:4000)/xorm_test\" -ignore_select_update=true -coverprofile=coverage7-1.txt -covermode=atomic"
-  - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(tidb:4000)/xorm_test\" -ignore_select_update=true -cache=true -coverprofile=coverage7-2.txt -covermode=atomic"
+  - make test-tidb
+  - TEST_CACHE_ENABLE=true make test-tidb
+  - TEST_QUOTE_POLICY=reserved make test-tidb
+  when:
+    event:
+    - push
+    - pull_request
+
+- name: test-cockroach
+  pull: default
+  image: golang:1.13
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
+    TEST_COCKROACH_HOST: "cockroach:26257"
+    TEST_COCKROACH_DBNAME: xorm_test
+    TEST_COCKROACH_USERNAME: root
+    TEST_COCKROACH_PASSWORD:
+  commands:
+  - sleep 10
+  - make test-cockroach
+  - TEST_CACHE_ENABLE=true make test-cockroach
   when:
     event:
     - push
@@ -141,15 +220,15 @@ steps:
   - test-vet
   - test-sqlite
   - test-mysql
-  - test-mysql-utf8mb4
+  - test-mysql8
   - test-mymysql
   - test-postgres
   - test-postgres-schema
   - test-mssql
   - test-tidb
+  - test-cockroach
   commands:
-  - go get github.com/wadey/gocovmerge
-  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt coverage7-1.txt coverage7-2.txt > coverage.txt
+  - make coverage
   when:
     event:
     - push
@@ -169,12 +248,25 @@ services:
     - tag
     - pull_request
 
+- name: mysql8
+  pull: default
+  image: mysql:8.0
+  environment:
+    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+    MYSQL_DATABASE: xorm_test
+  when:
+    event:
+    - push
+    - tag
+    - pull_request
+
 - name: pgsql
   pull: default
   image: postgres:9.5
   environment:
     POSTGRES_DB: xorm_test
     POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
   when:
     event:
     - push
@@ -197,6 +289,17 @@ services:
 - name: tidb
   pull: default
   image: pingcap/tidb:v3.0.3
+  when:
+    event:
+    - push
+    - tag
+    - pull_request
+
+- name: cockroach
+  pull: default
+  image: cockroachdb/cockroach:v19.2.4
+  commands:
+  - /cockroach/cockroach start --insecure
   when:
     event:
     - push

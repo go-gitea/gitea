@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -233,6 +234,9 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 	if subject == "" {
 		subject = fallback
 	}
+
+	subject = emoji.ReplaceAliases(subject)
+
 	mailMeta["Subject"] = subject
 
 	var mailBody bytes.Buffer

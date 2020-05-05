@@ -30,36 +30,48 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) *api.Branch {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
-		return &api.Branch{
-			Name:                          b.Name,
-			Commit:                        ToCommit(repo, c),
-			Protected:                     false,
-			RequiredApprovals:             0,
-			EnableStatusCheck:             false,
-			StatusCheckContexts:           []string{},
-			UserCanPush:                   true,
-			UserCanMerge:                  true,
-			EffectiveBranchProtectionName: "",
+		var hasPerm bool
+		var err error
+		if user != nil {
+			hasPerm, err = models.HasAccessUnit(user, repo, models.UnitTypeCode, models.AccessModeWrite)
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
-	branchProtectionName := ""
-	if isRepoAdmin {
-		branchProtectionName = bp.BranchName
+
+		return &api.Branch{
+			Name:                b.Name,
+			Commit:              ToCommit(repo, c),
+			Protected:           false,
+			RequiredApprovals:   0,
+			EnableStatusCheck:   false,
+			StatusCheckContexts: []string{},
+			UserCanPush:         hasPerm,
+			UserCanMerge:        hasPerm,
+		}, nil
 	}
 
-	return &api.Branch{
-		Name:                          b.Name,
-		Commit:                        ToCommit(repo, c),
-		Protected:                     true,
-		RequiredApprovals:             bp.RequiredApprovals,
-		EnableStatusCheck:             bp.EnableStatusCheck,
-		StatusCheckContexts:           bp.StatusCheckContexts,
-		UserCanPush:                   bp.CanUserPush(user.ID),
-		UserCanMerge:                  bp.IsUserMergeWhitelisted(user.ID),
-		EffectiveBranchProtectionName: branchProtectionName,
+	branch := &api.Branch{
+		Name:                b.Name,
+		Commit:              ToCommit(repo, c),
+		Protected:           true,
+		RequiredApprovals:   bp.RequiredApprovals,
+		EnableStatusCheck:   bp.EnableStatusCheck,
+		StatusCheckContexts: bp.StatusCheckContexts,
 	}
+
+	if isRepoAdmin {
+		branch.EffectiveBranchProtectionName = bp.BranchName
+	}
+
+	if user != nil {
+		branch.UserCanPush = bp.CanUserPush(user.ID)
+		branch.UserCanMerge = bp.IsUserMergeWhitelisted(user.ID)
+	}
+
+	return branch, nil
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
@@ -106,8 +118,10 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 		ApprovalsWhitelistUsernames: approvalsWhitelistUsernames,
 		ApprovalsWhitelistTeams:     approvalsWhitelistTeams,
 		BlockOnRejectedReviews:      bp.BlockOnRejectedReviews,
+		BlockOnOutdatedBranch:       bp.BlockOnOutdatedBranch,
 		DismissStaleApprovals:       bp.DismissStaleApprovals,
 		RequireSignedCommits:        bp.RequireSignedCommits,
+		ProtectedFilePatterns:       bp.ProtectedFilePatterns,
 		Created:                     bp.CreatedUnix.AsTime(),
 		Updated:                     bp.UpdatedUnix.AsTime(),
 	}
@@ -373,7 +387,6 @@ func ToCommitUser(sig *git.Signature) *api.CommitUser {
 func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 	return &api.CommitMeta{
 		SHA: tag.Object.String(),
-		// TODO: Add the /commits API endpoint and use it here (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
 		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
 	}
 }
@@ -386,5 +399,17 @@ func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
 		RepoCount: topic.RepoCount,
 		Created:   topic.CreatedUnix.AsTime(),
 		Updated:   topic.UpdatedUnix.AsTime(),
+	}
+}
+
+// ToOAuth2Application convert from models.OAuth2Application to api.OAuth2Application
+func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
+	return &api.OAuth2Application{
+		ID:           app.ID,
+		Name:         app.Name,
+		ClientID:     app.ClientID,
+		ClientSecret: app.ClientSecret,
+		RedirectURIs: app.RedirectURIs,
+		Created:      app.CreatedUnix.AsTime(),
 	}
 }

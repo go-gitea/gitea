@@ -10,7 +10,7 @@ import (
 	"io"
 	"strings"
 
-	"gopkg.in/src-d/go-git.v4/plumbing"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // CommitFromReader will generate a Commit from a provided reader

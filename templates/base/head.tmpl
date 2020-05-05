@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
-	<title>{{if .Title}}{{.Title}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
+	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
 	<link rel="manifest" href="{{AppSubUrl}}/manifest.json" crossorigin="use-credentials">
 	{{if UseServiceWorker}}
 	<script>
@@ -86,8 +86,7 @@
 		window.config = {
 			AppSubUrl: '{{AppSubUrl}}',
 			StaticUrlPrefix: '{{StaticUrlPrefix}}',
-			Datetimepicker: {{if .RequireDatetimepicker}}true{{else}}false{{end}},
-			Dropzone: {{if .RequireDropzone}}true{{else}}false{{end}},
+			csrf: '{{.CsrfToken}}',
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
@@ -95,6 +94,19 @@
 			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
 			Heatmap: {{if .EnableHeatmap}}true{{else}}false{{end}},
 			heatmapUser: {{if .HeatmapUser}}'{{.HeatmapUser}}'{{else}}null{{end}},
+			NotificationSettings: {
+				MinTimeout: {{NotificationSettings.MinTimeout}},
+				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
+				MaxTimeout: {{NotificationSettings.MaxTimeout}},
+			},
+      {{if .RequireTribute}}
+			tributeValues: [
+				{{ range .Assignees }}
+				{key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
+				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'},
+				{{ end }}
+			],
+			{{end}}
 		};
 	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">
@@ -103,7 +115,6 @@
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css">
 	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/icons.woff2" type="font/woff2" crossorigin="anonymous">
 	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/outline-icons.woff2" type="font/woff2" crossorigin="anonymous">
-	<link rel="preload" as="image" href="{{StaticUrlPrefix}}/img/svg/icons.svg">
 {{if .RequireSimpleMDE}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.css">
 {{end}}
@@ -121,12 +132,6 @@
 	</noscript>
 {{if .RequireMinicolors}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
-{{end}}
-{{if .RequireDatetimepicker}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css">
-{{end}}
-{{if .RequireDropzone}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/dropzone/dropzone.css">
 {{end}}
 	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
@@ -156,7 +161,7 @@
 {{else}}
 	<meta property="og:title" content="{{AppName}}">
 	<meta property="og:type" content="website" />
-	<meta property="og:image" content="{{StaticUrlPrefix}}img/gitea-lg.png" />
+	<meta property="og:image" content="{{StaticUrlPrefix}}/img/gitea-lg.png" />
 	<meta property="og:url" content="{{AppUrl}}" />
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}

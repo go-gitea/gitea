@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/unknwon/com"
-	"xorm.io/core"
 	"xorm.io/xorm"
+	"xorm.io/xorm/convert"
 )
 
 // LoginType represents an login type.
@@ -60,11 +60,11 @@ var SecurityProtocolNames = map[ldap.SecurityProtocol]string{
 
 // Ensure structs implemented interface.
 var (
-	_ core.Conversion = &LDAPConfig{}
-	_ core.Conversion = &SMTPConfig{}
-	_ core.Conversion = &PAMConfig{}
-	_ core.Conversion = &OAuth2Config{}
-	_ core.Conversion = &SSPIConfig{}
+	_ convert.Conversion = &LDAPConfig{}
+	_ convert.Conversion = &SMTPConfig{}
+	_ convert.Conversion = &PAMConfig{}
+	_ convert.Conversion = &OAuth2Config{}
+	_ convert.Conversion = &SSPIConfig{}
 )
 
 // LDAPConfig holds configuration for LDAP login source.
@@ -165,10 +165,10 @@ func (cfg *SSPIConfig) ToDB() ([]byte, error) {
 type LoginSource struct {
 	ID            int64 `xorm:"pk autoincr"`
 	Type          LoginType
-	Name          string          `xorm:"UNIQUE"`
-	IsActived     bool            `xorm:"INDEX NOT NULL DEFAULT false"`
-	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
-	Cfg           core.Conversion `xorm:"TEXT"`
+	Name          string             `xorm:"UNIQUE"`
+	IsActived     bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsSyncEnabled bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	Cfg           convert.Conversion `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -475,13 +475,23 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*Use
 				return nil, err
 			}
 		}
-		if user != nil &&
-			!user.ProhibitLogin && len(source.LDAP().AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
-			// Change existing admin flag only if AdminFilter option is set
-			user.IsAdmin = sr.IsAdmin
-			err = UpdateUserCols(user, "is_admin")
-			if err != nil {
-				return nil, err
+		if user != nil && !user.ProhibitLogin {
+			cols := make([]string, 0)
+			if len(source.LDAP().AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
+				// Change existing admin flag only if AdminFilter option is set
+				user.IsAdmin = sr.IsAdmin
+				cols = append(cols, "is_admin")
+			}
+			if !user.IsAdmin && len(source.LDAP().RestrictedFilter) > 0 && user.IsRestricted != sr.IsRestricted {
+				// Change existing restricted flag only if RestrictedFilter option is set
+				user.IsRestricted = sr.IsRestricted
+				cols = append(cols, "is_restricted")
+			}
+			if len(cols) > 0 {
+				err = UpdateUserCols(user, cols...)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
@@ -504,15 +514,16 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*Use
 	}
 
 	user = &User{
-		LowerName:   strings.ToLower(sr.Username),
-		Name:        sr.Username,
-		FullName:    composeFullName(sr.Name, sr.Surname, sr.Username),
-		Email:       sr.Mail,
-		LoginType:   source.Type,
-		LoginSource: source.ID,
-		LoginName:   login,
-		IsActive:    true,
-		IsAdmin:     sr.IsAdmin,
+		LowerName:    strings.ToLower(sr.Username),
+		Name:         sr.Username,
+		FullName:     composeFullName(sr.Name, sr.Surname, sr.Username),
+		Email:        sr.Mail,
+		LoginType:    source.Type,
+		LoginSource:  source.ID,
+		LoginName:    login,
+		IsActive:     true,
+		IsAdmin:      sr.IsAdmin,
+		IsRestricted: sr.IsRestricted,
 	}
 
 	err := CreateUser(user)

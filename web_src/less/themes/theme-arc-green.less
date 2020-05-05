@@ -672,13 +672,13 @@ a.ui.basic.green.label:hover {
     color: #dbdbdb !important;
 }
 
-.ui.comments .comment .actions a {
-    color: #9e9e9e;
+.ui .comment .actions a {
+    color: #9e9e9e !important;
 }
 
-.ui.comments .comment .actions a.active,
-.ui.comments .comment .actions a:hover {
-    color: #fff;
+.ui .comment .actions a.active,
+.ui .comment .actions a:hover {
+    color: #fff !important;
 }
 
 .repository.view.issue .comment-list .comment .content .header:after {
@@ -698,8 +698,14 @@ a.ui.basic.green.label:hover {
 }
 
 .repository.view.issue .comment-list:not(.prevent-before-timeline):before,
-.repository.view.issue .comment-list .timeline-line:before {
+.repository.view.issue .comment-list .timeline:before {
     background-color: #3b4954;
+}
+
+.repository.view.issue .comment-list .timeline-item .badge {
+    background-color: #383c4a;
+    border-color: #3b4954;
+    color: #9e9e9e;
 }
 
 .repository .comment.form .content .form:after {
@@ -1345,12 +1351,12 @@ a.ui.labels .label:hover {
     }
 }
 
-.xdsoft_datetimepicker {
+body .xdsoft_datetimepicker {
     background: #2a2e39;
     border: 1px solid #4c505c;
     color: #9e9e9e;
 
-    .xdsoft_mounthpicker {
+    .xdsoft_monthpicker {
         height: 36px;
         background: #464c5d;
         margin: -2px -8px 2px;
@@ -1416,7 +1422,6 @@ a.ui.labels .label:hover {
             background: #a0cc75;
             color: #000000;
         }
-
     }
 }
 
@@ -1583,6 +1588,11 @@ a.ui.labels .label:hover {
 
 .markdown:not(code) blockquote {
     border-left-color: #888;
+}
+
+.markdown:not(code) code,
+.markdown:not(code) tt {
+    background-color: #2a2e3a;
 }
 
 footer .container .links > * {

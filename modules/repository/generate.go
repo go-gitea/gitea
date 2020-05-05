@@ -113,7 +113,8 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 	// Clone to temporary path and do the init commit.
 	templateRepoPath := templateRepo.RepoPath()
 	if err := git.Clone(templateRepoPath, tmpDir, git.CloneRepoOptions{
-		Depth: 1,
+		Depth:  1,
+		Branch: templateRepo.DefaultBranch,
 	}); err != nil {
 		return fmt.Errorf("git clone: %v", err)
 	}
@@ -180,7 +181,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 		return fmt.Errorf("git remote add: %v", err)
 	}
 
-	return initRepoCommit(tmpDir, repo, repo.Owner)
+	return initRepoCommit(tmpDir, repo, repo.Owner, templateRepo.DefaultBranch)
 }
 
 func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *models.Repository) (err error) {
@@ -204,7 +205,7 @@ func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *
 		return fmt.Errorf("getRepositoryByID: %v", err)
 	}
 
-	repo.DefaultBranch = "master"
+	repo.DefaultBranch = templateRepo.DefaultBranch
 	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}

@@ -163,6 +163,10 @@ type SearchRepoOptions struct {
 	TopicOnly bool
 	// include description in keyword search
 	IncludeDescription bool
+	// None -> include has milestones AND has no milestone
+	// True -> include just has milestones
+	// False -> include just has no milestone
+	HasMilestones util.OptionalBool
 }
 
 //SearchOrderBy is used to sort the result
@@ -190,12 +194,8 @@ const (
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
 
-// SearchRepository returns repositories based on search options,
-// it returns results in given range and number of total results.
-func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
+// SearchRepositoryCondition creates a query condition according search repository options
+func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	var cond = builder.NewCond()
 
 	if opts.Private {
@@ -299,6 +299,29 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 		cond = cond.And(accessibleRepositoryCondition(opts.Actor))
 	}
 
+	switch opts.HasMilestones {
+	case util.OptionalBoolTrue:
+		cond = cond.And(builder.Gt{"num_milestones": 0})
+	case util.OptionalBoolFalse:
+		cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+	}
+
+	return cond
+}
+
+// SearchRepository returns repositories based on search options,
+// it returns results in given range and number of total results.
+func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+	cond := SearchRepositoryCondition(opts)
+	return SearchRepositoryByCondition(opts, cond, true)
+}
+
+// SearchRepositoryByCondition search repositories by condition
+func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
@@ -319,16 +342,18 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	}
 
 	repos := make(RepositoryList, 0, opts.PageSize)
-	if err = sess.
-		Where(cond).
-		OrderBy(opts.OrderBy.String()).
-		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
-		Find(&repos); err != nil {
+	sess.Where(cond).OrderBy(opts.OrderBy.String())
+	if opts.PageSize > 0 {
+		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+	if err = sess.Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
-	if err = repos.loadAttributes(sess); err != nil {
-		return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
+	if loadAttributes {
+		if err = repos.loadAttributes(sess); err != nil {
+			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
+		}
 	}
 
 	return repos, count, nil
@@ -346,11 +371,12 @@ func accessibleRepositoryCondition(user *User) builder.Cond {
 		// 1. Be able to see all non-private repositories that either:
 		cond = cond.Or(builder.And(
 			builder.Eq{"`repository`.is_private": false},
-			builder.Or(
-				//   A. Aren't in organisations  __OR__
-				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
-				//   B. Isn't a private organisation. Limited is OK as long as we're logged in.
-				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.In("visibility", orgVisibilityLimit))))))
+			// 2. Aren't in an private organisation or limited organisation if we're not logged in
+			builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(
+				builder.And(
+					builder.Eq{"type": UserTypeOrganization},
+					builder.In("visibility", orgVisibilityLimit)),
+			))))
 	}
 
 	if user != nil {

@@ -18,7 +18,6 @@ import (
 )
 
 func renderAttachmentSettings(ctx *context.Context) {
-	ctx.Data["RequireDropzone"] = true
 	ctx.Data["IsAttachmentEnabled"] = setting.AttachmentEnabled
 	ctx.Data["AttachmentAllowedTypes"] = setting.AttachmentAllowedTypes
 	ctx.Data["AttachmentMaxSize"] = setting.AttachmentMaxSize

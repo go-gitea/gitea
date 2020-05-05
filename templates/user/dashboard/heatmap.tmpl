@@ -1,0 +1,8 @@
+<div id="user-heatmap" style="padding-right: 40px">
+	<activity-heatmap :locale="locale" :suburl="suburl" :user="heatmapUser">
+		<div slot="loading">
+			<div class="ui active centered inline indeterminate text loader" id="loading-heatmap">{{.i18n.Tr "user.heatmap.loading"}}</div>
+		</div>
+	</activity-heatmap>
+	<div class="ui divider"></div>
+</div>

@@ -134,6 +134,9 @@ func render1(w writer, n *Node) error {
 			}
 		}
 		return w.WriteByte('>')
+	case RawNode:
+		_, err := w.WriteString(n.Data)
+		return err
 	default:
 		return errors.New("html: unknown node type")
 	}

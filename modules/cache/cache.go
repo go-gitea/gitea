@@ -41,6 +41,34 @@ func NewContext() error {
 	return err
 }
 
+// GetString returns the key value from cache with callback when no key exists in cache
+func GetString(key string, getFunc func() (string, error)) (string, error) {
+	if conn == nil || setting.CacheService.TTL == 0 {
+		return getFunc()
+	}
+	if !conn.IsExist(key) {
+		var (
+			value string
+			err   error
+		)
+		if value, err = getFunc(); err != nil {
+			return value, err
+		}
+		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		if err != nil {
+			return "", err
+		}
+	}
+	value := conn.Get(key)
+	if v, ok := value.(string); ok {
+		return v, nil
+	}
+	if v, ok := value.(fmt.Stringer); ok {
+		return v.String(), nil
+	}
+	return fmt.Sprintf("%s", conn.Get(key)), nil
+}
+
 // GetInt returns key value from cache with callback when no key exists in cache
 func GetInt(key string, getFunc func() (int, error)) (int, error) {
 	if conn == nil || setting.CacheService.TTL == 0 {

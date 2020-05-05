@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
 	"gopkg.in/testfixtures.v2"
-	"xorm.io/core"
 	"xorm.io/xorm"
+	"xorm.io/xorm/names"
 )
 
 // NonexistentID an ID that will never exist
@@ -92,7 +92,7 @@ func CreateTestEngine(fixturesDir string) error {
 	if err != nil {
 		return err
 	}
-	x.SetMapper(core.GonicMapper{})
+	x.SetMapper(names.GonicMapper{})
 	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
 		return err
 	}

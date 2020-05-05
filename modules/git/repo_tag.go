@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/mcuadros/go-version"
-	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // TagPrefix tags prefix path on the repository

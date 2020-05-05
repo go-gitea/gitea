@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -59,11 +60,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	apiLabels := make([]*api.Label, len(issue.Labels))
-	for i := range issue.Labels {
-		apiLabels[i] = issue.Labels[i].APIFormat()
-	}
-	ctx.JSON(http.StatusOK, &apiLabels)
+	ctx.JSON(http.StatusOK, convert.ToLabelList(issue.Labels))
 }
 
 // AddIssueLabels add labels for an issue
@@ -118,11 +115,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		return
 	}
 
-	apiLabels := make([]*api.Label, len(labels))
-	for i := range labels {
-		apiLabels[i] = labels[i].APIFormat()
-	}
-	ctx.JSON(http.StatusOK, &apiLabels)
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
 }
 
 // DeleteIssueLabel delete a label for an issue
@@ -178,12 +171,12 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	label, err := models.GetLabelByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrLabelNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLabelInRepoByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetLabelByID", err)
 		}
 		return
 	}
@@ -248,11 +241,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		return
 	}
 
-	apiLabels := make([]*api.Label, len(labels))
-	for i := range labels {
-		apiLabels[i] = labels[i].APIFormat()
-	}
-	ctx.JSON(http.StatusOK, &apiLabels)
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
 }
 
 // ClearIssueLabels delete all the labels for an issue
@@ -319,9 +308,9 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return
 	}
 
-	labels, err = models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
+	labels, err = models.GetLabelsByIDs(form.Labels)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDs", err)
+		ctx.Error(http.StatusInternalServerError, "GetLabelsByIDs", err)
 		return
 	}
 

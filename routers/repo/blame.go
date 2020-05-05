@@ -230,7 +230,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 					}
 					avatar = fmt.Sprintf(`<a href="%s/%s"><img class="ui avatar image" src="%s" title="%s" alt=""/></a>`, setting.AppSubURL, url.PathEscape(commit.User.Name), commit.User.RelAvatarLink(), html.EscapeString(authorName))
 				} else {
-					avatar = fmt.Sprintf(`<img class="ui avatar image" src="%s" title="%s"/>`, html.EscapeString(base.AvatarLink(commit.Author.Email)), html.EscapeString(commit.Author.Name))
+					avatar = fmt.Sprintf(`<img class="ui avatar image" src="%s" title="%s"/>`, html.EscapeString(models.AvatarLink(commit.Author.Email)), html.EscapeString(commit.Author.Name))
 				}
 				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s"><div class="blame-data"><div class="blame-avatar">%s</div><div class="blame-message"><a href="%s/commit/%s" title="%[5]s">%[5]s</a></div><div class="blame-time">%s</div></div></div>`, attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage), commitSince))
 			} else {

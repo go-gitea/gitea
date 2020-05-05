@@ -8,9 +8,9 @@ import (
 	"path"
 
 	"github.com/emirpasic/gods/trees/binaryheap"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	cgobject "gopkg.in/src-d/go-git.v4/plumbing/object/commitgraph"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries

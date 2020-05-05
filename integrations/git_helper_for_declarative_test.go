@@ -115,10 +115,13 @@ func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	}
 }
 
-func doGitCloneFail(dstLocalPath string, u *url.URL) func(*testing.T) {
+func doGitCloneFail(u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.Error(t, git.Clone(u.String(), dstLocalPath, git.CloneRepoOptions{}))
-		assert.False(t, com.IsExist(filepath.Join(dstLocalPath, "README.md")))
+		tmpDir, err := ioutil.TempDir("", "doGitCloneFail")
+		assert.NoError(t, err)
+		defer os.RemoveAll(tmpDir)
+		assert.Error(t, git.Clone(u.String(), tmpDir, git.CloneRepoOptions{}))
+		assert.False(t, com.IsExist(filepath.Join(tmpDir, "README.md")))
 	}
 }
 

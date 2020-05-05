@@ -11,6 +11,7 @@ import (
 
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/builder"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -239,14 +240,14 @@ func TestUpdateMilestoneClosedNum(t *testing.T) {
 
 	issue.IsClosed = true
 	issue.ClosedUnix = timeutil.TimeStampNow()
-	_, err := x.Cols("is_closed", "closed_unix").Update(issue)
+	_, err := x.ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, updateMilestoneClosedNum(x, issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
 
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
-	_, err = x.Cols("is_closed", "closed_unix").Update(issue)
+	_, err = x.ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, updateMilestoneClosedNum(x, issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
@@ -370,7 +371,7 @@ func TestGetMilestonesStats(t *testing.T) {
 	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 
-	milestoneStats, err := GetMilestonesStats([]int64{repo1.ID, repo2.ID})
+	milestoneStats, err := GetMilestonesStats(builder.In("repo_id", []int64{repo1.ID, repo2.ID}))
 	assert.NoError(t, err)
 	assert.EqualValues(t, repo1.NumOpenMilestones+repo2.NumOpenMilestones, milestoneStats.OpenCount)
 	assert.EqualValues(t, repo1.NumClosedMilestones+repo2.NumClosedMilestones, milestoneStats.ClosedCount)

@@ -27,6 +27,42 @@ func TestNewAccessToken(t *testing.T) {
 	assert.Error(t, NewAccessToken(invalidToken))
 }
 
+func TestAccessTokenByNameExists(t *testing.T) {
+
+	name := "Token Gitea"
+
+	assert.NoError(t, PrepareTestDatabase())
+	token := &AccessToken{
+		UID:  3,
+		Name: name,
+	}
+
+	// Check to make sure it doesn't exists already
+	exist, err := AccessTokenByNameExists(token)
+	assert.NoError(t, err)
+	assert.False(t, exist)
+
+	// Save it to the database
+	assert.NoError(t, NewAccessToken(token))
+	AssertExistsAndLoadBean(t, token)
+
+	// This token must be found by name in the DB now
+	exist, err = AccessTokenByNameExists(token)
+	assert.NoError(t, err)
+	assert.True(t, exist)
+
+	user4Token := &AccessToken{
+		UID:  4,
+		Name: name,
+	}
+
+	// Name matches but different user ID, this shouldn't exists in the
+	// database
+	exist, err = AccessTokenByNameExists(user4Token)
+	assert.NoError(t, err)
+	assert.False(t, exist)
+}
+
 func TestGetAccessTokenBySHA(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	token, err := GetAccessTokenBySHA("d2c6c1ba3890b309189a8e618c72a162e4efbf36")

@@ -9,7 +9,8 @@ require (
 	github.com/lib/pq v1.0.0
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/stretchr/testify v1.4.0
+	github.com/syndtr/goleveldb v1.0.0
 	github.com/ziutek/mymysql v1.5.4
-	xorm.io/builder v0.3.6
-	xorm.io/core v0.7.2
+	google.golang.org/appengine v1.6.0 // indirect
+	xorm.io/builder v0.3.7
 )

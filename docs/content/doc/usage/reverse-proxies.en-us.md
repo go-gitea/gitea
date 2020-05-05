@@ -174,3 +174,59 @@ git.example.com {
 ```
 
 Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
+
+## Using IIS as a reverse proxy
+
+If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite as reverse proxy.
+
+1. Setup an empty website in IIS, named let's say, `Gitea Proxy`.
+2. Follow the first two steps in [Microsoft's Technical Community Guide to Setup IIS with URL Rewrite](https://techcommunity.microsoft.com/t5/iis-support-blog/setup-iis-with-url-rewrite-as-a-reverse-proxy-for-real-world/ba-p/846222#M343). That is:
+  - Install Application Request Routing (ARR for short) either by using the Microsoft Web Platform Installer 5.1 (WebPI) or downloading the extension from [IIS.net]( https://www.iis.net/downloads/microsoft/application-request-routing)
+  - Once the module is installed in IIS, you will see a new Icon in the IIS Administration Console called URL Rewrite.
+  - Open the IIS Manager Console and click on the `Gitea Proxy` Website from the tree view on the left. Select and double click the URL Rewrite Icon from the middle pane to load the URL Rewrite interface.
+  - Choose the `Add Rule` action from the right pane of the management console and select the `Reverse Proxy Rule` from the `Inbound and Outbound Rules` category.
+  - In the Inbound Rules section, set the server name to be the host that Gitea is running on with its port. e.g. if you are running Gitea on the localhost with port 3000, the following should work: `127.0.0.1:3000`
+  - Enable SSL Offloading 
+  - In the Outbound Rules, ensure `Rewrite the domain names of the links in HTTP response` is set and set the `From:` field as above and the `To:` to your external hostname, say: `git.example.com`
+  - Now edit the `web.config` for your website to match the following: (changing `127.0.0.1:3000` and `git.example.com` as appropriate)
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <system.webServer>
+        <rewrite>
+            <rules>
+                <rule name="ReverseProxyInboundRule1" stopProcessing="true">
+                    <match url="(.*)" />
+                    <action type="Rewrite" url="http://127.0.0.1:3000/{R:1}" />
+                    <serverVariables>
+                        <set name="HTTP_X_ORIGINAL_ACCEPT_ENCODING" value="HTTP_ACCEPT_ENCODING" />
+                        <set name="HTTP_ACCEPT_ENCODING" value="" />
+                    </serverVariables>
+                </rule>
+            </rules>
+            <outboundRules>
+                <rule name="ReverseProxyOutboundRule1" preCondition="ResponseIsHtml1">
+                    <!-- set the pattern correctly here - if you only want to accept http or https -->
+                    <!-- change the pattern and the action value as appropriate -->
+                    <match filterByTags="A, Form, Img" pattern="^http(s)?://127.0.0.1:3000/(.*)" />
+                    <action type="Rewrite" value="http{R:1}://git.example.com/{R:2}" />
+                </rule>
+                <rule name="RestoreAcceptEncoding" preCondition="NeedsRestoringAcceptEncoding">
+                    <match serverVariable="HTTP_ACCEPT_ENCODING" pattern="^(.*)" />
+                    <action type="Rewrite" value="{HTTP_X_ORIGINAL_ACCEPT_ENCODING}" />
+                </rule>
+                <preConditions>
+                    <preCondition name="ResponseIsHtml1">
+                        <add input="{RESPONSE_CONTENT_TYPE}" pattern="^text/html" />
+                    </preCondition>
+                    <preCondition name="NeedsRestoringAcceptEncoding">
+                        <add input="{HTTP_X_ORIGINAL_ACCEPT_ENCODING}" pattern=".+" />
+                    </preCondition>
+                </preConditions>
+            </outboundRules>
+        </rewrite>
+        <urlCompression doDynamicCompression="true" />
+    </system.webServer>
+</configuration>
+```

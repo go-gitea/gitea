@@ -189,7 +189,7 @@ func GetFeishuPayload(p api.Payloader, event models.HookEventType, meta string) 
 		return getFeishuPushPayload(p.(*api.PushPayload))
 	case models.HookEventPullRequest:
 		return getFeishuPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestApproved, models.HookEventPullRequestRejected, models.HookEventPullRequestComment:
+	case models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewRejected, models.HookEventPullRequestComment:
 		return getFeishuPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case models.HookEventRepository:
 		return getFeishuRepositoryPayload(p.(*api.RepositoryPayload))
