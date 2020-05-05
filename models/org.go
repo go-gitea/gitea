@@ -473,15 +473,13 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 
-	return orgs, x.Where("id IN ("+
-		"SELECT `user`.id FROM `user` "+
-		"INNER JOIN `team_user` ON `team_user`.org_id = `user`.id "+
-		"INNER JOIN `team` ON `team`.id = `team_user`.team_id "+
-		"WHERE `team_user`.uid = ? AND "+
-		"(`team`.authorize = ? OR `team`.can_create_org_repo = ?) "+
-		"GROUP BY `user`.id)", userID, AccessModeOwner, true).
-		Desc("`user`.updated_unix").
-		Find(&orgs)
+	return orgs, x.Where(builder.In("id", builder.Select("`user`.id").From("`user`").
+		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
+		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
+		Where(builder.Eq{"`team_user`.uid": userID}).
+		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})).
+		GroupBy("`user`.id"))).
+		Desc("`user`.updated_unix").Find(&orgs)
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.
