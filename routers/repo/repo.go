@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -478,10 +479,24 @@ func Download(ctx *context.Context) {
 	uri := ctx.Params("*")
 	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
+	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
 	if aReq.IsComplete() {
-		ctx.ServeFile(aReq.GetArchivePath(), ctx.Repo.Repository.Name+"-"+aReq.GetArchiveName())
+		ctx.ServeFile(aReq.GetArchivePath(), downloadName)
 	} else {
-		ctx.Error(404)
+		// We'll wait up to two seconds for the request to be satisfied, before we just return
+		// a 200 Accepted to indicate that we're processing.
+		archiver_service.ArchiveRepository(aReq)
+		timeout := time.Now().Add(2 * time.Second)
+		for {
+			if aReq.IsComplete() || time.Now().After(timeout) {
+				break
+			}
+		}
+		if aReq.IsComplete() {
+			ctx.ServeFile(aReq.GetArchivePath(), downloadName)
+		} else {
+			ctx.Error(202, "Request accepted, processing archive.")
+		}
 	}
 }
 
@@ -499,6 +514,18 @@ func InitiateDownload(ctx *context.Context) {
 	complete := aReq.IsComplete()
 	if !complete {
 		archiver_service.ArchiveRepository(aReq)
+		// As with the standard Download, we'll wait up to two seconds for the request
+		// to be completed.  The difference is that we'll never download the file from a POST
+		// request, only indicate the current status.  If we did manage to complete the request
+		// in this timeframe, the download will proceed with no further overhead.
+		timeout := time.Now().Add(2 * time.Second)
+		for {
+			if aReq.IsComplete() || time.Now().After(timeout) {
+				break
+			}
+		}
+
+		complete = aReq.IsComplete()
 	}
 
 	ctx.JSON(200, map[string]interface{}{
