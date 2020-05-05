@@ -535,6 +535,10 @@ function initCommentForm() {
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
             htmlEncode($(this).text())}</a>`);
           break;
+        case '#project_id':
+          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
+            htmlEncode($(this).text())}</a>`);
+          break;
         case '#assignee_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
                         `<img class="ui avatar image" src=${$(this).data('avatar')}>${
