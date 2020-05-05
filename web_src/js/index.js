@@ -746,9 +746,11 @@ function getArchive($target, url, statusUrl) {
 
         if (!xhr.responseJSON.complete && statusUrl !== null) {
           $target.closest('.dropdown').children('i').addClass('loading');
+          // Wait for only three quarters of a second initially, in case it's
+          // quickly archived.
           setTimeout(() => {
             initArchiveStatusChecker($target, url, statusUrl);
-          }, 2000);
+          }, 750);
         } else {
           // We don't need to continue checking.
           $target.closest('.dropdown').children('i').removeClass('loading');
