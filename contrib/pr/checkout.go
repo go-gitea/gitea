@@ -26,7 +26,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/go-git/go-git/v5"
@@ -105,7 +107,10 @@ func runPR() {
 	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up gitea\n")
-	routes.GlobalInitAfterSettings(graceful.GetManager().HammerContext())
+	managerCtx, cancel := context.WithCancel(context.Background())
+	graceful.InitManager(managerCtx)
+	defer cancel()
+	routers.GlobalInitAfterSettings(graceful.GetManager().HammerContext())
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)
 
