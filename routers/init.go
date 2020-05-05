@@ -81,9 +81,15 @@ func initDBEngine(ctx context.Context) (err error) {
 // GlobalInit is for global configuration reload-able.
 func GlobalInit(ctx context.Context) {
 	setting.NewContext()
+	GlobalInitAfterSettings(ctx)
+}
+
+// GlobalInitAfterSettings init everything after settings are set.
+func GlobalInitAfterSettings(ctx context.Context) {
 	if err := git.Init(ctx); err != nil {
 		log.Fatal("Git module init failed: %v", err)
 	}
+
 	setting.CheckLFSVersion()
 	log.Trace("AppPath: %s", setting.AppPath)
 	log.Trace("AppWorkPath: %s", setting.AppWorkPath)

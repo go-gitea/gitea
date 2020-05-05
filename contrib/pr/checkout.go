@@ -26,10 +26,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/go-git/go-git/v5"
@@ -81,18 +78,10 @@ func runPR() {
 	setting.RunUser = curUser.Username
 
 	log.Printf("[PR] Loading fixtures data ...\n")
-	setting.CheckLFSVersion()
-	//models.LoadConfigs()
-	/*
-		setting.Database.Type = "sqlite3"
-		setting.Database.Path = ":memory:"
-		setting.Database.Timeout = 500
-	*/
 	db := setting.Cfg.Section("database")
 	db.NewKey("DB_TYPE", "sqlite3")
 	db.NewKey("PATH", ":memory:")
 
-	routers.NewServices()
 	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
@@ -115,12 +104,8 @@ func runPR() {
 	os.RemoveAll(models.LocalCopyPath())
 	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
-	log.Printf("[PR] Setting up router\n")
-	//routers.GlobalInit()
-	external.RegisterParsers()
-	markup.Init()
-	m := routes.NewMacaron()
-	routes.RegisterRoutes(m)
+	log.Printf("[PR] Setting up gitea\n")
+	routes.GlobalInitAfterSettings(m)
 
 	log.Printf("[PR] Ready for testing !\n")
 	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")
