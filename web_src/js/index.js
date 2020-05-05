@@ -2025,7 +2025,7 @@ function initAdmin() {
 
     // Attach view detail modals
     $('.view-detail').on('click', function () {
-      $detailModal.find('.content p').text($(this).data('content'));
+      $detailModal.find('.content pre').text($(this).data('content'));
       $detailModal.modal('show');
       return false;
     });
