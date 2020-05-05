@@ -43,7 +43,9 @@ func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
 	numQueued = len(archiveInProgress)
 
 	// Release one, then wait up to 3 seconds for it to complete.
+	queueMutex.Lock()
 	archiveQueueReleaseCond.Signal()
+	queueMutex.Unlock()
 	timeout := time.Now().Add(3 * time.Second)
 	for {
 		nowQueued = len(archiveInProgress)
@@ -117,7 +119,9 @@ func TestArchive_Basic(t *testing.T) {
 
 	// Release them all, they'll then stall at the archiveQueueReleaseCond while
 	// we examine the queue state.
+	queueMutex.Lock()
 	archiveQueueStartCond.Broadcast()
+	queueMutex.Unlock()
 
 	// 8 second timeout for them all to complete.
 	timeout := time.Now().Add(8 * time.Second)
