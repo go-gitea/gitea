@@ -169,24 +169,18 @@ func TestArchive_Basic(t *testing.T) {
 	assert.Equal(t, len(archiveInProgress), 3)
 
 	zipReq2 := DeriveRequestFrom(ctx, firstCommit+".zip")
-	// After completion, zipReq should have dropped out of the queue.  Make sure
-	// we didn't get it handed back to us, but they should otherwise be
-	// equivalent requests.
+	// This zipReq should match what's sitting in the queue, as we haven't
+	// let it release yet.  From the consumer's point of view, this looks like
+	// a long-running archive task.
 	assert.Equal(t, zipReq, zipReq2)
-	assert.False(t, zipReq == zipReq2)
 
 	// We still have the other three stalled at completion, waiting to remove
 	// from archiveInProgress.  Try to submit this new one before its
 	// predecessor has cleared out of the queue.
 	ArchiveRepository(zipReq2)
 
-	// Make sure we didn't enqueue anything from this new one, and that the
-	// queue hasn't changed.
+	// Make sure the queue hasn't grown any.
 	assert.Equal(t, len(archiveInProgress), 3)
-
-	for _, req := range archiveInProgress {
-		assert.False(t, req == zipReq2)
-	}
 
 	// Make sure the queue drains properly
 	releaseOneEntry(t, inFlight)
@@ -195,6 +189,13 @@ func TestArchive_Basic(t *testing.T) {
 	assert.Equal(t, len(archiveInProgress), 1)
 	releaseOneEntry(t, inFlight)
 	assert.Equal(t, len(archiveInProgress), 0)
+
+	zipReq2 = DeriveRequestFrom(ctx, firstCommit+".zip")
+	// Now, we're guaranteed to have released the original zipReq from the queue.
+	// Ensure that we don't get handed back the released entry somehow, but they
+	// should remain functionally equivalent in all fields.
+	assert.Equal(t, zipReq, zipReq2)
+	assert.False(t, zipReq == zipReq2)
 
 	// Same commit, different compression formats should have different names.
 	// Ideally, the extension would match what we originally requested.
