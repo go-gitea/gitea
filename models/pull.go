@@ -638,13 +638,13 @@ func (pr *PullRequest) IsSameRepo() bool {
 }
 
 // GetPullRequestByHeadBranch returns a pr by head branch
-func GetPullRequestByHeadBranch(headBranch string, repo *Repository) (pr *PullRequest, err error) {
+func GetPullRequestByHeadBranch(headBranch string, headRepo *Repository) (pr *PullRequest, err error) {
 	pr = &PullRequest{}
-	exists, err := x.Where("head_branch = ? AND head_repo_id = ?", headBranch, repo.ID).Get(pr)
+	exists, err := x.Where("head_branch = ? AND head_repo_id = ?", headBranch, headRepo.ID).Get(pr)
 	if !exists {
 		return nil, ErrPullRequestNotExist{
 			HeadBranch: headBranch,
-			HeadRepoID: repo.ID,
+			HeadRepoID: headRepo.ID,
 		}
 	}
 	return
