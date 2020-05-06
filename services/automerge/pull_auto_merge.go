@@ -22,7 +22,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 	// First, get the branch associated with that commit sha
 	r, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
-		return err
+		return
 	}
 	defer r.Close()
 	commitID := git.MustIDFromString(sha)
@@ -33,7 +33,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 	}
 	branches, err := commit.GetBranchNames()
 	if err != nil {
-		return err
+		return
 	}
 
 	for _, branch := range branches {
@@ -46,7 +46,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 			if models.IsErrPullRequestNotExist(err) {
 				continue
 			}
-			return err
+			return
 		}
 		if pr.HasMerged {
 			log.Info("PR scheduled for auto merge is already merged [ID: %d", pr.ID)
@@ -56,7 +56,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		// Check if there is a scheduled pr in the db
 		exists, scheduledPRM, err := models.GetScheduledMergeRequestByPullID(pr.ID)
 		if err != nil {
-			return err
+			return
 		}
 		if !exists {
 			log.Info("No scheduled pull request merge exists for this pr [PRID: %d]", pr.ID)
@@ -87,7 +87,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		// Check if all checks succeeded
 		pass, err := pullservice.IsPullCommitStatusPass(pr)
 		if err != nil {
-			return err
+			return
 		}
 		if !pass {
 			log.Info("Scheduled auto merge pr has unsuccessful status checks [PRID: %d, Commit: %s]", pr.ID, sha)
@@ -97,7 +97,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		// Merge if all checks succeeded
 		doer, err := models.GetUserByID(scheduledPRM.UserID)
 		if err != nil {
-			return err
+			return
 		}
 
 		// FIXME: Is headGitRepo the right thing to use here? Maybe we should get the git repo based on scheduledPRM.RepoID?
@@ -112,15 +112,13 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		}
 		defer baseGitRepo.Close()
 
-		err = pullservice.Merge(pr, doer, baseGitRepo, scheduledPRM.MergeStyle, scheduledPRM.Message)
-		if err != nil {
-			return err
+		if err = pullservice.Merge(pr, doer, baseGitRepo, scheduledPRM.MergeStyle, scheduledPRM.Message); err != nil {
+			return
 		}
 
 		// Remove the schedule from the db
-		err = models.RemoveScheduledMergeRequest(scheduledPRM)
-		if err != nil {
-			return err
+		if err = models.RemoveScheduledMergeRequest(scheduledPRM); err != nil {
+			return
 		}
 	}
 	return nil
