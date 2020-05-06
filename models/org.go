@@ -477,8 +477,7 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
 		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
 		Where(builder.Eq{"`team_user`.uid": userID}).
-		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})).
-		GroupBy("`user`.id"))).
+		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
 		Desc("`user`.updated_unix").Find(&orgs)
 }
 
