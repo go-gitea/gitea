@@ -175,6 +175,7 @@ func CountCorruptLabels() (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	norepo, err := x.Table("label").
 		Join("LEFT", "repository", "label.repo_id=repository.id").
 		Where(builder.IsNull{"repository.id"}).And(builder.Gt{"label.repo_id": 0}).
@@ -182,13 +183,11 @@ func CountCorruptLabels() (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	noorg, err := x.Table("label").
 		Join("LEFT", "`user`", "label.org_id=`user`.id").
 		Where(builder.IsNull{"`user`.id"}).And(builder.Gt{"label.org_id": 0}).
 		Count("id")
-	if err != nil {
-		return 0, err
-	}
 	if err != nil {
 		return 0, err
 	}
