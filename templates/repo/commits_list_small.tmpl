@@ -4,7 +4,7 @@
 	{{ $tag := printf "%s-%d" $.HashTag $index }}
 	{{ $index = Add $index 1}}
 	<div class="timeline-item event small-line-spacing" id="{{$tag}}">
-		<span class="badge badge-nobg">{{svg "octicon-git-commit" 16}}</span>
+		<span class="badge badge-commit">{{svg "octicon-git-commit" 16}}</span>
 		{{if .User}}
 			<a class="ui avatar image" href="{{AppSubUrl}}/{{.User.Name}}"><img src="{{.User.RelAvatarLink}}" alt=""/></a>
 		{{else}}
