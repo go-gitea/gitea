@@ -1,3 +1,5 @@
+import 'whatwg-fetch';
+
 // compat: IE11
 if (!Element.prototype.matches) {
   Element.prototype.matches = Element.prototype.msMatchesSelector || Element.prototype.webkitMatchesSelector;

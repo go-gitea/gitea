@@ -58,7 +58,7 @@ func (s *linkifyParser) Parse(parent ast.Node, block text.Reader, pc parser.Cont
 
 	var m []int
 	var protocol []byte
-	var typ ast.AutoLinkType = ast.AutoLinkURL
+	var typ = ast.AutoLinkURL
 	if bytes.HasPrefix(line, protoHTTP) || bytes.HasPrefix(line, protoHTTPS) || bytes.HasPrefix(line, protoFTP) {
 		m = LinkRegex.FindSubmatchIndex(line)
 	}
