@@ -36,8 +36,8 @@ func allComplete(inFlight []*ArchiveRequest) bool {
 func waitForCount(t *testing.T, num int) {
 	var numQueued int
 
-	// Wait for 3 seconds to hit the queue.
-	timeout := time.Now().Add(3 * time.Second)
+	// Wait for up to 10 seconds for the queue to be impacted.
+	timeout := time.Now().Add(10 * time.Second)
 	for {
 		numQueued = len(archiveInProgress)
 		if numQueued == num || time.Now().After(timeout) {
@@ -53,11 +53,11 @@ func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
 
 	numQueued = len(archiveInProgress)
 
-	// Release one, then wait up to 3 seconds for it to complete.
+	// Release one, then wait up to 10 seconds for it to complete.
 	queueMutex.Lock()
 	archiveQueueReleaseCond.Signal()
 	queueMutex.Unlock()
-	timeout := time.Now().Add(3 * time.Second)
+	timeout := time.Now().Add(10 * time.Second)
 	for {
 		nowQueued = len(archiveInProgress)
 		if nowQueued != numQueued || time.Now().After(timeout) {
@@ -66,10 +66,10 @@ func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
 	}
 
 	// Make sure we didn't just timeout.
-	assert.NotEqual(t, nowQueued, numQueued)
+	assert.NotEqual(t, numQueued, nowQueued)
 
 	// Also make sure that we released only one.
-	assert.Equal(t, nowQueued, numQueued-1)
+	assert.Equal(t, numQueued-1, nowQueued)
 }
 
 func TestArchive_Basic(t *testing.T) {
@@ -146,8 +146,8 @@ func TestArchive_Basic(t *testing.T) {
 	archiveQueueStartCond.Broadcast()
 	queueMutex.Unlock()
 
-	// 8 second timeout for them all to complete.
-	timeout := time.Now().Add(8 * time.Second)
+	// 10 second timeout for them all to complete.
+	timeout := time.Now().Add(10 * time.Second)
 	for {
 		if allComplete(inFlight) || time.Now().After(timeout) {
 			break
@@ -177,15 +177,15 @@ func TestArchive_Basic(t *testing.T) {
 	ArchiveRepository(zipReq2)
 
 	// Make sure the queue hasn't grown any.
-	assert.Equal(t, len(archiveInProgress), 3)
+	assert.Equal(t, 3, len(archiveInProgress))
 
 	// Make sure the queue drains properly
 	releaseOneEntry(t, inFlight)
-	assert.Equal(t, len(archiveInProgress), 2)
+	assert.Equal(t, 2, len(archiveInProgress))
 	releaseOneEntry(t, inFlight)
-	assert.Equal(t, len(archiveInProgress), 1)
+	assert.Equal(t, 1, len(archiveInProgress))
 	releaseOneEntry(t, inFlight)
-	assert.Equal(t, len(archiveInProgress), 0)
+	assert.Equal(t, 0, len(archiveInProgress))
 
 	zipReq2 = DeriveRequestFrom(ctx, firstCommit+".zip")
 	// Now, we're guaranteed to have released the original zipReq from the queue.
