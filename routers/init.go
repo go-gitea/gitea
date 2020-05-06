@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -50,6 +51,7 @@ func checkRunMode() {
 // NewServices init new services
 func NewServices() {
 	setting.NewServices()
+	archiver.NewContext()
 	mailer.NewContext()
 	_ = cache.NewContext()
 	notification.NewContext()
