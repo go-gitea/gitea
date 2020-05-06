@@ -320,9 +320,6 @@ func PrepareCompareDiff(
 	compareInfo.Commits = models.ParseCommitsWithStatus(compareInfo.Commits, headRepo)
 	ctx.Data["Commits"] = compareInfo.Commits
 	ctx.Data["CommitCount"] = compareInfo.Commits.Len()
-	if ctx.Data["CommitCount"] == 0 {
-		ctx.Data["PageIsComparePull"] = false
-	}
 
 	if compareInfo.Commits.Len() == 1 {
 		c := compareInfo.Commits.Front().Value.(models.SignCommitWithStatuses)

@@ -99,7 +99,7 @@ func runDump(ctx *cli.Context) error {
 
 	zip.Verbose = ctx.Bool("verbose")
 
-	if ctx.IsSet("skip-repository") {
+	if ctx.IsSet("skip-repository") && ctx.Bool("skip-repository") {
 		log.Info("Skip dumping local repositories")
 	} else {
 		log.Info("Dumping local repositories...%s", setting.RepoRootPath)
