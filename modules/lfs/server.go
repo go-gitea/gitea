@@ -169,7 +169,7 @@ func getContentHandler(ctx *context.Context) {
 	toByte := meta.Size - 1
 	statusCode := 200
 	if rangeHdr := ctx.Req.Header.Get("Range"); rangeHdr != "" {
-		regex := regexp.MustCompile(`bytes=(\d+)\-(\d+).*`)
+		regex := regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
 		match := regex.FindStringSubmatch(rangeHdr)
 		if len(match) > 1 {
 			statusCode = 206
