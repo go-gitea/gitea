@@ -1882,53 +1882,54 @@ func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, orig
 	return err
 }
 
-func deleteIssuesByBuilder(sess Engine, issueIDBuilder *builder.Builder) (attachmentPaths []string, err error) {
+func deleteIssuesByRepoID(sess Engine, repoID int64) (attachmentPaths []string, err error) {
+	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"issue.repo_id": repoID})
 
 	// Delete comments and attachments
-	if _, err = sess.In("issue_id", issueIDBuilder).
+	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Comment{}); err != nil {
 		return
 	}
 
 	// Dependencies for issues in this repository
-	if _, err = sess.In("issue_id", issueIDBuilder).
+	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueDependency{}); err != nil {
 		return
 	}
 
 	// Delete dependencies for issues in other repositories
-	if _, err = sess.In("dependency_id", issueIDBuilder).
+	if _, err = sess.In("dependency_id", deleteCond).
 		Delete(&IssueDependency{}); err != nil {
 		return
 	}
 
-	if _, err = sess.In("issue_id", issueIDBuilder).
+	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueUser{}); err != nil {
 		return
 	}
 
-	if _, err = sess.In("issue_id", issueIDBuilder).
+	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Reaction{}); err != nil {
 		return
 	}
 
-	if _, err = sess.In("issue_id", issueIDBuilder).
+	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&IssueWatch{}); err != nil {
 		return
 	}
 
-	if _, err = sess.In("issue_id", issueIDBuilder).
+	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Stopwatch{}); err != nil {
 		return
 	}
 
-	if _, err = sess.In("issue_id", issueIDBuilder).
+	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&TrackedTime{}); err != nil {
 		return
 	}
 
 	var attachments []*Attachment
-	if err = sess.In("issue_id", issueIDBuilder).
+	if err = sess.In("issue_id", deleteCond).
 		Find(&attachments); err != nil {
 		return
 	}
@@ -1936,8 +1937,12 @@ func deleteIssuesByBuilder(sess Engine, issueIDBuilder *builder.Builder) (attach
 		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
 	}
 
-	if _, err = sess.In("issue_id", issueIDBuilder).
+	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&Attachment{}); err != nil {
+		return
+	}
+
+	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
 		return
 	}
 

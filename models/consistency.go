@@ -177,14 +177,14 @@ func CountCorruptLabels() (int64, error) {
 	}
 	norepo, err := x.Table("label").
 		Join("LEFT", "repository", "label.repo_id=repository.id").
-		Where("repository.id is NULL AND label.repo_id > 0").
+		Where(builder.IsNull{"repository.id"}).And(builder.Gt{"label.repo_id": 0}).
 		Count("id")
 	if err != nil {
 		return 0, err
 	}
 	noorg, err := x.Table("label").
-		Join("LEFT", "repository", "label.repo_id=user.id").
-		Where("user.id is NULL AND label.org_id > 0").
+		Join("LEFT", "`user`", "label.org_id=`user`.id").
+		Where(builder.IsNull{"`user`.id"}).And(builder.Gt{"label.org_id": 0}).
 		Count("id")
 	if err != nil {
 		return 0, err
@@ -204,8 +204,7 @@ func DeleteCorruptLabels() error {
 	}
 
 	// delete labels with none existing repos
-	if _, err := x.In("id", builder.Select("label.id").
-		From("label").
+	if _, err := x.In("id", builder.Select("label.id").From("label").
 		Join("LEFT", "repository", "label.repo_id=repository.id").
 		Where(builder.IsNull{"repository.id"}).And(builder.Gt{"label.repo_id": 0})).
 		Delete(Label{}); err != nil {
@@ -213,10 +212,9 @@ func DeleteCorruptLabels() error {
 	}
 
 	// delete labels with none existing orgs
-	if _, err := x.In("id", builder.Select("label.id").
-		From("label").
-		Join("LEFT", "user", "label.org_id=user.id").
-		Where(builder.IsNull{"user.id"}).And(builder.Gt{"label.org_id": 0})).
+	if _, err := x.In("id", builder.Select("label.id").From("label").
+		Join("LEFT", "`user`", "label.org_id=`user`.id").
+		Where(builder.IsNull{"`user`.id"}).And(builder.Gt{"label.org_id": 0})).
 		Delete(Label{}); err != nil {
 		return err
 	}
@@ -228,7 +226,7 @@ func DeleteCorruptLabels() error {
 func CountCorruptIssues() (int64, error) {
 	return x.Table("issue").
 		Join("LEFT", "repository", "issue.repo_id=repository.id").
-		Where("repository.id is NULL").
+		Where(builder.IsNull{"repository.id"}).
 		Count("id")
 }
 
@@ -241,26 +239,24 @@ func DeleteCorruptIssues() error {
 	}
 
 	var ids []int64
-	var err error
 
-	if err = sess.Table("issue").Select("issue.id").
+	if err := sess.Table("issue").Select("issue.repo_id").
 		Join("LEFT", "repository", "issue.repo_id=repository.id").
-		Where("repository.id is NULL").
+		Where("repository.id is NULL").GroupBy("issue.repo_id").
 		Find(&ids); err != nil {
 		return err
 	}
 
-	deleteCond := builder.Select("id").From("issue").Where(builder.In("id", ids))
 	var attachmentPaths []string
-	if attachmentPaths, err = deleteIssuesByBuilder(sess, deleteCond); err != nil {
-		return err
+	for i := range ids {
+		paths, err := deleteIssuesByRepoID(sess, ids[i])
+		if err != nil {
+			return err
+		}
+		attachmentPaths = append(attachmentPaths, paths...)
 	}
 
-	if _, err = sess.In("id", ids).Delete(&Issue{}); err != nil {
-		return err
-	}
-
-	if err = sess.Commit(); err != nil {
+	if err := sess.Commit(); err != nil {
 		return err
 	}
 

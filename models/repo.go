@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
-	"xorm.io/builder"
 )
 
 var (
@@ -1576,13 +1575,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Delete Issues and related objects
-	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
 	var attachmentPaths []string
-	if attachmentPaths, err = deleteIssuesByBuilder(sess, deleteCond); err != nil {
-		return err
-	}
-
-	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
 		return err
 	}
 

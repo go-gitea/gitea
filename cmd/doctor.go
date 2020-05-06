@@ -515,9 +515,9 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 			if err = models.DeleteCorruptLabels(); err != nil {
 				return nil, err
 			}
-			results = append(results, fmt.Sprintf("%d issues without existing repository deleted", count))
+			results = append(results, fmt.Sprintf("%d labels without existing repository/organisation deleted", count))
 		} else {
-			results = append(results, fmt.Sprintf("%d issues without existing repository", count))
+			results = append(results, fmt.Sprintf("%d labels without existing repository/organisation", count))
 		}
 	}
 
