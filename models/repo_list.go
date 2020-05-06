@@ -159,6 +159,10 @@ type SearchRepoOptions struct {
 	// True -> include just mirrors
 	// False -> include just non-mirrors
 	Mirror util.OptionalBool
+	// None -> include archived AND non-archived
+	// True -> include just archived
+	// False -> include just non-archived
+	Archived util.OptionalBool
 	// only search topic name
 	TopicOnly bool
 	// include description in keyword search
@@ -297,6 +301,10 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 	if opts.Actor != nil && opts.Actor.IsRestricted {
 		cond = cond.And(accessibleRepositoryCondition(opts.Actor))
+	}
+
+	if opts.Archived != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_archived": opts.Archived == util.OptionalBoolTrue})
 	}
 
 	switch opts.HasMilestones {

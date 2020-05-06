@@ -82,6 +82,9 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: include template repositories this user has access to (defaults to true)
 	//   type: boolean
+	// - name: archived
+	//   in: query
+	//   description: show only archived, non-archived or all repositories (defaults to all)
 	// - name: mode
 	//   in: query
 	//   description: type of repository to search for. Supported values are
@@ -154,6 +157,10 @@ func Search(ctx *context.APIContext) {
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
 		return
+	}
+
+	if ctx.Query("archived") != "" {
+		opts.Archived = util.OptionalBoolOf(ctx.QueryBool("archived"))
 	}
 
 	var sortMode = ctx.Query("sort")
