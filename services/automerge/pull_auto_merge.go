@@ -46,7 +46,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 			if models.IsErrPullRequestNotExist(err) {
 				continue
 			}
-			return
+			return err
 		}
 		if pr.HasMerged {
 			log.Info("PR scheduled for auto merge is already merged [ID: %d", pr.ID)
@@ -56,7 +56,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		// Check if there is a scheduled pr in the db
 		exists, scheduledPRM, err := models.GetScheduledMergeRequestByPullID(pr.ID)
 		if err != nil {
-			return
+			return err
 		}
 		if !exists {
 			log.Info("No scheduled pull request merge exists for this pr [PRID: %d]", pr.ID)
@@ -87,7 +87,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		// Check if all checks succeeded
 		pass, err := pullservice.IsPullCommitStatusPass(pr)
 		if err != nil {
-			return
+			return err
 		}
 		if !pass {
 			log.Info("Scheduled auto merge pr has unsuccessful status checks [PRID: %d, Commit: %s]", pr.ID, sha)
@@ -97,28 +97,28 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		// Merge if all checks succeeded
 		doer, err := models.GetUserByID(scheduledPRM.UserID)
 		if err != nil {
-			return
+			return err
 		}
 
 		// FIXME: Is headGitRepo the right thing to use here? Maybe we should get the git repo based on scheduledPRM.RepoID?
 
 		if err = pr.LoadBaseRepo(); err != nil {
-			return
+			return err
 		}
 
 		baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 		if err != nil {
-			return
+			return err
 		}
 		defer baseGitRepo.Close()
 
 		if err = pullservice.Merge(pr, doer, baseGitRepo, scheduledPRM.MergeStyle, scheduledPRM.Message); err != nil {
-			return
+			return err
 		}
 
 		// Remove the schedule from the db
 		if err = models.RemoveScheduledMergeRequest(scheduledPRM); err != nil {
-			return
+			return err
 		}
 	}
 	return nil
