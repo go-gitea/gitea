@@ -77,7 +77,7 @@ func getRefURL(refURL, urlPrefix, repoFullName string) string {
 			}
 
 			if urlPrefixHostname == refHostname {
-				return urlPrefix + path.Clean(pth)
+				return urlPrefix + path.Clean(path.Join("/", pth))
 			}
 			return "http://" + refHostname + pth
 		}
