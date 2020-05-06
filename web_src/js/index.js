@@ -2019,7 +2019,7 @@ function initAdmin() {
 
     // Attach view detail modals
     $('.view-detail').on('click', function () {
-      $detailModal.find('.content p').text($(this).data('content'));
+      $detailModal.find('.content pre').text($(this).data('content'));
       $detailModal.modal('show');
       return false;
     });
@@ -3085,7 +3085,7 @@ function initFilterBranchTagDropdown(selector) {
           if (!this.showCreateNewBranch) {
             return;
           }
-          this.$refs.newBranchForm.trigger('submit');
+          $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
           const vm = this;

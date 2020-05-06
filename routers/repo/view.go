@@ -621,6 +621,17 @@ func renderLanguageStats(ctx *context.Context) {
 	ctx.Data["LanguageStats"] = langs
 }
 
+func renderRepoTopics(ctx *context.Context) {
+	topics, err := models.FindTopics(&models.FindTopicOptions{
+		RepoID: ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("models.FindTopics", err)
+		return
+	}
+	ctx.Data["Topics"] = topics
+}
+
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
@@ -645,14 +656,10 @@ func renderCode(ctx *context.Context) {
 	}
 
 	// Get Topics of this repo
-	topics, err := models.FindTopics(&models.FindTopicOptions{
-		RepoID: ctx.Repo.Repository.ID,
-	})
-	if err != nil {
-		ctx.ServerError("models.FindTopics", err)
+	renderRepoTopics(ctx)
+	if ctx.Written() {
 		return
 	}
-	ctx.Data["Topics"] = topics
 
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
