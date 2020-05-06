@@ -111,37 +111,43 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 				continue
 			}
 
-			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
-			if err = models.CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
-				return err
+			shouldChangeStatus := false
+			// Process closing/reopening keywords
+			switch ref.Action {
+			case references.XRefActionCloses:
+				shouldChangeStatus = !refIssue.IsClosed
+			case references.XRefActionReopens:
+				shouldChangeStatus = refIssue.IsClosed
 			}
 
-			// Only issues can be closed/reopened this way, and user needs the correct permissions
+			// However, only issues can be closed/reopened this way, and user needs the correct permissions
 			if refIssue.IsPull || !canclose {
-				continue
-			}
-
-			// Only process closing/reopening keywords
-			if ref.Action != references.XRefActionCloses && ref.Action != references.XRefActionReopens {
-				continue
+				shouldChangeStatus = false
 			}
 
 			if !repo.CloseIssuesViaCommitInAnyBranch {
 				// If the issue was specified to be in a particular branch, don't allow commits in other branches to close it
 				if refIssue.Ref != "" {
 					if branchName != refIssue.Ref {
-						continue
+						shouldChangeStatus = false
 					}
 					// Otherwise, only process commits to the default branch
 				} else if branchName != repo.DefaultBranch {
-					continue
+					shouldChangeStatus = false
 				}
 			}
-			close := (ref.Action == references.XRefActionCloses)
-			if close != refIssue.IsClosed {
+
+			if shouldChangeStatus {
+				close := (ref.Action == references.XRefActionCloses)
 				if err := changeIssueStatus(refRepo, refIssue, doer, close); err != nil {
 					return err
 				}
+			}
+
+			// Finally send the comment
+			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
+			if err = models.CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
+				return err
 			}
 		}
 	}
