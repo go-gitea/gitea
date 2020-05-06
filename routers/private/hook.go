@@ -206,6 +206,14 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 		refFullName := opts.RefFullNames[i]
 
 		branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
+		if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {
+			log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"err": fmt.Sprintf("branch %s is the default branch and cannot be deleted", branchName),
+			})
+			return
+		}
+
 		protectBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
 		if err != nil {
 			log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
