@@ -480,23 +480,19 @@ func Download(ctx *context.Context) {
 	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
 	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+	if !aReq.IsComplete() {
+		aReq = archiver_service.ArchiveRepository(aReq)
+		archiver_service.LockQueue()
+		for !aReq.IsComplete() {
+			archiver_service.WaitForCompletion()
+		}
+		archiver_service.UnlockQueue()
+	}
+
 	if aReq.IsComplete() {
 		ctx.ServeFile(aReq.GetArchivePath(), downloadName)
 	} else {
-		// We'll wait up to two seconds for the request to be satisfied, before we just return
-		// a 200 Accepted to indicate that we're processing.
-		archiver_service.ArchiveRepository(aReq)
-		timeout := time.Now().Add(2 * time.Second)
-		for {
-			if aReq.IsComplete() || time.Now().After(timeout) {
-				break
-			}
-		}
-		if aReq.IsComplete() {
-			ctx.ServeFile(aReq.GetArchivePath(), downloadName)
-		} else {
-			ctx.Error(202, "Request accepted, processing archive.")
-		}
+		ctx.Error(404)
 	}
 }
 
@@ -513,7 +509,7 @@ func InitiateDownload(ctx *context.Context) {
 
 	complete := aReq.IsComplete()
 	if !complete {
-		archiver_service.ArchiveRepository(aReq)
+		aReq = archiver_service.ArchiveRepository(aReq)
 		// As with the standard Download, we'll wait up to two seconds for the request
 		// to be completed.  The difference is that we'll never download the file from a POST
 		// request, only indicate the current status.  If we did manage to complete the request
