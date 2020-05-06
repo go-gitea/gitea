@@ -1582,6 +1582,10 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+		return err
+	}
+
 	if _, err = sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
 		return err
 	}

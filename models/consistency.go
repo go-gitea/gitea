@@ -256,6 +256,10 @@ func DeleteCorruptIssues() error {
 		return err
 	}
 
+	if _, err = sess.In("id", ids).Delete(&Issue{}); err != nil {
+		return err
+	}
+
 	if err = sess.Commit(); err != nil {
 		return err
 	}

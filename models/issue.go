@@ -1882,33 +1882,6 @@ func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, orig
 	return err
 }
 
-// DeleteIssuesByIDs and Objects who depend on them
-func DeleteIssuesByIDs(ids []int64) (err error) {
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	deleteCond := builder.Select("id").From("issue").Where(builder.In("id", ids))
-	var attachmentPaths []string
-	if attachmentPaths, err = deleteIssuesByBuilder(sess, deleteCond); err != nil {
-		return err
-	}
-
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
-	// Remove issue attachment files.
-	for i := range attachmentPaths {
-		removeAllWithNotice(x, "Delete issue attachment", attachmentPaths[i])
-	}
-
-	return nil
-}
-
 func deleteIssuesByBuilder(sess Engine, issueIDBuilder *builder.Builder) (attachmentPaths []string, err error) {
 
 	// Delete comments and attachments
@@ -1965,10 +1938,6 @@ func deleteIssuesByBuilder(sess Engine, issueIDBuilder *builder.Builder) (attach
 
 	if _, err = sess.In("issue_id", issueIDBuilder).
 		Delete(&Attachment{}); err != nil {
-		return
-	}
-
-	if _, err = sess.In("id", issueIDBuilder).Delete(&Issue{}); err != nil {
 		return
 	}
 
