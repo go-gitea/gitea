@@ -2186,27 +2186,29 @@ function initCodeView() {
   $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
 }
 
-function initU2FAuth() {
+async function initU2FAuth() {
   if ($('#wait-for-key').length === 0) {
     return;
   }
-  u2fApi.ensureSupport()
-    .then(() => {
-      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).success((req) => {
-        u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
-          .then(u2fSigned)
-          .catch((err) => {
-            if (err === undefined) {
-              u2fError(1);
-              return;
-            }
-            u2fError(err.metaData.code);
-          });
-      });
-    }).catch(() => {
-      // Fallback in case browser do not support U2F
-      window.location.href = `${AppSubUrl}/user/two_factor`;
-    });
+  try {
+    await u2fApi.ensureSupport();
+  } catch (e) {
+    // Fallback in case browser do not support U2F
+    window.location.href = `${AppSubUrl}/user/two_factor`;
+  }
+  try {
+    const response = await fetch(`${AppSubUrl}/user/u2f/challenge`);
+    if (!response.ok) throw new Error('cannot retrieve challenge');
+    const {appId, challenge, registeredKeys} = await response.json();
+    const signature = await u2fApi.sign(appId, challenge, registeredKeys, 30);
+    u2fSigned(signature);
+  } catch (e) {
+    if (e === undefined || e.metaData === undefined) {
+      u2fError(1);
+      return;
+    }
+    u2fError(e.metaData.code);
+  }
 }
 function u2fSigned(resp) {
   $.ajax({
@@ -2284,30 +2286,36 @@ function initU2FRegister() {
   });
 }
 
-function u2fRegisterRequest() {
-  $.post(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
-    _csrf: csrf,
-    name: $('#nickname').val()
-  }).success((req) => {
-    $('#nickname').closest('div.field').removeClass('error');
-    $('#register-device').modal('show');
-    if (req.registeredKeys === null) {
-      req.registeredKeys = [];
-    }
-    u2fApi.register(req.appId, req.registerRequests, req.registeredKeys, 30)
-      .then(u2fRegistered)
-      .catch((reason) => {
-        if (reason === undefined) {
-          u2fError(1);
-          return;
-        }
-        u2fError(reason.metaData.code);
-      });
-  }).fail((xhr) => {
-    if (xhr.status === 409) {
-      $('#nickname').closest('div.field').addClass('error');
-    }
+async function u2fRegisterRequest() {
+  const body = new FormData();
+  body.append('_csrf', csrf);
+  body.append('name', $('#nickname').val());
+  const response = await fetch(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
+    method: 'POST',
+    body,
   });
+  if (!response.ok) {
+    if (response.status === 409) {
+      $('#nickname').closest('div.field').addClass('error');
+      return;
+    }
+    throw new Error('request register failed');
+  }
+  let {appId, registerRequests, registeredKeys} = await response.json();
+  $('#nickname').closest('div.field').removeClass('error');
+  $('#register-device').modal('show');
+  if (registeredKeys === null) {
+    registeredKeys = [];
+  }
+  u2fApi.register(appId, registerRequests, registeredKeys, 30)
+    .then(u2fRegistered)
+    .catch((reason) => {
+      if (reason === undefined) {
+        u2fError(1);
+        return;
+      }
+      u2fError(reason.metaData.code);
+    });
 }
 
 function initWipTitle() {
