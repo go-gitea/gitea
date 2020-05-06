@@ -60,7 +60,7 @@ func DeleteBranchPost(ctx *context.Context) {
 	branchName := ctx.Query("name")
 
 	if branchName == ctx.Repo.Repository.DefaultBranch {
-		ctx.Flash.Error(ctx.Tr("repo.branch.dfault_deletion_failed", branchName))
+		ctx.Flash.Error(ctx.Tr("repo.branch.default_deletion_failed", branchName))
 		return
 	}
 
