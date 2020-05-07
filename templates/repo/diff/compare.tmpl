@@ -28,9 +28,14 @@
 						{{range .Branches}}
 							<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{$.BaseName}}:{{.}}</div>
 						{{end}}
-						{{if .Repository.IsFork}}
-							{{range .BaseRepoBranches}}
-							<div class="item" data-url="{{$.PullRequestCtx.BaseRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}:{{EscapePound $.HeadBranch}}">{{$.PullRequestCtx.BaseRepo.OwnerName}}:{{.}}</div>
+						{{if .OwnForkedRepo}}
+							{{range .ForkedRepoBranches}}
+								<div class="item" data-url="{{$.OwnForkedRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}:{{EscapePound $.HeadBranch}}">{{$.OwnForkedRepo.OwnerName}}:{{.}}</div>
+							{{end}}
+						{{end}}
+						{{if .ForkedRepo}}
+							{{range .ForkedRepoBranches}}
+								<div class="item" data-url="{{$.ForkedRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}:{{EscapePound $.HeadBranch}}">{{$.ForkedRepo.OwnerName}}:{{.}}</div>
 							{{end}}
 						{{end}}
 					</div>
@@ -50,6 +55,16 @@
 					<div class="scrolling menu">
 						{{range .HeadBranches}}
 							<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound .}}">{{$.HeadUser.Name}}:{{.}}</div>
+						{{end}}
+						{{if .OwnForkedRepo}}
+							{{range .OwnForkedRepoBranches}}
+								<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.OwnForkedRepo.OwnerName}}:{{EscapePound .}}">{{$.OwnForkedRepo.OwnerName}}:{{.}}</div>
+							{{end}}
+						{{end}}
+						{{if .ForkedRepo}}
+							{{range .ForkedRepoBranches}}
+								<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.ForkedRepo.OwnerName}}:{{EscapePound .}}">{{$.ForkedRepo.OwnerName}}:{{.}}</div>
+							{{end}}
 						{{end}}
 					</div>
 				</div>

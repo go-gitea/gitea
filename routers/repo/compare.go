@@ -139,9 +139,47 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	ctx.Data["BaseIsBranch"] = baseIsBranch
 	ctx.Data["BaseIsTag"] = baseIsTag
 
+	var forkedRepo *models.Repository
+	if baseRepo.IsFork {
+		err = baseRepo.GetBaseRepo()
+		if err != nil {
+			if !models.IsErrRepoNotExist(err) {
+				ctx.ServerError("Unable to find root repo", err)
+				return nil, nil, nil, nil, "", ""
+			}
+		} else {
+			forkedRepo = baseRepo.BaseRepo
+			ctx.Data["ForkedRepo"] = forkedRepo
+		}
+	}
+
+	var ownForkedRepo *models.Repository
+	if baseRepo.OwnerID != ctx.User.ID {
+		repo, has := models.HasForkedRepo(ctx.User.ID, baseRepo.ID)
+		if has {
+			ownForkedRepo = repo
+			ctx.Data["OwnForkedRepo"] = ownForkedRepo
+		}
+	}
+
+	headRepo := baseRepo
+	has := false
 	// Check if current user has fork of repository or in the same repository.
-	headRepo, has := models.HasForkedRepo(headUser.ID, baseRepo.ID)
-	if !has && !isSameRepo {
+	if !isSameRepo && forkedRepo != nil && forkedRepo.OwnerID == headUser.ID {
+		headRepo = forkedRepo
+		has = true
+	}
+	if !isSameRepo && ownForkedRepo != nil && ownForkedRepo.OwnerID == headUser.ID {
+		headRepo = ownForkedRepo
+		has = true
+	}
+	if !isSameRepo && !has {
+		headRepo, has = models.HasForkedRepo(headUser.ID, baseRepo.ID)
+	}
+	if !isSameRepo && !has && baseRepo.IsFork {
+		headRepo, has = models.HasForkedRepo(headUser.ID, baseRepo.ForkID)
+	}
+	if !isSameRepo && !has {
 		ctx.Data["PageIsComparePull"] = false
 	}
 
@@ -150,8 +188,8 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 		ctx.Data["BaseName"] = headUser.Name
-	} else {
-		headGitRepo, err = git.OpenRepository(models.RepoPath(headUser.Name, headRepo.Name))
+	} else if has {
+		headGitRepo, err = git.OpenRepository(headRepo.RepoPath())
 		ctx.Data["BaseName"] = baseRepo.OwnerName
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
@@ -193,6 +231,40 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 			}
 			ctx.NotFound("ParseCompareInfo", nil)
 			return nil, nil, nil, nil, "", ""
+		}
+	}
+
+	if forkedRepo != nil {
+		if forkedRepo.ID == headRepo.ID || forkedRepo.ID == baseRepo.ID {
+			delete(ctx.Data, "ForkedRepo")
+		} else {
+			perm, branches, err := getBranchesForRepo(ctx.User, forkedRepo)
+			if err != nil {
+				ctx.ServerError("GetBranchesForRepo", err)
+				return nil, nil, nil, nil, "", ""
+			}
+			if !perm {
+				delete(ctx.Data, "ForkedRepo")
+			}
+			ctx.Data["ForkedRepoBranches"] = branches
+		}
+	}
+
+	if ownForkedRepo != nil {
+		if ownForkedRepo.ID == headRepo.ID ||
+			ownForkedRepo.ID == baseRepo.ID ||
+			(forkedRepo != nil && ownForkedRepo.ID == forkedRepo.ID) {
+			delete(ctx.Data, "OwnForkedRepo")
+		} else {
+			perm, branches, err := getBranchesForRepo(ctx.User, ownForkedRepo)
+			if err != nil {
+				ctx.ServerError("GetBranchesForRepo", err)
+				return nil, nil, nil, nil, "", ""
+			}
+			if !perm {
+				delete(ctx.Data, "OwnForkedRepo")
+			}
+			ctx.Data["OwnForkedRepoBranches"] = branches
 		}
 	}
 
@@ -343,28 +415,25 @@ func PrepareCompareDiff(
 	return false
 }
 
-// parseBaseRepoInfo parse base repository if current repo is forked.
-// The "base" here means the repository where current repo forks from,
-// not the repository fetch from current URL.
-func parseBaseRepoInfo(ctx *context.Context, repo *models.Repository) error {
-	if !repo.IsFork {
-		return nil
-	}
-	if err := repo.GetBaseRepo(); err != nil {
-		return err
-	}
-
-	baseGitRepo, err := git.OpenRepository(repo.BaseRepo.RepoPath())
+func getBranchesForRepo(user *models.User, repo *models.Repository) (bool, []string, error) {
+	perm, err := models.GetUserRepoPermission(repo, user)
 	if err != nil {
-		return err
+		return false, nil, err
 	}
-	defer baseGitRepo.Close()
-
-	ctx.Data["BaseRepoBranches"], err = baseGitRepo.GetBranches()
+	if !perm.CanRead(models.UnitTypeCode) {
+		return false, nil, nil
+	}
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
-		return err
+		return false, nil, err
 	}
-	return nil
+	defer gitRepo.Close()
+
+	branches, err := gitRepo.GetBranches()
+	if err != nil {
+		return false, nil, err
+	}
+	return true, branches, nil
 }
 
 // CompareDiff show different from one commit to another commit
@@ -374,12 +443,6 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 	defer headGitRepo.Close()
-
-	var err error
-	if err = parseBaseRepoInfo(ctx, headRepo); err != nil {
-		ctx.ServerError("parseBaseRepoInfo", err)
-		return
-	}
 
 	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch)
 	if ctx.Written() {
