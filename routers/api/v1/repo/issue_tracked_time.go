@@ -289,7 +289,11 @@ func DeleteTime(ctx *context.APIContext) {
 
 	time, err := models.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		ctx.Error(500, "GetTrackedTimeByID", err)
+		if models.IsErrNotExist(err) {
+			ctx.NotFound(err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "GetTrackedTimeByID", err)
 		return
 	}
 
