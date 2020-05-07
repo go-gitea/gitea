@@ -1108,7 +1108,7 @@ func ViewIssue(ctx *context.Context) {
 		// Check if there is a pending pr merge
 		ctx.Data["HasPendingPullRequestMerge"], ctx.Data["PendingPullRequestMerge"], err = models.GetScheduledMergeRequestByPullID(pull.ID)
 		if err != nil {
-			ctx.ServerError("GetReviewersByIssueID", err)
+			ctx.ServerError("GetScheduledMergeRequestByPullID", err)
 			return
 		}
 	}
