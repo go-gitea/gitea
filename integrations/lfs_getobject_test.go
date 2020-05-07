@@ -171,8 +171,15 @@ func TestGetLFSRange(t *testing.T) {
 		{"bytes=1-1", "2", http.StatusPartialContent},
 		{"bytes=1-3", "234", http.StatusPartialContent},
 		{"bytes=1-", "23456789\n", http.StatusPartialContent},
-		// Malformed and ignored
+		// end-range smaller than start-range is ignored
+		{"bytes=1-0", "23456789\n", http.StatusPartialContent},
+		{"bytes=0-10", "123456789\n", http.StatusPartialContent},
+		// end-range bigger than length-1 is ignored
+		{"bytes=0-11", "123456789\n", http.StatusPartialContent},
+		{"bytes=11-", "", http.StatusPartialContent},
+		// incorrect header value cause whole header to be ignored
 		{"bytes=-", "123456789\n", http.StatusOK},
+		{"foobar", "123456789\n", http.StatusOK},
 	}
 
 	for _, tt := range tests {
