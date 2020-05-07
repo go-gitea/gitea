@@ -318,11 +318,11 @@ code,
 }
 
 .ui {
-    &.left {
+    &.left:not(.action) {
         float: left;
     }
 
-    &.right {
+    &.right:not(.action) {
         float: right;
     }
 
@@ -725,6 +725,15 @@ code,
             .item:not(.active):not(.navigation),
             .item.navigation span.navigation_label {
                 display: none;
+            }
+        }
+        &.narrow .item {
+            padding-left: 8px;
+            padding-right: 8px;
+            min-width: 1em;
+            text-align: center;
+            .icon {
+                margin-right: 0;
             }
         }
     }
