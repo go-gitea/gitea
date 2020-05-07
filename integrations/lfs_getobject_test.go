@@ -155,15 +155,33 @@ func TestGetLFSRangeNo(t *testing.T) {
 	content := []byte("123456789\n")
 
 	resp := doLfs(t, &content, nil, http.StatusOK)
-	assert.Equal(t, len(content), len(resp.Body.Bytes()))
+	assert.Equal(t, content, resp.Body.Bytes())
 }
 
-func TestGetLFSRangeSimple(t *testing.T) {
+func TestGetLFSRange(t *testing.T) {
 	content := []byte("123456789\n")
-	h := http.Header{
-		"Range": []string{"bytes=1-2"},
+
+	tests := []struct {
+		in     string
+		out    string
+		status int
+	}{
+		{"bytes=0-0", "1", http.StatusPartialContent},
+		{"bytes=0-1", "12", http.StatusPartialContent},
+		{"bytes=1-1", "2", http.StatusPartialContent},
+		{"bytes=1-3", "234", http.StatusPartialContent},
+		{"bytes=1-", "23456789\n", http.StatusPartialContent},
+		// Malformed and ignored
+		{"bytes=-", "123456789\n", http.StatusOK},
 	}
 
-	resp := doLfs(t, &content, &h, http.StatusPartialContent)
-	assert.Equal(t, "23", string(resp.Body.Bytes()))
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			h := http.Header{
+				"Range": []string{tt.in},
+			}
+			resp := doLfs(t, &content, &h, tt.status)
+			assert.Equal(t, tt.out, string(resp.Body.Bytes()))
+		})
+	}
 }
