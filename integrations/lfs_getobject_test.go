@@ -181,7 +181,7 @@ func TestGetLFSRange(t *testing.T) {
 				"Range": []string{tt.in},
 			}
 			resp := doLfs(t, &content, &h, tt.status)
-			assert.Equal(t, tt.out, string(resp.Body.Bytes()))
+			assert.Equal(t, tt.out, resp.Body.String())
 		})
 	}
 }
