@@ -165,8 +165,8 @@ func getContentHandler(ctx *context.Context) {
 	}
 
 	// Support resume download using Range header
-	var fromByte int64
-	toByte := meta.Size - 1
+	var fromByte, toByte int64
+	toByte = meta.Size - 1
 	statusCode := 200
 	if rangeHdr := ctx.Req.Header.Get("Range"); rangeHdr != "" {
 		regex := regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
