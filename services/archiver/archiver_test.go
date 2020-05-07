@@ -184,7 +184,15 @@ func TestArchive_Basic(t *testing.T) {
 	assert.Equal(t, 2, len(archiveInProgress))
 	releaseOneEntry(t, inFlight)
 	assert.Equal(t, 1, len(archiveInProgress))
+
+	// Test waiting for completion on one, which should be relatively
+	// straightforward.  We'll hold the queue-lock and release an entry.  It will
+	// wait to acquire the queue lock, which we'll drop when we
+	// WaitForCompletion(), to be woken up later.
+	LockQueue()
 	releaseOneEntry(t, inFlight)
+	WaitForCompletion()
+	UnlockQueue()
 	assert.Equal(t, 0, len(archiveInProgress))
 
 	zipReq2 = DeriveRequestFrom(ctx, firstCommit+".zip")
