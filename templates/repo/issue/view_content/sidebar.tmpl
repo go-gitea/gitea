@@ -111,13 +111,13 @@
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 				{{if or .Labels .OrgLabels}}
 					{{range .Labels}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmojiPlain}}
-						{{if .Description }}<br><small class="desc">{{.Description | RenderEmojiPlain}}</small>{{end}}</a>
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 					<div class="ui divider"></div>
 					{{range .OrgLabels}}
-						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmojiPlain}}
-						{{if .Description }}<br><small class="desc">{{.Description | RenderEmojiPlain}}</small>{{end}}</a>
+						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+						{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 				{{else}}
 					<div class="header" style="text-transform: none;font-size:14px;">{{.i18n.Tr "repo.issues.new.no_items"}}</div>
@@ -128,12 +128,12 @@
 			<span class="no-select item {{if .HasSelectedLabel}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_label"}}</span>
 			{{range .Labels}}
 				<div class="item">
-					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name | RenderEmojiPlain}}</a>
+					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 				</div>
 			{{end}}
 			{{range .OrgLabels}}
 				<div class="item">
-					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name | RenderEmojiPlain}}</a>
+					<a class="ui label {{if not .IsChecked}}hide{{end}}" id="label_{{.ID}}" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 				</div>
 
 			{{end}}
@@ -414,7 +414,7 @@
 						{{range .BlockingDependencies}}
 							<div class="item{{if .Issue.IsClosed}} is-closed{{end}}">
 								<span class="text grey right floated">#{{.Issue.Index}}</span>
-								<a class="title has-emoji" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">{{.Issue.Title}}</a>
+								<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">{{.Issue.Title | RenderEmoji}}</a>
 								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}</div>
 								<div class="ui transparent label right floated nopadding">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
@@ -441,7 +441,7 @@
 						{{range .BlockedByDependencies}}
 							<div class="item{{if .Issue.IsClosed}} is-closed{{end}}">
 								<span class="text grey right floated">#{{.Issue.Index}}</span>
-								<a class="title has-emoji" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">{{.Issue.Title}}</a>
+								<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">{{.Issue.Title | RenderEmoji}}</a>
 								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}</div>
 								<div class="ui transparent label right floated nopadding">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
