@@ -24,7 +24,6 @@ function issuePopup(owner, repo, index, $element) {
     let labels = '';
     for (let i = 0; i < issue.labels.length; i++) {
       const label = issue.labels[i];
-      const labelName = emojify.replace(label.name);
       const red = parseInt(label.color.substring(0, 2), 16);
       const green = parseInt(label.color.substring(2, 4), 16);
       const blue = parseInt(label.color.substring(4, 6), 16);
@@ -32,7 +31,7 @@ function issuePopup(owner, repo, index, $element) {
       if ((red * 0.299 + green * 0.587 + blue * 0.114) > 125) {
         color = '#000000';
       }
-      labels += `<div class="ui label" style="color: ${color}; background-color:#${label.color};">${labelName}</div>`;
+      labels += `<div class="ui label" style="color: ${color}; background-color:#${label.color};">${label.name}</div>`;
     }
     if (labels.length > 0) {
       labels = `<p>${labels}</p>`;

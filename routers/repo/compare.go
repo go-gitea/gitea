@@ -320,9 +320,6 @@ func PrepareCompareDiff(
 	compareInfo.Commits = models.ParseCommitsWithStatus(compareInfo.Commits, headRepo)
 	ctx.Data["Commits"] = compareInfo.Commits
 	ctx.Data["CommitCount"] = compareInfo.Commits.Len()
-	if ctx.Data["CommitCount"] == 0 {
-		ctx.Data["PageIsComparePull"] = false
-	}
 
 	if compareInfo.Commits.Len() == 1 {
 		c := compareInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
@@ -335,7 +332,6 @@ func PrepareCompareDiff(
 	} else {
 		title = headBranch
 	}
-
 	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
@@ -432,6 +428,8 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)
+
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
 	ctx.HTML(200, tplCompare)
 }

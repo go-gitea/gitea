@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -81,8 +82,10 @@ func SearchIssues(ctx *context.APIContext) {
 		AllPublic:   true,
 		TopicOnly:   false,
 		Collaborate: util.OptionalBoolNone,
-		OrderBy:     models.SearchOrderByRecentUpdated,
-		Actor:       ctx.User,
+		// This needs to be a column that is not nil in fixtures or
+		// MySQL will return different results when sorting by null in some cases
+		OrderBy: models.SearchOrderByAlphabetically,
+		Actor:   ctx.User,
 	}
 	if ctx.IsSigned {
 		opts.Private = true
@@ -152,6 +155,7 @@ func SearchIssues(ctx *context.APIContext) {
 				Page:     ctx.QueryInt("page"),
 				PageSize: setting.UI.IssuePagingNum,
 			},
+
 			RepoIDs:            repoIDs,
 			IsClosed:           isClosed,
 			IssueIDs:           issueIDs,
@@ -205,6 +209,10 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter by type (issues / pulls) if set
 	//   type: string
+	// - name: milestones
+	//   in: query
+	//   description: comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of this milestones. Non existent milestones are discarded
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -248,6 +256,36 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
+	var mileIDs []int64
+	if part := strings.Split(ctx.Query("milestones"), ","); len(part) > 0 {
+		for i := range part {
+			// uses names and fall back to ids
+			// non existent milestones are discarded
+			mile, err := models.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			if err == nil {
+				mileIDs = append(mileIDs, mile.ID)
+				continue
+			}
+			if !models.IsErrMilestoneNotExist(err) {
+				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoIDANDName", err)
+				return
+			}
+			id, err := strconv.ParseInt(part[i], 10, 64)
+			if err != nil {
+				continue
+			}
+			mile, err = models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, id)
+			if err == nil {
+				mileIDs = append(mileIDs, mile.ID)
+				continue
+			}
+			if models.IsErrMilestoneNotExist(err) {
+				continue
+			}
+			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
+		}
+	}
+
 	listOptions := utils.GetListOptions(ctx)
 	if ctx.QueryInt("limit") == 0 {
 		listOptions.PageSize = setting.UI.IssuePagingNum
@@ -267,12 +305,13 @@ func ListIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
-			ListOptions: listOptions,
-			RepoIDs:     []int64{ctx.Repo.Repository.ID},
-			IsClosed:    isClosed,
-			IssueIDs:    issueIDs,
-			LabelIDs:    labelIDs,
-			IsPull:      isPull,
+			ListOptions:  listOptions,
+			RepoIDs:      []int64{ctx.Repo.Repository.ID},
+			IsClosed:     isClosed,
+			IssueIDs:     issueIDs,
+			LabelIDs:     labelIDs,
+			MilestoneIDs: mileIDs,
+			IsPull:       isPull,
 		})
 	}
 

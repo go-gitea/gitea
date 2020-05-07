@@ -49,7 +49,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 	// Click the little green button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find(".comments .merge .delete-button").Attr("data-url")
+	link, exists := htmlDoc.doc.Find(".timeline-item .delete-button").Attr("data-url")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),

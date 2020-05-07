@@ -86,7 +86,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 	return uploader.repo, nil
 }
 
-// migrateRepository will download informations and upload to Uploader, this is a simple
+// migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
 func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
@@ -277,7 +277,19 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			// migrate reviews
 			var allReviews = make([]*base.Review, 0, reviewBatchSize)
 			for _, pr := range prs {
-				reviews, err := downloader.GetReviews(pr.Number)
+				number := pr.Number
+
+				// on gitlab migrations pull number change
+				if pr.OriginalNumber > 0 {
+					number = pr.OriginalNumber
+				}
+
+				reviews, err := downloader.GetReviews(number)
+				if pr.OriginalNumber > 0 {
+					for i := range reviews {
+						reviews[i].IssueIndex = pr.Number
+					}
+				}
 				if err != nil {
 					return err
 				}

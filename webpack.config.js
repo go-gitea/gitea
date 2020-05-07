@@ -1,6 +1,5 @@
 const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
-const CopyPlugin = require('copy-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -51,6 +50,7 @@ module.exports = {
         sourceMap: true,
         extractComments: false,
         terserOptions: {
+          keep_fnames: /^(HTML|SVG)/, // https://github.com/fgnass/domino/issues/144
           output: {
             comments: false,
           },
@@ -88,6 +88,19 @@ module.exports = {
       {
         test: require.resolve('jquery-datetimepicker'),
         use: 'imports-loader?define=>false,exports=>false',
+      },
+      {
+        test: /\.worker\.js$/,
+        use: [
+          {
+            loader: 'worker-loader',
+            options: {
+              name: '[name].js',
+              inline: true,
+              fallback: false,
+            },
+          },
+        ],
       },
       {
         test: /\.js$/,
@@ -196,10 +209,6 @@ module.exports = {
     new SpriteLoaderPlugin({
       plainSprite: true,
     }),
-    new CopyPlugin([
-      // workaround for https://github.com/go-gitea/gitea/issues/10653
-      {from: 'node_modules/fomantic-ui/dist/semantic.min.css', to: 'fomantic/semantic.min.css'},
-    ]),
   ],
   performance: {
     hints: false,

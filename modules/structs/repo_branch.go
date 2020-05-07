@@ -39,6 +39,7 @@ type BranchProtection struct {
 	ApprovalsWhitelistUsernames []string `json:"approvals_whitelist_username"`
 	ApprovalsWhitelistTeams     []string `json:"approvals_whitelist_teams"`
 	BlockOnRejectedReviews      bool     `json:"block_on_rejected_reviews"`
+	BlockOnOutdatedBranch       bool     `json:"block_on_outdated_branch"`
 	DismissStaleApprovals       bool     `json:"dismiss_stale_approvals"`
 	RequireSignedCommits        bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns       string   `json:"protected_file_patterns"`
@@ -66,6 +67,7 @@ type CreateBranchProtectionOption struct {
 	ApprovalsWhitelistUsernames []string `json:"approvals_whitelist_username"`
 	ApprovalsWhitelistTeams     []string `json:"approvals_whitelist_teams"`
 	BlockOnRejectedReviews      bool     `json:"block_on_rejected_reviews"`
+	BlockOnOutdatedBranch       bool     `json:"block_on_outdated_branch"`
 	DismissStaleApprovals       bool     `json:"dismiss_stale_approvals"`
 	RequireSignedCommits        bool     `json:"require_signed_commits"`
 	ProtectedFilePatterns       string   `json:"protected_file_patterns"`
@@ -88,6 +90,7 @@ type EditBranchProtectionOption struct {
 	ApprovalsWhitelistUsernames []string `json:"approvals_whitelist_username"`
 	ApprovalsWhitelistTeams     []string `json:"approvals_whitelist_teams"`
 	BlockOnRejectedReviews      *bool    `json:"block_on_rejected_reviews"`
+	BlockOnOutdatedBranch       *bool    `json:"block_on_outdated_branch"`
 	DismissStaleApprovals       *bool    `json:"dismiss_stale_approvals"`
 	RequireSignedCommits        *bool    `json:"require_signed_commits"`
 	ProtectedFilePatterns       *string  `json:"protected_file_patterns"`

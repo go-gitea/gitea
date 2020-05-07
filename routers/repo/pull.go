@@ -399,8 +399,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
-		var err error
-
 		headGitRepo, err := git.OpenRepository(pull.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
@@ -420,19 +418,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 
 	if headBranchExist {
-		allowUpdate, err := pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+		ctx.Data["UpdateAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
 		}
-		ctx.Data["UpdateAllowed"] = allowUpdate
-
-		divergence, err := pull_service.GetDiverging(pull)
-		if err != nil {
-			ctx.ServerError("GetDiverging", err)
-			return nil
-		}
-		ctx.Data["Divergence"] = divergence
+		ctx.Data["GetCommitMessages"] = pull_service.GetCommitMessages(pull)
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
@@ -460,9 +451,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			}
 			return false
 		}
-		state := pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
-		ctx.Data["RequiredStatusCheckState"] = state
-		ctx.Data["IsRequiredStatusCheckSuccess"] = state.IsSuccess()
+		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
 	}
 
 	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha
@@ -635,6 +624,13 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
+	if ctx.IsSigned && ctx.User != nil {
+		if ctx.Data["CanMarkConversation"], err = models.CanMarkConversation(issue, ctx.User); err != nil {
+			ctx.ServerError("CanMarkConversation", err)
+			return
+		}
+	}
+
 	setImageCompareContext(ctx, baseCommit, commit)
 	setPathsCompareContext(ctx, baseCommit, commit, headTarget)
 
@@ -652,7 +648,7 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 	getBranchData(ctx, issue)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
-	ctx.Data["IsIssueWriter"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.HTML(200, tplPullFiles)
 }
 

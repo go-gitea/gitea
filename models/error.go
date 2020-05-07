@@ -1502,10 +1502,41 @@ func (err ErrTrackedTimeNotExist) Error() string {
 // |_______ (____  /___  /\___  >____/
 //         \/    \/    \/     \/
 
+// ErrRepoLabelNotExist represents a "RepoLabelNotExist" kind of error.
+type ErrRepoLabelNotExist struct {
+	LabelID int64
+	RepoID  int64
+}
+
+// IsErrRepoLabelNotExist checks if an error is a RepoErrLabelNotExist.
+func IsErrRepoLabelNotExist(err error) bool {
+	_, ok := err.(ErrRepoLabelNotExist)
+	return ok
+}
+
+func (err ErrRepoLabelNotExist) Error() string {
+	return fmt.Sprintf("label does not exist [label_id: %d, repo_id: %d]", err.LabelID, err.RepoID)
+}
+
+// ErrOrgLabelNotExist represents a "OrgLabelNotExist" kind of error.
+type ErrOrgLabelNotExist struct {
+	LabelID int64
+	OrgID   int64
+}
+
+// IsErrOrgLabelNotExist checks if an error is a OrgErrLabelNotExist.
+func IsErrOrgLabelNotExist(err error) bool {
+	_, ok := err.(ErrOrgLabelNotExist)
+	return ok
+}
+
+func (err ErrOrgLabelNotExist) Error() string {
+	return fmt.Sprintf("label does not exist [label_id: %d, org_id: %d]", err.LabelID, err.OrgID)
+}
+
 // ErrLabelNotExist represents a "LabelNotExist" kind of error.
 type ErrLabelNotExist struct {
 	LabelID int64
-	RepoID  int64
 }
 
 // IsErrLabelNotExist checks if an error is a ErrLabelNotExist.
@@ -1515,7 +1546,7 @@ func IsErrLabelNotExist(err error) bool {
 }
 
 func (err ErrLabelNotExist) Error() string {
-	return fmt.Sprintf("label does not exist [label_id: %d, repo_id: %d]", err.LabelID, err.RepoID)
+	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
 }
 
 //    _____  .__.__                   __
@@ -1529,6 +1560,7 @@ func (err ErrLabelNotExist) Error() string {
 type ErrMilestoneNotExist struct {
 	ID     int64
 	RepoID int64
+	Name   string
 }
 
 // IsErrMilestoneNotExist checks if an error is a ErrMilestoneNotExist.
@@ -1538,6 +1570,9 @@ func IsErrMilestoneNotExist(err error) bool {
 }
 
 func (err ErrMilestoneNotExist) Error() string {
+	if len(err.Name) > 0 {
+		return fmt.Sprintf("milestone does not exist [name: %s, repo_id: %d]", err.Name, err.RepoID)
+	}
 	return fmt.Sprintf("milestone does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
 }
 

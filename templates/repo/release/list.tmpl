@@ -49,7 +49,7 @@
 							</div>
 						{{else}}
 							<h3>
-								<a href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}">{{.Title}}</a>
+								<a href="{{$.RepoLink}}/releases/tag/{{.TagName | EscapePound}}">{{.Title}}</a>
 								{{if $.CanCreateRelease}}<small>(<a href="{{$.RepoLink}}/releases/edit/{{.TagName | EscapePound}}" rel="nofollow">{{$.i18n.Tr "repo.release.edit"}}</a>)</small>{{end}}
 							</h3>
 							<p class="text grey">

@@ -4,6 +4,10 @@
             {{$.i18n.Tr "repo.pulls.status_checking"}}
         {{else if eq .LatestCommitStatus.State "success"}}
             {{$.i18n.Tr "repo.pulls.status_checks_success"}}
+        {{else if eq .LatestCommitStatus.State "warning"}}
+            {{$.i18n.Tr "repo.pulls.status_checks_warning"}}
+        {{else if eq .LatestCommitStatus.State "failure"}}
+            {{$.i18n.Tr "repo.pulls.status_checks_failure"}}
         {{else if eq .LatestCommitStatus.State "error"}}
             {{$.i18n.Tr "repo.pulls.status_checks_error"}}
         {{else}}

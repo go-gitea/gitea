@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package misc
 
 import (
@@ -90,7 +94,7 @@ Here are some links to the most important topics. You can find the full list of 
 <p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
 <h2 id="user-content-quick-links">Quick Links</h2>
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
-<p><a href="` + AppSubURL + `wiki/Configuration" rel="nofollow">Configuration</a>
+<p><a href="` + AppSubURL + `wiki/Configuration" rel="nofollow">Configuration</a><br/>
 <a href="` + AppSubURL + `wiki/raw/images/icon-bug.png" rel="nofollow"><img src="` + AppSubURL + `wiki/raw/images/icon-bug.png" title="icon-bug.png" alt="images/icon-bug.png"/></a></p>
 `,
 		// Guard wiki sidebar: special syntax

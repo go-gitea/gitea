@@ -30,7 +30,7 @@ import (
 	"github.com/blevesearch/bleve/mapping"
 	"github.com/blevesearch/bleve/search/query"
 	"github.com/ethantkoenig/rupture"
-	"github.com/src-d/enry/v2"
+	"github.com/go-enry/go-enry/v2"
 )
 
 const unicodeNormalizeName = "unicodeNormalize"

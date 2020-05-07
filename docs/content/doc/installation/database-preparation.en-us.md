@@ -154,3 +154,136 @@ Note: All steps below requires that the database engine of your choice is instal
     where `gitea` is database user, `giteadb` is database name, and `203.0.113.3` is IP address of your database instance.
 
     You should be prompted to enter password for the database user, and connected to the database.
+
+## Database Connection over TLS
+
+If the communication between Gitea and your database instance is performed through a private network, or if Gitea and the database are running on the same server, this section can be omitted since the security between Gitea and the database instance is not critically exposed. If instead the database instance is on a public network, use TLS to encrypt the connection to the database, as it is possible for third-parties to intercept the traffic data.
+
+### Prerequisites
+
+- You need two valid TLS certificates, one for the database instance (database server) and one for the Gitea instance (database client). Both certificates must be signed by a trusted CA.
+- The database certificate must contain `TLS Web Server Authentication` in the `X509v3 Extended Key Usage` extension attribute, while the client certificate needs `TLS Web Client Authentication` in the corresponding attribute.
+- On the database server certificate, one of `Subject Alternative Name` or `Common Name` entries must be the fully-qualified domain name (FQDN) of the database instance (e.g. `db.example.com`). On the database client certificate, one of the entries mentioned above must contain the database username that Gitea will be using to connect.
+- You need domain name mappings of both Gitea and database servers to their respective IP addresses. Either set up DNS records for them or add local mappings to `/etc/hosts` (`%WINDIR%\System32\drivers\etc\hosts` in Windows) on each system. This allows the database connections to be performed by domain name instead of IP address. See documentation of your system for details.
+
+### PostgreSQL
+
+The PostgreSQL driver used by Gitea supports two-way TLS. In two-way TLS, both database client and server authenticate each other by sending their respective certificates to their respective opposite for validation. In other words, the server verifies client certificate, and the client verifies server certificate.
+
+1.  On the server with the database instance, place the following credentials:
+
+    -  `/path/to/postgresql.crt`: Database instance certificate
+    -  `/path/to/postgresql.key`: Database instance private key
+    -  `/path/to/root.crt`: CA certificate chain to validate client certificates
+
+2.  Add following options to `postgresql.conf`:
+
+    ```ini
+    ssl = on
+    ssl_ca_file = '/path/to/root.crt'
+    ssl_cert_file = '/path/to/postgresql.crt'
+    ssl_key_file = '/path/to/postgresql.key'
+    ssl_min_protocol_version = 'TLSv1.2'
+    ```
+
+3.  Adjust credentials ownership and permission, as required by PostgreSQL:
+
+    ```
+    chown postgres:postgres /path/to/root.crt /path/to/postgresql.crt /path/to/postgresql.key
+    chmod 0600 /path/to/root.crt /path/to/postgresql.crt /path/to/postgresql.key
+    ```
+
+4.  Edit `pg_hba.conf` rule to only allow Gitea database user to connect over SSL, and to require client certificate verification.
+
+    For PostgreSQL 12:
+
+    ```ini
+    hostssl    giteadb    gitea    192.0.2.10/32    scram-sha-256    clientcert=verify-full
+    ```
+
+    For PostgreSQL 11 and earlier:
+
+    ```ini
+    hostssl    giteadb    gitea    192.0.2.10/32    scram-sha-256    clientcert=1
+    ```
+
+    Replace database name, user, and IP address of Gitea instance as appropriate.
+
+5.  Restart PostgreSQL to apply configurations above.
+
+6.  On the server running the Gitea instance, place the following credentials under the home directory of the user who runs Gitea (e.g. `git`):
+
+    -  `~/.postgresql/postgresql.crt`: Database client certificate
+    -  `~/.postgresql/postgresql.key`: Database client private key
+    -  `~/.postgresql/root.crt`: CA certificate chain to validate server certificate
+
+    Note: Those file names above are hardcoded in PostgreSQL and it is not possible to change them.
+
+7.  Adjust credentials, ownership and permission as required:
+
+    ```
+    chown git:git ~/.postgresql/postgresql.crt ~/.postgresql/postgresql.key ~/.postgresql/root.crt
+    chown 0600 ~/.postgresql/postgresql.crt ~/.postgresql/postgresql.key ~/.postgresql/root.crt
+    ```
+
+8.  Test the connection to the database:
+
+    ```
+    psql "postgres://gitea@example.db/giteadb?sslmode=verify-full"
+    ```
+
+    You should be prompted to enter password for the database user, and then be connected to the database.
+
+
+### MySQL
+
+While the MySQL driver used by Gitea also supports two-way TLS, Gitea currently supports only one-way TLS. See issue #10828 for details.
+
+In one-way TLS, the database client verifies the certificate sent from server during the connection handshake, and the server assumes that the connected client is legitimate, since client certificate verification doesn't take place.
+
+
+1.  On the database instance, place the following credentials:
+
+    -  `/path/to/mysql.crt`: Database instance certificate
+    -  `/path/to/mysql.key`: Database instance key
+    -  `/path/to/ca.crt`: CA certificate chain. This file isn't used on one-way TLS, but is used to validate client certificates on two-way TLS.
+
+2.  Add following options to `my.cnf`:
+
+    ```ini
+    [mysqld]
+    ssl-ca = /path/to/ca.crt
+    ssl-cert = /path/to/mysql.crt
+    ssl-key = /path/to/mysql.key
+    tls-version = TLSv1.2,TLSv1.3
+    ```
+
+3.  Adjust credentials ownership and permission:
+
+    ```
+    chown mysql:mysql /path/to/ca.crt /path/to/mysql.crt /path/to/mysql.key
+    chmod 0600 /path/to/ca.crt /path/to/mysql.crt /path/to/mysql.key
+    ```
+
+4.  Restart MySQL to apply the setting.
+
+5.  The database user for Gitea may have been created earlier, but it would authenticate only against the IP addresses of the server running Gitea. To authenticate against its domain name, recreate the user, and this time also set it to require TLS for connecting to the database:
+
+    ```sql
+    DROP USER 'gitea'@'192.0.2.10';
+    CREATE USER 'gitea'@'example.gitea' IDENTIFIED BY 'gitea' REQUIRE SSL;
+    GRANT ALL PRIVILEGES ON giteadb.* TO 'gitea'@'example.gitea';
+    FLUSH PRIVILEGES;
+    ```
+
+    Replace database user name, password, and Gitea instance domain as appropriate.
+
+6.  Make sure that the CA certificate chain required to validate the database server certificate is on the system certificate store of both the database and Gitea servers. Consult your system documentation for instructions on adding a CA certificate to the certificate store.
+
+7.  On the server running Gitea, test connection to the database:
+
+    ```
+    mysql -u gitea -h example.db -p --ssl
+    ```
+
+    You should be connected to the database.

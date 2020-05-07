@@ -103,7 +103,11 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
 func (opts *FindNotificationOptions) ToSession(e Engine) *xorm.Session {
-	return opts.setSessionPagination(e.Where(opts.ToCond()))
+	sess := e.Where(opts.ToCond())
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
+	return sess
 }
 
 func getNotifications(e Engine, options FindNotificationOptions) (nl NotificationList, err error) {
@@ -118,64 +122,73 @@ func GetNotifications(opts FindNotificationOptions) (NotificationList, error) {
 
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
-func CreateOrUpdateIssueNotifications(issueID, commentID int64, notificationAuthorID int64) error {
+// receiverID > 0 just send to reciver, else send to all watcher
+func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, receiverID int64) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := createOrUpdateIssueNotifications(sess, issueID, commentID, notificationAuthorID); err != nil {
+	if err := createOrUpdateIssueNotifications(sess, issueID, commentID, notificationAuthorID, receiverID); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notificationAuthorID int64) error {
+func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notificationAuthorID, receiverID int64) error {
 	// init
-	toNotify := make(map[int64]struct{}, 32)
+	var toNotify map[int64]struct{}
 	notifications, err := getNotificationsByIssueID(e, issueID)
+
 	if err != nil {
 		return err
 	}
+
 	issue, err := getIssueByID(e, issueID)
 	if err != nil {
 		return err
 	}
 
-	issueWatches, err := getIssueWatchersIDs(e, issueID, true)
-	if err != nil {
-		return err
-	}
-	for _, id := range issueWatches {
-		toNotify[id] = struct{}{}
-	}
+	if receiverID > 0 {
+		toNotify = make(map[int64]struct{}, 1)
+		toNotify[receiverID] = struct{}{}
+	} else {
+		toNotify = make(map[int64]struct{}, 32)
+		issueWatches, err := getIssueWatchersIDs(e, issueID, true)
+		if err != nil {
+			return err
+		}
+		for _, id := range issueWatches {
+			toNotify[id] = struct{}{}
+		}
 
-	repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
-	if err != nil {
-		return err
-	}
-	for _, id := range repoWatches {
-		toNotify[id] = struct{}{}
-	}
-	issueParticipants, err := issue.getParticipantIDsByIssue(e)
-	if err != nil {
-		return err
-	}
-	for _, id := range issueParticipants {
-		toNotify[id] = struct{}{}
-	}
+		repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
+		if err != nil {
+			return err
+		}
+		for _, id := range repoWatches {
+			toNotify[id] = struct{}{}
+		}
+		issueParticipants, err := issue.getParticipantIDsByIssue(e)
+		if err != nil {
+			return err
+		}
+		for _, id := range issueParticipants {
+			toNotify[id] = struct{}{}
+		}
 
-	// dont notify user who cause notification
-	delete(toNotify, notificationAuthorID)
-	// explicit unwatch on issue
-	issueUnWatches, err := getIssueWatchersIDs(e, issueID, false)
-	if err != nil {
-		return err
-	}
-	for _, id := range issueUnWatches {
-		delete(toNotify, id)
+		// dont notify user who cause notification
+		delete(toNotify, notificationAuthorID)
+		// explicit unwatch on issue
+		issueUnWatches, err := getIssueWatchersIDs(e, issueID, false)
+		if err != nil {
+			return err
+		}
+		for _, id := range issueUnWatches {
+			delete(toNotify, id)
+		}
 	}
 
 	err = issue.loadRepo(e)

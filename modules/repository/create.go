@@ -58,7 +58,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *m
 
 			// Initialize Issue Labels if selected
 			if len(opts.IssueLabels) > 0 {
-				if err = models.InitializeLabels(ctx, repo.ID, opts.IssueLabels); err != nil {
+				if err = models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 					return fmt.Errorf("InitializeLabels: %v", err)
 				}
 			}

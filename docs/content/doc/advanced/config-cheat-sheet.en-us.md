@@ -128,7 +128,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
-- `REACTIONS`: All available reactions. Allow users react with different emoji's.
+- `REACTIONS`: All available reactions users can choose on issues/prs and comments
+    Values can be emoji alias (:smile:) or a unicode emoji.
+    For custom reactions, add a tightly cropped square image to public/emoji/img/reaction_name.png
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **true**: Whether to enable a Service Worker to cache frontend assets.
@@ -140,9 +142,18 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
 
+### UI - Notification (`ui.notification`)
+
+- `MIN_TIMEOUT`: **10s**: These options control how often notification is queried to update the notification count. On page load the notification count will be checked after `MIN_TIMEOUT`. The timeout will increase to `MAX_TIMEOUT` by `TIMEOUT_STEP` if the notification count is unchanged. Set MIN_TIMEOUT to 0 to turn off.
+- `MAX_TIMEOUT`: **60s**.
+- `TIMEOUT_STEP`: **10s**.
+
+
 ## Markdown (`markdown`)
 
-- `ENABLE_HARD_LINE_BREAK`: **false**: Enable Markdown's hard line break extension.
+- `ENABLE_HARD_LINE_BREAK`: **true**: Render soft line breaks as hard line breaks, which
+  means a single newline character between paragraphs will cause a line break and adding
+  trailing whitespace to paragraphs is not necessary to force a line break.
 - `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
   URL hyperlinks to be rendered in Markdown. URLs beginning in http and https are
   always displayed
@@ -399,6 +410,7 @@ set name for unique queues. Individual queues will default to
    - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
+- `SENDMAIL_TIMEOUT`: **5m**: default timeout for sending email through sendmail
 - ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
 
 ## Cache (`cache`)
@@ -541,7 +553,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository statistics check.
 
-### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
+### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
 - `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 
@@ -585,6 +597,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
 - `INVALIDATE_REFRESH_TOKEN`: **false**: Check if refresh token got already used
 - `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
+- `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
 
 ## i18n (`i18n`)
 
@@ -646,7 +659,7 @@ Two special environment variables are passed to the render command:
 Gitea supports customizing the sanitization policy for rendered HTML. The example below will support KaTeX output from pandoc.
 
 ```ini
-[markup.sanitizer]
+[markup.sanitizer.TeX]
 ; Pandoc renders TeX segments as <span>s with the "math" class, optionally
 ; with "inline" or "display" classes depending on context.
 ELEMENT = span
@@ -658,7 +671,7 @@ REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
  - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
  - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
 
-You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time all three are defined is a single policy entry.
+Multiple sanitisation rules can be defined by adding unique subsections, e.g. `[markup.sanitizer.TeX-2]`.
 
 ## Time (`time`)
 
@@ -667,10 +680,11 @@ You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time
 
 ## Task (`task`)
 
--  Task queue configuration has been moved to `queue.task` however, the below configuration values are kept for backwards compatibilityx:
+Task queue configuration has been moved to `queue.task`. However, the below configuration values are kept for backwards compatibility:
+
 - `QUEUE_TYPE`: **channel**: Task queue type, could be `channel` or `redis`.
 - `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
-- `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If there redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
+- `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
 
 ## Migrations (`migrations`)
 
