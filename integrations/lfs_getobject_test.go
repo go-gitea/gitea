@@ -57,7 +57,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	return oid
 }
 
-func doLfs(t *testing.T, content *[]byte, extraHeaders *[]http.Header) *httptest.ResponseRecorder {
+func doLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
 	defer prepareTestEnv(t)()
 	setting.CheckLFSVersion()
 	if !setting.LFS.StartServer {
@@ -73,7 +73,14 @@ func doLfs(t *testing.T, content *[]byte, extraHeaders *[]http.Header) *httptest
 	// Request OID
 	req := NewRequest(t, "GET", "/user2/repo1.git/info/lfs/objects/"+oid+"/test")
 	req.Header.Set("Accept-Encoding", "gzip")
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	if extraHeader != nil {
+		for key, values := range *extraHeader {
+			for _, value := range values {
+				req.Header.Add(key, value)
+			}
+		}
+	}
+	resp := session.MakeRequest(t, req, expectedStatus)
 
 	return resp
 }
@@ -98,7 +105,7 @@ func doResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httptest
 func TestGetLFSSmall(t *testing.T) {
 	content := []byte("A very small file\n")
 
-	resp := doLfs(t, &content, nil)
+	resp := doLfs(t, &content, nil, http.StatusOK)
 	doResponseTestContentEncoding(t, &content, resp, false)
 }
 
@@ -108,7 +115,7 @@ func TestGetLFSLarge(t *testing.T) {
 		content[i] = byte(i % 256)
 	}
 
-	resp := doLfs(t, &content, nil)
+	resp := doLfs(t, &content, nil, http.StatusOK)
 	doResponseTestContentEncoding(t, &content, resp, true)
 }
 
@@ -123,7 +130,7 @@ func TestGetLFSGzip(t *testing.T) {
 	gzippWriter.Close()
 	content := outputBuffer.Bytes()
 
-	resp := doLfs(t, &content, nil)
+	resp := doLfs(t, &content, nil, http.StatusOK)
 	doResponseTestContentEncoding(t, &content, resp, false)
 }
 
@@ -140,13 +147,23 @@ func TestGetLFSZip(t *testing.T) {
 	zipWriter.Close()
 	content := outputBuffer.Bytes()
 
-	resp := doLfs(t, &content, nil)
+	resp := doLfs(t, &content, nil, http.StatusOK)
 	doResponseTestContentEncoding(t, &content, resp, false)
 }
 
-func TestGetLFSRange(t *testing.T) {
-	content := []byte("A very small file\n")
+func TestGetLFSRangeNo(t *testing.T) {
+	content := []byte("123456789\n")
 
-	resp := doLfs(t, &content, nil)
+	resp := doLfs(t, &content, nil, http.StatusOK)
 	assert.Equal(t, len(content), len(resp.Body.Bytes()))
+}
+
+func TestGetLFSRangeSimple(t *testing.T) {
+	content := []byte("123456789\n")
+	h := http.Header{
+		"Range": []string{"bytes=1-2"},
+	}
+
+	resp := doLfs(t, &content, &h, http.StatusPartialContent)
+	assert.Equal(t, "23", string(resp.Body.Bytes()))
 }
