@@ -27,7 +27,7 @@ import (
 
 func addFile(w archiver.Writer, filePath string, absPath string, verbose bool) error {
 	if verbose {
-		fmt.Fprintf(os.Stderr, "Adding file %s\n", filePath)
+		log.Info("Adding file %s\n", filePath)
 	}
 	file, err := os.Open(absPath)
 	if err != nil {
@@ -50,7 +50,7 @@ func addFile(w archiver.Writer, filePath string, absPath string, verbose bool) e
 
 func addRecursive(w archiver.Writer, dirPath string, absPath string, verbose bool) error {
 	if verbose {
-		fmt.Fprintf(os.Stderr, "Adding dir  %s\n", dirPath)
+		log.Info("Adding dir  %s\n", dirPath)
 	}
 	dir, err := os.Open(absPath)
 	if err != nil {
