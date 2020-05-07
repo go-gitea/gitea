@@ -12,6 +12,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -56,12 +57,11 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	return oid
 }
 
-func doLfs(t *testing.T, content *[]byte, expectGzip bool) {
+func doLfs(t *testing.T, content *[]byte, extraHeaders *[]http.Header) *httptest.ResponseRecorder {
 	defer prepareTestEnv(t)()
 	setting.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
-		return
 	}
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
@@ -75,6 +75,10 @@ func doLfs(t *testing.T, content *[]byte, expectGzip bool) {
 	req.Header.Set("Accept-Encoding", "gzip")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
+	return resp
+}
+
+func doResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httptest.ResponseRecorder, expectGzip bool) {
 	contentEncoding := resp.Header().Get("Content-Encoding")
 	if !expectGzip || !setting.EnableGzip {
 		assert.NotContains(t, contentEncoding, "gzip")
@@ -89,12 +93,13 @@ func doLfs(t *testing.T, content *[]byte, expectGzip bool) {
 		assert.NoError(t, err)
 		assert.Equal(t, *content, result)
 	}
-
 }
 
 func TestGetLFSSmall(t *testing.T) {
 	content := []byte("A very small file\n")
-	doLfs(t, &content, false)
+
+	resp := doLfs(t, &content, nil)
+	doResponseTestContentEncoding(t, &content, resp, false)
 }
 
 func TestGetLFSLarge(t *testing.T) {
@@ -102,7 +107,9 @@ func TestGetLFSLarge(t *testing.T) {
 	for i := range content {
 		content[i] = byte(i % 256)
 	}
-	doLfs(t, &content, true)
+
+	resp := doLfs(t, &content, nil)
+	doResponseTestContentEncoding(t, &content, resp, true)
 }
 
 func TestGetLFSGzip(t *testing.T) {
@@ -115,7 +122,9 @@ func TestGetLFSGzip(t *testing.T) {
 	gzippWriter.Write(b)
 	gzippWriter.Close()
 	content := outputBuffer.Bytes()
-	doLfs(t, &content, false)
+
+	resp := doLfs(t, &content, nil)
+	doResponseTestContentEncoding(t, &content, resp, false)
 }
 
 func TestGetLFSZip(t *testing.T) {
@@ -130,5 +139,14 @@ func TestGetLFSZip(t *testing.T) {
 	fileWriter.Write(b)
 	zipWriter.Close()
 	content := outputBuffer.Bytes()
-	doLfs(t, &content, false)
+
+	resp := doLfs(t, &content, nil)
+	doResponseTestContentEncoding(t, &content, resp, false)
+}
+
+func TestGetLFSRange(t *testing.T) {
+	content := []byte("A very small file\n")
+
+	resp := doLfs(t, &content, nil)
+	assert.Equal(t, len(content), len(resp.Body.Bytes()))
 }
