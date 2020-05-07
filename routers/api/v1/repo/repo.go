@@ -77,6 +77,7 @@ func Search(ctx *context.APIContext) {
 	// - name: private
 	//   in: query
 	//   description: include private repositories this user has access to (defaults to true)
+	//   type: boolean
 	// - name: onlyPrivate
 	//   in: query
 	//   description: only include private repositories this user has access to (defaults to false)
@@ -88,6 +89,7 @@ func Search(ctx *context.APIContext) {
 	// - name: archived
 	//   in: query
 	//   description: show only archived, non-archived or all repositories (defaults to all)
+	//   type: boolean
 	// - name: mode
 	//   in: query
 	//   description: type of repository to search for. Supported values are
