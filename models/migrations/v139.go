@@ -14,6 +14,7 @@ func addAutoMergeTable(x *xorm.Engine) error {
 		UserID     int64      `xorm:"BIGINT"`
 		MergeStyle MergeStyle `xorm:"varchar(50)"`
 		Message    string     `xorm:"TEXT"`
+		CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	}
 
 	return x.Sync2(&ScheduledPullRequestMerge{})
