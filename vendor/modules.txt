@@ -5,7 +5,7 @@ cloud.google.com/go/compute/metadata
 ## explicit
 gitea.com/jolheiser/gitea-vet
 gitea.com/jolheiser/gitea-vet/checks
-# gitea.com/lunny/levelqueue v0.2.0
+# gitea.com/lunny/levelqueue v0.3.0
 ## explicit
 gitea.com/lunny/levelqueue
 # gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b

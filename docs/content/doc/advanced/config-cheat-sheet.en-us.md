@@ -128,7 +128,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
-- `REACTIONS`: All available reactions. Allow users react with different emoji's.
+- `REACTIONS`: All available reactions users can choose on issues/prs and comments
+    Values can be emoji alias (:smile:) or a unicode emoji.
+    For custom reactions, add a tightly cropped square image to public/emoji/img/reaction_name.png
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **true**: Whether to enable a Service Worker to cache frontend assets.
@@ -408,6 +410,7 @@ set name for unique queues. Individual queues will default to
    - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
+- `SENDMAIL_TIMEOUT`: **5m**: default timeout for sending email through sendmail
 - ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
 
 ## Cache (`cache`)
@@ -656,7 +659,7 @@ Two special environment variables are passed to the render command:
 Gitea supports customizing the sanitization policy for rendered HTML. The example below will support KaTeX output from pandoc.
 
 ```ini
-[markup.sanitizer]
+[markup.sanitizer.TeX]
 ; Pandoc renders TeX segments as <span>s with the "math" class, optionally
 ; with "inline" or "display" classes depending on context.
 ELEMENT = span
@@ -668,7 +671,7 @@ REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
  - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
  - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
 
-You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time all three are defined is a single policy entry.
+Multiple sanitisation rules can be defined by adding unique subsections, e.g. `[markup.sanitizer.TeX-2]`.
 
 ## Time (`time`)
 
