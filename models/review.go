@@ -708,6 +708,33 @@ func DeleteReview(r *Review) error {
 		return err
 	}
 
+	if err := r.loadIssue(sess); err != nil {
+		return err
+	}
+
+	if err := r.loadReviewer(sess); err != nil {
+		return err
+	}
+
+	official, err := isOfficialReviewer(sess, r.Issue, r.Reviewer)
+	if err != nil {
+		return err
+	}
+
+	if official && r.Official {
+		// recalculate which is the latest official review from that user
+		lastReview, err := getReviewerByIssueIDAndUserID(sess, r.IssueID, r.ReviewerID)
+		if err != nil {
+			return err
+		}
+
+		if lastReview != nil {
+			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE id=?", true, lastReview.ID); err != nil {
+				return err
+			}
+		}
+	}
+
 	return sess.Commit()
 }
 
