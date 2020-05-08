@@ -469,7 +469,6 @@ func DownloadStatus(ctx *context.Context) {
 
 	complete := aReq.IsComplete()
 	ctx.JSON(200, map[string]interface{}{
-		"archiving": !complete,
 		"complete":  complete,
 	})
 }
@@ -525,7 +524,6 @@ func InitiateDownload(ctx *context.Context) {
 	}
 
 	ctx.JSON(200, map[string]interface{}{
-		"archiving": !complete,
 		"complete":  complete,
 	})
 }
