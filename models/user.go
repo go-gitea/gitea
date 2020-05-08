@@ -712,19 +712,42 @@ func (u *User) GetOwnedOrganizations() (err error) {
 
 // GetOrganizations returns paginated organizations that user belongs to.
 func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
-	ous, err := GetOrgUsersByUserID(u.ID, opts)
-	if err != nil {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	u.Orgs = make([]*User, len(ous))
-	for i, ou := range ous {
-		u.Orgs[i], err = GetUserByID(ou.OrgID)
-		if err != nil {
-			return err
-		}
+	sess.Select("`user`.*, count(`repository`.id) as org_count").
+		Table("user").
+		Join("INNER", "org_user", "`org_user`.org_id=`user`.id").
+		Join("INNER", "repository", "`repository`.owner_id = `org_user`.org_id").
+		Where(accessibleRepositoryCondition(u)).
+		And("`org_user`.uid=?", u.ID).
+		GroupBy("`repository`.owner_id")
+	if opts.PageSize != 0 {
+		sess = opts.setSessionPagination(sess)
 	}
-	return nil
+	type OrgCount struct {
+		User     `xorm:"extends"`
+		OrgCount int
+	}
+	orgCounts := make([]*OrgCount, 0, 10)
+
+	if err := sess.
+		Asc("`user`.name").
+		Find(&orgCounts); err != nil {
+		return err
+	}
+
+	orgs := make([]*User, len(orgCounts))
+	for i, orgCount := range orgCounts {
+		orgCount.User.NumRepos = orgCount.OrgCount
+		orgs[i] = &orgCount.User
+	}
+
+	u.Orgs = orgs
+
+	return sess.Commit()
 }
 
 // DisplayName returns full name if it's not empty,
