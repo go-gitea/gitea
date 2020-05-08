@@ -49,29 +49,32 @@ func waitForCount(t *testing.T, num int) {
 }
 
 func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
-	numQueued := len(archiveInProgress)
+	var nowQueued, numQueued int
 
-	// Release one, then WaitForCompletion.  We'll get signalled when ready.
-	// This works out to be quick and race-free, as we'll get signalled when the
-	// archival goroutine proceeds to dequeue the now-complete archive but we
-	// can't pick up the queue lock again until it's done removing it from
-	// archiveInProgress.  We'll remain waiting on the queue lock in
-	// WaitForCompletion() until we can safely acquire the lock.
-	LockQueue()
+	numQueued = len(archiveInProgress)
+
+	// Release one, then wait up to 10 seconds for it to complete.
+	queueMutex.Lock()
 	archiveQueueReleaseCond.Signal()
-	WaitForCompletion()
-	UnlockQueue()
+	queueMutex.Unlock()
+	timeout := time.Now().Add(10 * time.Second)
+	for {
+		nowQueued = len(archiveInProgress)
+		if nowQueued != numQueued || time.Now().After(timeout) {
+			break
+		}
+	}
+
+	// Make sure we didn't just timeout.
+	assert.NotEqual(t, numQueued, nowQueued)
 
 	// Also make sure that we released only one.
-	assert.Equal(t, numQueued-1, len(archiveInProgress))
+	assert.Equal(t, numQueued-1, nowQueued)
 }
 
 func TestArchive_Basic(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
 
-	// Create a new context here, because we may want to use locks or need other
-	// initial state here.
-	NewContext()
 	archiveQueueMutex = &queueMutex
 	archiveQueueStartCond = sync.NewCond(&queueMutex)
 	archiveQueueReleaseCond = sync.NewCond(&queueMutex)
