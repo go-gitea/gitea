@@ -194,7 +194,6 @@ func doArchive(r *ArchiveRequest) {
 	tmpArchive, err = ioutil.TempFile("", "archive")
 	if err != nil {
 		log.Error("Unable to create a temporary archive file! Error: %v", err)
-		close(r.cchan)
 		return
 	}
 	defer func() {
@@ -207,21 +206,18 @@ func doArchive(r *ArchiveRequest) {
 		Prefix: setting.Repository.PrefixArchiveFiles,
 	}); err != nil {
 		log.Error("Download -> CreateArchive "+tmpArchive.Name(), err)
-		close(r.cchan)
 		return
 	}
 
 	// Now we copy it into place
 	if destArchive, err = os.Create(r.archivePath); err != nil {
 		log.Error("Unable to open archive " + r.archivePath)
-		close(r.cchan)
 		return
 	}
 	_, err = io.Copy(destArchive, tmpArchive)
 	destArchive.Close()
 	if err != nil {
 		log.Error("Unable to write archive " + r.archivePath)
-		close(r.cchan)
 		return
 	}
 
