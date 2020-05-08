@@ -240,18 +240,16 @@ func ArchiveRepository(request *ArchiveRequest) *ArchiveRequest {
 	// enqueued, or we'll immediately enqueue it if it has not been enqueued
 	// and it is not marked complete.
 	archiveMutex.Lock()
+	defer archiveMutex.Unlock()
 	if rExisting := getArchiveRequest(request.repo, request.commit, request.archiveType); rExisting != nil {
-		archiveMutex.Unlock()
 		return rExisting
 	}
 	if request.archiveComplete {
-		archiveMutex.Unlock()
 		return request
 	}
 
 	request.cchan = make(chan bool)
 	archiveInProgress = append(archiveInProgress, request)
-	archiveMutex.Unlock()
 	go func() {
 		// Wait to start, if we have the Cond for it.  This is currently only
 		// useful for testing, so that the start and release of queued entries
