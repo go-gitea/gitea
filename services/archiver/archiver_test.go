@@ -184,8 +184,31 @@ func TestArchive_Basic(t *testing.T) {
 	assert.Equal(t, 2, len(archiveInProgress))
 	releaseOneEntry(t, inFlight)
 	assert.Equal(t, 1, len(archiveInProgress))
-	releaseOneEntry(t, inFlight)
+	// For the last one, we'll WaitForCompletion.
+	finalReq := inFlight[0]
+	completed := finalReq.WaitForCompletion()
+
+	assert.Equal(t, true, completed)
 	assert.Equal(t, 0, len(archiveInProgress))
+
+	// Now we'll submit a request and TimedWaitForCompletion twice:
+	// 1. With an incredibly small timeout, and
+	// 2. With a reasonable timeout
+	// We should trigger both the timeout and non-timeout cases.
+	var timedout bool
+	timedReq := DeriveRequestFrom(ctx, secondCommit+".tar.gz")
+	assert.NotNil(t, timedReq)
+	ArchiveRepository(timedReq)
+
+	// Unreasonable: 5us
+	completed, timedout = timedReq.TimedWaitForCompletion(5 * time.Microsecond)
+	assert.Equal(t, false, completed)
+	assert.Equal(t, true, timedout)
+
+	// Reasonable: 5s
+	completed, timedout = timedReq.TimedWaitForCompletion(5 * time.Second)
+	assert.Equal(t, true, completed)
+	assert.Equal(t, false, timedout)
 
 	zipReq2 = DeriveRequestFrom(ctx, firstCommit+".zip")
 	// Now, we're guaranteed to have released the original zipReq from the queue.
