@@ -713,6 +713,7 @@ func (u *User) GetOwnedOrganizations() (err error) {
 // GetOrganizations returns paginated organizations that user belongs to.
 func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	sess := x.NewSession()
+	defer sess.Close()
 
 	sess.Select("`user`.*, count(`repository`.id) as org_count").
 		Table("user").
