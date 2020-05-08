@@ -146,12 +146,10 @@ func TestArchive_Basic(t *testing.T) {
 	archiveQueueStartCond.Broadcast()
 	queueMutex.Unlock()
 
-	// 10 second timeout for them all to complete.
-	timeout := time.Now().Add(10 * time.Second)
-	for {
-		if allComplete(inFlight) || time.Now().After(timeout) {
-			break
-		}
+	// Iterate through all of the in-flight requests and wait for their
+	// completion.
+	for _, req := range inFlight {
+		req.WaitForCompletion()
 	}
 
 	assert.True(t, zipReq.IsComplete())
@@ -163,7 +161,7 @@ func TestArchive_Basic(t *testing.T) {
 
 	// Queues should not have drained yet, because we haven't released them.
 	// Do so now.
-	assert.Equal(t, len(archiveInProgress), 3)
+	assert.Equal(t, 3, len(archiveInProgress))
 
 	zipReq2 := DeriveRequestFrom(ctx, firstCommit+".zip")
 	// This zipReq should match what's sitting in the queue, as we haven't
