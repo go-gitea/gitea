@@ -202,12 +202,15 @@ DESCRIPTION = Gitea (Git with a cup of tea) is a painless self-hosted Git servic
 KEYWORDS = go,git,self-hosted,gitea
 
 [ui.notification]
-; Control how often notification is queried to update the notification
+; Control how often the notification endpoint is polled to update the notification
 ; The timeout will increase to MAX_TIMEOUT in TIMEOUT_STEPs if the notification count is unchanged
 ; Set MIN_TIMEOUT to 0 to turn off
 MIN_TIMEOUT = 10s
 MAX_TIMEOUT = 60s
 TIMEOUT_STEP = 10s
+; This setting determines how often the db is queried to get the latest notification counts.
+; If the browser client supports EventSource, it will be used in preference to polling notification.
+EVENT_SOURCE_UPDATE_TIME = 10s
 
 [markdown]
 ; Render soft line breaks as hard line breaks, which means a single newline character between

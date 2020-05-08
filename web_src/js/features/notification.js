@@ -19,21 +19,53 @@ export function initNotificationsTable() {
 }
 
 export function initNotificationCount() {
+  const notificationCount = $('.notification_count');
+
+  if (!notificationCount.length) {
+    return;
+  }
+
+  if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource) {
+    // Try to connect to the event source first
+    const source = new EventSource(`${AppSubUrl}/user/events`);
+    source.addEventListener('notification-count', async (e) => {
+      try {
+        const data = JSON.parse(e.data);
+
+        const notificationCount = $('.notification_count');
+        if (data.Count === 0) {
+          notificationCount.addClass('hidden');
+        } else {
+          notificationCount.removeClass('hidden');
+        }
+
+        notificationCount.text(`${data.Count}`);
+        await updateNotificationTable();
+      } catch (error) {
+        console.error(error);
+      }
+    });
+    source.addEventListener('logout', async (e) => {
+      if (e.data !== 'here') {
+        return;
+      }
+      source.close();
+      window.location.href = AppSubUrl;
+    });
+    return;
+  }
+
   if (NotificationSettings.MinTimeout <= 0) {
     return;
   }
 
-  const notificationCount = $('.notification_count');
+  const fn = (timeout, lastCount) => {
+    setTimeout(async () => {
+      await updateNotificationCountWithCallback(fn, timeout, lastCount);
+    }, timeout);
+  };
 
-  if (notificationCount.length > 0) {
-    const fn = (timeout, lastCount) => {
-      setTimeout(async () => {
-        await updateNotificationCountWithCallback(fn, timeout, lastCount);
-      }, timeout);
-    };
-
-    fn(NotificationSettings.MinTimeout, notificationCount.text());
-  }
+  fn(NotificationSettings.MinTimeout, notificationCount.text());
 }
 
 async function updateNotificationCountWithCallback(callback, timeout, lastCount) {
@@ -54,9 +86,14 @@ async function updateNotificationCountWithCallback(callback, timeout, lastCount)
   }
 
   callback(timeout, newCount);
+  if (needsUpdate) {
+    await updateNotificationTable();
+  }
+}
 
+async function updateNotificationTable() {
   const notificationDiv = $('#notification_div');
-  if (notificationDiv.length > 0 && needsUpdate) {
+  if (notificationDiv.length > 0) {
     const data = await $.ajax({
       type: 'GET',
       url: `${AppSubUrl}/notifications?${notificationDiv.data('params')}`,
