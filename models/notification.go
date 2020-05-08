@@ -103,7 +103,11 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
 func (opts *FindNotificationOptions) ToSession(e Engine) *xorm.Session {
-	return opts.setSessionPagination(e.Where(opts.ToCond()))
+	sess := e.Where(opts.ToCond())
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
+	return sess
 }
 
 func getNotifications(e Engine, options FindNotificationOptions) (nl NotificationList, err error) {
@@ -712,6 +716,21 @@ func getNotificationCount(e Engine, user *User, status NotificationStatus) (coun
 		And("status = ?", status).
 		Count(&Notification{})
 	return
+}
+
+// UserIDCount is a simple coalition of UserID and Count
+type UserIDCount struct {
+	UserID int64
+	Count  int64
+}
+
+// GetUIDsAndNotificationCounts between the two provided times
+func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCount, error) {
+	sql := `SELECT user_id, count(*) AS count FROM notification ` +
+		`WHERE user_id IN (SELECT user_id FROM notification WHERE updated_unix >= ? AND ` +
+		`updated_unix < ?) AND status = ? GROUP BY user_id`
+	var res []UserIDCount
+	return res, x.SQL(sql, since, until, NotificationStatusUnread).Find(&res)
 }
 
 func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {

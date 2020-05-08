@@ -68,6 +68,7 @@ coverage.all
 /integrations/indexers-pgsql
 /integrations/indexers-sqlite
 /integrations/indexers-mssql
+/integrations/sqlite.ini
 /integrations/mysql.ini
 /integrations/mysql8.ini
 /integrations/pgsql.ini

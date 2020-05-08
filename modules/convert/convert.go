@@ -118,6 +118,7 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 		ApprovalsWhitelistUsernames: approvalsWhitelistUsernames,
 		ApprovalsWhitelistTeams:     approvalsWhitelistTeams,
 		BlockOnRejectedReviews:      bp.BlockOnRejectedReviews,
+		BlockOnOutdatedBranch:       bp.BlockOnOutdatedBranch,
 		DismissStaleApprovals:       bp.DismissStaleApprovals,
 		RequireSignedCommits:        bp.RequireSignedCommits,
 		ProtectedFilePatterns:       bp.ProtectedFilePatterns,

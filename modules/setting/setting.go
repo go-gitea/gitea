@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/url"
 	"os"
@@ -180,6 +181,13 @@ var (
 		SearchRepoDescription bool
 		UseServiceWorker      bool
 
+		Notification struct {
+			MinTimeout            time.Duration
+			TimeoutStep           time.Duration
+			MaxTimeout            time.Duration
+			EventSourceUpdateTime time.Duration
+		} `ini:"ui.notification"`
+
 		Admin struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -208,6 +216,17 @@ var (
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
+		Notification: struct {
+			MinTimeout            time.Duration
+			TimeoutStep           time.Duration
+			MaxTimeout            time.Duration
+			EventSourceUpdateTime time.Duration
+		}{
+			MinTimeout:            10 * time.Second,
+			TimeoutStep:           10 * time.Second,
+			MaxTimeout:            60 * time.Second,
+			EventSourceUpdateTime: 10 * time.Second,
+		},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -241,7 +260,7 @@ var (
 		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
 		FileExtensions      []string
 	}{
-		EnableHardLineBreak: false,
+		EnableHardLineBreak: true,
 		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
@@ -323,11 +342,13 @@ var (
 		InvalidateRefreshTokens    bool
 		JWTSecretBytes             []byte `ini:"-"`
 		JWTSecretBase64            string `ini:"JWT_SECRET"`
+		MaxTokenLength             int
 	}{
 		Enable:                     true,
 		AccessTokenExpirationTime:  3600,
 		RefreshTokenExpirationTime: 730,
 		InvalidateRefreshTokens:    false,
+		MaxTokenLength:             math.MaxInt16,
 	}
 
 	U2F = struct {

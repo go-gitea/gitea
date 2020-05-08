@@ -186,3 +186,19 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, er
 	}
 	return nil, err
 }
+
+// GetReviews returns pull requests reviews
+func (d *RetryDownloader) GetReviews(pullRequestNumber int64) ([]*Review, error) {
+	var (
+		times   = d.RetryTimes
+		reviews []*Review
+		err     error
+	)
+	for ; times > 0; times-- {
+		if reviews, err = d.Downloader.GetReviews(pullRequestNumber); err == nil {
+			return reviews, nil
+		}
+		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+	}
+	return nil, err
+}

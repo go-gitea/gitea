@@ -54,13 +54,13 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 						extension.Ellipsis: nil,
 					}),
 				),
-				meta.New(meta.WithTable()),
+				meta.Meta,
 			),
 			goldmark.WithParserOptions(
 				parser.WithAttribute(),
 				parser.WithAutoHeadingID(),
 				parser.WithASTTransformers(
-					util.Prioritized(&GiteaASTTransformer{}, 10000),
+					util.Prioritized(&ASTTransformer{}, 10000),
 				),
 			),
 			goldmark.WithRendererOptions(
@@ -71,7 +71,7 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 		// Override the original Tasklist renderer!
 		converter.Renderer().AddOptions(
 			renderer.WithNodeRenderers(
-				util.Prioritized(NewTaskCheckBoxHTMLRenderer(), 1000),
+				util.Prioritized(NewHTMLRenderer(), 10),
 			),
 		)
 
@@ -85,7 +85,6 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 	if err := converter.Convert(giteautil.NormalizeEOL(body), &buf, parser.WithContext(pc)); err != nil {
 		log.Error("Unable to render: %v", err)
 	}
-
 	return markup.SanitizeReader(&buf).Bytes()
 }
 

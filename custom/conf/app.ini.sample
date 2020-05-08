@@ -171,8 +171,9 @@ SHOW_USER_EMAIL = true
 DEFAULT_THEME = gitea
 ; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
 THEMES = gitea,arc-green
-; All available reactions. Allow users react with different emoji's
-; For the whole list look at https://gitea.com/gitea/gitea.com/issues/8
+;All available reactions users can choose on issues/prs and comments.
+;Values can be emoji alias (:smile:) or a unicode emoji.
+;For custom reactions, add a tightly cropped square image to public/emoji/img/reaction_name.png
 REACTIONS = +1, -1, laugh, hooray, confused, heart, rocket, eyes
 ; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 DEFAULT_SHOW_FULL_NAME = false
@@ -200,9 +201,22 @@ AUTHOR = Gitea - Git with a cup of tea
 DESCRIPTION = Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go
 KEYWORDS = go,git,self-hosted,gitea
 
+[ui.notification]
+; Control how often the notification endpoint is polled to update the notification
+; The timeout will increase to MAX_TIMEOUT in TIMEOUT_STEPs if the notification count is unchanged
+; Set MIN_TIMEOUT to 0 to turn off
+MIN_TIMEOUT = 10s
+MAX_TIMEOUT = 60s
+TIMEOUT_STEP = 10s
+; This setting determines how often the db is queried to get the latest notification counts.
+; If the browser client supports EventSource, it will be used in preference to polling notification.
+EVENT_SOURCE_UPDATE_TIME = 10s
+
 [markdown]
-; Enable hard line break extension
-ENABLE_HARD_LINE_BREAK = false
+; Render soft line breaks as hard line breaks, which means a single newline character between
+; paragraphs will cause a line break and adding trailing whitespace to paragraphs is not
+; necessary to force a line break.
+ENABLE_HARD_LINE_BREAK = true
 ; Comma separated list of custom URL-Schemes that are allowed as links when rendering Markdown
 ; for example git,magnet,ftp (more at https://en.wikipedia.org/wiki/List_of_URI_schemes)
 ; URLs starting with http and https are always displayed, whatever is put in this entry.
@@ -638,6 +652,8 @@ MAILER_TYPE = smtp
 SENDMAIL_PATH = sendmail
 ; Specify any extra sendmail arguments
 SENDMAIL_ARGS =
+; Timeout for Sendmail
+SENDMAIL_TIMEOUT = 5m
 
 [cache]
 ; if the cache enabled
@@ -853,7 +869,7 @@ SCHEDULE = @every 24h
 UPDATE_EXISTING = true
 
 ; Update migrated repositories' issues and comments' posterid, it will always attempt synchronization when the instance starts.
-[cron.update_migration_post_id]
+[cron.update_migration_poster_id]
 ; Interval as a duration between each synchronization. (default every 24h)
 SCHEDULE = @every 24h
 
@@ -919,6 +935,8 @@ REFRESH_TOKEN_EXPIRATION_TIME=730
 INVALIDATE_REFRESH_TOKENS=false
 ; OAuth2 authentication secret for access and refresh tokens, change this to a unique string.
 JWT_SECRET=Bk0yK7Y9g_p56v86KaHqjSbxvNvu3SbKoOdOt2ZcXvU
+; Maximum length of oauth2 token/cookie stored on server
+MAX_TOKEN_LENGTH=32767
 
 [i18n]
 LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR
@@ -968,8 +986,10 @@ SHOW_FOOTER_VERSION = true
 ; Show template execution time in the footer
 SHOW_FOOTER_TEMPLATE_LOAD_TIME = true
 
-[markup.sanitizer]
-; The following keys can be used multiple times to define sanitation policy rules.
+[markup.sanitizer.1]
+; The following keys can appear once to define a sanitation policy rule.
+; This section can appear multiple times by adding a unique alphanumeric suffix to define multiple rules.
+; e.g., [markup.sanitizer.1] -> [markup.sanitizer.2] -> [markup.sanitizer.TeX]
 ;ELEMENT = span
 ;ALLOW_ATTR = class
 ;REGEXP = ^(info|warning|error)$
