@@ -121,7 +121,12 @@ func (g *GithubDownloaderV3) sleep() {
 		timer := time.NewTimer(time.Until(g.rate.Reset.Time))
 		select {
 		case <-g.ctx.Done():
-			timer.Stop()
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
 			return
 		case <-timer.C:
 		}

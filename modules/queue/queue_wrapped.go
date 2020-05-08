@@ -88,7 +88,12 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 			t := time.NewTimer(sleepTime)
 			select {
 			case <-ctx.Done():
-				t.Stop()
+				if !t.Stop() {
+					select {
+					case <-t.C:
+					default:
+					}
+				}
 			case <-t.C:
 			}
 		}

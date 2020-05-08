@@ -92,7 +92,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 		p.lock.Unlock()
 		select {
 		case p.dataChan <- data:
-			if timer.Stop() {
+			if !timer.Stop() {
 				select {
 				case <-timer.C:
 				default:
@@ -353,7 +353,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 			timer := time.NewTimer(delay)
 			select {
 			case <-ctx.Done():
-				if timer.Stop() {
+				if !timer.Stop() {
 					select {
 					case <-timer.C:
 					default:
@@ -367,7 +367,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				log.Trace("Worker shutting down")
 				return
 			case datum, ok := <-p.dataChan:
-				if timer.Stop() {
+				if !timer.Stop() {
 					select {
 					case <-timer.C:
 					default:
