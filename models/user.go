@@ -715,13 +715,24 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
+	schema, err := x.TableInfo(new(User))
+	if err != nil {
+		return err
+	}
+	groupByCols := &strings.Builder{}
+	for _, col := range schema.Columns() {
+		fmt.Fprintf(groupByCols, "`%s`.%s,", schema.Name, col.Name)
+	}
+	groupByStr := groupByCols.String()
+	groupByStr = groupByStr[0 : len(groupByStr)-1]
+
 	sess.Select("`user`.*, count(`repository`.id) as org_count").
 		Table("user").
 		Join("INNER", "org_user", "`org_user`.org_id=`user`.id").
 		Join("INNER", "repository", "`repository`.owner_id = `org_user`.org_id").
 		Where(accessibleRepositoryCondition(u)).
 		And("`org_user`.uid=?", u.ID).
-		GroupBy("`user`.id")
+		GroupBy(groupByStr)
 	if opts.PageSize != 0 {
 		sess = opts.setSessionPagination(sess)
 	}
