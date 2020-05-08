@@ -49,9 +49,7 @@ func waitForCount(t *testing.T, num int) {
 }
 
 func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
-	var numQueued int
-
-	numQueued = len(archiveInProgress)
+	numQueued := len(archiveInProgress)
 
 	// Release one, then WaitForCompletion.  We'll get signalled when ready.
 	// This works out to be quick and race-free, as we'll get signalled when the
