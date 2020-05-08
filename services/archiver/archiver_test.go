@@ -75,6 +75,9 @@ func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
 func TestArchive_Basic(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
 
+	// Create a new context here, because we may want to use locks or need other
+	// initial state here.
+	NewContext()
 	archiveQueueMutex = &queueMutex
 	archiveQueueStartCond = sync.NewCond(&queueMutex)
 	archiveQueueReleaseCond = sync.NewCond(&queueMutex)
