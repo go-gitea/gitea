@@ -49,27 +49,23 @@ func waitForCount(t *testing.T, num int) {
 }
 
 func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
-	var nowQueued, numQueued int
+	var numQueued int
 
 	numQueued = len(archiveInProgress)
 
-	// Release one, then wait up to 10 seconds for it to complete.
-	queueMutex.Lock()
+	// Release one, then WaitForCompletion.  We'll get signalled when ready.
+	// This works out to be quick and race-free, as we'll get signalled when the
+	// archival goroutine proceeds to dequeue the now-complete archive but we
+	// can't pick up the queue lock again until it's done removing it from
+	// archiveInProgress.  We'll remain waiting on the queue lock in
+	// WaitForCompletion() until we can safely acquire the lock.
+	LockQueue()
 	archiveQueueReleaseCond.Signal()
-	queueMutex.Unlock()
-	timeout := time.Now().Add(10 * time.Second)
-	for {
-		nowQueued = len(archiveInProgress)
-		if nowQueued != numQueued || time.Now().After(timeout) {
-			break
-		}
-	}
-
-	// Make sure we didn't just timeout.
-	assert.NotEqual(t, numQueued, nowQueued)
+	WaitForCompletion()
+	UnlockQueue()
 
 	// Also make sure that we released only one.
-	assert.Equal(t, numQueued-1, nowQueued)
+	assert.Equal(t, numQueued-1, len(archiveInProgress))
 }
 
 func TestArchive_Basic(t *testing.T) {
@@ -187,15 +183,7 @@ func TestArchive_Basic(t *testing.T) {
 	assert.Equal(t, 2, len(archiveInProgress))
 	releaseOneEntry(t, inFlight)
 	assert.Equal(t, 1, len(archiveInProgress))
-
-	// Test waiting for completion on one, which should be relatively
-	// straightforward.  We'll hold the queue-lock and release an entry.  It will
-	// wait to acquire the queue lock, which we'll drop when we
-	// WaitForCompletion(), to be woken up later.
-	LockQueue()
 	releaseOneEntry(t, inFlight)
-	WaitForCompletion()
-	UnlockQueue()
 	assert.Equal(t, 0, len(archiveInProgress))
 
 	zipReq2 = DeriveRequestFrom(ctx, firstCommit+".zip")
