@@ -12,6 +12,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -36,11 +37,11 @@ type ArchiveRequest struct {
 	archiveType     git.ArchiveType
 	archiveComplete bool
 	commit          *git.Commit
+	cchan           chan bool
 }
 
 var archiveInProgress []*ArchiveRequest
 var archiveMutex sync.Mutex
-var archiveCond *sync.Cond
 
 // These facilitate testing, by allowing the unit tests to control (to some extent)
 // the goroutine used for processing the queue.
@@ -62,6 +63,27 @@ func (aReq *ArchiveRequest) GetArchiveName() string {
 // IsComplete returns the completion status of this request.
 func (aReq *ArchiveRequest) IsComplete() bool {
 	return aReq.archiveComplete
+}
+
+// WaitForCompletion will wait for this request to complete, with no timeout.
+// It returns whether the archive was actually completed, as the channel could
+// have also been closed due to an error.
+func (aReq *ArchiveRequest) WaitForCompletion() bool {
+	_, _ = <-aReq.cchan
+	return aReq.IsComplete()
+}
+
+// TimedWaitForCompletion will wait for this request to complete, with timeout
+// happening after the specified Duration.  It returns whether the archive is
+// now complete and whether we hit the timeout or not.  The latter may not be
+// useful if the request is complete.
+func (aReq *ArchiveRequest) TimedWaitForCompletion(dur time.Duration) (bool, bool) {
+	select {
+	case <-time.After(dur):
+		return aReq.IsComplete(), true
+	case <-aReq.cchan:
+		return aReq.IsComplete(), false
+	}
 }
 
 // The caller must hold the archiveMutex across calls to getArchiveRequest.
@@ -172,6 +194,7 @@ func doArchive(r *ArchiveRequest) {
 	tmpArchive, err = ioutil.TempFile("", "archive")
 	if err != nil {
 		log.Error("Unable to create a temporary archive file! Error: %v", err)
+		close(r.cchan)
 		return
 	}
 	defer func() {
@@ -184,18 +207,21 @@ func doArchive(r *ArchiveRequest) {
 		Prefix: setting.Repository.PrefixArchiveFiles,
 	}); err != nil {
 		log.Error("Download -> CreateArchive "+tmpArchive.Name(), err)
+		close(r.cchan)
 		return
 	}
 
 	// Now we copy it into place
 	if destArchive, err = os.Create(r.archivePath); err != nil {
 		log.Error("Unable to open archive " + r.archivePath)
+		close(r.cchan)
 		return
 	}
 	_, err = io.Copy(destArchive, tmpArchive)
 	destArchive.Close()
 	if err != nil {
 		log.Error("Unable to write archive " + r.archivePath)
+		close(r.cchan)
 		return
 	}
 
@@ -223,6 +249,7 @@ func ArchiveRepository(request *ArchiveRequest) *ArchiveRequest {
 		return request
 	}
 
+	request.cchan = make(chan bool)
 	archiveInProgress = append(archiveInProgress, request)
 	archiveMutex.Unlock()
 	go func() {
@@ -255,10 +282,10 @@ func ArchiveRepository(request *ArchiveRequest) *ArchiveRequest {
 		// correctness.
 		archiveMutex.Lock()
 		defer archiveMutex.Unlock()
-		// Wake up all other goroutines that may be waiting on a request to
-		// complete.  They should all wake up, see if that particular request
-		// is complete, then return to waiting if it is not.
-		archiveCond.Broadcast()
+
+		// Close the channel to indicate to potential waiters that this request
+		// has finished.
+		close(request.cchan)
 
 		idx := -1
 		for _idx, req := range archiveInProgress {
@@ -279,31 +306,4 @@ func ArchiveRepository(request *ArchiveRequest) *ArchiveRequest {
 	}()
 
 	return request
-}
-
-// LockQueue will obtain the archiveMutex for the caller.  This allows the
-// underlying locking mechanism to remain opaque.
-func LockQueue() {
-	archiveMutex.Lock()
-}
-
-// UnlockQueue will release the archiveMutex for the caller, again allowing the
-// underlying locking mechanism to remain opaque.
-func UnlockQueue() {
-	archiveMutex.Unlock()
-}
-
-// WaitForCompletion should be called with the queue locked (LockQueue), and will
-// return with the queue lock held when a single archive request has finished.
-// There is currently no API for getting notified of a particular request being
-// completed.
-func WaitForCompletion() {
-	archiveCond.Wait()
-}
-
-// NewContext will initialize local state, e.g. primitives needed to be able to
-// synchronize with the lock queue and allow callers to wait for an archive to
-// finish.
-func NewContext() {
-	archiveCond = sync.NewCond(&archiveMutex)
 }
