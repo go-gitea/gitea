@@ -614,7 +614,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, reqToken())
 
 		// Repositories
-		m.Post("/org/:org/repos", reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepoDeprecated)
+		m.Post("/org/:orgname/repos", reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepoDeprecated)
 
 		m.Combo("/repositories/:id", reqToken()).Get(repo.GetByID)
 

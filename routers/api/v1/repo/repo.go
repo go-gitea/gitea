@@ -331,7 +331,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	org, err := models.GetOrgByName(ctx.Params(":org"))
+	org, err := models.GetOrgByName(ctx.Params(":orgname"))
 	if err != nil {
 		if models.IsErrOrgNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
