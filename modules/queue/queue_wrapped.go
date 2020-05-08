@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // WrappedQueueType is the type for a wrapped delayed starting queue
@@ -88,7 +89,7 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 			t := time.NewTimer(sleepTime)
 			select {
 			case <-ctx.Done():
-				t.Stop()
+				util.StopTimer(t)
 			case <-t.C:
 			}
 		}
