@@ -23,16 +23,6 @@ func TestMain(m *testing.M) {
 	models.MainTest(m, filepath.Join("..", ".."))
 }
 
-func allComplete(inFlight []*ArchiveRequest) bool {
-	for _, req := range inFlight {
-		if !req.IsComplete() {
-			return false
-		}
-	}
-
-	return true
-}
-
 func waitForCount(t *testing.T, num int) {
 	var numQueued int
 

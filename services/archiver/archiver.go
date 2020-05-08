@@ -69,7 +69,7 @@ func (aReq *ArchiveRequest) IsComplete() bool {
 // It returns whether the archive was actually completed, as the channel could
 // have also been closed due to an error.
 func (aReq *ArchiveRequest) WaitForCompletion() bool {
-	_, _ = <-aReq.cchan
+	<-aReq.cchan
 	return aReq.IsComplete()
 }
 
