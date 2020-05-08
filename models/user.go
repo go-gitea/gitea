@@ -720,7 +720,7 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 		Join("INNER", "repository", "`repository`.owner_id = `org_user`.org_id").
 		Where(accessibleRepositoryCondition(u)).
 		And("`org_user`.uid=?", u.ID).
-		GroupBy("`repository`.owner_id")
+		GroupBy("`user`.id")
 	if opts.PageSize != 0 {
 		sess = opts.setSessionPagination(sess)
 	}
