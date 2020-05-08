@@ -8,7 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * BUGFIXES
   * When delete tracked time through the API return 404 not 500 (#11319) (#11326)
-  * Prevent multiple listings of organization when creating a repository (#11303) (#11325)
+  * Prevent duplicate records in organizations list when creating a repository (#11303) (#11325)
   * Manage port in submodule refurl (#11305) (#11323)
   * api.Context.NotFound(...) should tolerate nil (#11288) (#11306)
   * Show pull request selection even when unrelated branches (#11239) (#11283)
@@ -26,8 +26,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix rebase conflict detection in git 2.26 (#10929) (#10930)
 * ENHANCEMENT
   * Fix 404 and 500 image size in small size screen (#11043) (#11049)
-* BUILD
-  * Mulitple Gitea Doctor improvements (#10943) (#10990) (#10064) (#9095) (#10991)
+  * Multiple Gitea Doctor improvements (#10943) (#10990) (#10064) (#9095) (#10991)
 
 ## [1.11.4](https://github.com/go-gitea/gitea/releases/tag/v1.11.4) - 2020-04-01
 
