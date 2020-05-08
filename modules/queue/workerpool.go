@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // WorkerPool takes
@@ -56,12 +57,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 		p.lock.Unlock()
 		select {
 		case p.dataChan <- data:
-			if timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
+			util.StopTimer(timer)
 		case <-timer.C:
 			p.lock.Lock()
 			if p.blockTimeout > ourTimeout || (p.numberOfWorkers > p.maxNumberOfWorkers && p.maxNumberOfWorkers >= 0) {
@@ -277,12 +273,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 			timer := time.NewTimer(delay)
 			select {
 			case <-ctx.Done():
-				if timer.Stop() {
-					select {
-					case <-timer.C:
-					default:
-					}
-				}
+				util.StopTimer(timer)
 				if len(data) > 0 {
 					log.Trace("Handling: %d data, %v", len(data), data)
 					p.handle(data...)
@@ -290,12 +281,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				log.Trace("Worker shutting down")
 				return
 			case datum, ok := <-p.dataChan:
-				if timer.Stop() {
-					select {
-					case <-timer.C:
-					default:
-					}
-				}
+				util.StopTimer(timer)
 				if !ok {
 					// the dataChan has been closed - we should finish up:
 					if len(data) > 0 {
