@@ -124,6 +124,12 @@ func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Re
 	}
 }
 
+func (r *indexerNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	if setting.Indexer.RepoIndexerEnabled && refName == git.BranchPrefix+repo.DefaultBranch {
+		code_indexer.UpdateRepoIndexer(repo)
+	}
+}
+
 func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
