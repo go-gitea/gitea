@@ -4,9 +4,13 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.11.5](https://github.com/go-gitea/gitea/releases/tag/v1.11.5) - 2020-05-08
+## [1.11.5](https://github.com/go-gitea/gitea/releases/tag/v1.11.5) - 2020-05-09
 
 * BUGFIXES
+  * Prevent timer leaks in Workerpool and others (#11333) (#11340)
+  * Fix tracked time issues (#11349) (#11354)
+  * Add NotifySyncPushCommits to indexer notifier (#11309) (#11338)
+  * Allow X in addition to x in tasks (#10979) (#11335)
   * When delete tracked time through the API return 404 not 500 (#11319) (#11326)
   * Prevent duplicate records in organizations list when creating a repository (#11303) (#11325)
   * Manage port in submodule refurl (#11305) (#11323)
