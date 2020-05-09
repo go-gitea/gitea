@@ -1,3 +1,0 @@
-#!/bin/bash
-
-$SNAP/bin/gconfig configure
