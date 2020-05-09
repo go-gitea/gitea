@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -519,4 +520,169 @@ func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullR
 	}
 
 	return review, pr, false
+}
+
+// CreatReviewRequests create review requests to an pull request
+func CreatReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoCreatePullReviewRequests
+	// ---
+	// summary: create review requests to an pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/PullReviewRequestOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReviewRequestResult"
+	//   "422":
+	//     "$ref": "#/responses/PullReviewRequestResult"
+	apiReviewRequest(ctx, opts, true)
+}
+
+// DeletReviewRequests delet review requests to an pull request
+func DeletReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoDeletPullReviewRequests
+	// ---
+	// summary: delet review requests to an pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/PullReviewRequestOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReviewRequestResult"
+	//   "422":
+	//     "$ref": "#/responses/PullReviewRequestResult"
+	apiReviewRequest(ctx, opts, false)
+}
+
+func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions, isAdd bool) {
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound("GetPullRequestByIndex", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	if err := pr.Issue.LoadRepo(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "pr.Issue.LoadRepo", err)
+		return
+	}
+
+	reviews := make([]*api.PullReview, 0, len(opts.Reviewers))
+	reviewerErrs := make([]*api.PullReviewRequestErr, 0, 5)
+
+	for _, r := range opts.Reviewers {
+		var reviewer *models.User
+		if strings.Contains(r, "@") {
+			reviewer, err = models.GetUserByEmail(r)
+		} else {
+			reviewer, err = models.GetUserByName(r)
+		}
+
+		if err != nil {
+			reviewerErrs = append(reviewerErrs, &api.PullReviewRequestErr{
+				Reviewer: r,
+				Error:    err.Error(),
+			})
+			continue
+		}
+
+		err = issue_service.IsLegalReviewRequest(reviewer, ctx.User, isAdd, pr.Issue)
+		if err != nil {
+			reviewerErrs = append(reviewerErrs, &api.PullReviewRequestErr{
+				Reviewer: r,
+				Error:    err.Error(),
+			})
+			continue
+		}
+
+		comment, err := issue_service.ReviewRequest(pr.Issue, ctx.User, reviewer, isAdd)
+		if err != nil {
+			ctx.ServerError("ReviewRequest", err)
+			return
+		}
+
+		if comment != nil {
+			if err = comment.LoadReview(); err != nil {
+				ctx.ServerError("ReviewRequest", err)
+				return
+			}
+		} else {
+			if isAdd {
+				reviewerErrs = append(reviewerErrs, &api.PullReviewRequestErr{
+					Reviewer: r,
+					Error:    "Has been requested to review",
+				})
+			} else {
+				reviewerErrs = append(reviewerErrs, &api.PullReviewRequestErr{
+					Reviewer: r,
+					Error:    "Haven't been requested to review",
+				})
+			}
+			continue
+		}
+
+		apiReview, err := convert.ToPullReview(comment.Review, ctx.User)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "convertToPullReview", err)
+			return
+		}
+		reviews = append(reviews, apiReview)
+	}
+
+	if len(reviewerErrs) == 0 {
+		ctx.JSON(http.StatusOK, &api.PullReviewRequestResult{
+			Successes: reviews,
+			Failures:  reviewerErrs,
+		})
+	} else {
+		ctx.JSON(http.StatusUnprocessableEntity, &api.PullReviewRequestResult{
+			Successes: reviews,
+			Failures:  reviewerErrs,
+		})
+	}
 }

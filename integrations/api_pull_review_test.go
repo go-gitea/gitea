@@ -118,3 +118,79 @@ func TestAPIPullReview(t *testing.T) {
 	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token)
 	resp = session.MakeRequest(t, req, http.StatusNoContent)
 }
+
+func TestAPIPullReviewRequest(t *testing.T) {
+	defer prepareTestEnv(t)()
+	pullIssue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
+	assert.NoError(t, pullIssue.LoadAttributes())
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
+
+	var result api.PullReviewRequestResult
+
+	// Test add Review Request
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user1", "user3"},
+	})
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &result)
+
+	assert.EqualValues(t, 0, len(result.Failures))
+	assert.EqualValues(t, 2, len(result.Successes))
+
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user2", "user3", "user4@example.com", "testOther"},
+	})
+	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	DecodeJSON(t, resp, &result)
+
+	assert.EqualValues(t, 3, len(result.Failures))
+	assert.EqualValues(t, 1, len(result.Successes))
+
+	assert.Contains(t, result.Failures[0].Error, "doer can't be reviewer")
+	assert.Contains(t, result.Failures[1].Error, "Has been requested to review")
+	assert.Contains(t, result.Failures[2].Error, "user does not exist")
+	assert.EqualValues(t, 4, result.Successes[0].ID)
+
+	// Test Remove Review Request
+	session2 := loginUser(t, "user3")
+	token2 := getTokenForLoggedInUser(t, session2)
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user2", "user3", "testOther"},
+	})
+	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	DecodeJSON(t, resp, &result)
+	assert.EqualValues(t, 2, len(result.Failures))
+	assert.EqualValues(t, 1, len(result.Successes))
+
+	assert.Contains(t, result.Failures[0].Error, "Doer is not admin")
+	assert.Contains(t, result.Failures[1].Error, "user does not exist")
+	assert.EqualValues(t, 3, result.Successes[0].ID)
+
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user2"},
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &result)
+
+	assert.EqualValues(t, 0, len(result.Failures))
+	assert.EqualValues(t, 1, len(result.Successes))
+
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user1", "user2", "user4"},
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &result)
+	assert.EqualValues(t, 0, len(result.Failures))
+	assert.EqualValues(t, 3, len(result.Successes))
+
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user1"},
+	})
+	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	DecodeJSON(t, resp, &result)
+	assert.EqualValues(t, 1, len(result.Failures))
+	assert.EqualValues(t, 0, len(result.Successes))
+	assert.Contains(t, result.Failures[0].Error, "Haven't been requested to review")
+}

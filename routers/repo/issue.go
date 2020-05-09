@@ -1319,72 +1319,6 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	})
 }
 
-func isLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue) error {
-	if reviewer.IsOrganization() {
-		return fmt.Errorf("Organization can't be added as reviewer [user_id: %d, repo_id: %d]", reviewer.ID, issue.PullRequest.BaseRepo.ID)
-	}
-	if doer.IsOrganization() {
-		return fmt.Errorf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.PullRequest.BaseRepo.ID)
-	}
-
-	permReviewer, err := models.GetUserRepoPermission(issue.Repo, reviewer)
-	if err != nil {
-		return err
-	}
-
-	permDoer, err := models.GetUserRepoPermission(issue.Repo, doer)
-	if err != nil {
-		return err
-	}
-
-	lastreview, err := models.GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
-	if err != nil {
-		return err
-	}
-
-	var pemResult bool
-	if isAdd {
-		pemResult = permReviewer.CanAccessAny(models.AccessModeRead, models.UnitTypePullRequests)
-		if !pemResult {
-			return fmt.Errorf("Reviewer can't read [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
-		}
-
-		if doer.ID == issue.PosterID && lastreview != nil && lastreview.Type != models.ReviewTypeRequest {
-			return nil
-		}
-
-		pemResult = permDoer.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
-		if !pemResult {
-			pemResult, err = models.IsOfficialReviewer(issue, doer)
-			if err != nil {
-				return err
-			}
-			if !pemResult {
-				return fmt.Errorf("Doer can't choose reviewer [user_id: %d, repo_name: %s, issue_id: %d]", doer.ID, issue.Repo.Name, issue.ID)
-			}
-		}
-
-		if doer.ID == reviewer.ID {
-			return fmt.Errorf("doer can't be reviewer [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
-		}
-
-		if reviewer.ID == issue.PosterID {
-			return fmt.Errorf("poster of pr can't be reviewer [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
-		}
-	} else {
-		if lastreview.Type == models.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
-			return nil
-		}
-
-		pemResult = permDoer.IsAdmin()
-		if !pemResult {
-			return fmt.Errorf("Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
-		}
-	}
-
-	return nil
-}
-
 // updatePullReviewRequest change pull's request reviewers
 func updatePullReviewRequest(ctx *context.Context) {
 	issues := getActionIssues(ctx)
@@ -1409,13 +1343,13 @@ func updatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = isLegalReviewRequest(reviewer, ctx.User, event == "add", issue)
+			err = issue_service.IsLegalReviewRequest(reviewer, ctx.User, event == "add", issue)
 			if err != nil {
 				ctx.ServerError("isLegalRequestReview", err)
 				return
 			}
 
-			err = issue_service.ReviewRequest(issue, ctx.User, reviewer, event == "add")
+			_, err = issue_service.ReviewRequest(issue, ctx.User, reviewer, event == "add")
 			if err != nil {
 				ctx.ServerError("ReviewRequest", err)
 				return

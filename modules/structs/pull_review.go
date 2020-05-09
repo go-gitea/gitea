@@ -90,3 +90,20 @@ type SubmitPullReviewOptions struct {
 	Event ReviewStateType `json:"event"`
 	Body  string          `json:"body"`
 }
+
+// PullReviewRequestOptions are options to add or remove pull review request
+type PullReviewRequestOptions struct {
+	Reviewers []string `json:"reviewers"`
+}
+
+// PullReviewRequestErr are error result for add or remove pull review request
+type PullReviewRequestErr struct {
+	Reviewer string `json:"reviewer"`
+	Error    string `json:"error"`
+}
+
+// PullReviewRequestResult results for add or remove pull review request
+type PullReviewRequestResult struct {
+	Successes []*PullReview
+	Failures []*PullReviewRequestErr
+}

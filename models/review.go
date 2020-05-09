@@ -520,7 +520,7 @@ func AddReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Commen
 		}
 	}
 
-	_, err = createReview(sess, CreateReviewOptions{
+	review, err = createReview(sess, CreateReviewOptions{
 		Type:     ReviewTypeRequest,
 		Issue:    issue,
 		Reviewer: reviewer,
@@ -539,6 +539,7 @@ func AddReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Commen
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
+		ReviewID:        review.ID,
 	})
 
 	if err != nil {
@@ -604,6 +605,8 @@ func RemoveReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 		RemovedAssignee: true,        // Use RemovedAssignee as !isRequest
 		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
 	})
+
+	comment.Review = review
 
 	if err != nil {
 		return nil, err
@@ -682,6 +685,10 @@ func DeleteReview(r *Review) error {
 
 	if r.ID == 0 {
 		return fmt.Errorf("review is not allowed to be 0")
+	}
+
+	if r.Type == ReviewTypeRequest {
+		return fmt.Errorf("Can't delet review request by this way")
 	}
 
 	opts := FindCommentsOptions{

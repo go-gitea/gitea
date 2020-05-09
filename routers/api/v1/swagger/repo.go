@@ -169,6 +169,13 @@ type swaggerResponsePullReviewCommentList struct {
 	Body []api.PullReviewComment `json:"body"`
 }
 
+// PullReviewRequest
+// swagger:response PullReviewRequestResult
+type swaggerResponsePullReviewRequest struct {
+	// in:body
+	Body []api.PullReviewRequestOptions `json:"body"`
+}
+
 // Status
 // swagger:response Status
 type swaggerResponseStatus struct {

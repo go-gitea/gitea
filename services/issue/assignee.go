@@ -5,6 +5,8 @@
 package issue
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/notification"
 )
@@ -53,8 +55,7 @@ func ToggleAssignee(issue *models.Issue, doer *models.User, assigneeID int64) (r
 }
 
 // ReviewRequest add or remove a review for this PR, and make comment for it.
-func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User, isAdd bool) (err error) {
-	var comment *models.Comment
+func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User, isAdd bool) (comment *models.Comment, err error) {
 	if isAdd {
 		comment, err = models.AddReviewRequest(issue, reviewer, doer)
 	} else {
@@ -67,6 +68,69 @@ func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User
 
 	if comment != nil {
 		notification.NotifyPullReviewRequest(doer, issue, reviewer, isAdd, comment)
+	}
+
+	return
+}
+
+// IsLegalReviewRequest check review request permission
+func IsLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue) error {
+	if reviewer.IsOrganization() {
+		return fmt.Errorf("Organization can't be added as reviewer [user_id: %d, repo_id: %d]", reviewer.ID, issue.PullRequest.BaseRepo.ID)
+	}
+	if doer.IsOrganization() {
+		return fmt.Errorf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.PullRequest.BaseRepo.ID)
+	}
+
+	permReviewer, err := models.GetUserRepoPermission(issue.Repo, reviewer)
+	if err != nil {
+		return err
+	}
+
+	permDoer, err := models.GetUserRepoPermission(issue.Repo, doer)
+	if err != nil {
+		return err
+	}
+
+	lastreview, err := models.GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
+	if err != nil {
+		return err
+	}
+
+	var pemResult bool
+	if isAdd {
+		pemResult = permReviewer.CanAccessAny(models.AccessModeRead, models.UnitTypePullRequests)
+		if !pemResult {
+			return fmt.Errorf("Reviewer can't read [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
+		}
+
+		pemResult = permDoer.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
+		if !pemResult {
+			pemResult, err = models.IsOfficialReviewer(issue, doer)
+			if err != nil {
+				return err
+			}
+			if !pemResult {
+				return fmt.Errorf("Doer can't choose reviewer [user_id: %d, repo_name: %s, issue_id: %d]", doer.ID, issue.Repo.Name, issue.ID)
+			}
+		}
+
+		if doer.ID == reviewer.ID {
+			return fmt.Errorf("doer can't be reviewer [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
+		}
+
+		if reviewer.ID == issue.PosterID {
+			return fmt.Errorf("poster of pr can't be reviewer [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
+		}
+	} else {
+		if lastreview.Type == models.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
+			return nil
+		}
+
+		pemResult = permDoer.IsAdmin()
+		if !pemResult {
+			return fmt.Errorf("Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
+		}
 	}
 
 	return nil
