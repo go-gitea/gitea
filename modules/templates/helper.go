@@ -284,9 +284,10 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"NotificationSettings": func() map[string]int {
 			return map[string]int{
-				"MinTimeout":  int(setting.UI.Notification.MinTimeout / time.Millisecond),
-				"TimeoutStep": int(setting.UI.Notification.TimeoutStep / time.Millisecond),
-				"MaxTimeout":  int(setting.UI.Notification.MaxTimeout / time.Millisecond),
+				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
+				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
+				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
 			}
 		},
 		"contain": func(s []int64, id int64) bool {
