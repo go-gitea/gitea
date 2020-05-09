@@ -324,6 +324,10 @@ func DeleteTime(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimeByID", err)
 		return
 	}
+	if time.Deleted {
+		ctx.NotFound(fmt.Errorf("tracked time [%d] already deleted", time.ID))
+		return
+	}
 
 	if !ctx.User.IsAdmin && time.UserID != ctx.User.ID {
 		//Only Admin and User itself can delete their time
