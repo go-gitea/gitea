@@ -260,6 +260,10 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
+	if err := t.loadAttributes(sess); err != nil {
+		return err
+	}
+
 	if err := deleteTime(sess, t); err != nil {
 		return err
 	}
