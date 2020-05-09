@@ -105,5 +105,5 @@ type PullReviewRequestErr struct {
 // PullReviewRequestResult results for add or remove pull review request
 type PullReviewRequestResult struct {
 	Successes []*PullReview
-	Failures []*PullReviewRequestErr
+	Failures  []*PullReviewRequestErr
 }
