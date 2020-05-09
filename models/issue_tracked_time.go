@@ -307,7 +307,7 @@ func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
 	has, err := x.ID(id).Get(time)
 	if err != nil {
 		return nil, err
-	} else if !has || time.Deleted {
+	} else if !has {
 		return nil, ErrNotExist{ID: id}
 	}
 	return time, nil

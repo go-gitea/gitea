@@ -82,7 +82,7 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	//Reset time of user 2 on issue 2
 	trackedSeconds, err := models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(3662), trackedSeconds)
+	assert.Equal(t, int64(3661), trackedSeconds)
 
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
