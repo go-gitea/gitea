@@ -11,6 +11,11 @@ confinement: strict
 base: core18
 adopt-info: gitea
 
+architectures:
+  - build-on: armhf
+  - build-on: amd64
+  - build-on: arm64
+
 environment:
   GITEA_CUSTOM: "$SNAP_COMMON"
   GITEA_WORK_DIR: "$SNAP_DATA"
