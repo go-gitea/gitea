@@ -273,6 +273,10 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
+	if err := t.loadAttributes(sess); err != nil {
+		return err
+	}
+
 	if err := deleteTime(sess, t); err != nil {
 		return err
 	}
@@ -312,10 +316,8 @@ func deleteTime(e Engine, t *TrackedTime) error {
 
 // GetTrackedTimeByID returns raw TrackedTime without loading attributes by id
 func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
-	time := &TrackedTime{
-		ID: id,
-	}
-	has, err := x.Get(time)
+	time := new(TrackedTime)
+	has, err := x.ID(id).Get(time)
 	if err != nil {
 		return nil, err
 	} else if !has {
