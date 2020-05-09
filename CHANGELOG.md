@@ -8,6 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * BUGFIXES
   * Prevent timer leaks in Workerpool and others (#11333) (#11340)
+  * Fix tracked time issues (#11349) (#11354)
   * Add NotifySyncPushCommits to indexer notifier (#11309) (#11338)
   * Allow X in addition to x in tasks (#10979) (#11335)
   * When delete tracked time through the API return 404 not 500 (#11319) (#11326)
