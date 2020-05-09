@@ -18,6 +18,11 @@ func Size(m Message) int {
 
 // Size returns the size in bytes of the wire-format encoding of m.
 func (o MarshalOptions) Size(m Message) int {
+	// Treat a nil message interface as an empty message; nothing to output.
+	if m == nil {
+		return 0
+	}
+
 	return sizeMessage(m.ProtoReflect())
 }
 
