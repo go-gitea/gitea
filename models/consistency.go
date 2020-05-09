@@ -268,18 +268,18 @@ func DeleteCorruptIssues() error {
 
 // CountCorruptObject count subjects with have no existing refobject anymore
 func CountCorruptObject(subject, refobject, joinCond string) (int64, error) {
-	return x.Table(subject).
+	return x.Table("`"+subject+"`").
 		Join("LEFT", refobject, joinCond).
-		Where(refobject + ".id is NULL").
+		Where("`" + refobject + "`.id is NULL").
 		Count("id")
 }
 
 // DeleteCorruptObject delete subjects with have no existing refobject anymore
 func DeleteCorruptObject(subject, refobject, joinCond string) error {
-	_, err := x.In("id", builder.Select(subject+".id").
-		From(subject).
-		Join("LEFT", refobject, joinCond).
-		Where(builder.IsNull{refobject + ".id"})).
-		Delete(subject)
+	_, err := x.In("id", builder.Select("`"+subject+"`.id").
+		From("`"+subject+"`").
+		Join("LEFT", "`"+refobject+"`", joinCond).
+		Where(builder.IsNull{"`" + refobject + "`.id"})).
+		Delete("`" + subject + "`")
 	return err
 }
