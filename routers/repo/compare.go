@@ -163,7 +163,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 
 	// The current base and head repositories and branches may not
 	// actually be the intended branches that the user wants to
-	// create a pull-request from - but also determinining the head
+	// create a pull-request from - but also determining the head
 	// repo is difficult.
 
 	// We will want therefore to offer a few repositories to set as
