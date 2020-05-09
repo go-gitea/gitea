@@ -718,6 +718,21 @@ func getNotificationCount(e Engine, user *User, status NotificationStatus) (coun
 	return
 }
 
+// UserIDCount is a simple coalition of UserID and Count
+type UserIDCount struct {
+	UserID int64
+	Count  int64
+}
+
+// GetUIDsAndNotificationCounts between the two provided times
+func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCount, error) {
+	sql := `SELECT user_id, count(*) AS count FROM notification ` +
+		`WHERE user_id IN (SELECT user_id FROM notification WHERE updated_unix >= ? AND ` +
+		`updated_unix < ?) AND status = ? GROUP BY user_id`
+	var res []UserIDCount
+	return res, x.SQL(sql, since, until, NotificationStatusUnread).Find(&res)
+}
+
 func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
 	notification, err := getIssueNotification(e, userID, issueID)
 	// ignore if not exists

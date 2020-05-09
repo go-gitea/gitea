@@ -317,7 +317,15 @@ func DeleteTime(ctx *context.APIContext) {
 
 	time, err := models.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
 	if err != nil {
+		if models.IsErrNotExist(err) {
+			ctx.NotFound(err)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimeByID", err)
+		return
+	}
+	if time.Deleted {
+		ctx.NotFound(fmt.Errorf("tracked time [%d] already deleted", time.ID))
 		return
 	}
 
