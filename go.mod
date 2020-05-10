@@ -54,7 +54,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
 	github.com/huandu/xstrings v1.3.0
 	github.com/issue9/assert v1.3.2 // indirect
-	github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
+	github.com/issue9/identicon v1.0.1
 	github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect

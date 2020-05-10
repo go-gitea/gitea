@@ -372,10 +372,11 @@ github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpO
 github.com/huandu/xstrings v1.3.0 h1:gvV6jG9dTgFEncxo+AF7PH6MZXi/vZl25owA/8Dg8Wo=
 github.com/huandu/xstrings v1.3.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
+github.com/issue9/assert v1.3.1/go.mod h1:9Ger+iz8X7r1zMYYwEhh++2wMGWcNN2oVI+zIQXxcio=
 github.com/issue9/assert v1.3.2 h1:IaTa37u4m1fUuTH9K9ldO5IONKVDXjLiUO1T9vj0OF0=
 github.com/issue9/assert v1.3.2/go.mod h1:9Ger+iz8X7r1zMYYwEhh++2wMGWcNN2oVI+zIQXxcio=
-github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c h1:A/PDn117UYld5mlxe58EpMguqpkeTMw5/FCo0ZPS/Ko=
-github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c/go.mod h1:5mTb/PQNkqmq2x3IxlQZE0aSnTksJg7fg/oWmJ5SKXQ=
+github.com/issue9/identicon v1.0.1 h1:pCDfjMDM6xWK0Chxo8Lif+ST/nOEtmXgMITgV1YA9Og=
+github.com/issue9/identicon v1.0.1/go.mod h1:UKNVkUFI68RPz/RlLhsAr1aX6bBSaYEWRHVfdjrMUmk=
 github.com/jarcoal/httpmock v0.0.0-20180424175123-9c70cfe4a1da/go.mod h1:ks+b9deReOc7jgqp+e7LuFiCBH6Rm5hL32cLcEAArb4=
 github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d h1:ig/iUfDDg06RVW8OMby+GrmW6K2nPO3AFHlEIdvJSd4=
 github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d/go.mod h1:CVKlgaMiht+LXvHG173ujK6JUhZXKb2u/BQtjPDIvyk=
