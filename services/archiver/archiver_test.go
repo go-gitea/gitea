@@ -175,21 +175,24 @@ func TestArchive_Basic(t *testing.T) {
 	releaseOneEntry(t, inFlight)
 	assert.Equal(t, 0, len(archiveInProgress))
 
-	// Now we'll submit a request and TimedWaitForCompletion twice:
-	// 1. With an incredibly small timeout, and
-	// 2. With a reasonable timeout
-	// We should trigger both the timeout and non-timeout cases.
+	// Now we'll submit a request and TimedWaitForCompletion twice, before and
+	// after we release it.  We should trigger both the timeout and non-timeout
+	// cases.
 	var completed, timedout bool
 	timedReq := DeriveRequestFrom(ctx, secondCommit+".tar.gz")
 	assert.NotNil(t, timedReq)
 	ArchiveRepository(timedReq)
 
-	// Unreasonable: 5us
-	completed, timedout = timedReq.TimedWaitForCompletion(5 * time.Microsecond)
+	// Guaranteed to timeout; we haven't signalled the request to start..
+	completed, timedout = timedReq.TimedWaitForCompletion(2 * time.Second)
 	assert.Equal(t, false, completed)
 	assert.Equal(t, true, timedout)
 
-	// Reasonable: 15s
+	queueMutex.Lock()
+	archiveQueueStartCond.Broadcast()
+	queueMutex.Unlock()
+
+	// Shouldn't timeout, we've now signalled it and it's a small request.
 	completed, timedout = timedReq.TimedWaitForCompletion(15 * time.Second)
 	assert.Equal(t, true, completed)
 	assert.Equal(t, false, timedout)
