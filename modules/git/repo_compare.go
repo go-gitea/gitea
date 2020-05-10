@@ -89,7 +89,6 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 		return nil, err
 	}
 	compareInfo.NumFiles = len(strings.Split(stdout, "\n")) - 1
-
 	return compareInfo, nil
 }
 

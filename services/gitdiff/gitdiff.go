@@ -713,7 +713,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	}
 
 	if err = cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("Wait: %v", err)
+		return nil, fmt.Errorf("Wait: %s %s %v", cmd.String(), cmd.Dir, err)
 	}
 
 	return diff, nil
