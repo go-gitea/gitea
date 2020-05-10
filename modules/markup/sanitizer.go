@@ -54,7 +54,7 @@ func ReplaceSanitizer() {
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`ref-issue`)).OnElements("a")
 
 	// Allow classes for task lists
-	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list`)).OnElements("ul")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list-item`)).OnElements("li")
 
 	// Allow icons
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^icon(\s+[\p{L}\p{N}_-]+)+$`)).OnElements("i")
