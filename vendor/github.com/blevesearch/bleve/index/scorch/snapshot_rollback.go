@@ -17,9 +17,10 @@ package scorch
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/blevesearch/bleve/index/scorch/segment"
-	bolt "github.com/etcd-io/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 type RollbackPoint struct {
@@ -34,13 +35,22 @@ func (r *RollbackPoint) GetInternal(key []byte) []byte {
 // RollbackPoints returns an array of rollback points available for
 // the application to rollback to, with more recent rollback points
 // (higher epochs) coming first.
-func (s *Scorch) RollbackPoints() ([]*RollbackPoint, error) {
-	if s.rootBolt == nil {
-		return nil, fmt.Errorf("RollbackPoints: root is nil")
+func RollbackPoints(path string) ([]*RollbackPoint, error) {
+	if len(path) == 0 {
+		return nil, fmt.Errorf("RollbackPoints: invalid path")
+	}
+
+	rootBoltPath := path + string(os.PathSeparator) + "root.bolt"
+	rootBoltOpt := &bolt.Options{
+		ReadOnly: true,
+	}
+	rootBolt, err := bolt.Open(rootBoltPath, 0600, rootBoltOpt)
+	if err != nil || rootBolt == nil {
+		return nil, err
 	}
 
 	// start a read-only bolt transaction
-	tx, err := s.rootBolt.Begin(false)
+	tx, err := rootBolt.Begin(false)
 	if err != nil {
 		return nil, fmt.Errorf("RollbackPoints: failed to start" +
 			" read-only transaction")
@@ -49,6 +59,7 @@ func (s *Scorch) RollbackPoints() ([]*RollbackPoint, error) {
 	// read-only bolt transactions to be rolled back
 	defer func() {
 		_ = tx.Rollback()
+		_ = rootBolt.Close()
 	}()
 
 	snapshots := tx.Bucket(boltSnapshotsBucket)
@@ -105,69 +116,98 @@ func (s *Scorch) RollbackPoints() ([]*RollbackPoint, error) {
 	return rollbackPoints, nil
 }
 
-// Rollback atomically and durably (if unsafeBatch is unset) brings
-// the store back to the point in time as represented by the
-// RollbackPoint. Rollback() should only be passed a RollbackPoint
-// that came from the same store using the RollbackPoints() API.
-func (s *Scorch) Rollback(to *RollbackPoint) error {
+// Rollback atomically and durably brings the store back to the point
+// in time as represented by the RollbackPoint.
+// Rollback() should only be passed a RollbackPoint that came from the
+// same store using the RollbackPoints() API along with the index path.
+func Rollback(path string, to *RollbackPoint) error {
 	if to == nil {
 		return fmt.Errorf("Rollback: RollbackPoint is nil")
 	}
-
-	if s.rootBolt == nil {
-		return fmt.Errorf("Rollback: root is nil")
+	if len(path) == 0 {
+		return fmt.Errorf("Rollback: index path is empty")
 	}
 
-	revert := &snapshotReversion{}
+	rootBoltPath := path + string(os.PathSeparator) + "root.bolt"
+	rootBoltOpt := &bolt.Options{
+		ReadOnly: false,
+	}
+	rootBolt, err := bolt.Open(rootBoltPath, 0600, rootBoltOpt)
+	if err != nil || rootBolt == nil {
+		return err
+	}
+	defer func() {
+		err1 := rootBolt.Close()
+		if err1 != nil && err == nil {
+			err = err1
+		}
+	}()
 
-	s.rootLock.Lock()
-
-	err := s.rootBolt.View(func(tx *bolt.Tx) error {
+	// pick all the younger persisted epochs in bolt store
+	// including the target one.
+	var found bool
+	var eligibleEpochs []uint64
+	err = rootBolt.View(func(tx *bolt.Tx) error {
 		snapshots := tx.Bucket(boltSnapshotsBucket)
 		if snapshots == nil {
-			return fmt.Errorf("Rollback: no snapshots available")
+			return nil
 		}
-
-		pos := segment.EncodeUvarintAscending(nil, to.epoch)
-
-		snapshot := snapshots.Bucket(pos)
-		if snapshot == nil {
-			return fmt.Errorf("Rollback: snapshot not found")
+		sc := snapshots.Cursor()
+		for sk, _ := sc.Last(); sk != nil && !found; sk, _ = sc.Prev() {
+			_, snapshotEpoch, err := segment.DecodeUvarintAscending(sk)
+			if err != nil {
+				continue
+			}
+			if snapshotEpoch == to.epoch {
+				found = true
+			}
+			eligibleEpochs = append(eligibleEpochs, snapshotEpoch)
 		}
-
-		indexSnapshot, err := s.loadSnapshot(snapshot)
-		if err != nil {
-			return fmt.Errorf("Rollback: unable to load snapshot: %v", err)
-		}
-
-		// add segments referenced by loaded index snapshot to the
-		// ineligibleForRemoval map
-		for _, segSnap := range indexSnapshot.segment {
-			filename := zapFileName(segSnap.id)
-			s.ineligibleForRemoval[filename] = true
-		}
-
-		revert.snapshot = indexSnapshot
-		revert.applied = make(chan error)
-		revert.persisted = make(chan error)
-
 		return nil
 	})
 
-	s.rootLock.Unlock()
+	if len(eligibleEpochs) == 0 {
+		return fmt.Errorf("Rollback: no persisted epochs found in bolt")
+	}
+	if !found {
+		return fmt.Errorf("Rollback: target epoch %d not found in bolt", to.epoch)
+	}
 
+	// start a write transaction
+	tx, err := rootBolt.Begin(true)
 	if err != nil {
 		return err
 	}
 
-	// introduce the reversion
-	s.revertToSnapshots <- revert
+	defer func() {
+		if err == nil {
+			err = tx.Commit()
+		} else {
+			_ = tx.Rollback()
+		}
+		if err == nil {
+			err = rootBolt.Sync()
+		}
+	}()
 
-	// block until this snapshot is applied
-	err = <-revert.applied
-	if err != nil {
-		return fmt.Errorf("Rollback: failed with err: %v", err)
+	snapshots := tx.Bucket(boltSnapshotsBucket)
+	if snapshots == nil {
+		return nil
+	}
+	for _, epoch := range eligibleEpochs {
+		k := segment.EncodeUvarintAscending(nil, epoch)
+		if err != nil {
+			continue
+		}
+		if epoch == to.epoch {
+			// return here as it already processed until the given epoch
+			return nil
+		}
+		err = snapshots.DeleteBucket(k)
+		if err == bolt.ErrBucketNotFound {
+			err = nil
+		}
 	}
 
-	return <-revert.persisted
+	return err
 }
