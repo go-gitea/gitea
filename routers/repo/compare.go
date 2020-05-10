@@ -169,9 +169,9 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// We will want therefore to offer a few repositories to set as
 	// our base and head
 
-	// 1. First if the baseRepo is a fork get the "ForkedRepo" it was
+	// 1. First if the baseRepo is a fork get the "RootRepo" it was
 	// forked from
-	var forkedRepo *models.Repository
+	var rootRepo *models.Repository
 	if baseRepo.IsFork {
 		err = baseRepo.GetBaseRepo()
 		if err != nil {
@@ -180,36 +180,36 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				return nil, nil, nil, nil, "", ""
 			}
 		} else {
-			forkedRepo = baseRepo.BaseRepo
+			rootRepo = baseRepo.BaseRepo
 		}
 	}
 
 	// 2. Now if the current user is not the owner of the baseRepo,
 	// check if they have a fork of the base repo and offer that as
-	// "OwnForkedRepo"
-	var ownForkedRepo *models.Repository
+	// "OwnForkRepo"
+	var ownForkRepo *models.Repository
 	if baseRepo.OwnerID != ctx.User.ID {
 		repo, has := models.HasForkedRepo(ctx.User.ID, baseRepo.ID)
 		if has {
-			ownForkedRepo = repo
-			ctx.Data["OwnForkedRepo"] = ownForkedRepo
+			ownForkRepo = repo
+			ctx.Data["OwnForkRepo"] = ownForkRepo
 		}
 	}
 
 	headRepo := baseRepo
 	has := false
 
-	// 3. If the base is a forked from "ForkedRepo" and the owner of
-	// the "ForkedRepo" is the :headUser - set headRepo to that
-	if !isSameRepo && forkedRepo != nil && forkedRepo.OwnerID == headUser.ID {
-		headRepo = forkedRepo
+	// 3. If the base is a forked from "RootRepo" and the owner of
+	// the "RootRepo" is the :headUser - set headRepo to that
+	if !isSameRepo && rootRepo != nil && rootRepo.OwnerID == headUser.ID {
+		headRepo = rootRepo
 		has = true
 	}
 
-	// 4. If the ctx.User has their own fork from "ForkedRepo" and the owner of
-	// the "ForkedRepo" is the :headUser - set headRepo to that
-	if !isSameRepo && ownForkedRepo != nil && ownForkedRepo.OwnerID == headUser.ID {
-		headRepo = ownForkedRepo
+	// 4. If the ctx.User has their own fork of the baseRepo and the headUser is the ctx.User
+	// set the headRepo to the ownFork
+	if !isSameRepo && ownForkRepo != nil && ownForkRepo.OwnerID == headUser.ID {
+		headRepo = ownForkRepo
 		has = true
 	}
 
@@ -281,41 +281,41 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		}
 	}
 
-	// If we have a forkedRepo and it's different from:
+	// If we have a rootRepo and it's different from:
 	// 1. the computed base
 	// 2. the computed head
 	// then get the branches of it
-	if forkedRepo != nil &&
-		forkedRepo.ID != headRepo.ID &&
-		forkedRepo.ID != baseRepo.ID {
-		perm, branches, err := getBranchesForRepo(ctx.User, forkedRepo)
+	if rootRepo != nil &&
+		rootRepo.ID != headRepo.ID &&
+		rootRepo.ID != baseRepo.ID {
+		perm, branches, err := getBranchesForRepo(ctx.User, rootRepo)
 		if err != nil {
 			ctx.ServerError("GetBranchesForRepo", err)
 			return nil, nil, nil, nil, "", ""
 		}
 		if perm {
-			ctx.Data["ForkedRepo"] = forkedRepo
-			ctx.Data["ForkedRepoBranches"] = branches
+			ctx.Data["RootRepo"] = rootRepo
+			ctx.Data["RootRepoBranches"] = branches
 		}
 	}
 
-	// If we have a ownForkedRepo and it's different from:
+	// If we have a ownForkRepo and it's different from:
 	// 1. The computed base
 	// 2. The computed hea
-	// 3. The forkedRepo (if we have one)
+	// 3. The rootRepo (if we have one)
 	// then get the branches from it.
-	if ownForkedRepo != nil &&
-		ownForkedRepo.ID != headRepo.ID &&
-		ownForkedRepo.ID != baseRepo.ID &&
-		(forkedRepo == nil || ownForkedRepo.ID != forkedRepo.ID) {
-		perm, branches, err := getBranchesForRepo(ctx.User, ownForkedRepo)
+	if ownForkRepo != nil &&
+		ownForkRepo.ID != headRepo.ID &&
+		ownForkRepo.ID != baseRepo.ID &&
+		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
+		perm, branches, err := getBranchesForRepo(ctx.User, ownForkRepo)
 		if err != nil {
 			ctx.ServerError("GetBranchesForRepo", err)
 			return nil, nil, nil, nil, "", ""
 		}
 		if perm {
-			ctx.Data["OwnForkedRepo"] = forkedRepo
-			ctx.Data["OwnForkedRepoBranches"] = branches
+			ctx.Data["OwnForkRepo"] = ownForkRepo
+			ctx.Data["OwnForkRepoBranches"] = branches
 		}
 	}
 

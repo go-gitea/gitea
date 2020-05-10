@@ -28,14 +28,14 @@
 						{{range .Branches}}
 							<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{$.BaseName}}:{{.}}</div>
 						{{end}}
-						{{if .OwnForkedRepo}}
-							{{range .ForkedRepoBranches}}
-								<div class="item" data-url="{{$.OwnForkedRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}:{{EscapePound $.HeadBranch}}">{{$.OwnForkedRepo.OwnerName}}:{{.}}</div>
+						{{if .OwnForkRepo}}
+							{{range .OwnForkRepoBranches}}
+								<div class="item" data-url="{{$.OwnForkRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}:{{EscapePound $.HeadBranch}}">{{$.OwnForkRepo.OwnerName}}:{{.}}</div>
 							{{end}}
 						{{end}}
-						{{if .ForkedRepo}}
-							{{range .ForkedRepoBranches}}
-								<div class="item" data-url="{{$.ForkedRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}:{{EscapePound $.HeadBranch}}">{{$.ForkedRepo.OwnerName}}:{{.}}</div>
+						{{if .RootRepo}}
+							{{range .RootRepoBranches}}
+								<div class="item" data-url="{{$.RootRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}:{{EscapePound $.HeadBranch}}">{{$.RootRepo.OwnerName}}:{{.}}</div>
 							{{end}}
 						{{end}}
 					</div>
