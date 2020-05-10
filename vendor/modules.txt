@@ -387,7 +387,7 @@ github.com/hashicorp/hcl/json/token
 github.com/huandu/xstrings
 # github.com/issue9/assert v1.3.2
 ## explicit
-# github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
+# github.com/issue9/identicon v1.0.1
 ## explicit
 github.com/issue9/identicon
 # github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d
