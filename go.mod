@@ -100,11 +100,11 @@ require (
 	github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
 	github.com/urfave/cli v1.20.0
 	github.com/xanzy/go-gitlab v0.31.0
-	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
+	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.1.25
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
-	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f
 	golang.org/x/text v0.3.2

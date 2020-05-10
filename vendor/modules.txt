@@ -645,7 +645,7 @@ github.com/willf/bitset
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
 github.com/xanzy/ssh-agent
-# github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
+# github.com/yohcop/openid-go v1.0.0
 ## explicit
 github.com/yohcop/openid-go
 # github.com/yuin/goldmark v1.1.25
@@ -702,7 +702,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.2.0
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+# golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 ## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
