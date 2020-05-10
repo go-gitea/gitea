@@ -24,6 +24,7 @@ export async function initU2FAuth() {
     u2fError(e.metaData.code);
   }
 }
+
 function u2fSigned(resp) {
   $.ajax({
     url: `${AppSubUrl}/user/u2f/sign`,
