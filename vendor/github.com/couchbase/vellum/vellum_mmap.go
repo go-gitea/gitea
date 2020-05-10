@@ -19,7 +19,7 @@ package vellum
 import (
 	"os"
 
-	mmap "github.com/edsrzf/mmap-go"
+	mmap "github.com/blevesearch/mmap-go"
 )
 
 type mmapWrapper struct {

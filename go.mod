@@ -19,15 +19,11 @@ require (
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0
-	github.com/RoaringBitmap/roaring v0.4.21 // indirect
+	github.com/RoaringBitmap/roaring v0.4.23 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
-	github.com/blevesearch/bleve v0.8.1
-	github.com/blevesearch/blevex v0.0.0-20180227211930-4b158bb555a3 // indirect
-	github.com/blevesearch/go-porterstemmer v1.0.2 // indirect
-	github.com/blevesearch/segment v0.0.0-20160915185041-762005e7a34f // indirect
+	github.com/blevesearch/bleve v1.0.7
 	github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26 // indirect
 	github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 // indirect
-	github.com/couchbase/vellum v0.0.0-20190829182332-ef2e028c01fd // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
@@ -36,7 +32,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
 	github.com/emirpasic/gods v1.12.0
-	github.com/etcd-io/bbolt v1.3.3 // indirect
 	github.com/ethantkoenig/rupture v0.0.0-20180203182544-0a76f03a811a
 	github.com/facebookgo/ensure v0.0.0-20160127193407-b4ab57deab51 // indirect
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
@@ -53,7 +48,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
-	github.com/golang/protobuf v1.4.0 // indirect
+	github.com/golang/protobuf v1.4.1 // indirect
 	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
@@ -95,10 +90,9 @@ require (
 	github.com/sergi/go-diff v1.1.0
 	github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
-	github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
-	github.com/tinylib/msgp v1.1.1 // indirect
+	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/tstranex/u2f v1.0.0
 	github.com/unknwon/cae v1.0.0
 	github.com/unknwon/com v1.0.1
@@ -109,11 +103,10 @@ require (
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	github.com/yuin/goldmark v1.1.25
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
-	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
+	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
 	golang.org/x/tools v0.0.0-20200325010219-a49f79bcc224
