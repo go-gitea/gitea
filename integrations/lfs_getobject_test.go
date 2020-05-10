@@ -57,12 +57,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	return oid
 }
 
-func doLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
-	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
-	if !setting.LFS.StartServer {
-		t.Skip()
-	}
+func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
@@ -85,7 +80,7 @@ func doLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStat
 	return resp
 }
 
-func doResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httptest.ResponseRecorder, expectGzip bool) {
+func checkResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httptest.ResponseRecorder, expectGzip bool) {
 	contentEncoding := resp.Header().Get("Content-Encoding")
 	if !expectGzip || !setting.EnableGzip {
 		assert.NotContains(t, contentEncoding, "gzip")
@@ -103,23 +98,41 @@ func doResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httptest
 }
 
 func TestGetLFSSmall(t *testing.T) {
+	defer prepareTestEnv(t)()
+	setting.CheckLFSVersion()
+	if !setting.LFS.StartServer {
+		t.Skip()
+		return
+	}
 	content := []byte("A very small file\n")
 
-	resp := doLfs(t, &content, nil, http.StatusOK)
-	doResponseTestContentEncoding(t, &content, resp, false)
+	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
+	checkResponseTestContentEncoding(t, &content, resp, false)
 }
 
 func TestGetLFSLarge(t *testing.T) {
+	defer prepareTestEnv(t)()
+	setting.CheckLFSVersion()
+	if !setting.LFS.StartServer {
+		t.Skip()
+		return
+	}
 	content := make([]byte, gzip.MinSize*10)
 	for i := range content {
 		content[i] = byte(i % 256)
 	}
 
-	resp := doLfs(t, &content, nil, http.StatusOK)
-	doResponseTestContentEncoding(t, &content, resp, true)
+	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
+	checkResponseTestContentEncoding(t, &content, resp, true)
 }
 
 func TestGetLFSGzip(t *testing.T) {
+	defer prepareTestEnv(t)()
+	setting.CheckLFSVersion()
+	if !setting.LFS.StartServer {
+		t.Skip()
+		return
+	}
 	b := make([]byte, gzip.MinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
@@ -130,11 +143,17 @@ func TestGetLFSGzip(t *testing.T) {
 	gzippWriter.Close()
 	content := outputBuffer.Bytes()
 
-	resp := doLfs(t, &content, nil, http.StatusOK)
-	doResponseTestContentEncoding(t, &content, resp, false)
+	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
+	checkResponseTestContentEncoding(t, &content, resp, false)
 }
 
 func TestGetLFSZip(t *testing.T) {
+	defer prepareTestEnv(t)()
+	setting.CheckLFSVersion()
+	if !setting.LFS.StartServer {
+		t.Skip()
+		return
+	}
 	b := make([]byte, gzip.MinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
@@ -147,18 +166,30 @@ func TestGetLFSZip(t *testing.T) {
 	zipWriter.Close()
 	content := outputBuffer.Bytes()
 
-	resp := doLfs(t, &content, nil, http.StatusOK)
-	doResponseTestContentEncoding(t, &content, resp, false)
+	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
+	checkResponseTestContentEncoding(t, &content, resp, false)
 }
 
 func TestGetLFSRangeNo(t *testing.T) {
+	defer prepareTestEnv(t)()
+	setting.CheckLFSVersion()
+	if !setting.LFS.StartServer {
+		t.Skip()
+		return
+	}
 	content := []byte("123456789\n")
 
-	resp := doLfs(t, &content, nil, http.StatusOK)
+	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
 	assert.Equal(t, content, resp.Body.Bytes())
 }
 
 func TestGetLFSRange(t *testing.T) {
+	defer prepareTestEnv(t)()
+	setting.CheckLFSVersion()
+	if !setting.LFS.StartServer {
+		t.Skip()
+		return
+	}
 	content := []byte("123456789\n")
 
 	tests := []struct {
@@ -187,7 +218,7 @@ func TestGetLFSRange(t *testing.T) {
 			h := http.Header{
 				"Range": []string{tt.in},
 			}
-			resp := doLfs(t, &content, &h, tt.status)
+			resp := storeAndGetLfs(t, &content, &h, tt.status)
 			assert.Equal(t, tt.out, resp.Body.String())
 		})
 	}
