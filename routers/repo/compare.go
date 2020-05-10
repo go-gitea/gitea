@@ -75,11 +75,12 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	//
 	// 1. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headBranch}
 	// 2. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}:{:headBranch}
+	// 3. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}/{:headRepoName}:{:headBranch}
 	//
-	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}:]{:headBranch}" as ctx.Params("*")
+	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.Params("*")
 	// with the :baseRepo in ctx.Repo.
 	//
-	// Note: The :headRepoName is not provided here - we are only passed :headOwner.
+	// Note: Generally :headRepoName is not provided here - we are only passed :headOwner.
 	//
 	// How do we determine the :headRepo?
 	//
@@ -88,14 +89,13 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// 3. But... :baseRepo could be a fork of :headOwner's repo - so check that
 	// 4. Now, :baseRepo and :headRepos could be forks of the same repo - so check that
 	//
-	// FIXME: It should be possible to pass in headRepoName
-	//
 	// format: <base branch>...[<head repo>:]<head branch>
 	// base<-head: master...head:feature
 	// same repo: master...feature
 
 	var (
 		headUser   *models.User
+		headRepo   *models.Repository
 		headBranch string
 		isSameRepo bool
 		infoPath   string
@@ -121,17 +121,42 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		headBranch = headInfos[0]
 
 	} else if len(headInfos) == 2 {
-		headUser, err = models.GetUserByName(headInfos[0])
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.NotFound("GetUserByName", nil)
-			} else {
-				ctx.ServerError("GetUserByName", err)
+		headInfosSplit := strings.Split(headInfos[0], "/")
+		if len(headInfosSplit) == 1 {
+			headUser, err = models.GetUserByName(headInfos[0])
+			if err != nil {
+				if models.IsErrUserNotExist(err) {
+					ctx.NotFound("GetUserByName", nil)
+				} else {
+					ctx.ServerError("GetUserByName", err)
+				}
+				return nil, nil, nil, nil, "", ""
 			}
-			return nil, nil, nil, nil, "", ""
+			headBranch = headInfos[1]
+			isSameRepo = headUser.ID == ctx.Repo.Owner.ID
+			headRepo = baseRepo
+		} else {
+			headRepo, err = models.GetRepositoryByOwnerAndName(headInfosSplit[0], headInfosSplit[1])
+			if err != nil {
+				if models.IsErrRepoNotExist(err) {
+					ctx.NotFound("GetRepositoryByOwnerAndName", nil)
+				} else {
+					ctx.ServerError("GetRepositoryByOwnerAndName", err)
+				}
+				return nil, nil, nil, nil, "", ""
+			}
+			if err := headRepo.GetOwner(); err != nil {
+				if models.IsErrUserNotExist(err) {
+					ctx.NotFound("GetUserByName", nil)
+				} else {
+					ctx.ServerError("GetUserByName", err)
+				}
+				return nil, nil, nil, nil, "", ""
+			}
+			headBranch = headInfos[1]
+			headUser = headRepo.Owner
+			isSameRepo = headRepo.ID == ctx.Repo.Repository.ID
 		}
-		headBranch = headInfos[1]
-		isSameRepo = headUser.ID == ctx.Repo.Owner.ID
 	} else {
 		ctx.NotFound("CompareAndPullRequest", nil)
 		return nil, nil, nil, nil, "", ""
@@ -196,30 +221,28 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		}
 	}
 
-	headRepo := baseRepo
-	has := false
-
+	has := headRepo != nil
 	// 3. If the base is a forked from "RootRepo" and the owner of
 	// the "RootRepo" is the :headUser - set headRepo to that
-	if !isSameRepo && rootRepo != nil && rootRepo.OwnerID == headUser.ID {
+	if !has && rootRepo != nil && rootRepo.OwnerID == headUser.ID {
 		headRepo = rootRepo
 		has = true
 	}
 
 	// 4. If the ctx.User has their own fork of the baseRepo and the headUser is the ctx.User
 	// set the headRepo to the ownFork
-	if !isSameRepo && ownForkRepo != nil && ownForkRepo.OwnerID == headUser.ID {
+	if !has && ownForkRepo != nil && ownForkRepo.OwnerID == headUser.ID {
 		headRepo = ownForkRepo
 		has = true
 	}
 
 	// 5. If the headOwner has a fork of the baseRepo - use that
-	if !isSameRepo && !has {
+	if !has {
 		headRepo, has = models.HasForkedRepo(headUser.ID, baseRepo.ID)
 	}
 
 	// 6. If the baseRepo is a fork and the headUser has a fork of that use that
-	if !isSameRepo && !has && baseRepo.IsFork {
+	if !has && baseRepo.IsFork {
 		headRepo, has = models.HasForkedRepo(headUser.ID, baseRepo.ForkID)
 	}
 
@@ -241,6 +264,8 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		}
 		defer headGitRepo.Close()
 	}
+
+	ctx.Data["HeadRepo"] = headRepo
 
 	// Now we need to assert that the ctx.User has permission to read
 	// the baseRepo's code and pulls
