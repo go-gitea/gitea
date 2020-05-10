@@ -224,7 +224,8 @@ func ComputeGeoRange(term uint64, shift uint,
 func buildRectFilter(dvReader index.DocValueReader, field string,
 	minLon, minLat, maxLon, maxLat float64) FilterFunc {
 	return func(d *search.DocumentMatch) bool {
-		var lon, lat float64
+		// check geo matches against all numeric type terms indexed
+		var lons, lats []float64
 		var found bool
 		err := dvReader.VisitDocValues(d.IndexInternalID, func(field string, term []byte) {
 			// only consider the values which are shifted 0
@@ -234,15 +235,19 @@ func buildRectFilter(dvReader index.DocValueReader, field string,
 				var i64 int64
 				i64, err = prefixCoded.Int64()
 				if err == nil {
-					lon = geo.MortonUnhashLon(uint64(i64))
-					lat = geo.MortonUnhashLat(uint64(i64))
+					lons = append(lons, geo.MortonUnhashLon(uint64(i64)))
+					lats = append(lats, geo.MortonUnhashLat(uint64(i64)))
 					found = true
 				}
 			}
 		})
 		if err == nil && found {
-			return geo.BoundingBoxContains(lon, lat,
-				minLon, minLat, maxLon, maxLat)
+			for i := range lons {
+				if geo.BoundingBoxContains(lons[i], lats[i],
+					minLon, minLat, maxLon, maxLat) {
+					return true
+				}
+			}
 		}
 		return false
 	}
