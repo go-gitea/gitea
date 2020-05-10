@@ -2,6 +2,7 @@ const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
 const PostCSSSafeParser = require('postcss-safe-parser');
@@ -76,6 +77,14 @@ module.exports = {
     splitChunks: {
       chunks: 'async',
       name: (_, chunks) => chunks.map((item) => item.name).join('-'),
+      cacheGroups: {
+        // this bundles all monacos languages into one file instead of emitting 1-65.js files
+        monaco: {
+          test: /monaco-editor/,
+          name: 'monaco-langs',
+          chunks: 'async'
+        }
+      }
     }
   },
   module: {
@@ -149,7 +158,10 @@ module.exports = {
             loader: 'css-loader',
             options: {
               importLoaders: 2,
-              url: false,
+              url: (_url, resourcePath) => {
+                // only resolve URLs for modules
+                return resourcePath.includes('node_modules');
+              },
             }
           },
           {
@@ -187,6 +199,19 @@ module.exports = {
           },
         ],
       },
+      {
+        test: /\.(ttf|woff2?)$/,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]',
+              outputPath: 'fonts/',
+              publicPath: (url) => `../fonts/${url}`, // seems required for monaco's font
+            },
+          },
+        ],
+      },
     ],
   },
   plugins: [
@@ -209,6 +234,9 @@ module.exports = {
     new SpriteLoaderPlugin({
       plainSprite: true,
     }),
+    new MonacoWebpackPlugin({
+      filename: 'js/monaco-[name].worker.js',
+    }),
   ],
   performance: {
     hints: false,
@@ -223,5 +251,8 @@ module.exports = {
     ignored: [
       'node_modules/**',
     ],
+  },
+  stats: {
+    children: false,
   },
 };
