@@ -179,6 +179,10 @@ func doArchive(r *ArchiveRequest) {
 		destArchive *os.File
 	)
 
+	// Close the channel to indicate to potential waiters that this request
+	// has finished.
+	defer close(r.cchan)
+
 	// It could have happened that we enqueued two archival requests, due to
 	// race conditions and difficulties in locking.  Do one last check that
 	// the archive we're referring to doesn't already exist.  If it does exist,
@@ -276,10 +280,6 @@ func ArchiveRepository(request *ArchiveRequest) *ArchiveRequest {
 		// correctness.
 		archiveMutex.Lock()
 		defer archiveMutex.Unlock()
-
-		// Close the channel to indicate to potential waiters that this request
-		// has finished.
-		close(request.cchan)
 
 		idx := -1
 		for _idx, req := range archiveInProgress {
