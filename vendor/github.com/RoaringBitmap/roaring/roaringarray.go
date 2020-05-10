@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
+
 	snappy "github.com/glycerine/go-unsnap-stream"
 	"github.com/tinylib/msgp/msgp"
-	"io"
 )
 
 //go:generate msgp -unexported
@@ -38,6 +39,7 @@ type container interface {
 	inot(firstOfRange, endx int) container // i stands for inplace, range is [firstOfRange,endx)
 	xor(r container) container
 	getShortIterator() shortPeekable
+	iterate(cb func(x uint16) bool) bool
 	getReverseIterator() shortIterable
 	getManyIterator() manyIterable
 	contains(i uint16) bool
@@ -488,20 +490,15 @@ func (ra *roaringArray) writeTo(w io.Writer) (n int64, err error) {
 		nw += 2
 		binary.LittleEndian.PutUint16(buf[2:], uint16(len(ra.keys)-1))
 		nw += 2
-
-		// compute isRun bitmap
-		var ir []byte
-
-		isRun := newBitmapContainer()
+		// compute isRun bitmap without temporary allocation
+		var runbitmapslice = buf[nw:nw+isRunSizeInBytes]
 		for i, c := range ra.containers {
 			switch c.(type) {
 			case *runContainer16:
-				isRun.iadd(uint16(i))
+				runbitmapslice[i / 8] |= 1<<(uint(i)%8)
 			}
 		}
-		// convert to little endian
-		ir = isRun.asLittleEndianByteSlice()[:isRunSizeInBytes]
-		nw += copy(buf[nw:], ir)
+		nw += isRunSizeInBytes
 	} else {
 		binary.LittleEndian.PutUint32(buf[0:], uint32(serialCookieNoRunContainer))
 		nw += 4
