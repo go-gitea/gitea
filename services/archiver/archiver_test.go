@@ -142,12 +142,19 @@ func TestArchive_Basic(t *testing.T) {
 		req.WaitForCompletion()
 	}
 
-	assert.True(t, zipReq.IsComplete())
-	assert.True(t, tgzReq.IsComplete())
-	assert.True(t, secondReq.IsComplete())
-	assert.True(t, com.IsExist(zipReq.GetArchivePath()))
-	assert.True(t, com.IsExist(tgzReq.GetArchivePath()))
-	assert.True(t, com.IsExist(secondReq.GetArchivePath()))
+	for _, req := range inFlight {
+		assert.True(t, req.IsComplete())
+		assert.True(t, com.IsExist(req.GetArchivePath()))
+	}
+
+	arbitraryReq := inFlight[0]
+	// Reopen the channel so we don't double-close, mark it incomplete.  We're
+	// going to run it back through the archiver, and it should get marked
+	// complete again.
+	arbitraryReq.cchan = make(chan struct{})
+	arbitraryReq.archiveComplete = false
+	doArchive(arbitraryReq)
+	assert.True(t, arbitraryReq.IsComplete())
 
 	// Queues should not have drained yet, because we haven't released them.
 	// Do so now.
