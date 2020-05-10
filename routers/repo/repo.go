@@ -478,6 +478,11 @@ func Download(ctx *context.Context) {
 	uri := ctx.Params("*")
 	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
+	if aReq == nil {
+		ctx.Error(404)
+		return
+	}
+
 	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
 	complete := aReq.IsComplete()
 	if !complete {
@@ -500,6 +505,7 @@ func InitiateDownload(ctx *context.Context) {
 	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
 	if aReq == nil {
+		ctx.Error(404)
 		return
 	}
 

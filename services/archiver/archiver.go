@@ -103,7 +103,6 @@ func getArchiveRequest(repo *git.Repository, commit *git.Commit, archiveType git
 func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 	if ctx.Repo == nil || ctx.Repo.GitRepo == nil {
 		log.Trace("Repo not initialized")
-		ctx.Error(404)
 		return nil
 	}
 	r := &ArchiveRequest{
@@ -122,7 +121,6 @@ func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 		r.archiveType = git.TARGZ
 	default:
 		log.Trace("Unknown format: %s", uri)
-		ctx.Error(404)
 		return nil
 	}
 
