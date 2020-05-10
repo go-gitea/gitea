@@ -158,7 +158,7 @@ github.com/couchbaselabs/go-couchbase
 ## explicit
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20191128021309-1d7a30a10f73
+# github.com/denisenkom/go-mssqldb v0.0.0-20200428022330-06a60b6afbbc
 ## explicit
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
@@ -670,7 +670,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+# golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
 ## explicit
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
