@@ -19,7 +19,7 @@ import (
 )
 
 func TestAPIViewPulls(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
@@ -36,7 +36,7 @@ func TestAPIViewPulls(t *testing.T) {
 
 // TestAPIMergePullWIP ensures that we can't merge a WIP pull request
 func TestAPIMergePullWIP(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{Status: models.PullRequestStatusMergeable}, models.Cond("has_merged = ?", false)).(*models.PullRequest)
@@ -59,7 +59,7 @@ func TestAPIMergePullWIP(t *testing.T) {
 }
 
 func TestAPICreatePullSuccess1(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 	// repo10 have code, pulls units.
 	repo11 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 11}).(*models.Repository)
@@ -79,7 +79,7 @@ func TestAPICreatePullSuccess1(t *testing.T) {
 }
 
 func TestAPICreatePullSuccess2(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 	owner10 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
 

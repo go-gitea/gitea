@@ -1,0 +1,15 @@
+/* This is a customized version of https://github.com/bluef/gitgraph.js/blob/master/gitgraph.css
+   Changes include the removal of `body` and `em` styles */
+#git-graph-container, #rel-container {float:left;}
+#rel-container {max-width:30%; overflow-x:auto;}
+#git-graph-container {overflow-x:auto; width:100%}
+#git-graph-container li {list-style-type:none;height:20px;line-height:20px; white-space:nowrap;}
+#git-graph-container li .node-relation {font-family:'Bitstream Vera Sans Mono', 'Courier', monospace;}
+#git-graph-container li .author {color:#666666;}
+#git-graph-container li .time {color:#999999;font-size:80%}
+#git-graph-container li a {color:#000000;}
+#git-graph-container li a:hover {text-decoration:underline;}
+#git-graph-container li a em {color:#BB0000;border-bottom:1px dotted #BBBBBB;text-decoration:none;font-style:normal;}
+#rev-container {width:100%}
+#rev-list {margin:0;padding:0 5px 0 5px;min-width:95%}
+#graph-raw-list {margin:0px;}

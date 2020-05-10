@@ -64,9 +64,14 @@ func (key *GPGKey) AfterLoad(session *xorm.Session) {
 }
 
 // ListGPGKeys returns a list of public keys belongs to given user.
-func ListGPGKeys(uid int64) ([]*GPGKey, error) {
-	keys := make([]*GPGKey, 0, 5)
-	return keys, x.Where("owner_id=? AND primary_key_id=''", uid).Find(&keys)
+func ListGPGKeys(uid int64, listOptions ListOptions) ([]*GPGKey, error) {
+	sess := x.Where("owner_id=? AND primary_key_id=''", uid)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+	}
+
+	keys := make([]*GPGKey, 0, 2)
+	return keys, sess.Find(&keys)
 }
 
 // GetGPGKeyByID returns public key by given ID.
@@ -369,6 +374,7 @@ type CommitVerification struct {
 	CommittingUser *User
 	SigningEmail   string
 	SigningKey     *GPGKey
+	TrustStatus    string
 }
 
 // SignCommit represents a commit with validation of signature.
@@ -628,7 +634,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 
 	// Now try to associate the signature with the committer, if present
 	if committer.ID != 0 {
-		keys, err := ListGPGKeys(committer.ID)
+		keys, err := ListGPGKeys(committer.ID, ListOptions{})
 		if err != nil { //Skipping failed to get gpg keys of user
 			log.Error("ListGPGKeys: %v", err)
 			return &CommitVerification{
@@ -754,18 +760,54 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 }
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(oldCommits *list.List) *list.List {
+func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *list.List {
 	var (
 		newCommits = list.New()
 		e          = oldCommits.Front()
 	)
+	memberMap := map[int64]bool{}
+
 	for e != nil {
 		c := e.Value.(UserCommit)
-		newCommits.PushBack(SignCommit{
+		signCommit := SignCommit{
 			UserCommit:   &c,
 			Verification: ParseCommitWithSignature(c.Commit),
-		})
+		}
+
+		_ = CalculateTrustStatus(signCommit.Verification, repository, &memberMap)
+
+		newCommits.PushBack(signCommit)
 		e = e.Next()
 	}
 	return newCommits
+}
+
+// CalculateTrustStatus will calculate the TrustStatus for a commit verification within a repository
+func CalculateTrustStatus(verification *CommitVerification, repository *Repository, memberMap *map[int64]bool) (err error) {
+	if verification.Verified {
+		verification.TrustStatus = "trusted"
+		if verification.SigningUser.ID != 0 {
+			var isMember bool
+			if memberMap != nil {
+				var has bool
+				isMember, has = (*memberMap)[verification.SigningUser.ID]
+				if !has {
+					isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+					(*memberMap)[verification.SigningUser.ID] = isMember
+				}
+			} else {
+				isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+			}
+
+			if !isMember {
+				verification.TrustStatus = "untrusted"
+				if verification.CommittingUser.ID != verification.SigningUser.ID {
+					// The committing user and the signing user are not the same and are not the default key
+					// This should be marked as questionable unless the signing user is a collaborator/team member etc.
+					verification.TrustStatus = "unmatched"
+				}
+			}
+		}
+	}
+	return
 }

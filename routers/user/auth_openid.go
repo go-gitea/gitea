@@ -400,6 +400,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		Passwd:   password,
 		IsActive: !setting.Service.RegisterEmailConfirm,
 	}
+	//nolint: dupl
 	if err := models.CreateUser(u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
@@ -414,6 +415,9 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		case models.IsErrNamePatternNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSignUpOID, &form)
+		case models.IsErrNameCharsNotAllowed(err):
+			ctx.Data["Err_UserName"] = true
+			ctx.RenderWithErr(ctx.Tr("user.form.name_chars_not_allowed", err.(models.ErrNameCharsNotAllowed).Name), tplSignUpOID, &form)
 		default:
 			ctx.ServerError("CreateUser", err)
 		}

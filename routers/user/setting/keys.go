@@ -92,6 +92,9 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 
 				ctx.Data["Err_Title"] = true
 				ctx.RenderWithErr(ctx.Tr("settings.ssh_key_name_used"), tplSettingsKeys, &form)
+			case models.IsErrKeyUnableVerify(err):
+				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
+				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			default:
 				ctx.ServerError("AddPublicKey", err)
 			}
@@ -133,14 +136,14 @@ func DeleteKey(ctx *context.Context) {
 }
 
 func loadKeysData(ctx *context.Context) {
-	keys, err := models.ListPublicKeys(ctx.User.ID)
+	keys, err := models.ListPublicKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
 	}
 	ctx.Data["Keys"] = keys
 
-	gpgkeys, err := models.ListGPGKeys(ctx.User.ID)
+	gpgkeys, err := models.ListGPGKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return

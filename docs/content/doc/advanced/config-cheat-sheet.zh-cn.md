@@ -37,7 +37,8 @@ menu:
 
 - `EXPLORE_PAGING_NUM`: 探索页面每页显示的仓库数量。
 - `ISSUE_PAGING_NUM`: 工单页面每页显示的工单数量。
-- `FEED_MAX_COMMIT_NUM`: 活动流页面显示的最大提交树木。
+- `MEMBERS_PAGING_NUM`: **20**: 组织成员页面每页显示的成员数量。
+- `FEED_MAX_COMMIT_NUM`: 活动流页面显示的最大提交数量。
 
 ### UI - Admin (`ui.admin`)
 
@@ -88,7 +89,9 @@ menu:
 
 ## Indexer (`indexer`)
 
-- `ISSUE_INDEXER_TYPE`: **bleve**: 工单索引类型，当前支持 `bleve` 或 `db`，当为 `db` 时其它工单索引项可不用设置。
+- `ISSUE_INDEXER_TYPE`: **bleve**: 工单索引类型，当前支持 `bleve`, `db` 和 `elasticsearch`，当为 `db` 时其它工单索引项可不用设置。
+- `ISSUE_INDEXER_CONN_STR`: ****: 工单索引连接字符串，仅当 ISSUE_INDEXER_TYPE 为 `elasticsearch` 时有效。例如: http://elastic:changeme@localhost:9200
+- `ISSUE_INDEXER_NAME`: **gitea_issues**: 工单索引名称，仅当 ISSUE_INDEXER_TYPE 为 `elasticsearch` 时有效。
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: 工单索引文件存放路径，当索引类型为 `bleve` 时有效。
 - `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: 工单索引队列类型，当前支持 `channel`， `levelqueue` 或 `redis`。
 - `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `levelqueue` 时，保存索引队列的磁盘路径。
@@ -111,7 +114,7 @@ menu:
 
 ## Service (`service`)
 
-- `ACTIVE_CODE_LIVE_MINUTES`: 登陆验证码失效时间，单位分钟。
+- `ACTIVE_CODE_LIVE_MINUTES`: 登录验证码失效时间，单位分钟。
 - `RESET_PASSWD_CODE_LIVE_MINUTES`: 重置密码失效时间，单位分钟。
 - `REGISTER_EMAIL_CONFIRM`: 启用注册邮件激活，前提是 `Mailer` 已经启用。
 - `DISABLE_REGISTRATION`: 禁用注册，启用后只能用管理员添加用户。
@@ -147,12 +150,19 @@ menu:
 
 ## Cache (`cache`)
 
+- `ENABLED`: **true**: 是否启用。
 - `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
 - `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 - `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+
+## Cache - LastCommitCache settings (`cache.last_commit`)
+
+- `ENABLED`: **true**: 是否启用。
+- `ITEM_TTL`: **8760h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+- `COMMITS_COUNT`: **1000**: 仅当仓库的提交数大于时才启用缓存。
 
 ## Session (`session`)
 
@@ -215,7 +225,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 - `RUN_AT_START`: 是否启动时自动运行仓库统计。
 - `SCHEDULE`: 仓库统计时的Cron 语法，比如：`@every 24h`.
 
-### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
+### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
 - `SCHEDULE`: **@every 24h** : 每次同步的间隔时间。此任务总是在启动时自动进行。
 

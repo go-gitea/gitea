@@ -16,7 +16,7 @@
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
 				</div>
-				<i class="mega-octicon octicon-key {{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}"></i>
+				<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
 				<div class="content">
 					{{range .Emails}}<strong>{{.Email}} </strong>{{end}}
 					<div class="print meta">

@@ -6,6 +6,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"runtime"
@@ -34,6 +35,9 @@ var (
 	// GitExecutable is the command name of git
 	// Could be updated to an absolute path while initialization
 	GitExecutable = "git"
+
+	// DefaultContext is the default context to run git commands in
+	DefaultContext = context.Background()
 
 	gitVersion string
 )
@@ -102,7 +106,8 @@ func SetExecutablePath(path string) error {
 }
 
 // Init initializes git module
-func Init() error {
+func Init(ctx context.Context) error {
+	DefaultContext = ctx
 	// Git requires setting user.name and user.email in order to commit changes.
 	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
 		if stdout, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", configKey); err != nil || strings.TrimSpace(stdout) == "" {

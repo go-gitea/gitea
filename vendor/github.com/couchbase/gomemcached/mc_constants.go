@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	REQ_MAGIC = 0x80
-	RES_MAGIC = 0x81
+	REQ_MAGIC      = 0x80
+	RES_MAGIC      = 0x81
+	FLEX_MAGIC     = 0x08
+	FLEX_RES_MAGIC = 0x18
 )
 
 // CommandCode for memcached packets.
@@ -98,6 +100,8 @@ const (
 	COLLECTIONS_GET_CID      = CommandCode(0xbb) // Get collection id.
 	SUBDOC_GET               = CommandCode(0xc5) // Get subdoc. Returns with xattrs
 	SUBDOC_MULTI_LOOKUP      = CommandCode(0xd0) // Multi lookup. Doc xattrs and meta.
+
+	DCP_SYSTEM_EVENT = CommandCode(0x5f) // A system event has occurred
 
 )
 

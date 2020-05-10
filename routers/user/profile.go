@@ -11,15 +11,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/repo"
-)
-
-const (
-	tplFollowers base.TplName = "user/meta/followers"
+	"code.gitea.io/gitea/routers/org"
 )
 
 // GetUserByName get user by name
@@ -83,7 +78,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	if ctxUser.IsOrganization() {
-		showOrgProfile(ctx)
+		org.Home(ctx)
 		return
 	}
 
@@ -158,8 +153,33 @@ func Profile(ctx *context.Context) {
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	ctx.Data["Keyword"] = keyword
 	switch tab {
+	case "followers":
+		items, err := ctxUser.GetFollowers(models.ListOptions{
+			PageSize: setting.UI.User.RepoPagingNum,
+			Page:     page,
+		})
+		if err != nil {
+			ctx.ServerError("GetFollowers", err)
+			return
+		}
+		ctx.Data["Cards"] = items
+
+		total = ctxUser.NumFollowers
+	case "following":
+		items, err := ctxUser.GetFollowing(models.ListOptions{
+			PageSize: setting.UI.User.RepoPagingNum,
+			Page:     page,
+		})
+		if err != nil {
+			ctx.ServerError("GetFollowing", err)
+			return
+		}
+		ctx.Data["Cards"] = items
+
+		total = ctxUser.NumFollowing
 	case "activity":
 		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
@@ -170,13 +190,14 @@ func Profile(ctx *context.Context) {
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			ListOptions: models.ListOptions{
+				PageSize: setting.UI.User.RepoPagingNum,
+				Page:     page,
+			},
+			Actor:              ctx.User,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			UserIsAdmin:        ctx.IsUserSiteAdmin(),
-			UserID:             ctx.Data["SignedUserID"].(int64),
-			Page:               page,
-			PageSize:           setting.UI.User.RepoPagingNum,
 			StarredByID:        ctxUser.ID,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
@@ -190,15 +211,15 @@ func Profile(ctx *context.Context) {
 		total = int(count)
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			ListOptions: models.ListOptions{
+				PageSize: setting.UI.User.RepoPagingNum,
+				Page:     page,
+			},
+			Actor:              ctx.User,
 			Keyword:            keyword,
 			OwnerID:            ctxUser.ID,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			UserIsAdmin:        ctx.IsUserSiteAdmin(),
-			UserID:             ctx.Data["SignedUserID"].(int64),
-			Page:               page,
-			IsProfile:          true,
-			PageSize:           setting.UI.User.RepoPagingNum,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
 			IncludeDescription: setting.UI.SearchRepoDescription,
@@ -220,32 +241,6 @@ func Profile(ctx *context.Context) {
 	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
 	ctx.HTML(200, tplProfile)
-}
-
-// Followers render user's followers page
-func Followers(ctx *context.Context) {
-	u := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Title"] = u.DisplayName()
-	ctx.Data["CardsTitle"] = ctx.Tr("user.followers")
-	ctx.Data["PageIsFollowers"] = true
-	ctx.Data["Owner"] = u
-	repo.RenderUserCards(ctx, u.NumFollowers, u.GetFollowers, tplFollowers)
-}
-
-// Following render user's followering page
-func Following(ctx *context.Context) {
-	u := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Title"] = u.DisplayName()
-	ctx.Data["CardsTitle"] = ctx.Tr("user.following")
-	ctx.Data["PageIsFollowing"] = true
-	ctx.Data["Owner"] = u
-	repo.RenderUserCards(ctx, u.NumFollowing, u.GetFollowing, tplFollowers)
 }
 
 // Action response for follow/unfollow user request

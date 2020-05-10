@@ -144,8 +144,12 @@ func GetWatchers(repoID int64) ([]*Watch, error) {
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
+	return getRepoWatchersIDs(x, repoID)
+}
+
+func getRepoWatchersIDs(e Engine, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, x.Table("watch").
+	return ids, e.Table("watch").
 		Where("watch.repo_id=?", repoID).
 		And("watch.mode<>?", RepoWatchModeDont).
 		Select("user_id").
@@ -153,79 +157,126 @@ func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
 }
 
 // GetWatchers returns range of users watching given repository.
-func (repo *Repository) GetWatchers(page int) ([]*User, error) {
-	users := make([]*User, 0, ItemsPerPage)
+func (repo *Repository) GetWatchers(opts ListOptions) ([]*User, error) {
 	sess := x.Where("watch.repo_id=?", repo.ID).
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", RepoWatchModeDont)
-	if page > 0 {
-		sess = sess.Limit(ItemsPerPage, (page-1)*ItemsPerPage)
+	if opts.Page > 0 {
+		sess = opts.setSessionPagination(sess)
+		users := make([]*User, 0, opts.PageSize)
+
+		return users, sess.Find(&users)
 	}
+
+	users := make([]*User, 0, 8)
 	return users, sess.Find(&users)
 }
 
-func notifyWatchers(e Engine, act *Action) error {
-	// Add feeds for user self and all watchers.
-	watches, err := getWatchers(e, act.RepoID)
-	if err != nil {
-		return fmt.Errorf("get watchers: %v", err)
-	}
+func notifyWatchers(e Engine, actions ...*Action) error {
+	var watchers []*Watch
+	var repo *Repository
+	var err error
+	var permCode []bool
+	var permIssue []bool
+	var permPR []bool
 
-	// Add feed for actioner.
-	act.UserID = act.ActUserID
-	if _, err = e.InsertOne(act); err != nil {
-		return fmt.Errorf("insert new actioner: %v", err)
-	}
+	for _, act := range actions {
+		repoChanged := repo == nil || repo.ID != act.RepoID
 
-	act.loadRepo()
-	// check repo owner exist.
-	if err := act.Repo.getOwner(e); err != nil {
-		return fmt.Errorf("can't get repo owner: %v", err)
-	}
+		if repoChanged {
+			// Add feeds for user self and all watchers.
+			watchers, err = getWatchers(e, act.RepoID)
+			if err != nil {
+				return fmt.Errorf("get watchers: %v", err)
+			}
+		}
 
-	// Add feed for organization
-	if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
-		act.ID = 0
-		act.UserID = act.Repo.Owner.ID
+		// Add feed for actioner.
+		act.UserID = act.ActUserID
 		if _, err = e.InsertOne(act); err != nil {
 			return fmt.Errorf("insert new actioner: %v", err)
 		}
-	}
 
-	for i := range watches {
-		if act.ActUserID == watches[i].UserID {
-			continue
+		if repoChanged {
+			act.loadRepo()
+			repo = act.Repo
+
+			// check repo owner exist.
+			if err := act.Repo.getOwner(e); err != nil {
+				return fmt.Errorf("can't get repo owner: %v", err)
+			}
+		} else if act.Repo == nil {
+			act.Repo = repo
 		}
 
-		act.ID = 0
-		act.UserID = watches[i].UserID
-		act.Repo.Units = nil
-
-		switch act.OpType {
-		case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionDeleteBranch:
-			if !act.Repo.checkUnitUser(e, act.UserID, false, UnitTypeCode) {
-				continue
-			}
-		case ActionCreateIssue, ActionCommentIssue, ActionCloseIssue, ActionReopenIssue:
-			if !act.Repo.checkUnitUser(e, act.UserID, false, UnitTypeIssues) {
-				continue
-			}
-		case ActionCreatePullRequest, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
-			if !act.Repo.checkUnitUser(e, act.UserID, false, UnitTypePullRequests) {
-				continue
+		// Add feed for organization
+		if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
+			act.ID = 0
+			act.UserID = act.Repo.Owner.ID
+			if _, err = e.InsertOne(act); err != nil {
+				return fmt.Errorf("insert new actioner: %v", err)
 			}
 		}
 
-		if _, err = e.InsertOne(act); err != nil {
-			return fmt.Errorf("insert new action: %v", err)
+		if repoChanged {
+			permCode = make([]bool, len(watchers))
+			permIssue = make([]bool, len(watchers))
+			permPR = make([]bool, len(watchers))
+			for i, watcher := range watchers {
+				user, err := getUserByID(e, watcher.UserID)
+				if err != nil {
+					permCode[i] = false
+					permIssue[i] = false
+					permPR[i] = false
+					continue
+				}
+				perm, err := getUserRepoPermission(e, repo, user)
+				if err != nil {
+					permCode[i] = false
+					permIssue[i] = false
+					permPR[i] = false
+					continue
+				}
+				permCode[i] = perm.CanRead(UnitTypeCode)
+				permIssue[i] = perm.CanRead(UnitTypeIssues)
+				permPR[i] = perm.CanRead(UnitTypePullRequests)
+			}
+		}
+
+		for i, watcher := range watchers {
+			if act.ActUserID == watcher.UserID {
+				continue
+			}
+			act.ID = 0
+			act.UserID = watcher.UserID
+			act.Repo.Units = nil
+
+			switch act.OpType {
+			case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionDeleteBranch:
+				if !permCode[i] {
+					continue
+				}
+			case ActionCreateIssue, ActionCommentIssue, ActionCloseIssue, ActionReopenIssue:
+				if !permIssue[i] {
+					continue
+				}
+			case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
+				if !permPR[i] {
+					continue
+				}
+			}
+
+			if _, err = e.InsertOne(act); err != nil {
+				return fmt.Errorf("insert new action: %v", err)
+			}
 		}
 	}
 	return nil
 }
 
 // NotifyWatchers creates batch of actions for every watcher.
-func NotifyWatchers(act *Action) error {
-	return notifyWatchers(x, act)
+func NotifyWatchers(actions ...*Action) error {
+	return notifyWatchers(x, actions...)
 }
 
 // NotifyWatchersActions creates batch of actions for every watcher.

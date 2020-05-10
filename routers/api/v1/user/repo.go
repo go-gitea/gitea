@@ -5,16 +5,23 @@
 package user
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
-	repos, err := models.GetUserRepositories(u.ID, private, 1, u.NumRepos, "")
+	repos, err := models.GetUserRepositories(&models.SearchRepoOptions{
+		Actor:       u,
+		Private:     private,
+		ListOptions: utils.GetListOptions(ctx),
+	})
 	if err != nil {
-		ctx.Error(500, "GetUserRepositories", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
 		return
 	}
 
@@ -22,14 +29,14 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 	for i := range repos {
 		access, err := models.AccessLevel(ctx.User, repos[i])
 		if err != nil {
-			ctx.Error(500, "AccessLevel", err)
+			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
 		if ctx.IsSigned && ctx.User.IsAdmin || access >= models.AccessModeRead {
 			apiRepos = append(apiRepos, repos[i].APIFormat(access))
 		}
 	}
-	ctx.JSON(200, &apiRepos)
+	ctx.JSON(http.StatusOK, &apiRepos)
 }
 
 // ListUserRepos - list the repos owned by the given user.
@@ -45,9 +52,18 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	user := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -63,17 +79,31 @@ func ListMyRepos(ctx *context.APIContext) {
 	// summary: List the repos that the authenticated user owns or has access to
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
-	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, ctx.User.NumRepos, "")
+
+	ownRepos, err := models.GetUserRepositories(&models.SearchRepoOptions{
+		Actor:       ctx.User,
+		Private:     true,
+		ListOptions: utils.GetListOptions(ctx),
+	})
 	if err != nil {
-		ctx.Error(500, "GetUserRepositories", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
 		return
 	}
 	accessibleReposMap, err := ctx.User.GetRepositoryAccesses()
 	if err != nil {
-		ctx.Error(500, "GetRepositoryAccesses", err)
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryAccesses", err)
 		return
 	}
 
@@ -86,7 +116,7 @@ func ListMyRepos(ctx *context.APIContext) {
 		apiRepos[i] = repo.APIFormat(access)
 		i++
 	}
-	ctx.JSON(200, &apiRepos)
+	ctx.JSON(http.StatusOK, &apiRepos)
 }
 
 // ListOrgRepos - list the repositories of an organization.
@@ -102,8 +132,17 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	listUserRepos(ctx, ctx.Org.Organization, ctx.IsSigned)
 }

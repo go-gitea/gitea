@@ -35,6 +35,7 @@ type Document struct {
 	*Configuration
 	Path           string // Path of the file containing the parse input - used to resolve relative paths during parsing (e.g. INCLUDE).
 	tokens         []token
+	baseLvl        int
 	Nodes          []Node
 	NamedNodes     map[string]Node
 	Outline        Outline           // Outline is a Table Of Contents for the document and contains all sections (headline + content).

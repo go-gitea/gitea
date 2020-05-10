@@ -18,7 +18,7 @@ import (
 type makeRequestFunc func(testing.TB, *http.Request, int) *httptest.ResponseRecorder
 
 func TestGPGKeys(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
 

@@ -30,8 +30,17 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User) *api.Branch {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
+		var hasPerm bool
+		var err error
+		if user != nil {
+			hasPerm, err = models.HasAccessUnit(user, repo, models.UnitTypeCode, models.AccessModeWrite)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return &api.Branch{
 			Name:                b.Name,
 			Commit:              ToCommit(repo, c),
@@ -39,19 +48,82 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 			RequiredApprovals:   0,
 			EnableStatusCheck:   false,
 			StatusCheckContexts: []string{},
-			UserCanPush:         true,
-			UserCanMerge:        true,
-		}
+			UserCanPush:         hasPerm,
+			UserCanMerge:        hasPerm,
+		}, nil
 	}
-	return &api.Branch{
+
+	branch := &api.Branch{
 		Name:                b.Name,
 		Commit:              ToCommit(repo, c),
 		Protected:           true,
 		RequiredApprovals:   bp.RequiredApprovals,
 		EnableStatusCheck:   bp.EnableStatusCheck,
 		StatusCheckContexts: bp.StatusCheckContexts,
-		UserCanPush:         bp.CanUserPush(user.ID),
-		UserCanMerge:        bp.CanUserMerge(user.ID),
+	}
+
+	if isRepoAdmin {
+		branch.EffectiveBranchProtectionName = bp.BranchName
+	}
+
+	if user != nil {
+		branch.UserCanPush = bp.CanUserPush(user.ID)
+		branch.UserCanMerge = bp.IsUserMergeWhitelisted(user.ID)
+	}
+
+	return branch, nil
+}
+
+// ToBranchProtection convert a ProtectedBranch to api.BranchProtection
+func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
+	pushWhitelistUsernames, err := models.GetUserNamesByIDs(bp.WhitelistUserIDs)
+	if err != nil {
+		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
+	}
+	mergeWhitelistUsernames, err := models.GetUserNamesByIDs(bp.MergeWhitelistUserIDs)
+	if err != nil {
+		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
+	}
+	approvalsWhitelistUsernames, err := models.GetUserNamesByIDs(bp.ApprovalsWhitelistUserIDs)
+	if err != nil {
+		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
+	}
+	pushWhitelistTeams, err := models.GetTeamNamesByID(bp.WhitelistTeamIDs)
+	if err != nil {
+		log.Error("GetTeamNamesByID (WhitelistTeamIDs): %v", err)
+	}
+	mergeWhitelistTeams, err := models.GetTeamNamesByID(bp.MergeWhitelistTeamIDs)
+	if err != nil {
+		log.Error("GetTeamNamesByID (MergeWhitelistTeamIDs): %v", err)
+	}
+	approvalsWhitelistTeams, err := models.GetTeamNamesByID(bp.ApprovalsWhitelistTeamIDs)
+	if err != nil {
+		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
+	}
+
+	return &api.BranchProtection{
+		BranchName:                  bp.BranchName,
+		EnablePush:                  bp.CanPush,
+		EnablePushWhitelist:         bp.EnableWhitelist,
+		PushWhitelistUsernames:      pushWhitelistUsernames,
+		PushWhitelistTeams:          pushWhitelistTeams,
+		PushWhitelistDeployKeys:     bp.WhitelistDeployKeys,
+		EnableMergeWhitelist:        bp.EnableMergeWhitelist,
+		MergeWhitelistUsernames:     mergeWhitelistUsernames,
+		MergeWhitelistTeams:         mergeWhitelistTeams,
+		EnableStatusCheck:           bp.EnableStatusCheck,
+		StatusCheckContexts:         bp.StatusCheckContexts,
+		RequiredApprovals:           bp.RequiredApprovals,
+		EnableApprovalsWhitelist:    bp.EnableApprovalsWhitelist,
+		ApprovalsWhitelistUsernames: approvalsWhitelistUsernames,
+		ApprovalsWhitelistTeams:     approvalsWhitelistTeams,
+		BlockOnRejectedReviews:      bp.BlockOnRejectedReviews,
+		BlockOnOutdatedBranch:       bp.BlockOnOutdatedBranch,
+		DismissStaleApprovals:       bp.DismissStaleApprovals,
+		RequireSignedCommits:        bp.RequireSignedCommits,
+		ProtectedFilePatterns:       bp.ProtectedFilePatterns,
+		Created:                     bp.CreatedUnix.AsTime(),
+		Updated:                     bp.UpdatedUnix.AsTime(),
 	}
 }
 
@@ -249,12 +321,14 @@ func ToTeam(team *models.Team) *api.Team {
 		Name:                    team.Name,
 		Description:             team.Description,
 		IncludesAllRepositories: team.IncludesAllRepositories,
+		CanCreateOrgRepo:        team.CanCreateOrgRepo,
 		Permission:              team.Authorize.String(),
 		Units:                   team.GetUnitNames(),
 	}
 }
 
 // ToUser convert models.User to api.User
+// signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
 func ToUser(user *models.User, signed, authed bool) *api.User {
 	result := &api.User{
 		UserName:  user.Name,
@@ -262,16 +336,16 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 		FullName:  markup.Sanitize(user.FullName),
 		Created:   user.CreatedUnix.AsTime(),
 	}
-	// hide primary email if API caller isn't user itself or an admin
-	if !signed {
-		result.Email = ""
-	} else if user.KeepEmailPrivate && !authed {
-		result.Email = user.GetEmail()
-	} else { // only user himself and admin could visit these information
-		result.ID = user.ID
+	// hide primary email if API caller is anonymous or user keep email private
+	if signed && (!user.KeepEmailPrivate || authed) {
 		result.Email = user.Email
+	}
+	// only site admin will get these information and possibly user himself
+	if authed {
+		result.ID = user.ID
 		result.IsAdmin = user.IsAdmin
 		result.LastLogin = user.LastLoginUnix.AsTime()
+		result.Language = user.Language
 	}
 	return result
 }
@@ -313,7 +387,6 @@ func ToCommitUser(sig *git.Signature) *api.CommitUser {
 func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 	return &api.CommitMeta{
 		SHA: tag.Object.String(),
-		// TODO: Add the /commits API endpoint and use it here (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
 		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
 	}
 }
@@ -326,5 +399,17 @@ func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
 		RepoCount: topic.RepoCount,
 		Created:   topic.CreatedUnix.AsTime(),
 		Updated:   topic.UpdatedUnix.AsTime(),
+	}
+}
+
+// ToOAuth2Application convert from models.OAuth2Application to api.OAuth2Application
+func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
+	return &api.OAuth2Application{
+		ID:           app.ID,
+		Name:         app.Name,
+		ClientID:     app.ClientID,
+		ClientSecret: app.ClientSecret,
+		RedirectURIs: app.RedirectURIs,
+		Created:      app.CreatedUnix.AsTime(),
 	}
 }

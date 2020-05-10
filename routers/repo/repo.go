@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +7,7 @@ package repo
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -18,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -53,12 +56,23 @@ func MustBeAbleToUpload(ctx *context.Context) {
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *models.User {
-	orgs, err := models.GetOwnedOrgsByUserIDDesc(ctx.User.ID, "updated_unix")
+	orgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.User.ID)
 	if err != nil {
-		ctx.ServerError("GetOwnedOrgsByUserIDDesc", err)
+		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
-	ctx.Data["Orgs"] = orgs
+
+	if !ctx.User.IsAdmin {
+		orgsAvailable := []*models.User{}
+		for i := 0; i < len(orgs); i++ {
+			if orgs[i].CanCreateRepo() {
+				orgsAvailable = append(orgsAvailable, orgs[i])
+			}
+		}
+		ctx.Data["Orgs"] = orgsAvailable
+	} else {
+		ctx.Data["Orgs"] = orgs
+	}
 
 	// Not equal means current user is an organization.
 	if uid == ctx.User.ID || uid == 0 {
@@ -81,14 +95,16 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		return nil
 	}
 	if !ctx.User.IsAdmin {
-		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
-		} else if !isOwner {
+		} else if !canCreate {
 			ctx.Error(403)
 			return nil
 		}
+	} else {
+		ctx.Data["Orgs"] = orgs
 	}
 	return org
 }
@@ -108,10 +124,6 @@ func getRepoPrivate(ctx *context.Context) bool {
 
 // Create render creating repository page
 func Create(ctx *context.Context) {
-	if !ctx.User.CanCreateRepo() {
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
-	}
-
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	// Give default value for template to render.
@@ -139,7 +151,11 @@ func Create(ctx *context.Context) {
 		}
 	}
 
-	ctx.HTML(200, tplCreate)
+	if !ctx.User.CanCreateRepo() {
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
+	} else {
+		ctx.HTML(200, tplCreate)
+	}
 }
 
 func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
@@ -180,6 +196,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 
+	var repo *models.Repository
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := models.GenerateRepoOptions{
@@ -188,6 +205,10 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			Private:     form.Private,
 			GitContent:  form.GitContent,
 			Topics:      form.Topics,
+			GitHooks:    form.GitHooks,
+			Webhooks:    form.Webhooks,
+			Avatar:      form.Avatar,
+			IssueLabels: form.Labels,
 		}
 
 		if !opts.IsValid() {
@@ -205,22 +226,23 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			return
 		}
 
-		repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
+		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 			return
 		}
 	} else {
-		repo, err := repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
-			Name:        form.RepoName,
-			Description: form.Description,
-			Gitignores:  form.Gitignores,
-			IssueLabels: form.IssueLabels,
-			License:     form.License,
-			Readme:      form.Readme,
-			IsPrivate:   form.Private || setting.Repository.ForcePrivate,
-			AutoInit:    form.AutoInit,
+		repo, err = repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+			Name:          form.RepoName,
+			Description:   form.Description,
+			Gitignores:    form.Gitignores,
+			IssueLabels:   form.IssueLabels,
+			License:       form.License,
+			Readme:        form.Readme,
+			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
+			DefaultBranch: form.DefaultBranch,
+			AutoInit:      form.AutoInit,
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
@@ -325,21 +347,29 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
+	var gitServiceType = structs.PlainGitService
+	u, err := url.Parse(form.CloneAddr)
+	if err == nil && strings.EqualFold(u.Host, "github.com") {
+		gitServiceType = structs.GithubService
+	}
+
 	var opts = migrations.MigrateOptions{
-		CloneAddr:    remoteAddr,
-		RepoName:     form.RepoName,
-		Description:  form.Description,
-		Private:      form.Private || setting.Repository.ForcePrivate,
-		Mirror:       form.Mirror,
-		AuthUsername: form.AuthUsername,
-		AuthPassword: form.AuthPassword,
-		Wiki:         form.Wiki,
-		Issues:       form.Issues,
-		Milestones:   form.Milestones,
-		Labels:       form.Labels,
-		Comments:     true,
-		PullRequests: form.PullRequests,
-		Releases:     form.Releases,
+		OriginalURL:    form.CloneAddr,
+		GitServiceType: gitServiceType,
+		CloneAddr:      remoteAddr,
+		RepoName:       form.RepoName,
+		Description:    form.Description,
+		Private:        form.Private || setting.Repository.ForcePrivate,
+		Mirror:         form.Mirror,
+		AuthUsername:   form.AuthUsername,
+		AuthPassword:   form.AuthPassword,
+		Wiki:           form.Wiki,
+		Issues:         form.Issues,
+		Milestones:     form.Milestones,
+		Labels:         form.Labels,
+		Comments:       true,
+		PullRequests:   form.PullRequests,
+		Releases:       form.Releases,
 	}
 	if opts.Mirror {
 		opts.Issues = false
@@ -404,7 +434,7 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := models.GetReleasesByRepoIDAndNames(curRepo.ID, tagNames)
+	releases, err := models.GetReleasesByRepoIDAndNames(models.DefaultDBContext(), curRepo.ID, tagNames)
 	if err != nil {
 		if models.IsErrAttachmentNotExist(err) {
 			ctx.Error(404)
@@ -421,7 +451,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 		if att != nil {
-			ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
+			ctx.Redirect(att.DownloadURL())
 			return
 		}
 	}
@@ -492,7 +522,10 @@ func Download(ctx *context.Context) {
 
 	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
 	if !com.IsFile(archivePath) {
-		if err := commit.CreateArchive(archivePath, archiveType); err != nil {
+		if err := commit.CreateArchive(archivePath, git.CreateArchiveOpts{
+			Format: archiveType,
+			Prefix: setting.Repository.PrefixArchiveFiles,
+		}); err != nil {
 			ctx.ServerError("Download -> CreateArchive "+archivePath, err)
 			return
 		}

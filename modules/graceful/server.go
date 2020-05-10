@@ -1,5 +1,3 @@
-// +build !windows
-
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -9,47 +7,28 @@ package graceful
 
 import (
 	"crypto/tls"
+	"io/ioutil"
 	"net"
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
 )
 
-type state uint8
-
-const (
-	stateInit state = iota
-	stateRunning
-	stateShuttingDown
-	stateTerminate
-)
-
 var (
-	// RWMutex for when adding servers or shutting down
-	runningServerReg sync.RWMutex
-	runningServerWG  sync.WaitGroup
-	// ensure we only fork once
-	runningServersForked bool
-
 	// DefaultReadTimeOut default read timeout
 	DefaultReadTimeOut time.Duration
 	// DefaultWriteTimeOut default write timeout
 	DefaultWriteTimeOut time.Duration
 	// DefaultMaxHeaderBytes default max header bytes
 	DefaultMaxHeaderBytes int
-
-	// IsChild reports if we are a fork iff LISTEN_FDS is set and our parent PID is not 1
-	IsChild = len(os.Getenv(listenFDs)) > 0 && os.Getppid() > 1
 )
 
 func init() {
-	runningServerReg = sync.RWMutex{}
-	runningServerWG = sync.WaitGroup{}
-
 	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
 }
 
@@ -58,43 +37,29 @@ type ServeFunction = func(net.Listener) error
 
 // Server represents our graceful server
 type Server struct {
-	network         string
-	address         string
-	listener        net.Listener
-	PreSignalHooks  map[os.Signal][]func()
-	PostSignalHooks map[os.Signal][]func()
-	wg              sync.WaitGroup
-	sigChan         chan os.Signal
-	state           state
-	lock            *sync.RWMutex
-	BeforeBegin     func(network, address string)
-	OnShutdown      func()
-}
-
-// WaitForServers waits for all running servers to finish
-func WaitForServers() {
-	runningServerWG.Wait()
+	network     string
+	address     string
+	listener    net.Listener
+	wg          sync.WaitGroup
+	state       state
+	lock        *sync.RWMutex
+	BeforeBegin func(network, address string)
+	OnShutdown  func()
 }
 
 // NewServer creates a server on network at provided address
 func NewServer(network, address string) *Server {
-	runningServerReg.Lock()
-	defer runningServerReg.Unlock()
-
-	if IsChild {
+	if GetManager().IsChild() {
 		log.Info("Restarting new server: %s:%s on PID: %d", network, address, os.Getpid())
 	} else {
 		log.Info("Starting new server: %s:%s on PID: %d", network, address, os.Getpid())
 	}
 	srv := &Server{
-		wg:              sync.WaitGroup{},
-		sigChan:         make(chan os.Signal),
-		PreSignalHooks:  map[os.Signal][]func(){},
-		PostSignalHooks: map[os.Signal][]func(){},
-		state:           stateInit,
-		lock:            &sync.RWMutex{},
-		network:         network,
-		address:         address,
+		wg:      sync.WaitGroup{},
+		state:   stateInit,
+		lock:    &sync.RWMutex{},
+		network: network,
+		address: address,
 	}
 
 	srv.BeforeBegin = func(network, addr string) {
@@ -107,7 +72,7 @@ func NewServer(network, address string) *Server {
 // ListenAndServe listens on the provided network address and then calls Serve
 // to handle requests on incoming connections.
 func (srv *Server) ListenAndServe(serve ServeFunction) error {
-	go srv.handleSignals()
+	go srv.awaitShutdown()
 
 	l, err := GetListener(srv.network, srv.address)
 	if err != nil {
@@ -116,8 +81,6 @@ func (srv *Server) ListenAndServe(serve ServeFunction) error {
 	}
 
 	srv.listener = newWrappedListener(l, srv)
-
-	KillParent()
 
 	srv.BeforeBegin(srv.network, srv.address)
 
@@ -138,19 +101,32 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFuncti
 	}
 
 	config.Certificates = make([]tls.Certificate, 1)
-	var err error
-	config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
+
+	certPEMBlock, err := ioutil.ReadFile(certFile)
 	if err != nil {
 		log.Error("Failed to load https cert file %s for %s:%s: %v", certFile, srv.network, srv.address, err)
 		return err
 	}
+
+	keyPEMBlock, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		log.Error("Failed to load https key file %s for %s:%s: %v", keyFile, srv.network, srv.address, err)
+		return err
+	}
+
+	config.Certificates[0], err = tls.X509KeyPair(certPEMBlock, keyPEMBlock)
+	if err != nil {
+		log.Error("Failed to create certificate from cert file %s and key file %s for %s:%s: %v", certFile, keyFile, srv.network, srv.address, err)
+		return err
+	}
+
 	return srv.ListenAndServeTLSConfig(config, serve)
 }
 
 // ListenAndServeTLSConfig listens on the provided network address and then calls
 // Serve to handle requests on incoming TLS connections.
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction) error {
-	go srv.handleSignals()
+	go srv.awaitShutdown()
 
 	l, err := GetListener(srv.network, srv.address)
 	if err != nil {
@@ -161,7 +137,6 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 	wl := newWrappedListener(l, srv)
 	srv.listener = tls.NewListener(wl, tlsConfig)
 
-	KillParent()
 	srv.BeforeBegin(srv.network, srv.address)
 
 	return srv.Serve(serve)
@@ -178,12 +153,12 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 func (srv *Server) Serve(serve ServeFunction) error {
 	defer log.Debug("Serve() returning... (PID: %d)", syscall.Getpid())
 	srv.setState(stateRunning)
-	runningServerWG.Add(1)
+	GetManager().RegisterServer()
 	err := serve(srv.listener)
 	log.Debug("Waiting for connections to finish... (PID: %d)", syscall.Getpid())
 	srv.wg.Wait()
 	srv.setState(stateTerminate)
-	runningServerWG.Done()
+	GetManager().ServerDone()
 	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
 	if err != nil && strings.Contains(err.Error(), "use of closed") {
 		return nil
@@ -203,6 +178,10 @@ func (srv *Server) setState(st state) {
 	defer srv.lock.Unlock()
 
 	srv.state = st
+}
+
+type filer interface {
+	File() (*os.File, error)
 }
 
 type wrappedListener struct {
@@ -237,9 +216,12 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 		}
 	}
 
+	closed := int32(0)
+
 	c = wrappedConn{
 		Conn:   c,
 		server: wl.server,
+		closed: &closed,
 	}
 
 	wl.server.wg.Add(1)
@@ -263,12 +245,23 @@ func (wl *wrappedListener) File() (*os.File, error) {
 type wrappedConn struct {
 	net.Conn
 	server *Server
+	closed *int32
 }
 
 func (w wrappedConn) Close() error {
-	err := w.Conn.Close()
-	if err == nil {
+	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
+		defer func() {
+			if err := recover(); err != nil {
+				select {
+				case <-GetManager().IsHammer():
+					// Likely deadlocked request released at hammertime
+					log.Warn("Panic during connection close! %v. Likely there has been a deadlocked request which has been released by forced shutdown.", err)
+				default:
+					log.Error("Panic during connection close! %v", err)
+				}
+			}
+		}()
 		w.server.wg.Done()
 	}
-	return err
+	return w.Conn.Close()
 }

@@ -45,6 +45,7 @@ type BooleanSearcher struct {
 	scorer          *scorer.ConjunctionQueryScorer
 	matches         []*search.DocumentMatch
 	initialized     bool
+	done            bool
 }
 
 func NewBooleanSearcher(indexReader index.IndexReader, mustSearcher search.Searcher, shouldSearcher search.Searcher, mustNotSearcher search.Searcher, options search.SearcherOptions) (*BooleanSearcher, error) {
@@ -207,6 +208,10 @@ func (s *BooleanSearcher) SetQueryNorm(qnorm float64) {
 
 func (s *BooleanSearcher) Next(ctx *search.SearchContext) (*search.DocumentMatch, error) {
 
+	if s.done {
+		return nil, nil
+	}
+
 	if !s.initialized {
 		err := s.initSearchers(ctx)
 		if err != nil {
@@ -320,10 +325,18 @@ func (s *BooleanSearcher) Next(ctx *search.SearchContext) (*search.DocumentMatch
 		}
 	}
 
+	if rv == nil {
+		s.done = true
+	}
+
 	return rv, nil
 }
 
 func (s *BooleanSearcher) Advance(ctx *search.SearchContext, ID index.IndexInternalID) (*search.DocumentMatch, error) {
+
+	if s.done {
+		return nil, nil
+	}
 
 	if !s.initialized {
 		err := s.initSearchers(ctx)
@@ -332,14 +345,8 @@ func (s *BooleanSearcher) Advance(ctx *search.SearchContext, ID index.IndexInter
 		}
 	}
 
-	// Advance the searchers only if the currentID cursor is trailing the lookup ID,
-	// additionally if the mustNotSearcher has been initialized, ensure that the
-	// cursor used to track the mustNotSearcher (currMustNot, which isn't tracked by
-	// currentID) is trailing the lookup ID as well - for in the case where currentID
-	// is nil and currMustNot is already at or ahead of the lookup ID, we MUST NOT
-	// advance the currentID or the currMustNot cursors.
-	if (s.currentID == nil || s.currentID.Compare(ID) < 0) &&
-		(s.currMustNot == nil || s.currMustNot.IndexInternalID.Compare(ID) < 0) {
+	// Advance the searcher only if the cursor is trailing the lookup ID
+	if s.currentID == nil || s.currentID.Compare(ID) < 0 {
 		var err error
 		if s.mustSearcher != nil {
 			if s.currMust != nil {
@@ -362,12 +369,17 @@ func (s *BooleanSearcher) Advance(ctx *search.SearchContext, ID index.IndexInter
 		}
 
 		if s.mustNotSearcher != nil {
-			if s.currMustNot != nil {
-				ctx.DocumentMatchPool.Put(s.currMustNot)
-			}
-			s.currMustNot, err = s.mustNotSearcher.Advance(ctx, ID)
-			if err != nil {
-				return nil, err
+			// Additional check for mustNotSearcher, whose cursor isn't tracked by
+			// currentID to prevent it from moving when the searcher's tracked
+			// position is already ahead of or at the requested ID.
+			if s.currMustNot == nil || s.currMustNot.IndexInternalID.Compare(ID) < 0 {
+				if s.currMustNot != nil {
+					ctx.DocumentMatchPool.Put(s.currMustNot)
+				}
+				s.currMustNot, err = s.mustNotSearcher.Advance(ctx, ID)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 

@@ -34,7 +34,7 @@ func NewGeoPointDistanceSearcher(indexReader index.IndexReader, centerLon,
 	// build a searcher for the box
 	boxSearcher, err := boxSearcher(indexReader,
 		topLeftLon, topLeftLat, bottomRightLon, bottomRightLat,
-		field, boost, options)
+		field, boost, options, false)
 	if err != nil {
 		return nil, err
 	}
@@ -54,19 +54,20 @@ func NewGeoPointDistanceSearcher(indexReader index.IndexReader, centerLon,
 // two boxes joined through a disjunction searcher
 func boxSearcher(indexReader index.IndexReader,
 	topLeftLon, topLeftLat, bottomRightLon, bottomRightLat float64,
-	field string, boost float64, options search.SearcherOptions) (
+	field string, boost float64, options search.SearcherOptions, checkBoundaries bool) (
 	search.Searcher, error) {
 	if bottomRightLon < topLeftLon {
 		// cross date line, rewrite as two parts
 
 		leftSearcher, err := NewGeoBoundingBoxSearcher(indexReader,
 			-180, bottomRightLat, bottomRightLon, topLeftLat,
-			field, boost, options, false)
+			field, boost, options, checkBoundaries)
 		if err != nil {
 			return nil, err
 		}
 		rightSearcher, err := NewGeoBoundingBoxSearcher(indexReader,
-			topLeftLon, bottomRightLat, 180, topLeftLat, field, boost, options, false)
+			topLeftLon, bottomRightLat, 180, topLeftLat, field, boost, options,
+			checkBoundaries)
 		if err != nil {
 			_ = leftSearcher.Close()
 			return nil, err
@@ -82,10 +83,10 @@ func boxSearcher(indexReader index.IndexReader,
 		return boxSearcher, nil
 	}
 
-	// build geoboundinggox searcher for that bounding box
+	// build geoboundingbox searcher for that bounding box
 	boxSearcher, err := NewGeoBoundingBoxSearcher(indexReader,
 		topLeftLon, bottomRightLat, bottomRightLon, topLeftLat, field, boost,
-		options, false)
+		options, checkBoundaries)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +96,8 @@ func boxSearcher(indexReader index.IndexReader,
 func buildDistFilter(dvReader index.DocValueReader, field string,
 	centerLon, centerLat, maxDist float64) FilterFunc {
 	return func(d *search.DocumentMatch) bool {
-		var lon, lat float64
+		// check geo matches against all numeric type terms indexed
+		var lons, lats []float64
 		var found bool
 
 		err := dvReader.VisitDocValues(d.IndexInternalID, func(field string, term []byte) {
@@ -105,16 +107,18 @@ func buildDistFilter(dvReader index.DocValueReader, field string,
 			if err == nil && shift == 0 {
 				i64, err := prefixCoded.Int64()
 				if err == nil {
-					lon = geo.MortonUnhashLon(uint64(i64))
-					lat = geo.MortonUnhashLat(uint64(i64))
+					lons = append(lons, geo.MortonUnhashLon(uint64(i64)))
+					lats = append(lats, geo.MortonUnhashLat(uint64(i64)))
 					found = true
 				}
 			}
 		})
 		if err == nil && found {
-			dist := geo.Haversin(lon, lat, centerLon, centerLat)
-			if dist <= maxDist/1000 {
-				return true
+			for i := range lons {
+				dist := geo.Haversin(lons[i], lats[i], centerLon, centerLat)
+				if dist <= maxDist/1000 {
+					return true
+				}
 			}
 		}
 		return false

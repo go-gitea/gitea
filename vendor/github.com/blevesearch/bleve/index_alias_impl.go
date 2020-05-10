@@ -434,6 +434,8 @@ func createChildSearchRequest(req *SearchRequest) *SearchRequest {
 		Sort:             req.Sort.Copy(),
 		IncludeLocations: req.IncludeLocations,
 		Score:            req.Score,
+		SearchAfter:      req.SearchAfter,
+		SearchBefore:     req.SearchBefore,
 	}
 	return &rv
 }
@@ -450,6 +452,14 @@ func MultiSearch(ctx context.Context, req *SearchRequest, indexes ...Index) (*Se
 
 	searchStart := time.Now()
 	asyncResults := make(chan *asyncSearchResult, len(indexes))
+
+	var reverseQueryExecution bool
+	if req.SearchBefore != nil {
+		reverseQueryExecution = true
+		req.Sort.Reverse()
+		req.SearchAfter = req.SearchBefore
+		req.SearchBefore = nil
+	}
 
 	// run search on each index in separate go routine
 	var waitGroup sync.WaitGroup
@@ -503,7 +513,7 @@ func MultiSearch(ctx context.Context, req *SearchRequest, indexes ...Index) (*Se
 
 	// sort all hits with the requested order
 	if len(req.Sort) > 0 {
-		sorter := newMultiSearchHitSorter(req.Sort, sr.Hits)
+		sorter := newSearchHitSorter(req.Sort, sr.Hits)
 		sort.Sort(sorter)
 	}
 
@@ -522,6 +532,17 @@ func MultiSearch(ctx context.Context, req *SearchRequest, indexes ...Index) (*Se
 	// fix up facets
 	for name, fr := range req.Facets {
 		sr.Facets.Fixup(name, fr.Size)
+	}
+
+	if reverseQueryExecution {
+		// reverse the sort back to the original
+		req.Sort.Reverse()
+		// resort using the original order
+		mhs := newSearchHitSorter(req.Sort, sr.Hits)
+		sort.Sort(mhs)
+		// reset request
+		req.SearchBefore = req.SearchAfter
+		req.SearchAfter = nil
 	}
 
 	// fix up original request
@@ -580,27 +601,4 @@ func (f *indexAliasImplFieldDict) Next() (*index.DictEntry, error) {
 func (f *indexAliasImplFieldDict) Close() error {
 	defer f.index.mutex.RUnlock()
 	return f.fieldDict.Close()
-}
-
-type multiSearchHitSorter struct {
-	hits          search.DocumentMatchCollection
-	sort          search.SortOrder
-	cachedScoring []bool
-	cachedDesc    []bool
-}
-
-func newMultiSearchHitSorter(sort search.SortOrder, hits search.DocumentMatchCollection) *multiSearchHitSorter {
-	return &multiSearchHitSorter{
-		sort:          sort,
-		hits:          hits,
-		cachedScoring: sort.CacheIsScore(),
-		cachedDesc:    sort.CacheDescending(),
-	}
-}
-
-func (m *multiSearchHitSorter) Len() int      { return len(m.hits) }
-func (m *multiSearchHitSorter) Swap(i, j int) { m.hits[i], m.hits[j] = m.hits[j], m.hits[i] }
-func (m *multiSearchHitSorter) Less(i, j int) bool {
-	c := m.sort.Compare(m.cachedScoring, m.cachedDesc, m.hits[i], m.hits[j])
-	return c < 0
 }

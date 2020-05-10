@@ -31,7 +31,7 @@ func testLoginFailed(t *testing.T, username, password, message string) {
 }
 
 func TestSignin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 

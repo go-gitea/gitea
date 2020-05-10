@@ -25,7 +25,7 @@ func assertUserDeleted(t *testing.T, userID int64) {
 }
 
 func TestAdminDeleteUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 
@@ -40,7 +40,7 @@ func TestAdminDeleteUser(t *testing.T) {
 }
 
 func TestUserDeleteAccount(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user8")
 	csrf := GetCSRF(t, session, "/user/settings/account")
@@ -55,7 +55,7 @@ func TestUserDeleteAccount(t *testing.T) {
 }
 
 func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	csrf := GetCSRF(t, session, "/user/settings/account")

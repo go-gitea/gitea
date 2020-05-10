@@ -1,0 +1,101 @@
+{{template "base/head" .}}
+<div class="admin user">
+	{{template "admin/navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.emails.email_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui right floated secondary filter menu">
+			<!-- Sort -->
+				<div class="ui dropdown type jump item">
+					<span class="text">
+						{{.i18n.Tr "repo.issues.filter_sort"}}
+						<i class="dropdown icon"></i>
+					</span>
+					<div class="menu">
+						<a class="{{if or (eq .SortType "email") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{.i18n.Tr "admin.emails.filter_sort.email"}}</a>
+						<a class="{{if eq .SortType "reverseemail"}}active{{end}} item" href="{{$.Link}}?sort=reverseemail&q={{$.Keyword}}">{{.i18n.Tr "admin.emails.filter_sort.email_reverse"}}</a>
+						<a class="{{if eq .SortType "username"}}active{{end}} item" href="{{$.Link}}?sort=username&q={{$.Keyword}}">{{.i18n.Tr "admin.emails.filter_sort.name"}}</a>
+						<a class="{{if eq .SortType "reverseusername"}}active{{end}} item" href="{{$.Link}}?sort=reverseusername&q={{$.Keyword}}">{{.i18n.Tr "admin.emails.filter_sort.name_reverse"}}</a>
+					</div>
+				</div>
+			</div>
+			<form class="ui form ignore-dirty"  style="max-width: 90%">
+				<div class="ui fluid action input">
+				<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+				<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+				</div>
+			</form>
+		</div>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table">
+				<thead>
+					<tr>
+						<th>{{.i18n.Tr "admin.users.name"}}</th>
+						<th>{{.i18n.Tr "admin.users.full_name"}}</th>
+						<th>{{.i18n.Tr "email"}}</th>
+						<th>{{.i18n.Tr "admin.emails.primary"}}</th>
+						<th>{{.i18n.Tr "admin.emails.activated"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Emails}}
+						<tr>
+							<td><a href="{{AppSubUrl}}/{{.Name}}">{{.Name}}</a></td>
+							<td><span class="text truncate">{{.FullName}}</span></td>
+							<td><span class="text email">{{.Email}}</span></td>
+							<td><i class="fa fa{{if .IsPrimary}}-check{{end}}-square-o"></i></td>
+							<td>
+								{{if .CanChange}}
+									<a class="link-email-action" href data-uid="{{.UID}}"
+										data-email="{{.Email}}"
+										data-primary="{{if .IsPrimary}}1{{else}}0{{end}}"
+										data-activate="{{if .IsActivated}}0{{else}}1{{end}}">
+										<i class="fa fa{{if .IsActivated}}-check{{end}}-square-o"></i>
+									</a>
+								{{else}}
+									<i class="fa fa{{if .IsActivated}}-check{{end}}-square-o"></i>
+								{{end}}
+							</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+
+		{{template "base/paginate" .}}
+
+		<div class="ui basic modal" id="change-email-modal">
+			<div class="ui icon header">
+				{{.i18n.Tr "admin.emails.change_email_header"}}
+			</div>
+			<div class="content center">
+				<p>{{.i18n.Tr "admin.emails.change_email_text"}}</p>
+
+				<form class="ui form" id="email-action-form" action="{{AppSubUrl}}/admin/emails/activate" method="post">
+					{{$.CsrfTokenHtml}}
+
+					<input type="hidden" id="query-sort" name="sort" value="{{.SortType}}">
+					<input type="hidden" id="query-keyword" name="q" value="{{.Keyword}}">
+					<input type="hidden" id="query-primary" name="is_primary" value="{{.IsPrimary}}" required>
+					<input type="hidden" id="query-activated" name="is_activated" value="{{.IsActivated}}" required>
+
+					<input type="hidden" id="form-uid" name="uid" value="" required>
+					<input type="hidden" id="form-email" name="email" value="" required>
+					<input type="hidden" id="form-primary" name="primary" value="" required>
+					<input type="hidden" id="form-activate" name="activate" value="" required>
+
+					<div class="center actions">
+						<div class="ui basic cancel inverted button">{{$.i18n.Tr "settings.cancel"}}</div>
+						<button class="ui basic inverted yellow button">{{$.i18n.Tr "modal.yes"}}</button>
+					</div>
+
+				</form>
+			</div>
+		</div>
+
+	</div>
+</div>
+{{template "base/footer" .}}

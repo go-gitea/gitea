@@ -11,8 +11,10 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
@@ -49,14 +51,14 @@ func assertMatch(t testing.TB, issue *models.Issue, keyword string) {
 }
 
 func TestNoLoginViewIssues(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues")
 	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestViewIssuesSortByType(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
@@ -84,10 +86,15 @@ func TestViewIssuesSortByType(t *testing.T) {
 }
 
 func TestViewIssuesKeyword(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-
+	issue := models.AssertExistsAndLoadBean(t, &models.Issue{
+		RepoID: repo.ID,
+		Index:  1,
+	}).(*models.Issue)
+	issues.UpdateIssueIndexer(issue)
+	time.Sleep(time.Second * 1)
 	const keyword = "first"
 	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.RelLink(), keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -104,7 +111,7 @@ func TestViewIssuesKeyword(t *testing.T) {
 }
 
 func TestNoLoginViewIssue(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues/1")
 	MakeRequest(t, req, http.StatusOK)
@@ -132,7 +139,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	val := htmlDoc.doc.Find("#issue-title").Text()
 	assert.Equal(t, title, val)
-	val = htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").First().Text()
+	val = htmlDoc.doc.Find(".comment .render-content p").First().Text()
 	assert.Equal(t, content, val)
 
 	return issueURL
@@ -147,7 +154,7 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 	link, exists := htmlDoc.doc.Find("#comment-form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 
-	commentCount := htmlDoc.doc.Find(".comment-list .comments .comment .render-content").Length()
+	commentCount := htmlDoc.doc.Find(".comment-list .comment .render-content").Length()
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf":   htmlDoc.GetCSRF(),
@@ -161,10 +168,10 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 
 	htmlDoc = NewHTMLParser(t, resp.Body)
 
-	val := htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").Eq(commentCount).Text()
+	val := htmlDoc.doc.Find(".comment-list .comment .render-content p").Eq(commentCount).Text()
 	assert.Equal(t, content, val)
 
-	idAttr, has := htmlDoc.doc.Find(".comment-list .comments .comment").Eq(commentCount).Attr("id")
+	idAttr, has := htmlDoc.doc.Find(".comment-list .comment").Eq(commentCount).Attr("id")
 	idStr := idAttr[strings.LastIndexByte(idAttr, '-')+1:]
 	assert.True(t, has)
 	id, err := strconv.Atoi(idStr)
@@ -173,13 +180,13 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 }
 
 func TestNewIssue(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 }
 
 func TestIssueCommentClose(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 	testIssueAddComment(t, session, issueURL, "Test comment 1", "")
@@ -190,12 +197,38 @@ func TestIssueCommentClose(t *testing.T) {
 	req := NewRequest(t, "GET", issueURL)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	val := htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").First().Text()
+	val := htmlDoc.doc.Find(".comment-list .comment .render-content p").First().Text()
 	assert.Equal(t, "Description", val)
 }
 
+func TestIssueReaction(t *testing.T) {
+	defer prepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+
+	req := NewRequest(t, "GET", issueURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	req = NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/react"), map[string]string{
+		"_csrf":   htmlDoc.GetCSRF(),
+		"content": "8ball",
+	})
+	session.MakeRequest(t, req, http.StatusInternalServerError)
+	req = NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/react"), map[string]string{
+		"_csrf":   htmlDoc.GetCSRF(),
+		"content": "eyes",
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+	req = NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/unreact"), map[string]string{
+		"_csrf":   htmlDoc.GetCSRF(),
+		"content": "eyes",
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func TestIssueCrossReference(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	// Issue that will be referenced
 	_, issueBase := testIssueWithBean(t, "user2", 1, "Title", "Description")
@@ -286,4 +319,24 @@ func testIssueChangeInfo(t *testing.T, user, issueURL, info string, value string
 		info:    value,
 	})
 	_ = session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestIssueRedirect(t *testing.T) {
+	defer prepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	// Test external tracker where style not set (shall default numeric)
+	req := NewRequest(t, "GET", path.Join("org26", "repo_external_tracker", "issues", "1"))
+	resp := session.MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker/issues/1", test.RedirectURL(resp))
+
+	// Test external tracker with numeric style
+	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_numeric", "issues", "1"))
+	resp = session.MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker_numeric/issues/1", test.RedirectURL(resp))
+
+	// Test external tracker with alphanumeric style (for a pull request)
+	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_alpha", "issues", "1"))
+	resp = session.MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "/"+path.Join("org26", "repo_external_tracker_alpha", "pulls", "1"), test.RedirectURL(resp))
 }

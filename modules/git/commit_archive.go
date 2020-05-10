@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -20,18 +21,43 @@ const (
 	TARGZ
 )
 
-// CreateArchive create archive content to the target path
-func (c *Commit) CreateArchive(target string, archiveType ArchiveType) error {
-	var format string
-	switch archiveType {
+// String converts an ArchiveType to string
+func (a ArchiveType) String() string {
+	switch a {
 	case ZIP:
-		format = "zip"
+		return "zip"
 	case TARGZ:
-		format = "tar.gz"
-	default:
-		return fmt.Errorf("unknown format: %v", archiveType)
+		return "tar.gz"
+	}
+	return "unknown"
+}
+
+// CreateArchiveOpts represents options for creating an archive
+type CreateArchiveOpts struct {
+	Format ArchiveType
+	Prefix bool
+}
+
+// CreateArchive create archive content to the target path
+func (c *Commit) CreateArchive(target string, opts CreateArchiveOpts) error {
+	if opts.Format.String() == "unknown" {
+		return fmt.Errorf("unknown format: %v", opts.Format)
 	}
 
-	_, err := NewCommand("archive", "--prefix="+filepath.Base(strings.TrimSuffix(c.repo.Path, ".git"))+"/", "--format="+format, "-o", target, c.ID.String()).RunInDir(c.repo.Path)
+	args := []string{
+		"archive",
+	}
+	if opts.Prefix {
+		args = append(args, "--prefix="+filepath.Base(strings.TrimSuffix(c.repo.Path, ".git"))+"/")
+	}
+
+	args = append(args,
+		"--format="+opts.Format.String(),
+		"-o",
+		target,
+		c.ID.String(),
+	)
+
+	_, err := NewCommand(args...).RunInDir(c.repo.Path)
 	return err
 }

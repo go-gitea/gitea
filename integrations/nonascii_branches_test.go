@@ -161,7 +161,7 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 	}
 
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	user := "user2"
 	repo := "utf8"

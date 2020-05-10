@@ -6,7 +6,7 @@ package roaring
 
 import "github.com/tinylib/msgp/msgp"
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *arrayContainer) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -49,7 +49,7 @@ func (z *arrayContainer) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z *arrayContainer) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 1
 	// write "content"
@@ -70,7 +70,7 @@ func (z *arrayContainer) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z *arrayContainer) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 1
@@ -83,7 +83,7 @@ func (z *arrayContainer) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *arrayContainer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
@@ -127,7 +127,7 @@ func (z *arrayContainer) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *arrayContainer) Msgsize() (s int) {
 	s = 1 + 8 + msgp.ArrayHeaderSize + (len(z.content) * (msgp.Uint16Size))
 	return

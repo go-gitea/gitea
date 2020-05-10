@@ -56,7 +56,7 @@ func TestRepoActivity(t *testing.T) {
 		list = htmlDoc.doc.Find("#merged-pull-requests").Next().Find("p.desc")
 		assert.Len(t, list.Nodes, 1)
 
-		// Should be 2 merged proposed pull requests
+		// Should be 2 proposed pull requests
 		list = htmlDoc.doc.Find("#proposed-pull-requests").Next().Find("p.desc")
 		assert.Len(t, list.Nodes, 2)
 

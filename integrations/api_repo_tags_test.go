@@ -16,7 +16,7 @@ import (
 )
 
 func TestAPIReposGetTags(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)

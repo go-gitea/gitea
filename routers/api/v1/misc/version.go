@@ -5,6 +5,8 @@
 package misc
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -20,5 +22,5 @@ func Version(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ServerVersion"
-	ctx.JSON(200, &structs.ServerVersion{Version: setting.AppVer})
+	ctx.JSON(http.StatusOK, &structs.ServerVersion{Version: setting.AppVer})
 }

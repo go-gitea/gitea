@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -122,7 +123,7 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 		}
 
 		u, err := url.Parse(loc)
-		if err != nil || (u.Scheme != "" && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
+		if err != nil || ((u.Scheme != "" || u.Host != "") && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
 			continue
 		}
 
@@ -334,6 +335,7 @@ func Contexter() macaron.Handler {
 		ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
 
 		ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
+		ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
 		ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
 		ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
 

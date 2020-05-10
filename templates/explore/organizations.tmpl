@@ -12,18 +12,18 @@
 					<span class="header">
 						<a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}
 						{{if .Visibility.IsPrivate}}
-							<span class="text gold"><i class="octicon octicon-lock"></i></span>
+							<span class="text gold">{{svg "octicon-lock" 16}}</span>
 						{{end}}
 					</span>
 					<div class="description">
-							{{if .Location}}
-								<i class="octicon octicon-location"></i> {{.Location}}
-							{{end}}
-							{{if and .Website}}
-								<i class="octicon octicon-link"></i>
-								<a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
-							{{end}}
-							<i class="octicon octicon-clock"></i> {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+						{{if .Location}}
+							{{svg "octicon-location" 16}} {{.Location}}
+						{{end}}
+						{{if and .Website}}
+							{{svg "octicon-link" 16}}
+							<a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
+						{{end}}
+						{{svg "octicon-clock" 16}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 					</div>
 				  </div>
 				</div>

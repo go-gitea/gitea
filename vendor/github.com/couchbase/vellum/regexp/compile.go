@@ -75,15 +75,23 @@ func (c *compiler) c(ast *syntax.Regexp) (err error) {
 					Rune0: [2]rune{r, r},
 				}
 				next.Rune = next.Rune0[0:2]
-				return c.c(&next)
-			}
-			c.sequences, c.rangeStack, err = utf8.NewSequencesPrealloc(
-				r, r, c.sequences, c.rangeStack, c.startBytes, c.endBytes)
-			if err != nil {
-				return err
-			}
-			for _, seq := range c.sequences {
-				c.compileUtf8Ranges(seq)
+				// try to find more folded runes
+				for r1 := unicode.SimpleFold(r); r1 != r; r1 = unicode.SimpleFold(r1) {
+					next.Rune = append(next.Rune, r1, r1)
+				}
+				err = c.c(&next)
+				if err != nil {
+					return err
+				}
+			} else {
+				c.sequences, c.rangeStack, err = utf8.NewSequencesPrealloc(
+					r, r, c.sequences, c.rangeStack, c.startBytes, c.endBytes)
+				if err != nil {
+					return err
+				}
+				for _, seq := range c.sequences {
+					c.compileUtf8Ranges(seq)
+				}
 			}
 		}
 	case syntax.OpAnyChar:

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -22,9 +23,9 @@ const (
 
 // HookOptions represents the options for the Hook calls
 type HookOptions struct {
-	OldCommitID                     string
-	NewCommitID                     string
-	RefFullName                     string
+	OldCommitIDs                    []string
+	NewCommitIDs                    []string
+	RefFullNames                    []string
 	UserID                          int64
 	UserName                        string
 	GitObjectDirectory              string
@@ -34,23 +35,33 @@ type HookOptions struct {
 	IsDeployKey                     bool
 }
 
+// HookPostReceiveResult represents an individual result from PostReceive
+type HookPostReceiveResult struct {
+	Results      []HookPostReceiveBranchResult
+	RepoWasEmpty bool
+	Err          string
+}
+
+// HookPostReceiveBranchResult represents an individual branch result from PostReceive
+type HookPostReceiveBranchResult struct {
+	Message bool
+	Create  bool
+	Branch  string
+	URL     string
+}
+
 // HookPreReceive check whether the provided commits are allowed
 func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s?old=%s&new=%s&ref=%s&userID=%d&gitObjectDirectory=%s&gitAlternativeObjectDirectories=%s&gitQuarantinePath=%s&prID=%d&isDeployKey=%t",
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
-		url.QueryEscape(opts.OldCommitID),
-		url.QueryEscape(opts.NewCommitID),
-		url.QueryEscape(opts.RefFullName),
-		opts.UserID,
-		url.QueryEscape(opts.GitObjectDirectory),
-		url.QueryEscape(opts.GitAlternativeObjectDirectories),
-		url.QueryEscape(opts.GitQuarantinePath),
-		opts.ProtectedBranchID,
-		opts.IsDeployKey,
 	)
-
-	resp, err := newInternalRequest(reqURL, "GET").Response()
+	req := newInternalRequest(reqURL, "POST")
+	req = req.Header("Content-Type", "application/json")
+	jsonBytes, _ := json.Marshal(opts)
+	req.Body(jsonBytes)
+	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
+	resp, err := req.Response()
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
 	}
@@ -64,17 +75,18 @@ func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) 
 }
 
 // HookPostReceive updates services and users
-func HookPostReceive(ownerName, repoName string, opts HookOptions) (map[string]interface{}, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/post-receive/%s/%s?old=%s&new=%s&ref=%s&userID=%d&username=%s",
+func HookPostReceive(ownerName, repoName string, opts HookOptions) (*HookPostReceiveResult, string) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/post-receive/%s/%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
-		url.QueryEscape(opts.OldCommitID),
-		url.QueryEscape(opts.NewCommitID),
-		url.QueryEscape(opts.RefFullName),
-		opts.UserID,
-		url.QueryEscape(opts.UserName))
+	)
 
-	resp, err := newInternalRequest(reqURL, "GET").Response()
+	req := newInternalRequest(reqURL, "POST")
+	req = req.Header("Content-Type", "application/json")
+	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
+	jsonBytes, _ := json.Marshal(opts)
+	req.Body(jsonBytes)
+	resp, err := req.Response()
 	if err != nil {
 		return nil, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
 	}
@@ -83,8 +95,30 @@ func HookPostReceive(ownerName, repoName string, opts HookOptions) (map[string]i
 	if resp.StatusCode != http.StatusOK {
 		return nil, decodeJSONError(resp).Err
 	}
-	res := map[string]interface{}{}
-	_ = json.NewDecoder(resp.Body).Decode(&res)
+	res := &HookPostReceiveResult{}
+	_ = json.NewDecoder(resp.Body).Decode(res)
 
 	return res, ""
+}
+
+// SetDefaultBranch will set the default branch to the provided branch for the provided repository
+func SetDefaultBranch(ownerName, repoName, branch string) error {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/set-default-branch/%s/%s/%s",
+		url.PathEscape(ownerName),
+		url.PathEscape(repoName),
+		url.PathEscape(branch),
+	)
+	req := newInternalRequest(reqURL, "POST")
+	req = req.Header("Content-Type", "application/json")
+
+	req.SetTimeout(60*time.Second, 60*time.Second)
+	resp, err := req.Response()
+	if err != nil {
+		return fmt.Errorf("Unable to contact gitea: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Error returned from gitea: %v", decodeJSONError(resp).Err)
+	}
+	return nil
 }

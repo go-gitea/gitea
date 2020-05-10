@@ -88,6 +88,9 @@ func (w *HTMLWriter) WriterWithExtensions() Writer {
 func (w *HTMLWriter) Before(d *Document) {
 	w.document = d
 	w.log = d.Log
+	if title := d.Get("TITLE"); title != "" {
+		w.WriteString(fmt.Sprintf(`<h1 class="title">%s</h1>`+"\n", title))
+	}
 	w.WriteOutline(d)
 }
 
@@ -214,7 +217,7 @@ func (w *HTMLWriter) WriteHeadline(h Headline) {
 		}
 	}
 
-	w.WriteString(fmt.Sprintf(`<h%d id="%s">`, h.Lvl, h.ID()) + "\n")
+	w.WriteString(fmt.Sprintf(`<h%d id="%s">`, h.Lvl+1, h.ID()) + "\n")
 	if w.document.GetOption("todo") && h.Status != "" {
 		w.WriteString(fmt.Sprintf(`<span class="todo">%s</span>`, h.Status) + "\n")
 	}
@@ -231,7 +234,7 @@ func (w *HTMLWriter) WriteHeadline(h Headline) {
 		w.WriteString("&#xa0;&#xa0;&#xa0;")
 		w.WriteString(fmt.Sprintf(`<span class="tags">%s</span>`, strings.Join(tags, "&#xa0;")))
 	}
-	w.WriteString(fmt.Sprintf("\n</h%d>\n", h.Lvl))
+	w.WriteString(fmt.Sprintf("\n</h%d>\n", h.Lvl+1))
 	WriteNodes(w, h.Children...)
 }
 

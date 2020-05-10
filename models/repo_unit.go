@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/unknwon/com"
-	"xorm.io/core"
 	"xorm.io/xorm"
+	"xorm.io/xorm/convert"
 )
 
 // RepoUnit describes all units of a repository
@@ -19,7 +19,7 @@ type RepoUnit struct {
 	ID          int64
 	RepoID      int64              `xorm:"INDEX(s)"`
 	Type        UnitType           `xorm:"INDEX(s)"`
-	Config      core.Conversion    `xorm:"TEXT"`
+	Config      convert.Conversion `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 
@@ -170,5 +170,16 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 }
 
 func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
-	return units, e.Where("repo_id = ?", repoID).Find(&units)
+	var tmpUnits []*RepoUnit
+	if err := e.Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
+		return nil, err
+	}
+
+	for _, u := range tmpUnits {
+		if !u.Type.UnitGlobalDisabled() {
+			units = append(units, u)
+		}
+	}
+
+	return units, nil
 }

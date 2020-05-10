@@ -12,7 +12,7 @@ import (
 )
 
 func TestSignup(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	setting.Service.EnableCaptcha = false
 

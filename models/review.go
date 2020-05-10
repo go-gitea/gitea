@@ -5,12 +5,12 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
-	"xorm.io/core"
 )
 
 // ReviewType defines the sort of feedback a review gives
@@ -28,17 +28,21 @@ const (
 	ReviewTypeComment
 	// ReviewTypeReject gives feedback blocking merge
 	ReviewTypeReject
+	// ReviewTypeRequest request review from others
+	ReviewTypeRequest
 )
 
 // Icon returns the corresponding icon for the review type
 func (rt ReviewType) Icon() string {
 	switch rt {
 	case ReviewTypeApprove:
-		return "eye"
+		return "check"
 	case ReviewTypeReject:
-		return "x"
-	case ReviewTypeComment, ReviewTypeUnknown:
+		return "request-changes"
+	case ReviewTypeComment:
 		return "comment"
+	case ReviewTypeRequest:
+		return "primitive-dot"
 	default:
 		return "comment"
 	}
@@ -46,25 +50,37 @@ func (rt ReviewType) Icon() string {
 
 // Review represents collection of code comments giving feedback for a PR
 type Review struct {
-	ID         int64 `xorm:"pk autoincr"`
-	Type       ReviewType
-	Reviewer   *User  `xorm:"-"`
-	ReviewerID int64  `xorm:"index"`
-	Issue      *Issue `xorm:"-"`
-	IssueID    int64  `xorm:"index"`
-	Content    string
+	ID               int64 `xorm:"pk autoincr"`
+	Type             ReviewType
+	Reviewer         *User `xorm:"-"`
+	ReviewerID       int64 `xorm:"index"`
+	OriginalAuthor   string
+	OriginalAuthorID int64
+	Issue            *Issue `xorm:"-"`
+	IssueID          int64  `xorm:"index"`
+	Content          string `xorm:"TEXT"`
+	// Official is a review made by an assigned approver (counts towards approval)
+	Official bool   `xorm:"NOT NULL DEFAULT false"`
+	CommitID string `xorm:"VARCHAR(40)"`
+	Stale    bool   `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// CodeComments are the initial code comments of the review
 	CodeComments CodeComments `xorm:"-"`
+
+	Comments []*Comment `xorm:"-"`
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
-	if r.CodeComments == nil {
-		r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	if r.CodeComments != nil {
+		return
 	}
+	if err = r.loadIssue(e); err != nil {
+		return
+	}
+	r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
 	return
 }
 
@@ -74,12 +90,15 @@ func (r *Review) LoadCodeComments() error {
 }
 
 func (r *Review) loadIssue(e Engine) (err error) {
+	if r.Issue != nil {
+		return
+	}
 	r.Issue, err = getIssueByID(e, r.IssueID)
 	return
 }
 
 func (r *Review) loadReviewer(e Engine) (err error) {
-	if r.ReviewerID == 0 {
+	if r.Reviewer != nil || r.ReviewerID == 0 {
 		return nil
 	}
 	r.Reviewer, err = getUserByID(e, r.ReviewerID)
@@ -92,10 +111,13 @@ func (r *Review) LoadReviewer() error {
 }
 
 func (r *Review) loadAttributes(e Engine) (err error) {
-	if err = r.loadReviewer(e); err != nil {
+	if err = r.loadIssue(e); err != nil {
 		return
 	}
-	if err = r.loadIssue(e); err != nil {
+	if err = r.loadCodeComments(e); err != nil {
+		return
+	}
+	if err = r.loadReviewer(e); err != nil {
 		return
 	}
 	return
@@ -122,28 +144,13 @@ func GetReviewByID(id int64) (*Review, error) {
 	return getReviewByID(x, id)
 }
 
-func getUniqueApprovalsByPullRequestID(e Engine, prID int64) (reviews []*Review, err error) {
-	reviews = make([]*Review, 0)
-	if err := e.
-		Where("issue_id = ? AND type = ?", prID, ReviewTypeApprove).
-		OrderBy("updated_unix").
-		GroupBy("reviewer_id").
-		Find(&reviews); err != nil {
-		return nil, err
-	}
-	return
-}
-
-// GetUniqueApprovalsByPullRequestID returns all reviews submitted for a specific pull request
-func GetUniqueApprovalsByPullRequestID(prID int64) ([]*Review, error) {
-	return getUniqueApprovalsByPullRequestID(x, prID)
-}
-
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
-	Type       ReviewType
-	IssueID    int64
-	ReviewerID int64
+	ListOptions
+	Type         ReviewType
+	IssueID      int64
+	ReviewerID   int64
+	OfficialOnly bool
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
@@ -157,12 +164,18 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 	if opts.Type != ReviewTypeUnknown {
 		cond = cond.And(builder.Eq{"type": opts.Type})
 	}
+	if opts.OfficialOnly {
+		cond = cond.And(builder.Eq{"official": true})
+	}
 	return cond
 }
 
 func findReviews(e Engine, opts FindReviewOptions) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 	sess := e.Where(opts.toCond())
+	if opts.Page > 0 {
+		sess = opts.ListOptions.setSessionPagination(sess)
+	}
 	return reviews, sess.
 		Asc("created_unix").
 		Asc("id").
@@ -180,6 +193,29 @@ type CreateReviewOptions struct {
 	Type     ReviewType
 	Issue    *Issue
 	Reviewer *User
+	Official bool
+	CommitID string
+	Stale    bool
+}
+
+// IsOfficialReviewer check if reviewer can make official reviews in issue (counts towards required approvals)
+func IsOfficialReviewer(issue *Issue, reviewer *User) (bool, error) {
+	return isOfficialReviewer(x, issue, reviewer)
+}
+
+func isOfficialReviewer(e Engine, issue *Issue, reviewer *User) (bool, error) {
+	pr, err := getPullRequestByIssueID(e, issue.ID)
+	if err != nil {
+		return false, err
+	}
+	if err = pr.loadProtectedBranch(e); err != nil {
+		return false, err
+	}
+	if pr.ProtectedBranch == nil {
+		return false, nil
+	}
+
+	return pr.ProtectedBranch.isUserOfficialReviewer(e, reviewer)
 }
 
 func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
@@ -190,6 +226,9 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 		Reviewer:   opts.Reviewer,
 		ReviewerID: opts.Reviewer.ID,
 		Content:    opts.Content,
+		Official:   opts.Official,
+		CommitID:   opts.CommitID,
+		Stale:      opts.Stale,
 	}
 	if _, err := e.Insert(review); err != nil {
 		return nil, err
@@ -223,6 +262,11 @@ func getCurrentReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
 	return reviews[0], nil
 }
 
+// ReviewExists returns whether a review exists for a particular line of code in the PR
+func ReviewExists(issue *Issue, treePath string, line int64) (bool, error) {
+	return x.Cols("id").Exist(&Comment{IssueID: issue.ID, TreePath: treePath, Line: line, Type: CommentTypeCode})
+}
+
 // GetCurrentReview returns the current pending review of reviewer for given issue
 func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
 	return getCurrentReview(x, reviewer, issue)
@@ -243,12 +287,14 @@ func IsContentEmptyErr(err error) bool {
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content string) (*Review, *Comment, error) {
+func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool) (*Review, *Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, nil, err
 	}
+
+	var official = false
 
 	review, err := getCurrentReview(sess, doer, issue)
 	if err != nil {
@@ -260,12 +306,26 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 			return nil, nil, ContentEmptyErr{}
 		}
 
+		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
+			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
+			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
+				return nil, nil, err
+			}
+			official, err = isOfficialReviewer(sess, issue, doer)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
 		// No current review. Create a new one!
 		review, err = createReview(sess, CreateReviewOptions{
 			Type:     reviewType,
 			Issue:    issue,
 			Reviewer: doer,
 			Content:  content,
+			Official: official,
+			CommitID: commitID,
+			Stale:    stale,
 		})
 		if err != nil {
 			return nil, nil, err
@@ -278,10 +338,25 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 			return nil, nil, ContentEmptyErr{}
 		}
 
+		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
+			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
+			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
+				return nil, nil, err
+			}
+			official, err = isOfficialReviewer(sess, issue, doer)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		review.Official = official
 		review.Issue = issue
 		review.Content = content
 		review.Type = reviewType
-		if _, err := sess.ID(review.ID).Cols("content, type").Update(review); err != nil {
+		review.CommitID = commitID
+		review.Stale = stale
+
+		if _, err := sess.ID(review.ID).Cols("content, type, official, commit_id, stale").Update(review); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -293,7 +368,6 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 		Issue:    issue,
 		Repo:     issue.Repo,
 		ReviewID: review.ID,
-		NoAction: true,
 	})
 	if err != nil || comm == nil {
 		return nil, nil, err
@@ -303,46 +377,370 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 	return review, comm, sess.Commit()
 }
 
-// PullReviewersWithType represents the type used to display a review overview
-type PullReviewersWithType struct {
-	User              `xorm:"extends"`
-	Type              ReviewType
-	ReviewUpdatedUnix timeutil.TimeStamp `xorm:"review_updated_unix"`
-}
+// GetReviewersByIssueID gets the latest review of each reviewer for a pull request
+func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
+	reviewsUnfiltered := []*Review{}
 
-// GetReviewersByPullID gets all reviewers for a pull request with the statuses
-func GetReviewersByPullID(pullID int64) (issueReviewers []*PullReviewersWithType, err error) {
-	irs := []*PullReviewersWithType{}
-	if x.Dialect().DBType() == core.MSSQL {
-		err = x.SQL(`SELECT [user].*, review.type, review.review_updated_unix FROM
-(SELECT review.id, review.type, review.reviewer_id, max(review.updated_unix) as review_updated_unix
-FROM review WHERE review.issue_id=? AND (review.type = ? OR review.type = ?)
-GROUP BY review.id, review.type, review.reviewer_id) as review
-INNER JOIN [user] ON review.reviewer_id = [user].id ORDER BY review_updated_unix DESC`,
-			pullID, ReviewTypeApprove, ReviewTypeReject).
-			Find(&irs)
-	} else {
-		err = x.Select("`user`.*, review.type, max(review.updated_unix) as review_updated_unix").
-			Table("review").
-			Join("INNER", "`user`", "review.reviewer_id = `user`.id").
-			Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)",
-				pullID, ReviewTypeApprove, ReviewTypeReject).
-			GroupBy("`user`.id, review.type").
-			OrderBy("review_updated_unix DESC").
-			Find(&irs)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
 	}
 
-	// We need to group our results by user id _and_ review type, otherwise the query fails when using postgresql.
-	// But becaus we're doing this, we need to manually filter out multiple reviews of different types by the
-	// same person because we only want to show the newest review grouped by user. Thats why we're using a map here.
-	issueReviewers = []*PullReviewersWithType{}
-	usersInArray := make(map[int64]bool)
-	for _, ir := range irs {
-		if !usersInArray[ir.ID] {
-			issueReviewers = append(issueReviewers, ir)
-			usersInArray[ir.ID] = true
+	// Get latest review of each reviwer, sorted in order they were made
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND type in (?, ?, ?) GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
+		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+		Find(&reviewsUnfiltered); err != nil {
+		return nil, err
+	}
+
+	// Load reviewer and skip if user is deleted
+	for _, review := range reviewsUnfiltered {
+		if err = review.loadReviewer(sess); err != nil {
+			if !IsErrUserNotExist(err) {
+				return nil, err
+			}
+		} else {
+			reviews = append(reviews, review)
 		}
 	}
 
+	return reviews, nil
+}
+
+// GetReviewerByIssueIDAndUserID get the latest review of reviewer for a pull request
+func GetReviewerByIssueIDAndUserID(issueID, userID int64) (review *Review, err error) {
+	return getReviewerByIssueIDAndUserID(x, issueID, userID)
+}
+
+func getReviewerByIssueIDAndUserID(e Engine, issueID, userID int64) (review *Review, err error) {
+	review = new(Review)
+
+	if _, err := e.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
+		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+		Get(review); err != nil {
+		return nil, err
+	}
+
 	return
+}
+
+// MarkReviewsAsStale marks existing reviews as stale
+func MarkReviewsAsStale(issueID int64) (err error) {
+	_, err = x.Exec("UPDATE `review` SET stale=? WHERE issue_id=?", true, issueID)
+
+	return
+}
+
+// MarkReviewsAsNotStale marks existing reviews as not stale for a giving commit SHA
+func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
+	_, err = x.Exec("UPDATE `review` SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
+
+	return
+}
+
+// InsertReviews inserts review and review comments
+func InsertReviews(reviews []*Review) error {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	for _, review := range reviews {
+		if _, err := sess.NoAutoTime().Insert(review); err != nil {
+			return err
+		}
+
+		if _, err := sess.NoAutoTime().Insert(&Comment{
+			Type:             CommentTypeReview,
+			Content:          review.Content,
+			PosterID:         review.ReviewerID,
+			OriginalAuthor:   review.OriginalAuthor,
+			OriginalAuthorID: review.OriginalAuthorID,
+			IssueID:          review.IssueID,
+			ReviewID:         review.ID,
+			CreatedUnix:      review.CreatedUnix,
+			UpdatedUnix:      review.UpdatedUnix,
+		}); err != nil {
+			return err
+		}
+
+		for _, c := range review.Comments {
+			c.ReviewID = review.ID
+		}
+
+		if len(review.Comments) > 0 {
+			if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
+				return err
+			}
+		}
+	}
+
+	return sess.Commit()
+}
+
+// AddReviewRequest add a review request from one reviewer
+func AddReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Comment, err error) {
+	review, err := GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
+	if err != nil {
+		return
+	}
+
+	// skip it when reviewer hase been request to review
+	if review != nil && review.Type == ReviewTypeRequest {
+		return nil, nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	var official bool
+	official, err = isOfficialReviewer(sess, issue, reviewer)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !official {
+		official, err = isOfficialReviewer(sess, issue, doer)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if official {
+		if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, reviewer.ID); err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = createReview(sess, CreateReviewOptions{
+		Type:     ReviewTypeRequest,
+		Issue:    issue,
+		Reviewer: reviewer,
+		Official: official,
+		Stale:    false,
+	})
+
+	if err != nil {
+		return
+	}
+
+	comment, err = createComment(sess, &CreateCommentOptions{
+		Type:            CommentTypeReviewRequest,
+		Doer:            doer,
+		Repo:            issue.Repo,
+		Issue:           issue,
+		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
+		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return comment, sess.Commit()
+}
+
+//RemoveReviewRequest remove a review request from one reviewer
+func RemoveReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Comment, err error) {
+	review, err := GetReviewerByIssueIDAndUserID(issue.ID, reviewer.ID)
+	if err != nil {
+		return
+	}
+
+	if review.Type != ReviewTypeRequest {
+		return nil, nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	_, err = sess.Delete(review)
+	if err != nil {
+		return nil, err
+	}
+
+	var official bool
+	official, err = isOfficialReviewer(sess, issue, reviewer)
+	if err != nil {
+		return
+	}
+
+	if official {
+		// recalculate which is the latest official review from that user
+		var review *Review
+
+		review, err = getReviewerByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if review != nil {
+			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	comment, err = createComment(sess, &CreateCommentOptions{
+		Type:            CommentTypeReviewRequest,
+		Doer:            doer,
+		Repo:            issue.Repo,
+		Issue:           issue,
+		RemovedAssignee: true,        // Use RemovedAssignee as !isRequest
+		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return comment, sess.Commit()
+}
+
+// MarkConversation Add or remove Conversation mark for a code comment
+func MarkConversation(comment *Comment, doer *User, isResolve bool) (err error) {
+	if comment.Type != CommentTypeCode {
+		return nil
+	}
+
+	if isResolve {
+		if comment.ResolveDoerID != 0 {
+			return nil
+		}
+
+		if _, err = x.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
+			return err
+		}
+	} else {
+		if comment.ResolveDoerID == 0 {
+			return nil
+		}
+
+		if _, err = x.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CanMarkConversation  Add or remove Conversation mark for a code comment permission check
+// the PR writer , offfcial reviewer and poster can do it
+func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) {
+	if doer == nil || issue == nil {
+		return false, fmt.Errorf("issue or doer is nil")
+	}
+
+	if doer.ID != issue.PosterID {
+		if err = issue.LoadRepo(); err != nil {
+			return false, err
+		}
+
+		perm, err := GetUserRepoPermission(issue.Repo, doer)
+		if err != nil {
+			return false, err
+		}
+
+		permResult = perm.CanAccess(AccessModeWrite, UnitTypePullRequests)
+		if !permResult {
+			if permResult, err = IsOfficialReviewer(issue, doer); err != nil {
+				return false, err
+			}
+		}
+
+		if !permResult {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+// DeleteReview delete a review and it's code comments
+func DeleteReview(r *Review) error {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if r.ID == 0 {
+		return fmt.Errorf("review is not allowed to be 0")
+	}
+
+	opts := FindCommentsOptions{
+		Type:     CommentTypeCode,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+
+	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
+		return err
+	}
+
+	opts = FindCommentsOptions{
+		Type:     CommentTypeReview,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+
+	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
+		return err
+	}
+
+	if _, err := sess.ID(r.ID).Delete(new(Review)); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+// GetCodeCommentsCount return count of CodeComments a Review has
+func (r *Review) GetCodeCommentsCount() int {
+	opts := FindCommentsOptions{
+		Type:     CommentTypeCode,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+	conds := opts.toConds()
+	if r.ID == 0 {
+		conds = conds.And(builder.Eq{"invalidated": false})
+	}
+
+	count, err := x.Where(conds).Count(new(Comment))
+	if err != nil {
+		return 0
+	}
+	return int(count)
+}
+
+// HTMLURL formats a URL-string to the related review issue-comment
+func (r *Review) HTMLURL() string {
+	opts := FindCommentsOptions{
+		Type:     CommentTypeReview,
+		IssueID:  r.IssueID,
+		ReviewID: r.ID,
+	}
+	comment := new(Comment)
+	has, err := x.Where(opts.toConds()).Get(comment)
+	if err != nil || !has {
+		return ""
+	}
+	return comment.HTMLURL()
 }

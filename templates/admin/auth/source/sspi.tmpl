@@ -1,0 +1,43 @@
+<div class="sspi field {{if not (eq .type 7)}}hide{{end}}">
+	<div class="field">
+		<div class="ui checkbox">
+			<label for="sspi_auto_create_users"><strong>{{.i18n.Tr "admin.auths.sspi_auto_create_users"}}</strong></label>
+			<input id="sspi_auto_create_users" name="sspi_auto_create_users" class="sspi-auto-create-users" type="checkbox" {{if .SSPIAutoCreateUsers}}checked{{end}}>
+			<p class="help">{{.i18n.Tr "admin.auths.sspi_auto_create_users_helper"}}</p>
+		</div>
+	</div>
+	<div class="field">
+		<div class="ui checkbox">
+			<label for="sspi_auto_activate_users"><strong>{{.i18n.Tr "admin.auths.sspi_auto_activate_users"}}</strong></label>
+			<input id="sspi_auto_activate_users" name="sspi_auto_activate_users" class="sspi-auto-activate-users" type="checkbox" {{if .SSPIAutoActivateUsers}}checked{{end}}>
+			<p class="help">{{.i18n.Tr "admin.auths.sspi_auto_activate_users_helper"}}</p>
+		</div>
+	</div>
+	<div class="field">
+		<div class="ui checkbox">
+			<label for="sspi_strip_domain_names"><strong>{{.i18n.Tr "admin.auths.sspi_strip_domain_names"}}</strong></label>
+			<input id="sspi_strip_domain_names" name="sspi_strip_domain_names" class="sspi-strip-domain-names" type="checkbox" {{if .SSPIStripDomainNames}}checked{{end}}>
+			<p class="help">{{.i18n.Tr "admin.auths.sspi_strip_domain_names_helper"}}</p>
+		</div>
+	</div>
+	<div class="required field">
+		<label for="sspi_separator_replacement">{{.i18n.Tr "admin.auths.sspi_separator_replacement"}}</label>
+		<input id="sspi_separator_replacement" name="sspi_separator_replacement" value="{{.SSPISeparatorReplacement}}">
+		<p class="help">{{.i18n.Tr "admin.auths.sspi_separator_replacement_helper"}}</p>
+	</div>
+	<div class="field">
+		<label for="sspi_default_language">{{.i18n.Tr "admin.auths.sspi_default_language"}}</label>
+		<div class="ui language selection dropdown" id="sspi_default_language">
+			<input name="sspi_default_language" type="hidden" value="{{.SSPIDefaultLanguage}}">
+			<i class="dropdown icon"></i>
+			<div class="text">{{range .AllLangs}}{{if eq $.SSPIDefaultLanguage .Lang}}{{.Name}}{{end}}{{end}}</div>
+			<div class="menu">
+				<div class="item{{if not $.SSPIDefaultLanguage}} active selected{{end}}" data-value="">-</div>
+			{{range .AllLangs}}
+				<div class="item{{if eq $.SSPIDefaultLanguage .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
+			{{end}}
+			</div>
+		</div>
+		<p class="help">{{.i18n.Tr "admin.auths.sspi_default_language_helper"}}</p>
+	</div>
+</div>

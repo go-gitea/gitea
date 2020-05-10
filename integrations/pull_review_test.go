@@ -9,7 +9,7 @@ import (
 )
 
 func TestPullView_ReviewerMissed(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user1")
 
 	req := NewRequest(t, "GET", "/pulls")

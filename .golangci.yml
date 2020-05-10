@@ -95,3 +95,6 @@ issues:
     - linters:
         - misspell
       text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: models/update.go
+      linters:
+        - unused

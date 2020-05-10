@@ -58,11 +58,12 @@ func (f *UpdateOrgSettingForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // CreateTeamForm form for creating team
 type CreateTeamForm struct {
-	TeamName    string `binding:"Required;AlphaDashDot;MaxSize(30)"`
-	Description string `binding:"MaxSize(255)"`
-	Permission  string
-	Units       []models.UnitType
-	RepoAccess  string
+	TeamName         string `binding:"Required;AlphaDashDot;MaxSize(30)"`
+	Description      string `binding:"MaxSize(255)"`
+	Permission       string
+	Units            []models.UnitType
+	RepoAccess       string
+	CanCreateOrgRepo bool
 }
 
 // Validate validates the fields

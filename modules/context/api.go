@@ -39,6 +39,13 @@ type APIValidationError struct {
 	URL     string `json:"url"`
 }
 
+// APIInvalidTopicsError is error format response to invalid topics
+// swagger:response invalidTopicsError
+type APIInvalidTopicsError struct {
+	Topics  []string `json:"invalidTopics"`
+	Message string   `json:"message"`
+}
+
 //APIEmpty is an empty response
 // swagger:response empty
 type APIEmpty struct{}
@@ -205,6 +212,11 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	var message = "Not Found"
 	var errors []string
 	for _, obj := range objs {
+		// Ignore nil
+		if obj == nil {
+			continue
+		}
+
 		if err, ok := obj.(error); ok {
 			errors = append(errors, err.Error())
 		} else {

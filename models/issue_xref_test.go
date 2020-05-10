@@ -94,7 +94,8 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 	i1 := testCreateIssue(t, 1, 2, "title1", "content1", false)
 	i2 := testCreateIssue(t, 1, 2, "title2", "content2", false)
 	i3 := testCreateIssue(t, 1, 2, "title3", "content3", false)
-	assert.NoError(t, i3.ChangeStatus(d, true))
+	_, err := i3.ChangeStatus(d, true)
+	assert.NoError(t, err)
 
 	pr := testCreatePR(t, 1, 2, "titlepr", fmt.Sprintf("closes #%d", i1.Index))
 	rp := AssertExistsAndLoadBean(t, &Comment{IssueID: i1.ID, RefIssueID: pr.Issue.ID, RefCommentID: 0}).(*Comment)
@@ -133,7 +134,7 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	assert.NoError(t, err)
 	i, err = getIssueByID(sess, i.ID)
 	assert.NoError(t, err)
-	assert.NoError(t, i.addCrossReferences(sess, d))
+	assert.NoError(t, i.addCrossReferences(sess, d, false))
 	assert.NoError(t, sess.Commit())
 	return i
 }
@@ -142,8 +143,8 @@ func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRe
 	r := AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
 	d := AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
 	i := &Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
-	pr := &PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base"}
-	assert.NoError(t, NewPullRequest(r, i, nil, nil, pr, nil))
+	pr := &PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base", Status: PullRequestStatusMergeable}
+	assert.NoError(t, NewPullRequest(r, i, nil, nil, pr))
 	pr.Issue = i
 	return pr
 }
@@ -158,7 +159,7 @@ func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *C
 	assert.NoError(t, sess.Begin())
 	_, err := sess.Insert(c)
 	assert.NoError(t, err)
-	assert.NoError(t, c.addCrossReferences(sess, d))
+	assert.NoError(t, c.addCrossReferences(sess, d, false))
 	assert.NoError(t, sess.Commit())
 	return c
 }

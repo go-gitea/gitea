@@ -43,7 +43,7 @@ func DeleteRepo(ctx *context.Context) {
 		ctx.ServerError("DeleteRepository", err)
 		return
 	}
-	log.Trace("Repository deleted: %s/%s", repo.MustOwner().Name, repo.Name)
+	log.Trace("Repository deleted: %s", repo.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
 	ctx.JSON(200, map[string]interface{}{

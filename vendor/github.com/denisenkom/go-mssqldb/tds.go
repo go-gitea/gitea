@@ -100,13 +100,15 @@ const (
 // prelogin fields
 // http://msdn.microsoft.com/en-us/library/dd357559.aspx
 const (
-	preloginVERSION    = 0
-	preloginENCRYPTION = 1
-	preloginINSTOPT    = 2
-	preloginTHREADID   = 3
-	preloginMARS       = 4
-	preloginTRACEID    = 5
-	preloginTERMINATOR = 0xff
+	preloginVERSION         = 0
+	preloginENCRYPTION      = 1
+	preloginINSTOPT         = 2
+	preloginTHREADID        = 3
+	preloginMARS            = 4
+	preloginTRACEID         = 5
+	preloginFEDAUTHREQUIRED = 6
+	preloginNONCEOPT        = 7
+	preloginTERMINATOR      = 0xff
 )
 
 const (
@@ -245,6 +247,12 @@ const (
 	fReadOnlyIntent = 32
 )
 
+// OptionFlags3
+// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/773a62b6-ee89-4c02-9e5e-344882630aac
+const (
+	fExtension = 0x10
+)
+
 type login struct {
 	TDSVersion     uint32
 	PacketSize     uint32
@@ -269,6 +277,89 @@ type login struct {
 	SSPI           []byte
 	AtchDBFile     string
 	ChangePassword string
+	FeatureExt     featureExts
+}
+
+type featureExts struct {
+	features map[byte]featureExt
+}
+
+type featureExt interface {
+	featureID() byte
+	toBytes() []byte
+}
+
+func (e *featureExts) Add(f featureExt) error {
+	if f == nil {
+		return nil
+	}
+	id := f.featureID()
+	if _, exists := e.features[id]; exists {
+		f := "Login error: Feature with ID '%v' is already present in FeatureExt block."
+		return fmt.Errorf(f, id)
+	}
+	if e.features == nil {
+		e.features = make(map[byte]featureExt)
+	}
+	e.features[id] = f
+	return nil
+}
+
+func (e featureExts) toBytes() []byte {
+	if len(e.features) == 0 {
+		return nil
+	}
+	var d []byte
+	for featureID, f := range e.features {
+		featureData := f.toBytes()
+
+		hdr := make([]byte, 5)
+		hdr[0] = featureID                                               // FedAuth feature extension BYTE
+		binary.LittleEndian.PutUint32(hdr[1:], uint32(len(featureData))) // FeatureDataLen DWORD
+		d = append(d, hdr...)
+
+		d = append(d, featureData...) // FeatureData *BYTE
+	}
+	if d != nil {
+		d = append(d, 0xff) // Terminator
+	}
+	return d
+}
+
+type featureExtFedAuthSTS struct {
+	FedAuthEcho  bool
+	FedAuthToken string
+	Nonce        []byte
+}
+
+func (e *featureExtFedAuthSTS) featureID() byte {
+	return 0x02
+}
+
+func (e *featureExtFedAuthSTS) toBytes() []byte {
+	if e == nil {
+		return nil
+	}
+
+	options := byte(0x01) << 1 // 0x01 => STS bFedAuthLibrary 7BIT
+	if e.FedAuthEcho {
+		options |= 1 // fFedAuthEcho
+	}
+
+	d := make([]byte, 5)
+	d[0] = options
+
+	// looks like string in
+	// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/f88b63bb-b479-49e1-a87b-deda521da508
+	tokenBytes := str2ucs2(e.FedAuthToken)
+	binary.LittleEndian.PutUint32(d[1:], uint32(len(tokenBytes))) // Should be a signed int32, but since the length is relatively small, this should work
+	d = append(d, tokenBytes...)
+
+	if len(e.Nonce) == 32 {
+		d = append(d, e.Nonce...)
+	}
+
+	return d
 }
 
 type loginHeader struct {
@@ -295,7 +386,7 @@ type loginHeader struct {
 	ServerNameOffset     uint16
 	ServerNameLength     uint16
 	ExtensionOffset      uint16
-	ExtensionLenght      uint16
+	ExtensionLength      uint16
 	CtlIntNameOffset     uint16
 	CtlIntNameLength     uint16
 	LanguageOffset       uint16
@@ -357,6 +448,8 @@ func sendLogin(w *tdsBuffer, login login) error {
 	database := str2ucs2(login.Database)
 	atchdbfile := str2ucs2(login.AtchDBFile)
 	changepassword := str2ucs2(login.ChangePassword)
+	featureExt := login.FeatureExt.toBytes()
+
 	hdr := loginHeader{
 		TDSVersion:           login.TDSVersion,
 		PacketSize:           login.PacketSize,
@@ -405,7 +498,18 @@ func sendLogin(w *tdsBuffer, login login) error {
 	offset += uint16(len(atchdbfile))
 	hdr.ChangePasswordOffset = offset
 	offset += uint16(len(changepassword))
-	hdr.Length = uint32(offset)
+
+	featureExtOffset := uint32(0)
+	featureExtLen := len(featureExt)
+	if featureExtLen > 0 {
+		hdr.OptionFlags3 |= fExtension
+		hdr.ExtensionOffset = offset
+		hdr.ExtensionLength = 4
+		offset += hdr.ExtensionLength // DWORD
+		featureExtOffset = uint32(offset)
+	}
+	hdr.Length = uint32(offset) + uint32(featureExtLen)
+
 	var err error
 	err = binary.Write(w, binary.LittleEndian, &hdr)
 	if err != nil {
@@ -454,6 +558,16 @@ func sendLogin(w *tdsBuffer, login login) error {
 	_, err = w.Write(changepassword)
 	if err != nil {
 		return err
+	}
+	if featureExtOffset > 0 {
+		err = binary.Write(w, binary.LittleEndian, featureExtOffset)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(featureExt)
+		if err != nil {
+			return err
+		}
 	}
 	return w.FinishPacket()
 }
@@ -666,14 +780,14 @@ func dialConnection(ctx context.Context, c *Connector, p connectParams) (conn ne
 	}
 	if len(ips) == 1 {
 		d := c.getDialer(&p)
-		addr := net.JoinHostPort(ips[0].String(), strconv.Itoa(int(p.port)))
+		addr := net.JoinHostPort(ips[0].String(), strconv.Itoa(int(resolveServerPort(p.port))))
 		conn, err = d.DialContext(ctx, "tcp", addr)
 
 	} else {
 		//Try Dials in parallel to avoid waiting for timeouts.
 		connChan := make(chan net.Conn, len(ips))
 		errChan := make(chan error, len(ips))
-		portStr := strconv.Itoa(int(p.port))
+		portStr := strconv.Itoa(int(resolveServerPort(p.port)))
 		for _, ip := range ips {
 			go func(ip net.IP) {
 				d := c.getDialer(&p)
@@ -711,7 +825,7 @@ func dialConnection(ctx context.Context, c *Connector, p connectParams) (conn ne
 	// Can't do the usual err != nil check, as it is possible to have gotten an error before a successful connection
 	if conn == nil {
 		f := "Unable to open tcp connection with host '%v:%v': %v"
-		return nil, fmt.Errorf(f, p.host, p.port, err.Error())
+		return nil, fmt.Errorf(f, p.host, resolveServerPort(p.port), err.Error())
 	}
 	return conn, err
 }
@@ -724,7 +838,7 @@ func connect(ctx context.Context, c *Connector, log optionalLogger, p connectPar
 		defer cancel()
 	}
 	// if instance is specified use instance resolution service
-	if p.instance != "" {
+	if p.instance != "" && p.port == 0 {
 		p.instance = strings.ToUpper(p.instance)
 		d := c.getDialer(&p)
 		instances, err := getInstances(dialCtx, d, p.host)
@@ -737,11 +851,12 @@ func connect(ctx context.Context, c *Connector, log optionalLogger, p connectPar
 			f := "No instance matching '%v' returned from host '%v'"
 			return nil, fmt.Errorf(f, p.instance, p.host)
 		}
-		p.port, err = strconv.ParseUint(strport, 0, 16)
+		port, err := strconv.ParseUint(strport, 0, 16)
 		if err != nil {
 			f := "Invalid tcp port returned from Sql Server Browser '%v': %v"
 			return nil, fmt.Errorf(f, strport, err.Error())
 		}
+		p.port = port
 	}
 
 initiate_connection:
@@ -843,15 +958,23 @@ initiate_connection:
 		AppName:      p.appname,
 		TypeFlags:    p.typeFlags,
 	}
-	auth, auth_ok := getAuth(p.user, p.password, p.serverSPN, p.workstation)
-	if auth_ok {
+	auth, authOk := getAuth(p.user, p.password, p.serverSPN, p.workstation)
+	switch {
+	case p.fedAuthAccessToken != "": // accesstoken ignores user/password
+		featurext := &featureExtFedAuthSTS{
+			FedAuthEcho:  len(fields[preloginFEDAUTHREQUIRED]) > 0 && fields[preloginFEDAUTHREQUIRED][0] == 1,
+			FedAuthToken: p.fedAuthAccessToken,
+			Nonce:        fields[preloginNONCEOPT],
+		}
+		login.FeatureExt.Add(featurext)
+	case authOk:
 		login.SSPI, err = auth.InitialBytes()
 		if err != nil {
 			return nil, err
 		}
 		login.OptionFlags2 |= fIntSecurity
 		defer auth.Free()
-	} else {
+	default:
 		login.UserName = p.user
 		login.Password = p.password
 	}

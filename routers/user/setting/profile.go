@@ -58,6 +58,9 @@ func handleUsernameChange(ctx *context.Context, newName string) {
 			case models.IsErrNamePatternNotAllowed(err):
 				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
+			case models.IsErrNameCharsNotAllowed(err):
+				ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", newName))
+				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			default:
 				ctx.ServerError("ChangeUserName", err)
 			}
@@ -196,7 +199,7 @@ func Repos(ctx *context.Context) {
 	ctxUser := ctx.User
 
 	var err error
-	if err = ctxUser.GetRepositories(1, setting.UI.User.RepoPagingNum); err != nil {
+	if err = ctxUser.GetRepositories(models.ListOptions{Page: 1, PageSize: setting.UI.User.RepoPagingNum}); err != nil {
 		ctx.ServerError("GetRepositories", err)
 		return
 	}

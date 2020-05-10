@@ -46,7 +46,7 @@ Starts the server:
     - `gitea web --port 80`
     - `gitea web --config /etc/gitea.ini --pid /var/run/gitea.pid`
 - Notes:
-    - Gitea should not be run as root. To bind to a port below 1000, you can use setcap on
+    - Gitea should not be run as root. To bind to a port below 1024, you can use setcap on
       Linux: `sudo setcap 'cap_net_bind_service=+ep' /path/to/gitea`. This will need to be
       redone every time you update Gitea.
 
@@ -134,6 +134,7 @@ Admin operations:
                 - `--user-search-base value`: The LDAP base at which user accounts will be searched for. Required.
                 - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate. Required.
                 - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--restricted-filter value`: An LDAP filter specifying if a user should be given restricted status.
                 - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
                 - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
                 - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
@@ -158,6 +159,7 @@ Admin operations:
                 - `--user-search-base value`: The LDAP base at which user accounts will be searched for.
                 - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate.
                 - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--restricted-filter value`: An LDAP filter specifying if a user should be given restricted status.
                 - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
                 - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
                 - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
@@ -182,6 +184,7 @@ Admin operations:
                 - `--user-search-base value`: The LDAP base at which user accounts will be searched for.
                 - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate. Required.
                 - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--restricted-filter value`: An LDAP filter specifying if a user should be given restricted status.
                 - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
                 - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
                 - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
@@ -202,6 +205,7 @@ Admin operations:
                 - `--user-search-base value`: The LDAP base at which user accounts will be searched for.
                 - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate.
                 - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--restricted-filter value`: An LDAP filter specifying if a user should be given restricted status.
                 - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
                 - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
                 - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
@@ -281,6 +285,7 @@ provided key. You should also set the value
 NB: opensshd requires the gitea program to be owned by root and not
 writable by group or others. The program must be specified by an absolute
 path.
+NB: Gitea must be running for this command to succeed.
 
 #### migrate
 Migrates the database. This command can be used to run other commands before starting the server for the first time.  
@@ -288,3 +293,28 @@ This command is idempotent.
 
 #### convert
 Converts an existing MySQL database from utf8 to utf8mb4.
+
+#### doctor
+Diagnose the problems of current gitea instance according the given configuration.
+Currently there are a check list below:
+
+- Check if OpenSSH authorized_keys file id correct
+When your gitea instance support OpenSSH, your gitea instance binary path will be written to `authorized_keys` 
+when there is any public key added or changed on your gitea instance.
+Sometimes if you moved or renamed your gitea binary when upgrade and you haven't run `Update the '.ssh/authorized_keys' file with Gitea SSH keys. (Not needed for the built-in SSH server.)` on your Admin Panel. Then all pull/push via SSH will not be work.
+This check will help you to check if it works well.
+
+For contributors, if you want to add more checks, you can wrie ad new function like `func(ctx *cli.Context) ([]string, error)` and 
+append it to `doctor.go`.
+
+```go
+var checklist = []check{
+	{
+		title: "Check if OpenSSH authorized_keys file id correct",
+		f:     runDoctorLocationMoved,
+    },
+    // more checks please append here
+}
+```
+
+This function will receive a command line context and return a list of details about the problems or error.

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/url"
 	"os"
@@ -24,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
 	shellquote "github.com/kballard/go-shellquote"
@@ -43,6 +43,7 @@ const (
 	HTTP       Scheme = "http"
 	HTTPS      Scheme = "https"
 	FCGI       Scheme = "fcgi"
+	FCGIUnix   Scheme = "fcgi+unix"
 	UnixSocket Scheme = "unix"
 )
 
@@ -54,6 +55,7 @@ const (
 	LandingPageHome          LandingPage = "/"
 	LandingPageExplore       LandingPage = "/explore"
 	LandingPageOrganizations LandingPage = "/explore/organizations"
+	LandingPageLogin         LandingPage = "/user/login"
 )
 
 // enumerates all the types of captchas
@@ -99,6 +101,7 @@ var (
 	LetsEncryptEmail     string
 	GracefulRestartable  bool
 	GracefulHammerTime   time.Duration
+	StartupTimeout       time.Duration
 	StaticURLPrefix      string
 
 	SSH = struct {
@@ -129,6 +132,7 @@ var (
 		ServerKeyExchanges: []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
 		ServerMACs:         []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
 		KeygenPath:         "ssh-keygen",
+		MinimumKeySizes:    map[string]int{"ed25519": 256, "ecdsa": 256, "rsa": 2048, "dsa": 1024},
 	}
 
 	LFS struct {
@@ -137,6 +141,8 @@ var (
 		JWTSecretBase64 string        `ini:"LFS_JWT_SECRET"`
 		JWTSecretBytes  []byte        `ini:"-"`
 		HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
+		MaxFileSize     int64         `ini:"LFS_MAX_FILE_SIZE"`
+		LocksPagingNum  int           `ini:"LFS_LOCKS_PAGING_NUM"`
 	}
 
 	// Security settings
@@ -159,6 +165,7 @@ var (
 		ExplorePagingNum      int
 		IssuePagingNum        int
 		RepoSearchPagingNum   int
+		MembersPagingNum      int
 		FeedMaxCommitNum      int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
@@ -169,7 +176,17 @@ var (
 		DefaultShowFullName   bool
 		DefaultTheme          string
 		Themes                []string
+		Reactions             []string
+		ReactionsMap          map[string]bool
 		SearchRepoDescription bool
+		UseServiceWorker      bool
+
+		Notification struct {
+			MinTimeout            time.Duration
+			TimeoutStep           time.Duration
+			MaxTimeout            time.Duration
+			EventSourceUpdateTime time.Duration
+		} `ini:"ui.notification"`
 
 		Admin struct {
 			UserPagingNum   int
@@ -189,6 +206,7 @@ var (
 		ExplorePagingNum:    20,
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
+		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
@@ -197,6 +215,18 @@ var (
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
+		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
+		Notification: struct {
+			MinTimeout            time.Duration
+			TimeoutStep           time.Duration
+			MaxTimeout            time.Duration
+			EventSourceUpdateTime time.Duration
+		}{
+			MinTimeout:            10 * time.Second,
+			TimeoutStep:           10 * time.Second,
+			MaxTimeout:            60 * time.Second,
+			EventSourceUpdateTime: 10 * time.Second,
+		},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -230,7 +260,7 @@ var (
 		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
 		FileExtensions      []string
 	}{
-		EnableHardLineBreak: false,
+		EnableHardLineBreak: true,
 		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
@@ -312,11 +342,13 @@ var (
 		InvalidateRefreshTokens    bool
 		JWTSecretBytes             []byte `ini:"-"`
 		JWTSecretBase64            string `ini:"JWT_SECRET"`
+		MaxTokenLength             int
 	}{
 		Enable:                     true,
 		AccessTokenExpirationTime:  3600,
 		RefreshTokenExpirationTime: 730,
 		InvalidateRefreshTokens:    false,
+		MaxTokenLength:             math.MaxInt16,
 	}
 
 	U2F = struct {
@@ -502,6 +534,7 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 		CustomConf = path.Join(CustomPath, "conf/app.ini")
 	} else if !filepath.IsAbs(CustomConf) {
 		CustomConf = path.Join(CustomPath, CustomConf)
+		log.Warn("Using 'custom' directory as relative origin for configuration file: '%s'", CustomConf)
 	}
 }
 
@@ -545,8 +578,22 @@ func NewContext() {
 		Protocol = HTTPS
 		CertFile = sec.Key("CERT_FILE").String()
 		KeyFile = sec.Key("KEY_FILE").String()
+		if !filepath.IsAbs(CertFile) && len(CertFile) > 0 {
+			CertFile = filepath.Join(CustomPath, CertFile)
+		}
+		if !filepath.IsAbs(KeyFile) && len(KeyFile) > 0 {
+			KeyFile = filepath.Join(CustomPath, KeyFile)
+		}
 	case "fcgi":
 		Protocol = FCGI
+	case "fcgi+unix":
+		Protocol = FCGIUnix
+		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
+		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
+		if err != nil || UnixSocketPermissionParsed > 0777 {
+			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
+		}
+		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	case "unix":
 		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
@@ -569,6 +616,7 @@ func NewContext() {
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
 	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
+	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
 
 	defaultAppURL := string(Protocol) + "://" + Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
@@ -600,6 +648,8 @@ func NewContext() {
 		defaultLocalURL = "http://unix/"
 	case FCGI:
 		defaultLocalURL = AppURL
+	case FCGIUnix:
+		defaultLocalURL = AppURL
 	default:
 		defaultLocalURL = string(Protocol) + "://"
 		if HTTPAddr == "0.0.0.0" {
@@ -629,6 +679,8 @@ func NewContext() {
 		LandingPageURL = LandingPageExplore
 	case "organizations":
 		LandingPageURL = LandingPageOrganizations
+	case "login":
+		LandingPageURL = LandingPageLogin
 	default:
 		LandingPageURL = LandingPageHome
 	}
@@ -672,7 +724,6 @@ func NewContext() {
 	}
 
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool()
-	SSH.MinimumKeySizes = map[string]int{}
 	minimumKeySizes := Cfg.Section("ssh.minimum_key_sizes").Keys()
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
@@ -691,14 +742,13 @@ func NewContext() {
 	if !filepath.IsAbs(LFS.ContentPath) {
 		LFS.ContentPath = filepath.Join(AppWorkPath, LFS.ContentPath)
 	}
+	if LFS.LocksPagingNum == 0 {
+		LFS.LocksPagingNum = 50
+	}
 
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
 
 	if LFS.StartServer {
-		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
-			log.Fatal("Failed to create '%s': %v", LFS.ContentPath, err)
-		}
-
 		LFS.JWTSecretBytes = make([]byte, 32)
 		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
 
@@ -828,7 +878,8 @@ func NewContext() {
 			TimeFormat = timeFormatKey
 			TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
 			if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
-				log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+				log.Warn("Provided TimeFormat: %s does not create a fully specified date and time.", TimeFormat)
+				log.Warn("In order to display dates and times correctly please check your time format has 2006, 01, 02, 15, 04 and 05")
 			}
 			log.Trace("Custom TimeFormat: %s", TimeFormat)
 		}
@@ -968,6 +1019,7 @@ func NewContext() {
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
+	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
@@ -978,6 +1030,11 @@ func NewContext() {
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
 
 	zip.Verbose = false
+
+	UI.ReactionsMap = make(map[string]bool)
+	for _, reaction := range UI.Reactions {
+		UI.ReactionsMap[reaction] = true
+	}
 }
 
 func loadInternalToken(sec *ini.Section) string {
@@ -1050,11 +1107,20 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 	return token
 }
 
+func ensureLFSDirectory() {
+	if LFS.StartServer {
+		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
+			log.Fatal("Failed to create '%s': %v", LFS.ContentPath, err)
+		}
+	}
+}
+
 // NewServices initializes the services
 func NewServices() {
 	InitDBConfig()
 	newService()
 	NewLogServices(false)
+	ensureLFSDirectory()
 	newCacheService()
 	newSessionService()
 	newCORSService()
@@ -1065,4 +1131,5 @@ func NewServices() {
 	newMigrationsService()
 	newIndexerService()
 	newTaskService()
+	NewQueueService()
 }

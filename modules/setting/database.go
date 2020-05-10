@@ -30,6 +30,7 @@ var (
 		Name              string
 		User              string
 		Passwd            string
+		Schema            string
 		SSLMode           string
 		Path              string
 		LogSQL            bool
@@ -75,6 +76,7 @@ func InitDBConfig() {
 	if len(Database.Passwd) == 0 {
 		Database.Passwd = sec.Key("PASSWD").String()
 	}
+	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
 	Database.Charset = sec.Key("CHARSET").In("utf8", []string{"utf8", "utf8mb4"})
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
@@ -124,7 +126,7 @@ func DBConnStr() (string, error) {
 		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %v", err)
 		}
-		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d", Database.Path, Database.Timeout)
+		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate", Database.Path, Database.Timeout)
 	default:
 		return "", fmt.Errorf("Unknown database type: %s", Database.Type)
 	}

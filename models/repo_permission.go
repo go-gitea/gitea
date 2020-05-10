@@ -164,16 +164,16 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 		return
 	}
 
-	if repo.Owner == nil {
-		repo.mustOwner(e)
-	}
-
 	var isCollaborator bool
 	if user != nil {
 		isCollaborator, err = repo.isCollaborator(e, user.ID)
 		if err != nil {
 			return perm, err
 		}
+	}
+
+	if err = repo.getOwner(e); err != nil {
+		return
 	}
 
 	// Prevent strangers from checking out public repo of private orginization
@@ -202,7 +202,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	}
 
 	// plain user
-	perm.AccessMode, err = accessLevel(e, user.ID, repo)
+	perm.AccessMode, err = accessLevel(e, user, repo)
 	if err != nil {
 		return
 	}
@@ -250,8 +250,8 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 			}
 		}
 
-		// for a public repo on an organization, user have read permission on non-team defined units.
-		if !found && !repo.IsPrivate {
+		// for a public repo on an organization, a non-restricted user has read permission on non-team defined units.
+		if !found && !repo.IsPrivate && !user.IsRestricted {
 			if _, ok := perm.UnitsMode[u.Type]; !ok {
 				perm.UnitsMode[u.Type] = AccessModeRead
 			}
@@ -271,7 +271,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	return
 }
 
-// IsUserRepoAdmin return ture if user has admin right of a repo
+// IsUserRepoAdmin return true if user has admin right of a repo
 func IsUserRepoAdmin(repo *Repository, user *User) (bool, error) {
 	return isUserRepoAdmin(x, repo, user)
 }
@@ -284,7 +284,7 @@ func isUserRepoAdmin(e Engine, repo *Repository, user *User) (bool, error) {
 		return true, nil
 	}
 
-	mode, err := accessLevel(e, user.ID, repo)
+	mode, err := accessLevel(e, user, repo)
 	if err != nil {
 		return false, err
 	}
@@ -339,10 +339,14 @@ func HasAccessUnit(user *User, repo *Repository, unitType UnitType, testMode Acc
 // Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
 // FIXME: user could send PullRequest also could be assigned???
 func CanBeAssigned(user *User, repo *Repository, isPull bool) (bool, error) {
+	return canBeAssigned(x, user, repo, isPull)
+}
+
+func canBeAssigned(e Engine, user *User, repo *Repository, _ bool) (bool, error) {
 	if user.IsOrganization() {
 		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
-	perm, err := GetUserRepoPermission(repo, user)
+	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
 		return false, err
 	}
@@ -368,4 +372,24 @@ func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {
 // HasAccess returns true if user has access to repo
 func HasAccess(userID int64, repo *Repository) (bool, error) {
 	return hasAccess(x, userID, repo)
+}
+
+// FilterOutRepoIdsWithoutUnitAccess filter out repos where user has no access to repositories
+func FilterOutRepoIdsWithoutUnitAccess(u *User, repoIDs []int64, units ...UnitType) ([]int64, error) {
+	i := 0
+	for _, rID := range repoIDs {
+		repo, err := GetRepositoryByID(rID)
+		if err != nil {
+			return nil, err
+		}
+		perm, err := GetUserRepoPermission(repo, u)
+		if err != nil {
+			return nil, err
+		}
+		if perm.CanReadAny(units...) {
+			repoIDs[i] = rID
+			i++
+		}
+	}
+	return repoIDs[:i], nil
 }

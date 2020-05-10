@@ -34,15 +34,19 @@ type Hook struct {
 // HookList represents a list of API hook.
 type HookList []*Hook
 
+// CreateHookOptionConfig has all config options in it
+// required are "content_type" and "url" Required
+type CreateHookOptionConfig map[string]string
+
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
 	// required: true
-	// enum: gitea,gogs,slack,discord
+	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu
 	Type string `json:"type" binding:"Required"`
 	// required: true
-	Config       map[string]string `json:"config" binding:"Required"`
-	Events       []string          `json:"events"`
-	BranchFilter string            `json:"branch_filter" binding:"GlobPattern"`
+	Config       CreateHookOptionConfig `json:"config" binding:"Required"`
+	Events       []string               `json:"events"`
+	BranchFilter string                 `json:"branch_filter" binding:"GlobPattern"`
 	// default: false
 	Active bool `json:"active"`
 }
@@ -370,6 +374,8 @@ const (
 	HookIssueMilestoned HookIssueAction = "milestoned"
 	// HookIssueDemilestoned is an issue action for when a milestone is cleared on an issue.
 	HookIssueDemilestoned HookIssueAction = "demilestoned"
+	// HookIssueReviewed is an issue action for when a pull request is reviewed
+	HookIssueReviewed HookIssueAction = "reviewed"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.
@@ -398,10 +404,11 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
-// ChangesPayload FIXME
+// ChangesPayload represents the payload information of issue change
 type ChangesPayload struct {
 	Title *ChangesFromPayload `json:"title,omitempty"`
 	Body  *ChangesFromPayload `json:"body,omitempty"`
+	Ref   *ChangesFromPayload `json:"ref,omitempty"`
 }
 
 // __________      .__  .__    __________                                     __

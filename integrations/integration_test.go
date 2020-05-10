@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -24,6 +25,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -55,6 +57,10 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 }
 
 func TestMain(m *testing.M) {
+	managerCtx, cancel := context.WithCancel(context.Background())
+	graceful.InitManager(managerCtx)
+	defer cancel()
+
 	initIntegrationTest()
 	mac = routes.NewMacaron()
 	routes.RegisterRoutes(mac)
@@ -125,6 +131,7 @@ func initIntegrationTest() {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
+	os.RemoveAll(models.LocalCopyPath())
 	setting.CheckLFSVersion()
 	setting.InitDBConfig()
 
@@ -146,18 +153,53 @@ func initIntegrationTest() {
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
+		dbrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
 		if err != nil {
 			log.Fatalf("db.Query: %v", err)
 		}
-		defer rows.Close()
+		defer dbrows.Close()
 
-		if rows.Next() {
+		if !dbrows.Next() {
+			if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
+				log.Fatalf("db.Exec: CREATE DATABASE: %v", err)
+			}
+		}
+		// Check if we need to setup a specific schema
+		if len(setting.Database.Schema) == 0 {
 			break
 		}
-		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
-			log.Fatalf("db.Exec: %v", err)
+		db.Close()
+
+		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		// This is a different db object; requires a different Close()
+		defer db.Close()
+		if err != nil {
+			log.Fatalf("sql.Open: %v", err)
 		}
+		schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
+		if err != nil {
+			log.Fatalf("db.Query: %v", err)
+		}
+		defer schrows.Close()
+
+		if !schrows.Next() {
+			// Create and setup a DB schema
+			if _, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema)); err != nil {
+				log.Fatalf("db.Exec: CREATE SCHEMA: %v", err)
+			}
+		}
+
+		// Make the user's default search path the created schema; this will affect new connections
+		if _, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema)); err != nil {
+			log.Fatalf("db.Exec: ALTER USER SET search_path: %v", err)
+		}
+
+		// Make the current connection's search the created schema
+		if _, err = db.Exec(fmt.Sprintf(`SET search_path = %s`, setting.Database.Schema)); err != nil {
+			log.Fatalf("db.Exec: ALTER USER SET search_path: %v", err)
+		}
+
 	case setting.Database.UseMSSQL:
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
@@ -170,22 +212,22 @@ func initIntegrationTest() {
 		}
 		defer db.Close()
 	}
-	routers.GlobalInit()
+	routers.GlobalInit(graceful.GetManager().HammerContext())
 }
 
-func prepareTestEnv(t testing.TB, skip ...int) {
+func prepareTestEnv(t testing.TB, skip ...int) func() {
 	t.Helper()
 	ourSkip := 2
 	if len(skip) > 0 {
 		ourSkip += skip[0]
 	}
-	PrintCurrentTest(t, ourSkip)
+	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
+	return deferFn
 }
 
 type TestSession struct {
@@ -288,14 +330,18 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	return session
 }
 
+//token has to be unique this counter take care of
+var tokenCounter int64
+
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 	t.Helper()
+	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	req = NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
 		"_csrf": doc.GetCSRF(),
-		"name":  "api-testing-token",
+		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 	req = NewRequest(t, "GET", "/user/settings/applications")

@@ -17,8 +17,8 @@ func TestUserListIsPublicMember(t *testing.T) {
 		orgid    int64
 		expected map[int64]bool
 	}{
-		{3, map[int64]bool{2: true, 4: false}},
-		{6, map[int64]bool{5: true}},
+		{3, map[int64]bool{2: true, 4: false, 28: true}},
+		{6, map[int64]bool{5: true, 28: true}},
 		{7, map[int64]bool{5: false}},
 		{25, map[int64]bool{24: true}},
 		{22, map[int64]bool{}},
@@ -43,8 +43,8 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 		orgid    int64
 		expected map[int64]bool
 	}{
-		{3, map[int64]bool{2: true, 4: false}},
-		{6, map[int64]bool{5: true}},
+		{3, map[int64]bool{2: true, 4: false, 28: false}},
+		{6, map[int64]bool{5: true, 28: false}},
 		{7, map[int64]bool{5: true}},
 		{25, map[int64]bool{24: false}}, // ErrTeamNotExist
 		{22, map[int64]bool{}},          // No member
@@ -69,8 +69,8 @@ func TestUserListIsTwoFaEnrolled(t *testing.T) {
 		orgid    int64
 		expected map[int64]bool
 	}{
-		{3, map[int64]bool{2: false, 4: false}},
-		{6, map[int64]bool{5: false}},
+		{3, map[int64]bool{2: false, 4: false, 28: false}},
+		{6, map[int64]bool{5: false, 28: false}},
 		{7, map[int64]bool{5: false}},
 		{25, map[int64]bool{24: true}},
 		{22, map[int64]bool{}},

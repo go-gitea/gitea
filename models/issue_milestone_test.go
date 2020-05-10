@@ -11,6 +11,7 @@ import (
 
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/builder"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -71,7 +72,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(repoID int64, state api.StateType) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		milestones, err := GetMilestonesByRepoID(repo.ID, state)
+		milestones, err := GetMilestonesByRepoID(repo.ID, state, ListOptions{})
 		assert.NoError(t, err)
 
 		var n int
@@ -105,7 +106,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	test(3, api.StateClosed)
 	test(3, api.StateAll)
 
-	milestones, err := GetMilestonesByRepoID(NonexistentID, api.StateOpen)
+	milestones, err := GetMilestonesByRepoID(NonexistentID, api.StateOpen, ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 0)
 }
@@ -158,10 +159,11 @@ func TestUpdateMilestone(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	milestone := AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
-	milestone.Name = "newMilestoneName"
+	milestone.Name = " newMilestoneName  "
 	milestone.Content = "newMilestoneContent"
-	assert.NoError(t, UpdateMilestone(milestone))
-	AssertExistsAndLoadBean(t, milestone)
+	assert.NoError(t, UpdateMilestone(milestone, milestone.IsClosed))
+	milestone = AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
+	assert.EqualValues(t, "newMilestoneName", milestone.Name)
 	CheckConsistencyFor(t, &Milestone{})
 }
 
@@ -238,14 +240,14 @@ func TestUpdateMilestoneClosedNum(t *testing.T) {
 
 	issue.IsClosed = true
 	issue.ClosedUnix = timeutil.TimeStampNow()
-	_, err := x.Cols("is_closed", "closed_unix").Update(issue)
+	_, err := x.ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, updateMilestoneClosedNum(x, issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
 
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
-	_, err = x.Cols("is_closed", "closed_unix").Update(issue)
+	_, err = x.ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, updateMilestoneClosedNum(x, issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
@@ -287,5 +289,90 @@ func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 
 	assert.NoError(t, miles.LoadTotalTrackedTimes())
 
-	assert.Equal(t, miles[0].TotalTrackedTime, int64(3662))
+	assert.Equal(t, int64(3682), miles[0].TotalTrackedTime)
+}
+
+func TestCountMilestonesByRepoIDs(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	milestonesCount := func(repoID int64) (int, int) {
+		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
+		return repo.NumOpenMilestones, repo.NumClosedMilestones
+	}
+	repo1OpenCount, repo1ClosedCount := milestonesCount(1)
+	repo2OpenCount, repo2ClosedCount := milestonesCount(2)
+
+	openCounts, err := CountMilestonesByRepoIDs([]int64{1, 2}, false)
+	assert.NoError(t, err)
+	assert.EqualValues(t, repo1OpenCount, openCounts[1])
+	assert.EqualValues(t, repo2OpenCount, openCounts[2])
+
+	closedCounts, err := CountMilestonesByRepoIDs([]int64{1, 2}, true)
+	assert.NoError(t, err)
+	assert.EqualValues(t, repo1ClosedCount, closedCounts[1])
+	assert.EqualValues(t, repo2ClosedCount, closedCounts[2])
+}
+
+func TestGetMilestonesByRepoIDs(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	test := func(sortType string, sortCond func(*Milestone) int) {
+		for _, page := range []int{0, 1} {
+			openMilestones, err := GetMilestonesByRepoIDs([]int64{repo1.ID, repo2.ID}, page, false, sortType)
+			assert.NoError(t, err)
+			assert.Len(t, openMilestones, repo1.NumOpenMilestones+repo2.NumOpenMilestones)
+			values := make([]int, len(openMilestones))
+			for i, milestone := range openMilestones {
+				values[i] = sortCond(milestone)
+			}
+			assert.True(t, sort.IntsAreSorted(values))
+
+			closedMilestones, err := GetMilestonesByRepoIDs([]int64{repo1.ID, repo2.ID}, page, true, sortType)
+			assert.NoError(t, err)
+			assert.Len(t, closedMilestones, repo1.NumClosedMilestones+repo2.NumClosedMilestones)
+			values = make([]int, len(closedMilestones))
+			for i, milestone := range closedMilestones {
+				values[i] = sortCond(milestone)
+			}
+			assert.True(t, sort.IntsAreSorted(values))
+		}
+	}
+	test("furthestduedate", func(milestone *Milestone) int {
+		return -int(milestone.DeadlineUnix)
+	})
+	test("leastcomplete", func(milestone *Milestone) int {
+		return milestone.Completeness
+	})
+	test("mostcomplete", func(milestone *Milestone) int {
+		return -milestone.Completeness
+	})
+	test("leastissues", func(milestone *Milestone) int {
+		return milestone.NumIssues
+	})
+	test("mostissues", func(milestone *Milestone) int {
+		return -milestone.NumIssues
+	})
+	test("soonestduedate", func(milestone *Milestone) int {
+		return int(milestone.DeadlineUnix)
+	})
+}
+
+func TestLoadTotalTrackedTime(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	milestone := AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
+
+	assert.NoError(t, milestone.LoadTotalTrackedTime())
+
+	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
+}
+
+func TestGetMilestonesStats(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+
+	milestoneStats, err := GetMilestonesStats(builder.In("repo_id", []int64{repo1.ID, repo2.ID}))
+	assert.NoError(t, err)
+	assert.EqualValues(t, repo1.NumOpenMilestones+repo2.NumOpenMilestones, milestoneStats.OpenCount)
+	assert.EqualValues(t, repo1.NumClosedMilestones+repo2.NumClosedMilestones, milestoneStats.ClosedCount)
 }

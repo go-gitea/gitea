@@ -17,9 +17,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRepo(t *testing.T) {
+func TestMetas(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
 	repo := &Repository{Name: "testRepo"}
 	repo.Owner = &User{Name: "testOwner"}
+	repo.OwnerName = repo.Owner.Name
 
 	repo.Units = nil
 
@@ -36,7 +39,7 @@ func TestRepo(t *testing.T) {
 
 	testSuccess := func(expectedStyle string) {
 		repo.Units = []*RepoUnit{&externalTracker}
-		repo.ExternalMetas = nil
+		repo.RenderingMetas = nil
 		metas := repo.ComposeMetas()
 		assert.Equal(t, expectedStyle, metas["style"])
 		assert.Equal(t, "testRepo", metas["repo"])
@@ -51,6 +54,15 @@ func TestRepo(t *testing.T) {
 
 	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleNumeric
 	testSuccess(markup.IssueNameStyleNumeric)
+
+	repo, err := GetRepositoryByID(3)
+	assert.NoError(t, err)
+
+	metas = repo.ComposeMetas()
+	assert.Contains(t, metas, "org")
+	assert.Contains(t, metas, "teams")
+	assert.Equal(t, metas["org"], "user3")
+	assert.Equal(t, metas["teams"], ",owners,team1,")
 }
 
 func TestGetRepositoryCount(t *testing.T) {
@@ -119,19 +131,6 @@ func TestGetUserFork(t *testing.T) {
 	repo, err = repo.GetUserFork(13)
 	assert.NoError(t, err)
 	assert.Nil(t, repo)
-}
-
-func TestForkRepository(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	// user 13 has already forked repo10
-	user := AssertExistsAndLoadBean(t, &User{ID: 13}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
-
-	fork, err := ForkRepository(user, user, repo, "test", "test")
-	assert.Nil(t, fork)
-	assert.Error(t, err)
-	assert.True(t, IsErrForkAlreadyExist(err))
 }
 
 func TestRepoAPIURL(t *testing.T) {

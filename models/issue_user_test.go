@@ -17,7 +17,7 @@ func Test_newIssueUsers(t *testing.T) {
 	newIssue := &Issue{
 		RepoID:   repo.ID,
 		PosterID: 4,
-		Index:    5,
+		Index:    6,
 		Title:    "newTestIssueTitle",
 		Content:  "newTestIssueContent",
 	}

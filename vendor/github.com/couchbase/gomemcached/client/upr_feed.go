@@ -19,6 +19,7 @@ const uprMutationExtraLen = 30
 const uprDeletetionExtraLen = 18
 const uprDeletetionWithDeletionTimeExtraLen = 21
 const uprSnapshotExtraLen = 20
+const dcpSystemEventExtraLen = 13
 const bufferAckThreshold = 0.2
 const opaqueOpen = 0xBEAF0001
 const opaqueFailover = 0xDEADBEEF
@@ -26,32 +27,6 @@ const uprDefaultNoopInterval = 120
 
 // Counter on top of opaqueOpen that others can draw from for open and control msgs
 var opaqueOpenCtrlWell uint32 = opaqueOpen
-
-// UprEvent memcached events for UPR streams.
-type UprEvent struct {
-	Opcode       gomemcached.CommandCode // Type of event
-	Status       gomemcached.Status      // Response status
-	VBucket      uint16                  // VBucket this event applies to
-	DataType     uint8                   // data type
-	Opaque       uint16                  // 16 MSB of opaque
-	VBuuid       uint64                  // This field is set by downstream
-	Flags        uint32                  // Item flags
-	Expiry       uint32                  // Item expiration time
-	Key, Value   []byte                  // Item key/value
-	OldValue     []byte                  // TODO: TBD: old document value
-	Cas          uint64                  // CAS value of the item
-	Seqno        uint64                  // sequence number of the mutation
-	RevSeqno     uint64                  // rev sequence number : deletions
-	LockTime     uint32                  // Lock time
-	MetadataSize uint16                  // Metadata size
-	SnapstartSeq uint64                  // start sequence number of this snapshot
-	SnapendSeq   uint64                  // End sequence number of the snapshot
-	SnapshotType uint32                  // 0: disk 1: memory
-	FailoverLog  *FailoverLog            // Failover log containing vvuid and sequnce number
-	Error        error                   // Error value in case of a failure
-	ExtMeta      []byte
-	AckSize      uint32 // The number of bytes that can be Acked to DCP
-}
 
 type PriorityType string
 
@@ -63,13 +38,39 @@ const (
 	PriorityHigh     PriorityType = "high"
 )
 
+type DcpStreamType int32
+
+var UninitializedStream DcpStreamType = -1
+
+const (
+	NonCollectionStream    DcpStreamType = 0
+	CollectionsNonStreamId DcpStreamType = iota
+	CollectionsStreamId    DcpStreamType = iota
+)
+
+func (t DcpStreamType) String() string {
+	switch t {
+	case UninitializedStream:
+		return "Un-Initialized Stream"
+	case NonCollectionStream:
+		return "Traditional Non-Collection Stream"
+	case CollectionsNonStreamId:
+		return "Collections Stream without StreamID"
+	case CollectionsStreamId:
+		return "Collection Stream with StreamID"
+	default:
+		return "Unknown Stream Type"
+	}
+}
+
 // UprStream is per stream data structure over an UPR Connection.
 type UprStream struct {
-	Vbucket   uint16 // Vbucket id
-	Vbuuid    uint64 // vbucket uuid
-	StartSeq  uint64 // start sequence number
-	EndSeq    uint64 // end sequence number
-	connected bool
+	Vbucket    uint16 // Vbucket id
+	Vbuuid     uint64 // vbucket uuid
+	StartSeq   uint64 // start sequence number
+	EndSeq     uint64 // end sequence number
+	connected  bool
+	StreamType DcpStreamType
 }
 
 type FeedState int
@@ -113,6 +114,7 @@ type UprFeatures struct {
 	IncludeDeletionTime bool
 	DcpPriority         PriorityType
 	EnableExpiry        bool
+	EnableStreamId      bool
 }
 
 /**
@@ -274,9 +276,15 @@ type UprFeed struct {
 	// if flag is true, upr feed will use ack from client to determine whether/when to send ack to DCP
 	// if flag is false, upr feed will track how many bytes it has sent to client
 	// and use that to determine whether/when to send ack to DCP
-	ackByClient bool
-	feedState   FeedState
-	muFeedState sync.RWMutex
+	ackByClient       bool
+	feedState         FeedState
+	muFeedState       sync.RWMutex
+	activatedFeatures UprFeatures
+	collectionEnabled bool // This is needed separately because parsing depends on this
+	// DCP StreamID allows multiple filtered collection streams to share a single DCP Stream
+	// It is not allowed once a regular/legacy stream was started originally
+	streamsType        DcpStreamType
+	initStreamTypeOnce sync.Once
 }
 
 // Exported interface - to allow for mocking
@@ -296,6 +304,9 @@ type UprFeedIface interface {
 	UprRequestStream(vbno, opaqueMSB uint16, flags uint32, vuuid, startSequence, endSequence, snapStart, snapEnd uint64) error
 	// Set DCP priority on an existing DCP connection. The command is sent asynchronously without waiting for a response
 	SetPriorityAsync(p PriorityType) error
+
+	// Various Collection-Type RequestStreams
+	UprRequestCollectionsStream(vbno, opaqueMSB uint16, flags uint32, vbuuid, startSeq, endSeq, snapStart, snapEnd uint64, filter *CollectionsFilter) error
 }
 
 type UprStats struct {
@@ -304,9 +315,6 @@ type UprStats struct {
 	TotalBufferAckSent uint64
 	TotalSnapShot      uint64
 }
-
-// FailoverLog containing vvuid and sequnce number
-type FailoverLog [][2]uint64
 
 // error codes
 var ErrorInvalidLog = errors.New("couchbase.errorInvalidLog")
@@ -318,76 +326,6 @@ func (flogp *FailoverLog) Latest() (vbuuid, seqno uint64, err error) {
 		return latest[0], latest[1], nil
 	}
 	return vbuuid, seqno, ErrorInvalidLog
-}
-
-func makeUprEvent(rq gomemcached.MCRequest, stream *UprStream, bytesReceivedFromDCP int) *UprEvent {
-	event := &UprEvent{
-		Opcode:   rq.Opcode,
-		VBucket:  stream.Vbucket,
-		VBuuid:   stream.Vbuuid,
-		Key:      rq.Key,
-		Value:    rq.Body,
-		Cas:      rq.Cas,
-		ExtMeta:  rq.ExtMeta,
-		DataType: rq.DataType,
-	}
-
-	// set AckSize for events that need to be acked to DCP,
-	// i.e., events with CommandCodes that need to be buffered in DCP
-	if _, ok := gomemcached.BufferedCommandCodeMap[rq.Opcode]; ok {
-		event.AckSize = uint32(bytesReceivedFromDCP)
-	}
-
-	// 16 LSBits are used by client library to encode vbucket number.
-	// 16 MSBits are left for application to multiplex on opaque value.
-	event.Opaque = appOpaque(rq.Opaque)
-
-	if len(rq.Extras) >= uprMutationExtraLen &&
-		event.Opcode == gomemcached.UPR_MUTATION {
-
-		event.Seqno = binary.BigEndian.Uint64(rq.Extras[:8])
-		event.RevSeqno = binary.BigEndian.Uint64(rq.Extras[8:16])
-		event.Flags = binary.BigEndian.Uint32(rq.Extras[16:20])
-		event.Expiry = binary.BigEndian.Uint32(rq.Extras[20:24])
-		event.LockTime = binary.BigEndian.Uint32(rq.Extras[24:28])
-		event.MetadataSize = binary.BigEndian.Uint16(rq.Extras[28:30])
-
-	} else if len(rq.Extras) >= uprDeletetionWithDeletionTimeExtraLen &&
-		event.Opcode == gomemcached.UPR_DELETION {
-
-		event.Seqno = binary.BigEndian.Uint64(rq.Extras[:8])
-		event.RevSeqno = binary.BigEndian.Uint64(rq.Extras[8:16])
-		event.Expiry = binary.BigEndian.Uint32(rq.Extras[16:20])
-
-	} else if len(rq.Extras) >= uprDeletetionExtraLen &&
-		event.Opcode == gomemcached.UPR_DELETION ||
-		event.Opcode == gomemcached.UPR_EXPIRATION {
-
-		event.Seqno = binary.BigEndian.Uint64(rq.Extras[:8])
-		event.RevSeqno = binary.BigEndian.Uint64(rq.Extras[8:16])
-		event.MetadataSize = binary.BigEndian.Uint16(rq.Extras[16:18])
-
-	} else if len(rq.Extras) >= uprSnapshotExtraLen &&
-		event.Opcode == gomemcached.UPR_SNAPSHOT {
-
-		event.SnapstartSeq = binary.BigEndian.Uint64(rq.Extras[:8])
-		event.SnapendSeq = binary.BigEndian.Uint64(rq.Extras[8:16])
-		event.SnapshotType = binary.BigEndian.Uint32(rq.Extras[16:20])
-	}
-
-	return event
-}
-
-func (event *UprEvent) String() string {
-	name := gomemcached.CommandNames[event.Opcode]
-	if name == "" {
-		name = fmt.Sprintf("#%d", event.Opcode)
-	}
-	return name
-}
-
-func (event *UprEvent) IsSnappyDataType() bool {
-	return event.Opcode == gomemcached.UPR_MUTATION && (event.DataType&SnappyDataType > 0)
 }
 
 func (feed *UprFeed) sendCommands(mc *Client) {
@@ -420,6 +358,10 @@ func (feed *UprFeed) activateStream(vbno, opaque uint16, stream *UprStream) erro
 	feed.muVbstreams.Lock()
 	defer feed.muVbstreams.Unlock()
 
+	if feed.collectionEnabled {
+		stream.StreamType = feed.streamsType
+	}
+
 	// Set this stream as the officially connected stream for this vb
 	stream.connected = true
 	feed.vbstreams[vbno] = stream
@@ -440,14 +382,15 @@ func (mc *Client) NewUprFeed() (*UprFeed, error) {
 }
 
 func (mc *Client) NewUprFeedWithConfig(ackByClient bool) (*UprFeed, error) {
-
 	feed := &UprFeed{
-		conn:        mc,
-		closer:      make(chan bool, 1),
-		vbstreams:   make(map[uint16]*UprStream),
-		transmitCh:  make(chan *gomemcached.MCRequest),
-		transmitCl:  make(chan bool),
-		ackByClient: ackByClient,
+		conn:              mc,
+		closer:            make(chan bool, 1),
+		vbstreams:         make(map[uint16]*UprStream),
+		transmitCh:        make(chan *gomemcached.MCRequest),
+		transmitCl:        make(chan bool),
+		ackByClient:       ackByClient,
+		collectionEnabled: mc.CollectionEnabled(),
+		streamsType:       UninitializedStream,
 	}
 
 	feed.negotiator.initialize()
@@ -642,7 +585,22 @@ func (feed *UprFeed) uprOpen(name string, sequence uint32, bufSize uint32, featu
 		activatedFeatures.EnableExpiry = true
 	}
 
+	if features.EnableStreamId {
+		rq := &gomemcached.MCRequest{
+			Opcode: gomemcached.UPR_CONTROL,
+			Key:    []byte("enable_stream_id"),
+			Body:   []byte("true"),
+			Opaque: getUprOpenCtrlOpaque(),
+		}
+		err = sendMcRequestSync(feed.conn, rq)
+		if err != nil {
+			return
+		}
+		activatedFeatures.EnableStreamId = true
+	}
+
 	// everything is ok so far, set upr feed to open state
+	feed.activatedFeatures = activatedFeatures
 	feed.setOpen()
 	return
 }
@@ -689,10 +647,60 @@ func (mc *Client) UprGetFailoverLog(
 func (feed *UprFeed) UprRequestStream(vbno, opaqueMSB uint16, flags uint32,
 	vuuid, startSequence, endSequence, snapStart, snapEnd uint64) error {
 
+	return feed.UprRequestCollectionsStream(vbno, opaqueMSB, flags, vuuid, startSequence, endSequence, snapStart, snapEnd, nil)
+}
+
+func (feed *UprFeed) initStreamType(filter *CollectionsFilter) (err error) {
+	if filter != nil && filter.UseStreamId && !feed.activatedFeatures.EnableStreamId {
+		err = fmt.Errorf("Cannot use streamID based filter if the feed was not started with the streamID feature")
+		return
+	}
+
+	streamInitFunc := func() {
+		if feed.streamsType != UninitializedStream {
+			// Shouldn't happen
+			err = fmt.Errorf("The current feed has already been started in %v mode", feed.streamsType.String())
+		} else {
+			if !feed.collectionEnabled {
+				feed.streamsType = NonCollectionStream
+			} else {
+				if filter != nil && filter.UseStreamId {
+					feed.streamsType = CollectionsStreamId
+				} else {
+					feed.streamsType = CollectionsNonStreamId
+				}
+			}
+		}
+	}
+	feed.initStreamTypeOnce.Do(streamInitFunc)
+	return
+}
+
+func (feed *UprFeed) UprRequestCollectionsStream(vbno, opaqueMSB uint16, flags uint32,
+	vbuuid, startSequence, endSequence, snapStart, snapEnd uint64, filter *CollectionsFilter) error {
+
+	err := feed.initStreamType(filter)
+	if err != nil {
+		return err
+	}
+
+	var mcRequestBody []byte
+	if filter != nil {
+		err = filter.IsValid()
+		if err != nil {
+			return err
+		}
+		mcRequestBody, err = filter.ToStreamReqBody()
+		if err != nil {
+			return err
+		}
+	}
+
 	rq := &gomemcached.MCRequest{
 		Opcode:  gomemcached.UPR_STREAMREQ,
 		VBucket: vbno,
 		Opaque:  composeOpaque(vbno, opaqueMSB),
+		Body:    mcRequestBody,
 	}
 
 	rq.Extras = make([]byte, 48) // #Extras
@@ -700,15 +708,15 @@ func (feed *UprFeed) UprRequestStream(vbno, opaqueMSB uint16, flags uint32,
 	binary.BigEndian.PutUint32(rq.Extras[4:8], uint32(0))
 	binary.BigEndian.PutUint64(rq.Extras[8:16], startSequence)
 	binary.BigEndian.PutUint64(rq.Extras[16:24], endSequence)
-	binary.BigEndian.PutUint64(rq.Extras[24:32], vuuid)
+	binary.BigEndian.PutUint64(rq.Extras[24:32], vbuuid)
 	binary.BigEndian.PutUint64(rq.Extras[32:40], snapStart)
 	binary.BigEndian.PutUint64(rq.Extras[40:48], snapEnd)
 
-	feed.negotiator.registerRequest(vbno, opaqueMSB, vuuid, startSequence, endSequence)
+	feed.negotiator.registerRequest(vbno, opaqueMSB, vbuuid, startSequence, endSequence)
 	// Any client that has ever called this method, regardless of return code,
 	// should expect a potential UPR_CLOSESTREAM message due to this new map entry prior to Transmit.
 
-	if err := feed.conn.Transmit(rq); err != nil {
+	if err = feed.conn.Transmit(rq); err != nil {
 		logging.Errorf("Error in StreamRequest %s", err.Error())
 		// If an error occurs during transmit, then the UPRFeed will keep the stream
 		// in the vbstreams map. This is to prevent nil lookup from any previously
@@ -973,6 +981,12 @@ loop:
 					if err := feed.conn.TransmitResponse(noop); err != nil {
 						logging.Warnf("failed to transmit command %s. Error %s", noop.Opcode.String(), err.Error())
 					}
+				case gomemcached.DCP_SYSTEM_EVENT:
+					if stream == nil {
+						logging.Infof("Stream not found for vb %d: %#v", vb, pkt)
+						break loop
+					}
+					event = makeUprEvent(pkt, stream, bytes)
 				default:
 					logging.Infof("Recived an unknown response for vbucket %d", vb)
 				}

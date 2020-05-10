@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -37,6 +37,15 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 				return err
 			}
 			rel.LowerTagName = strings.ToLower(rel.TagName)
+			// Prepare Notify
+			if err := rel.LoadAttributes(); err != nil {
+				log.Error("LoadAttributes: %v", err)
+				return err
+			}
+			notification.NotifyPushCommits(
+				rel.Publisher, rel.Repo, git.TagPrefix+rel.TagName,
+				git.EmptySHA, commit.ID.String(), repository.NewPushCommits())
+			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
@@ -44,7 +53,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
+		rel.CreatedUnix = timeutil.TimeStampNow()
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
@@ -93,7 +102,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	if err = models.UpdateRelease(rel); err != nil {
+	if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
 		return err
 	}
 
@@ -119,11 +128,11 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 	}
 
 	if delTag {
-		_, stderr, err := process.GetManager().ExecDir(-1, repo.RepoPath(),
-			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
-			git.GitExecutable, "tag", "-d", rel.TagName)
-		if err != nil && !strings.Contains(stderr, "not found") {
-			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
+		if stdout, err := git.NewCommand("tag", "-d", rel.TagName).
+			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
+			RunInDir(repo.RepoPath()); err != nil && !strings.Contains(err.Error(), "not found") {
+			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
+			return fmt.Errorf("git tag -d: %v", err)
 		}
 
 		if err := models.DeleteReleaseByID(id); err != nil {
@@ -136,7 +145,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 		rel.Title = ""
 		rel.Note = ""
 
-		if err = models.UpdateRelease(rel); err != nil {
+		if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}

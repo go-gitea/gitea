@@ -18,7 +18,7 @@ import (
 	"bytes"
 )
 
-// Iterator represents a means of visity key/value pairs in order.
+// Iterator represents a means of visiting key/value pairs in order.
 type Iterator interface {
 
 	// Current() returns the key/value pair currently pointed to.
@@ -186,20 +186,29 @@ func (i *FSTIterator) Next() error {
 }
 
 func (i *FSTIterator) next(lastOffset int) error {
-	// remember where we started
+	// remember where we started with keysStack in this next() call
 	i.nextStart = append(i.nextStart[:0], i.keysStack...)
 
 	nextOffset := lastOffset + 1
+	allowCompare := false
 
 OUTER:
 	for true {
 		curr := i.statesStack[len(i.statesStack)-1]
 		autCurr := i.autStatesStack[len(i.autStatesStack)-1]
 
-		if curr.Final() && i.aut.IsMatch(autCurr) &&
-			bytes.Compare(i.keysStack, i.nextStart) > 0 {
-			// in final state greater than start key
-			return nil
+		if curr.Final() && i.aut.IsMatch(autCurr) && allowCompare {
+			// check to see if new keystack might have gone too far
+			if i.endKeyExclusive != nil &&
+				bytes.Compare(i.keysStack, i.endKeyExclusive) >= 0 {
+				return ErrIteratorDone
+			}
+
+			cmp := bytes.Compare(i.keysStack, i.nextStart)
+			if cmp > 0 {
+				// in final state greater than start key
+				return nil
+			}
 		}
 
 		numTrans := curr.NumTransitions()
@@ -207,8 +216,12 @@ OUTER:
 	INNER:
 		for nextOffset < numTrans {
 			t := curr.TransitionAt(nextOffset)
+
 			autNext := i.aut.Accept(autCurr, t)
 			if !i.aut.CanMatch(autNext) {
+				// TODO: potential optimization to skip nextOffset
+				// forwards more directly to something that the
+				// automaton likes rather than a linear scan?
 				nextOffset += 1
 				continue INNER
 			}
@@ -234,30 +247,41 @@ OUTER:
 			i.valsStack = append(i.valsStack, v)
 			i.autStatesStack = append(i.autStatesStack, autNext)
 
-			// check to see if new keystack might have gone too far
-			if i.endKeyExclusive != nil &&
-				bytes.Compare(i.keysStack, i.endKeyExclusive) >= 0 {
-				return ErrIteratorDone
-			}
-
 			nextOffset = 0
+			allowCompare = true
+
 			continue OUTER
 		}
 
+		// no more transitions, so need to backtrack and stack pop
 		if len(i.statesStack) <= 1 {
 			// stack len is 1 (root), can't go back further, we're done
 			break
 		}
 
-		// no transitions, and still room to pop
-		i.statesStack = i.statesStack[:len(i.statesStack)-1]
-		i.keysStack = i.keysStack[:len(i.keysStack)-1]
+		// if the top of the stack represents a linear chain of states
+		// (i.e., a suffix of nodes linked by single transitions),
+		// then optimize by popping the suffix in one shot without
+		// going back all the way to the OUTER loop
+		var popNum int
+		for j := len(i.statesStack) - 1; j > 0; j-- {
+			if i.statesStack[j].NumTransitions() != 1 {
+				popNum = len(i.statesStack) - 1 - j
+				break
+			}
+		}
+		if popNum < 1 { // always pop at least 1 entry from the stacks
+			popNum = 1
+		}
 
-		nextOffset = i.keysPosStack[len(i.keysPosStack)-1] + 1
+		nextOffset = i.keysPosStack[len(i.keysPosStack)-popNum] + 1
+		allowCompare = false
 
-		i.keysPosStack = i.keysPosStack[:len(i.keysPosStack)-1]
-		i.valsStack = i.valsStack[:len(i.valsStack)-1]
-		i.autStatesStack = i.autStatesStack[:len(i.autStatesStack)-1]
+		i.statesStack = i.statesStack[:len(i.statesStack)-popNum]
+		i.keysStack = i.keysStack[:len(i.keysStack)-popNum]
+		i.keysPosStack = i.keysPosStack[:len(i.keysPosStack)-popNum]
+		i.valsStack = i.valsStack[:len(i.valsStack)-popNum]
+		i.autStatesStack = i.autStatesStack[:len(i.autStatesStack)-popNum]
 	}
 
 	return ErrIteratorDone

@@ -70,3 +70,11 @@ type UnknownPacketTypeError uint8
 func (upte UnknownPacketTypeError) Error() string {
 	return "openpgp: unknown packet type: " + strconv.Itoa(int(upte))
 }
+
+// DeprecatedKeyError indicates that the key was read and verified
+// properly, but uses a deprecated algorithm and can't be used.
+type DeprecatedKeyError string
+
+func (d DeprecatedKeyError) Error() string {
+	return "openpgp: key is deprecated: " + string(d)
+}
