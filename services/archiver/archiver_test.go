@@ -197,7 +197,10 @@ func TestArchive_Basic(t *testing.T) {
 	zipReq2 = DeriveRequestFrom(ctx, firstCommit+".zip")
 	// Now, we're guaranteed to have released the original zipReq from the queue.
 	// Ensure that we don't get handed back the released entry somehow, but they
-	// should remain functionally equivalent in all fields.
+	// should remain functionally equivalent in all fields.  The exception here
+	// is zipReq.cchan, which will be non-nil because it's a completed request.
+	// It's fine to go ahead and set it to nil now.
+	zipReq.cchan = nil
 	assert.Equal(t, zipReq, zipReq2)
 	assert.False(t, zipReq == zipReq2)
 
