@@ -455,24 +455,6 @@ func RedirectDownload(ctx *context.Context) {
 	ctx.Error(404)
 }
 
-// DownloadStatus checks the status of a download, because archiving may take a
-// while.  It does so by creating an archive request from the archiver service,
-// then just examining the completion status.
-func DownloadStatus(ctx *context.Context) {
-	uri := ctx.Params("*")
-	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
-
-	if aReq == nil {
-		ctx.Error(404)
-		return
-	}
-
-	complete := aReq.IsComplete()
-	ctx.JSON(200, map[string]interface{}{
-		"complete": complete,
-	})
-}
-
 // Download an archive of a repository
 func Download(ctx *context.Context) {
 	uri := ctx.Params("*")

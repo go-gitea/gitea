@@ -698,38 +698,7 @@ function initIssueComments() {
   });
 }
 
-function initArchiveStatusChecker($target, url, statusUrl) {
-  $.ajax({
-    url: statusUrl,
-    type: 'POST',
-    data: {
-      _csrf: csrf,
-    },
-    complete(xhr) {
-      if (xhr.status === 200) {
-        if (!xhr.responseJSON) {
-          $target.closest('.dropdown').children('i').removeClass('loading');
-          return;
-        }
-
-        if (xhr.responseJSON.complete) {
-          // Null out the status URL.  We don't need to query status again.
-          // getArchive() will clear the loading indicator here, as needed.
-          getArchive($target, url, null);
-          return;
-        }
-
-        setTimeout(() => {
-          initArchiveStatusChecker($target, url, statusUrl);
-        }, 2000);
-      } else {
-        $target.closest('.dropdown').children('i').removeClass('loading');
-      }
-    }
-  });
-}
-
-function getArchive($target, url, statusUrl) {
+function getArchive($target, url, first) {
   $.ajax({
     url,
     type: 'POST',
@@ -744,13 +713,13 @@ function getArchive($target, url, statusUrl) {
           return;
         }
 
-        if (!xhr.responseJSON.complete && statusUrl !== null) {
+        if (!xhr.responseJSON.complete) {
           $target.closest('.dropdown').children('i').addClass('loading');
           // Wait for only three quarters of a second initially, in case it's
           // quickly archived.
           setTimeout(() => {
-            initArchiveStatusChecker($target, url, statusUrl);
-          }, 750);
+            getArchive($target, url, false);
+          }, first ? 750 : 2000);
         } else {
           // We don't need to continue checking.
           $target.closest('.dropdown').children('i').removeClass('loading');
@@ -771,12 +740,8 @@ function initArchiveLinks() {
     if (typeof url === 'undefined') {
       return;
     }
-    const statusUrl = $(this).data('status');
-    if (typeof statusUrl === 'undefined') {
-      return;
-    }
 
-    getArchive($(event.target), url, statusUrl);
+    getArchive($(event.target), url, true);
   });
 }
 
