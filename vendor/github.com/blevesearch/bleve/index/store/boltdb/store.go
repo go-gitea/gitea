@@ -30,7 +30,7 @@ import (
 
 	"github.com/blevesearch/bleve/index/store"
 	"github.com/blevesearch/bleve/registry"
-	bolt "github.com/etcd-io/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 const (

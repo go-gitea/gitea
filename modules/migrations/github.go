@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/google/go-github/v24/github"
 	"golang.org/x/oauth2"
@@ -121,7 +122,7 @@ func (g *GithubDownloaderV3) sleep() {
 		timer := time.NewTimer(time.Until(g.rate.Reset.Time))
 		select {
 		case <-g.ctx.Done():
-			timer.Stop()
+			util.StopTimer(timer)
 			return
 		case <-timer.C:
 		}
