@@ -189,8 +189,8 @@ func TestArchive_Basic(t *testing.T) {
 	assert.Equal(t, false, completed)
 	assert.Equal(t, true, timedout)
 
-	// Reasonable: 5s
-	completed, timedout = timedReq.TimedWaitForCompletion(5 * time.Second)
+	// Reasonable: 15s
+	completed, timedout = timedReq.TimedWaitForCompletion(15 * time.Second)
 	assert.Equal(t, true, completed)
 	assert.Equal(t, false, timedout)
 
