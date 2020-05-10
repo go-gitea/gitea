@@ -101,8 +101,8 @@ github.com/blevesearch/zap/v11 v11.0.7 h1:nnmAOP6eXBkqEa1Srq1eqA5Wmn4w+BZjLdjynN
 github.com/blevesearch/zap/v11 v11.0.7/go.mod h1:bJoY56fdU2m/IP4LLz/1h4jY2thBoREvoqbuJ8zhm9k=
 github.com/blevesearch/zap/v12 v12.0.7 h1:y8FWSAYkdc4p1dn4YLxNNr1dxXlSUsakJh2Fc/r6cj4=
 github.com/blevesearch/zap/v12 v12.0.7/go.mod h1:70DNK4ZN4tb42LubeDbfpp6xnm8g3ROYVvvZ6pEoXD8=
-github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26 h1:NGpwhs9FOwddM6TptNrq2ycby4s24TcppSe5uG4DA/Q=
-github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
+github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc h1:biVzkmvwrH8WK8raXaxBx6fRVTlJILwEwQGL1I/ByEI=
+github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668 h1:U/lr3Dgy4WK+hNk4tyD+nuGjpVLPEHuJSFXMw11/HPA=
 github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668/go.mod h1:H0wQNHz2YrLsuXOZozoeDmnHXkNCRmMW0gwFWDfEZDA=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
@@ -520,8 +520,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35/go.mod h1:prYjPmNq4d1NPVmpShWobRqXY3q7Vp+80DqgxxUrUIA=
-github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e h1:ApqncJ84HYN8x8x5WV1T1YWDuPRF/0aXZhr91LnRMCQ=
-github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e/go.mod h1:Zad1CMQfSQZI5KLpahDiSUX4tMMREnXw98IvL1nhgMk=
+github.com/pquerna/otp v1.2.0 h1:/A3+Jn+cagqayeR3iHs/L62m5ue7710D35zl1zJ1kok=
+github.com/pquerna/otp v1.2.0/go.mod h1:dkJfzwRKNiegxyNb54X/3fLwhCynbMspSyWKnvi1AEg=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=
 github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829/go.mod h1:p2iRAGwDERtqlqzRXnrOVns+ignqQo//hLXqYxZYVNs=
 github.com/prometheus/client_golang v0.9.3/go.mod h1:/TN21ttK/J9q6uSwhBd54HahCDft0ttaMvbicHlPoso=
