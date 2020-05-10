@@ -59,7 +59,7 @@ github.com/PuerkitoBio/goquery
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/RoaringBitmap/roaring v0.4.21
+# github.com/RoaringBitmap/roaring v0.4.23
 ## explicit
 github.com/RoaringBitmap/roaring
 # github.com/andybalholm/cascadia v1.0.0
@@ -74,7 +74,7 @@ github.com/aymerick/douceur/css
 github.com/beorn7/perks/quantile
 # github.com/bgentry/speakeasy v0.1.0
 ## explicit
-# github.com/blevesearch/bleve v0.8.1
+# github.com/blevesearch/bleve v1.0.7
 ## explicit
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis
@@ -96,7 +96,6 @@ github.com/blevesearch/bleve/index
 github.com/blevesearch/bleve/index/scorch
 github.com/blevesearch/bleve/index/scorch/mergeplan
 github.com/blevesearch/bleve/index/scorch/segment
-github.com/blevesearch/bleve/index/scorch/segment/zap
 github.com/blevesearch/bleve/index/store
 github.com/blevesearch/bleve/index/store/boltdb
 github.com/blevesearch/bleve/index/store/gtreap
@@ -116,14 +115,19 @@ github.com/blevesearch/bleve/search/query
 github.com/blevesearch/bleve/search/scorer
 github.com/blevesearch/bleve/search/searcher
 github.com/blevesearch/bleve/size
-# github.com/blevesearch/blevex v0.0.0-20180227211930-4b158bb555a3
-## explicit
-# github.com/blevesearch/go-porterstemmer v1.0.2
-## explicit
+# github.com/blevesearch/go-porterstemmer v1.0.3
 github.com/blevesearch/go-porterstemmer
-# github.com/blevesearch/segment v0.0.0-20160915185041-762005e7a34f
-## explicit
+# github.com/blevesearch/mmap-go v1.0.2
+github.com/blevesearch/mmap-go
+# github.com/blevesearch/segment v0.9.0
 github.com/blevesearch/segment
+# github.com/blevesearch/snowballstem v0.9.0
+github.com/blevesearch/snowballstem
+github.com/blevesearch/snowballstem/english
+# github.com/blevesearch/zap/v11 v11.0.7
+github.com/blevesearch/zap/v11
+# github.com/blevesearch/zap/v12 v12.0.7
+github.com/blevesearch/zap/v12
 # github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26
 ## explicit
 github.com/boombuler/barcode
@@ -140,8 +144,7 @@ github.com/couchbase/gomemcached/client
 # github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85
 github.com/couchbase/goutils/logging
 github.com/couchbase/goutils/scramsha
-# github.com/couchbase/vellum v0.0.0-20190829182332-ef2e028c01fd
-## explicit
+# github.com/couchbase/vellum v1.0.1
 github.com/couchbase/vellum
 github.com/couchbase/vellum/levenshtein
 github.com/couchbase/vellum/regexp
@@ -171,8 +174,6 @@ github.com/dustin/go-humanize
 # github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
 ## explicit
 github.com/editorconfig/editorconfig-core-go/v2
-# github.com/edsrzf/mmap-go v1.0.0
-github.com/edsrzf/mmap-go
 # github.com/emirpasic/gods v1.12.0
 ## explicit
 github.com/emirpasic/gods/containers
@@ -181,9 +182,6 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
-# github.com/etcd-io/bbolt v1.3.3
-## explicit
-github.com/etcd-io/bbolt
 # github.com/ethantkoenig/rupture v0.0.0-20180203182544-0a76f03a811a
 ## explicit
 github.com/ethantkoenig/rupture
@@ -345,7 +343,7 @@ github.com/gogs/chardet
 github.com/gogs/cron
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 github.com/golang-sql/civil
-# github.com/golang/protobuf v1.4.0
+# github.com/golang/protobuf v1.4.1
 ## explicit
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.1
@@ -510,7 +508,7 @@ github.com/mitchellh/go-homedir
 github.com/mitchellh/mapstructure
 # github.com/mrjones/oauth v0.0.0-20180629183705-f4e24b6d100c
 github.com/mrjones/oauth
-# github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae
+# github.com/mschoch/smat v0.2.0
 github.com/mschoch/smat
 # github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 ## explicit
@@ -593,8 +591,7 @@ github.com/spf13/jwalterweatherman
 github.com/spf13/pflag
 # github.com/spf13/viper v1.4.0
 github.com/spf13/viper
-# github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2
-## explicit
+# github.com/steveyen/gtreap v0.1.0
 github.com/steveyen/gtreap
 # github.com/stretchr/testify v1.4.0
 ## explicit
@@ -615,7 +612,7 @@ github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481
 ## explicit
-# github.com/tinylib/msgp v1.1.1
+# github.com/tinylib/msgp v1.1.2
 ## explicit
 github.com/tinylib/msgp/msgp
 # github.com/toqueteos/trie v1.0.0
@@ -665,8 +662,8 @@ github.com/yuin/goldmark/util
 # github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 ## explicit
 github.com/yuin/goldmark-meta
-# go.etcd.io/bbolt v1.3.3
-## explicit
+# go.etcd.io/bbolt v1.3.4
+go.etcd.io/bbolt
 # go.mongodb.org/mongo-driver v1.1.1
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -722,9 +719,10 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
+# golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f
 ## explicit
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
@@ -793,7 +791,7 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/protobuf v1.21.0
+# google.golang.org/protobuf v1.22.0
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt

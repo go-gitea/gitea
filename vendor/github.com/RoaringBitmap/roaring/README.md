@@ -29,11 +29,17 @@ Roaring bitmaps are found to work well in many important applications:
 
 
 The ``roaring`` Go library is used by
-* [Cloud Torrent](https://github.com/jpillora/cloud-torrent): a self-hosted remote torrent client
-* [runv](https://github.com/hyperhq/runv): an Hypervisor-based runtime for the Open Containers Initiative
+* [Cloud Torrent](https://github.com/jpillora/cloud-torrent)
+* [runv](https://github.com/hyperhq/runv)
 * [InfluxDB](https://www.influxdata.com)
 * [Pilosa](https://www.pilosa.com/)
 * [Bleve](http://www.blevesearch.com)
+* [lindb](https://github.com/lindb/lindb)
+* [Elasticell](https://github.com/deepfabric/elasticell)
+* [SourceGraph](https://github.com/sourcegraph/sourcegraph)
+* [M3](https://github.com/m3db/m3)
+* [trident](https://github.com/NetApp/trident)
+
 
 This library is used in production in several systems, it is part of the [Awesome Go collection](https://awesome-go.com).
 
