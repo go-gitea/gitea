@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -42,6 +43,10 @@ type ArchiveRequest struct {
 
 var archiveInProgress []*ArchiveRequest
 var archiveMutex sync.Mutex
+
+// SHA1 hashes will only go up to 40 characters, but SHA256 hashes will go all
+// the way to 64.
+var shaRegex = regexp.MustCompile(`^[0-9a-f]{4,64}$`)
 
 // These facilitate testing, by allowing the unit tests to control (to some extent)
 // the goroutine used for processing the queue.
@@ -148,7 +153,7 @@ func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 			ctx.ServerError("GetTagCommit", err)
 			return nil
 		}
-	} else if len(r.refName) >= 4 && len(r.refName) <= 40 {
+	} else if shaRegex.MatchString(r.refName) {
 		r.commit, err = r.repo.GetCommit(r.refName)
 		if err != nil {
 			ctx.NotFound("GetCommit", nil)
