@@ -128,8 +128,7 @@ github.com/blevesearch/snowballstem/english
 github.com/blevesearch/zap/v11
 # github.com/blevesearch/zap/v12 v12.0.7
 github.com/blevesearch/zap/v12
-# github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26
-## explicit
+# github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
 github.com/boombuler/barcode
 github.com/boombuler/barcode/qr
 github.com/boombuler/barcode/utils
@@ -538,7 +537,7 @@ github.com/philhofer/fwd
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e
+# github.com/pquerna/otp v1.2.0
 ## explicit
 github.com/pquerna/otp
 github.com/pquerna/otp/hotp
