@@ -181,7 +181,6 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 			}
 		} else {
 			forkedRepo = baseRepo.BaseRepo
-			ctx.Data["ForkedRepo"] = forkedRepo
 		}
 	}
 
@@ -282,40 +281,40 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		}
 	}
 
-	// If we have a forkedRepo we should get the branches of it
-	if forkedRepo != nil {
-		// Unless the forkedRepo is the headRepo or baseRepo...
-		if forkedRepo.ID == headRepo.ID || forkedRepo.ID == baseRepo.ID {
-			delete(ctx.Data, "ForkedRepo")
-		} else {
-			perm, branches, err := getBranchesForRepo(ctx.User, forkedRepo)
-			if err != nil {
-				ctx.ServerError("GetBranchesForRepo", err)
-				return nil, nil, nil, nil, "", ""
-			}
-			if !perm {
-				delete(ctx.Data, "ForkedRepo")
-			}
+	// If we have a forkedRepo and it's different from:
+	// 1. the computed base
+	// 2. the computed head
+	// then get the branches of it
+	if forkedRepo != nil &&
+		forkedRepo.ID != headRepo.ID &&
+		forkedRepo.ID != baseRepo.ID {
+		perm, branches, err := getBranchesForRepo(ctx.User, forkedRepo)
+		if err != nil {
+			ctx.ServerError("GetBranchesForRepo", err)
+			return nil, nil, nil, nil, "", ""
+		}
+		if perm {
+			ctx.Data["ForkedRepo"] = forkedRepo
 			ctx.Data["ForkedRepoBranches"] = branches
 		}
 	}
 
-	// If we have a ownForkedRepo we should get the branches of it
-	if ownForkedRepo != nil {
-		// Unless the ownForkedRepo is the headRepo, baseRepo or forkedRepo...
-		if ownForkedRepo.ID == headRepo.ID ||
-			ownForkedRepo.ID == baseRepo.ID ||
-			(forkedRepo != nil && ownForkedRepo.ID == forkedRepo.ID) {
-			delete(ctx.Data, "OwnForkedRepo")
-		} else {
-			perm, branches, err := getBranchesForRepo(ctx.User, ownForkedRepo)
-			if err != nil {
-				ctx.ServerError("GetBranchesForRepo", err)
-				return nil, nil, nil, nil, "", ""
-			}
-			if !perm {
-				delete(ctx.Data, "OwnForkedRepo")
-			}
+	// If we have a ownForkedRepo and it's different from:
+	// 1. The computed base
+	// 2. The computed hea
+	// 3. The forkedRepo (if we have one)
+	// then get the branches from it.
+	if ownForkedRepo != nil &&
+		ownForkedRepo.ID != headRepo.ID &&
+		ownForkedRepo.ID != baseRepo.ID &&
+		(forkedRepo == nil || ownForkedRepo.ID != forkedRepo.ID) {
+		perm, branches, err := getBranchesForRepo(ctx.User, ownForkedRepo)
+		if err != nil {
+			ctx.ServerError("GetBranchesForRepo", err)
+			return nil, nil, nil, nil, "", ""
+		}
+		if perm {
+			ctx.Data["OwnForkedRepo"] = forkedRepo
 			ctx.Data["OwnForkedRepoBranches"] = branches
 		}
 	}
