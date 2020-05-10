@@ -37,7 +37,7 @@ type ArchiveRequest struct {
 	archiveType     git.ArchiveType
 	archiveComplete bool
 	commit          *git.Commit
-	cchan           chan bool
+	cchan           chan struct{}
 }
 
 var archiveInProgress []*ArchiveRequest
@@ -244,7 +244,7 @@ func ArchiveRepository(request *ArchiveRequest) *ArchiveRequest {
 		return request
 	}
 
-	request.cchan = make(chan bool)
+	request.cchan = make(chan struct{})
 	archiveInProgress = append(archiveInProgress, request)
 	go func() {
 		// Wait to start, if we have the Cond for it.  This is currently only
