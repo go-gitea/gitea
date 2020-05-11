@@ -88,7 +88,7 @@ async function getOptions(filenameInput, lineWrapExts) {
   const ec = getEditorconfig(filenameInput);
   const detectIndentation = !ec || !ec.indent_style || !ec.indent_size;
   const indentSize = !detectIndentation && ('indent_size' in ec) ? Number(ec.indent_size) : undefined;
-  const tabSize = !detectIndentation && ('tab_width' in ec) ? Number(ec.indent_size) : indentSize;
+  const tabSize = !detectIndentation && ('tab_width' in ec) ? Number(ec.tab_width) : indentSize;
 
   return {
     detectIndentation,
