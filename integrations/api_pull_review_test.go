@@ -131,33 +131,36 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user1", "user3"},
+		Reviewers: []string{"user4"},
 	})
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &result)
 
 	assert.EqualValues(t, 0, len(result.Failures))
-	assert.EqualValues(t, 2, len(result.Successes))
+	assert.EqualValues(t, 1, len(result.Successes))
+	assert.EqualValues(t, "user4", result.Successes[0].Reviewer.UserName)
 
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user2", "user3", "user4@example.com", "testOther"},
+		Reviewers: []string{"user1", "user2", "user3", "user4@example.com", "user8", "testOther"},
 	})
 	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	DecodeJSON(t, resp, &result)
 
-	assert.EqualValues(t, 3, len(result.Failures))
+	assert.EqualValues(t, 5, len(result.Failures))
 	assert.EqualValues(t, 1, len(result.Successes))
 
-	assert.Contains(t, result.Failures[0].Error, "doer can't be reviewer")
-	assert.Contains(t, result.Failures[1].Error, "Has been requested to review")
-	assert.Contains(t, result.Failures[2].Error, "user does not exist")
-	assert.EqualValues(t, 4, result.Successes[0].ID)
+	assert.Contains(t, result.Failures[0].Error, "poster of pr can't be reviewer")
+	assert.Contains(t, result.Failures[1].Error, "doer can't be reviewer")
+	assert.Contains(t, result.Failures[2].Error, "Organization can't be added as reviewer")
+	assert.Contains(t, result.Failures[3].Error, "Has been requested to review")
+	assert.Contains(t, result.Failures[4].Error, "user does not exist")
+	assert.EqualValues(t, "user8", result.Successes[0].Reviewer.UserName)
 
 	// Test Remove Review Request
-	session2 := loginUser(t, "user3")
+	session2 := loginUser(t, "user4")
 	token2 := getTokenForLoggedInUser(t, session2)
 	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user2", "user3", "testOther"},
+		Reviewers: []string{"user8@example.com", "user4", "testOther"},
 	})
 	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	DecodeJSON(t, resp, &result)
@@ -166,27 +169,19 @@ func TestAPIPullReviewRequest(t *testing.T) {
 
 	assert.Contains(t, result.Failures[0].Error, "Doer is not admin")
 	assert.Contains(t, result.Failures[1].Error, "user does not exist")
-	assert.EqualValues(t, 3, result.Successes[0].ID)
+	assert.EqualValues(t, "user4", result.Successes[0].Reviewer.UserName)
 
-	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user2"},
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user8"},
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &result)
-
 	assert.EqualValues(t, 0, len(result.Failures))
 	assert.EqualValues(t, 1, len(result.Successes))
+	assert.EqualValues(t, "user8", result.Successes[0].Reviewer.UserName)
 
 	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user1", "user2", "user4"},
-	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &result)
-	assert.EqualValues(t, 0, len(result.Failures))
-	assert.EqualValues(t, 3, len(result.Successes))
-
-	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user1"},
+		Reviewers: []string{"user8"},
 	})
 	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	DecodeJSON(t, resp, &result)
