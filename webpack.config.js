@@ -100,6 +100,7 @@ module.exports = {
       },
       {
         test: /\.worker\.js$/,
+        exclude: /monaco/,
         use: [
           {
             loader: 'worker-loader',
