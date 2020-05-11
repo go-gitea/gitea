@@ -560,7 +560,8 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ### Cron - Prune hook_task Table (`cron.prune_hook_task_table`)
 
-- `RUN_AT_START`: **true**: Run prune hook_task at start time.
+- `ENABLED`: **true**: Enable service.
+- `RUN_AT_START`: **false**: Run prune hook_task at start time (if ENABLED).
 - `SCHEDULE`: **@every 24h**: Cron syntax for pruning hook_task table.
 
 ## Git (`git`)

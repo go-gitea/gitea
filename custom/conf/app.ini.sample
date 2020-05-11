@@ -875,7 +875,11 @@ SCHEDULE = @every 24h
 
 ; Prune hook_task table
 [cron.prune_hook_task_table]
-RUN_AT_START = true
+; Whether to enable the job
+ENABLED = true
+; Whether to always run at start up time (if ENABLED)
+RUN_AT_START = false
+; Time interval for job to run
 SCHEDULE = @every 24h
 
 [git]
