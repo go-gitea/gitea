@@ -51,7 +51,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusFound)
 }
 
-func testPrivateActivityHelperHasVisibleActivitiesInHtmlDoc(htmlDoc *HTMLDoc) bool {
+func testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc *HTMLDoc) bool {
 	return htmlDoc.doc.Find(".feeds").Find(".news").Length() > 0
 }
 
@@ -61,7 +61,7 @@ func testPrivateActivityHelperHasVisibleActivitiesFromSession(t *testing.T, sess
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	return testPrivateActivityHelperHasVisibleActivitiesInHtmlDoc(htmlDoc)
+	return testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc)
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesFromPublic(t *testing.T) bool {
@@ -70,12 +70,12 @@ func testPrivateActivityHelperHasVisibleActivitiesFromPublic(t *testing.T) bool 
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	return testPrivateActivityHelperHasVisibleActivitiesInHtmlDoc(htmlDoc)
+	return testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc)
 }
 
 // heatmap UI helpers
 
-func testPrivateActivityHelperHasVisibleHeatmapInHtmlDoc(htmlDoc *HTMLDoc) bool {
+func testPrivateActivityHelperHasVisibleHeatmapInHTMLDoc(htmlDoc *HTMLDoc) bool {
 	return htmlDoc.doc.Find("#user-heatmap").Length() > 0
 }
 
@@ -85,7 +85,7 @@ func testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t *testing.T, 
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	return testPrivateActivityHelperHasVisibleHeatmapInHtmlDoc(htmlDoc)
+	return testPrivateActivityHelperHasVisibleHeatmapInHTMLDoc(htmlDoc)
 }
 
 func testPrivateActivityHelperHasVisibleDashboardHeatmapFromSession(t *testing.T, session *TestSession) bool {
@@ -94,7 +94,7 @@ func testPrivateActivityHelperHasVisibleDashboardHeatmapFromSession(t *testing.T
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	return testPrivateActivityHelperHasVisibleHeatmapInHtmlDoc(htmlDoc)
+	return testPrivateActivityHelperHasVisibleHeatmapInHTMLDoc(htmlDoc)
 }
 
 func testPrivateActivityHelperHasVisibleHeatmapFromPublic(t *testing.T) bool {
@@ -103,7 +103,7 @@ func testPrivateActivityHelperHasVisibleHeatmapFromPublic(t *testing.T) bool {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	return testPrivateActivityHelperHasVisibleHeatmapInHtmlDoc(htmlDoc)
+	return testPrivateActivityHelperHasVisibleHeatmapInHTMLDoc(htmlDoc)
 }
 
 // heatmap API helpers
