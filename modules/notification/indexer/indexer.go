@@ -132,6 +132,15 @@ func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Re
 	}
 }
 
+func (r *indexerNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
+	if setting.Indexer.RepoIndexerEnabled && refName == git.BranchPrefix+repo.DefaultBranch {
+		code_indexer.UpdateRepoIndexer(repo)
+	}
+	if err := stats_indexer.UpdateRepoIndexer(repo); err != nil {
+		log.Error("stats_indexer.UpdateRepoIndexer(%d) failed: %v", repo.ID, err)
+	}
+}
+
 func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
