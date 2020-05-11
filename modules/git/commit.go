@@ -466,15 +466,15 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 	return nil, nil
 }
 
-// GetBranchName gets the closes branch name (as returned by 'git name-rev')
+// GetBranchName gets the closes branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
-	data, err := NewCommand("name-rev", c.ID.String()).RunInDirBytes(c.repo.Path)
+	data, err := NewCommand("name-rev", "--name-only", c.ID.String()).RunInDirBytes(c.repo.Path)
 	if err != nil {
 		return "", err
 	}
 
-	// name-rev commitID output will be "COMMIT_ID master" or "COMMIT_ID master~12"
-	return strings.Split(strings.Split(strings.Split(string(data), " ")[1], "~")[0], "\n")[0], nil
+	// name-rev commitID output will be "master" or "master~12"
+	return strings.Split(strings.Split(string(data), "~")[0], "\n")[0], nil
 }
 
 // CommitFileStatus represents status of files in a commit.
