@@ -598,7 +598,7 @@ $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
 webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
-	npx webpack --hide-modules --display-entrypoints=false --progress
+	npx webpack --hide-modules --display-entrypoints=false
 	@touch $(WEBPACK_DEST)
 
 .PHONY: update-translations
