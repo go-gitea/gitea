@@ -164,8 +164,8 @@ help:
 	@echo " - revive            run revive linter"
 	@echo " - misspell          check for misspellings"
 	@echo " - vet               examines Go source code and reports suspicious constructs"
-	@echo " - test              run unit test"
-	@echo " - test-sqlite       run integration test for sqlite"
+	@echo " - test[\#TestSpecificName]    			run unit test"
+	@echo " - test-sqlite[\#TestSpecificName]       run integration test for sqlite"
 	@echo " - pr#<index>        build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
