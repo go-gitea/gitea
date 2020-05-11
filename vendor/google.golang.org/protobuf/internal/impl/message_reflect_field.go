@@ -221,7 +221,7 @@ var (
 
 func fieldInfoForScalar(fd pref.FieldDescriptor, fs reflect.StructField, x exporter) fieldInfo {
 	ft := fs.Type
-	nullable := fd.Syntax() == pref.Proto2
+	nullable := fd.HasPresence()
 	isBytes := ft.Kind() == reflect.Slice && ft.Elem().Kind() == reflect.Uint8
 	if nullable {
 		if ft.Kind() != reflect.Ptr && ft.Kind() != reflect.Slice {
@@ -290,9 +290,9 @@ func fieldInfoForScalar(fd pref.FieldDescriptor, fs reflect.StructField, x expor
 			rv.Set(conv.GoValueOf(v))
 			if isBytes && rv.Len() == 0 {
 				if nullable {
-					rv.Set(emptyBytes) // preserve presence in proto2
+					rv.Set(emptyBytes) // preserve presence
 				} else {
-					rv.Set(nilBytes) // do not preserve presence in proto3
+					rv.Set(nilBytes) // do not preserve presence
 				}
 			}
 		},
@@ -426,11 +426,25 @@ type oneofInfo struct {
 	which     func(pointer) pref.FieldNumber
 }
 
-func makeOneofInfo(od pref.OneofDescriptor, fs reflect.StructField, x exporter, wrappersByType map[reflect.Type]pref.FieldNumber) *oneofInfo {
-	fieldOffset := offsetOf(fs, x)
-	return &oneofInfo{
-		oneofDesc: od,
-		which: func(p pointer) pref.FieldNumber {
+func makeOneofInfo(od pref.OneofDescriptor, si structInfo, x exporter) *oneofInfo {
+	oi := &oneofInfo{oneofDesc: od}
+	if od.IsSynthetic() {
+		fs := si.fieldsByNumber[od.Fields().Get(0).Number()]
+		fieldOffset := offsetOf(fs, x)
+		oi.which = func(p pointer) pref.FieldNumber {
+			if p.IsNil() {
+				return 0
+			}
+			rv := p.Apply(fieldOffset).AsValueOf(fs.Type).Elem()
+			if rv.IsNil() { // valid on either *T or []byte
+				return 0
+			}
+			return od.Fields().Get(0).Number()
+		}
+	} else {
+		fs := si.oneofsByName[od.Name()]
+		fieldOffset := offsetOf(fs, x)
+		oi.which = func(p pointer) pref.FieldNumber {
 			if p.IsNil() {
 				return 0
 			}
@@ -442,7 +456,8 @@ func makeOneofInfo(od pref.OneofDescriptor, fs reflect.StructField, x exporter, 
 			if rv.IsNil() {
 				return 0
 			}
-			return wrappersByType[rv.Type().Elem()]
-		},
+			return si.oneofWrappersByType[rv.Type().Elem()]
+		}
 	}
+	return oi
 }

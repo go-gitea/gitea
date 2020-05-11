@@ -817,14 +817,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/commits", func() {
 					m.Get("", repo.GetAllCommits)
 					m.Group("/:ref", func() {
-						m.Get("", repo.GetSingleCommitByRef)
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
 					})
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
-						m.Get("/:sha", repo.GetSingleCommitBySHA)
+						m.Get("/:sha", repo.GetSingleCommit)
 					})
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
