@@ -41,7 +41,7 @@ var OAuth2Providers = map[string]OAuth2Provider{
 		},
 	},
 	"gplus":         {Name: "gplus", DisplayName: "Google", Image: "/img/auth/google.png"},
-	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/img/auth/openid_connect.png"},
+	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/img/auth/openid_connect.svg"},
 	"twitter":       {Name: "twitter", DisplayName: "Twitter", Image: "/img/auth/twitter.png"},
 	"discord":       {Name: "discord", DisplayName: "Discord", Image: "/img/auth/discord.png"},
 	"gitea": {Name: "gitea", DisplayName: "Gitea", Image: "/img/auth/gitea.png",
