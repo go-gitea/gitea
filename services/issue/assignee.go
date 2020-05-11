@@ -75,11 +75,19 @@ func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User
 
 // IsLegalReviewRequest check review request permission
 func IsLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue) error {
+	if !issue.IsPull {
+		return fmt.Errorf("this issue is not Pull Request [issue_id: %d]", issue.ID)
+	}
+
+	if err := issue.LoadRepo(); err != nil {
+		return err
+	}
+
 	if reviewer.IsOrganization() {
-		return fmt.Errorf("Organization can't be added as reviewer [user_id: %d, repo_id: %d]", reviewer.ID, issue.PullRequest.BaseRepo.ID)
+		return fmt.Errorf("Organization can't be added as reviewer [user_id: %d, repo_id: %d]", reviewer.ID, issue.Repo.ID)
 	}
 	if doer.IsOrganization() {
-		return fmt.Errorf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.PullRequest.BaseRepo.ID)
+		return fmt.Errorf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.Repo.ID)
 	}
 
 	permReviewer, err := models.GetUserRepoPermission(issue.Repo, reviewer)
