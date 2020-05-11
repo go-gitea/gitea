@@ -165,15 +165,24 @@ func getContentHandler(ctx *context.Context) {
 	}
 
 	// Support resume download using Range header
-	var fromByte int64
+	var fromByte, toByte int64
+	toByte = meta.Size - 1
 	statusCode := 200
 	if rangeHdr := ctx.Req.Header.Get("Range"); rangeHdr != "" {
-		regex := regexp.MustCompile(`bytes=(\d+)\-.*`)
+		regex := regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
 		match := regex.FindStringSubmatch(rangeHdr)
 		if len(match) > 1 {
 			statusCode = 206
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
-			ctx.Resp.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", fromByte, meta.Size-1, meta.Size-fromByte))
+
+			if match[2] != "" {
+				_toByte, _ := strconv.ParseInt(match[2], 10, 32)
+				if _toByte >= fromByte && _toByte < toByte {
+					toByte = _toByte
+				}
+			}
+
+			ctx.Resp.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", fromByte, toByte, meta.Size-fromByte))
 		}
 	}
 
@@ -186,7 +195,8 @@ func getContentHandler(ctx *context.Context) {
 	}
 	defer content.Close()
 
-	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(meta.Size-fromByte, 10))
+	contentLength := toByte + 1 - fromByte
+	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
 
 	filename := ctx.Params("filename")
@@ -198,7 +208,7 @@ func getContentHandler(ctx *context.Context) {
 	}
 
 	ctx.Resp.WriteHeader(statusCode)
-	if written, err := io.Copy(ctx.Resp, content); err != nil {
+	if written, err := io.CopyN(ctx.Resp, content, contentLength); err != nil {
 		log.Error("Error whilst copying LFS OID[%s] to the response after %d bytes. Error: %v", meta.Oid, written, err)
 	}
 	logRequest(ctx.Req, statusCode)
