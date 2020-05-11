@@ -37,7 +37,8 @@ RUN apk --no-cache add \
     s6 \
     sqlite \
     su-exec \
-    tzdata
+    tzdata \
+    gnupg
 
 RUN addgroup \
     -S -g 1000 \

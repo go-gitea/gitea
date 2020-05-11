@@ -91,12 +91,7 @@ The simplest recommended way to build from source is:
 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
-However, there are a number of additional make tasks you should be aware of.
-These are documented below but you can look at our
-[`Makefile`](https://github.com/go-gitea/gitea/blob/master/Makefile) for more,
-and look at our
-[`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see
-how our continuous integration works.
+See `make help` for all available `make` tasks. Also see [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see how our continuous integration works.
 
 ### Formatting, code analysis and spell check
 
@@ -134,7 +129,9 @@ For simple changes, edit files in `web_src`, run the build and start the server 
 make build && ./gitea
 ```
 
-For more involved changes use the `watch-frontend` task to continuously rebuild files when their sources change. The `bindata` tag must be absent to ensure the file system will be used for files in `public`. First, build and run the backend:
+`make build` runs both `make frontend` and `make backend` which can be run individually as well as long as the `bindata` tag is not used (which compiles frontend files into the binary).
+
+For more involved changes use the `watch-frontend` task to continuously rebuild files when their sources change. The `bindata` tag must be absent. First, build and run the backend:
 
 ```bash
 make backend && ./gitea
@@ -152,7 +149,7 @@ Before committing, make sure the linters pass:
 make lint-frontend
 ```
 
-Note: When working on frontend code, it is advisable to set `USE_SERVICE_WORKER` to `false` in `app.ini` which will prevent undesirable caching of frontend assets.
+Note: When working on frontend code, set `USE_SERVICE_WORKER` to `false` in `app.ini` to prevent undesirable caching of frontend assets.
 
 ### Building Images
 
