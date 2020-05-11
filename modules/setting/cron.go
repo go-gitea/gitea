@@ -133,7 +133,7 @@ var (
 			Schedule   string
 		}{
 			Enabled:    true,
-			RunAtStart: true,
+			RunAtStart: false,
 			Schedule:   "@every 24h",
 		},
 	}
