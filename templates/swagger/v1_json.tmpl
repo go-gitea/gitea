@@ -3020,7 +3020,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/git/commits/{ref}": {
+    "/repos/{owner}/{repo}/git/commits/{sha}": {
       "get": {
         "produces": [
           "application/json"
@@ -3029,7 +3029,7 @@
           "repository"
         ],
         "summary": "Get a single commit from a repository",
-        "operationId": "repoGetSingleCommitByRef",
+        "operationId": "repoGetSingleCommit",
         "parameters": [
           {
             "type": "string",
@@ -3047,8 +3047,8 @@
           },
           {
             "type": "string",
-            "description": "a git ref",
-            "name": "ref",
+            "description": "a git ref or commit sha",
+            "name": "sha",
             "in": "path",
             "required": true
           }

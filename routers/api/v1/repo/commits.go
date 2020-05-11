@@ -21,9 +21,9 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-// GetSingleCommitByRef get a commit via sha
-func GetSingleCommitByRef(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{ref} repository repoGetSingleCommitByRef
+// GetSingleCommit get a commit via sha
+func GetSingleCommit(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha} repository repoGetSingleCommit
 	// ---
 	// summary: Get a single commit from a repository
 	// produces:
@@ -41,7 +41,7 @@ func GetSingleCommitByRef(ctx *context.APIContext) {
 	//   required: true
 	// - name: sha
 	//   in: path
-	//   description: the commit hash
+	//   description: a git ref or commit sha
 	//   type: string
 	//   required: true
 	// responses:
@@ -52,9 +52,9 @@ func GetSingleCommitByRef(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	sha := ctx.Params(":ref")
+	sha := ctx.Params(":sha")
 	if (validation.GitRefNamePatternInvalid.MatchString(sha) || !validation.CheckGitRefAdditionalRulesValid(sha)) && !git.SHAPattern.MatchString(sha) {
-		ctx.Error(http.StatusUnprocessableEntity, "no valid ref", fmt.Sprintf("no valid ref: %s", sha))
+		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
 	}
 	getCommit(ctx, sha)
