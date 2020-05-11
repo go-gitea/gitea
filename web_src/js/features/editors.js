@@ -36,7 +36,7 @@ function updateEditor(monaco, editor, filenameInput) {
   monaco.editor.setModelLanguage(model, newLanguage);
 }
 
-export async function createEditor(textarea, filenameInput, previewFileModes) {
+export async function createCodeEditor(textarea, filenameInput, previewFileModes) {
   const filename = basename(filenameInput.value);
   const previewLink = document.querySelector('a[data-tab=preview]');
   const markdownExts = (textarea.dataset.markdownFileExts || '').split(',').filter((v) => !!v);

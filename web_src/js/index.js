@@ -20,7 +20,7 @@ import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
-import {createEditor} from './features/editors.js';
+import {createCodeEditor} from './features/editors.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -1573,7 +1573,7 @@ async function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  await createEditor($editArea[0], $editFilename[0], previewFileModes);
+  await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
