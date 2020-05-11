@@ -2549,52 +2549,6 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/commits/{ref}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a single commit from a repository",
-        "operationId": "repoGetSingleCommitByRef",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "a git ref",
-            "name": "ref",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Commit"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          }
-        }
-      }
-    },
     "/repos/{owner}/{repo}/commits/{ref}/statuses": {
       "get": {
         "produces": [
@@ -3075,7 +3029,7 @@
           "repository"
         ],
         "summary": "Get a single commit from a repository",
-        "operationId": "repoGetSingleCommitBySHA",
+        "operationId": "repoGetSingleCommit",
         "parameters": [
           {
             "type": "string",
@@ -3093,7 +3047,7 @@
           },
           {
             "type": "string",
-            "description": "the commit hash",
+            "description": "a git ref or commit sha",
             "name": "sha",
             "in": "path",
             "required": true

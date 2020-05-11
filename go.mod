@@ -22,12 +22,11 @@ require (
 	github.com/RoaringBitmap/roaring v0.4.23 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/blevesearch/bleve v1.0.7
-	github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26 // indirect
 	github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/denisenkom/go-mssqldb v0.0.0-20191128021309-1d7a30a10f73
+	github.com/denisenkom/go-mssqldb v0.0.0-20200428022330-06a60b6afbbc
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
@@ -54,7 +53,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
 	github.com/huandu/xstrings v1.3.0
 	github.com/issue9/assert v1.3.2 // indirect
-	github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
+	github.com/issue9/identicon v1.0.1
 	github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d
 	github.com/jmhodges/levigo v1.0.0 // indirect
 	github.com/joho/godotenv v1.3.0 // indirect
@@ -80,7 +79,7 @@ require (
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.9
 	github.com/pkg/errors v0.9.1
-	github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e
+	github.com/pquerna/otp v1.2.0
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
 	github.com/prometheus/procfs v0.0.4 // indirect
@@ -103,7 +102,7 @@ require (
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.1.25
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
-	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
+	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f
