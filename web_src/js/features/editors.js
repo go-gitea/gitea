@@ -29,7 +29,6 @@ function getLanguage(filename) {
 function updateEditor(monaco, editor, filenameInput) {
   const newFilename = filenameInput.value;
   editor.updateOptions(getOptions(filenameInput));
-
   const model = editor.getModel();
   const language = model.getModeId();
   const newLanguage = getLanguage(newFilename);
@@ -38,14 +37,11 @@ function updateEditor(monaco, editor, filenameInput) {
 }
 
 export async function createEditor(textarea, filenameInput, previewFileModes) {
-  if (!textarea) return;
-
   const filename = basename(filenameInput.value);
-  const extension = extname(filename);
   const previewLink = document.querySelector('a[data-tab=preview]');
   const markdownExts = (textarea.dataset.markdownFileExts || '').split(',').filter((v) => !!v);
   const lineWrapExts = (textarea.dataset.lineWrapExtensions || '').split(',').filter((v) => !!v);
-  const isMarkdown = markdownExts.includes(extension);
+  const isMarkdown = markdownExts.includes(extname(filename));
 
   // Continue initializing monaco
   if (isMarkdown && (previewFileModes || []).includes('markdown')) {
@@ -59,22 +55,19 @@ export async function createEditor(textarea, filenameInput, previewFileModes) {
   initLanguages(monaco);
 
   const container = document.createElement('div');
-  const opts = await getOptions(filenameInput, lineWrapExts);
-
   container.className = 'monaco-editor-container';
   textarea.parentNode.appendChild(container);
 
   const editor = monaco.editor.create(container, {
     value: textarea.value,
     language: getLanguage(filename),
-    ...opts
+    ...await getOptions(filenameInput, lineWrapExts),
   });
 
   const model = editor.getModel();
-
   model.onDidChangeContent(() => {
     textarea.value = editor.getValue();
-    $(textarea).trigger('change'); // seems to be needed for jquery-are-you-sure
+    textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
   });
 
   window.addEventListener('resize', () => {
@@ -85,26 +78,24 @@ export async function createEditor(textarea, filenameInput, previewFileModes) {
     updateEditor(monaco, editor, filenameInput);
   });
 
-  $('.editor-loading').remove();
+  const loading = document.querySelector('.editor-loading');
+  if (loading) loading.remove();
 
   return editor;
 }
 
 async function getOptions(filenameInput, lineWrapExts) {
-  const extension = extname(filenameInput.value);
   const ec = getEditorconfig(filenameInput);
   const detectIndentation = !ec || !ec.indent_style || !ec.indent_size;
   const indentSize = !detectIndentation && ('indent_size' in ec) ? Number(ec.indent_size) : undefined;
   const tabSize = !detectIndentation && ('tab_width' in ec) ? Number(ec.indent_size) : indentSize;
 
-  const opts = {
+  return {
     detectIndentation,
     insertSpaces: detectIndentation ? undefined : ec.indent_style === 'space',
     tabSize: detectIndentation ? undefined : (tabSize || indentSize),
     theme: document.documentElement.classList.contains('theme-arc-green') ? 'vs-dark' : 'vs',
     useTabStops: ec.indent_style === 'tab',
-    wordWrap: lineWrapExts.includes(extension) ? 'on' : 'off',
+    wordWrap: lineWrapExts.includes(extname(filenameInput.value)) ? 'on' : 'off',
   };
-
-  return opts;
 }
