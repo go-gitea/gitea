@@ -53,7 +53,7 @@ func GetSingleCommitBySHA(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params(":sha")
-	if !git.SHAPattern.MatchString(sha) {
+	if (validation.GitRefNamePatternInvalid.MatchString(sha) || !validation.CheckGitRefAdditionalRulesValid(sha)) && !git.SHAPattern.MatchString(sha) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid sha", fmt.Sprintf("no valid sha: %s", sha))
 		return
 	}
@@ -93,7 +93,7 @@ func GetSingleCommitByRef(ctx *context.APIContext) {
 
 	ref := ctx.Params("ref")
 
-	if validation.GitRefNamePatternInvalid.MatchString(ref) || !validation.CheckGitRefAdditionalRulesValid(ref) {
+	if (validation.GitRefNamePatternInvalid.MatchString(ref) || !validation.CheckGitRefAdditionalRulesValid(ref)) && !git.SHAPattern.MatchString(ref) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid sha", fmt.Sprintf("no valid ref: %s", ref))
 		return
 	}
