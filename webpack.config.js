@@ -78,7 +78,7 @@ module.exports = {
       chunks: 'async',
       name: (_, chunks) => chunks.map((item) => item.name).join('-'),
       cacheGroups: {
-        // this bundles all monacos languages into one file instead of emitting 1-65.js files
+        // this bundles all monaco's languages into one file instead of emitting 1-65.js files
         monaco: {
           test: /monaco-editor/,
           name: 'monaco-langs',
@@ -160,7 +160,7 @@ module.exports = {
             options: {
               importLoaders: 2,
               url: (_url, resourcePath) => {
-                // only resolve URLs for modules
+                // only resolve URLs for dependencies
                 return resourcePath.includes('node_modules');
               },
             }
