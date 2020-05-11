@@ -134,7 +134,9 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 			}
 			headBranch = headInfos[1]
 			isSameRepo = headUser.ID == ctx.Repo.Owner.ID
-			headRepo = baseRepo
+			if isSameRepo {
+				headRepo = baseRepo
+			}
 		} else {
 			headRepo, err = models.GetRepositoryByOwnerAndName(headInfosSplit[0], headInfosSplit[1])
 			if err != nil {
