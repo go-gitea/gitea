@@ -726,11 +726,13 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	groupByStr := groupByCols.String()
 	groupByStr = groupByStr[0 : len(groupByStr)-1]
 
-	sess.Select("`user`.*, count(`repository`.id) as org_count").
+	sess.Select("`user`.*, count(repo_id) as org_count").
 		Table("user").
 		Join("INNER", "org_user", "`org_user`.org_id=`user`.id").
-		Join("INNER", "repository", "`repository`.owner_id = `org_user`.org_id").
-		Where(accessibleRepositoryCondition(u)).
+		Join("LEFT", builder.
+			Select("id as repo_id, owner_id as repo_owner_id").
+			From("repository").
+			Where(accessibleRepositoryCondition(u)), "`repository`.repo_owner_id = `org_user`.org_id").
 		And("`org_user`.uid=?", u.ID).
 		GroupBy(groupByStr)
 	if opts.PageSize != 0 {
