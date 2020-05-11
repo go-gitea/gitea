@@ -1,15 +1,17 @@
 import {basename, extname} from '../utils.js';
 
-let monaco;
 const languagesByFilename = {};
 const languagesByExt = {};
 
-async function getEditorconfig(input) {
-  const res = await fetch(`${input.dataset.ecUrlPrefix}${basename(input.value)}`);
-  return res.ok ? await res.json() : null;
+function getEditorconfig(input) {
+  try {
+    return JSON.parse(input.dataset.editorconfig);
+  } catch (_err) {
+    return null;
+  }
 }
 
-function initLanguages() {
+function initLanguages(monaco) {
   for (const {filenames, extensions, id} of monaco.languages.getLanguages()) {
     for (const filename of filenames || []) {
       languagesByFilename[filename] = id;
@@ -21,19 +23,10 @@ function initLanguages() {
 }
 
 function getLanguage(filename) {
-  if (languagesByFilename[filename]) {
-    return languagesByFilename[filename];
-  }
-
-  const ext = `.${extname(filename)}`;
-  if (languagesByExt[ext]) {
-    return languagesByExt[ext];
-  }
-
-  return 'plaintext';
+  return languagesByFilename[filename] || languagesByExt[extname(filename)] || 'plaintext';
 }
 
-function updateEditor(editor, filenameInput) {
+function updateEditor(monaco, editor, filenameInput) {
   const newFilename = filenameInput.value;
   editor.updateOptions(getOptions(filenameInput));
 
@@ -49,16 +42,10 @@ export async function createEditor(textarea, filenameInput, previewFileModes) {
 
   const filename = basename(filenameInput.value);
   const extension = extname(filename);
-  const extWithDot = `.${extension}`;
   const previewLink = document.querySelector('a[data-tab=preview]');
   const markdownExts = (textarea.dataset.markdownFileExts || '').split(',').filter((v) => !!v);
   const lineWrapExts = (textarea.dataset.lineWrapExtensions || '').split(',').filter((v) => !!v);
-  const isMarkdown = markdownExts.includes(extWithDot);
-
-  // If this file is a Markdown extensions, indicate simplemde needs to be used instead
-  if (markdownExts.includes(extWithDot)) {
-    return 'simplemde';
-  }
+  const isMarkdown = markdownExts.includes(extension);
 
   // Continue initializing monaco
   if (isMarkdown && (previewFileModes || []).includes('markdown')) {
@@ -68,8 +55,8 @@ export async function createEditor(textarea, filenameInput, previewFileModes) {
     previewLink.style.display = 'none';
   }
 
-  monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
-  initLanguages();
+  const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
+  initLanguages(monaco);
 
   const container = document.createElement('div');
   const opts = await getOptions(filenameInput, lineWrapExts);
@@ -95,7 +82,7 @@ export async function createEditor(textarea, filenameInput, previewFileModes) {
   });
 
   filenameInput.addEventListener('keyup', () => {
-    updateEditor(editor, filenameInput);
+    updateEditor(monaco, editor, filenameInput);
   });
 
   $('.editor-loading').remove();
@@ -104,25 +91,20 @@ export async function createEditor(textarea, filenameInput, previewFileModes) {
 }
 
 async function getOptions(filenameInput, lineWrapExts) {
-  const filename = basename(filenameInput.value);
-  const extension = extname(filename);
-  const extWithDot = `.${extension}`;
-  const ec = await getEditorconfig(filenameInput);
+  const extension = extname(filenameInput.value);
+  const ec = getEditorconfig(filenameInput);
   const detectIndentation = !ec || !ec.indent_style || !ec.indent_size;
-  const indentSize = !detectIndentation && ('indent_size' in ec) ? Number(ec.indent_size) : 4;
+  const indentSize = !detectIndentation && ('indent_size' in ec) ? Number(ec.indent_size) : undefined;
+  const tabSize = !detectIndentation && ('tab_width' in ec) ? Number(ec.indent_size) : indentSize;
 
   const opts = {
     detectIndentation,
-    useTabStops: !detectIndentation && ec.indent_style === 'tab',
-    insertSpaces: !detectIndentation && ec.indent_style === 'space',
-    indentSize,
-    tabSize: indentSize,
+    insertSpaces: detectIndentation ? undefined : ec.indent_style === 'space',
+    tabSize: detectIndentation ? undefined : (tabSize || indentSize),
     theme: document.documentElement.classList.contains('theme-arc-green') ? 'vs-dark' : 'vs',
+    useTabStops: ec.indent_style === 'tab',
+    wordWrap: lineWrapExts.includes(extension) ? 'on' : 'off',
   };
-
-  if (lineWrapExts) {
-    opts.wordWrap = lineWrapExts.includes(extWithDot);
-  }
 
   return opts;
 }

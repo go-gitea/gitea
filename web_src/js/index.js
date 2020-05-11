@@ -29,9 +29,7 @@ function htmlEncode(text) {
 }
 
 let previewFileModes;
-let simpleMDEditor;
 const commentMDEditors = {};
-let codeMirrorEditor;
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -1468,62 +1466,6 @@ $.fn.getCursorPosition = function () {
   return pos;
 };
 
-function setSimpleMDE($editArea) {
-  if (codeMirrorEditor) {
-    codeMirrorEditor.toTextArea();
-    codeMirrorEditor = null;
-  }
-
-  if (simpleMDEditor) {
-    return true;
-  }
-
-  simpleMDEditor = new SimpleMDE({
-    autoDownloadFontAwesome: false,
-    element: $editArea[0],
-    forceSync: true,
-    renderingConfig: {
-      singleLineBreaks: false
-    },
-    indentWithTabs: false,
-    tabSize: 4,
-    spellChecker: false,
-    previewRender(plainText, preview) { // Async method
-      setTimeout(() => {
-        // FIXME: still send render request when return back to edit mode
-        $.post($editArea.data('url'), {
-          _csrf: csrf,
-          mode: 'gfm',
-          context: $editArea.data('context'),
-          text: plainText
-        }, (data) => {
-          preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-        });
-      }, 0);
-
-      return 'Loading...';
-    },
-    toolbar: ['bold', 'italic', 'strikethrough', '|',
-      'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|',
-      'unordered-list', 'ordered-list', '|',
-      'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
-      {
-        name: 'revert-to-textarea',
-        action(e) {
-          e.toTextArea();
-        },
-        className: 'fa fa-file',
-        title: 'Revert to simple textarea',
-      },
-    ]
-  });
-  $(simpleMDEditor.codemirror.getInputField()).addClass('js-quick-submit');
-
-  return true;
-}
-
 function setCommentSimpleMDE($editArea) {
   const simplemde = new SimpleMDE({
     autoDownloadFontAwesome: false,
@@ -1631,13 +1573,7 @@ async function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  const editor = await createEditor($editArea[0], $editFilename[0], previewFileModes);
-
-  // bail out if we should render simplemde
-  if (editor === 'simplemde') {
-    setSimpleMDE($editArea);
-    return;
-  }
+  await createEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button

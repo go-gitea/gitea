@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -146,7 +147,19 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["MarkdownFileExts"] = strings.Join(setting.Markdown.FileExtensions, ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
-	ctx.Data["EditorconfigURLPrefix"] = fmt.Sprintf("%s/api/v1/repos/%s/editorconfig/", setting.AppSubURL, ctx.Repo.Repository.FullName())
+
+	ec, err := ctx.Repo.GetEditorconfig()
+	if err == nil {
+		def, err := ec.GetDefinitionForFilename(treePath)
+		if err == nil {
+			json, _ := json.Marshal(def)
+			ctx.Data["Editorconfig"] = string(json)
+		} else {
+			ctx.Data["Editorconfig"] = "{}"
+		}
+	} else {
+		ctx.Data["Editorconfig"] = "{}"
+	}
 
 	ctx.HTML(200, tplEditFile)
 }
