@@ -8,7 +8,6 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -17,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	gouuid "github.com/satori/go.uuid"
-	"xorm.io/builder"
 )
 
 // HookContentType is the content type of a web hook
@@ -803,35 +801,25 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 
 // DeleteDeliveredHookTasks deletes delivered hook tasks of one repository, leaving the most recent delivered based on the paramter
 func DeleteDeliveredHookTasks(repoID int64, numberDeliveriesToKeep int64) error {
-	log.Info("delete delivered hook tasks on repo %d with num to keep %d", repoID, numberDeliveriesToKeep)
-	maxDeletesPerBatch := 2
-	count, err := x.
+	maxDeletesPerBatch := 1000
+	totalDeliveries, err := x.
 		Where("repo_id=? AND is_delivered=? ", repoID, 1).
 		Count(new(HookTask))
-
 	if err != nil {
 		return err
 	}
 
-	if count > numberDeliveriesToKeep {
-		var numberToDelete = count - numberDeliveriesToKeep
-		log.Info("From repo %d will delete %d from hook_task", repoID, numberToDelete)
+	if totalDeliveries > numberDeliveriesToKeep {
+		var numberToDelete = totalDeliveries - numberDeliveriesToKeep
+		log.Trace("From repo %d will delete %d from hook_task", repoID, numberToDelete)
 
 		var numberDeleted int64 = 0
 		for numberDeleted < numberToDelete {
+
 			deletesThisBatch := maxDeletesPerBatch
-			numberLeftToDelete := numberToDelete - numberDeleted
-			if numberLeftToDelete < int64(maxDeletesPerBatch) {
-				if numberLeftToDelete < math.MaxInt32 {
-					deletesThisBatch = int(numberLeftToDelete)
-				} else {
-					deletesThisBatch = math.MaxInt32
-				}
+			if (numberToDelete - numberDeleted) < int64(maxDeletesPerBatch) {
+				deletesThisBatch = int(numberToDelete - numberDeleted)
 			}
-			log.Info("From repo %d deleting %d from hook_task this iteration", repoID, deletesThisBatch)
-			var cond = builder.NewCond()
-			cond = cond.And(builder.Eq{"repo_id": repoID})
-			cond = cond.And(builder.Eq{"is_delivered": 1})
 
 			var ids = make([]int64, 0, 10)
 			err := x.Table("hook_task").
@@ -844,17 +832,14 @@ func DeleteDeliveredHookTasks(repoID int64, numberDeliveriesToKeep int64) error 
 				return err
 			}
 
-			//affected, err := x.Limit(deletesThisBatch).In("`id`", builder.Select("id").From("hook_task").Where(cond).OrderBy("delivered asc")).
-			//	Delete(new(HookTask))
-			affected, err := x.In("`id`", ids).Delete(new(HookTask))
+			deletes, err := x.In("`id`", ids).Delete(new(HookTask))
 			if err != nil {
 				return err
 			}
 
-			numberDeleted += affected
-			log.Info("From repo %d deleted %d from hook_task this iteration, so far have deleted %d", repoID, affected, numberDeleted)
+			numberDeleted += deletes
 		}
-		log.Info("From repo %d deleted in total %d from hook_task", repoID, numberDeleted)
+		log.Trace("From repo %d deleted in total %d from hook_task", repoID, numberDeleted)
 	}
 	return nil
 }

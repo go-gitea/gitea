@@ -245,3 +245,33 @@ func TestUpdateHookTask(t *testing.T) {
 	assert.NoError(t, UpdateHookTask(hook))
 	AssertExistsAndLoadBean(t, hook)
 }
+
+func TestDeleteDeliveredHookTasks_DeletesDelivered(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      3,
+		HookID:      10,
+		IsDelivered: 1,
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, DeleteDeliveredHookTasks(3, 0))
+	AssertNotExistsBean(t, hookTask)
+}
+
+func TestDeleteDeliveredHookTasks_LeavesUndelivered(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      3,
+		HookID:      15,
+		IsDelivered: 0,
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, DeleteDeliveredHookTasks(3, 0))
+	AssertExistsAndLoadBean(t, hookTask)
+}
