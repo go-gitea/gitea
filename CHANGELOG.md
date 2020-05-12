@@ -4,6 +4,34 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.5](https://github.com/go-gitea/gitea/releases/tag/v1.11.5) - 2020-05-09
+
+* BUGFIXES
+  * Prevent timer leaks in Workerpool and others (#11333) (#11340)
+  * Fix tracked time issues (#11349) (#11354)
+  * Add NotifySyncPushCommits to indexer notifier (#11309) (#11338)
+  * Allow X in addition to x in tasks (#10979) (#11335)
+  * When delete tracked time through the API return 404 not 500 (#11319) (#11326)
+  * Prevent duplicate records in organizations list when creating a repository (#11303) (#11325)
+  * Manage port in submodule refurl (#11305) (#11323)
+  * api.Context.NotFound(...) should tolerate nil (#11288) (#11306)
+  * Show pull request selection even when unrelated branches (#11239) (#11283)
+  * Repo: milestone: make /milestone/:id endpoint accessible (#11264) (#11282)
+  * Fix GetContents(): Dont't ignore Executables (#11192) (#11209)
+  * Fix submodule paths when AppSubUrl is not root (#11098) (#11176)
+  * Prevent clones and pushes to disabled wiki (#11131) (#11134)
+  * Remove errant third closing curly-bracket from account.tmpl and send account ID in account.tmpl (#11130)
+  * On Repo Deletion: Delete related TrackedTimes too (#11110) (#11125)
+  * Refresh codemirror on show pull comment tab (#11100) (#11122)
+  * Fix merge dialog on protected branch with missing required statuses (#11074) (#11084)
+  * Load pr Issue Poster on API too (#11033) (#11039)
+  * Fix release counter on API repository info (#10968) (#10996)
+  * Generate Diff and Patch direct from Pull head (#10936) (#10938)
+  * Fix rebase conflict detection in git 2.26 (#10929) (#10930)
+* ENHANCEMENT
+  * Fix 404 and 500 image size in small size screen (#11043) (#11049)
+  * Multiple Gitea Doctor improvements (#10943) (#10990) (#10064) (#9095) (#10991)
+
 ## [1.11.4](https://github.com/go-gitea/gitea/releases/tag/v1.11.4) - 2020-04-01
 
 * BUGFIXES
