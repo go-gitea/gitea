@@ -61,9 +61,14 @@ func (a *Attachment) DownloadURL() string {
 	return fmt.Sprintf("%sattachments/%s", setting.AppURL, a.UUID)
 }
 
+// AttachmentRelativePath returns the relative path
+func AttachmentRelativePath(uuid string) string {
+	return path.Join(uuid[0:1], uuid[1:2], uuid)
+}
+
 // RelativePath returns the relative path of the attachment
 func (a *Attachment) RelativePath() string {
-	return path.Join(a.UUID[0:1], a.UUID[1:2], a.UUID)
+	return AttachmentRelativePath(a.UUID)
 }
 
 // LinkedRepository returns the linked repo if any
