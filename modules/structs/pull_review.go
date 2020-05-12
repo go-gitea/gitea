@@ -91,18 +91,18 @@ type SubmitPullReviewOptions struct {
 	Body  string          `json:"body"`
 }
 
-// PullReviewRequestOptions are options to add or remove pull review request
+// PullReviewRequestOptions are options to add or remove pull review requests
 type PullReviewRequestOptions struct {
 	Reviewers []string `json:"reviewers"`
 }
 
-// PullReviewRequestErr are error result for add or remove pull review request
+// PullReviewRequestErr are error result for add or remove pull review requests
 type PullReviewRequestErr struct {
 	Reviewer string `json:"reviewer"`
 	Error    string `json:"error"`
 }
 
-// PullReviewRequestResult results for add or remove pull review request
+// PullReviewRequestResult result for add or remove pull review requests
 type PullReviewRequestResult struct {
 	Successes []*PullReview
 	Failures  []*PullReviewRequestErr
