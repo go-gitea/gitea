@@ -140,7 +140,7 @@ func createIssueIndexer(path string, latestVersion int) (bleve.Index, error) {
 	mapping.AddDocumentMapping(issueIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
-	index, err := bleve.New(path, mapping)
+	index, err := bleve.NewUsing(path, mapping, "scorch", "scorch", nil)
 	if err != nil {
 		return nil, err
 	}
