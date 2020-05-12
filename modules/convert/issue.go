@@ -56,7 +56,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		return &api.Issue{}
 	}
 	if issue.Milestone != nil {
-		apiIssue.Milestone = issue.Milestone.APIFormat()
+		apiIssue.Milestone = ToAPIMilestone(issue.Milestone)
 	}
 
 	if err := issue.LoadAssignees(); err != nil {
@@ -140,4 +140,23 @@ func ToLabelList(labels []*models.Label) []*api.Label {
 		result[i] = ToLabel(labels[i])
 	}
 	return result
+}
+
+// ToAPIMilestone converts Milestone into API Format
+func ToAPIMilestone(m *models.Milestone) *api.Milestone {
+	apiMilestone := &api.Milestone{
+		ID:           m.ID,
+		State:        m.State(),
+		Title:        m.Name,
+		Description:  m.Content,
+		OpenIssues:   m.NumOpenIssues,
+		ClosedIssues: m.NumClosedIssues,
+	}
+	if m.IsClosed {
+		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()
+	}
+	if m.DeadlineUnix.Year() < 9999 {
+		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
+	}
+	return apiMilestone
 }
