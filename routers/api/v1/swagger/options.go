@@ -146,4 +146,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	SubmitPullReviewOptions api.SubmitPullReviewOptions
+
+	// in:body
+	PullReviewRequestOptions api.PullReviewRequestOptions
 }

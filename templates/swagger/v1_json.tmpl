@@ -13699,6 +13699,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "PullReviewRequestErr": {
+      "description": "PullReviewRequestErr are error result for add or remove pull review request",
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "x-go-name": "Error"
+        },
+        "reviewer": {
+          "type": "string",
+          "x-go-name": "Reviewer"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "PullReviewRequestOptions": {
       "description": "PullReviewRequestOptions are options to add or remove pull review request",
       "type": "object",
@@ -13709,6 +13724,25 @@
             "type": "string"
           },
           "x-go-name": "Reviewers"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "PullReviewRequestResult": {
+      "description": "PullReviewRequestResult results for add or remove pull review request",
+      "type": "object",
+      "properties": {
+        "Failures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PullReviewRequestErr"
+          }
+        },
+        "Successes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PullReview"
+          }
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14946,10 +14980,7 @@
     "PullReviewRequestResult": {
       "description": "PullReviewRequest",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/PullReviewRequestOptions"
-        }
+        "$ref": "#/definitions/PullReviewRequestResult"
       }
     },
     "Reaction": {
@@ -15189,7 +15220,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/SubmitPullReviewOptions"
+        "$ref": "#/definitions/PullReviewRequestOptions"
       }
     },
     "redirect": {

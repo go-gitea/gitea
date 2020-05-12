@@ -173,7 +173,7 @@ type swaggerResponsePullReviewCommentList struct {
 // swagger:response PullReviewRequestResult
 type swaggerResponsePullReviewRequest struct {
 	// in:body
-	Body []api.PullReviewRequestOptions `json:"body"`
+	Body api.PullReviewRequestResult `json:"body"`
 }
 
 // Status
