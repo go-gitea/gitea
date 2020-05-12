@@ -123,10 +123,7 @@ func TestGetAttachment(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			//Write empty file to be available for response
 			if tc.createFile {
-				localPath := models.AttachmentLocalPath(tc.uuid)
-				err := os.MkdirAll(path.Dir(localPath), os.ModePerm)
-				assert.NoError(t, err)
-				err = ioutil.WriteFile(localPath, []byte("hello world"), 0644)
+				err = SaveAttachment(tc.uuid, strings.NewReader("hello world"))
 				assert.NoError(t, err)
 			}
 			//Actual test

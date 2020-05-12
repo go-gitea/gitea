@@ -7,13 +7,13 @@ package repo
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
 )
 
@@ -123,7 +123,7 @@ func GetAttachment(ctx *context.Context) {
 	}
 
 	//If we have matched and access to release or issue
-	fr, err := os.Open(attach.LocalPath())
+	fr, err := storage.Attachments.Open(attach.RelativePath())
 	if err != nil {
 		ctx.ServerError("Open", err)
 		return

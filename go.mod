@@ -41,6 +41,7 @@ require (
 	github.com/go-enry/go-enry/v2 v2.5.2
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.1.0
+	github.com/go-ini/ini v1.56.0 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
@@ -74,6 +75,7 @@ require (
 	github.com/mgechev/revive v1.0.2
 	github.com/mholt/archiver/v3 v3.3.0
 	github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912
+	github.com/minio/minio-go v6.0.14+incompatible
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5

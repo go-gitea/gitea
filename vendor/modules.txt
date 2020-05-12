@@ -317,6 +317,9 @@ github.com/go-git/go-git/v5/utils/merkletrie/filesystem
 github.com/go-git/go-git/v5/utils/merkletrie/index
 github.com/go-git/go-git/v5/utils/merkletrie/internal/frame
 github.com/go-git/go-git/v5/utils/merkletrie/noder
+# github.com/go-ini/ini v1.56.0
+## explicit
+github.com/go-ini/ini
 # github.com/go-openapi/analysis v0.19.5
 github.com/go-openapi/analysis
 github.com/go-openapi/analysis/internal
@@ -565,6 +568,14 @@ github.com/mholt/archiver/v3
 # github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912
 ## explicit
 github.com/microcosm-cc/bluemonday
+# github.com/minio/minio-go v6.0.14+incompatible
+## explicit
+github.com/minio/minio-go
+github.com/minio/minio-go/pkg/credentials
+github.com/minio/minio-go/pkg/encrypt
+github.com/minio/minio-go/pkg/s3signer
+github.com/minio/minio-go/pkg/s3utils
+github.com/minio/minio-go/pkg/set
 # github.com/mitchellh/go-homedir v1.1.0
 ## explicit
 github.com/mitchellh/go-homedir
@@ -779,9 +790,11 @@ golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
+golang.org/x/net/http/httpguts
 golang.org/x/net/idna
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
+golang.org/x/net/publicsuffix
 # golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 ## explicit
 golang.org/x/oauth2
