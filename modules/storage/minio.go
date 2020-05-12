@@ -5,12 +5,13 @@
 package storage
 
 import (
-	"github.com/minio/minio-go"
 	"io"
 	"net/url"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/minio/minio-go"
 )
 
 var (
