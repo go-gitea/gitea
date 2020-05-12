@@ -38,7 +38,7 @@ Following the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) gu
 but is not supported. To install Gitea via `brew`:
 
 ```
-brew tap go-gitea/gitea
+brew tap gitea/tap https://gitea.com/gitea/homebrew-gitea
 brew install gitea
 ```
 
