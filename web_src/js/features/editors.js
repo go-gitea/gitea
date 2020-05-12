@@ -43,7 +43,6 @@ export async function createCodeEditor(textarea, filenameInput, previewFileModes
   const lineWrapExts = (textarea.dataset.lineWrapExtensions || '').split(',').filter((v) => !!v);
   const isMarkdown = markdownExts.includes(extname(filename));
 
-  // Continue initializing monaco
   if (isMarkdown && (previewFileModes || []).includes('markdown')) {
     previewLink.dataset.url = previewLink.dataset.url.replace(/(.*)\/.*/i, `$1/markdown`);
     previewLink.style.display = '';
