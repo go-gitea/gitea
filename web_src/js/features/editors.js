@@ -32,8 +32,7 @@ function updateEditor(monaco, editor, filenameInput) {
   const model = editor.getModel();
   const language = model.getModeId();
   const newLanguage = getLanguage(newFilename);
-  if (language === newLanguage) return;
-  monaco.editor.setModelLanguage(model, newLanguage);
+  if (language !== newLanguage) monaco.editor.setModelLanguage(model, newLanguage);
 }
 
 export async function createCodeEditor(textarea, filenameInput, previewFileModes) {
