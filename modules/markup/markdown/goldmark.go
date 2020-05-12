@@ -125,24 +125,30 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			}
 			v.Destination = link
 		case *ast.List:
-			if v.HasChildren() && v.FirstChild().HasChildren() && v.FirstChild().FirstChild().HasChildren() {
-				if _, ok := v.FirstChild().FirstChild().FirstChild().(*east.TaskCheckBox); ok {
-					v.SetAttributeString("class", []byte("task-list"))
-					children := make([]ast.Node, 0, v.ChildCount())
-					child := v.FirstChild()
-					for child != nil {
-						children = append(children, child)
-						child = child.NextSibling()
-					}
-					v.RemoveChildren(v)
+			if v.HasChildren() {
+				children := make([]ast.Node, 0, v.ChildCount())
+				child := v.FirstChild()
+				for child != nil {
+					children = append(children, child)
+					child = child.NextSibling()
+				}
+				v.RemoveChildren(v)
 
-					for _, child := range children {
-						listItem := child.(*ast.ListItem)
-						newChild := NewTaskCheckBoxListItem(listItem)
-						taskCheckBox := child.FirstChild().FirstChild().(*east.TaskCheckBox)
-						newChild.IsChecked = taskCheckBox.IsChecked
-						v.AppendChild(v, newChild)
+				for _, child := range children {
+					listItem := child.(*ast.ListItem)
+					if !child.HasChildren() || !child.FirstChild().HasChildren() {
+						v.AppendChild(v, child)
+						continue
 					}
+					taskCheckBox, ok := child.FirstChild().FirstChild().(*east.TaskCheckBox)
+					if !ok {
+						v.AppendChild(v, child)
+						continue
+					}
+					newChild := NewTaskCheckBoxListItem(listItem)
+					newChild.IsChecked = taskCheckBox.IsChecked
+					newChild.SetAttributeString("class", []byte("task-list-item"))
+					v.AppendChild(v, newChild)
 				}
 			}
 		}

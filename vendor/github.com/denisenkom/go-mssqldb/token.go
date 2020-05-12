@@ -17,20 +17,21 @@ type token byte
 
 // token ids
 const (
-	tokenReturnStatus token = 121 // 0x79
-	tokenColMetadata  token = 129 // 0x81
-	tokenOrder        token = 169 // 0xA9
-	tokenError        token = 170 // 0xAA
-	tokenInfo         token = 171 // 0xAB
-	tokenReturnValue  token = 0xAC
-	tokenLoginAck     token = 173 // 0xad
-	tokenRow          token = 209 // 0xd1
-	tokenNbcRow       token = 210 // 0xd2
-	tokenEnvChange    token = 227 // 0xE3
-	tokenSSPI         token = 237 // 0xED
-	tokenDone         token = 253 // 0xFD
-	tokenDoneProc     token = 254
-	tokenDoneInProc   token = 255
+	tokenReturnStatus  token = 121 // 0x79
+	tokenColMetadata   token = 129 // 0x81
+	tokenOrder         token = 169 // 0xA9
+	tokenError         token = 170 // 0xAA
+	tokenInfo          token = 171 // 0xAB
+	tokenReturnValue   token = 0xAC
+	tokenLoginAck      token = 173 // 0xad
+	tokenFeatureExtAck token = 174 // 0xae
+	tokenRow           token = 209 // 0xd1
+	tokenNbcRow        token = 210 // 0xd2
+	tokenEnvChange     token = 227 // 0xE3
+	tokenSSPI          token = 237 // 0xED
+	tokenDone          token = 253 // 0xFD
+	tokenDoneProc      token = 254
+	tokenDoneInProc    token = 255
 )
 
 // done flags
@@ -447,6 +448,22 @@ func parseLoginAck(r *tdsBuffer) loginAckStruct {
 	return res
 }
 
+// https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/2eb82f8e-11f0-46dc-b42d-27302fa4701a
+func parseFeatureExtAck(r *tdsBuffer) {
+	// at most 1 featureAck per feature in featureExt
+	// go-mssqldb will add at most 1 feature, the spec defines 7 different features
+	for i := 0; i < 8; i++ {
+		featureID := r.byte() // FeatureID
+		if featureID == 0xff {
+			return
+		}
+		size := r.uint32() // FeatureAckDataLen
+		d := make([]byte, size)
+		r.ReadFull(d)
+	}
+	panic("parsed more than 7 featureAck's, protocol implementation error?")
+}
+
 // http://msdn.microsoft.com/en-us/library/dd357363.aspx
 func parseColMetadata72(r *tdsBuffer) (columns []columnStruct) {
 	count := r.uint16()
@@ -577,6 +594,8 @@ func processSingleResponse(sess *tdsSession, ch chan tokenStruct, outs map[strin
 		case tokenLoginAck:
 			loginAck := parseLoginAck(sess.buf)
 			ch <- loginAck
+		case tokenFeatureExtAck:
+			parseFeatureExtAck(sess.buf)
 		case tokenOrder:
 			order := parseOrder(sess.buf)
 			ch <- order
