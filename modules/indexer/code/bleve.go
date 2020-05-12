@@ -185,7 +185,7 @@ func createRepoIndexer(path string, latestVersion int) (bleve.Index, error) {
 	mapping.AddDocumentMapping(repoIndexerDocType, docMapping)
 	mapping.AddDocumentMapping("_all", bleve.NewDocumentDisabledMapping())
 
-	indexer, err := bleve.New(path, mapping)
+	indexer, err := bleve.NewUsing(path, mapping, "scorch", "scorch", nil)
 	if err != nil {
 		return nil, err
 	}
