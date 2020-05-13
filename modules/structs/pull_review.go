@@ -95,15 +95,3 @@ type SubmitPullReviewOptions struct {
 type PullReviewRequestOptions struct {
 	Reviewers []string `json:"reviewers"`
 }
-
-// PullReviewRequestErr are error result for add or remove pull review requests
-type PullReviewRequestErr struct {
-	Reviewer string `json:"reviewer"`
-	Error    string `json:"error"`
-}
-
-// PullReviewRequestResult result for add or remove pull review requests
-type PullReviewRequestResult struct {
-	Successes []*PullReview
-	Failures  []*PullReviewRequestErr
-}

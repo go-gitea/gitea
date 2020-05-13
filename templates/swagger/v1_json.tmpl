@@ -6711,11 +6711,11 @@
           }
         ],
         "responses": {
-          "200": {
-            "$ref": "#/responses/PullReviewRequestResult"
+          "201": {
+            "$ref": "#/responses/PullReviewList"
           },
           "422": {
-            "$ref": "#/responses/PullReviewRequestResult"
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -6761,11 +6761,11 @@
           }
         ],
         "responses": {
-          "200": {
-            "$ref": "#/responses/PullReviewRequestResult"
+          "204": {
+            "$ref": "#/responses/empty"
           },
           "422": {
-            "$ref": "#/responses/PullReviewRequestResult"
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -13699,21 +13699,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "PullReviewRequestErr": {
-      "description": "PullReviewRequestErr are error result for add or remove pull review requests",
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "string",
-          "x-go-name": "Error"
-        },
-        "reviewer": {
-          "type": "string",
-          "x-go-name": "Reviewer"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "PullReviewRequestOptions": {
       "description": "PullReviewRequestOptions are options to add or remove pull review requests",
       "type": "object",
@@ -13724,25 +13709,6 @@
             "type": "string"
           },
           "x-go-name": "Reviewers"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "PullReviewRequestResult": {
-      "description": "PullReviewRequestResult result for add or remove pull review requests",
-      "type": "object",
-      "properties": {
-        "Failures": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/PullReviewRequestErr"
-          }
-        },
-        "Successes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/PullReview"
-          }
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14975,12 +14941,6 @@
         "items": {
           "$ref": "#/definitions/PullReview"
         }
-      }
-    },
-    "PullReviewRequestResult": {
-      "description": "PullReviewRequest",
-      "schema": {
-        "$ref": "#/definitions/PullReviewRequestResult"
       }
     },
     "Reaction": {

@@ -125,67 +125,34 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	assert.NoError(t, pullIssue.LoadAttributes())
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
 
-	var result api.PullReviewRequestResult
-
 	// Test add Review Request
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user4"},
+		Reviewers: []string{"user4", "user8"},
 	})
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &result)
-
-	assert.EqualValues(t, 0, len(result.Failures))
-	assert.EqualValues(t, 1, len(result.Successes))
-	assert.EqualValues(t, "user4", result.Successes[0].Reviewer.UserName)
+	session.MakeRequest(t, req, http.StatusCreated)
 
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user1", "user2", "user3", "user4@example.com", "user8", "testOther"},
+		Reviewers: []string{"user1", "user2", "testOther"},
 	})
-	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-	DecodeJSON(t, resp, &result)
-
-	assert.EqualValues(t, 5, len(result.Failures))
-	assert.EqualValues(t, 1, len(result.Successes))
-
-	assert.Contains(t, result.Failures[0].Error, "poster of pr can't be reviewer")
-	assert.Contains(t, result.Failures[1].Error, "doer can't be reviewer")
-	assert.Contains(t, result.Failures[2].Error, "Organization can't be added as reviewer")
-	assert.Contains(t, result.Failures[3].Error, "Has been requested to review")
-	assert.Contains(t, result.Failures[4].Error, "user does not exist")
-	assert.EqualValues(t, "user8", result.Successes[0].Reviewer.UserName)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test Remove Review Request
 	session2 := loginUser(t, "user4")
 	token2 := getTokenForLoggedInUser(t, session2)
 	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user8@example.com", "user4", "testOther"},
+		Reviewers: []string{"user8@example.com", "testOther", "user7"},
 	})
-	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-	DecodeJSON(t, resp, &result)
-	assert.EqualValues(t, 2, len(result.Failures))
-	assert.EqualValues(t, 1, len(result.Successes))
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
-	assert.Contains(t, result.Failures[0].Error, "Doer is not admin")
-	assert.Contains(t, result.Failures[1].Error, "user does not exist")
-	assert.EqualValues(t, "user4", result.Successes[0].Reviewer.UserName)
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user4", "user8"},
+	})
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user8"},
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &result)
-	assert.EqualValues(t, 0, len(result.Failures))
-	assert.EqualValues(t, 1, len(result.Successes))
-	assert.EqualValues(t, "user8", result.Successes[0].Reviewer.UserName)
-
-	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user8"},
-	})
-	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-	DecodeJSON(t, resp, &result)
-	assert.EqualValues(t, 1, len(result.Failures))
-	assert.EqualValues(t, 0, len(result.Successes))
-	assert.Contains(t, result.Failures[0].Error, "Haven't been requested to review")
+	session.MakeRequest(t, req, http.StatusNoContent)
 }

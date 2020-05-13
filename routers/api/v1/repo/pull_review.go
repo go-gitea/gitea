@@ -571,10 +571,10 @@ func CreatReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpti
 	//   schema:
 	//     "$ref": "#/definitions/PullReviewRequestOptions"
 	// responses:
-	//   "200":
-	//     "$ref": "#/responses/PullReviewRequestResult"
+	//   "201":
+	//     "$ref": "#/responses/PullReviewList"
 	//   "422":
-	//     "$ref": "#/responses/PullReviewRequestResult"
+	//     "$ref": "#/responses/validationError"
 	apiReviewRequest(ctx, opts, true)
 }
 
@@ -608,10 +608,10 @@ func DeletReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpti
 	//   schema:
 	//     "$ref": "#/definitions/PullReviewRequestOptions"
 	// responses:
-	//   "200":
-	//     "$ref": "#/responses/PullReviewRequestResult"
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	//   "422":
-	//     "$ref": "#/responses/PullReviewRequestResult"
+	//     "$ref": "#/responses/validationError"
 	apiReviewRequest(ctx, opts, false)
 }
 
@@ -631,8 +631,8 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		return
 	}
 
-	reviews := make([]*api.PullReview, 0, len(opts.Reviewers))
-	reviewerErrs := make([]*api.PullReviewRequestErr, 0, 5)
+	var reviews []*models.Review
+	hasResult := false
 
 	for _, r := range opts.Reviewers {
 		var reviewer *models.User
@@ -643,19 +643,11 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		}
 
 		if err != nil {
-			reviewerErrs = append(reviewerErrs, &api.PullReviewRequestErr{
-				Reviewer: r,
-				Error:    err.Error(),
-			})
 			continue
 		}
 
 		err = issue_service.IsLegalReviewRequest(reviewer, ctx.User, isAdd, pr.Issue)
 		if err != nil {
-			reviewerErrs = append(reviewerErrs, &api.PullReviewRequestErr{
-				Reviewer: r,
-				Error:    err.Error(),
-			})
 			continue
 		}
 
@@ -666,42 +658,33 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		}
 
 		if comment != nil {
-			if err = comment.LoadReview(); err != nil {
-				ctx.ServerError("ReviewRequest", err)
-				return
-			}
-		} else {
 			if isAdd {
-				reviewerErrs = append(reviewerErrs, &api.PullReviewRequestErr{
-					Reviewer: r,
-					Error:    "Has been requested to review",
-				})
-			} else {
-				reviewerErrs = append(reviewerErrs, &api.PullReviewRequestErr{
-					Reviewer: r,
-					Error:    "Haven't been requested to review",
-				})
+				if err = comment.LoadReview(); err != nil {
+					ctx.ServerError("ReviewRequest", err)
+					return
+				}
+				reviews = append(reviews, comment.Review)
 			}
+			hasResult = true
+
+		} else {
 			continue
 		}
-
-		apiReview, err := convert.ToPullReview(comment.Review, ctx.User)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "convertToPullReview", err)
-			return
-		}
-		reviews = append(reviews, apiReview)
 	}
 
-	if len(reviewerErrs) == 0 {
-		ctx.JSON(http.StatusOK, &api.PullReviewRequestResult{
-			Successes: reviews,
-			Failures:  reviewerErrs,
-		})
+	if hasResult {
+		if isAdd {
+			apiReviews, err := convert.ToPullReviewList(reviews, ctx.User)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "convertToPullReviewList", err)
+				return
+			}
+			ctx.JSON(http.StatusCreated, apiReviews)
+		} else {
+			ctx.Status(http.StatusNoContent)
+			return
+		}
 	} else {
-		ctx.JSON(http.StatusUnprocessableEntity, &api.PullReviewRequestResult{
-			Successes: reviews,
-			Failures:  reviewerErrs,
-		})
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Not have legal requests"))
 	}
 }

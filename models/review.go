@@ -606,8 +606,6 @@ func RemoveReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
 	})
 
-	comment.Review = review
-
 	if err != nil {
 		return nil, err
 	}
