@@ -92,12 +92,13 @@ function getOptions(filenameInput, lineWrapExts) {
   const opts = {theme, wordWrap};
   if (isObject(ec)) {
     opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
-    opts.indentSize = ('indent_size' in ec) ? Number(ec.indent_size) : undefined;
-    opts.tabSize = ('tab_width' in ec) ? Number(ec.tab_width) : opts.indentSize;
+    if ('indent_size' in ec) opts.indentSize = Number(ec.indent_size);
+    if ('tab_width' in ec) opts.tabSize = Number(ec.tab_width) || opts.indentSize;
+    if ('max_line_length' in ec) opts.rulers = [Number(ec.max_line_length)];
+    opts.trimAutoWhitespace = ec.trim_trailing_whitespace === true;
     opts.insertSpaces = ec.indent_style === 'space';
     opts.useTabStops = ec.indent_style === 'tab';
-  } else {
-    opts.detectIndentation = true;
   }
+
   return opts;
 }
