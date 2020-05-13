@@ -81,7 +81,7 @@ module.exports = {
         // this bundles all monaco's languages into one file instead of emitting 1-65.js files
         monaco: {
           test: /monaco-editor/,
-          name: 'monaco-langs',
+          name: 'monaco',
           chunks: 'async'
         }
       }
