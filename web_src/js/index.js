@@ -819,7 +819,7 @@ async function initRepository() {
         $.post(update_url, {
           _csrf: csrf,
           target_branch: targetBranch
-        }).success((data) => {
+        }).done((data) => {
           $branchTarget.text(data.base_branch);
         }).always(() => {
           reload();
@@ -1044,7 +1044,7 @@ async function initRepository() {
       if (window.confirm($this.data('locale'))) {
         $.post($this.data('url'), {
           _csrf: csrf
-        }).success(() => {
+        }).done(() => {
           $(`#${$this.data('comment-id')}`).remove();
         });
       }
@@ -2192,7 +2192,7 @@ function initU2FAuth() {
   }
   u2fApi.ensureSupport()
     .then(() => {
-      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).success((req) => {
+      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).done((req) => {
         u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
           .then(u2fSigned)
           .catch((err) => {
@@ -2288,7 +2288,7 @@ function u2fRegisterRequest() {
   $.post(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
     _csrf: csrf,
     name: $('#nickname').val()
-  }).success((req) => {
+  }).done((req) => {
     $('#nickname').closest('div.field').removeClass('error');
     $('#register-device').modal('show');
     if (req.registeredKeys === null) {
