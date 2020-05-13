@@ -165,6 +165,11 @@ func (ctx *Context) notFoundInternal(title string, err error) {
 
 	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
+	if !ctx.IsSigned {
+		ctx.Data["PageIsLogin"] = true
+		ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
+		ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
+	}
 	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
 }
 

@@ -1,10 +1,23 @@
 {{template "base/head" .}}
 {{if .IsRepo}}<div class="repository">{{template "repo/header" .}}</div>{{end}}
-<div class="ui container center">
-	<p style="margin-top: 100px"><img class="ui centered image" src="{{StaticUrlPrefix}}/img/404.png" alt="404"/></p>
-	<div class="ui divider"></div>
-	<br>
-	<p>{{.i18n.Tr "error404" | Safe}}
-	{{if .ShowFooterVersion}}<p>{{.i18n.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
-</div>
+{{if .IsSigned}}
+		<div class="ui container center">
+			<p style="margin-top: 100px"><img class="ui centered image" src="{{StaticUrlPrefix}}/img/404.png" alt="404"/></p>
+			<div class="ui divider"></div>
+			<br>
+			<p>{{.i18n.Tr "error404" | Safe}}
+			{{if .ShowFooterVersion}}<p>{{.i18n.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
+		</div>
+{{else}}
+	<div class="user signin{{if .LinkAccountMode}} icon{{end}}">
+		{{template "user/auth/signin_navbar" .}}
+		<div class="ui container">
+			<p style="margin-top: 100px"><img class="ui centered image" src="{{StaticUrlPrefix}}/img/404.png" alt="404"/></p>
+			<p class="center">{{.i18n.Tr "error404" | Safe}}
+			<div class="ui divider"></div>
+			<br>
+			{{template "user/auth/signin_inner" .}}
+		</div>
+	</div>
+{{end}}
 {{template "base/footer" .}}

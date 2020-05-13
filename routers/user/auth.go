@@ -104,6 +104,7 @@ func checkAutoLogin(ctx *context.Context) bool {
 
 	redirectTo := ctx.Query("redirect_to")
 	if len(redirectTo) > 0 {
+		log.Info("redirectTo: %s", redirectTo)
 		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	} else {
 		redirectTo = ctx.GetCookie("redirect_to")
