@@ -38,8 +38,8 @@ function updateEditor(monaco, editor, filenameInput) {
 export async function createCodeEditor(textarea, filenameInput, previewFileModes) {
   const filename = basename(filenameInput.value);
   const previewLink = document.querySelector('a[data-tab=preview]');
-  const markdownExts = (textarea.dataset.markdownFileExts || '').split(',').filter((v) => !!v);
-  const lineWrapExts = (textarea.dataset.lineWrapExtensions || '').split(',').filter((v) => !!v);
+  const markdownExts = (textarea.dataset.markdownFileExts || '').split(',');
+  const lineWrapExts = (textarea.dataset.lineWrapExtensions || '').split(',');
   const isMarkdown = markdownExts.includes(extname(filename));
 
   if (previewLink) {
