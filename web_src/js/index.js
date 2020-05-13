@@ -20,7 +20,7 @@ import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
-import {createCodeEditor} from './features/editors.js';
+import {createCodeEditor} from './features/codeeditor.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
