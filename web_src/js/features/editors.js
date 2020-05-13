@@ -61,7 +61,7 @@ export async function createCodeEditor(textarea, filenameInput, previewFileModes
   const editor = monaco.editor.create(container, {
     value: textarea.value,
     language: getLanguage(filename),
-    ...await getOptions(filenameInput, lineWrapExts),
+    ...getOptions(filenameInput, lineWrapExts),
   });
 
   const model = editor.getModel();
@@ -84,7 +84,7 @@ export async function createCodeEditor(textarea, filenameInput, previewFileModes
   return editor;
 }
 
-async function getOptions(filenameInput, lineWrapExts) {
+function getOptions(filenameInput, lineWrapExts) {
   const ec = getEditorconfig(filenameInput);
   const theme = isDarkTheme ? 'vs-dark' : 'vs';
   const wordWrap = (lineWrapExts || []).includes(extname(filenameInput.value)) ? 'on' : 'off';
