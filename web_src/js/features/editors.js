@@ -98,10 +98,6 @@ async function getOptions(filenameInput, lineWrapExts) {
     useTabStops = ec.indent_style === 'tab';
   } else {
     detectIndentation = true;
-    indentSize = undefined;
-    tabSize = undefined;
-    insertSpaces = undefined;
-    useTabStops = false;
   }
 
   return {detectIndentation, indentSize, tabSize, insertSpaces, theme, useTabStops, wordWrap};
