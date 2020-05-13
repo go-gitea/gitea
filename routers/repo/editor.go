@@ -147,21 +147,22 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["MarkdownFileExts"] = strings.Join(setting.Markdown.FileExtensions, ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
+	ctx.Data["Editorconfig"] = GetEditorConfig(ctx, treePath)
 
+	ctx.HTML(200, tplEditFile)
+}
+
+// GetEditorConfig returns a editorconfig JSON string for given treePath or "null"
+func GetEditorConfig(ctx *context.Context, treePath string) string {
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
-			json, _ := json.Marshal(def)
-			ctx.Data["Editorconfig"] = string(json)
-		} else {
-			ctx.Data["Editorconfig"] = "{}"
+			jsonStr, _ := json.Marshal(def)
+			return string(jsonStr)
 		}
-	} else {
-		ctx.Data["Editorconfig"] = "{}"
 	}
-
-	ctx.HTML(200, tplEditFile)
+	return "null"
 }
 
 // EditFile render edit file page
@@ -199,6 +200,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	ctx.Data["MarkdownFileExts"] = strings.Join(setting.Markdown.FileExtensions, ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
+	ctx.Data["Editorconfig"] = GetEditorConfig(ctx, form.TreePath)
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplEditFile)

@@ -1,4 +1,4 @@
-import {basename, extname} from '../utils.js';
+import {basename, extname, isObject, isDarkTheme} from '../utils.js';
 
 const languagesByFilename = {};
 const languagesByExt = {};
@@ -42,11 +42,13 @@ export async function createCodeEditor(textarea, filenameInput, previewFileModes
   const lineWrapExts = (textarea.dataset.lineWrapExtensions || '').split(',').filter((v) => !!v);
   const isMarkdown = markdownExts.includes(extname(filename));
 
-  if (isMarkdown && (previewFileModes || []).includes('markdown')) {
-    previewLink.dataset.url = previewLink.dataset.url.replace(/(.*)\/.*/i, `$1/markdown`);
-    previewLink.style.display = '';
-  } else {
-    previewLink.style.display = 'none';
+  if (previewLink) {
+    if (isMarkdown && (previewFileModes || []).includes('markdown')) {
+      previewLink.dataset.url = previewLink.dataset.url.replace(/(.*)\/.*/i, `$1/markdown`);
+      previewLink.style.display = '';
+    } else {
+      previewLink.style.display = 'none';
+    }
   }
 
   const monaco = await import(/* webpackChunkName: "monaco" */'monaco-editor');
@@ -84,16 +86,23 @@ export async function createCodeEditor(textarea, filenameInput, previewFileModes
 
 async function getOptions(filenameInput, lineWrapExts) {
   const ec = getEditorconfig(filenameInput);
-  const detectIndentation = !ec || !ec.indent_style || !ec.indent_size;
-  const indentSize = !detectIndentation && ('indent_size' in ec) ? Number(ec.indent_size) : undefined;
-  const tabSize = !detectIndentation && ('tab_width' in ec) ? Number(ec.tab_width) : indentSize;
+  const theme = isDarkTheme ? 'vs-dark' : 'vs';
+  const wordWrap = (lineWrapExts || []).includes(extname(filenameInput.value)) ? 'on' : 'off';
 
-  return {
-    detectIndentation,
-    insertSpaces: detectIndentation ? undefined : ec.indent_style === 'space',
-    tabSize: detectIndentation ? undefined : (tabSize || indentSize),
-    theme: document.documentElement.classList.contains('theme-arc-green') ? 'vs-dark' : 'vs',
-    useTabStops: ec.indent_style === 'tab',
-    wordWrap: lineWrapExts.includes(extname(filenameInput.value)) ? 'on' : 'off',
-  };
+  let detectIndentation, indentSize, tabSize, insertSpaces, useTabStops;
+  if (isObject(ec)) {
+    detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
+    indentSize = ('indent_size' in ec) ? Number(ec.indent_size) : undefined;
+    tabSize = ('tab_width' in ec) ? Number(ec.tab_width) : indentSize;
+    insertSpaces = ec.indent_style === 'space';
+    useTabStops = ec.indent_style === 'tab';
+  } else {
+    detectIndentation = true;
+    indentSize = undefined;
+    tabSize = undefined;
+    insertSpaces = undefined;
+    useTabStops = false;
+  }
+
+  return {detectIndentation, indentSize, tabSize, insertSpaces, theme, useTabStops, wordWrap};
 }
