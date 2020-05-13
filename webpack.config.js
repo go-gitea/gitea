@@ -241,6 +241,8 @@ module.exports = {
   ],
   performance: {
     hints: false,
+    maxEntrypointSize: Infinity,
+    maxAssetSize: Infinity,
   },
   resolve: {
     symlinks: false,
