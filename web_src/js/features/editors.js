@@ -86,7 +86,7 @@ export async function createCodeEditor(textarea, filenameInput, previewFileModes
 
 function getOptions(filenameInput, lineWrapExts) {
   const ec = getEditorconfig(filenameInput);
-  const theme = isDarkTheme ? 'vs-dark' : 'vs';
+  const theme = isDarkTheme() ? 'vs-dark' : 'vs';
   const wordWrap = (lineWrapExts || []).includes(extname(filenameInput.value)) ? 'on' : 'off';
 
   const opts = {theme, wordWrap};
