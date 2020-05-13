@@ -89,16 +89,15 @@ async function getOptions(filenameInput, lineWrapExts) {
   const theme = isDarkTheme ? 'vs-dark' : 'vs';
   const wordWrap = (lineWrapExts || []).includes(extname(filenameInput.value)) ? 'on' : 'off';
 
-  let detectIndentation, indentSize, tabSize, insertSpaces, useTabStops;
+  const opts = {theme, wordWrap};
   if (isObject(ec)) {
-    detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
-    indentSize = ('indent_size' in ec) ? Number(ec.indent_size) : undefined;
-    tabSize = ('tab_width' in ec) ? Number(ec.tab_width) : indentSize;
-    insertSpaces = ec.indent_style === 'space';
-    useTabStops = ec.indent_style === 'tab';
+    opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
+    opts.indentSize = ('indent_size' in ec) ? Number(ec.indent_size) : undefined;
+    opts.tabSize = ('tab_width' in ec) ? Number(ec.tab_width) : opts.indentSize;
+    opts.insertSpaces = ec.indent_style === 'space';
+    opts.useTabStops = ec.indent_style === 'tab';
   } else {
-    detectIndentation = true;
+    opts.detectIndentation = true;
   }
-
-  return {detectIndentation, indentSize, tabSize, insertSpaces, theme, useTabStops, wordWrap};
+  return opts;
 }
