@@ -26,5 +26,6 @@ For changes to a **non-English** translation, refer to the crowdin project above
 
 Any language listed in the above crowdin project will be supported as long as 25% or more has been translated.
 
-After a translation has been accepted, it will be reflected in the main repository after the next crowdin sync, which is generally after a PR is merged.  
-At the time of writing, this means that a changed translation may not appear until the following Gitea release.
+After a translation has been accepted, it will be reflected in the main repository after the next crowdin sync, which is generally after any PR is merged.  
+At the time of writing, this means that a changed translation may not appear until the following Gitea release.  
+If you use a bleeding edge build, it should appear as soon as you update after the change is synced.
