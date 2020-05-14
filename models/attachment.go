@@ -219,7 +219,7 @@ func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
 
 	if remove {
 		for i, a := range attachments {
-			if storage.Attachments.Delete(a.RelativePath()); err != nil {
+			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
 				return i, err
 			}
 		}
