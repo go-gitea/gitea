@@ -2,7 +2,7 @@
 <input id="ref_selector" name="ref" type="hidden" value="{{.Issue.Ref}}">
 <div class="ui {{if .ReadOnly}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 	<div class="ui basic small button">
-		<span class="text branch-name">{{if .Issue.Ref}}{{.Issue.Ref}}{{else}}{{.i18n.Tr "repo.issues.no_ref"}}{{end}}</span>
+		<span class="text branch-name">{{if .Issue.Ref}}{{$.RefEndName}}{{else}}{{.i18n.Tr "repo.issues.no_ref"}}{{end}}</span>
 		<i class="dropdown icon"></i>
 	</div>
 	<div class="menu">
@@ -28,12 +28,12 @@
 		</div>
 		<div id="branch-list" class="scrolling menu reference-list-menu">
 		{{range .Branches}}
-			<div class="item" data-id="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
+			<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
 		{{end}}
 		</div>
 		<div id="tag-list" class="scrolling menu reference-list-menu" style="display: none">
 		{{range .Tags}}
-			<div class="item" data-id="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
+			<div class="item" data-id="refs/tags/{{.}}" data-name="tags/{{.}}" data-id-selector="#ref_selector">{{.}}</div>
 		{{end}}
 		</div>
 	</div>

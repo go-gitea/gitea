@@ -114,10 +114,9 @@ function initEditForm() {
 function initBranchSelector() {
   const $selectBranch = $('.ui.select-branch');
   const $branchMenu = $selectBranch.find('.reference-list-menu');
-  $branchMenu.find('.item:not(.no-select)').on('click', function () {
-    const selectedValue = $(this).data('id');
-    $($(this).data('id-selector')).val(selectedValue);
-    $selectBranch.find('.ui .branch-name').text(selectedValue);
+  $branchMenu.find('.item:not(.no-select)').click(function () {
+    $($(this).data('id-selector')).val($(this).data('id'));
+    $selectBranch.find('.ui .branch-name').text($(this).data('name'));
   });
   $selectBranch.find('.reference.column').on('click', function () {
     $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
