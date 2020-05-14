@@ -20,6 +20,7 @@ import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {createCodeEditor} from './features/codeeditor.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -28,9 +29,7 @@ function htmlEncode(text) {
 }
 
 let previewFileModes;
-let simpleMDEditor;
 const commentMDEditors = {};
-let codeMirrorEditor;
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -1467,62 +1466,6 @@ $.fn.getCursorPosition = function () {
   return pos;
 };
 
-function setSimpleMDE($editArea) {
-  if (codeMirrorEditor) {
-    codeMirrorEditor.toTextArea();
-    codeMirrorEditor = null;
-  }
-
-  if (simpleMDEditor) {
-    return true;
-  }
-
-  simpleMDEditor = new SimpleMDE({
-    autoDownloadFontAwesome: false,
-    element: $editArea[0],
-    forceSync: true,
-    renderingConfig: {
-      singleLineBreaks: false
-    },
-    indentWithTabs: false,
-    tabSize: 4,
-    spellChecker: false,
-    previewRender(plainText, preview) { // Async method
-      setTimeout(() => {
-        // FIXME: still send render request when return back to edit mode
-        $.post($editArea.data('url'), {
-          _csrf: csrf,
-          mode: 'gfm',
-          context: $editArea.data('context'),
-          text: plainText
-        }, (data) => {
-          preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-        });
-      }, 0);
-
-      return 'Loading...';
-    },
-    toolbar: ['bold', 'italic', 'strikethrough', '|',
-      'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|',
-      'unordered-list', 'ordered-list', '|',
-      'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
-      {
-        name: 'revert-to-textarea',
-        action(e) {
-          e.toTextArea();
-        },
-        className: 'fa fa-file',
-        title: 'Revert to simple textarea',
-      },
-    ]
-  });
-  $(simpleMDEditor.codemirror.getInputField()).addClass('js-quick-submit');
-
-  return true;
-}
-
 function setCommentSimpleMDE($editArea) {
   const simplemde = new SimpleMDE({
     autoDownloadFontAwesome: false,
@@ -1569,27 +1512,7 @@ function setCommentSimpleMDE($editArea) {
   return simplemde;
 }
 
-function setCodeMirror($editArea) {
-  if (simpleMDEditor) {
-    simpleMDEditor.toTextArea();
-    simpleMDEditor = null;
-  }
-
-  if (codeMirrorEditor) {
-    return true;
-  }
-
-  codeMirrorEditor = CodeMirror.fromTextArea($editArea[0], {
-    lineNumbers: true
-  });
-  codeMirrorEditor.on('change', (cm, _change) => {
-    $editArea.val(cm.getValue());
-  });
-
-  return true;
-}
-
-function initEditor() {
+async function initEditor() {
   $('.js-quick-pull-choice-option').on('change', function () {
     if ($(this).val() === 'commit-to-new-branch') {
       $('.quick-pull-branch-name').show();
@@ -1650,89 +1573,7 @@ function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  const markdownFileExts = $editArea.data('markdown-file-exts').split(',');
-  const lineWrapExtensions = $editArea.data('line-wrap-extensions').split(',');
-
-  $editFilename.on('keyup', () => {
-    const val = $editFilename.val();
-    let mode, spec, extension, extWithDot, dataUrl, apiCall;
-
-    extension = extWithDot = '';
-    const m = /.+\.([^.]+)$/.exec(val);
-    if (m) {
-      extension = m[1];
-      extWithDot = `.${extension}`;
-    }
-
-    const info = CodeMirror.findModeByExtension(extension);
-    const previewLink = $('a[data-tab=preview]');
-    if (info) {
-      mode = info.mode;
-      spec = info.mime;
-      apiCall = mode;
-    } else {
-      apiCall = extension;
-    }
-
-    if (previewLink.length && apiCall && previewFileModes && previewFileModes.length && previewFileModes.includes(apiCall)) {
-      dataUrl = previewLink.data('url');
-      previewLink.data('url', dataUrl.replace(/(.*)\/.*/i, `$1/${mode}`));
-      previewLink.show();
-    } else {
-      previewLink.hide();
-    }
-
-    // If this file is a Markdown extensions, we will load that editor and return
-    if (markdownFileExts.includes(extWithDot)) {
-      if (setSimpleMDE($editArea)) {
-        return;
-      }
-    }
-
-    // Else we are going to use CodeMirror
-    if (!codeMirrorEditor && !setCodeMirror($editArea)) {
-      return;
-    }
-
-    if (mode) {
-      codeMirrorEditor.setOption('mode', spec);
-      CodeMirror.autoLoadMode(codeMirrorEditor, mode);
-    }
-
-    if (lineWrapExtensions.includes(extWithDot)) {
-      codeMirrorEditor.setOption('lineWrapping', true);
-    } else {
-      codeMirrorEditor.setOption('lineWrapping', false);
-    }
-
-    // get the filename without any folder
-    let value = $editFilename.val();
-    if (value.length === 0) {
-      return;
-    }
-    value = value.split('/');
-    value = value[value.length - 1];
-
-    $.getJSON($editFilename.data('ec-url-prefix') + value, (editorconfig) => {
-      if (editorconfig.indent_style === 'tab') {
-        codeMirrorEditor.setOption('indentWithTabs', true);
-        codeMirrorEditor.setOption('extraKeys', {});
-      } else {
-        codeMirrorEditor.setOption('indentWithTabs', false);
-        // required because CodeMirror doesn't seems to use spaces correctly for {"indentWithTabs": false}:
-        // - https://github.com/codemirror/CodeMirror/issues/988
-        // - https://codemirror.net/doc/manual.html#keymaps
-        codeMirrorEditor.setOption('extraKeys', {
-          Tab(cm) {
-            const spaces = new Array(parseInt(cm.getOption('indentUnit')) + 1).join(' ');
-            cm.replaceSelection(spaces);
-          }
-        });
-      }
-      codeMirrorEditor.setOption('indentUnit', editorconfig.indent_size || 4);
-      codeMirrorEditor.setOption('tabSize', editorconfig.tab_width || 4);
-    });
-  }).trigger('keyup');
+  await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
