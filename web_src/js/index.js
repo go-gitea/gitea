@@ -43,9 +43,9 @@ function initCommentPreviewTab($form) {
       _csrf: csrf,
       mode: 'gfm',
       context: $this.data('context'),
-      text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
-      const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
+      const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
       $('pre code', $previewPanel[0]).each(function () {
         highlight(this);
@@ -74,9 +74,9 @@ function initEditPreviewTab($form) {
         _csrf: csrf,
         mode: 'gfm',
         context,
-        text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+        text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
       }, (data) => {
-        const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
+        const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
         $('pre code', $previewPanel[0]).each(function () {
           highlight(this);
@@ -94,9 +94,9 @@ function initEditDiffTab($form) {
     $.post($this.data('url'), {
       _csrf: csrf,
       context: $this.data('context'),
-      content: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      content: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
-      const $diffPreviewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('diff')}"]`);
+      const $diffPreviewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('diff')}"]`);
       $diffPreviewPanel.html(data);
     });
   });
@@ -971,8 +971,8 @@ async function initRepository() {
         $tabMenu.attr('data-preview', $editContentZone.data('preview'));
         $tabMenu.find('.write.item').attr('data-tab', $editContentZone.data('write'));
         $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
-        $editContentForm.find('.write.segment').attr('data-tab', $editContentZone.data('write'));
-        $editContentForm.find('.preview.segment').attr('data-tab', $editContentZone.data('preview'));
+        $editContentForm.find('.write').attr('data-tab', $editContentZone.data('write'));
+        $editContentForm.find('.preview').attr('data-tab', $editContentZone.data('preview'));
         $simplemde = setCommentSimpleMDE($textarea);
         commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
