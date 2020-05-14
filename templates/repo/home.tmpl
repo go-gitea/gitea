@@ -62,10 +62,10 @@
 			{{ $l := Subtract $n 1}}
 			<!-- If home page, show new PR. If not, show breadcrumb -->
 			{{if eq $n 0}}
-				{{if and .PullRequestCtx.Allowed .IsViewBranch (not .Repository.IsArchived)}}
+				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					<div class="fitted item">
 						<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.BranchName | EscapePound}}">
-							<button id="new-pull-request" class="ui compact basic button">{{.i18n.Tr "repo.pulls.compare_changes"}}</button>
+							<button id="new-pull-request" class="ui compact basic button">{{if .PullRequestCtx.Allowed}}{{.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{.i18n.Tr "action.compare_branch"}}{{end}}</button>
 						</a>
 					</div>
 				{{end}}

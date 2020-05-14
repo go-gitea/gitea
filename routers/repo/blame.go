@@ -194,6 +194,12 @@ func RefBlame(ctx *context.Context) {
 		commitNames[c.ID.String()] = c
 	}
 
+	// Get Topics of this repo
+	renderRepoTopics(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	renderBlame(ctx, blameParts, commitNames)
 
 	ctx.HTML(200, tplBlame)
