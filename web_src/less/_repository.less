@@ -1555,14 +1555,6 @@
                         text-align: center;
                     }
 
-                    .removed-code {
-                        background-color: #ff9999;
-                    }
-
-                    .added-code {
-                        background-color: #99ff99;
-                    }
-
                     [data-line-num]::before {
                         content: attr(data-line-num);
                         text-align: right;
@@ -2864,4 +2856,12 @@ td.blob-excerpt {
 .repository.file .repository-summary {
     height: 48px;
     overflow: hidden;
+}
+
+.removed-code {
+    background-color: #ff9999;
+}
+
+.added-code {
+    background-color: #99ff99;
 }
