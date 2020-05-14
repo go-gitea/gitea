@@ -28,7 +28,7 @@ Should the packages get updated and fixed, we will provide up-to-date installati
 ## Windows
 
 There are no published packages for Windows. This page will change when packages are published,
-in the form of `MSI` installers or via [Chocolatey](https://chocolatey.org/). In the meantime
+in the form of `MSI` installers or via [Chocolatey](https://chocolatey.org/). In the meantime, follow
 the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide.
 
 ## macOS
@@ -77,3 +77,9 @@ The Gitea package is maintained [here](https://git.cloudron.io/cloudron/gitea-ap
 There is a [demo instance](https://my-demo.cloudron.me) (username: cloudron password: cloudron) where
 you can experiment with running Gitea.
 
+## Third-party
+
+Various other third-party packages of Gitea exist. 
+To see a curated list, head over to [awesome-gitea](https://gitea.com/gitea/awesome-gitea/src/branch/master/README.md#user-content-packages).
+
+Do you know of an existing package that isn't on the list? Send in a PR to get it added!
