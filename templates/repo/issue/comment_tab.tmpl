@@ -1,17 +1,19 @@
+<div class="ui top tabular menu" data-write="write" data-preview="preview">
+	<a class="active item" data-tab="write">{{.i18n.Tr "write"}}</a>
+	<a class="item" data-tab="preview" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}">{{.i18n.Tr "preview"}}</a>
+</div>
 <div class="field">
-	<div class="ui top attached tabular menu" data-write="write" data-preview="preview">
-		<a class="active item" data-tab="write">{{.i18n.Tr "write"}}</a>
-		<a class="item" data-tab="preview" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}">{{.i18n.Tr "preview"}}</a>
-	</div>
-	<div class="ui bottom attached active tab segment" data-tab="write">
+	<div class="ui bottom active tab" data-tab="write">
 		<textarea id="content" class="edit_area js-quick-submit" name="content" tabindex="4" data-id="issue-{{.RepoName}}" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.Repo.RepoLink}}">
 {{if .BodyQuery}}{{.BodyQuery}}{{else if .IssueTemplate}}{{.IssueTemplate}}{{else if .PullRequestTemplate}}{{.PullRequestTemplate}}{{else}}{{.content}}{{end}}</textarea>
 	</div>
-	<div class="ui bottom attached tab segment markdown" data-tab="preview">
+	<div class="ui bottom tab markdown" data-tab="preview">
 		{{.i18n.Tr "loading"}}
 	</div>
 </div>
 {{if .IsAttachmentEnabled}}
+<div class="field">
 	<div class="files"></div>
-	<div class="ui basic button dropzone" id="dropzone" data-upload-url="{{AppSubUrl}}/attachments" data-accepts="{{.AttachmentAllowedTypes}}" data-max-file="{{.AttachmentMaxFiles}}" data-max-size="{{.AttachmentMaxSize}}" data-default-message="{{.i18n.Tr "dropzone.default_message"}}" data-invalid-input-type="{{.i18n.Tr "dropzone.invalid_input_type"}}" data-file-too-big="{{.i18n.Tr "dropzone.file_too_big"}}" data-remove-file="{{.i18n.Tr "dropzone.remove_file"}}"></div>
+	<div class="ui dropzone" id="dropzone" data-upload-url="{{AppSubUrl}}/attachments" data-accepts="{{.AttachmentAllowedTypes}}" data-max-file="{{.AttachmentMaxFiles}}" data-max-size="{{.AttachmentMaxSize}}" data-default-message="{{.i18n.Tr "dropzone.default_message"}}" data-invalid-input-type="{{.i18n.Tr "dropzone.invalid_input_type"}}" data-file-too-big="{{.i18n.Tr "dropzone.file_too_big"}}" data-remove-file="{{.i18n.Tr "dropzone.remove_file"}}"></div>
+</div>
 {{end}}

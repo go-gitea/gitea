@@ -88,7 +88,7 @@ GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(fi
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_DIRS := public/js public/css
+WEBPACK_DEST_DIRS := public/js public/css public/fonts
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
@@ -295,7 +295,7 @@ lint-frontend: node_modules
 
 .PHONY: watch-frontend
 watch-frontend: node_modules
-	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch
+	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
 
 .PHONY: test
 test:
@@ -598,6 +598,7 @@ $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
 webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
+	rm -rf $(WEBPACK_DEST_DIRS)
 	npx webpack --hide-modules --display-entrypoints=false
 	@touch $(WEBPACK_DEST)
 
