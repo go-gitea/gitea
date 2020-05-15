@@ -215,7 +215,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// check if they have a fork of the base repo and offer that as
 	// "OwnForkRepo"
 	var ownForkRepo *models.Repository
-	if baseRepo.OwnerID != ctx.User.ID {
+	if ctx.User != nil && baseRepo.OwnerID != ctx.User.ID {
 		repo, has := models.HasForkedRepo(ctx.User.ID, baseRepo.ID)
 		if has {
 			ownForkRepo = repo
