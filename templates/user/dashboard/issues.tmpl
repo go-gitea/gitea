@@ -149,8 +149,8 @@
 									</a>
 								{{end}}
 								{{if .Ref}}
-									<a class="ref" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/src/branch/{{.Ref}}">
-										{{svg "octicon-git-branch" 16}} {{.Ref}}
+									<a class="ref" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{index $.IssueRefURLs .ID}}">
+										{{svg "octicon-git-branch" 16}} {{index $.IssueRefEndNames .ID}}
 									</a>
 								{{end}}
 								{{range .Assignees}}
