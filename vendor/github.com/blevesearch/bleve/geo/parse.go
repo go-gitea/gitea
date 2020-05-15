@@ -85,9 +85,11 @@ func ExtractGeoPoint(thing interface{}) (lon, lat float64, success bool) {
 			}
 		} else {
 			// geohash
-			lat, lon = DecodeGeoHash(geoStr)
-			foundLat = true
-			foundLon = true
+			if len(geoStr) <= geoHashMaxLength {
+				lat, lon = DecodeGeoHash(geoStr)
+				foundLat = true
+				foundLon = true
+			}
 		}
 	}
 

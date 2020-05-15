@@ -16,9 +16,9 @@
 	</div>
 </div>
 <form class="ui form ignore-dirty" style="max-width: 90%">
+	<input type="hidden" name="tab" value="{{$.TabName}}">
 	<div class="ui fluid action input">
 	  <input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
-	  <input type="hidden" name="tab" value="{{$.TabName}}">
 	  <button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
 	</div>
 </form>

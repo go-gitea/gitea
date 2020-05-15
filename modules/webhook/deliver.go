@@ -26,6 +26,14 @@ import (
 
 // Deliver deliver hook task
 func Deliver(t *models.HookTask) error {
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+		// There was a panic whilst delivering a hook...
+		log.Error("PANIC whilst trying to deliver webhook[%d] for repo[%d] to %s Panic: %v\nStacktrace: %s", t.ID, t.RepoID, t.URL, err, log.Stack(2))
+	}()
 	t.IsDelivered = true
 
 	var req *http.Request

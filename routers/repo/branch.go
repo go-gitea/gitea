@@ -46,6 +46,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls()
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
+	ctx.Data["CanPull"] = ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
@@ -56,8 +57,12 @@ func Branches(ctx *context.Context) {
 // DeleteBranchPost responses for delete merged branch
 func DeleteBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
-
 	branchName := ctx.Query("name")
+	if branchName == ctx.Repo.Repository.DefaultBranch {
+		ctx.Flash.Error(ctx.Tr("repo.branch.default_deletion_failed", branchName))
+		return
+	}
+
 	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
 	if err != nil {
 		log.Error("DeleteBranch: %v", err)

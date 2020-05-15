@@ -20,7 +20,9 @@
                         {{$.i18n.Tr "settings.delete_key"}}
                     </button>
                 </div>
-                <span class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted tiny"{{end}}>{{svg "octicon-key" 32}}</span>
+                <div class="left floated content">
+                	<span class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted tiny"{{end}}>{{svg "octicon-key" 32}}</span>
+                </div>
                 <div class="content">
                     <strong>{{.Name}}</strong>
                     <div class="print meta">

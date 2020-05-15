@@ -88,7 +88,7 @@ GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(fi
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_DIRS := public/js public/css
+WEBPACK_DEST_DIRS := public/js public/css public/fonts
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
@@ -144,29 +144,29 @@ include docker/Makefile
 .PHONY: help
 help:
 	@echo "Make Routines:"
-	@echo " - \"\"                equivalent to \"build\""
-	@echo " - build             build everything"
-	@echo " - frontend          build frontend files"
-	@echo " - backend           build backend files"
-	@echo " - clean             delete backend and integration files"
-	@echo " - clean-all         delete backend, frontend and integration files"
-	@echo " - lint              lint everything"
-	@echo " - lint-frontend     lint frontend files"
-	@echo " - lint-backend      lint backend files"
-	@echo " - watch-frontend    watch frontend files and continuously rebuild"
-	@echo " - webpack           build webpack files"
-	@echo " - fomantic          build fomantic files"
-	@echo " - generate          run \"go generate\""
-	@echo " - fmt               format the Go code"
-	@echo " - generate-swagger  generate the swagger spec from code comments"
-	@echo " - swagger-validate  check if the swagger spec is valid"
-	@echo " - golangci-lint     run golangci-lint linter"
-	@echo " - revive            run revive linter"
-	@echo " - misspell          check for misspellings"
-	@echo " - vet               examines Go source code and reports suspicious constructs"
-	@echo " - test              run unit test"
-	@echo " - test-sqlite       run integration test for sqlite"
-	@echo " - pr#<index>        build and start gitea from a PR with integration test data loaded"
+	@echo " - \"\"                             equivalent to \"build\""
+	@echo " - build                            build everything"
+	@echo " - frontend                         build frontend files"
+	@echo " - backend                          build backend files"
+	@echo " - clean                            delete backend and integration files"
+	@echo " - clean-all                        delete backend, frontend and integration files"
+	@echo " - lint                             lint everything"
+	@echo " - lint-frontend                    lint frontend files"
+	@echo " - lint-backend                     lint backend files"
+	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
+	@echo " - webpack                          build webpack files"
+	@echo " - fomantic                         build fomantic files"
+	@echo " - generate                         run \"go generate\""
+	@echo " - fmt                              format the Go code"
+	@echo " - generate-swagger                 generate the swagger spec from code comments"
+	@echo " - swagger-validate                 check if the swagger spec is valid"
+	@echo " - golangci-lint                    run golangci-lint linter"
+	@echo " - revive                           run revive linter"
+	@echo " - misspell                         check for misspellings"
+	@echo " - vet                              examines Go source code and reports suspicious constructs"
+	@echo " - test[\#TestSpecificName]    	   run unit test"
+	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
+	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
@@ -295,7 +295,7 @@ lint-frontend: node_modules
 
 .PHONY: watch-frontend
 watch-frontend: node_modules
-	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch
+	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
 
 .PHONY: test
 test:
@@ -598,6 +598,7 @@ $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
 webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
+	rm -rf $(WEBPACK_DEST_DIRS)
 	npx webpack --hide-modules --display-entrypoints=false
 	@touch $(WEBPACK_DEST)
 

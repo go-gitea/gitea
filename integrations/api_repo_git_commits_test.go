@@ -21,18 +21,14 @@ func TestAPIReposGitCommits(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	//check invalid requests for GetCommitsBySHA
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/master?token="+token, user.Name)
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/12345?token="+token, user.Name)
+	// check invalid requests
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/12345?token="+token, user.Name)
 	session.MakeRequest(t, req, http.StatusNotFound)
 
-	//check invalid requests for GetCommitsByRef
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/..?token="+token, user.Name)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/..?token="+token, user.Name)
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/branch-not-exist?token="+token, user.Name)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/branch-not-exist?token="+token, user.Name)
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	for _, ref := range [...]string{
@@ -41,20 +37,8 @@ func TestAPIReposGitCommits(t *testing.T) {
 		"65f1",   // short sha
 		"65f1bf27bc3bf70f64657658635e66094edbcb4d", // full sha
 	} {
-		req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/%s?token="+token, user.Name, ref)
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		commitByRef := new(api.Commit)
-		DecodeJSON(t, resp, commitByRef)
-		assert.Len(t, commitByRef.SHA, 40)
-		assert.EqualValues(t, commitByRef.SHA, commitByRef.RepoCommit.Tree.SHA)
-		req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/%s?token="+token, user.Name, commitByRef.SHA)
-		resp = session.MakeRequest(t, req, http.StatusOK)
-		commitBySHA := new(api.Commit)
-		DecodeJSON(t, resp, commitBySHA)
-
-		assert.EqualValues(t, commitByRef.SHA, commitBySHA.SHA)
-		assert.EqualValues(t, commitByRef.HTMLURL, commitBySHA.HTMLURL)
-		assert.EqualValues(t, commitByRef.RepoCommit.Message, commitBySHA.RepoCommit.Message)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/%s?token="+token, user.Name, ref)
+		session.MakeRequest(t, req, http.StatusOK)
 	}
 }
 
