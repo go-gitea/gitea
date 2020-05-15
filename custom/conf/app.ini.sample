@@ -52,7 +52,7 @@ DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
 PREFIX_ARCHIVE_FILES = true
 
 [repository.editor]
-; List of file extensions for which lines should be wrapped in the CodeMirror editor
+; List of file extensions for which lines should be wrapped in the Monaco editor
 ; Separate extensions with a comma. To line wrap files without an extension, just put a comma
 LINE_WRAP_EXTENSIONS = .txt,.md,.markdown,.mdown,.mkd,
 ; Valid file modes that have a preview API associated with them, such as api/v1/markdown

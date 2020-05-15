@@ -211,6 +211,8 @@ var migrations = []Migration{
 	// v138 -> v139
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
 	// v139 -> v140
+	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
+	// v140 -> v141
 	NewMigration("Add IsHookTaskPurgeEnabled and NumberWebhookDeliveriesToKeep columns to Repository table", addHookTaskPurge),
 }
 

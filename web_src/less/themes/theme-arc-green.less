@@ -576,10 +576,6 @@ a.ui.basic.green.label:hover {
 
 .repository.file.editor.edit,
 .repository.wiki.new .CodeMirror {
-    border-right: 1px solid rgba(187, 187, 187, .6);
-    border-left: 1px solid rgba(187, 187, 187, .6);
-    border-bottom: 1px solid rgba(187, 187, 187, .6);
-
     .editor-preview,
     .editor-preview-side,
     & + .editor-preview-side {
@@ -751,7 +747,11 @@ a.ui.basic.green.label:hover {
     border-color: #314a37 !important;
 }
 
-.repository .diff-file-box .code-diff tbody tr .added-code {
+.removed-code {
+    background-color: #5f3737;
+}
+
+.added-code {
     background-color: #3a523a;
 }
 
@@ -764,10 +764,6 @@ a.ui.basic.green.label:hover {
 .hljs-string,
 .hljs-doctag {
     color: #8ab398;
-}
-
-.repository .diff-file-box .code-diff tbody tr .removed-code {
-    background-color: #5f3737;
 }
 
 .tag-code,
@@ -1298,6 +1294,11 @@ a.ui.labels .label:hover {
 .editor-toolbar {
     background-color: #404552;
     border-color: #7f98ad;
+}
+
+.edit-diff > div > .ui.table {
+    border-left-color: #404552 !important;
+    border-right-color: #404552 !important;
 }
 
 .editor-toolbar a {

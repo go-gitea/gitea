@@ -1,4 +1,4 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -10,19 +10,16 @@ import (
 	"xorm.io/xorm"
 )
 
-func addHookTaskPurge(x *xorm.Engine) error {
+func prependRefsHeadsToIssueRefs(x *xorm.Engine) error {
+	var query string
 
-	type Repository struct {
-		ID                            int64 `xorm:"pk autoincr"`
-		IsHookTaskPurgeEnabled        bool  `xorm:"NOT NULL DEFAULT true"`
-		NumberWebhookDeliveriesToKeep int64 `xorm:"NOT NULL DEFAULT 10"`
+	switch {
+	case setting.Database.UseMSSQL:
+		query = "UPDATE `issue` SET `ref` = 'refs/heads/' + `ref` WHERE `ref` IS NOT NULL AND `ref` <> '' AND `ref` NOT LIKE 'refs/%'"
+	default:
+		query = "UPDATE `issue` SET `ref` = 'refs/heads/' || `ref` WHERE `ref` IS NOT NULL AND `ref` <> '' AND `ref` NOT LIKE 'refs/%'"
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
-		return err
-	}
-
-	_, err := x.Exec("UPDATE repository SET is_hook_task_purge_enabled = ?, number_webhook_deliveries_to_keep = ?",
-		setting.Repository.DefaultIsHookTaskPurgeEnabled, setting.Repository.DefaultNumberWebhookDeliveriesToKeep)
+	_, err := x.Exec(query)
 	return err
 }

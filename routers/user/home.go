@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/keybase/go-crypto/openpgp"
@@ -224,7 +225,7 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	counts, err := models.CountMilestones(userRepoCond, isShowClosed)
+	counts, err := models.CountMilestonesByRepoCond(userRepoCond, isShowClosed)
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
@@ -267,7 +268,7 @@ func Milestones(ctx *context.Context) {
 		i++
 	}
 
-	milestoneStats, err := models.GetMilestonesStats(repoCond)
+	milestoneStats, err := models.GetMilestonesStatsByRepoCond(repoCond)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
@@ -277,7 +278,7 @@ func Milestones(ctx *context.Context) {
 	if len(repoIDs) == 0 {
 		totalMilestoneStats = milestoneStats
 	} else {
-		totalMilestoneStats, err = models.GetMilestonesStats(userRepoCond)
+		totalMilestoneStats, err = models.GetMilestonesStatsByRepoCond(userRepoCond)
 		if err != nil {
 			ctx.ServerError("GetMilestoneStats", err)
 			return
@@ -623,6 +624,9 @@ func Issues(ctx *context.Context) {
 		shownIssues = int(shownIssueStats.ClosedCount)
 		totalIssues = int(allIssueStats.ClosedCount)
 	}
+
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
+		issue_service.GetRefEndNamesAndURLs(issues, ctx.Query("RepoLink"))
 
 	ctx.Data["Issues"] = issues
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
