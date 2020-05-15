@@ -333,6 +333,14 @@ func SyncMirrors(ctx context.Context) {
 
 func syncMirror(repoID string) {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+		// There was a panic whilst syncMirrors...
+		log.Error("PANIC whilst syncMirrors[%s] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
+	}()
 	mirrorQueue.Remove(repoID)
 
 	m, err := models.GetMirrorByRepoID(com.StrTo(repoID).MustInt64())
