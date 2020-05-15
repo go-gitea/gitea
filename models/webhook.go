@@ -803,7 +803,7 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 func DeleteDeliveredHookTasks(repoID int64, numberDeliveriesToKeep int64) error {
 	maxDeletesPerBatch := 1000
 	totalDeliveries, err := x.
-		Where("repo_id=? AND is_delivered=? ", repoID, 1).
+		Where("repo_id=? AND is_delivered=? AND is_hook_task_purge_enabled=?", repoID, 1, 1).
 		Count(new(HookTask))
 	if err != nil {
 		return err
