@@ -15,7 +15,7 @@
 						{{range $i, $v := .TreeNames}}
 							<div class="divider"> / </div>
 							{{if eq $i $l}}
-								<input id="file-name" value="{{$v}}" placeholder="{{$.i18n.Tr "repo.editor.name_your_file"}}" data-ec-url-prefix="{{$.EditorconfigURLPrefix}}" required autofocus>
+								<input id="file-name" value="{{$v}}" placeholder="{{$.i18n.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.Editorconfig}}" required autofocus>
 								<span class="poping up" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-info" 16}}</span>
 							{{else}}
 								<span class="section"><a href="{{EscapePound $.BranchLink}}/{{index $.TreePaths $i | EscapePound}}">{{$v}}</a></span>
@@ -41,11 +41,14 @@
 						data-markdown-file-exts="{{.MarkdownFileExts}}"
 						data-line-wrap-extensions="{{.LineWrapExtensions}}">
 {{.FileContent}}</textarea>
+					<div class="editor-loading">
+						{{.i18n.Tr "loading"}}
+					</div>
 				</div>
 				<div class="ui bottom attached tab segment markdown" data-tab="preview">
 					{{.i18n.Tr "loading"}}
 				</div>
-				<div class="ui bottom attached tab segment diff" data-tab="diff">
+				<div class="ui bottom attached tab segment diff edit-diff" data-tab="diff">
 					{{.i18n.Tr "loading"}}
 				</div>
 			</div>
