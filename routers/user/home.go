@@ -99,6 +99,10 @@ func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
 		act.Repo.Owner = repoOwner
 	}
 	ctx.Data["Feeds"] = actions
+
+	if len(actions) > 0 {
+		ctx.Data["HasFeeds"] = true
+	}
 }
 
 // Dashboard render the dashborad page
