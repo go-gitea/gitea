@@ -815,7 +815,7 @@ func DeleteDeliveredHookTasks(repoID int64, numberDeliveriesToKeep int64) error 
 		var numberToDelete = totalDeliveries - numberDeliveriesToKeep
 		log.Trace("From repo %d will delete %d from hook_task", repoID, numberToDelete)
 
-		var numberDeleted int64 = 0
+		var numberDeleted int64
 		for numberDeleted < numberToDelete {
 
 			deletesThisBatch := maxDeletesPerBatch
