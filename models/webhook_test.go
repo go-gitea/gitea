@@ -251,7 +251,7 @@ func TestDeleteDeliveredHookTasks_DeletesDelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      3,
 		HookID:      10,
-		IsDelivered: 1,
+		IsDelivered: true,
 	}
 	AssertNotExistsBean(t, hookTask)
 	assert.NoError(t, CreateHookTask(hookTask))
@@ -266,7 +266,7 @@ func TestDeleteDeliveredHookTasks_LeavesUndelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      3,
 		HookID:      15,
-		IsDelivered: 0,
+		IsDelivered: false,
 	}
 	AssertNotExistsBean(t, hookTask)
 	assert.NoError(t, CreateHookTask(hookTask))
