@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -294,6 +295,10 @@ func DeleteTime(ctx *context.APIContext) {
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimeByID", err)
+		return
+	}
+	if time.Deleted {
+		ctx.NotFound(fmt.Errorf("tracked time [%d] already deleted", time.ID))
 		return
 	}
 
