@@ -251,6 +251,9 @@ func TestDeleteDeliveredHookTasks_DeletesDelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      3,
 		HookID:      3,
+		Type:        GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
 	}
 	AssertNotExistsBean(t, hookTask)
@@ -266,6 +269,9 @@ func TestDeleteDeliveredHookTasks_LeavesUndelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      2,
 		HookID:      4,
+		Type:        GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
 		IsDelivered: false,
 	}
 	AssertNotExistsBean(t, hookTask)
