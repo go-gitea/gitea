@@ -14,6 +14,7 @@
 		<div class="ui container">
 			<p id="status-code"><img class="ui centered image" src="{{StaticUrlPrefix}}/img/404.png" alt="404"/></p>
 			<p class="center">{{.i18n.Tr "error404" | Safe}}
+			<p class="center">{{.i18n.Tr "error404.not_signed_in" | Safe}}</p>
 			<div class="ui divider"></div>
 			<br>
 			{{template "user/auth/signin_inner" .}}
