@@ -5,7 +5,7 @@
 
 	{{if .PageIsComparePull}}
 		<h2 class="ui header">
-			{{if not .Repository.IsArchived}}
+			{{if and $.IsSigned (not .Repository.IsArchived)}}
 				{{.i18n.Tr "repo.pulls.compare_changes"}}
 				<div class="sub header">{{.i18n.Tr "repo.pulls.compare_changes_desc"}}</div>
 			{{ else }}
@@ -26,11 +26,21 @@
 					</div>
 					<div class="scrolling menu">
 						{{range .Branches}}
-							<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{$.BaseName}}:{{.}}</div>
+							<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{$.BaseName}}:{{.}}</div>
 						{{end}}
-						{{if .Repository.IsFork}}
-							{{range .BaseRepoBranches}}
-							<div class="item" data-url="{{$.PullRequestCtx.BaseRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}:{{EscapePound $.HeadBranch}}">{{$.PullRequestCtx.BaseRepo.OwnerName}}:{{.}}</div>
+						{{if not .PullRequestCtx.SameRepo}}
+							{{range .HeadBranches}}
+								<div class="item" data-url="{{$.HeadRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$.HeadUser.Name}}:{{.}}</div>
+							{{end}}
+						{{end}}
+						{{if .OwnForkRepo}}
+							{{range .OwnForkRepoBranches}}
+								<div class="item" data-url="{{$.OwnForkRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$.OwnForkRepo.OwnerName}}:{{.}}</div>
+							{{end}}
+						{{end}}
+						{{if .RootRepo}}
+							{{range .RootRepoBranches}}
+								<div class="item" data-url="{{$.RootRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$.RootRepo.OwnerName}}:{{.}}</div>
 							{{end}}
 						{{end}}
 					</div>
@@ -49,7 +59,22 @@
 					</div>
 					<div class="scrolling menu">
 						{{range .HeadBranches}}
-							<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound .}}">{{$.HeadUser.Name}}:{{.}}</div>
+							<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{end}}{{EscapePound .}}">{{$.HeadUser.Name}}:{{.}}</div>
+						{{end}}
+						{{if not .PullRequestCtx.SameRepo}}
+							{{range .Branches}}
+								<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.BaseName}}/{{$.Repository.Name}}:{{EscapePound .}}">{{$.BaseName}}:{{.}}</div>
+							{{end}}
+						{{end}}
+						{{if .OwnForkRepo}}
+							{{range .OwnForkRepoBranches}}
+								<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.OwnForkRepo.OwnerName}}/{{$.OwnForkRepo.Name}}:{{EscapePound .}}">{{$.OwnForkRepo.OwnerName}}:{{.}}</div>
+							{{end}}
+						{{end}}
+						{{if .RootRepo}}
+							{{range .RootRepoBranches}}
+								<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.RootRepo.OwnerName}}/{{$.RootRepo.Name}}:{{EscapePound .}}">{{$.RootRepo.OwnerName}}:{{.}}</div>
+							{{end}}
 						{{end}}
 					</div>
 				</div>
@@ -59,27 +84,29 @@
 
 	{{if .IsNothingToCompare}}
     	<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare"}}</div>
-	{{else if .PageIsComparePull}}
+	{{else if and .PageIsComparePull (gt .CommitCount 0)}}
 		{{if .HasPullRequest}}
         	<div class="ui segment">
         		{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
         	</div>
-        {{else}}
-        	{{if not .Repository.IsArchived}}
-        	<div class="ui info message show-form-container">
-        		<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
-        	</div>
-        	{{ else }}
-        		<div class="ui warning message">
-        			{{.i18n.Tr "repo.archive.title"}}
-        		</div>
-        	{{ end }}
-        	<div class="pullrequest-form" style="display: none">
-        		{{template "repo/issue/new_form" .}}
-        	</div>
-        	{{template "repo/commits_table" .}}
-        	{{template "repo/diff/box" .}}
-        {{end}}
+		{{else}}
+			{{if and $.IsSigned (not .Repository.IsArchived)}}
+				<div class="ui info message show-form-container">
+					<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
+				</div>
+			{{else if .Repository.IsArchived}}
+				<div class="ui warning message">
+					{{.i18n.Tr "repo.archive.title"}}
+				</div>
+			{{end}}
+			{{if $.IsSigned}}
+				<div class="pullrequest-form" style="display: none">
+					{{template "repo/issue/new_form" .}}
+				</div>
+			{{end}}
+			{{template "repo/commits_table" .}}
+			{{template "repo/diff/box" .}}
+		{{end}}
 	{{else}}
 		{{template "repo/commits_table" .}}
 		{{template "repo/diff/box" .}}
