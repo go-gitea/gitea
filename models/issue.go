@@ -580,8 +580,13 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed, isMergeP
 		}
 	}
 
+	issue.IsClosed = isClosed
+	return issue.doChangeStatus(e, doer, isMergePull)
+}
+
+func (issue *Issue) doChangeStatus(e *xorm.Session, doer *User, isMergePull bool) (*Comment, error) {
 	// Check for open dependencies
-	if isClosed && issue.Repo.isDependenciesEnabled(e) {
+	if issue.IsClosed && issue.Repo.isDependenciesEnabled(e) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
 		noDeps, err := issueNoDependenciesLeft(e, issue)
 		if err != nil {
@@ -593,23 +598,22 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed, isMergeP
 		}
 	}
 
-	issue.IsClosed = isClosed
-	if isClosed {
+	if issue.IsClosed {
 		issue.ClosedUnix = timeutil.TimeStampNow()
 	} else {
 		issue.ClosedUnix = 0
 	}
 
-	if err = updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
+	if err := updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
 		return nil, err
 	}
 
 	// Update issue count of labels
-	if err = issue.getLabels(e); err != nil {
+	if err := issue.getLabels(e); err != nil {
 		return nil, err
 	}
 	for idx := range issue.Labels {
-		if err = updateLabelCols(e, issue.Labels[idx], "num_issues", "num_closed_issue"); err != nil {
+		if err := updateLabelCols(e, issue.Labels[idx], "num_issues", "num_closed_issue"); err != nil {
 			return nil, err
 		}
 	}
@@ -1607,28 +1611,59 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 }
 
 // UpdateIssueByAPI updates all allowed fields of given issue.
-func UpdateIssueByAPI(issue *Issue) error {
+// If the issue status is changed a statusChangeComment is returned
+// similarly if the title is changed the titleChanged bool is set to true
+func UpdateIssueByAPI(issue *Issue, doer *User) (statusChangeComment *Comment, titleChanged bool, err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
-		return err
+		return nil, false, err
+	}
+
+	if err := issue.loadRepo(sess); err != nil {
+		return nil, false, fmt.Errorf("loadRepo: %v", err)
+	}
+
+	// Reload the issue
+	currentIssue, err := getIssueByID(sess, issue.ID)
+	if err != nil {
+		return nil, false, err
 	}
 
 	if _, err := sess.ID(issue.ID).Cols(
-		"name", "is_closed", "content", "milestone_id", "priority",
-		"deadline_unix", "updated_unix", "closed_unix", "is_locked").
+		"name", "content", "milestone_id", "priority",
+		"deadline_unix", "updated_unix", "is_locked").
 		Update(issue); err != nil {
-		return err
+		return nil, false, err
 	}
 
-	if err := issue.loadPoster(sess); err != nil {
-		return err
+	titleChanged = currentIssue.Title != issue.Title
+	if titleChanged {
+		var opts = &CreateCommentOptions{
+			Type:     CommentTypeChangeTitle,
+			Doer:     doer,
+			Repo:     issue.Repo,
+			Issue:    issue,
+			OldTitle: currentIssue.Title,
+			NewTitle: issue.Title,
+		}
+		_, err := createComment(sess, opts)
+		if err != nil {
+			return nil, false, fmt.Errorf("createComment: %v", err)
+		}
 	}
 
-	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
-		return err
+	if currentIssue.IsClosed != issue.IsClosed {
+		statusChangeComment, err = issue.doChangeStatus(sess, doer, false)
+		if err != nil {
+			return nil, false, err
+		}
 	}
-	return sess.Commit()
+
+	if err := issue.addCrossReferences(sess, doer, true); err != nil {
+		return nil, false, err
+	}
+	return statusChangeComment, titleChanged, sess.Commit()
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.

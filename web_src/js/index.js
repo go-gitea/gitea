@@ -2662,33 +2662,70 @@ function initVueComponents() {
     },
 
     data() {
+      const params = new URLSearchParams(window.location.search);
+
+      let tab = params.get('repo-search-tab');
+      if (!tab) {
+        tab = 'repos';
+      }
+
+      let reposFilter = params.get('repo-search-filter');
+      if (!reposFilter) {
+        reposFilter = 'all';
+      }
+
+      let privateFilter = params.get('repo-search-private');
+      if (!privateFilter) {
+        privateFilter = 'both';
+      }
+
+      let archivedFilter = params.get('repo-search-archived');
+      if (!archivedFilter) {
+        archivedFilter = 'both';
+      }
+
+      let searchQuery = params.get('repo-search-query');
+      if (!searchQuery) {
+        searchQuery = '';
+      }
+
+      let page = 1;
+      try {
+        page = parseInt(params.get('repo-search-page'));
+      } catch {
+        // noop
+      }
+      if (!page) {
+        page = 1;
+      }
+
       return {
-        tab: 'repos',
+        tab,
         repos: [],
         reposTotalCount: 0,
-        reposFilter: 'all',
-        searchQuery: '',
+        reposFilter,
+        archivedFilter,
+        privateFilter,
+        page,
+        finalPage: 1,
+        searchQuery,
         isLoading: false,
         staticPrefix: StaticUrlPrefix,
+        counts: {},
         repoTypes: {
           all: {
-            count: 0,
             searchMode: '',
           },
           forks: {
-            count: 0,
             searchMode: 'fork',
           },
           mirrors: {
-            count: 0,
             searchMode: 'mirror',
           },
           sources: {
-            count: 0,
             searchMode: 'source',
           },
           collaborative: {
-            count: 0,
             searchMode: 'collaborative',
           },
         }
@@ -2697,21 +2734,26 @@ function initVueComponents() {
 
     computed: {
       showMoreReposLink() {
-        return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
+        return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
         return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=${this.searchQuery
-        }&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
-        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''}`;
+        }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
+        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
+        }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
+        }${this.privateFilter === 'private' ? '&onlyPrivate=true' : ''}${this.privateFilter === 'public' ? '&private=false' : ''
+        }`;
       },
       repoTypeCount() {
-        return this.repoTypes[this.reposFilter].count;
+        return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       }
     },
 
     mounted() {
       this.searchRepos(this.reposFilter);
-
+      $(this.$el).find('.poping.up').popup();
+      $(this.$el).find('.dropdown').dropdown();
+      this.setCheckboxes();
       const self = this;
       Vue.nextTick(() => {
         self.$refs.search.focus();
@@ -2721,17 +2763,178 @@ function initVueComponents() {
     methods: {
       changeTab(t) {
         this.tab = t;
+        this.updateHistory();
+      },
+
+      setCheckboxes() {
+        switch (this.archivedFilter) {
+          case 'unarchived':
+            $('#archivedFilterCheckbox').checkbox('set unchecked');
+            break;
+          case 'archived':
+            $('#archivedFilterCheckbox').checkbox('set checked');
+            break;
+          case 'both':
+            $('#archivedFilterCheckbox').checkbox('set indeterminate');
+            break;
+          default:
+            this.archivedFilter = 'both';
+            $('#archivedFilterCheckbox').checkbox('set indeterminate');
+            break;
+        }
+        switch (this.privateFilter) {
+          case 'public':
+            $('#privateFilterCheckbox').checkbox('set unchecked');
+            break;
+          case 'private':
+            $('#privateFilterCheckbox').checkbox('set checked');
+            break;
+          case 'both':
+            $('#privateFilterCheckbox').checkbox('set indeterminate');
+            break;
+          default:
+            this.privateFilter = 'both';
+            $('#privateFilterCheckbox').checkbox('set indeterminate');
+            break;
+        }
       },
 
       changeReposFilter(filter) {
         this.reposFilter = filter;
         this.repos = [];
-        this.repoTypes[filter].count = 0;
-        this.searchRepos(filter);
+        this.page = 1;
+        Vue.set(this.counts, `${filter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
       },
 
-      showRepo(repo, filter) {
-        switch (filter) {
+      updateHistory() {
+        const params = new URLSearchParams(window.location.search);
+
+        if (this.tab === 'repos') {
+          params.delete('repo-search-tab');
+        } else {
+          params.set('repo-search-tab', this.tab);
+        }
+
+        if (this.reposFilter === 'all') {
+          params.delete('repo-search-filter');
+        } else {
+          params.set('repo-search-filter', this.reposFilter);
+        }
+
+        if (this.privateFilter === 'both') {
+          params.delete('repo-search-private');
+        } else {
+          params.set('repo-search-private', this.privateFilter);
+        }
+
+        if (this.archivedFilter === 'both') {
+          params.delete('repo-search-archived');
+        } else {
+          params.set('repo-search-archived', this.archivedFilter);
+        }
+
+        if (this.searchQuery === '') {
+          params.delete('repo-search-query');
+        } else {
+          params.set('repo-search-query', this.searchQuery);
+        }
+
+        if (this.page === 1) {
+          params.delete('repo-search-page');
+        } else {
+          params.set('repo-search-page', `${this.page}`);
+        }
+
+        window.history.replaceState({}, '', `?${params.toString()}`);
+      },
+
+      toggleArchivedFilter() {
+        switch (this.archivedFilter) {
+          case 'both':
+            this.archivedFilter = 'unarchived';
+            break;
+          case 'unarchived':
+            this.archivedFilter = 'archived';
+            break;
+          case 'archived':
+            this.archivedFilter = 'both';
+            break;
+          default:
+            this.archivedFilter = 'both';
+            break;
+        }
+        this.page = 1;
+        this.repos = [];
+        this.setCheckboxes();
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+      togglePrivateFilter() {
+        switch (this.privateFilter) {
+          case 'both':
+            this.privateFilter = 'public';
+            break;
+          case 'public':
+            this.privateFilter = 'private';
+            break;
+          case 'private':
+            this.privateFilter = 'both';
+            break;
+          default:
+            this.privateFilter = 'both';
+            break;
+        }
+        this.page = 1;
+        this.repos = [];
+        this.setCheckboxes();
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+
+      changePage(page) {
+        this.page = page;
+        if (this.page > this.finalPage) {
+          this.page = this.finalPage;
+        }
+        if (this.page < 1) {
+          this.page = 1;
+        }
+        this.repos = [];
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+      showArchivedRepo(repo) {
+        switch (this.archivedFilter) {
+          case 'both':
+            return true;
+          case 'unarchived':
+            return !repo.archived;
+          case 'archived':
+            return repo.archived;
+          default:
+            return true;
+        }
+      },
+
+      showPrivateRepo(repo) {
+        switch (this.privateFilter) {
+          case 'both':
+            return true;
+          case 'public':
+            return !repo.private;
+          case 'private':
+            return repo.private;
+          default:
+            return true;
+        }
+      },
+
+      showFilteredRepo(repo) {
+        switch (this.reposFilter) {
           case 'sources':
             return repo.owner.id === this.uid && !repo.mirror && !repo.fork;
           case 'forks':
@@ -2745,12 +2948,16 @@ function initVueComponents() {
         }
       },
 
-      searchRepos(reposFilter) {
+      showRepo(repo) {
+        return this.showArchivedRepo(repo) && this.showPrivateRepo(repo) && this.showFilteredRepo(repo);
+      },
+
+      searchRepos() {
         const self = this;
 
         this.isLoading = true;
 
-        const searchedMode = this.repoTypes[reposFilter].searchMode;
+        const searchedMode = this.repoTypes[this.reposFilter].searchMode;
         const searchedURL = this.searchURL;
         const searchedQuery = this.searchQuery;
 
@@ -2758,10 +2965,12 @@ function initVueComponents() {
           if (searchedURL === self.searchURL) {
             self.repos = result.data;
             const count = request.getResponseHeader('X-Total-Count');
-            if (searchedQuery === '' && searchedMode === '') {
+            if (searchedQuery === '' && searchedMode === '' && self.archivedFilter === 'both') {
               self.reposTotalCount = count;
             }
-            self.repoTypes[reposFilter].count = count;
+            Vue.set(self.counts, `${self.reposFilter}:${self.archivedFilter}:${self.privateFilter}`, count);
+            self.finalPage = Math.floor(count / self.searchLimit) + 1;
+            self.updateHistory();
           }
         }).always(() => {
           if (searchedURL === self.searchURL) {
