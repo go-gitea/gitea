@@ -52,7 +52,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Name:  "skip-repository, R",
 			Usage: "Skip the repository dumping",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-log, L",
 			Usage: "Skip the log dumping",
 		},
