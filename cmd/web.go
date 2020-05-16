@@ -34,14 +34,16 @@ and it takes care of all the other things for you`,
 	Action: runWeb,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "port, p",
-			Value: "3000",
-			Usage: "Temporary port number to prevent conflict",
+			Name:    "port",
+			Aliases: []string{"p"},
+			Value:   "3000",
+			Usage:   "Temporary port number to prevent conflict",
 		},
 		&cli.StringFlag{
-			Name:  "pid, P",
-			Value: "/var/run/gitea.pid",
-			Usage: "Custom pid file path",
+			Name:    "pid",
+			Aliases: []string{"P"},
+			Value:   "/var/run/gitea.pid",
+			Usage:   "Custom pid file path",
 		},
 	},
 }

@@ -78,20 +78,23 @@ arguments - which can alternatively be run by running the subcommand web.`
 	// default configuration flags
 	defaultFlags := []cli.Flag{
 		&cli.StringFlag{
-			Name:  "custom-path, C",
-			Value: setting.CustomPath,
-			Usage: "Custom path file path",
+			Name:    "custom-path",
+			Aliases: []string{"C"},
+			Value:   setting.CustomPath,
+			Usage:   "Custom path file path",
 		},
 		&cli.StringFlag{
-			Name:  "config, c",
-			Value: setting.CustomConf,
-			Usage: "Custom configuration file path",
+			Name:    "config",
+			Aliases: []string{"c"},
+			Value:   setting.CustomConf,
+			Usage:   "Custom configuration file path",
 		},
 		cli.VersionFlag,
 		&cli.StringFlag{
-			Name:  "work-path, w",
-			Value: setting.AppWorkPath,
-			Usage: "Set the gitea working path",
+			Name:    "work-path",
+			Aliases: []string{"w"},
+			Value:   setting.AppWorkPath,
+			Usage:   "Set the gitea working path",
 		},
 	}
 
