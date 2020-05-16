@@ -2662,16 +2662,53 @@ function initVueComponents() {
     },
 
     data() {
+      const params = new URLSearchParams(window.location.search);
+
+      let tab = params.get('repo-search-tab');
+      if (!tab) {
+        tab = 'repos';
+      }
+
+      let reposFilter = params.get('repo-search-filter');
+      if (!reposFilter) {
+        reposFilter = 'all';
+      }
+
+      let privateFilter = params.get('repo-search-private');
+      if (!privateFilter) {
+        privateFilter = 'both';
+      }
+
+      let archivedFilter = params.get('repo-search-archived');
+      if (!archivedFilter) {
+        archivedFilter = 'both';
+      }
+
+      let searchQuery = params.get('repo-search-query');
+      if (!searchQuery) {
+        searchQuery = '';
+      }
+
+      let page = 1;
+      try {
+        page = parseInt(params.get('repo-search-page'));
+      } catch {
+        // noop
+      }
+      if (!page) {
+        page = 1;
+      }
+
       return {
-        tab: 'repos',
+        tab,
         repos: [],
         reposTotalCount: 0,
-        reposFilter: 'all',
-        archivedFilter: 'both',
-        privateFilter: 'both',
-        page: 1,
+        reposFilter,
+        archivedFilter,
+        privateFilter,
+        page,
         finalPage: 1,
-        searchQuery: '',
+        searchQuery,
         isLoading: false,
         staticPrefix: StaticUrlPrefix,
         counts: {},
@@ -2726,6 +2763,7 @@ function initVueComponents() {
     methods: {
       changeTab(t) {
         this.tab = t;
+        this.updateHistory();
       },
 
       setCheckboxes() {
@@ -2767,6 +2805,48 @@ function initVueComponents() {
         this.page = 1;
         Vue.set(this.counts, `${filter}:${this.archivedFilter}:${this.privateFilter}`, 0);
         this.searchRepos();
+      },
+
+      updateHistory() {
+        const params = new URLSearchParams(window.location.search);
+
+        if (this.tab === 'repos') {
+          params.delete('repo-search-tab');
+        } else {
+          params.set('repo-search-tab', this.tab);
+        }
+
+        if (this.reposFilter === 'all') {
+          params.delete('repo-search-filter');
+        } else {
+          params.set('repo-search-filter', this.reposFilter);
+        }
+
+        if (this.privateFilter === 'both') {
+          params.delete('repo-search-private');
+        } else {
+          params.set('repo-search-private', this.privateFilter);
+        }
+
+        if (this.archivedFilter === 'both') {
+          params.delete('repo-search-archived');
+        } else {
+          params.set('repo-search-archived', this.archivedFilter);
+        }
+
+        if (this.searchQuery === '') {
+          params.delete('repo-search-query');
+        } else {
+          params.set('repo-search-query', this.searchQuery);
+        }
+
+        if (this.page === 1) {
+          params.delete('repo-search-page');
+        } else {
+          params.set('repo-search-page', `${this.page}`);
+        }
+
+        window.history.replaceState({}, '', `?${params.toString()}`);
       },
 
       toggleArchivedFilter() {
@@ -2890,6 +2970,7 @@ function initVueComponents() {
             }
             Vue.set(self.counts, `${self.reposFilter}:${self.archivedFilter}:${self.privateFilter}`, count);
             self.finalPage = Math.floor(count / self.searchLimit) + 1;
+            self.updateHistory();
           }
         }).always(() => {
           if (searchedURL === self.searchURL) {
