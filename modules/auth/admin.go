@@ -51,7 +51,7 @@ func (f *AdminEditUserForm) Validate(ctx *macaron.Context, errs binding.Errors) 
 
 // AdminDashboardForm form for admin dashboard operations
 type AdminDashboardForm struct {
-	Op int `binding:"required"`
+	Op string `binding:"required"`
 }
 
 // Validate validates form fields
