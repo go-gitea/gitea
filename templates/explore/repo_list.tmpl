@@ -11,14 +11,16 @@
 				</a>
 				{{if .IsPrivate}}
 					<span class="middle text gold">{{svg "octicon-lock" 16}}</span>
-				{{else if .IsFork}}
-					<span class="middle">{{svg "octicon-repo-forked" 16}}</span>
-				{{else if .IsMirror}}
-					<span class="middle">{{svg "octicon-repo-clone" 16}}</span>
 				{{else if .Owner}}
-					{{if .Owner.Visibility.IsPrivate}}
-					<span class="text gold">{{svg "octicon-lock" 16}}</span>
-					{{end}}
+                	{{if .Owner.Visibility.IsPrivate}}
+                		<span class="text gold">{{svg "octicon-lock" 16}}</span>
+                	{{end}}
+                {{end}}
+				{{if .IsFork}}
+					<span class="middle">{{svg "octicon-repo-forked" 16}}</span>
+				{{end}}
+				{{if .IsMirror}}
+					<span class="middle">{{svg "octicon-repo-clone" 16}}</span>
 				{{end}}
 				<div class="ui right metas">
 					{{if .PrimaryLanguage }}
