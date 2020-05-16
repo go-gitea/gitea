@@ -39,7 +39,9 @@
 									{{$class = (printf "%s%s" $class " isWarning")}}
 								{{end}}
 							{{end}}
-							{{if $.Reponame}}
+							{{if $.PageIsWiki}}
+								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+							{{else if $.Reponame}}
 								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else}}
 								<span class="{{$class}}">

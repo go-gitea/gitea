@@ -18,9 +18,11 @@
 			{{end}}
 		{{end}}
 		<div class="ui top attached info clearing segment {{$class}}">
+			{{if not $.PageIsWiki}}
 			<a class="ui floated right blue tiny button" href="{{EscapePound .SourcePath}}">
 				{{.i18n.Tr "repo.diff.browse_source"}}
 			</a>
+			{{end}}
 			<h3><span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commit_status" .CommitStatus}}</h3>
 			{{if IsMultilineCommitMessage .Commit.Message}}
 				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
@@ -61,7 +63,11 @@
 							</div>
 							<div class="item">
 								{{range .Parents}}
-									<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
+									{{if $.PageIsWiki}}
+										<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{.}}">{{ShortSha .}}</a>
+									{{else}}
+										<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
+									{{end}}
 								{{end}}
 							</div>
 						{{end}}
