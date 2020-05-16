@@ -118,6 +118,9 @@ SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl}}/api/v
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl}}/api/v1"|"basePath": "/api/v1"|g
 SWAGGER_NEWLINE_COMMAND := -e '$$a\'
 
+#Manpage
+MANPAGE := man/man1/gitea.1 man/man5/gitea.app.ini.5
+
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
 TEST_MYSQL_USERNAME ?= root
@@ -163,6 +166,7 @@ help:
 	@echo " - golangci-lint                    run golangci-lint linter"
 	@echo " - revive                           run revive linter"
 	@echo " - misspell                         check for misspellings"
+	@echo " - manpage                          generate manpage"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
 	@echo " - test[\#TestSpecificName]    	   run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
@@ -271,6 +275,16 @@ misspell:
 		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
 	misspell -w -i unknwon $(GO_SOURCES_OWN)
+
+
+.PHONY: manpage
+manpage:
+	@hash go-md2man > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/cpuguy83/go-md2man; \
+	fi
+	for f in $(MANPAGE); do \
+		go-md2man -in $$f.md -out $$f; \
+	done
 
 .PHONY: fmt-check
 fmt-check:

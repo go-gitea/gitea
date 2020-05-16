@@ -94,3 +94,7 @@ prime/
 
 # Make evidence files
 /.make_evidence
+
+# Manpage
+man/man1/gitea.1
+man/man5/gitea.app.ini.5
