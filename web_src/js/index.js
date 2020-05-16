@@ -2681,7 +2681,7 @@ function initVueComponents() {
 
       let archivedFilter = params.get('repo-search-archived');
       if (!archivedFilter) {
-        archivedFilter = 'both';
+        archivedFilter = 'unarchived';
       }
 
       let searchQuery = params.get('repo-search-query');
@@ -2778,8 +2778,8 @@ function initVueComponents() {
             $('#archivedFilterCheckbox').checkbox('set indeterminate');
             break;
           default:
-            this.archivedFilter = 'both';
-            $('#archivedFilterCheckbox').checkbox('set indeterminate');
+            this.archivedFilter = 'unarchived';
+            $('#archivedFilterCheckbox').checkbox('set unchecked');
             break;
         }
         switch (this.privateFilter) {
@@ -2828,7 +2828,7 @@ function initVueComponents() {
           params.set('repo-search-private', this.privateFilter);
         }
 
-        if (this.archivedFilter === 'both') {
+        if (this.archivedFilter === 'unarchived') {
           params.delete('repo-search-archived');
         } else {
           params.set('repo-search-archived', this.archivedFilter);
@@ -2861,7 +2861,7 @@ function initVueComponents() {
             this.archivedFilter = 'both';
             break;
           default:
-            this.archivedFilter = 'both';
+            this.archivedFilter = 'unarchived';
             break;
         }
         this.page = 1;
@@ -2916,7 +2916,7 @@ function initVueComponents() {
           case 'archived':
             return repo.archived;
           default:
-            return true;
+            return !repo.archived;
         }
       },
 
