@@ -504,6 +504,13 @@ func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
 
 func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	var results []string
+	var upToDate = true
+
+	// make sure DB version is uptodate
+	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+		upToDate = false
+		results = append(results, err.Error())
+	}
 
 	//find labels without existing repo or org
 	count, err := models.CountCorruptLabels()
@@ -511,7 +518,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		return nil, err
 	}
 	if count > 0 {
-		if ctx.Bool("fix") {
+		if upToDate && ctx.Bool("fix") {
 			if err = models.DeleteCorruptLabels(); err != nil {
 				return nil, err
 			}
@@ -527,7 +534,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		return nil, err
 	}
 	if count > 0 {
-		if ctx.Bool("fix") {
+		if upToDate && ctx.Bool("fix") {
 			if err = models.DeleteCorruptIssues(); err != nil {
 				return nil, err
 			}
@@ -543,7 +550,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		return nil, err
 	}
 	if count > 0 {
-		if ctx.Bool("fix") {
+		if upToDate && ctx.Bool("fix") {
 			if err = models.DeleteCorruptObject("pull_request", "issue", "pull_request.issue_id=issue.id"); err != nil {
 				return nil, err
 			}
@@ -559,7 +566,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		return nil, err
 	}
 	if count > 0 {
-		if ctx.Bool("fix") {
+		if upToDate && ctx.Bool("fix") {
 			if err = models.DeleteCorruptObject("tracked_time", "issue", "tracked_time.issue_id=issue.id"); err != nil {
 				return nil, err
 			}
