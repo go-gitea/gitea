@@ -140,6 +140,7 @@ type SearchRepoOptions struct {
 	PriorityOwnerID int64
 	OrderBy         SearchOrderBy
 	Private         bool // Include private repositories in results
+	OnlyPrivate     bool // Include only private repositories in results
 	StarredByID     int64
 	AllPublic       bool // Include also all public repositories of users and public organisations
 	AllLimited      bool // Include also all public repositories of limited organisations
@@ -159,6 +160,10 @@ type SearchRepoOptions struct {
 	// True -> include just mirrors
 	// False -> include just non-mirrors
 	Mirror util.OptionalBool
+	// None -> include archived AND non-archived
+	// True -> include just archived
+	// False -> include just non-archived
+	Archived util.OptionalBool
 	// only search topic name
 	TopicOnly bool
 	// include description in keyword search
@@ -205,14 +210,26 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		}
 	} else {
 		// Not looking at private organisations
-		// We should be able to see all non-private repositories that either:
-		cond = cond.And(builder.Eq{"is_private": false})
-		accessCond := builder.Or(
-			//   A. Aren't in organisations  __OR__
-			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
-			//   B. Isn't a private or limited organisation.
-			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}))))
-		cond = cond.And(accessCond)
+		// We should be able to see all non-private repositories that
+		// isn't in a private or limited organisation.
+		cond = cond.And(
+			builder.Eq{"is_private": false},
+			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(
+				builder.And(
+					builder.Eq{"type": UserTypeOrganization},
+					builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
+				))))
+	}
+
+	if opts.OnlyPrivate {
+		cond = cond.And(
+			builder.Or(
+				builder.Eq{"is_private": true},
+				builder.In("owner_id", builder.Select("id").From("`user`").Where(
+					builder.And(
+						builder.Eq{"type": UserTypeOrganization},
+						builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
+					)))))
 	}
 
 	if opts.Template != util.OptionalBoolNone {
@@ -297,6 +314,10 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 	if opts.Actor != nil && opts.Actor.IsRestricted {
 		cond = cond.And(accessibleRepositoryCondition(opts.Actor))
+	}
+
+	if opts.Archived != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_archived": opts.Archived == util.OptionalBoolTrue})
 	}
 
 	switch opts.HasMilestones {
