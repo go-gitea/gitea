@@ -16,7 +16,9 @@
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
 				</div>
-				<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
+				<div class="left floated content">
+					<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
+				</div>
 				<div class="content">
 					{{range .Emails}}<strong>{{.Email}} </strong>{{end}}
 					<div class="print meta">

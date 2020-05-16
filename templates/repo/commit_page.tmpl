@@ -104,8 +104,10 @@
 				{{else}}
 				  <i class="unlock icon"></i>
 				  {{.i18n.Tr .Verification.Reason}}
-				  {{if and .Verification.SigningKey (ne .Verification.SigningKey.KeyID "")}}
-					<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
+				  {{if .Verification.SigningKey}}
+				  	{{if ne .Verification.SigningKey.KeyID ""}}
+						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
+				  	{{end}}
 				  {{end}}
 				{{end}}
 			</div>
