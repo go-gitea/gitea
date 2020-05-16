@@ -799,7 +799,7 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 	return tasks, nil
 }
 
-// DeleteDeliveredHookTasks deletes delivered hook tasks of one repository, leaving the most recent delivered based on the paramter
+// DeleteDeliveredHookTasks deletes delivered hook tasks of one repository, leaving the most recent delivered based on the parameter
 func DeleteDeliveredHookTasks(repoID int64, numberDeliveriesToKeep int64) error {
 	maxDeletesPerBatch := 1000
 	totalDeliveries, err := x.
