@@ -50,6 +50,16 @@ type Segment interface {
 	DecRef() error
 }
 
+type UnpersistedSegment interface {
+	Segment
+	Persist(path string) error
+}
+
+type PersistedSegment interface {
+	Segment
+	Path() string
+}
+
 type TermDictionary interface {
 	PostingsList(term []byte, except *roaring.Bitmap, prealloc PostingsList) (PostingsList, error)
 
@@ -94,6 +104,12 @@ type PostingsIterator interface {
 	Advance(docNum uint64) (Posting, error)
 
 	Size() int
+}
+
+type OptimizablePostingsIterator interface {
+	ActualBitmap() *roaring.Bitmap
+	DocNum1Hit() (uint64, bool)
+	ReplaceActual(*roaring.Bitmap)
 }
 
 type Posting interface {

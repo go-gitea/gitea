@@ -21,6 +21,9 @@ import (
 // It is semantically equivalent to unmarshaling the encoded form of src
 // into dst with the UnmarshalOptions.Merge option specified.
 func Merge(dst, src Message) {
+	// TODO: Should nil src be treated as semantically equivalent to a
+	// untyped, read-only, empty message? What about a nil dst?
+
 	dstMsg, srcMsg := dst.ProtoReflect(), src.ProtoReflect()
 	if dstMsg.Descriptor() != srcMsg.Descriptor() {
 		panic("descriptor mismatch")
