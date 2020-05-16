@@ -87,21 +87,23 @@
 							{{template "repo/issue/comment_tab" .}}
 							{{.CsrfTokenHtml}}
 							<input id="status" name="status" type="hidden">
-							<div class="text right">
-								{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
-									{{if .Issue.IsClosed}}
-										<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
-											{{.i18n.Tr "repo.issues.reopen_issue"}}
-										</div>
-									{{else}}
-										<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-											{{.i18n.Tr "repo.issues.close_issue"}}
-										</div>
+							<div class="field footer">
+								<div class="text right">
+									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+										{{if .Issue.IsClosed}}
+											<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+												{{.i18n.Tr "repo.issues.reopen_issue"}}
+											</div>
+										{{else}}
+											<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+												{{.i18n.Tr "repo.issues.close_issue"}}
+											</div>
+										{{end}}
 									{{end}}
-								{{end}}
-								<button class="ui green button" tabindex="5">
-									{{.i18n.Tr "repo.issues.create_comment"}}
-								</button>
+									<button class="ui green button" tabindex="5">
+										{{.i18n.Tr "repo.issues.create_comment"}}
+									</button>
+								</div>
 							</div>
 						</form>
 					</div>
@@ -136,21 +138,23 @@
 								{{template "repo/issue/comment_tab" .}}
 								{{.CsrfTokenHtml}}
 								<input id="status" name="status" type="hidden">
-								<div class="text right">
-									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
-										{{if .Issue.IsClosed}}
-											<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
-												{{.i18n.Tr "repo.issues.reopen_issue"}}
-											</div>
-										{{else}}
-											<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-												{{.i18n.Tr "repo.issues.close_issue"}}
-											</div>
+								<div class="field footer">
+									<div class="text right">
+										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+											{{if .Issue.IsClosed}}
+												<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+													{{.i18n.Tr "repo.issues.reopen_issue"}}
+												</div>
+											{{else}}
+												<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+													{{.i18n.Tr "repo.issues.close_issue"}}
+												</div>
+											{{end}}
 										{{end}}
-									{{end}}
-									<button class="ui green button" tabindex="5">
-										{{.i18n.Tr "repo.issues.create_comment"}}
-									</button>
+										<button class="ui green button" tabindex="5">
+											{{.i18n.Tr "repo.issues.create_comment"}}
+										</button>
+									</div>
 								</div>
 							</form>
 						</div>
@@ -171,19 +175,22 @@
 
 <div class="hide" id="edit-content-form">
 	<div class="ui comment form">
-		<div class="ui top attached tabular menu">
+		<div class="ui top tabular menu">
 			<a class="active write item">{{$.i18n.Tr "write"}}</a>
 			<a class="preview item" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
 		</div>
-		<div class="ui bottom attached active write tab segment">
-			<textarea tabindex="1" name="content"></textarea>
-		</div>
-		<div class="ui bottom attached tab preview segment markdown">
-			{{$.i18n.Tr "loading"}}
+		<div class="field">
+			<div class="ui bottom active tab write">
+				<textarea tabindex="1" name="content"></textarea>
+			</div>
+			<div class="ui bottom tab preview markdown">
+				{{$.i18n.Tr "loading"}}
+			</div>
 		</div>
 		{{if .IsAttachmentEnabled}}
+		<div class="field">
 			<div class="comment-files"></div>
-			<div class="ui basic button dropzone" id="comment-dropzone"
+			<div class="ui dropzone" id="comment-dropzone"
 				data-upload-url="{{AppSubUrl}}/attachments"
 				data-remove-url="{{AppSubUrl}}/attachments/delete"
 				data-csrf="{{.CsrfToken}}" data-accepts="{{.AttachmentAllowedTypes}}"
@@ -193,10 +200,13 @@
 				data-file-too-big="{{.i18n.Tr "dropzone.file_too_big"}}"
 				data-remove-file="{{.i18n.Tr "dropzone.remove_file"}}">
 			</div>
+		</div>
 		{{end}}
-		<div class="text right edit buttons">
-			<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
-			<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+		<div class="field footer">
+			<div class="text right edit">
+				<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
+				<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+			</div>
 		</div>
 	</div>
 </div>

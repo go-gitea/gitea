@@ -21,7 +21,6 @@ import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/scorch/segment"
-	"github.com/blevesearch/bleve/index/scorch/segment/zap"
 )
 
 type segmentIntroduction struct {
@@ -77,11 +76,6 @@ OUTER:
 		case persist := <-s.persists:
 			s.introducePersist(persist)
 
-		case revertTo := <-s.revertToSnapshots:
-			err := s.revertToSnapshot(revertTo)
-			if err != nil {
-				continue OUTER
-			}
 		}
 
 		var epochCurr uint64
@@ -312,6 +306,8 @@ func (s *Scorch) introducePersist(persist *persistIntroduction) {
 	close(persist.applied)
 }
 
+// The introducer should definitely handle the segmentMerge.notify
+// channel before exiting the introduceMerge.
 func (s *Scorch) introduceMerge(nextMerge *segmentMerge) {
 	atomic.AddUint64(&s.stats.TotIntroduceMergeBeg, 1)
 	defer atomic.AddUint64(&s.stats.TotIntroduceMergeEnd, 1)
@@ -409,11 +405,11 @@ func (s *Scorch) introduceMerge(nextMerge *segmentMerge) {
 		atomic.AddUint64(&s.stats.TotIntroducedSegmentsMerge, 1)
 
 		switch nextMerge.new.(type) {
-		case *zap.SegmentBase:
+		case segment.PersistedSegment:
+			fileSegments++
+		default:
 			docsToPersistCount += nextMerge.new.Count() - newSegmentDeleted.GetCardinality()
 			memSegments++
-		case *zap.Segment:
-			fileSegments++
 		}
 	}
 
@@ -443,86 +439,11 @@ func (s *Scorch) introduceMerge(nextMerge *segmentMerge) {
 	close(nextMerge.notify)
 }
 
-func (s *Scorch) revertToSnapshot(revertTo *snapshotReversion) error {
-	atomic.AddUint64(&s.stats.TotIntroduceRevertBeg, 1)
-	defer atomic.AddUint64(&s.stats.TotIntroduceRevertEnd, 1)
-
-	if revertTo.snapshot == nil {
-		err := fmt.Errorf("Cannot revert to a nil snapshot")
-		revertTo.applied <- err
-		return err
-	}
-
-	// acquire lock
-	s.rootLock.Lock()
-
-	// prepare a new index snapshot, based on next snapshot
-	newSnapshot := &IndexSnapshot{
-		parent:   s,
-		segment:  make([]*SegmentSnapshot, len(revertTo.snapshot.segment)),
-		offsets:  revertTo.snapshot.offsets,
-		internal: revertTo.snapshot.internal,
-		epoch:    s.nextSnapshotEpoch,
-		refs:     1,
-		creator:  "revertToSnapshot",
-	}
-	s.nextSnapshotEpoch++
-
-	var docsToPersistCount, memSegments, fileSegments uint64
-	// iterate through segments
-	for i, segmentSnapshot := range revertTo.snapshot.segment {
-		newSnapshot.segment[i] = &SegmentSnapshot{
-			id:         segmentSnapshot.id,
-			segment:    segmentSnapshot.segment,
-			deleted:    segmentSnapshot.deleted,
-			cachedDocs: segmentSnapshot.cachedDocs,
-			creator:    segmentSnapshot.creator,
-		}
-		newSnapshot.segment[i].segment.AddRef()
-
-		// remove segment from ineligibleForRemoval map
-		filename := zapFileName(segmentSnapshot.id)
-		delete(s.ineligibleForRemoval, filename)
-
-		if isMemorySegment(segmentSnapshot) {
-			docsToPersistCount += segmentSnapshot.Count()
-			memSegments++
-		} else {
-			fileSegments++
-		}
-	}
-
-	atomic.StoreUint64(&s.stats.TotItemsToPersist, docsToPersistCount)
-	atomic.StoreUint64(&s.stats.TotMemorySegmentsAtRoot, memSegments)
-	atomic.StoreUint64(&s.stats.TotFileSegmentsAtRoot, fileSegments)
-
-	if revertTo.persisted != nil {
-		s.rootPersisted = append(s.rootPersisted, revertTo.persisted)
-	}
-
-	newSnapshot.updateSize()
-	// swap in new snapshot
-	rootPrev := s.root
-	s.root = newSnapshot
-
-	atomic.StoreUint64(&s.stats.CurRootEpoch, s.root.epoch)
-	// release lock
-	s.rootLock.Unlock()
-
-	if rootPrev != nil {
-		_ = rootPrev.DecRef()
-	}
-
-	close(revertTo.applied)
-
-	return nil
-}
-
 func isMemorySegment(s *SegmentSnapshot) bool {
 	switch s.segment.(type) {
-	case *zap.SegmentBase:
-		return true
-	default:
+	case segment.PersistedSegment:
 		return false
+	default:
+		return true
 	}
 }
