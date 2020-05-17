@@ -86,8 +86,9 @@ var (
 				Usage: "Extract to the 'custom' directory as per app.ini",
 			},
 			&cli.StringFlag{
-				Name:  "destination,dest-dir",
-				Usage: "Extract to the specified directory",
+				Name:    "destination",
+				Aliases: []string{"dest-dir"},
+				Usage:   "Extract to the specified directory",
 			},
 		},
 	}
