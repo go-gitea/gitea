@@ -11,10 +11,6 @@
 				</a>
 				{{if .IsPrivate}}
 					<span class="middle text gold">{{svg "octicon-lock" 16}}</span>
-				{{else if .Owner}}
-					{{if .Owner.Visibility.IsPrivate}}
-						<span class="text gold">{{svg "octicon-lock" 16}}</span>
-					{{end}}
 				{{end}}
 				{{if .IsFork}}
 					<span class="middle">{{svg "octicon-repo-forked" 16}}</span>
