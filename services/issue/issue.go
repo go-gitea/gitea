@@ -50,7 +50,7 @@ func ChangeIssueRef(issue *models.Issue, doer *models.User, ref string) (err err
 	if err = issue.ChangeRef(doer, oldRef); err != nil {
 		return
 	}
-	
+
 	notification.NotifyIssueChangeRef(doer, issue, oldRef)
 
 	return nil
