@@ -20,6 +20,7 @@ var (
 type MinioStorage struct {
 	client   *minio.Client
 	bucket   string
+	location string
 	basePath string
 }
 
