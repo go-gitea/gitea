@@ -107,6 +107,16 @@ func registerUpdateMigrationPosterID() {
 	})
 }
 
+func registerPrunHookTaskTable() {
+	RegisterTaskFatal("prune_hook_task_table", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: false,
+		Schedule:   "@every 24h",
+	}, func(ctx context.Context, _ *models.User, _ Config) error {
+		return repository_service.PruneHookTaskTable(ctx)
+	})
+}
+
 func initBasicTasks() {
 	registerUpdateMirrorTask()
 	registerRepoHealthCheck()
@@ -115,4 +125,5 @@ func initBasicTasks() {
 	registerSyncExternalUsers()
 	registerDeletedBranchesCleanup()
 	registerUpdateMigrationPosterID()
+	registerPrunHookTaskTable()
 }
