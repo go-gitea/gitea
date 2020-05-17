@@ -31,7 +31,7 @@
 		</div>
 		<div class="ui attached info segment {{$class}}">
 			<div class="ui stackable grid">
-				<div class="nine wide column">
+				<div class="ten wide column">
 					{{if .Author}}
 						<img class="ui avatar image" src="{{.Author.RelAvatarLink}}" />
 					{{if .Author.FullName}}
@@ -47,7 +47,7 @@
 						<span> </span>
 						{{if ne .Verification.CommittingUser.ID 0}}
 							<img class="ui avatar image" src="{{.Verification.CommittingUser.RelAvatarLink}}" />
-							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong> &lt;{{.Commit.Committer.Email}}&gt;</a> 
+							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong> &lt;{{.Commit.Committer.Email}}&gt;</a>
 						{{else}}
 							<img class="ui avatar image" src="{{AvatarLink .Commit.Committer.Email}}" />
 							<strong>{{.Commit.Committer.Name}}</strong>
@@ -55,7 +55,7 @@
 					{{end}}
 					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
 				</div>
-				<div class="seven wide right aligned column">
+				<div class="six wide right aligned column">
 					<div class="ui horizontal list">
 						{{if .Parents}}
 							<div class="item">
