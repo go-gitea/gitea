@@ -340,7 +340,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (Re
 // accessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func accessibleRepositoryCondition(userID int64) builder.Cond {
 	if userID <= 0 {
-		// Public repositories that are not in private or limited organizatons
+		// Public repositories that are not in private or limited organizations
 		return builder.And(
 			builder.Eq{"`repository`.is_private": false},
 			builder.NotIn("`repository`.owner_id",
