@@ -11,7 +11,7 @@ type TaskCheckBox struct {
 	IsChecked bool
 }
 
-// Dump impelemtns Node.Dump.
+// Dump implements Node.Dump.
 func (n *TaskCheckBox) Dump(source []byte, level int) {
 	m := map[string]string{
 		"Checked": fmt.Sprintf("%v", n.IsChecked),

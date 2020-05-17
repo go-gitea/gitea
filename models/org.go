@@ -256,6 +256,10 @@ func CountOrganizations() int64 {
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(org *User) (err error) {
+	if !org.IsOrganization() {
+		return fmt.Errorf("%s is a user not an organization", org.Name)
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -275,10 +279,6 @@ func DeleteOrganization(org *User) (err error) {
 }
 
 func deleteOrg(e *xorm.Session, u *User) error {
-	if !u.IsOrganization() {
-		return fmt.Errorf("You can't delete none organization user: %s", u.Name)
-	}
-
 	// Check ownership of repository.
 	count, err := getRepositoryCount(e, u)
 	if err != nil {
@@ -473,12 +473,12 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 
-	return orgs, x.Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
-		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
-		Where("`team_user`.uid=?", userID).
-		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})).
-		Desc("`user`.updated_unix").
-		Find(&orgs)
+	return orgs, x.Where(builder.In("id", builder.Select("`user`.id").From("`user`").
+		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
+		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
+		Where(builder.Eq{"`team_user`.uid": userID}).
+		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
+		Desc("`user`.updated_unix").Find(&orgs)
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.

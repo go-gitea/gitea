@@ -35,11 +35,12 @@ func getDefaultBranchSha(repo *models.Repository) (string, error) {
 
 // getRepoChanges returns changes to repo since last indexer update
 func getRepoChanges(repo *models.Repository, revision string) (*repoChanges, error) {
-	if err := repo.GetIndexerStatus(); err != nil {
+	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeCode)
+	if err != nil {
 		return nil, err
 	}
 
-	if len(repo.IndexerStatus.CommitSha) == 0 {
+	if len(status.CommitSha) == 0 {
 		return genesisChanges(repo, revision)
 	}
 	return nonGenesisChanges(repo, revision)
@@ -98,7 +99,7 @@ func genesisChanges(repo *models.Repository, revision string) (*repoChanges, err
 // nonGenesisChanges get changes since the previous indexer update
 func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, error) {
 	diffCmd := git.NewCommand("diff", "--name-status",
-		repo.IndexerStatus.CommitSha, revision)
+		repo.CodeIndexerStatus.CommitSha, revision)
 	stdout, err := diffCmd.RunInDir(repo.RepoPath())
 	if err != nil {
 		// previous commit sha may have been removed by a force push, so

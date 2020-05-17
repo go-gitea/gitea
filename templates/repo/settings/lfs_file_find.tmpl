@@ -13,18 +13,18 @@
 					{{range .Results}}
 						<tr>
 							<td>
-								<span class="octicon octicon-file-text"></span>
+								{{svg "octicon-file" 16}}
 								<a href="{{EscapePound $.RepoLink}}/src/commit/{{.SHA}}/{{EscapePound .Name}}" title="{{.Name}}">{{.Name}}</a>
 							</td>
-							<td class="message has-emoji">
+							<td class="message">
 								<span class="truncate">
-									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary}}">
-										{{.Summary}}
+									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary | RenderEmojiPlain}}">
+										{{.Summary | RenderEmoji}}
 									</a>
 								</span>
 							</td>
 							<td>
-								<span class="text grey"><i class="octicon octicon-git-branch"></i>{{.BranchName}}</span>
+								<span class="text grey">{{svg "octicon-git-branch" 16}}{{.BranchName}}</span>
 							</td>
 							<td>
 								{{if .ParentHashes}}

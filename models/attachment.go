@@ -79,7 +79,11 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 			return nil, UnitTypeIssues, err
 		}
 		repo, err := GetRepositoryByID(iss.RepoID)
-		return repo, UnitTypeIssues, err
+		unitType := UnitTypeIssues
+		if iss.IsPull {
+			unitType = UnitTypePullRequests
+		}
+		return repo, unitType, err
 	} else if a.ReleaseID != 0 {
 		rel, err := GetReleaseByID(a.ReleaseID)
 		if err != nil {
@@ -195,7 +199,7 @@ func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
 
 func getAttachmentsByCommentID(e Engine, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
-	return attachments, x.Where("comment_id=?", commentID).Find(&attachments)
+	return attachments, e.Where("comment_id=?", commentID).Find(&attachments)
 }
 
 // getAttachmentByReleaseIDFileName return a file based on the the following infos:

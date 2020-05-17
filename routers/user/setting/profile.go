@@ -58,6 +58,9 @@ func handleUsernameChange(ctx *context.Context, newName string) {
 			case models.IsErrNamePatternNotAllowed(err):
 				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
+			case models.IsErrNameCharsNotAllowed(err):
+				ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", newName))
+				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			default:
 				ctx.ServerError("ChangeUserName", err)
 			}

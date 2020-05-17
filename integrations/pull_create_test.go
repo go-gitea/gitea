@@ -51,7 +51,7 @@ func TestPullCreate(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
 
 		// check the redirected URL
-		url := resp.HeaderMap.Get("Location")
+		url := resp.Header().Get("Location")
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
 		// check .diff can be accessed and matches performed change
@@ -79,7 +79,7 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", "master", "<i>XSS PR</i>")
 
 		// check the redirected URL
-		url := resp.HeaderMap.Get("Location")
+		url := resp.Header().Get("Location")
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
 		// Edit title
@@ -98,10 +98,10 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		req = NewRequest(t, "GET", url)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
-		titleHTML, err := htmlDoc.doc.Find(".comments .event .text b").First().Html()
+		titleHTML, err := htmlDoc.doc.Find(".comment-list .timeline-item.event .text b").First().Html()
 		assert.NoError(t, err)
 		assert.Equal(t, "<strike>&lt;i&gt;XSS PR&lt;/i&gt;</strike>", titleHTML)
-		titleHTML, err = htmlDoc.doc.Find(".comments .event .text b").Next().Html()
+		titleHTML, err = htmlDoc.doc.Find(".comment-list .timeline-item.event .text b").Next().Html()
 		assert.NoError(t, err)
 		assert.Equal(t, "&lt;u&gt;XSS PR&lt;/u&gt;", titleHTML)
 	})
@@ -144,7 +144,7 @@ func TestPullBranchDelete(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", "master1", "This is a pull title")
 
 		// check the redirected URL
-		url := resp.HeaderMap.Get("Location")
+		url := resp.Header().Get("Location")
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 		req := NewRequest(t, "GET", url)
 		session.MakeRequest(t, req, http.StatusOK)

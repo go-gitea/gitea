@@ -17,7 +17,7 @@ const (
 	insertType               // insert
 	updateType               // update
 	deleteType               // delete
-	unionType                // union
+	setOpType                // set operation
 )
 
 // all databasees
@@ -27,6 +27,10 @@ const (
 	MYSQL    = "mysql"
 	MSSQL    = "mssql"
 	ORACLE   = "oracle"
+
+	UNION     = "union"
+	INTERSECT = "intersect"
+	EXCEPT    = "except"
 )
 
 type join struct {
@@ -35,9 +39,10 @@ type join struct {
 	joinCond  Cond
 }
 
-type union struct {
-	unionType string
-	builder   *Builder
+type setOp struct {
+	opType       string
+	distinctType string
+	builder      *Builder
 }
 
 type limit struct {
@@ -56,7 +61,7 @@ type Builder struct {
 	cond       Cond
 	selects    []string
 	joins      []join
-	unions     []union
+	setOps     []setOp
 	limitation *limit
 	insertCols []string
 	insertVals []interface{}
@@ -144,33 +149,48 @@ func (b *Builder) Into(tableName string) *Builder {
 }
 
 // Union sets union conditions
-func (b *Builder) Union(unionTp string, unionCond *Builder) *Builder {
+func (b *Builder) Union(distinctType string, cond *Builder) *Builder {
+	return b.setOperation(UNION, distinctType, cond)
+}
+
+// Intersect sets intersect conditions
+func (b *Builder) Intersect(distinctType string, cond *Builder) *Builder {
+	return b.setOperation(INTERSECT, distinctType, cond)
+}
+
+// Except sets except conditions
+func (b *Builder) Except(distinctType string, cond *Builder) *Builder {
+	return b.setOperation(EXCEPT, distinctType, cond)
+}
+
+func (b *Builder) setOperation(opType, distinctType string, cond *Builder) *Builder {
+
 	var builder *Builder
-	if b.optype != unionType {
+	if b.optype != setOpType {
 		builder = &Builder{cond: NewCond()}
-		builder.optype = unionType
+		builder.optype = setOpType
 		builder.dialect = b.dialect
 		builder.selects = b.selects
 
-		currentUnions := b.unions
-		// erase sub unions (actually append to new Builder.unions)
-		b.unions = nil
+		currentSetOps := b.setOps
+		// erase sub setOps (actually append to new Builder.unions)
+		b.setOps = nil
 
-		for e := range currentUnions {
-			currentUnions[e].builder.dialect = b.dialect
+		for e := range currentSetOps {
+			currentSetOps[e].builder.dialect = b.dialect
 		}
 
-		builder.unions = append(append(builder.unions, union{"", b}), currentUnions...)
+		builder.setOps = append(append(builder.setOps, setOp{opType, "", b}), currentSetOps...)
 	} else {
 		builder = b
 	}
 
-	if unionCond != nil {
-		if unionCond.dialect == "" && builder.dialect != "" {
-			unionCond.dialect = builder.dialect
+	if cond != nil {
+		if cond.dialect == "" && builder.dialect != "" {
+			cond.dialect = builder.dialect
 		}
 
-		builder.unions = append(builder.unions, union{unionTp, unionCond})
+		builder.setOps = append(builder.setOps, setOp{opType, distinctType, cond})
 	}
 
 	return builder
@@ -240,8 +260,8 @@ func (b *Builder) WriteTo(w Writer) error {
 		return b.updateWriteTo(w)
 	case deleteType:
 		return b.deleteWriteTo(w)
-	case unionType:
-		return b.unionWriteTo(w)
+	case setOpType:
+		return b.setOpWriteTo(w)
 	}
 
 	return ErrNotSupportType

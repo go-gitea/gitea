@@ -98,3 +98,8 @@ func fileFromDir(name string) ([]byte, error) {
 
 	return []byte{}, fmt.Errorf("Asset file does not exist: %s", name)
 }
+
+// IsDynamic will return false when using embedded data (-tags bindata)
+func IsDynamic() bool {
+	return true
+}

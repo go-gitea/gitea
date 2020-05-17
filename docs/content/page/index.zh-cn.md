@@ -56,7 +56,6 @@ Gitea的首要目标是创建一个极易安装，运行非常快速，安装和
   * [DropzoneJS](http://www.dropzonejs.com/)
   * [Highlight](https://highlightjs.org/)
   * [Clipboard](https://zenorocha.github.io/clipboard.js/)
-  * [Emojify](https://github.com/Ranks/emojify.js)
   * [CodeMirror](https://codemirror.net/)
   * [jQuery Date Time Picker](https://github.com/xdan/datetimepicker)
   * [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)

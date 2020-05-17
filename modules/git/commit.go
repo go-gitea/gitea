@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // Commit represents a git commit.
@@ -529,10 +529,6 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
 func GetFullCommitID(repoPath, shortID string) (string, error) {
-	if len(shortID) >= 40 {
-		return shortID, nil
-	}
-
 	commitID, err := NewCommand("rev-parse", shortID).RunInDir(repoPath)
 	if err != nil {
 		if strings.Contains(err.Error(), "exit status 128") {

@@ -118,7 +118,8 @@ func (e *Entity) primaryIdentity() *Identity {
 func (e *Entity) encryptionKey(now time.Time) (Key, bool) {
 	candidateSubkey := -1
 
-	// Iterate the keys to find the newest key
+	// Iterate the keys to find the newest, non-revoked key that can
+	// encrypt.
 	var maxTime time.Time
 	for i, subkey := range e.Subkeys {
 
@@ -172,13 +173,18 @@ func (e *Entity) encryptionKey(now time.Time) (Key, bool) {
 func (e *Entity) signingKey(now time.Time) (Key, bool) {
 	candidateSubkey := -1
 
+	// Iterate the keys to find the newest, non-revoked key that can
+	// sign.
+	var maxTime time.Time
 	for i, subkey := range e.Subkeys {
 		if (!subkey.Sig.FlagsValid || subkey.Sig.FlagSign) &&
 			subkey.PrivateKey.PrivateKey != nil &&
 			subkey.PublicKey.PubKeyAlgo.CanSign() &&
+			!subkey.Sig.KeyExpired(now) &&
 			subkey.Revocation == nil &&
-			!subkey.Sig.KeyExpired(now) {
+			(maxTime.IsZero() || subkey.Sig.CreationTime.After(maxTime)) {
 			candidateSubkey = i
+			maxTime = subkey.Sig.CreationTime
 			break
 		}
 	}
@@ -504,7 +510,7 @@ EachPacket:
 					// Only register an identity once we've gotten a valid self-signature.
 					// It's possible therefore for us to throw away `current` in the case
 					// no valid self-signatures were found. That's OK as long as there are
-					// other identies that make sense.
+					// other identities that make sense.
 					//
 					// NOTE! We might later see a revocation for this very same UID, and it
 					// won't be undone. We've preserved this feature from the original
@@ -645,6 +651,15 @@ func addSubkey(e *Entity, packets *packet.Reader, pub *packet.PublicKey, priv *p
 			}
 		}
 	}
+
+	if subKey.Sig != nil {
+		if err := subKey.PublicKey.ErrorIfDeprecated(); err != nil {
+			// Key passed signature check but is deprecated.
+			subKey.Sig = nil
+			lastErr = err
+		}
+	}
+
 	if subKey.Sig != nil {
 		e.Subkeys = append(e.Subkeys, subKey)
 	} else {
@@ -690,7 +705,7 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 	}
 	isPrimaryId := true
 	e.Identities[uid.Id] = &Identity{
-		Name:   uid.Name,
+		Name:   uid.Id,
 		UserId: uid,
 		SelfSignature: &packet.Signature{
 			CreationTime: currentTime,
@@ -703,6 +718,17 @@ func NewEntity(name, comment, email string, config *packet.Config) (*Entity, err
 			FlagCertify:  true,
 			IssuerKeyId:  &e.PrimaryKey.KeyId,
 		},
+	}
+
+	// If the user passes in a DefaultHash via packet.Config, set the
+	// PreferredHash for the SelfSignature.
+	if config != nil && config.DefaultHash != 0 {
+		e.Identities[uid.Id].SelfSignature.PreferredHash = []uint8{hashToHashId(config.DefaultHash)}
+	}
+
+	// Likewise for DefaultCipher.
+	if config != nil && config.DefaultCipher != 0 {
+		e.Identities[uid.Id].SelfSignature.PreferredSymmetric = []uint8{uint8(config.DefaultCipher)}
 	}
 
 	e.Subkeys = make([]Subkey, 1)
@@ -756,10 +782,16 @@ func (e *Entity) SerializePrivate(w io.Writer, config *packet.Config) (err error
 		if err != nil {
 			return
 		}
-		// Workaround shortcoming of SignKey(), which doesn't work to reverse-sign
-		// sub-signing keys. So if requested, just reuse the signatures already
-		// available to us (if we read this key from a keyring).
 		if e.PrivateKey.PrivateKey != nil && !config.ReuseSignatures() {
+			// If not reusing existing signatures, sign subkey using private key
+			// (subkey binding), but also sign primary key using subkey (primary
+			// key binding) if subkey is used for signing.
+			if subkey.Sig.FlagSign {
+				err = subkey.Sig.CrossSignKey(e.PrimaryKey, subkey.PrivateKey, config)
+				if err != nil {
+					return err
+				}
+			}
 			err = subkey.Sig.SignKey(subkey.PublicKey, e.PrivateKey, config)
 			if err != nil {
 				return

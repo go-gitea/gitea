@@ -151,7 +151,7 @@ func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload,
 func getTelegramPullRequestApprovalPayload(p *api.PullRequestPayload, event models.HookEventType) (*TelegramPayload, error) {
 	var text, attachmentText string
 	switch p.Action {
-	case api.HookIssueSynchronized:
+	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
 			return nil, err
@@ -203,15 +203,16 @@ func GetTelegramPayload(p api.Payloader, event models.HookEventType, meta string
 		return getTelegramDeletePayload(p.(*api.DeletePayload))
 	case models.HookEventFork:
 		return getTelegramForkPayload(p.(*api.ForkPayload))
-	case models.HookEventIssues:
+	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getTelegramIssuesPayload(p.(*api.IssuePayload))
-	case models.HookEventIssueComment:
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
 		return getTelegramIssueCommentPayload(p.(*api.IssueCommentPayload))
 	case models.HookEventPush:
 		return getTelegramPushPayload(p.(*api.PushPayload))
-	case models.HookEventPullRequest:
+	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
+		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getTelegramPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestRejected, models.HookEventPullRequestApproved, models.HookEventPullRequestComment:
+	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
 		return getTelegramPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case models.HookEventRepository:
 		return getTelegramRepositoryPayload(p.(*api.RepositoryPayload))

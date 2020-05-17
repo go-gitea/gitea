@@ -84,6 +84,8 @@ type swaggerParameterBodies struct {
 	// in:body
 	EditRepoOption api.EditRepoOption
 	// in:body
+	TransferRepoOption api.TransferRepoOption
+	// in:body
 	CreateForkOption api.CreateForkOption
 
 	// in:body
@@ -126,4 +128,22 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	EditReactionOption api.EditReactionOption
+
+	// in:body
+	CreateBranchProtectionOption api.CreateBranchProtectionOption
+
+	// in:body
+	EditBranchProtectionOption api.EditBranchProtectionOption
+
+	// in:body
+	CreateOAuth2ApplicationOptions api.CreateOAuth2ApplicationOptions
+
+	// in:body
+	CreatePullReviewOptions api.CreatePullReviewOptions
+
+	// in:body
+	CreatePullReviewComment api.CreatePullReviewComment
+
+	// in:body
+	SubmitPullReviewOptions api.SubmitPullReviewOptions
 }

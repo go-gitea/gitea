@@ -11,7 +11,9 @@ import (
 	"reflect"
 	"strconv"
 
-	"xorm.io/core"
+	"xorm.io/xorm/caches"
+	"xorm.io/xorm/internal/utils"
+	"xorm.io/xorm/schemas"
 )
 
 // Get retrieve one record from database, bean's non-empty fields
@@ -26,8 +28,8 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 func (session *Session) get(bean interface{}) (bool, error) {
 	defer session.resetStatement()
 
-	if session.statement.lastError != nil {
-		return false, session.statement.lastError
+	if session.statement.LastError != nil {
+		return false, session.statement.LastError
 	}
 
 	beanValue := reflect.ValueOf(bean)
@@ -38,7 +40,7 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	}
 
 	if beanValue.Elem().Kind() == reflect.Struct {
-		if err := session.statement.setRefBean(bean); err != nil {
+		if err := session.statement.SetRefBean(bean); err != nil {
 			return false, err
 		}
 	}
@@ -52,20 +54,20 @@ func (session *Session) get(bean interface{}) (bool, error) {
 			return false, ErrTableNotFound
 		}
 		session.statement.Limit(1)
-		sqlStr, args, err = session.statement.genGetSQL(bean)
+		sqlStr, args, err = session.statement.GenGetSQL(bean)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		sqlStr = session.statement.RawSQL
+		sqlStr = session.statement.GenRawSQL()
 		args = session.statement.RawParams
 	}
 
 	table := session.statement.RefTable
 
-	if session.canCache() && beanValue.Elem().Kind() == reflect.Struct {
-		if cacher := session.engine.getCacher(session.statement.TableName()); cacher != nil &&
-			!session.statement.unscoped {
+	if session.statement.ColumnMap.IsEmpty() && session.canCache() && beanValue.Elem().Kind() == reflect.Struct {
+		if cacher := session.engine.GetCacher(session.statement.TableName()); cacher != nil &&
+			!session.statement.GetUnscoped() {
 			has, err := session.cacheGet(bean, sqlStr, args...)
 			if err != ErrCacheFailed {
 				return has, err
@@ -73,11 +75,11 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		}
 	}
 
-	context := session.statement.context
+	context := session.statement.Context
 	if context != nil {
 		res := context.Get(fmt.Sprintf("%v-%v", sqlStr, args))
 		if res != nil {
-			session.engine.logger.Debug("hit context cache", sqlStr)
+			session.engine.logger.Debugf("hit context cache: %s", sqlStr)
 
 			structValue := reflect.Indirect(reflect.ValueOf(bean))
 			structValue.Set(reflect.Indirect(reflect.ValueOf(res)))
@@ -99,7 +101,7 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	return true, nil
 }
 
-func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
+func (session *Session) nocacheGet(beanKind reflect.Kind, table *schemas.Table, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
 	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {
 		return false, err
@@ -243,7 +245,7 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 		// close it before covert data
 		rows.Close()
 
-		dataStruct := rValue(bean)
+		dataStruct := utils.ReflectValue(bean)
 		_, err = session.slice2Bean(scanResults, fields, bean, &dataStruct, table)
 		if err != nil {
 			return true, err
@@ -271,19 +273,19 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 	}
 
 	for _, filter := range session.engine.dialect.Filters() {
-		sqlStr = filter.Do(sqlStr, session.engine.dialect, session.statement.RefTable)
+		sqlStr = filter.Do(sqlStr)
 	}
-	newsql := session.statement.convertIDSQL(sqlStr)
+	newsql := session.statement.ConvertIDSQL(sqlStr)
 	if newsql == "" {
 		return false, ErrCacheFailed
 	}
 
 	tableName := session.statement.TableName()
-	cacher := session.engine.getCacher(tableName)
+	cacher := session.engine.cacherMgr.GetCacher(tableName)
 
-	session.engine.logger.Debug("[cacheGet] find sql:", newsql, args)
+	session.engine.logger.Debugf("[cache] Get SQL: %s, %v", newsql, args)
 	table := session.statement.RefTable
-	ids, err := core.GetCacheSql(cacher, tableName, newsql, args)
+	ids, err := caches.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
 		var res = make([]string, len(table.PrimaryKeys))
 		rows, err := session.NoCache().queryRows(newsql, args...)
@@ -301,7 +303,7 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 			return false, ErrCacheFailed
 		}
 
-		var pk core.PK = make([]interface{}, len(table.PrimaryKeys))
+		var pk schemas.PK = make([]interface{}, len(table.PrimaryKeys))
 		for i, col := range table.PKColumns() {
 			if col.SQLType.IsText() {
 				pk[i] = res[i]
@@ -316,20 +318,20 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 			}
 		}
 
-		ids = []core.PK{pk}
-		session.engine.logger.Debug("[cacheGet] cache ids:", newsql, ids)
-		err = core.PutCacheSql(cacher, ids, tableName, newsql, args)
+		ids = []schemas.PK{pk}
+		session.engine.logger.Debugf("[cache] cache ids: %s, %v", newsql, ids)
+		err = caches.PutCacheSql(cacher, ids, tableName, newsql, args)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		session.engine.logger.Debug("[cacheGet] cache hit sql:", newsql, ids)
+		session.engine.logger.Debugf("[cache] cache hit: %s, %v", newsql, ids)
 	}
 
 	if len(ids) > 0 {
 		structValue := reflect.Indirect(reflect.ValueOf(bean))
 		id := ids[0]
-		session.engine.logger.Debug("[cacheGet] get bean:", tableName, id)
+		session.engine.logger.Debugf("[cache] get bean: %s, %v", tableName, id)
 		sid, err := id.ToString()
 		if err != nil {
 			return false, err
@@ -342,10 +344,10 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 				return has, err
 			}
 
-			session.engine.logger.Debug("[cacheGet] cache bean:", tableName, id, cacheBean)
+			session.engine.logger.Debugf("[cache] cache bean: %s, %v, %v", tableName, id, cacheBean)
 			cacher.PutBean(tableName, sid, cacheBean)
 		} else {
-			session.engine.logger.Debug("[cacheGet] cache hit bean:", tableName, id, cacheBean)
+			session.engine.logger.Debugf("[cache] cache hit: %s, %v, %v", tableName, id, cacheBean)
 			has = true
 		}
 		structValue.Set(reflect.Indirect(reflect.ValueOf(cacheBean)))

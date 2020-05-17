@@ -25,6 +25,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
@@ -85,7 +86,7 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
-		"AvatarLink":    base.AvatarLink,
+		"AvatarLink":    models.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
@@ -93,6 +94,7 @@ func NewFuncMap() []template.FuncMap {
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"RawTimeSince":  timeutil.RawTimeSince,
 		"FileSize":      base.FileSize,
+		"PrettyNumber":  base.PrettyNumber,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
@@ -138,6 +140,9 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderEmoji":                    RenderEmoji,
+		"RenderEmojiPlain":               emoji.ReplaceAliases,
+		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
 		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
@@ -277,6 +282,14 @@ func NewFuncMap() []template.FuncMap {
 				return ""
 			}
 		},
+		"NotificationSettings": func() map[string]int {
+			return map[string]int{
+				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
+				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
+				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
+			}
+		},
 		"contain": func(s []int64, id int64) bool {
 			for i := 0; i < len(s); i++ {
 				if s[i] == id {
@@ -284,6 +297,9 @@ func NewFuncMap() []template.FuncMap {
 				}
 			}
 			return false
+		},
+		"svg": func(icon string, size int) template.HTML {
+			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
 		},
 	}}
 }
@@ -433,31 +449,6 @@ func Sha1(str string) string {
 	return base.EncodeSha1(str)
 }
 
-// ReplaceLeft replaces all prefixes 'oldS' in 's' with 'newS'.
-func ReplaceLeft(s, oldS, newS string) string {
-	oldLen, newLen, i, n := len(oldS), len(newS), 0, 0
-	for ; i < len(s) && strings.HasPrefix(s[i:], oldS); n++ {
-		i += oldLen
-	}
-
-	// simple optimization
-	if n == 0 {
-		return s
-	}
-
-	// allocating space for the new string
-	curLen := n*newLen + len(s[i:])
-	replacement := make([]byte, curLen)
-
-	j := 0
-	for ; j < n*newLen; j += newLen {
-		copy(replacement[j:j+newLen], newS)
-	}
-
-	copy(replacement[j:], s[i:])
-	return string(replacement)
-}
-
 // RenderCommitMessage renders commit message with XSS-safe and special links.
 func RenderCommitMessage(msg, urlPrefix string, metas map[string]string) template.HTML {
 	return RenderCommitMessageLink(msg, urlPrefix, "", metas)
@@ -526,6 +517,29 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 	return template.HTML(renderedMessage)
 }
 
+// RenderEmoji renders html text with emoji post processors
+func RenderEmoji(text string) template.HTML {
+	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
+	if err != nil {
+		log.Error("RenderEmoji: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedText)
+}
+
+//ReactionToEmoji renders emoji for use in reactions
+func ReactionToEmoji(reaction string) template.HTML {
+	val := emoji.FromCode(reaction)
+	if val != nil {
+		return template.HTML(val.Emoji)
+	}
+	val = emoji.FromAlias(reaction)
+	if val != nil {
+		return template.HTML(val.Emoji)
+	}
+	return template.HTML(fmt.Sprintf(`<img src=%s/img/emoji/%s.png></img>`, setting.StaticURLPrefix, reaction))
+}
+
 // RenderNote renders the contents of a git-notes file as a commit message.
 func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
@@ -578,11 +592,11 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
 		return "repo-clone"
 	case models.ActionApprovePullRequest:
-		return "eye"
+		return "check"
 	case models.ActionRejectPullRequest:
-		return "x"
+		return "request-changes"
 	default:
-		return "invalid type"
+		return "question"
 	}
 }
 

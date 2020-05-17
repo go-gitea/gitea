@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -173,19 +174,21 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*models.I
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
-		return nil, err
+		return nil, errors.New("Unable to write to PRs")
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
 		ctx.Status(http.StatusForbidden)
-		return nil, err
+		return nil, errors.New("Cannot use time tracker")
 	}
 
 	if models.StopwatchExists(ctx.User.ID, issue.ID) != shouldExist {
 		if shouldExist {
 			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot stop/cancel a non existent stopwatch")
+			err = errors.New("cannot stop/cancel a non existent stopwatch")
 		} else {
 			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot start a stopwatch again if it already exists")
+			err = errors.New("cannot start a stopwatch again if it already exists")
 		}
 		return nil, err
 	}

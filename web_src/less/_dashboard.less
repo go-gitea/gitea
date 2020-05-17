@@ -73,12 +73,15 @@
 
     .dashboard-navbar {
         width: 100vw;
-        padding: 0 0.5rem;
+        padding: 0 .5rem;
     }
 }
 
 &.feeds {
     .news {
+
+        line-height: 1.2;
+
         > .ui.grid {
             margin-left: auto;
             margin-right: auto;
@@ -97,6 +100,7 @@
         }
 
         .push.news .content ul {
+            line-height: initial;
             font-size: 13px;
             list-style: none;
             padding-left: 10px;
@@ -118,7 +122,7 @@
         code {
             padding: 1px;
             font-size: 85%;
-            background-color: rgba(0, 0, 0, 0.04);
+            background-color: rgba(0, 0, 0, .04);
             border-radius: 3px;
             word-break: break-all;
         }
@@ -155,7 +159,7 @@
                     padding: 6px 1.2em;
                     display: block;
 
-                    .octicon {
+                    .svg {
                         color: #888888;
 
                         &.rear {
@@ -168,6 +172,11 @@
                     }
                 }
             }
+        }
+
+        #privateFilterCheckbox .svg {
+            color: #888888;
+            margin-right: .25rem;
         }
 
         .repo-owner-name-list {

@@ -5,8 +5,16 @@
 
     &.profile {
         .ui.card {
+            .header,
             .username {
                 display: block;
+            }
+
+            .header {
+                font-weight: 700;
+                font-size: 1.3rem;
+                margin-top: -.2rem;
+                line-height: 1.3rem;
             }
 
             .extra.content {
@@ -24,7 +32,7 @@
                             border-bottom: 1px solid #eaeaea;
                         }
 
-                        .octicon,
+                        .svg,
                         .fa {
                             margin-left: 1px;
                             margin-right: 5px;
@@ -40,6 +48,9 @@
             }
 
             #profile-avatar {
+                img {
+                    width: 100%;
+                }
                 @media only screen and (max-width: 768px) {
                     height: 250px;
                     overflow: hidden;
@@ -80,7 +91,7 @@
     }
 
     &.notification {
-        .octicon {
+        .svg {
             float: left;
             font-size: 2em;
 

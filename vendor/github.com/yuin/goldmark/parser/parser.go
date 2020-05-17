@@ -459,7 +459,7 @@ type Parser interface {
 	// Parse parses the given Markdown text into AST nodes.
 	Parse(reader text.Reader, opts ...ParseOption) ast.Node
 
-	// AddOption adds the given option to thie parser.
+	// AddOption adds the given option to this parser.
 	AddOptions(...Option)
 }
 
@@ -505,7 +505,7 @@ type BlockParser interface {
 	// Close will be called when the parser returns Close.
 	Close(node ast.Node, reader text.Reader, pc Context)
 
-	// CanInterruptParagraph returns true if the parser can interrupt pargraphs,
+	// CanInterruptParagraph returns true if the parser can interrupt paragraphs,
 	// otherwise false.
 	CanInterruptParagraph() bool
 

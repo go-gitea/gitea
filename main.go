@@ -21,9 +21,6 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 
-	// for embed
-	_ "github.com/shurcooL/vfsgen"
-
 	"github.com/urfave/cli"
 )
 
@@ -69,6 +66,8 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdKeys,
 		cmd.CmdConvert,
 		cmd.CmdDoctor,
+		cmd.CmdManager,
+		cmd.Cmdembedded,
 	}
 	// Now adjust these commands to add our global configuration options
 

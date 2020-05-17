@@ -70,7 +70,7 @@ func Commits(ctx *context.Context) {
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
@@ -139,7 +139,7 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
@@ -185,7 +185,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
 
@@ -212,8 +212,25 @@ func Diff(ctx *context.Context) {
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.Params(":sha")
+	var (
+		gitRepo  *git.Repository
+		err      error
+		repoPath string
+	)
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(commitID)
+	if ctx.Data["PageIsWiki"] != nil {
+		gitRepo, err = git.OpenRepository(ctx.Repo.Repository.WikiPath())
+		if err != nil {
+			ctx.ServerError("Repo.GitRepo.GetCommit", err)
+			return
+		}
+		repoPath = ctx.Repo.Repository.WikiPath()
+	} else {
+		gitRepo = ctx.Repo.GitRepo
+		repoPath = models.RepoPath(userName, repoName)
+	}
+
+	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("Repo.GitRepo.GetCommit", err)
@@ -233,7 +250,7 @@ func Diff(ctx *context.Context) {
 
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
 
-	diff, err := gitdiff.GetDiffCommit(models.RepoPath(userName, repoName),
+	diff, err := gitdiff.GetDiffCommit(repoPath,
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {
@@ -244,11 +261,11 @@ func Diff(ctx *context.Context) {
 	parents := make([]string, commit.ParentCount())
 	for i := 0; i < commit.ParentCount(); i++ {
 		sha, err := commit.ParentID(i)
-		parents[i] = sha.String()
 		if err != nil {
 			ctx.NotFound("repo.Diff", err)
 			return
 		}
+		parents[i] = sha.String()
 	}
 
 	ctx.Data["CommitID"] = commitID
@@ -258,7 +275,7 @@ func Diff(ctx *context.Context) {
 
 	var parentCommit *git.Commit
 	if commit.ParentCount() > 0 {
-		parentCommit, err = ctx.Repo.GitRepo.GetCommit(parents[0])
+		parentCommit, err = gitRepo.GetCommit(parents[0])
 		if err != nil {
 			ctx.NotFound("GetParentCommit", err)
 			return
@@ -269,11 +286,17 @@ func Diff(ctx *context.Context) {
 	setPathsCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
-	ctx.Data["Verification"] = models.ParseCommitWithSignature(commit)
+	verification := models.ParseCommitWithSignature(commit)
+	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = models.ValidateCommitWithEmail(commit)
 	ctx.Data["Diff"] = diff
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
+
+	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
+		ctx.ServerError("CalculateTrustStatus", err)
+		return
+	}
 
 	note := &git.Note{}
 	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)
@@ -292,10 +315,16 @@ func Diff(ctx *context.Context) {
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
 func RawDiff(ctx *context.Context) {
-	if err := gitdiff.GetRawDiff(
-		models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
+	var repoPath string
+	if ctx.Data["PageIsWiki"] != nil {
+		repoPath = ctx.Repo.Repository.WikiPath()
+	} else {
+		repoPath = models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	}
+	if err := git.GetRawDiff(
+		repoPath,
 		ctx.Params(":sha"),
-		gitdiff.RawDiffType(ctx.Params(":ext")),
+		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
 		ctx.ServerError("GetRawDiff", err)

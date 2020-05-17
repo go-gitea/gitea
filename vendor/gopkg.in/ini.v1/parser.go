@@ -453,7 +453,7 @@ func (f *File) parse(reader io.Reader) (err error) {
 
 			section.Comment = strings.TrimSpace(p.comment.String())
 
-			// Reset aotu-counter and comments
+			// Reset auto-counter and comments
 			p.comment.Reset()
 			p.count = 1
 

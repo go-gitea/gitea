@@ -4,69 +4,130 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.11.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.11.0-rc2) - 2020-01-18
-* BREAKING
-  * Make CertFile and KeyFile relative to CustomPath (#9868) (#9874)
-* SECURITY
-  * Never allow an empty password to validate (#9682) (#9683)
-  * Prevent redirect to Host (#9678) (#9679)
-* BUGFIXES
-  * Don't convert ellipsis in markdown (#9905) (#9937)
-  * Fixed repo link in generated comment for cross repository dependency (#9863) (#9935)
-  * Check if diff actually contains sections when rendering (#9926) (#9933)
-  * Fix wrong hint when status checking is running on pull request view (#9886) (#9928)
-  * Fix RocketChat (#9908) (#9921)
-  * Do not try to recreate ldap user if they are already created (#9900) (#9919)
-  * Create terminated channel in queue_redis (#9910) (#9911)
-  * Prevent empty LDAP search result from deactivating all users (#9879) (#9896)
-  * Fix wrong permissions check when issues/prs shared operations (#9885) (#9889)
-  * Check user != nil before checking values (#9881) (#9883)
-  * Allow hyphen in language name (#9873) (#9880)
-  * Ensure that 2fa is checked on reset-password (#9857) (#9876)
-  * Fix issues/pulls dependencies problems (#9842) (#9864)
-  * Explicitly refer to PR in squash-merge commit message in case of external tracker (#9844) (#9855)
-  * Fix markdown anchor links (#9673) (#9840)
-  * Allow assignee on Pull Creation when Issue Unit is deactivated (#9836) (#9837)
-  * Fix download file wrong content-type (#9825) (#9834)
-  * Fix wrong poster identity on a migrated pull request when submit review (#9827) (#9830)
-  * Fix database dump when log directory is missing (#9818) (#9819)
-  * Fix compare (#9808) (#9814)
-  * Fix push-to-create (#9772) (#9797)
-  * Fix missing msteam webhook on organization (#9781) (#9794)
-  * Fix missing unlock in uniquequeue (#9790) (#9791)
-  * Fix add team on collaborator page when same name as organization (#9778)
-  * DeleteRepoFile incorrectly handles Delete to new branch (#9769) (#9775)
-  * Fix milestones page (#9771)
-  * Fix SimpleMDE quote reply (#9757) (#9768)
-  * Fix missing updated time on migrated issues and comments (#9744) (#9764)
-  * Move Errored PRs out of StatusChecking (#9675) (#9726)
-  * Make hook status printing configurable with delay (#9641) (#9725)
-  * ​Fix /repos​/issues​/search (#9698) (#9724)
-  * Silence fomantic error regarding tabs (#9713) (#9718)
-  * Remove unused lock (#9709) (#9710)
-  * Remove q.lock.Unlock() in setInternal to prevent panic (#9705) (#9706)
-  * Load milestone in API PR list (#9671) (#9700)
-  * Don't attempt to close issue if already closed (#9696) (#9699)
-  * Remove google font call (#9668) (#9681)
-  * Eliminate horizontal scroll caused by footer (#9674)
-  * Fix nil reference in repo generation (#9660) (#9666)
-  * Add HTML URL to API Issues (#9654) (#9661)
-  * Add PR review webhook to Telegram (#9653) (#9655)
-  * Use filepath.IsAbs instead of path.IsAbs (#9651) (#9652)
-* TRANSLATION
-  * Fix Korean locales (#9761) (#9780)
-* BUILD
-  * Fix webpack polyfills (#9735) (#9738)
-* MISC
-  * Backport Locales [2020-01-14] (#9773)
+## [1.11.5](https://github.com/go-gitea/gitea/releases/tag/v1.11.5) - 2020-05-09
 
-## [1.11.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.11.0-rc1) - 2020-01-07
+* BUGFIXES
+  * Prevent timer leaks in Workerpool and others (#11333) (#11340)
+  * Fix tracked time issues (#11349) (#11354)
+  * Add NotifySyncPushCommits to indexer notifier (#11309) (#11338)
+  * Allow X in addition to x in tasks (#10979) (#11335)
+  * When delete tracked time through the API return 404 not 500 (#11319) (#11326)
+  * Prevent duplicate records in organizations list when creating a repository (#11303) (#11325)
+  * Manage port in submodule refurl (#11305) (#11323)
+  * api.Context.NotFound(...) should tolerate nil (#11288) (#11306)
+  * Show pull request selection even when unrelated branches (#11239) (#11283)
+  * Repo: milestone: make /milestone/:id endpoint accessible (#11264) (#11282)
+  * Fix GetContents(): Dont't ignore Executables (#11192) (#11209)
+  * Fix submodule paths when AppSubUrl is not root (#11098) (#11176)
+  * Prevent clones and pushes to disabled wiki (#11131) (#11134)
+  * Remove errant third closing curly-bracket from account.tmpl and send account ID in account.tmpl (#11130)
+  * On Repo Deletion: Delete related TrackedTimes too (#11110) (#11125)
+  * Refresh codemirror on show pull comment tab (#11100) (#11122)
+  * Fix merge dialog on protected branch with missing required statuses (#11074) (#11084)
+  * Load pr Issue Poster on API too (#11033) (#11039)
+  * Fix release counter on API repository info (#10968) (#10996)
+  * Generate Diff and Patch direct from Pull head (#10936) (#10938)
+  * Fix rebase conflict detection in git 2.26 (#10929) (#10930)
+* ENHANCEMENT
+  * Fix 404 and 500 image size in small size screen (#11043) (#11049)
+  * Multiple Gitea Doctor improvements (#10943) (#10990) (#10064) (#9095) (#10991)
+
+## [1.11.4](https://github.com/go-gitea/gitea/releases/tag/v1.11.4) - 2020-04-01
+
+* BUGFIXES
+  * Only update merge_base if not already merged (#10909)
+  * Fix milestones too many SQL variables bug (#10880) (#10904)
+  * Protect against NPEs in notifications list (#10879) (#10883)
+  * Convert plumbing.ErrObjectNotFound to git.ErrNotExist in getCommit (#10862) (#10868)
+  * Convert plumbing.ErrReferenceNotFound to git.ErrNotExist in GetRefCommitID (#10676) (#10797)
+  * Account for empty lines in receive-hook message (#10773) (#10784)
+  * Fix bug on branch API (#10767) (#10775)
+  * Migrate to go-git/go-git v5.0.0 (#10735) (#10753)
+  * Fix hiding of fields in authorization source page (#10734) (#10752)
+  * Prevent default for linkAction (#10742) (#10743)
+
+## [1.11.3](https://github.com/go-gitea/gitea/releases/tag/v1.11.3) - 2020-03-10
+
+* BUGFIXES
+  * Prevent panic in stopwatch (#10670) (#10673)
+  * Fix bug on pull view when required status check no ci result (#10648) (#10651)
+  * Build explicitly with Go 1.13 (#10684)
+
+## [1.11.2](https://github.com/go-gitea/gitea/releases/tag/v1.11.2) - 2020-03-06
+
 * BREAKING
+  * Various fixes in login sources (#10428) (#10429)
+* SECURITY
+  * Ensure only own addresses are updated (#10397) (#10399)
+  * Logout POST action (#10582) (#10585)
+  * Org action fixes and form cleanup (#10512) (#10514)
+  * Change action GETs to POST (#10462) (#10464)
+  * Fix admin notices (#10480) (#10483)
+  * Change admin dashboard to POST (#10465) (#10466)
+  * Update markbates/goth (#10444) (#10445)
+  * Update crypto vendors (#10385) (#10398)
+* BUGFIXES
+  * Allow users with write permissions to modify issue descriptions and comments. (#10623) (#10626)
+  * Handle deleted base branch in PR (#10618) (#10619)
+  * Delete dependencies when deleting a repository (#10608) (#10616)
+  * Ensure executable bit is kept on the web editor (#10607) (#10614)
+  * Update mergebase in pr checker (#10586) (#10605)
+  * Fix release attachments being deleted while upgrading (#10572) (#10573)
+  * Fix redirection path if Slack webhook channel is invalid (#10566)
+  * Fix head.tmpl og:image picture location (#10531) (#10556)
+  * Fix 404 after activating secondary email (#10547) (#10553)
+  * Show Signer in commit lists and add basic trust (#10425 & #10511) (#10524)
+  * Fix potential bugs (#10513) (#10518)
+  * Use \[:space:\] instead of \\s (#10508) (#10509)
+  * Avoid mailing users that have explicitly unwatched an issue (#10475) (#10500)
+  * Handle push rejection message in Merge & Web Editor (#10373) (#10497)
+  * Fix SQLite concurrency problems by using BEGIN IMMEDIATE (#10368) (#10493)
+  * Fix double PR notification from API (#10482) (#10486)
+  * Show the username as a fallback on feeds if full name is blank (#10461)
+  * Trigger webhooks on issue label-change via API too (#10421) (#10439)
+  * Fix git reference type in webhooks (#10427) (#10432)
+  * Prevent panic on merge to PR (#10403) (#10408)
+  * Fix wrong num closed issues on repository when close issue via commit… (#10364) (#10380)
+  * Reading pull attachments should depend on read UnitTypePullRequests (#10346) (#10354)
+  * Set max-width on review-box comment box (#10348) (#10353)
+  * Prevent nil pointer in GetPullRequestCommitStatusState (#10342) (#10344)
+  * Fix protected branch status check settings (#10341) (#10343)
+  * Truncate long commit message header (#10301) (#10319)
+  * Set the initial commit status to Success otherwise it will always be Pending (#10317) (#10318)
+  * Don't manually replace whitespace during render (#10291) (#10315)
+* ENHANCEMENT
+  * Admin page for managing user e-mail activation (#10557) (#10579)
+
+## [1.11.1](https://github.com/go-gitea/gitea/releases/tag/v1.11.1) - 2020-02-15
+
+* BUGFIXES
+  * Repo name added to automatically generated commit message when merging (#9997) (#10285)
+  * Fix Workerpool deadlock (#10283) (#10284)
+  * Divide GetIssueStats query in smaller chunks (#10176) (#10282)
+  * Fix reply on code review (#10257)
+  * Stop hanging issue indexer initialisation from preventing shutdown (#10243) (#10249)
+  * Fix filter label emoji width (#10241) (#10244)
+  * Fix issue sidebar menus having an infinite height (#10239) (#10240)
+  * Fix commit between two commits calculation if there is only last commit (#10225) (#10226)
+  * Only check for conflicts/merging if the PR has not been merged in the interim (#10132) (#10206)
+  * Blacklist manifest.json & milestones user (#10292) (#10293)
+
+## [1.11.0](https://github.com/go-gitea/gitea/releases/tag/v1.11.0) - 2020-02-10
+* BREAKING
+  * Fix followers and following tabs in profile (#10202) (#10203)
+  * Make CertFile and KeyFile relative to CustomPath (#9868) (#9874)
   * Remove unused endpoints (#9538)
   * Prefix all user-generated IDs in markup (#9477)
   * Enforce Gitea environment for pushes (#8982)
-  * Hide some user information via API if user have no enough permission (#8655)
+  * Hide some user information via API if user have not enough permissions (#8655)
   * Move startpage/homepage translation to crowdin (#8596)
+* SECURITY
+  * Never allow an empty password to validate (#9682) (#9683)
+  * Prevent redirect to Host (#9678) (#9679)
+  * Swagger hide search field (#9554)
+  * Add "search" to reserved usernames (#9063)
+  * Switch to fomantic-ui (#9374)
+  * Only serve attachments when linked to issue/release and if accessible by user (#9340)
 * FEATURES
   * Webhooks should only show sender if it makes sense (#9601)
   * Provide Default messages for merges (#9393)
@@ -100,6 +161,68 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Sign merges, CRUD, Wiki and Repository initialisation with gpg key (#7631)
   * Add basic repository lfs management (#7199)
 * BUGFIXES
+  * Fix code-expansion arc-green theme bug (#10180) (#10185)
+  * Prevent double wait-group decrement (#10170) (#10175)
+  * Allow emoji on review head comments (#10159) (#10174)
+  * Fix issue/pull link (#10158) (#10173)
+  * Fix push-create SSH bugs (#10145) (#10151)
+  * Prevent DeleteUser API abuse (#10125) (#10128)
+  * Fix issues/pulls dashboard paging error (#10114) (#10115)
+  * Add button to revert SimpleMDE to plain textarea (#10099) (#10102)
+  * Fix branch page pull request title and link error (#10092) (#10097)
+  * Fix PR API: Only try to get HeadBranch if HeadRepo exist (#10029) (#10088)
+  * Update topics repo count when deleting repository (#10051) (#10081)
+  * Show pull icon on pull requests (#10061) (#10062)
+  * Fix milestone API state parameter unhandled (#10049) (#10052)
+  * Move to using a temporary repo for pushing new PRs (#10009) (#10042)
+  * Fix wiki raw view on sub path (#10002) (#10040)
+  * Ensure that feeds are appropriately restricted (#10018) (#10019)
+  * Sanitize credentials in mirror form (#9975) (#9991)
+  * Close related pull requests when deleting head repository or head branch (#9927) (#9974)
+  * Switch to use -f instead of -F for sendmail (#9961) (#9970)
+  * Fix file rename/copy not supported by indexer (#9965) (#9967)
+  * Fix repo indexer not updating upon push (#9957) (#9963)
+  * Don't convert ellipsis in markdown (#9905) (#9937)
+  * Fixed repo link in generated comment for cross repository dependency (#9863) (#9935)
+  * Check if diff actually contains sections when rendering (#9926) (#9933)
+  * Fix wrong hint when status checking is running on pull request view (#9886) (#9928)
+  * Fix RocketChat (#9908) (#9921)
+  * Do not try to recreate ldap user if they are already created (#9900) (#9919)
+  * Create terminated channel in queue_redis (#9910) (#9911)
+  * Prevent empty LDAP search result from deactivating all users (#9879) (#9896)
+  * Fix wrong permissions check when issues/prs shared operations (#9885) (#9889)
+  * Check user != nil before checking values (#9881) (#9883)
+  * Allow hyphen in language name (#9873) (#9880)
+  * Ensure that 2fa is checked on reset-password (#9857) (#9876)
+  * Fix issues/pulls dependencies problems (#9842) (#9864)
+  * Fix markdown anchor links (#9673) (#9840)
+  * Allow assignee on Pull Creation when Issue Unit is deactivated (#9836) (#9837)
+  * Fix download file wrong content-type (#9825) (#9834)
+  * Fix wrong poster identity on a migrated pull request when submit review (#9827) (#9830)
+  * Fix database dump when log directory is missing (#9818) (#9819)
+  * Fix compare (#9808) (#9814)
+  * Fix push-to-create (#9772) (#9797)
+  * Fix missing msteam webhook on organization (#9781) (#9794)
+  * Fix missing unlock in uniquequeue (#9790) (#9791)
+  * Fix add team on collaborator page when same name as organization (#9778)
+  * DeleteRepoFile incorrectly handles Delete to new branch (#9769) (#9775)
+  * Fix milestones page (#9771)
+  * Fix SimpleMDE quote reply (#9757) (#9768)
+  * Fix missing updated time on migrated issues and comments (#9744) (#9764)
+  * Move Errored PRs out of StatusChecking (#9675) (#9726)
+  * Make hook status printing configurable with delay (#9641) (#9725)
+  * ​Fix /repos​/issues​/search (#9698) (#9724)
+  * Silence fomantic error regarding tabs (#9713) (#9718)
+  * Remove unused lock (#9709) (#9710)
+  * Remove q.lock.Unlock() in setInternal to prevent panic (#9705) (#9706)
+  * Load milestone in API PR list (#9671) (#9700)
+  * Don't attempt to close issue if already closed (#9696) (#9699)
+  * Remove google font call (#9668) (#9681)
+  * Eliminate horizontal scroll caused by footer (#9674)
+  * Fix nil reference in repo generation (#9660) (#9666)
+  * Add HTML URL to API Issues (#9654) (#9661)
+  * Add PR review webhook to Telegram (#9653) (#9655)
+  * Use filepath.IsAbs instead of path.IsAbs (#9651) (#9652)
   * Disable remove button on repository teams when have access to all (#9640)
   * Clean up old references on branch delete (#9614)
   * Hide public repos owned by private orgs (#9609)
@@ -231,6 +354,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix migrate mirror 500 bug (#8526)
   * Fix password complexity regex for special characters (on master) (#8525)
 * ENHANCEMENTS
+  * Explicitly refer to PR in squash-merge commit message in case of external tracker (#9844) (#9855)
   * Add a /user/login landing page option (#9622)
   * Some more e-mail notification fixes (#9596)
   * Add branch protection option to block merge on requested changes. (#9592)
@@ -347,12 +471,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * wiki - add 'write' 'preview' buttons to wiki edit like in issues (#7241)
   * Change target branch for pull request (#6488)
   * Display PR commits and diffs using base repo rather than forked (#3648)
-* SECURITY
-  * Swagger hide search field (#9554)
-  * Add "search" to reserved usernames (#9063)
-  * Switch to fomantic-ui (#9374)
-  * Only serve attachments when linked to issue/release and if accessible by user (#9340)
-  * Hide credentials when submitting migration through API (#9102)
 * TESTING
   * Add debug option to serv to help debug problems (#9492)
   * Fix the intermittent TestGPGGit failures (#9360)
@@ -366,10 +484,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update Github Migration Tests (#8893) (#8938)
   * Update heatmap fixtures to restore tests (#8615)
 * TRANSLATION
+  * Fix Korean locales (#9761) (#9780)
   * Fix placeholders in the error message (#9060)
   * Fix spelling of admin.users.max_repo_creation (#8934)
   * Improve german translation of homepage (#8549)
 * BUILD
+  * Fix webpack polyfills (#9735) (#9738)
   * Update gitea.com/macaron to 1.4.0 (#9608)
   * Upgrade lato fonts to v16. (#9498)
   * Update alpine to 3.11 (#9440)
@@ -400,6 +520,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update the provided gitea.service to mention socket activation (#8531)
   * Doc added how to setup email (#8520)
 * MISC
+  * Backport Locales [2020-01-14] (#9773)
   * Add translatable Powered by Gitea text in footer (#9600)
   * Add contrib/environment-to-ini (#9519)
   * Remove unnecessary loading of settings in update hook (#9496)
@@ -439,6 +560,30 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Upgrade gopkg.in/ini.v1 (#8500)
   * Update CodeMirror to version 5.49.0 (#8381)
   * Wiki editor: enable side-by-side button (#7242)
+
+## [1.10.6](https://github.com/go-gitea/gitea/releases/tag/v1.10.6) - 2020-03-10
+
+This is a re-tag version of v1.10.5 and also explicitly built with Go 1.13.
+
+WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should **not** be used.
+
+## [1.10.5](https://github.com/go-gitea/gitea/releases/tag/v1.10.5) - 2020-03-06
+
+* BUGFIXES
+  * Fix release attachments being deleted while upgrading (#10572) (#10574)
+
+## [1.10.4](https://github.com/go-gitea/gitea/releases/tag/v1.10.4) - 2020-02-16
+
+* FEATURE
+  * Prevent empty LDAP search from deactivating all users (#9879) (#9890)
+* BUGFIXES
+  * Fix reply on code review (#10261) (#10227)
+  * Fix branch page pull request title and link error (#10092) (#10098)
+  * Fix milestone API state parameter unhandled (#10049) (#10053)
+  * Fix wiki raw view on sub path (#10002) (#10041)
+  * Fix RocketChat Webhook (#9908) (#9921) (#9925)
+  * Fix bug about wrong dependencies permissions check and other wrong permissions check (#9884) (Partial backport #9842)
+  * Ensure that 2fa is checked on reset-password (#9857) (#9877)
 
 ## [1.10.3](https://github.com/go-gitea/gitea/releases/tag/v1.10.3) - 2020-01-17
 * SECURITY
