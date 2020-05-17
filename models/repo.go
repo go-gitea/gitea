@@ -1853,35 +1853,44 @@ func GetPrivateRepositoryCount(u *User) (int64, error) {
 }
 
 // DeleteRepositoryArchives deletes all repositories' archives.
-func DeleteRepositoryArchives() error {
+func DeleteRepositoryArchives(ctx context.Context) error {
 	return x.
 		Where("id > 0").
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
+				select {
+				case <-ctx.Done():
+					return ErrCancelledf("before deleting repository archives for %s", repo.FullName())
+				default:
+				}
 				return os.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
 			})
 }
 
 // DeleteOldRepositoryArchives deletes old repository archives.
-func DeleteOldRepositoryArchives(ctx context.Context) {
+func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) error {
 	log.Trace("Doing: ArchiveCleanup")
 
 	if err := x.Where("id > 0").Iterate(new(Repository), func(idx int, bean interface{}) error {
-		return deleteOldRepositoryArchives(ctx, idx, bean)
+		return deleteOldRepositoryArchives(ctx, olderThan, idx, bean)
 	}); err != nil {
-		log.Error("ArchiveClean: %v", err)
+		log.Trace("Error: ArchiveClean: %v", err)
+		return err
 	}
+
+	log.Trace("Finished: ArchiveCleanup")
+	return nil
 }
 
-func deleteOldRepositoryArchives(ctx context.Context, idx int, bean interface{}) error {
+func deleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration, idx int, bean interface{}) error {
 	repo := bean.(*Repository)
 	basePath := filepath.Join(repo.RepoPath(), "archives")
 
 	for _, ty := range []string{"zip", "targz"} {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("Aborted due to shutdown:\nin delete of old repository archives %v\nat delete file %s", repo, ty)
+			return ErrCancelledf("before deleting old repository archives with filetype %s for %s", ty, repo.FullName())
 		default:
 		}
 
@@ -1904,12 +1913,12 @@ func deleteOldRepositoryArchives(ctx context.Context, idx int, bean interface{})
 			return err
 		}
 
-		minimumOldestTime := time.Now().Add(-setting.Cron.ArchiveCleanup.OlderThan)
+		minimumOldestTime := time.Now().Add(-olderThan)
 		for _, info := range files {
 			if info.ModTime().Before(minimumOldestTime) && !info.IsDir() {
 				select {
 				case <-ctx.Done():
-					return fmt.Errorf("Aborted due to shutdown:\nin delete of old repository archives %v\nat delete file %s - %s", repo, ty, info.Name())
+					return ErrCancelledf("before deleting old repository archive file %s with filetype %s for %s", info.Name(), ty, repo.FullName())
 				default:
 				}
 				toDelete := filepath.Join(path, info.Name())
@@ -1936,13 +1945,13 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 		return
 	}
 	for _, result := range results {
+		id := com.StrTo(result["id"]).MustInt64()
 		select {
 		case <-ctx.Done():
-			log.Warn("CheckRepoStats: Aborting due to shutdown")
+			log.Warn("CheckRepoStats: Cancelled before checking %s for Repo[%d]", checker.desc, id)
 			return
 		default:
 		}
-		id := com.StrTo(result["id"]).MustInt64()
 		log.Trace("Updating %s: %d", checker.desc, id)
 		_, err = x.Exec(checker.correctSQL, id, id)
 		if err != nil {
@@ -1952,7 +1961,7 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 }
 
 // CheckRepoStats checks the repository stats
-func CheckRepoStats(ctx context.Context) {
+func CheckRepoStats(ctx context.Context) error {
 	log.Trace("Doing: CheckRepoStats")
 
 	checkers := []*repoChecker{
@@ -1987,13 +1996,13 @@ func CheckRepoStats(ctx context.Context) {
 			"issue count 'num_comments'",
 		},
 	}
-	for i := range checkers {
+	for _, checker := range checkers {
 		select {
 		case <-ctx.Done():
-			log.Warn("CheckRepoStats: Aborting due to shutdown")
-			return
+			log.Warn("CheckRepoStats: Cancelled before %s", checker.desc)
+			return ErrCancelledf("before checking %s", checker.desc)
 		default:
-			repoStatsCheck(ctx, checkers[i])
+			repoStatsCheck(ctx, checker)
 		}
 	}
 
@@ -2004,13 +2013,13 @@ func CheckRepoStats(ctx context.Context) {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
 			select {
 			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Aborting due to shutdown")
-				return
+				log.Warn("CheckRepoStats: Cancelled during %s for repo ID %d", desc, id)
+				return ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
-			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating %s: %d", desc, id)
 			_, err = x.Exec("UPDATE `repository` SET num_closed_issues=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
 			if err != nil {
@@ -2027,13 +2036,13 @@ func CheckRepoStats(ctx context.Context) {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
 			select {
 			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Aborting due to shutdown")
-				return
+				log.Warn("CheckRepoStats: Cancelled")
+				return ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
-			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating %s: %d", desc, id)
 			_, err = x.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
 			if err != nil {
@@ -2050,13 +2059,13 @@ func CheckRepoStats(ctx context.Context) {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {
 		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
 			select {
 			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Aborting due to shutdown")
-				return
+				log.Warn("CheckRepoStats: Cancelled")
+				return ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
-			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating repository count 'num_forks': %d", id)
 
 			repo, err := GetRepositoryByID(id)
@@ -2079,6 +2088,7 @@ func CheckRepoStats(ctx context.Context) {
 		}
 	}
 	// ***** END: Repository.NumForks *****
+	return nil
 }
 
 // SetArchiveRepoState sets if a repo is archived
@@ -2189,12 +2199,17 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 }
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
-func RemoveRandomAvatars() error {
+func RemoveRandomAvatars(ctx context.Context) error {
 	return x.
 		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repository := bean.(*Repository)
+				select {
+				case <-ctx.Done():
+					return ErrCancelledf("before random avatars removed for %s", repository.FullName())
+				default:
+				}
 				stringifiedID := strconv.FormatInt(repository.ID, 10)
 				if repository.Avatar == stringifiedID {
 					return repository.DeleteAvatar()
