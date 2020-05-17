@@ -150,11 +150,11 @@ func Init(ctx context.Context) error {
 }
 
 // Fsck verifies the connectivity and validity of the objects in the database
-func Fsck(repoPath string, timeout time.Duration, args ...string) error {
+func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...string) error {
 	// Make sure timeout makes sense.
 	if timeout <= 0 {
 		timeout = -1
 	}
-	_, err := NewCommand("fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
+	_, err := NewCommandContext(ctx, "fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
 	return err
 }
