@@ -128,9 +128,12 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 	url += "&openid.sreg.optional=nickname%2Cemail"
 
 	log.Trace("Form-passed openid-remember: %t", form.Remember)
-	err = ctx.Session.Set("openid_signin_remember", form.Remember)
-	if err != nil {
-		log.Error("SignInOpenIDPost: Could not set session: %v", err.Error())
+
+	if err := ctx.Session.Set("openid_signin_remember", form.Remember); err != nil {
+		log.Error("SignInOpenIDPost: Could not set openid_signin_remember in session: %v", err)
+	}
+	if err := ctx.Session.Release(); err != nil {
+		log.Error("SignInOpenIDPost: Unable to save changes to the session: %v", err)
 	}
 
 	ctx.Redirect(url)
@@ -227,23 +230,22 @@ func signInOpenIDVerify(ctx *context.Context) {
 		}
 	}
 
-	err = ctx.Session.Set("openid_verified_uri", id)
-	if err != nil {
-		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
+	if err := ctx.Session.Set("openid_verified_uri", id); err != nil {
+		log.Error("signInOpenIDVerify: Could not set openid_verified_uri in session: %v", err)
 	}
-
-	err = ctx.Session.Set("openid_determined_email", email)
-	if err != nil {
-		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
+	if err := ctx.Session.Set("openid_determined_email", email); err != nil {
+		log.Error("signInOpenIDVerify: Could not set openid_determined_email in session: %v", err)
 	}
 
 	if u != nil {
 		nickname = u.LowerName
 	}
 
-	err = ctx.Session.Set("openid_determined_username", nickname)
-	if err != nil {
-		log.Error("signInOpenIDVerify: Could not set session: %v", err.Error())
+	if err := ctx.Session.Set("openid_determined_username", nickname); err != nil {
+		log.Error("signInOpenIDVerify: Could not set openid_determined_username in session: %v", err)
+	}
+	if err := ctx.Session.Release(); err != nil {
+		log.Error("signInOpenIDVerify: Unable to save changes to the session: %v", err)
 	}
 
 	if u != nil || !setting.Service.EnableOpenIDSignUp {
