@@ -340,41 +340,37 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (Re
 // accessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func accessibleRepositoryCondition(userID int64) builder.Cond {
 	if userID <= 0 {
+		// Public repositories that are not in private or limited organizatons
 		return builder.And(
 			builder.Eq{"`repository`.is_private": false},
-			builder.Or(
-				//   A. Aren't in organisations  __OR__
-				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
-				//   B. Is a public organisation.
-				builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePublic}))),
-		)
+			builder.NotIn("`repository`.owner_id",
+				builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization}).And(builder.Neq{"visibility": structs.VisibleTypePublic})))
 	}
 
 	return builder.Or(
-		// 1. Be able to see all non-private repositories that either:
+		// 1. All public repositories that are not in private organizations
 		builder.And(
 			builder.Eq{"`repository`.is_private": false},
-			builder.Or(
-				//   A. Aren't in organisations  __OR__
-				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
-				//   B. Isn't a private organisation. (Limited is OK because we're logged in)
-				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePrivate}))),
-		),
+			builder.NotIn("`repository`.owner_id",
+				builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization}).And(builder.Eq{"visibility": structs.VisibleTypePrivate}))),
 		// 2. Be able to see all repositories that we have access to
-		builder.Or(
-			builder.In("`repository`.id", builder.Select("repo_id").
-				From("`access`").
-				Where(builder.And(
-					builder.Eq{"user_id": userID},
-					builder.Gt{"mode": int(AccessModeNone)}))),
-			builder.In("`repository`.id", builder.Select("id").
-				From("`repository`").
-				Where(builder.Eq{"owner_id": userID}))),
+		builder.In("`repository`.id", builder.Select("repo_id").
+			From("`access`").
+			Where(builder.And(
+				builder.Eq{"user_id": userID},
+				builder.Gt{"mode": int(AccessModeNone)}))),
 		// 3. Be able to see all repositories that we are in a team
 		builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
 			From("team_repo").
 			Where(builder.Eq{"`team_user`.uid": userID}).
-			Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")))
+			Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")),
+		// 5. Be able to see all public repos in private organizations that we are an org_user of
+		builder.And(builder.Eq{"`repository`.is_private": false},
+			builder.In("`repository`.owner_id",
+				builder.Select("`org_user`.org_id").
+					From("org_user").
+					Where(builder.Eq{"`org_user`.uid": userID}))),
+	)
 }
 
 // SearchRepositoryByName takes keyword and part of repository name to search,
