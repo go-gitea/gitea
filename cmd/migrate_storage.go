@@ -42,39 +42,43 @@ var CmdMigrateStorage = cli.Command{
 		cli.StringFlag{
 			Name:  "minio-endpoint",
 			Value: "",
-			Usage: "New storage placement if store is local",
+			Usage: "New minio storage endpoint",
 		},
 		cli.StringFlag{
 			Name:  "minio-access-key-id",
 			Value: "",
-			Usage: "New storage placement if store is local",
+			Usage: "New minio storage accessKeyID",
 		},
 		cli.StringFlag{
-			Name:  "minio-scret-access-key",
+			Name:  "minio-secret-access-key",
 			Value: "",
-			Usage: "New storage placement if store is local",
+			Usage: "New minio storage secretAccessKey",
 		},
 		cli.StringFlag{
 			Name:  "minio-bucket",
 			Value: "",
-			Usage: "New storage placement if store is local",
+			Usage: "New minio storage bucket",
 		},
 		cli.StringFlag{
 			Name:  "minio-location",
 			Value: "",
-			Usage: "New storage placement if store is local",
+			Usage: "New minio storage location to create bucket",
 		},
 		cli.StringFlag{
-			Name:  "minio-use-ssl",
+			Name:  "minio-base-path",
 			Value: "",
-			Usage: "New storage placement if store is local",
+			Usage: "New minio storage basepath on the bucket",
+		},
+		cli.BoolFlag{
+			Name:  "minio-use-ssl",
+			Usage: "New minio storage SSL enabled",
 		},
 	},
 }
 
 func migrateAttachments(dstStorage storage.ObjectStorage) error {
 	return models.IterateAttachment(func(attach *models.Attachment) error {
-		_, err := storage.Copy(dstStorage, attach.UUID, storage.Attachments, attach.RelativePath())
+		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.Attachments, attach.RelativePath())
 		return err
 	})
 }
@@ -106,7 +110,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 		var err error
 		switch ctx.String("store") {
 		case "local":
-			dstStorage, err = storage.NewLocalStorage(ctx.String("dst"))
+			dstStorage, err = storage.NewLocalStorage(ctx.String("path"))
 		case "minio":
 			dstStorage, err = storage.NewMinioStorage(
 				ctx.String("minio-endpoint"),
@@ -114,8 +118,8 @@ func runMigrateStorage(ctx *cli.Context) error {
 				ctx.String("minio-secret-access-key"),
 				ctx.String("minio-bucket"),
 				ctx.String("minio-location"),
-				ctx.String("minio-basePath"),
-				ctx.Bool("minio-useSSL"),
+				ctx.String("minio-base-path"),
+				ctx.Bool("minio-use-ssl"),
 			)
 		default:
 			return fmt.Errorf("Unsupported attachments store type: %s", ctx.String("store"))
