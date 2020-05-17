@@ -18,15 +18,16 @@ import (
 )
 
 func renderAttachmentSettings(ctx *context.Context) {
-	ctx.Data["IsAttachmentEnabled"] = setting.AttachmentEnabled
-	ctx.Data["AttachmentAllowedTypes"] = setting.AttachmentAllowedTypes
-	ctx.Data["AttachmentMaxSize"] = setting.AttachmentMaxSize
-	ctx.Data["AttachmentMaxFiles"] = setting.AttachmentMaxFiles
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["AttachmentStoreType"] = setting.Attachment.StoreType
+	ctx.Data["AttachmentAllowedTypes"] = setting.Attachment.AllowedTypes
+	ctx.Data["AttachmentMaxSize"] = setting.Attachment.MaxSize
+	ctx.Data["AttachmentMaxFiles"] = setting.Attachment.MaxFiles
 }
 
 // UploadAttachment response for uploading issue's attachment
 func UploadAttachment(ctx *context.Context) {
-	if !setting.AttachmentEnabled {
+	if !setting.Attachment.Enabled {
 		ctx.Error(404, "attachment is not enabled")
 		return
 	}
@@ -44,7 +45,7 @@ func UploadAttachment(ctx *context.Context) {
 		buf = buf[:n]
 	}
 
-	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
+	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.Attachment.AllowedTypes, ","))
 	if err != nil {
 		ctx.Error(400, err.Error())
 		return

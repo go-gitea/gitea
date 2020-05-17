@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
@@ -22,6 +23,53 @@ var CmdMigrateStorage = cli.Command{
 	Usage:       "Migrate the storage",
 	Description: "This is a command for migrating storage.",
 	Action:      runMigrateStorage,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "type, t",
+			Value: "",
+			Usage: "Files type to migrate, currently should be attachments",
+		},
+		cli.StringFlag{
+			Name:  "store, s",
+			Value: "local",
+			Usage: "New storage type, local or minio",
+		},
+		cli.StringFlag{
+			Name:  "path, p",
+			Value: "",
+			Usage: "New storage placement if store is local",
+		},
+		cli.StringFlag{
+			Name:  "minio-endpoint",
+			Value: "",
+			Usage: "New storage placement if store is local",
+		},
+		cli.StringFlag{
+			Name:  "minio-access-key-id",
+			Value: "",
+			Usage: "New storage placement if store is local",
+		},
+		cli.StringFlag{
+			Name:  "minio-scret-access-key",
+			Value: "",
+			Usage: "New storage placement if store is local",
+		},
+		cli.StringFlag{
+			Name:  "minio-bucket",
+			Value: "",
+			Usage: "New storage placement if store is local",
+		},
+		cli.StringFlag{
+			Name:  "minio-location",
+			Value: "",
+			Usage: "New storage placement if store is local",
+		},
+		cli.StringFlag{
+			Name:  "minio-use-ssl",
+			Value: "",
+			Usage: "New storage placement if store is local",
+		},
+	},
 }
 
 func migrateAttachments(dstStorage storage.ObjectStorage) error {
@@ -47,17 +95,32 @@ func runMigrateStorage(ctx *cli.Context) error {
 		return err
 	}
 
-	tp := ctx.String("type")
-
-	// TODO: init setting
-
 	if err := storage.Init(); err != nil {
 		return err
 	}
 
+	tp := ctx.String("type")
 	switch tp {
 	case "attachments":
-		dstStorage, err := storage.NewLocalStorage(ctx.String("dst"))
+		var dstStorage storage.ObjectStorage
+		var err error
+		switch ctx.String("store") {
+		case "local":
+			dstStorage, err = storage.NewLocalStorage(ctx.String("dst"))
+		case "minio":
+			dstStorage, err = storage.NewMinioStorage(
+				ctx.String("minio-endpoint"),
+				ctx.String("minio-access-key-id"),
+				ctx.String("minio-secret-access-key"),
+				ctx.String("minio-bucket"),
+				ctx.String("minio-location"),
+				ctx.String("minio-basePath"),
+				ctx.Bool("minio-useSSL"),
+			)
+		default:
+			return fmt.Errorf("Unsupported attachments store type: %s", ctx.String("store"))
+		}
+
 		if err != nil {
 			return err
 		}

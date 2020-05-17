@@ -5,6 +5,7 @@
 package storage
 
 import (
+	"fmt"
 	"io"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -36,7 +37,24 @@ var (
 // Init init the stoarge
 func Init() error {
 	var err error
-	Attachments, err = NewLocalStorage(setting.AttachmentPath)
+	switch setting.Attachment.StoreType {
+	case "local":
+		Attachments, err = NewLocalStorage(setting.Attachment.Path)
+	case "minio":
+		minio := setting.Attachment.Minio
+		Attachments, err = NewMinioStorage(
+			minio.Endpoint,
+			minio.AccessKeyID,
+			minio.SecretAccessKey,
+			minio.Bucket,
+			minio.Location,
+			minio.BasePath,
+			minio.UseSSL,
+		)
+	default:
+		return fmt.Errorf("Unsupported attachment store type: %s", setting.Attachment.StoreType)
+	}
+
 	if err != nil {
 		return err
 	}
