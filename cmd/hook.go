@@ -151,7 +151,7 @@ Gitea or set your environment appropriately.`, "")
 	}
 
 	// the environment setted on serv command
-	isWiki := (os.Getenv(models.EnvRepoIsWiki) == "true")
+	isWiki := os.Getenv(models.EnvRepoIsWiki) == "true"
 	username := os.Getenv(models.EnvRepoUsername)
 	reponame := os.Getenv(models.EnvRepoName)
 	userID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
