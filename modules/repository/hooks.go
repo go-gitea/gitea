@@ -160,17 +160,18 @@ func SyncRepositoryHooks(ctx context.Context) error {
 		new(models.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
+			repo := bean.(*models.Repository)
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("Aborted due to shutdown")
+				return models.ErrCancelledf("before sync repository hooks for %s", repo.FullName())
 			default:
 			}
 
-			if err := createDelegateHooks(bean.(*models.Repository).RepoPath()); err != nil {
+			if err := createDelegateHooks(repo.RepoPath()); err != nil {
 				return fmt.Errorf("SyncRepositoryHook: %v", err)
 			}
-			if bean.(*models.Repository).HasWiki() {
-				if err := createDelegateHooks(bean.(*models.Repository).WikiPath()); err != nil {
+			if repo.HasWiki() {
+				if err := createDelegateHooks(repo.WikiPath()); err != nil {
 					return fmt.Errorf("SyncRepositoryHook: %v", err)
 				}
 			}
