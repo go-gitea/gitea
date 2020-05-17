@@ -387,6 +387,11 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
+
+		if err = ctx.Session.Release(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+			return
+		}
 	}
 
 	log.Info("First-time run install finished!")
