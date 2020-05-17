@@ -415,7 +415,7 @@ func accessibleRepositoryCondition(user *User) builder.Cond {
 				From("team_repo").
 				Where(builder.Eq{"`team_user`.uid": user.ID}).
 				Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")),
-			// 5. Be able to see all public repos in public repos of organizations that we are an org_user of
+			// 5. Be able to see all public repos in private organizations that we are an org_user of
 			builder.And(builder.Eq{"`repository`.is_private": false},
 				builder.In("`repository`.owner_id",
 					builder.Select("`org_user`.org_id").
