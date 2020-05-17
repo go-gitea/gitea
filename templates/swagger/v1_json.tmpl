@@ -3673,6 +3673,39 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issue_templates": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get available issue templates for a repository",
+        "operationId": "repoGetIssueTemplates",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/IssueTemplates"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues": {
       "get": {
         "produces": [
@@ -12803,6 +12836,33 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "IssueTemplate": {
+      "description": "IssueTemplate represents an issue template for a repository",
+      "type": "object",
+      "properties": {
+        "about": {
+          "type": "string",
+          "x-go-name": "About"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "file_name": {
+          "type": "string",
+          "x-go-name": "FileName"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Label": {
       "description": "Label a label to an issue or a pr",
       "type": "object",
@@ -14677,6 +14737,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Issue"
+        }
+      }
+    },
+    "IssueTemplates": {
+      "description": "IssueTemplates",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/IssueTemplate"
         }
       }
     },

@@ -784,3 +784,28 @@ func Delete(ctx *context.APIContext) {
 	log.Trace("Repository deleted: %s/%s", owner.Name, repo.Name)
 	ctx.Status(http.StatusNoContent)
 }
+
+// GetIssueTemplates returns the issue templates for a repository
+func GetIssueTemplates(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issue_templates repository repoGetIssueTemplates
+	// ---
+	// summary: Get available issue templates for a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/IssueTemplates"
+
+	ctx.JSON(http.StatusOK, ctx.IssueTemplatesFromDefaultBranch())
+}

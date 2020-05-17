@@ -567,7 +567,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
+	setTemplateIfExists(ctx, pullRequestTemplateKey, nil, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)

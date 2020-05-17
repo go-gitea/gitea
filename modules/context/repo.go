@@ -16,12 +16,22 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"gitea.com/macaron/macaron"
 	"github.com/editorconfig/editorconfig-core-go/v2"
 	"github.com/unknwon/com"
 )
+
+// IssueTemplateDirCandidates issue templates directory
+var IssueTemplateDirCandidates = []string{
+	".gitea/ISSUE_TEMPLATE",
+	".gitea/issue_template",
+	".github/ISSUE_TEMPLATE",
+	".github/issue_template",
+}
 
 // PullRequest contains informations to make a pull request
 type PullRequest struct {
@@ -819,4 +829,60 @@ func UnitTypes() macaron.Handler {
 		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
 	}
+}
+
+func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
+	var issueTemplates []api.IssueTemplate
+	if ctx.Repo.Commit == nil {
+		var err error
+		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		if err != nil {
+			return issueTemplates
+		}
+	}
+
+	for _, dirName := range IssueTemplateDirCandidates {
+		tree, err := ctx.Repo.Commit.SubTree(dirName)
+		if err != nil {
+			continue
+		}
+		entries, err := tree.ListEntries()
+		if err != nil {
+			return issueTemplates
+		}
+		for _, entry := range entries {
+			if strings.HasSuffix(entry.Name(), ".md") {
+				r, err := entry.Blob().DataAsync()
+				if err != nil {
+					log.Warn("DataAsync: %v", err)
+					continue
+				}
+				defer r.Close()
+				data, err := ioutil.ReadAll(r)
+				if err != nil {
+					log.Warn("ReadAll: %v", err)
+					continue
+				}
+				meta, content, err := markdown.ExtractMetadata(string(data))
+				if err != nil {
+					log.Warn("ExtractMetadata: %v", err)
+					continue
+				}
+				it := api.IssueTemplate{
+					Name:     fmt.Sprintf("%v", meta["name"]),
+					Title:    fmt.Sprintf("%v", meta["title"]),
+					About:    fmt.Sprintf("%v", meta["about"]),
+					Content:  content,
+					FileName: entry.Name(),
+				}
+				if it.Valid() {
+					issueTemplates = append(issueTemplates, it)
+				}
+			}
+		}
+		if len(issueTemplates) > 0 {
+			return issueTemplates
+		}
+	}
+	return issueTemplates
 }

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 
@@ -36,13 +37,15 @@ import (
 const (
 	tplAttachment base.TplName = "repo/issue/view_content/attachments"
 
-	tplIssues    base.TplName = "repo/issue/list"
-	tplIssueNew  base.TplName = "repo/issue/new"
-	tplIssueView base.TplName = "repo/issue/view"
+	tplIssues      base.TplName = "repo/issue/list"
+	tplIssueNew    base.TplName = "repo/issue/new"
+	tplIssueChoose base.TplName = "repo/issue/choose"
+	tplIssueView   base.TplName = "repo/issue/view"
 
 	tplReactions base.TplName = "repo/issue/view_content/reactions"
 
-	issueTemplateKey = "IssueTemplate"
+	issueTemplateKey      = "IssueTemplate"
+	issueTemplateTitleKey = "IssueTemplateTitle"
 )
 
 var (
@@ -56,6 +59,13 @@ var (
 		".gitea/issue_template.md",
 		".github/ISSUE_TEMPLATE.md",
 		".github/issue_template.md",
+	}
+	// IssueTemplateDirCandidates issue templates directory
+	IssueTemplateDirCandidates = []string{
+		".gitea/ISSUE_TEMPLATE",
+		".gitea/issue_template",
+		".github/ISSUE_TEMPLATE",
+		".github/issue_template",
 	}
 )
 
@@ -349,6 +359,7 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.issues")
 		ctx.Data["PageIsIssueList"] = true
+		ctx.Data["NewIssueChoose"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	}
 
 	issues(ctx, ctx.QueryInt64("milestone"), util.OptionalBoolOf(isPullList))
@@ -467,7 +478,20 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 	return string(bytes), true
 }
 
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) {
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs []string, possibleFiles []string) {
+	if ctx.Query("template") != "" {
+		for _, dirName := range possibleDirs {
+			content, found := getFileContentFromDefaultBranch(ctx, path.Join(dirName, ctx.Query("template")))
+			if found {
+				if meta, contents, err := markdown.ExtractMetadata(content); err == nil {
+					ctx.Data[issueTemplateTitleKey] = meta["title"]
+					ctx.Data[ctxDataKey] = contents
+					return
+				}
+				// If err, fall back to default template if it exists?
+			}
+		}
+	}
 	for _, filename := range possibleFiles {
 		content, found := getFileContentFromDefaultBranch(ctx, filename)
 		if found {
@@ -481,10 +505,13 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 func NewIssue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
+	ctx.Data["NewIssueChoose"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
+	title := ctx.Query("title")
+	ctx.Data["TitleQuery"] = title
 	body := ctx.Query("body")
 	ctx.Data["BodyQuery"] = body
 
@@ -499,7 +526,7 @@ func NewIssue(ctx *context.Context) {
 		}
 	}
 
-	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
+	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateDirCandidates, IssueTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
@@ -510,6 +537,19 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
 
 	ctx.HTML(200, tplIssueNew)
+}
+
+// NewIssueChoose render creating issue from template page
+func NewIssueChoose(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
+	ctx.Data["PageIsIssueList"] = true
+	ctx.Data["milestone"] = ctx.QueryInt64("milestone")
+
+	issueTemplates := ctx.IssueTemplatesFromDefaultBranch()
+	ctx.Data["NewIssueChoose"] = len(issueTemplates) > 0
+	ctx.Data["IssueTemplates"] = issueTemplates
+
+	ctx.HTML(200, tplIssueChoose)
 }
 
 // ValidateRepoMetas check and returns repository's meta informations
@@ -597,6 +637,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
+	ctx.Data["NewIssueChoose"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["ReadOnly"] = false
@@ -730,6 +771,7 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		ctx.Data["PageIsIssueList"] = true
+		ctx.Data["NewIssueChoose"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	}
 
 	if issue.IsPull && !ctx.Repo.CanRead(models.UnitTypeIssues) {

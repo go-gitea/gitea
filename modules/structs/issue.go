@@ -5,6 +5,7 @@
 package structs
 
 import (
+	"strings"
 	"time"
 )
 
@@ -117,4 +118,18 @@ type EditDeadlineOption struct {
 type IssueDeadline struct {
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
+}
+
+// IssueTemplate represents an issue template for a repository
+// swagger:model
+type IssueTemplate struct {
+	Name     string `json:"name"`
+	Title    string `json:"title"`
+	About    string `json:"about"`
+	Content  string `json:"content"`
+	FileName string `json:"file_name"`
+}
+
+func (it IssueTemplate) Valid() bool {
+	return strings.TrimSpace(it.Name) != "" && strings.TrimSpace(it.About) != ""
 }

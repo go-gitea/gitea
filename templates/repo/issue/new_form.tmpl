@@ -13,7 +13,7 @@
 				</a>
 				<div class="ui segment content">
 					<div class="field">
-						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" tabindex="3" autofocus required maxlength="255">
+						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255">
 						{{if .PageIsComparePull}}
 							<div class="title_wip_desc">{{.i18n.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}
@@ -59,7 +59,7 @@
 							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 							{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 						{{end}}
-					
+
 						<div class="ui divider"></div>
 						{{range .OrgLabels}}
 							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
