@@ -988,11 +988,8 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 }
 
 func handleSignOut(ctx *context.Context) {
-	_ = ctx.Session.Delete("uid")
-	_ = ctx.Session.Delete("uname")
-	_ = ctx.Session.Delete("socialId")
-	_ = ctx.Session.Delete("socialName")
-	_ = ctx.Session.Delete("socialEmail")
+	_ = ctx.Session.Flush()
+	_ = ctx.Session.Destroy(ctx.Context)
 	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
