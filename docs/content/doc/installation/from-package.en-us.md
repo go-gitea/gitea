@@ -25,6 +25,17 @@ Please follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}
 
 Should the packages get updated and fixed, we will provide up-to-date installation instructions here.
 
+## Alpine Linux
+
+Alpine Linux has gitea in its community repository. It follows the latest stable version.
+for more information look at https://pkgs.alpinelinux.org/packages?name=gitea&branch=edge.
+
+install as usual:
+```sh
+apk add gitea
+```
+config is found in **/etc/gitea/app.ini**
+
 ## Windows
 
 There are no published packages for Windows. This page will change when packages are published,
