@@ -15,49 +15,50 @@
 			{{.i18n.Tr "admin.dashboard.operations"}}
 		</h4>
 		<div class="ui attached table segment">
-			<form method="post" action="{{AppSubUrl}}/admin">
+			<form method="post" action="{{.AppSubUrl}}/admin">
 				{{.CsrfTokenHtml}}
 				<table class="ui very basic table">
 					<tbody>
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.delete_inactivate_accounts"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="1">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.i18n.Tr "admin.dashboard.delete_inactive_accounts"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="delete_inactive_accounts">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.delete_repo_archives"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="2">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td><button type="submit" class="ui green button" name="op" value="delete_repo_archives">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.delete_missing_repos"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="3">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td><button type="submit" class="ui green button" name="op" value="delete_missing_repos">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.git_gc_repos"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="4">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td><button type="submit" class="ui green button" name="op" value="git_gc_repos">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.resync_all_sshkeys"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="5">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.i18n.Tr "admin.dashboard.resync_all_sshkeys"}}<br/>
+							{{.i18n.Tr "admin.dashboard.resync_all_sshkeys.desc"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="resync_all_sshkeys">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.resync_all_hooks"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="6">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td><button type="submit" class="ui green button" name="op" value="resync_all_hooks">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.reinit_missing_repos"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="7">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td><button type="submit" class="ui green button" name="op" value="reinit_missing_repos">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.sync_external_users"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="8">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td><button type="submit" class="ui green button" name="op" value="sync_external_users">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.git_fsck"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="9">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td><button type="submit" class="ui green button" name="op" value="git_fsck">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.delete_generated_repository_avatars"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="10">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td><button type="submit" class="ui green button" name="op" value="delete_generated_repository_avatars">{{svg "octicon-triangle-right" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 					</tbody>
 				</table>
