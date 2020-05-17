@@ -401,21 +401,26 @@ func accessibleRepositoryCondition(user *User) builder.Cond {
 	}
 
 	if user != nil {
-		// 2. Be able to see all repositories that we have access to
-		cond = cond.Or(builder.Or(
+		cond = cond.Or(
+			// 2. Be able to see all repositories that we have access to
 			builder.In("`repository`.id", builder.Select("repo_id").
 				From("`access`").
 				Where(builder.And(
 					builder.Eq{"user_id": user.ID},
 					builder.Gt{"mode": int(AccessModeNone)}))),
-			builder.In("`repository`.id", builder.Select("id").
-				From("`repository`").
-				Where(builder.Eq{"owner_id": user.ID}))))
-		// 3. Be able to see all repositories that we are in a team
-		cond = cond.Or(builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
-			From("team_repo").
-			Where(builder.Eq{"`team_user`.uid": user.ID}).
-			Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")))
+			// 3. Repositories that we directly own
+			builder.Eq{"`repository`.owner_id": user.ID},
+			// 4. Be able to see all repositories that we are in a team
+			builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
+				From("team_repo").
+				Where(builder.Eq{"`team_user`.uid": user.ID}).
+				Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")),
+			// 5. Be able to see all public repos in private organizations that we are an org_user of
+			builder.And(builder.Eq{"`repository`.is_private": false},
+				builder.In("`repository`.owner_id",
+					builder.Select("`org_user`.org_id").
+						From("org_user").
+						Where(builder.Eq{"`org_user`.uid": user.ID}))))
 	}
 
 	return cond
