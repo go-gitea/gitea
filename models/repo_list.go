@@ -271,7 +271,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 						builder.In("`repository`.owner_id",
 							builder.Select("`org_user`.org_id").
 								From("org_user").
-								Join("INNER", "user", "`user`.id = `org_user`.org_id").
+								Join("INNER", "`user`", "`user`.id = `org_user`.org_id").
 								Where(builder.Eq{
 									"`org_user`.uid":    opts.OwnerID,
 									"`user`.type":       UserTypeOrganization,
