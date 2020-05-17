@@ -1,4 +1,5 @@
 {{range .Feeds}}
+	<div class="ui divider"></div>
 	<div class="news">
 		<div class="ui left">
 			<img class="ui avatar image" src="{{.GetActAvatar}}" alt="">
@@ -104,6 +105,5 @@
 				<span class="text grey">{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32}}</span>
 			</div>
 		</div>
-		<div class="ui divider"></div>
 	</div>
 {{end}}
