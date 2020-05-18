@@ -2438,6 +2438,8 @@ $(document).ready(async () => {
       case 'ssh':
         if ($('#repo-clone-ssh').length > 0) {
           $('#repo-clone-ssh').trigger('click');
+        } else {
+          $('#repo-clone-https').trigger('click');
         }
         break;
       default:
