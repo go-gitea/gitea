@@ -2440,6 +2440,7 @@ $(document).ready(async () => {
           $('#repo-clone-ssh').trigger('click');
         } else {
           $('#repo-clone-https').trigger('click');
+          localStorage.setItem('repo-clone-protocol', 'ssh');
         }
         break;
       default:
