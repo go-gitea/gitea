@@ -106,8 +106,6 @@ services:
     depends_on:
       - build
     when:
-      branch:
-        - master
       event:
         - push
         - pull_request
