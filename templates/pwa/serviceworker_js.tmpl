@@ -10,6 +10,7 @@ var urlsToCache = [
   '{{StaticUrlPrefix}}/js/swagger.js?v={{MD5 AppVer}}',
   '{{StaticUrlPrefix}}/js/dropzone.js',
   '{{StaticUrlPrefix}}/js/datetimepicker.js',
+  '{{StaticUrlPrefix}}/js/tribute.js',
   '{{StaticUrlPrefix}}/vendor/plugins/codemirror/addon/mode/loadmode.js',
   '{{StaticUrlPrefix}}/vendor/plugins/codemirror/mode/meta.js',
   '{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.min.js',
@@ -24,7 +25,6 @@ var urlsToCache = [
   '{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css',
   '{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css',
   '{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.css',
-  '{{StaticUrlPrefix}}/vendor/plugins/tribute/tribute.css',
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
 		'{{StaticUrlPrefix}}/css/theme-{{.SignedUser.Theme}}.css?v={{MD5 AppVer}}',

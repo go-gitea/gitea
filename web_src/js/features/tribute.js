@@ -1,61 +1,67 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.js';
 
-export const issuesTribute = window.config.Tribute ? new Tribute({
-  values: window.config.tributeValues,
-  noMatchTemplate() { return null },
-  menuItemTemplate(item) {
-    const div = $('<div/>');
-    div.append($('<img/>', {src: item.original.avatar}));
-    div.append($('<span/>', {class: 'name'}).text(item.original.name));
-    if (item.original.fullname && item.original.fullname !== '') {
-      div.append($('<span/>', {class: 'fullname'}).text(item.original.fullname));
-    }
-    return div.html();
-  }
-}) : null;
-
-export const emojiTribute = window.config.Tribute ? new Tribute({
-  collection: [{
-    trigger: ':',
-    requireLeadingSpace: true,
-    values(query, cb) {
-      const matches = [];
-      for (const name of emojiKeys) {
-        if (name.includes(query)) {
-          matches.push(name);
-          if (matches.length > 5) break;
-        }
-      }
-      cb(matches);
-    },
-    lookup(item) {
-      return item;
-    },
-    selectTemplate(item) {
-      if (typeof item === 'undefined') return null;
-      return emojiString(item.original);
-    },
+function createMentionsTribute(Tribute) {
+  return new Tribute({
+    values: window.config.tributeValues,
+    noMatchTemplate() { return null },
     menuItemTemplate(item) {
-      return `<div class="tribute-item">${emojiHTML(item.original)}<span>${item.original}</span></div>`;
+      const div = $('<div/>');
+      div.append($('<img/>', {src: item.original.avatar}));
+      div.append($('<span/>', {class: 'name'}).text(item.original.name));
+      if (item.original.fullname && item.original.fullname !== '') {
+        div.append($('<span/>', {class: 'fullname'}).text(item.original.fullname));
+      }
+      return div.html();
     }
-  }]
-}) : null;
+  });
+}
 
-export function initTribute() {
-  if (!window.config.Tribute) return;
+function createEmojiTribute(Tribute) {
+  return new Tribute({
+    collection: [{
+      trigger: ':',
+      requireLeadingSpace: true,
+      values(query, cb) {
+        const matches = [];
+        for (const name of emojiKeys) {
+          if (name.includes(query)) {
+            matches.push(name);
+            if (matches.length > 5) break;
+          }
+        }
+        cb(matches);
+      },
+      lookup(item) {
+        return item;
+      },
+      selectTemplate(item) {
+        if (typeof item === 'undefined') return null;
+        return emojiString(item.original);
+      },
+      menuItemTemplate(item) {
+        return `<div class="tribute-item">${emojiHTML(item.original)}<span>${item.original}</span></div>`;
+      }
+    }]
+  });
+}
 
-  let content = document.getElementById('content');
-  if (content !== null) {
-    issuesTribute.attach(content);
+export async function attachTribute(elementOrNodeList, {mentions, emoji} = {}) {
+  if (!window.config.Tribute || !elementOrNodeList) return;
+  const nodes = Array.from('length' in elementOrNodeList ? elementOrNodeList : [elementOrNodeList]);
+  if (!nodes.length) return;
+
+  const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
+
+  const mentionNodes = nodes.filter((node) => mentions || node.id === 'content');
+  const emojiNodes = nodes.filter((node) => emoji || node.classList.contains('emoji-input'));
+  const mentionTribute = mentionNodes.length && createMentionsTribute(Tribute);
+  const emojiTribute = emojiNodes.length && createEmojiTribute(Tribute);
+
+  for (const node of mentionNodes || []) {
+    mentionTribute.attach(node);
   }
 
-  const emojiInputs = document.querySelectorAll('.emoji-input');
-  if (emojiInputs.length > 0) {
-    emojiTribute.attach(emojiInputs);
-  }
-
-  content = document.getElementById('content');
-  if (content !== null) {
-    emojiTribute.attach(document.getElementById('content'));
+  for (const node of emojiNodes || []) {
+    emojiTribute.attach(node);
   }
 }
