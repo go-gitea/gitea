@@ -52,8 +52,13 @@ export async function attachTribute(elementOrNodeList, {mentions, emoji} = {}) {
 
   const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
 
-  const mentionNodes = nodes.filter((node) => mentions || node.id === 'content');
-  const emojiNodes = nodes.filter((node) => emoji || node.classList.contains('emoji-input'));
+  const mentionNodes = nodes.filter((node) => {
+    return mentions || node.id === 'content';
+  });
+  const emojiNodes = nodes.filter((node) => {
+    return emoji || node.id === 'content' || node.classList.contains('emoji-input');
+  });
+
   const mentionTribute = mentionNodes.length && createMentionsTribute(Tribute);
   const emojiTribute = emojiNodes.length && createEmojiTribute(Tribute);
 
