@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/keybase/go-crypto/openpgp"
@@ -623,6 +624,9 @@ func Issues(ctx *context.Context) {
 		shownIssues = int(shownIssueStats.ClosedCount)
 		totalIssues = int(allIssueStats.ClosedCount)
 	}
+
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
+		issue_service.GetRefEndNamesAndURLs(issues, ctx.Query("RepoLink"))
 
 	ctx.Data["Issues"] = issues
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {

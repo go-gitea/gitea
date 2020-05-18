@@ -180,7 +180,7 @@ func GiteaHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = "gitea"
+	ctx.Data["HookType"] = models.GITEA.Name()
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -234,7 +234,7 @@ func newGogsWebhookPost(ctx *context.Context, form auth.NewGogshookForm, kind mo
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = "gogs"
+	ctx.Data["HookType"] = models.GOGS.Name()
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -282,6 +282,7 @@ func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = models.DISCORD.Name()
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -332,6 +333,7 @@ func DingtalkHooksNewPost(ctx *context.Context, form auth.NewDingtalkHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = models.DINGTALK.Name()
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -373,6 +375,7 @@ func TelegramHooksNewPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = models.TELEGRAM.Name()
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -423,6 +426,7 @@ func MatrixHooksNewPost(ctx *context.Context, form auth.NewMatrixHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = models.MATRIX.Name()
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -475,6 +479,7 @@ func MSTeamsHooksNewPost(ctx *context.Context, form auth.NewMSTeamsHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = models.MSTEAMS.Name()
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -516,6 +521,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = models.SLACK.Name()
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -574,6 +580,7 @@ func FeishuHooksNewPost(ctx *context.Context, form auth.NewFeishuHookForm) {
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = models.FEISHU.Name()
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
