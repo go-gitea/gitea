@@ -121,7 +121,7 @@ func (ns *notificationService) NotifyIssueChangeAssignee(doer *models.User, issu
 	}
 }
 
-func (ns *notificationService) NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+func (ns *notificationService) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
 	if isRequest {
 		var opts = issueNotificationOpts{
 			IssueID:              issue.ID,

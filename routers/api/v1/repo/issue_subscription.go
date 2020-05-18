@@ -45,8 +45,10 @@ func AddIssueSubscription(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
+	//   "200":
+	//     description: Already subscribed
 	//   "201":
-	//     "$ref": "#/responses/empty"
+	//     description: Successfully Subscribed
 	//   "304":
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
@@ -87,8 +89,10 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
+	//   "200":
+	//     description: Already unsubscribed
 	//   "201":
-	//     "$ref": "#/responses/empty"
+	//     description: Successfully Unsubscribed
 	//   "304":
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
@@ -126,6 +130,19 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
+	current, err := models.CheckIssueWatch(user, issue)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CheckIssueWatch", err)
+		return
+	}
+
+	// If watch state wont change
+	if current == watch {
+		ctx.Status(http.StatusOK)
+		return
+	}
+
+	// Update watch state
 	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, watch); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrUpdateIssueWatch", err)
 		return

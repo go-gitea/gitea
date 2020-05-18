@@ -5,6 +5,6 @@
 	<div class="ui divider"></div>
 	<br>
 	<p>{{.i18n.Tr "error404" | Safe}}
-	{{if .ShowFooterVersion}}<p>Application Version: {{AppVer}}</p>{{end}}
+	{{if .ShowFooterVersion}}<p>{{.i18n.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
 </div>
 {{template "base/footer" .}}

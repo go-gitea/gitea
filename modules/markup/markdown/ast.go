@@ -4,7 +4,11 @@
 
 package markdown
 
-import "github.com/yuin/goldmark/ast"
+import (
+	"strconv"
+
+	"github.com/yuin/goldmark/ast"
+)
 
 // Details is a block that contains Summary and details
 type Details struct {
@@ -67,6 +71,41 @@ func NewSummary() *Summary {
 // otherwise false.
 func IsSummary(node ast.Node) bool {
 	_, ok := node.(*Summary)
+	return ok
+}
+
+// TaskCheckBoxListItem is a block that repressents a list item of a markdown block with a checkbox
+type TaskCheckBoxListItem struct {
+	*ast.ListItem
+	IsChecked bool
+}
+
+// KindTaskCheckBoxListItem is the NodeKind for TaskCheckBoxListItem
+var KindTaskCheckBoxListItem = ast.NewNodeKind("TaskCheckBoxListItem")
+
+// Dump implements Node.Dump .
+func (n *TaskCheckBoxListItem) Dump(source []byte, level int) {
+	m := map[string]string{}
+	m["IsChecked"] = strconv.FormatBool(n.IsChecked)
+	ast.DumpHelper(n, source, level, m, nil)
+}
+
+// Kind implements Node.Kind.
+func (n *TaskCheckBoxListItem) Kind() ast.NodeKind {
+	return KindTaskCheckBoxListItem
+}
+
+// NewTaskCheckBoxListItem returns a new TaskCheckBoxListItem node.
+func NewTaskCheckBoxListItem(listItem *ast.ListItem) *TaskCheckBoxListItem {
+	return &TaskCheckBoxListItem{
+		ListItem: listItem,
+	}
+}
+
+// IsTaskCheckBoxListItem returns true if the given node implements the TaskCheckBoxListItem interface,
+// otherwise false.
+func IsTaskCheckBoxListItem(node ast.Node) bool {
+	_, ok := node.(*TaskCheckBoxListItem)
 	return ok
 }
 

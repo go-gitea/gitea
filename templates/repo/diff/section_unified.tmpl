@@ -28,8 +28,7 @@
 			{{$isNotPending := (not (eq (index $line.Comments 0).Review.Type 0))}}
 		<tr>
 			<td colspan="2" class="lines-num"></td>
-			<td class="lines-type-marker"></td>
-			<td class="add-comment-left add-comment-right">
+			<td class="add-comment-left add-comment-right" colspan="2">
 				{{if $resolved}}
 					<div class = "ui attached header">
 						<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.root.i18n.Tr "repo.issues.review.resolved_by"}}</span>

@@ -112,7 +112,7 @@ func highbits(x uint32) uint16 {
 	return uint16(x >> 16)
 }
 func lowbits(x uint32) uint16 {
-	return uint16(x & 0xFFFF)
+	return uint16(x & maxLowBit)
 }
 
 const maxLowBit = 0xFFFF

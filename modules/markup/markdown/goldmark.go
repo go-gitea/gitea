@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
@@ -126,9 +125,30 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			}
 			v.Destination = link
 		case *ast.List:
-			if v.HasChildren() && v.FirstChild().HasChildren() && v.FirstChild().FirstChild().HasChildren() {
-				if _, ok := v.FirstChild().FirstChild().FirstChild().(*east.TaskCheckBox); ok {
-					v.SetAttributeString("class", []byte("task-list"))
+			if v.HasChildren() {
+				children := make([]ast.Node, 0, v.ChildCount())
+				child := v.FirstChild()
+				for child != nil {
+					children = append(children, child)
+					child = child.NextSibling()
+				}
+				v.RemoveChildren(v)
+
+				for _, child := range children {
+					listItem := child.(*ast.ListItem)
+					if !child.HasChildren() || !child.FirstChild().HasChildren() {
+						v.AppendChild(v, child)
+						continue
+					}
+					taskCheckBox, ok := child.FirstChild().FirstChild().(*east.TaskCheckBox)
+					if !ok {
+						v.AppendChild(v, child)
+						continue
+					}
+					newChild := NewTaskCheckBoxListItem(listItem)
+					newChild.IsChecked = taskCheckBox.IsChecked
+					newChild.SetAttributeString("class", []byte("task-list-item"))
+					v.AppendChild(v, newChild)
 				}
 			}
 		}
@@ -221,11 +241,11 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindDetails, r.renderDetails)
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(KindIcon, r.renderIcon)
+	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 }
 
 func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	log.Info("renderDocument %v", node)
 	n := node.(*ast.Document)
 
 	if val, has := n.AttributeString("lang"); has {
@@ -311,24 +331,41 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 	return ast.WalkContinue, nil
 }
 
-func (r *HTMLRenderer) renderTaskCheckBox(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if !entering {
-		return ast.WalkContinue, nil
-	}
-	n := node.(*east.TaskCheckBox)
-
-	end := ">"
-	if r.XHTML {
-		end = " />"
-	}
-	var err error
-	if n.IsChecked {
-		_, err = w.WriteString(`<span class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled"` + end + `<label` + end + `</span>`)
+func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*TaskCheckBoxListItem)
+	if entering {
+		if n.Attributes() != nil {
+			_, _ = w.WriteString("<li")
+			html.RenderAttributes(w, n, html.ListItemAttributeFilter)
+			_ = w.WriteByte('>')
+		} else {
+			_, _ = w.WriteString("<li>")
+		}
+		end := ">"
+		if r.XHTML {
+			end = " />"
+		}
+		var err error
+		if n.IsChecked {
+			_, err = w.WriteString(`<span class="ui checked checkbox"><input type="checkbox" checked="" readonly="readonly"` + end + `<label>`)
+		} else {
+			_, err = w.WriteString(`<span class="ui checkbox"><input type="checkbox" readonly="readonly"` + end + `<label>`)
+		}
+		if err != nil {
+			return ast.WalkStop, err
+		}
+		fc := n.FirstChild()
+		if fc != nil {
+			if _, ok := fc.(*ast.TextBlock); !ok {
+				_ = w.WriteByte('\n')
+			}
+		}
 	} else {
-		_, err = w.WriteString(`<span class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled"` + end + `<label` + end + `</span>`)
+		_, _ = w.WriteString("</label></span></li>\n")
 	}
-	if err != nil {
-		return ast.WalkStop, err
-	}
+	return ast.WalkContinue, nil
+}
+
+func (r *HTMLRenderer) renderTaskCheckBox(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	return ast.WalkContinue, nil
 }

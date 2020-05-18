@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="{{.Language}}">
+<html lang="{{.Language}}" class="theme-{{.SignedUser.Theme}}">
 <head data-suburl="{{AppSubUrl}}">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
-	<title>{{if .Title}}{{.Title}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
+	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
 	<link rel="manifest" href="{{AppSubUrl}}/manifest.json" crossorigin="use-credentials">
 	{{if UseServiceWorker}}
 	<script>
@@ -98,7 +98,16 @@
 				MinTimeout: {{NotificationSettings.MinTimeout}},
 				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
 				MaxTimeout: {{NotificationSettings.MaxTimeout}},
+				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
 			},
+      {{if .RequireTribute}}
+			tributeValues: [
+				{{ range .Assignees }}
+				{key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
+				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'},
+				{{ end }}
+			],
+			{{end}}
 		};
 	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">
