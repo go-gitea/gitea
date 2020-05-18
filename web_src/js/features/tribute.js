@@ -5,13 +5,13 @@ function createMentionsTribute(Tribute) {
     values: window.config.tributeValues,
     noMatchTemplate() { return null },
     menuItemTemplate(item) {
-      const div = $('<div/>');
-      div.append($('<img/>', {src: item.original.avatar}));
-      div.append($('<span/>', {class: 'name'}).text(item.original.name));
-      if (item.original.fullname && item.original.fullname !== '') {
-        div.append($('<span/>', {class: 'fullname'}).text(item.original.fullname));
-      }
-      return div.html();
+      return `
+        <div class="tribute-item">
+          <img src="${item.original.avatar}"/>
+          <span class="name">${item.original.name}</span>
+          ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${item.original.fullname}</span>` : ''}
+        </div>
+      `;
     }
   });
 }
