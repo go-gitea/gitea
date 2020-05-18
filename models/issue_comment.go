@@ -8,6 +8,7 @@ package models
 
 import (
 	"container/list"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -171,11 +172,17 @@ type Comment struct {
 	RefIssue   *Issue      `xorm:"-"`
 	RefComment *Comment    `xorm:"-"`
 
-	Commits     *list.List `xorm:"-"`
-	OldCommit   string     `xorm:"-"`
-	NewCommit   string     `xorm:"-"`
-	CommitsNum  int64      `xorm:"-"`
-	IsForcePush bool
+	Commits    *list.List `xorm:"-"`
+	OldCommit  string     `xorm:"-"`
+	NewCommit  string     `xorm:"-"`
+	CommitsNum int64      `xorm:"-"`
+	IsForcePush bool      `xorm:"-"`
+}
+
+// PushActionContent is content of push pull comment
+type PushActionContent struct {
+	IsForcePush bool     `json:"is_force_push"`
+	CommitIDs   []string `json:"commit_ids"`
 }
 
 // LoadIssue loads issue from database
@@ -558,14 +565,21 @@ func (c *Comment) LoadPushCommits() (err error) {
 		return nil
 	}
 
-	commitIDs := strings.Split(c.Content, ":")
+	var data PushActionContent
+
+	err = json.Unmarshal([]byte(c.Content), &data)
+	if err != nil {
+		return
+	}
+
+	c.IsForcePush = data.IsForcePush
 
 	if c.IsForcePush {
-		if len(commitIDs) != 2 {
+		if len(data.CommitIDs) != 2 {
 			return nil
 		}
-		c.OldCommit = commitIDs[0]
-		c.NewCommit = commitIDs[1]
+		c.OldCommit = data.CommitIDs[0]
+		c.NewCommit = data.CommitIDs[1]
 	} else {
 		repoPath := c.Issue.Repo.RepoPath()
 		gitRepo, err := git.OpenRepository(repoPath)
@@ -574,7 +588,7 @@ func (c *Comment) LoadPushCommits() (err error) {
 		}
 		defer gitRepo.Close()
 
-		c.Commits = gitRepo.GetCommitsFromIDs(commitIDs)
+		c.Commits = gitRepo.GetCommitsFromIDs(data.CommitIDs)
 		c.CommitsNum = int64(c.Commits.Len())
 		if c.CommitsNum > 0 {
 			c.Commits = ValidateCommitsWithEmails(c.Commits)
@@ -1074,24 +1088,20 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 		Repo: pr.BaseRepo,
 	}
 
-	var commitIDs []string
+	var data PushActionContent
 
-	var isForcePush bool
-	commitIDs, isForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 	if err != nil {
 		return nil, err
 	}
 
 	ops.Issue = pr.Issue
-	ops.IsForcePush = isForcePush
-
-	commitIDlist := ""
-
-	for _, commitID := range commitIDs {
-		commitIDlist = commitID + ":" + commitIDlist
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
 	}
 
-	ops.Content = commitIDlist[0 : len(commitIDlist)-1]
+	ops.Content = string(dataJSON)
 
 	comment, err = CreateComment(ops)
 

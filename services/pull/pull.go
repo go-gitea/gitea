@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -71,13 +72,16 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	}
 
 	if compareInfo.Commits.Len() > 0 {
-		comitIDs := ""
-		for e := compareInfo.Commits.Front(); e != nil; e = e.Next() {
-			commitID := e.Value.(*git.Commit).ID.String()
-			comitIDs = commitID + ":" + comitIDs
+		data := models.PushActionContent{IsForcePush: false}
+		data.CommitIDs = make([]string, 0, compareInfo.Commits.Len())
+		for e := compareInfo.Commits.Back(); e != nil; e = e.Prev() {
+			data.CommitIDs = append(data.CommitIDs, e.Value.(*git.Commit).ID.String())
 		}
 
-		comitIDs = comitIDs[0 : len(comitIDs)-1]
+		dataJSON, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
 
 		ops := &models.CreateCommentOptions{
 			Type:        models.CommentTypePullPush,
@@ -85,7 +89,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 			Repo:        repo,
 			Issue:       pr.Issue,
 			IsForcePush: false,
-			Content:     comitIDs,
+			Content:     string(dataJSON),
 		}
 
 		_, _ = models.CreateComment(ops)
