@@ -172,11 +172,11 @@ type Comment struct {
 	RefIssue   *Issue      `xorm:"-"`
 	RefComment *Comment    `xorm:"-"`
 
-	Commits    *list.List `xorm:"-"`
-	OldCommit  string     `xorm:"-"`
-	NewCommit  string     `xorm:"-"`
-	CommitsNum int64      `xorm:"-"`
-	IsForcePush bool      `xorm:"-"`
+	Commits     *list.List `xorm:"-"`
+	OldCommit   string     `xorm:"-"`
+	NewCommit   string     `xorm:"-"`
+	CommitsNum  int64      `xorm:"-"`
+	IsForcePush bool       `xorm:"-"`
 }
 
 // PushActionContent is content of push pull comment
@@ -1131,8 +1131,8 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 
 	if oldCommitBranch == "undefined" {
 		commitIDs = make([]string, 2)
-		commitIDs[1] = oldCommitID
-		commitIDs[0] = newCommitID
+		commitIDs[0] = oldCommitID
+		commitIDs[1] = newCommitID
 
 		return commitIDs, true, err
 	}
@@ -1150,7 +1150,7 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 
 	commitIDs = make([]string, 0, commits.Len())
 
-	for e := commits.Front(); e != nil; e = e.Next() {
+	for e := commits.Back(); e != nil; e = e.Prev() {
 		commit := e.Value.(*git.Commit)
 		commitBranch, err := commit.GetBranchName()
 		if err != nil {
