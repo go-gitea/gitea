@@ -1109,8 +1109,10 @@ async function initRepository() {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
     $(this).addClass('blue');
-    $('#repo-clone-ssh').removeClass('blue');
-    localStorage.setItem('repo-clone-protocol', 'https');
+    if ($('#repo-clone-ssh').length > 0) {
+      $('#repo-clone-ssh').removeClass('blue');
+      localStorage.setItem('repo-clone-protocol', 'https');
+    }
   });
   $('#repo-clone-url').on('click', function () {
     $(this).select();
@@ -2440,7 +2442,6 @@ $(document).ready(async () => {
           $('#repo-clone-ssh').trigger('click');
         } else {
           $('#repo-clone-https').trigger('click');
-          localStorage.setItem('repo-clone-protocol', 'ssh');
         }
         break;
       default:
