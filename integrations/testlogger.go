@@ -106,7 +106,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	}
 	writerCloser.setT(&t)
 	return func() {
-		took := time.Now().Sub(start)
+		took := time.Since(start)
 		if took > slowTest {
 			if log.CanColorStdout {
 				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgYellow)), fmt.Formatter(log.NewColoredValue(took, log.Bold, log.FgYellow)))
@@ -125,7 +125,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 			t.Errorf("Flushing queues failed with error %v", err)
 		}
 		timer.Stop()
-		flushTook := time.Now().Sub(start) - took
+		flushTook := time.Since(start) - took
 		if flushTook > slowFlush {
 			if log.CanColorStdout {
 				fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), fmt.Formatter(log.NewColoredValue(flushTook, log.Bold, log.FgRed)))
