@@ -2,7 +2,7 @@
 	{{if $.hidden}}
 		<button class="comment-form-reply ui green labeled icon tiny button"><i class="reply icon"></i> {{$.root.i18n.Tr "repo.diff.comment.reply"}}</button>
 	{{end}}
-	<form class="ui form {{if $.hidden}}hide{{end}} comment-form comment-form-reply" action="{{$.root.Issue.HTMLURL}}/files/reviews/comments" method="post">
+	<form class="ui form {{if $.hidden}}hide comment-form comment-form-reply{{end}}" action="{{$.root.Issue.HTMLURL}}/files/reviews/comments" method="post">
 	{{$.root.CsrfTokenHtml}}
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}"/>
 		<input type="hidden" name="side" value="{{if $.Side}}{{$.Side}}{{end}}">
