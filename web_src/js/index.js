@@ -2436,8 +2436,8 @@ $(document).ready(async () => {
   if ($('#repo-clone-url').length > 0) {
     switch (localStorage.getItem('repo-clone-protocol')) {
       case 'ssh':
-        if ($('#repo-clone-ssh').length === 0) {
-          $('#repo-clone-https').trigger('click');
+        if ($('#repo-clone-ssh').length > 0) {
+          $('#repo-clone-ssh').trigger('click');
         }
         break;
       default:
