@@ -242,6 +242,8 @@ function initReactionSelector(parent) {
         let react = content.find('.segment.reactions');
         if (!resp.empty && react.length > 0) {
           react.remove();
+        } else if (resp.empty && resp.html === '') {
+          react.remove();
         }
         if (!resp.empty) {
           react = $('<div class="ui attached segment reactions"></div>');
