@@ -1347,7 +1347,17 @@ func updatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = issue_service.IsLegalReviewRequest(reviewer, ctx.User, event == "add", issue)
+			if err := issue.LoadRepo(); err != nil {
+				ctx.ServerError("issue.LoadRepo", err)
+			}
+
+			permDoer, err := models.GetUserRepoPermission(issue.Repo, ctx.User)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
+
+			err = issue_service.IsLegalReviewRequest(reviewer, ctx.User, event == "add", issue, permDoer)
 			if err != nil {
 				ctx.ServerError("isLegalRequestReview", err)
 				return

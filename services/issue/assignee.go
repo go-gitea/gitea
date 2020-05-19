@@ -74,7 +74,7 @@ func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User
 }
 
 // IsLegalReviewRequest check review request permission
-func IsLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue) error {
+func IsLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue, permDoer models.Permission) error {
 	if !issue.IsPull {
 		return fmt.Errorf("this issue is not Pull Request [issue_id: %d]", issue.ID)
 	}
@@ -91,11 +91,6 @@ func IsLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 	}
 
 	permReviewer, err := models.GetUserRepoPermission(issue.Repo, reviewer)
-	if err != nil {
-		return err
-	}
-
-	permDoer, err := models.GetUserRepoPermission(issue.Repo, doer)
 	if err != nil {
 		return err
 	}

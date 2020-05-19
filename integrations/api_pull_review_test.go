@@ -129,27 +129,36 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user4", "user8"},
+		Reviewers: []string{"user4@example.com", "user8"},
 	})
 	session.MakeRequest(t, req, http.StatusCreated)
 
+	// poster of pr can't be reviewer
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user1", "user2", "testOther"},
+		Reviewers: []string{"user1"},
 	})
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	// test user not exist
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
+		Reviewers: []string{"testOther"},
+	})
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Test Remove Review Request
 	session2 := loginUser(t, "user4")
 	token2 := getTokenForLoggedInUser(t, session2)
-	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user8@example.com", "testOther", "user7"},
-	})
-	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
-		Reviewers: []string{"user4", "user8"},
+		Reviewers: []string{"user4"},
 	})
 	session.MakeRequest(t, req, http.StatusNoContent)
+
+	// doer is not admin
+	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token2), &api.PullReviewRequestOptions{
+		Reviewers: []string{"user8"},
+	})
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	req = NewRequestWithJSON(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.PullReviewRequestOptions{
 		Reviewers: []string{"user8"},

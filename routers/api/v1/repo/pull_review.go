@@ -575,6 +575,8 @@ func CreatReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpti
 	//     "$ref": "#/responses/PullReviewList"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	apiReviewRequest(ctx, opts, true)
 }
 
@@ -612,6 +614,8 @@ func DeletReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpti
 	//     "$ref": "#/responses/empty"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	apiReviewRequest(ctx, opts, false)
 }
 
@@ -631,8 +635,13 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		return
 	}
 
-	var reviews []*models.Review
-	hasResult := false
+	reviewers := make([]*models.User, 0, len(opts.Reviewers))
+
+	permDoer, err := models.GetUserRepoPermission(pr.Issue.Repo, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+		return
+	}
 
 	for _, r := range opts.Reviewers {
 		var reviewer *models.User
@@ -643,17 +652,32 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		}
 
 		if err != nil {
-			continue
+			if models.IsErrUserNotExist(err) {
+				ctx.NotFound("UserNotExist", fmt.Sprintf("User '%s' not exist", r))
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "GetUser", err)
+			return
 		}
 
-		err = issue_service.IsLegalReviewRequest(reviewer, ctx.User, isAdd, pr.Issue)
+		err = issue_service.IsLegalReviewRequest(reviewer, ctx.User, isAdd, pr.Issue, permDoer)
 		if err != nil {
-			continue
+			ctx.Error(http.StatusUnprocessableEntity, "IllegalReviewRequest", err)
+			return
 		}
 
+		reviewers = append(reviewers, reviewer)
+	}
+
+	var reviews []*models.Review
+	if isAdd {
+		reviews = make([]*models.Review, 0, len(reviewers))
+	}
+
+	for _, reviewer := range reviewers {
 		comment, err := issue_service.ReviewRequest(pr.Issue, ctx.User, reviewer, isAdd)
 		if err != nil {
-			ctx.ServerError("ReviewRequest", err)
+			ctx.Error(http.StatusInternalServerError, "ReviewRequest", err)
 			return
 		}
 
@@ -665,26 +689,18 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 				}
 				reviews = append(reviews, comment.Review)
 			}
-			hasResult = true
-
-		} else {
-			continue
 		}
 	}
 
-	if hasResult {
-		if isAdd {
-			apiReviews, err := convert.ToPullReviewList(reviews, ctx.User)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "convertToPullReviewList", err)
-				return
-			}
-			ctx.JSON(http.StatusCreated, apiReviews)
-		} else {
-			ctx.Status(http.StatusNoContent)
+	if isAdd {
+		apiReviews, err := convert.ToPullReviewList(reviews, ctx.User)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "convertToPullReviewList", err)
 			return
 		}
+		ctx.JSON(http.StatusCreated, apiReviews)
 	} else {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Not have legal requests"))
+		ctx.Status(http.StatusNoContent)
+		return
 	}
 }
