@@ -65,7 +65,7 @@ export default async function attachTribute(elementOrNodeList, {mentions, emoji}
   const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
 
   const collections = makeCollections({
-    mentions: mentions || emojiNodes.length > 0,
+    mentions: mentions || mentionNodes.length > 0,
     emoji: emoji || emojiNodes.length > 0,
   });
 
