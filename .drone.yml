@@ -10,6 +10,10 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
+trigger:
+  event:
+    - pull_request
+
 steps:
   - name: deps-frontend
     pull: always
@@ -92,6 +96,13 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
+trigger:
+  branch:
+    - master
+  event:
+    - pull_request
+    - push
+
 services:
   - name: mysql
     pull: default
@@ -105,12 +116,6 @@ services:
         from_secret: gitlab_read_token
     depends_on:
       - build
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - pull_request
 
   - name: mysql8
     pull: default
@@ -118,6 +123,9 @@ services:
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
+    when:
+      event:
+        - pull_request
 
   - name: mssql
     pull: default
@@ -126,6 +134,9 @@ services:
       ACCEPT_EULA: Y
       MSSQL_PID: Standard
       SA_PASSWORD: MwantsaSecurePassword1
+    when:
+      event:
+        - pull_request
 
   - name: ldap
     pull: default
@@ -138,16 +149,6 @@ services:
     image: elasticsearch:7.5.0
 
 steps:
-  - name: fetch-tags
-    pull: default
-    image: docker:git
-    commands:
-      - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
-
   - name: build
     pull: always
     image: golang:1.14
@@ -157,12 +158,6 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
-
-  - name: tag-pre-condition
-    pull: always
-    image: alpine/git
-    commands:
-      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
   - name: unit-test
     pull: always
@@ -204,6 +199,9 @@ steps:
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
+    when:
+      event:
+        - pull_request
 
   - name: test-mssql
     pull: always
@@ -219,6 +217,9 @@ steps:
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
+    when:
+      event:
+        - pull_request
 
   - name: generate-coverage
     pull: always
@@ -231,12 +232,6 @@ steps:
     depends_on:
       - unit-test
       - test-mysql
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - pull_request
 
   - name: coverage
     pull: always
@@ -249,12 +244,6 @@ steps:
         from_secret: codecov_token
     depends_on:
       - generate-coverage
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - pull_request
 
 ---
 kind: pipeline
@@ -271,6 +260,10 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
+trigger:
+  event:
+    - pull_request
+
 services:
   - name: pgsql
     pull: default
@@ -284,16 +277,6 @@ services:
     image: gitea/test-openldap:latest
 
 steps:
-  - name: fetch-tags
-    pull: default
-    image: docker:git
-    commands:
-      - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
-
   - name: build
     pull: always
     image: golang:1.14
@@ -513,10 +496,6 @@ trigger:
   event:
     - tag
 
-depends_on:
-  - testing-arm64
-  - testing-amd64
-
 steps:
   - name: fetch-tags
     pull: default
@@ -712,6 +691,7 @@ trigger:
   ref:
   - refs/heads/master
   - "refs/tags/**"
+
 steps:
   - name: fetch-tags
     pull: default
