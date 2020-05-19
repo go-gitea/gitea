@@ -1771,8 +1771,20 @@
           },
           {
             "type": "boolean",
+            "description": "only include private repositories this user has access to (defaults to false)",
+            "name": "onlyPrivate",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
             "description": "include template repositories this user has access to (defaults to true)",
             "name": "template",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "show only archived, non-archived or all repositories (defaults to all)",
+            "name": "archived",
             "in": "query"
           },
           {
