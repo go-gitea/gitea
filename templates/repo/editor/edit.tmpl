@@ -38,6 +38,7 @@
 					<textarea id="edit_area" name="content" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 						data-url="{{.Repository.APIURL}}/markdown"
 						data-context="{{.RepoLink}}"
+						data-markdown-mode="gfm"
 						data-markdown-file-exts="{{.MarkdownFileExts}}"
 						data-line-wrap-extensions="{{.LineWrapExtensions}}">
 {{.FileContent}}</textarea>

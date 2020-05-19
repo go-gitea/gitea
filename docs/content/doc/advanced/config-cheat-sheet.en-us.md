@@ -152,9 +152,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Markdown (`markdown`)
 
-- `ENABLE_HARD_LINE_BREAK`: **true**: Render soft line breaks as hard line breaks, which
+- `ENABLE_HARD_LINE_BREAK_IN_COMMENTS`: **true**: Render soft line breaks as hard line breaks in comments, which
   means a single newline character between paragraphs will cause a line break and adding
-  trailing whitespace to paragraphs is not necessary to force a line break.
+  trailing whitespace to paragraphs is not necessary to force a line break. (Previously one setting covered both.)
+- `ENABLE_HARD_LINE_BREAK_IN_DOCUMENTS`: **false**: Render soft line breaks as hard line breaks in documents, which
+  means a single newline character between paragraphs will cause a line break and adding
+  trailing whitespace to paragraphs is not necessary to force a line break. (Previously one setting covered both.)
 - `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
   URL hyperlinks to be rendered in Markdown. URLs beginning in http and https are
   always displayed

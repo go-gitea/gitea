@@ -48,6 +48,8 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	}
 
 	switch form.Mode {
+	case "comment":
+		fallthrough
 	case "gfm":
 		md := []byte(form.Text)
 		urlPrefix := form.Context
@@ -61,7 +63,14 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 			}
 		}
 		if ctx.Repo != nil && ctx.Repo.Repository != nil {
-			meta = ctx.Repo.Repository.ComposeMetas()
+			if form.Mode == "gfm" {
+				meta = ctx.Repo.Repository.ComposeDocumentMetas()
+			} else {
+				meta = ctx.Repo.Repository.ComposeMetas()
+			}
+		}
+		if form.Mode == "gfm" {
+			meta["mode"] = "document"
 		}
 		if form.Wiki {
 			_, err := ctx.Write([]byte(markdown.RenderWiki(md, urlPrefix, meta)))
