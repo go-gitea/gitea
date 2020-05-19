@@ -260,7 +260,7 @@ var (
 		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
 		FileExtensions      []string
 	}{
-		EnableHardLineBreak: true,
+		EnableHardLineBreak: false,
 		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
