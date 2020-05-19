@@ -2197,9 +2197,12 @@
         padding: 0;
         display: flex;
 
-        .ui.label {
+        .ui.label,
+        .ui.label.visible {
             max-height: 40px;
-            padding: 9px 15px 7px;
+            padding: .4rem .8rem;
+            display: flex !important;
+            align-items: center;
             border: 0;
             border-right: 1px solid;
             border-radius: 0;
@@ -2220,19 +2223,16 @@
         }
 
         .reaction-count {
-            margin-left: 4px;
+            margin-left: .5rem;
         }
 
         .select-reaction {
-            float: left;
-            padding: .6em;
-            line-height: 21px;
+            display: flex;
+            align-items: center;
+            padding: .5rem;
 
             &:not(.active) a {
                 display: none;
-            }
-            > svg {
-                vertical-align: middle;
             }
         }
 
