@@ -890,6 +890,16 @@ func VerifyUserActiveCode(code string) (user *User) {
 	return nil
 }
 
+// VerifyUserActiveCode verifies active code and password when activating account
+func VerifyUserActiveCodeAndPassword(code string, password string) (user *User) {
+	if user = VerifyUserActiveCode(code); user != nil {
+		if user.ValidatePassword(password) {
+			return user
+		}
+	}
+	return nil
+}
+
 // VerifyActiveEmailCode verifies active email code when active account
 func VerifyActiveEmailCode(code, email string) *EmailAddress {
 	minutes := setting.Service.ActiveCodeLives
