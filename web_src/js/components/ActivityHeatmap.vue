@@ -7,6 +7,7 @@
             {{ totalContributions }} total contributions in the last 12 months
         </h4>
         <calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange"/>
+        <div class="ui divider"></div>
     </div>
 </template>
 
