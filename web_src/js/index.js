@@ -2961,6 +2961,13 @@ function initVueComponents() {
 
         this.isLoading = true;
 
+        if (!this.reposTotalCount) {
+          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=&page=1&mode=`;
+          $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
+            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+          });
+        }
+
         const searchedMode = this.repoTypes[this.reposFilter].searchMode;
         const searchedURL = this.searchURL;
         const searchedQuery = this.searchQuery;
