@@ -78,9 +78,17 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: include private repositories this user has access to (defaults to true)
 	//   type: boolean
+	// - name: onlyPrivate
+	//   in: query
+	//   description: only include private repositories this user has access to (defaults to false)
+	//   type: boolean
 	// - name: template
 	//   in: query
 	//   description: include template repositories this user has access to (defaults to true)
+	//   type: boolean
+	// - name: archived
+	//   in: query
+	//   description: show only archived, non-archived or all repositories (defaults to all)
 	//   type: boolean
 	// - name: mode
 	//   in: query
@@ -125,6 +133,7 @@ func Search(ctx *context.APIContext) {
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		OnlyPrivate:        ctx.IsSigned && ctx.QueryBool("onlyPrivate"),
 		Template:           util.OptionalBoolNone,
 		StarredByID:        ctx.QueryInt64("starredBy"),
 		IncludeDescription: ctx.QueryBool("includeDesc"),
@@ -154,6 +163,10 @@ func Search(ctx *context.APIContext) {
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
 		return
+	}
+
+	if ctx.Query("archived") != "" {
+		opts.Archived = util.OptionalBoolOf(ctx.QueryBool("archived"))
 	}
 
 	var sortMode = ctx.Query("sort")

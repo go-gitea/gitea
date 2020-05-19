@@ -45,22 +45,32 @@ func (c *Command) String() string {
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
 func NewCommand(args ...string) *Command {
+	return NewCommandContext(DefaultContext, args...)
+}
+
+// NewCommandContext creates and returns a new Git Command based on given command and arguments.
+func NewCommandContext(ctx context.Context, args ...string) *Command {
 	// Make an explicit copy of GlobalCommandArgs, otherwise append might overwrite it
 	cargs := make([]string, len(GlobalCommandArgs))
 	copy(cargs, GlobalCommandArgs)
 	return &Command{
 		name:          GitExecutable,
 		args:          append(cargs, args...),
-		parentContext: DefaultContext,
+		parentContext: ctx,
 	}
 }
 
 // NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
 func NewCommandNoGlobals(args ...string) *Command {
+	return NewCommandContextNoGlobals(DefaultContext, args...)
+}
+
+// NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+func NewCommandContextNoGlobals(ctx context.Context, args ...string) *Command {
 	return &Command{
 		name:          GitExecutable,
 		args:          args,
-		parentContext: DefaultContext,
+		parentContext: ctx,
 	}
 }
 
