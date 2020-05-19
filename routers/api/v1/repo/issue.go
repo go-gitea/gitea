@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -208,6 +210,10 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter by type (issues / pulls) if set
 	//   type: string
+	// - name: milestones
+	//   in: query
+	//   description: comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of this milestones. Non existent milestones are discarded
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -251,6 +257,36 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
+	var mileIDs []int64
+	if part := strings.Split(ctx.Query("milestones"), ","); len(part) > 0 {
+		for i := range part {
+			// uses names and fall back to ids
+			// non existent milestones are discarded
+			mile, err := models.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			if err == nil {
+				mileIDs = append(mileIDs, mile.ID)
+				continue
+			}
+			if !models.IsErrMilestoneNotExist(err) {
+				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoIDANDName", err)
+				return
+			}
+			id, err := strconv.ParseInt(part[i], 10, 64)
+			if err != nil {
+				continue
+			}
+			mile, err = models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, id)
+			if err == nil {
+				mileIDs = append(mileIDs, mile.ID)
+				continue
+			}
+			if models.IsErrMilestoneNotExist(err) {
+				continue
+			}
+			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
+		}
+	}
+
 	listOptions := utils.GetListOptions(ctx)
 	if ctx.QueryInt("limit") == 0 {
 		listOptions.PageSize = setting.UI.IssuePagingNum
@@ -270,12 +306,13 @@ func ListIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
-			ListOptions: listOptions,
-			RepoIDs:     []int64{ctx.Repo.Repository.ID},
-			IsClosed:    isClosed,
-			IssueIDs:    issueIDs,
-			LabelIDs:    labelIDs,
-			IsPull:      isPull,
+			ListOptions:  listOptions,
+			RepoIDs:      []int64{ctx.Repo.Repository.ID},
+			IsClosed:     isClosed,
+			IssueIDs:     issueIDs,
+			LabelIDs:     labelIDs,
+			MilestoneIDs: mileIDs,
+			IsPull:       isPull,
 		})
 	}
 
@@ -508,6 +545,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if len(form.Title) > 0 {
 		issue.Title = form.Title
 	}
@@ -562,20 +600,25 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			return
 		}
 	}
-
-	if err = models.UpdateIssueByAPI(issue); err != nil {
+	if form.State != nil {
+		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+	}
+	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
+	if err != nil {
+		if models.IsErrDependenciesLeft(err) {
+			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueByAPI", err)
 		return
 	}
-	if form.State != nil {
-		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
-			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
-			return
-		}
+
+	if titleChanged {
+		notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
+	}
+
+	if statusChangeComment != nil {
+		notification.NotifyIssueChangeStatus(ctx.User, issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database to assign some automatic values

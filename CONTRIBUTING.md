@@ -71,23 +71,21 @@ to make sure your changes don't cause regression elsewhere.
 
 Here's how to run the test suite:
 
-- Install the correct version of the drone-cli package.  As of this
-  writing, the correct drone-cli version is
-  [1.2.0](https://docs.drone.io/cli/install/).
-- Ensure you have enough free disk space.  You will need at least
-  15-20 Gb of free disk space to hold all of the containers drone
-  creates (a default AWS or GCE disk size won't work -- see
-  [#6243](https://github.com/go-gitea/gitea/issues/6243)).
-- Change into the base directory of your copy of the gitea repository,
-  and run `drone exec --event pull_request`.
-- At the moment `drone exec` doesn't support the Docker Toolbox on Windows 10
-  (see [drone-cli#135](https://github.com/drone/drone-cli/issues/135))
+- code lint
 
-The drone version, command line, and disk requirements do change over
-time (see [#4053](https://github.com/go-gitea/gitea/issues/4053) and
-[#6243](https://github.com/go-gitea/gitea/issues/6243)); if you
-discover any issues, please feel free to send us a pull request to
-update these instructions.
+|                       |                                                                   |
+| :-------------------- | :---------------------------------------------------------------- |
+|``make lint``          | lint everything (not suggest if you only change one type code)    |
+|``make lint-frontend`` | lint frontend files  |
+|``make lint-backend``  | lint backend files   |
+
+- run test code (Suggest run in linux)  
+
+|                                        |                                                  |
+| :------------------------------------- | :----------------------------------------------- |
+|``make test[\#TestSpecificName]``       |  run unit test  |
+|``make test-sqlite[\#TestSpecificName]``|  run [integration](integrations) test for sqlite |  
+|[More detail message about integrations](integrations/README.md)  |
 
 ## Vendoring
 

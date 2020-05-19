@@ -6,7 +6,9 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // NewIssue creates new issue with labels for repository.
@@ -127,4 +129,18 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID
 	}
 
 	return nil
+}
+
+// GetRefEndNamesAndURLs retrieves the ref end names (e.g. refs/heads/branch-name -> branch-name)
+// and their respective URLs.
+func GetRefEndNamesAndURLs(issues []*models.Issue, repoLink string) (map[int64]string, map[int64]string) {
+	var issueRefEndNames = make(map[int64]string, len(issues))
+	var issueRefURLs = make(map[int64]string, len(issues))
+	for _, issue := range issues {
+		if issue.Ref != "" {
+			issueRefEndNames[issue.ID] = git.RefEndName(issue.Ref)
+			issueRefURLs[issue.ID] = git.RefURL(repoLink, util.PathEscapeSegments(issue.Ref))
+		}
+	}
+	return issueRefEndNames, issueRefURLs
 }

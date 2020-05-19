@@ -20,6 +20,7 @@ import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {createCodeEditor} from './features/codeeditor.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -28,9 +29,7 @@ function htmlEncode(text) {
 }
 
 let previewFileModes;
-let simpleMDEditor;
 const commentMDEditors = {};
-let codeMirrorEditor;
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -44,9 +43,9 @@ function initCommentPreviewTab($form) {
       _csrf: csrf,
       mode: 'gfm',
       context: $this.data('context'),
-      text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
-      const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
+      const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
       $('pre code', $previewPanel[0]).each(function () {
         highlight(this);
@@ -65,7 +64,7 @@ function initEditPreviewTab($form) {
     previewFileModes = $previewTab.data('preview-file-modes').split(',');
     $previewTab.on('click', function () {
       const $this = $(this);
-      let context = `{$this.data('context')}/`;
+      let context = `${$this.data('context')}/`;
       const treePathEl = $form.find('input#tree_path');
       if (treePathEl.length > 0) {
         context += treePathEl.val();
@@ -75,9 +74,9 @@ function initEditPreviewTab($form) {
         _csrf: csrf,
         mode: 'gfm',
         context,
-        text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+        text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
       }, (data) => {
-        const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
+        const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
         $('pre code', $previewPanel[0]).each(function () {
           highlight(this);
@@ -95,9 +94,9 @@ function initEditDiffTab($form) {
     $.post($this.data('url'), {
       _csrf: csrf,
       context: $this.data('context'),
-      content: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      content: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
-      const $diffPreviewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('diff')}"]`);
+      const $diffPreviewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('diff')}"]`);
       $diffPreviewPanel.html(data);
     });
   });
@@ -115,10 +114,9 @@ function initEditForm() {
 function initBranchSelector() {
   const $selectBranch = $('.ui.select-branch');
   const $branchMenu = $selectBranch.find('.reference-list-menu');
-  $branchMenu.find('.item:not(.no-select)').on('click', function () {
-    const selectedValue = $(this).data('id');
-    $($(this).data('id-selector')).val(selectedValue);
-    $selectBranch.find('.ui .branch-name').text(selectedValue);
+  $branchMenu.find('.item:not(.no-select)').click(function () {
+    $($(this).data('id-selector')).val($(this).data('id'));
+    $selectBranch.find('.ui .branch-name').text($(this).data('name'));
   });
   $selectBranch.find('.reference.column').on('click', function () {
     $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
@@ -819,7 +817,7 @@ async function initRepository() {
         $.post(update_url, {
           _csrf: csrf,
           target_branch: targetBranch
-        }).success((data) => {
+        }).done((data) => {
           $branchTarget.text(data.base_branch);
         }).always(() => {
           reload();
@@ -972,8 +970,8 @@ async function initRepository() {
         $tabMenu.attr('data-preview', $editContentZone.data('preview'));
         $tabMenu.find('.write.item').attr('data-tab', $editContentZone.data('write'));
         $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
-        $editContentForm.find('.write.segment').attr('data-tab', $editContentZone.data('write'));
-        $editContentForm.find('.preview.segment').attr('data-tab', $editContentZone.data('preview'));
+        $editContentForm.find('.write').attr('data-tab', $editContentZone.data('write'));
+        $editContentForm.find('.preview').attr('data-tab', $editContentZone.data('preview'));
         $simplemde = setCommentSimpleMDE($textarea);
         commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
@@ -1044,7 +1042,7 @@ async function initRepository() {
       if (window.confirm($this.data('locale'))) {
         $.post($this.data('url'), {
           _csrf: csrf
-        }).success(() => {
+        }).done(() => {
           $(`#${$this.data('comment-id')}`).remove();
         });
       }
@@ -1111,8 +1109,10 @@ async function initRepository() {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
     $(this).addClass('blue');
-    $('#repo-clone-ssh').removeClass('blue');
-    localStorage.setItem('repo-clone-protocol', 'https');
+    if ($('#repo-clone-ssh').length > 0) {
+      $('#repo-clone-ssh').removeClass('blue');
+      localStorage.setItem('repo-clone-protocol', 'https');
+    }
   });
   $('#repo-clone-url').on('click', function () {
     $(this).select();
@@ -1244,7 +1244,7 @@ function initPullRequestReview() {
     if (!ntr.hasClass('add-comment')) {
       ntr = $(`<tr class="add-comment">${
         isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>' :
-          '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>'
+          '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right" colspan="2"></td>'
       }</tr>`);
       tr.after(ntr);
     }
@@ -1467,62 +1467,6 @@ $.fn.getCursorPosition = function () {
   return pos;
 };
 
-function setSimpleMDE($editArea) {
-  if (codeMirrorEditor) {
-    codeMirrorEditor.toTextArea();
-    codeMirrorEditor = null;
-  }
-
-  if (simpleMDEditor) {
-    return true;
-  }
-
-  simpleMDEditor = new SimpleMDE({
-    autoDownloadFontAwesome: false,
-    element: $editArea[0],
-    forceSync: true,
-    renderingConfig: {
-      singleLineBreaks: false
-    },
-    indentWithTabs: false,
-    tabSize: 4,
-    spellChecker: false,
-    previewRender(plainText, preview) { // Async method
-      setTimeout(() => {
-        // FIXME: still send render request when return back to edit mode
-        $.post($editArea.data('url'), {
-          _csrf: csrf,
-          mode: 'gfm',
-          context: $editArea.data('context'),
-          text: plainText
-        }, (data) => {
-          preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-        });
-      }, 0);
-
-      return 'Loading...';
-    },
-    toolbar: ['bold', 'italic', 'strikethrough', '|',
-      'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|',
-      'unordered-list', 'ordered-list', '|',
-      'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
-      {
-        name: 'revert-to-textarea',
-        action(e) {
-          e.toTextArea();
-        },
-        className: 'fa fa-file',
-        title: 'Revert to simple textarea',
-      },
-    ]
-  });
-  $(simpleMDEditor.codemirror.getInputField()).addClass('js-quick-submit');
-
-  return true;
-}
-
 function setCommentSimpleMDE($editArea) {
   const simplemde = new SimpleMDE({
     autoDownloadFontAwesome: false,
@@ -1569,27 +1513,7 @@ function setCommentSimpleMDE($editArea) {
   return simplemde;
 }
 
-function setCodeMirror($editArea) {
-  if (simpleMDEditor) {
-    simpleMDEditor.toTextArea();
-    simpleMDEditor = null;
-  }
-
-  if (codeMirrorEditor) {
-    return true;
-  }
-
-  codeMirrorEditor = CodeMirror.fromTextArea($editArea[0], {
-    lineNumbers: true
-  });
-  codeMirrorEditor.on('change', (cm, _change) => {
-    $editArea.val(cm.getValue());
-  });
-
-  return true;
-}
-
-function initEditor() {
+async function initEditor() {
   $('.js-quick-pull-choice-option').on('change', function () {
     if ($(this).val() === 'commit-to-new-branch') {
       $('.quick-pull-branch-name').show();
@@ -1650,89 +1574,7 @@ function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  const markdownFileExts = $editArea.data('markdown-file-exts').split(',');
-  const lineWrapExtensions = $editArea.data('line-wrap-extensions').split(',');
-
-  $editFilename.on('keyup', () => {
-    const val = $editFilename.val();
-    let mode, spec, extension, extWithDot, dataUrl, apiCall;
-
-    extension = extWithDot = '';
-    const m = /.+\.([^.]+)$/.exec(val);
-    if (m) {
-      extension = m[1];
-      extWithDot = `.${extension}`;
-    }
-
-    const info = CodeMirror.findModeByExtension(extension);
-    const previewLink = $('a[data-tab=preview]');
-    if (info) {
-      mode = info.mode;
-      spec = info.mime;
-      apiCall = mode;
-    } else {
-      apiCall = extension;
-    }
-
-    if (previewLink.length && apiCall && previewFileModes && previewFileModes.length && previewFileModes.includes(apiCall)) {
-      dataUrl = previewLink.data('url');
-      previewLink.data('url', dataUrl.replace(/(.*)\/.*/i, `$1/${mode}`));
-      previewLink.show();
-    } else {
-      previewLink.hide();
-    }
-
-    // If this file is a Markdown extensions, we will load that editor and return
-    if (markdownFileExts.includes(extWithDot)) {
-      if (setSimpleMDE($editArea)) {
-        return;
-      }
-    }
-
-    // Else we are going to use CodeMirror
-    if (!codeMirrorEditor && !setCodeMirror($editArea)) {
-      return;
-    }
-
-    if (mode) {
-      codeMirrorEditor.setOption('mode', spec);
-      CodeMirror.autoLoadMode(codeMirrorEditor, mode);
-    }
-
-    if (lineWrapExtensions.includes(extWithDot)) {
-      codeMirrorEditor.setOption('lineWrapping', true);
-    } else {
-      codeMirrorEditor.setOption('lineWrapping', false);
-    }
-
-    // get the filename without any folder
-    let value = $editFilename.val();
-    if (value.length === 0) {
-      return;
-    }
-    value = value.split('/');
-    value = value[value.length - 1];
-
-    $.getJSON($editFilename.data('ec-url-prefix') + value, (editorconfig) => {
-      if (editorconfig.indent_style === 'tab') {
-        codeMirrorEditor.setOption('indentWithTabs', true);
-        codeMirrorEditor.setOption('extraKeys', {});
-      } else {
-        codeMirrorEditor.setOption('indentWithTabs', false);
-        // required because CodeMirror doesn't seems to use spaces correctly for {"indentWithTabs": false}:
-        // - https://github.com/codemirror/CodeMirror/issues/988
-        // - https://codemirror.net/doc/manual.html#keymaps
-        codeMirrorEditor.setOption('extraKeys', {
-          Tab(cm) {
-            const spaces = new Array(parseInt(cm.getOption('indentUnit')) + 1).join(' ');
-            cm.replaceSelection(spaces);
-          }
-        });
-      }
-      codeMirrorEditor.setOption('indentUnit', editorconfig.indent_size || 4);
-      codeMirrorEditor.setOption('tabSize', editorconfig.tab_width || 4);
-    });
-  }).trigger('keyup');
+  await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
@@ -2019,7 +1861,7 @@ function initAdmin() {
 
     // Attach view detail modals
     $('.view-detail').on('click', function () {
-      $detailModal.find('.content p').text($(this).data('content'));
+      $detailModal.find('.content pre').text($(this).data('content'));
       $detailModal.modal('show');
       return false;
     });
@@ -2192,7 +2034,7 @@ function initU2FAuth() {
   }
   u2fApi.ensureSupport()
     .then(() => {
-      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).success((req) => {
+      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).done((req) => {
         u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
           .then(u2fSigned)
           .catch((err) => {
@@ -2288,7 +2130,7 @@ function u2fRegisterRequest() {
   $.post(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
     _csrf: csrf,
     name: $('#nickname').val()
-  }).success((req) => {
+  }).done((req) => {
     $('#nickname').closest('div.field').removeClass('error');
     $('#register-device').modal('show');
     if (req.registeredKeys === null) {
@@ -2596,7 +2438,9 @@ $(document).ready(async () => {
   if ($('#repo-clone-url').length > 0) {
     switch (localStorage.getItem('repo-clone-protocol')) {
       case 'ssh':
-        if ($('#repo-clone-ssh').length === 0) {
+        if ($('#repo-clone-ssh').length > 0) {
+          $('#repo-clone-ssh').trigger('click');
+        } else {
           $('#repo-clone-https').trigger('click');
         }
         break;
@@ -2822,33 +2666,70 @@ function initVueComponents() {
     },
 
     data() {
+      const params = new URLSearchParams(window.location.search);
+
+      let tab = params.get('repo-search-tab');
+      if (!tab) {
+        tab = 'repos';
+      }
+
+      let reposFilter = params.get('repo-search-filter');
+      if (!reposFilter) {
+        reposFilter = 'all';
+      }
+
+      let privateFilter = params.get('repo-search-private');
+      if (!privateFilter) {
+        privateFilter = 'both';
+      }
+
+      let archivedFilter = params.get('repo-search-archived');
+      if (!archivedFilter) {
+        archivedFilter = 'unarchived';
+      }
+
+      let searchQuery = params.get('repo-search-query');
+      if (!searchQuery) {
+        searchQuery = '';
+      }
+
+      let page = 1;
+      try {
+        page = parseInt(params.get('repo-search-page'));
+      } catch {
+        // noop
+      }
+      if (!page) {
+        page = 1;
+      }
+
       return {
-        tab: 'repos',
+        tab,
         repos: [],
         reposTotalCount: 0,
-        reposFilter: 'all',
-        searchQuery: '',
+        reposFilter,
+        archivedFilter,
+        privateFilter,
+        page,
+        finalPage: 1,
+        searchQuery,
         isLoading: false,
         staticPrefix: StaticUrlPrefix,
+        counts: {},
         repoTypes: {
           all: {
-            count: 0,
             searchMode: '',
           },
           forks: {
-            count: 0,
             searchMode: 'fork',
           },
           mirrors: {
-            count: 0,
             searchMode: 'mirror',
           },
           sources: {
-            count: 0,
             searchMode: 'source',
           },
           collaborative: {
-            count: 0,
             searchMode: 'collaborative',
           },
         }
@@ -2857,21 +2738,26 @@ function initVueComponents() {
 
     computed: {
       showMoreReposLink() {
-        return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
+        return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
         return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=${this.searchQuery
-        }&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
-        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''}`;
+        }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
+        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
+        }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
+        }${this.privateFilter === 'private' ? '&onlyPrivate=true' : ''}${this.privateFilter === 'public' ? '&private=false' : ''
+        }`;
       },
       repoTypeCount() {
-        return this.repoTypes[this.reposFilter].count;
+        return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       }
     },
 
     mounted() {
       this.searchRepos(this.reposFilter);
-
+      $(this.$el).find('.poping.up').popup();
+      $(this.$el).find('.dropdown').dropdown();
+      this.setCheckboxes();
       const self = this;
       Vue.nextTick(() => {
         self.$refs.search.focus();
@@ -2881,17 +2767,178 @@ function initVueComponents() {
     methods: {
       changeTab(t) {
         this.tab = t;
+        this.updateHistory();
+      },
+
+      setCheckboxes() {
+        switch (this.archivedFilter) {
+          case 'unarchived':
+            $('#archivedFilterCheckbox').checkbox('set unchecked');
+            break;
+          case 'archived':
+            $('#archivedFilterCheckbox').checkbox('set checked');
+            break;
+          case 'both':
+            $('#archivedFilterCheckbox').checkbox('set indeterminate');
+            break;
+          default:
+            this.archivedFilter = 'unarchived';
+            $('#archivedFilterCheckbox').checkbox('set unchecked');
+            break;
+        }
+        switch (this.privateFilter) {
+          case 'public':
+            $('#privateFilterCheckbox').checkbox('set unchecked');
+            break;
+          case 'private':
+            $('#privateFilterCheckbox').checkbox('set checked');
+            break;
+          case 'both':
+            $('#privateFilterCheckbox').checkbox('set indeterminate');
+            break;
+          default:
+            this.privateFilter = 'both';
+            $('#privateFilterCheckbox').checkbox('set indeterminate');
+            break;
+        }
       },
 
       changeReposFilter(filter) {
         this.reposFilter = filter;
         this.repos = [];
-        this.repoTypes[filter].count = 0;
-        this.searchRepos(filter);
+        this.page = 1;
+        Vue.set(this.counts, `${filter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
       },
 
-      showRepo(repo, filter) {
-        switch (filter) {
+      updateHistory() {
+        const params = new URLSearchParams(window.location.search);
+
+        if (this.tab === 'repos') {
+          params.delete('repo-search-tab');
+        } else {
+          params.set('repo-search-tab', this.tab);
+        }
+
+        if (this.reposFilter === 'all') {
+          params.delete('repo-search-filter');
+        } else {
+          params.set('repo-search-filter', this.reposFilter);
+        }
+
+        if (this.privateFilter === 'both') {
+          params.delete('repo-search-private');
+        } else {
+          params.set('repo-search-private', this.privateFilter);
+        }
+
+        if (this.archivedFilter === 'unarchived') {
+          params.delete('repo-search-archived');
+        } else {
+          params.set('repo-search-archived', this.archivedFilter);
+        }
+
+        if (this.searchQuery === '') {
+          params.delete('repo-search-query');
+        } else {
+          params.set('repo-search-query', this.searchQuery);
+        }
+
+        if (this.page === 1) {
+          params.delete('repo-search-page');
+        } else {
+          params.set('repo-search-page', `${this.page}`);
+        }
+
+        window.history.replaceState({}, '', `?${params.toString()}`);
+      },
+
+      toggleArchivedFilter() {
+        switch (this.archivedFilter) {
+          case 'both':
+            this.archivedFilter = 'unarchived';
+            break;
+          case 'unarchived':
+            this.archivedFilter = 'archived';
+            break;
+          case 'archived':
+            this.archivedFilter = 'both';
+            break;
+          default:
+            this.archivedFilter = 'unarchived';
+            break;
+        }
+        this.page = 1;
+        this.repos = [];
+        this.setCheckboxes();
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+      togglePrivateFilter() {
+        switch (this.privateFilter) {
+          case 'both':
+            this.privateFilter = 'public';
+            break;
+          case 'public':
+            this.privateFilter = 'private';
+            break;
+          case 'private':
+            this.privateFilter = 'both';
+            break;
+          default:
+            this.privateFilter = 'both';
+            break;
+        }
+        this.page = 1;
+        this.repos = [];
+        this.setCheckboxes();
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+
+      changePage(page) {
+        this.page = page;
+        if (this.page > this.finalPage) {
+          this.page = this.finalPage;
+        }
+        if (this.page < 1) {
+          this.page = 1;
+        }
+        this.repos = [];
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+      showArchivedRepo(repo) {
+        switch (this.archivedFilter) {
+          case 'both':
+            return true;
+          case 'unarchived':
+            return !repo.archived;
+          case 'archived':
+            return repo.archived;
+          default:
+            return !repo.archived;
+        }
+      },
+
+      showPrivateRepo(repo) {
+        switch (this.privateFilter) {
+          case 'both':
+            return true;
+          case 'public':
+            return !repo.private;
+          case 'private':
+            return repo.private;
+          default:
+            return true;
+        }
+      },
+
+      showFilteredRepo(repo) {
+        switch (this.reposFilter) {
           case 'sources':
             return repo.owner.id === this.uid && !repo.mirror && !repo.fork;
           case 'forks':
@@ -2905,12 +2952,16 @@ function initVueComponents() {
         }
       },
 
-      searchRepos(reposFilter) {
+      showRepo(repo) {
+        return this.showArchivedRepo(repo) && this.showPrivateRepo(repo) && this.showFilteredRepo(repo);
+      },
+
+      searchRepos() {
         const self = this;
 
         this.isLoading = true;
 
-        const searchedMode = this.repoTypes[reposFilter].searchMode;
+        const searchedMode = this.repoTypes[this.reposFilter].searchMode;
         const searchedURL = this.searchURL;
         const searchedQuery = this.searchQuery;
 
@@ -2918,10 +2969,12 @@ function initVueComponents() {
           if (searchedURL === self.searchURL) {
             self.repos = result.data;
             const count = request.getResponseHeader('X-Total-Count');
-            if (searchedQuery === '' && searchedMode === '') {
+            if (searchedQuery === '' && searchedMode === '' && self.archivedFilter === 'both') {
               self.reposTotalCount = count;
             }
-            self.repoTypes[reposFilter].count = count;
+            Vue.set(self.counts, `${self.reposFilter}:${self.archivedFilter}:${self.privateFilter}`, count);
+            self.finalPage = Math.floor(count / self.searchLimit) + 1;
+            self.updateHistory();
           }
         }).always(() => {
           if (searchedURL === self.searchURL) {
@@ -3085,7 +3138,7 @@ function initFilterBranchTagDropdown(selector) {
           if (!this.showCreateNewBranch) {
             return;
           }
-          this.$refs.newBranchForm.trigger('submit');
+          $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
           const vm = this;

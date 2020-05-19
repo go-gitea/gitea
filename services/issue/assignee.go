@@ -56,9 +56,9 @@ func ToggleAssignee(issue *models.Issue, doer *models.User, assigneeID int64) (r
 func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User, isAdd bool) (err error) {
 	var comment *models.Comment
 	if isAdd {
-		comment, err = models.AddRewiewRequest(issue, reviewer, doer)
+		comment, err = models.AddReviewRequest(issue, reviewer, doer)
 	} else {
-		comment, err = models.RemoveRewiewRequest(issue, reviewer, doer)
+		comment, err = models.RemoveReviewRequest(issue, reviewer, doer)
 	}
 
 	if err != nil {
@@ -66,7 +66,7 @@ func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User
 	}
 
 	if comment != nil {
-		notification.NotifyPullRewiewRequest(doer, issue, reviewer, isAdd, comment)
+		notification.NotifyPullReviewRequest(doer, issue, reviewer, isAdd, comment)
 	}
 
 	return nil

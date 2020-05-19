@@ -383,7 +383,7 @@ func orgAssignment(args ...bool) macaron.Handler {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":orgname"))
+			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":org"))
 			if err != nil {
 				if models.IsErrOrgNotExist(err) {
 					ctx.NotFound()
@@ -500,7 +500,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
 	if setting.API.EnableSwagger {
-		m.Get("/swagger", misc.Swagger) //Render V1 by default
+		m.Get("/swagger", misc.Swagger) // Render V1 by default
 	}
 
 	m.Group("/v1", func() {
@@ -794,6 +794,20 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Patch(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
+						m.Group("/reviews", func() {
+							m.Combo("").
+								Get(repo.ListPullReviews).
+								Post(reqToken(), bind(api.CreatePullReviewOptions{}), repo.CreatePullReview)
+							m.Group("/:id", func() {
+								m.Combo("").
+									Get(repo.GetPullReview).
+									Delete(reqToken(), repo.DeletePullReview).
+									Post(reqToken(), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
+								m.Combo("/comments").
+									Get(repo.GetPullReviewComments)
+							})
+						})
+
 					})
 				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(false))
 				m.Group("/statuses", func() {
@@ -803,14 +817,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/commits", func() {
 					m.Get("", repo.GetAllCommits)
 					m.Group("/:ref", func() {
-						m.Get("", repo.GetSingleCommitByRef)
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
 					})
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
-						m.Get("/:sha", repo.GetSingleCommitBySHA)
+						m.Get("/:sha", repo.GetSingleCommit)
 					})
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
@@ -844,7 +857,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/users/:username/orgs", org.ListUserOrgs)
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll)
-		m.Group("/orgs/:orgname", func() {
+		m.Group("/orgs/:org", func() {
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
@@ -894,7 +907,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 			m.Group("/repos", func() {
 				m.Get("", org.GetTeamRepos)
-				m.Combo("/:orgname/:reponame").
+				m.Combo("/:org/:reponame").
 					Put(org.AddTeamRepository).
 					Delete(org.RemoveTeamRepository)
 			})

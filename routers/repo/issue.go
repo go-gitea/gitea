@@ -190,6 +190,11 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	}
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
+	var mileIDs []int64
+	if milestoneID > 0 {
+		mileIDs = []int64{milestoneID}
+	}
+
 	var issues []*models.Issue
 	if forceEmpty {
 		issues = []*models.Issue{}
@@ -199,16 +204,16 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
-			RepoIDs:     []int64{repo.ID},
-			AssigneeID:  assigneeID,
-			PosterID:    posterID,
-			MentionedID: mentionedID,
-			MilestoneID: milestoneID,
-			IsClosed:    util.OptionalBoolOf(isShowClosed),
-			IsPull:      isPullOption,
-			LabelIDs:    labelIDs,
-			SortType:    sortType,
-			IssueIDs:    issueIDs,
+			RepoIDs:      []int64{repo.ID},
+			AssigneeID:   assigneeID,
+			PosterID:     posterID,
+			MentionedID:  mentionedID,
+			MilestoneIDs: mileIDs,
+			IsClosed:     util.OptionalBoolOf(isShowClosed),
+			IsPull:       isPullOption,
+			LabelIDs:     labelIDs,
+			SortType:     sortType,
+			IssueIDs:     issueIDs,
 		})
 		if err != nil {
 			ctx.ServerError("Issues", err)
@@ -280,6 +285,9 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	if ctx.QueryInt64("assignee") == 0 {
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
 	}
+
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
+		issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
 
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
 		counts, ok := approvalCounts[issueID]
@@ -1122,6 +1130,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
+	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
 	ctx.HTML(200, tplIssueView)
 }
 

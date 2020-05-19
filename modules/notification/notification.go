@@ -150,10 +150,10 @@ func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee 
 	}
 }
 
-// NotifyPullRewiewRequest notifies Request Review change
-func NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+// NotifyPullReviewRequest notifies Request Review change
+func NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
 	for _, notifier := range notifiers {
-		notifier.NotifyPullRewiewRequest(doer, issue, reviewer, isRequest, comment)
+		notifier.NotifyPullReviewRequest(doer, issue, reviewer, isRequest, comment)
 	}
 }
 
