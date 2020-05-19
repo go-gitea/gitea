@@ -15,7 +15,7 @@ import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initDateTimePicker from './features/datetimepicker.js';
-import {attachTribute} from './features/tribute.js';
+import createTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
@@ -892,7 +892,7 @@ async function initRepository() {
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        attachTribute($textarea.get(), {mentions: true, emoji: true});
+        createTribute($textarea.get(), {mentions: true, emoji: true});
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
@@ -1508,7 +1508,7 @@ function setCommentSimpleMDE($editArea) {
       cm.execCommand('delCharBefore');
     }
   });
-  attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
+  createTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
   return simplemde;
 }
 
@@ -2472,7 +2472,7 @@ $(document).ready(async () => {
   // parallel init of lazy-loaded features
   await Promise.all([
     highlight(document.querySelectorAll('pre code')),
-    attachTribute(document.querySelectorAll('textarea#content, .emoji-input')),
+    createTribute(document.querySelectorAll('textarea#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
