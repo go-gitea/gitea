@@ -20,6 +20,8 @@ func isYAMLSeparator(line string) bool {
 	return len(line) != 0
 }
 
+// ExtractMetadata consumes a markdown file, parses YAML frontmatter,
+// and returns the frontmatter metadata separated from the markdown content
 func ExtractMetadata(contents string) (map[string]interface{}, string, error) {
 	var front, body []string
 	var seps int
