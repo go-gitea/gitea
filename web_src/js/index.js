@@ -65,10 +65,7 @@ function initEditPreviewTab($form) {
     $previewTab.on('click', function () {
       const $this = $(this);
       let context = `${$this.data('context')}/`;
-      let mode = this.data('markdown-mode');
-      if (!mode) {
-        mode = 'comment';
-      }
+      const mode = this.data('markdown-mode') || 'comment';
       const treePathEl = $form.find('input#tree_path');
       if (treePathEl.length > 0) {
         context += treePathEl.val();
