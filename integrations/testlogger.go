@@ -21,8 +21,8 @@ import (
 
 var (
 	prefix    string
-	slowTest  time.Duration = 10 * time.Second
-	slowFlush time.Duration = 5 * time.Second
+	slowTest  = 10 * time.Second
+	slowFlush = 5 * time.Second
 )
 
 // TestLogger is a logger which will write to the testing log
