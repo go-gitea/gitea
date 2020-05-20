@@ -999,6 +999,12 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadResolveDoer", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypePullPush {
+			participants = addParticipant(comment.Poster, participants)
+			if err = comment.LoadPushCommits(); err != nil {
+				ctx.ServerError("LoadPushCommits", err)
+				return
+			}
 		}
 	}
 
