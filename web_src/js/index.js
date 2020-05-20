@@ -2911,51 +2911,6 @@ function initVueComponents() {
         this.searchRepos();
       },
 
-      showArchivedRepo(repo) {
-        switch (this.archivedFilter) {
-          case 'both':
-            return true;
-          case 'unarchived':
-            return !repo.archived;
-          case 'archived':
-            return repo.archived;
-          default:
-            return !repo.archived;
-        }
-      },
-
-      showPrivateRepo(repo) {
-        switch (this.privateFilter) {
-          case 'both':
-            return true;
-          case 'public':
-            return !repo.private;
-          case 'private':
-            return repo.private;
-          default:
-            return true;
-        }
-      },
-
-      showFilteredRepo(repo) {
-        switch (this.reposFilter) {
-          case 'sources':
-            return repo.owner.id === this.uid && !repo.mirror && !repo.fork;
-          case 'forks':
-            return repo.owner.id === this.uid && !repo.mirror && repo.fork;
-          case 'mirrors':
-            return repo.mirror;
-          case 'collaborative':
-            return repo.owner.id !== this.uid && !repo.mirror;
-          default:
-            return true;
-        }
-      },
-
-      showRepo(repo) {
-        return this.showArchivedRepo(repo) && this.showPrivateRepo(repo) && this.showFilteredRepo(repo);
-      },
-
       searchRepos() {
         const self = this;
 

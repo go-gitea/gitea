@@ -222,7 +222,13 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	}
 
 	if opts.OnlyPrivate {
-		cond = cond.And(builder.Eq{"is_private": true})
+		cond = cond.And(builder.Or(
+			builder.Eq{"is_private": true},
+			builder.In("owner_id", builder.Select("id").From("`user`").Where(
+				builder.And(
+					builder.Eq{"type": UserTypeOrganization},
+					builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
+				)))))
 	}
 
 	if opts.Template != util.OptionalBoolNone {
