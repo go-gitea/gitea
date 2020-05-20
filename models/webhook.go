@@ -801,47 +801,28 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 
 // DeleteDeliveredHookTasks deletes delivered hook tasks of one repository, leaving the most recent delivered based on the parameter
 func DeleteDeliveredHookTasks(repoID int64, numberDeliveriesToKeep int64) error {
-	maxDeletesPerBatch := 1000
-	totalDeliveries, err := x.
+	var ids = make([]int64, 0, 10)
+	err := x.Table("hook_task").
 		Where("hook_task.repo_id = ? AND hook_task.is_delivered = ?", repoID, 1).
+		Cols("hook_task.id").
 		Join("INNER", "repository", "hook_task.repo_id = repository.id").
 		And("repository.is_hook_task_purge_enabled = ?", 1).
-		Count(new(HookTask))
+		OrderBy("hook_task.id desc").
+		Limit(1, int(numberDeliveriesToKeep)).
+		Find(&ids)
 	if err != nil {
 		return err
 	}
 
-	if totalDeliveries > numberDeliveriesToKeep {
-		var numberToDelete = totalDeliveries - numberDeliveriesToKeep
-		log.Trace("From repo %d will delete %d from hook_task", repoID, numberToDelete)
-
-		var numberDeleted int64
-		for numberDeleted < numberToDelete {
-
-			deletesThisBatch := maxDeletesPerBatch
-			if (numberToDelete - numberDeleted) < int64(maxDeletesPerBatch) {
-				deletesThisBatch = int(numberToDelete - numberDeleted)
-			}
-
-			var ids = make([]int64, 0, 10)
-			err := x.Table("hook_task").
-				Where("repo_id = ? and is_delivered = ?", repoID, 1).
-				Cols("id").
-				OrderBy("delivered asc").
-				Limit(deletesThisBatch).
-				Find(&ids)
-			if err != nil {
-				return err
-			}
-
-			deletes, err := x.In("`id`", ids).Delete(new(HookTask))
-			if err != nil {
-				return err
-			}
-
-			numberDeleted += deletes
+	if len(ids) > 0 {
+		deletes, err := x.
+			Where("repo_id = ? and is_delivered = ? and id <= ?", repoID, 1, ids[0]).
+			Delete(new(HookTask))
+		if err != nil {
+			return err
 		}
-		log.Trace("From repo %d deleted in total %d from hook_task", repoID, numberDeleted)
+		log.Trace("From repo %d deleted in total %d from hook_task", repoID, deletes)
 	}
+
 	return nil
 }
