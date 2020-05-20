@@ -110,7 +110,12 @@ func runMigrateStorage(ctx *cli.Context) error {
 		var err error
 		switch ctx.String("store") {
 		case "local":
-			dstStorage, err = storage.NewLocalStorage(ctx.String("path"))
+			p := ctx.String("path")
+			if p == "" {
+				log.Fatal("Path must be given when store is loal")
+				return nil
+			}
+			dstStorage, err = storage.NewLocalStorage(p)
 		case "minio":
 			dstStorage, err = storage.NewMinioStorage(
 				ctx.String("minio-endpoint"),
@@ -128,7 +133,13 @@ func runMigrateStorage(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		return migrateAttachments(dstStorage)
+		if err := migrateAttachments(dstStorage); err != nil {
+			return err
+		}
+
+		log.Warn("All files have been copied to the new placement but old files are still on the orignial placement.")
+
+		return nil
 	}
 
 	return nil
