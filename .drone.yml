@@ -83,7 +83,7 @@ steps:
 
 ---
 kind: pipeline
-name: coverage
+name: testing-master
 
 platform:
   os: linux
@@ -159,6 +159,30 @@ steps:
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
+
+  - name: generate-coverage
+    pull: always
+    image: golang:1.14
+    commands:
+      - make coverage
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+    depends_on:
+      - unit-test
+      - test-mysql
+
+  - name: coverage
+    pull: always
+    image: robertstettner/drone-codecov
+    settings:
+      files:
+        - coverage.all
+    environment:
+      CODECOV_TOKEN:
+        from_secret: codecov_token
+    depends_on:
+      - generate-coverage
 
 ---
 kind: pipeline
@@ -269,9 +293,6 @@ steps:
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
-    when:
-      event:
-        - pull_request
 
   - name: test-mssql
     pull: always
@@ -287,9 +308,6 @@ steps:
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
-    when:
-      event:
-        - pull_request
 
   - name: generate-coverage
     pull: always
@@ -468,7 +486,7 @@ trigger:
     - push
 
 depends_on:
-  - coverage
+  - testing-master
   - translations
 
 steps:
