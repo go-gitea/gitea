@@ -3594,3 +3594,14 @@ $.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
   div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
   document.body.insertBefore(div, document.body.childNodes[0]);
 });
+
+// remove any previously installed serviceworkers
+if ('serviceWorker' in navigator) {
+  try {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    });
+  } catch (_err) {}
+}

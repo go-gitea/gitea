@@ -149,8 +149,6 @@ Before committing, make sure the linters pass:
 make lint-frontend
 ```
 
-Note: When working on frontend code, set `USE_SERVICE_WORKER` to `false` in `app.ini` to prevent undesirable caching of frontend assets.
-
 ### Building Images
 
 To build the images, ImageMagick, `inkscape` and `zopflipng` binaries must be available in
