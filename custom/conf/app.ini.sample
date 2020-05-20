@@ -216,7 +216,6 @@ EVENT_SOURCE_UPDATE_TIME = 10s
 ; Render soft line breaks as hard line breaks, which means a single newline character between
 ; paragraphs will cause a line break and adding trailing whitespace to paragraphs is not
 ; necessary to force a line break.
-; Previously one setting `ENABLE_HARD_LINE_BREAK` covered both cases.
 ; Render soft line breaks as hard line breaks for comments
 ENABLE_HARD_LINE_BREAK_IN_COMMENTS = true
 ; Render soft line breaks as hard line breaks for markdown documents
