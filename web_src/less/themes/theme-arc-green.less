@@ -1062,7 +1062,16 @@ input {
 }
 
 .ui.form .dropzone {
-    border: 2px dashed #4c505c;
+    border: 2px dashed #7f98ad;
+    background-color: #2e323e;
+
+    .dz-button {
+        color: rgba(158, 158, 158, .8);
+    }
+}
+
+.ui.form .dropzone:hover .dz-button {
+    color: rgba(158, 158, 158, 1);
 }
 
 .ui.basic.red.button,
@@ -1137,8 +1146,8 @@ td.blob-excerpt {
     background-color: rgba(0, 0, 0, .15);
 }
 
-.lines-code .code-view .active {
-    background: #554a00;
+.code-view .lines-code .active {
+    background: #534d1b;
 }
 
 a.ui.label:hover,
