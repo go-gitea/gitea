@@ -2744,7 +2744,7 @@ function initVueComponents() {
         }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
         }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
         }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
-        }${this.privateFilter === 'private' ? '&onlyPrivate=true' : ''}${this.privateFilter === 'public' ? '&private=false' : ''
+        }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
         }`;
       },
       repoTypeCount() {
