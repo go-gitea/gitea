@@ -83,6 +83,85 @@ steps:
 
 ---
 kind: pipeline
+name: coverage
+
+platform:
+  os: linux
+  arch: amd64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+trigger:
+  branch:
+    - master
+  event:
+    - push
+
+services:
+  - name: mysql
+    pull: default
+    image: mysql:5.7
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      MYSQL_DATABASE: test
+      GOPROXY: off
+      TAGS: bindata sqlite sqlite_unlock_notify
+      GITLAB_READ_TOKEN:
+        from_secret: gitlab_read_token
+    depends_on:
+      - build
+
+  - name: ldap
+    pull: default
+    image: gitea/test-openldap:latest
+
+  - name: elasticsearch
+    pull: default
+    environment:
+      discovery.type: single-node
+    image: elasticsearch:7.5.0
+
+steps:
+  - name: build
+    pull: always
+    image: golang:1.14
+    commands:
+      - make backend
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: unit-test
+    pull: always
+    image: golang:1.14
+    commands:
+      - make unit-test-coverage test-check
+    environment:
+      GOPROXY: off
+      TAGS: bindata sqlite sqlite_unlock_notify
+      GITHUB_READ_TOKEN:
+        from_secret: github_read_token
+
+  - name: test-mysql
+    pull: always
+    image: golang:1.14
+    commands:
+      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
+      - apt-get install -y git-lfs
+      - make test-mysql-migration integration-test-coverage
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+      TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
+    depends_on:
+      - build
+
+---
+kind: pipeline
 name: testing-amd64
 
 platform:
@@ -97,11 +176,8 @@ workspace:
   path: src/code.gitea.io/gitea
 
 trigger:
-  branch:
-    - master
   event:
     - pull_request
-    - push
 
 services:
   - name: mysql
@@ -123,9 +199,6 @@ services:
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
-    when:
-      event:
-        - pull_request
 
   - name: mssql
     pull: default
@@ -134,9 +207,6 @@ services:
       ACCEPT_EULA: Y
       MSSQL_PID: Standard
       SA_PASSWORD: MwantsaSecurePassword1
-    when:
-      event:
-        - pull_request
 
   - name: ldap
     pull: default
@@ -398,8 +468,7 @@ trigger:
     - push
 
 depends_on:
-  - testing-amd64
-  - testing-arm64
+  - coverage
   - translations
 
 steps:
@@ -604,14 +673,13 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
-depends_on:
-  - testing-amd64
-  - testing-arm64
-
 trigger:
   ref:
-  - refs/heads/master
-  - "refs/tags/**"
+    - refs/heads/master
+    - "refs/tags/**"
+  event:
+    exclude:
+      - pull_request
 
 steps:
   - name: fetch-tags
@@ -633,10 +701,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    when:
-      event:
-        exclude:
-        - pull_request
 
 ---
 kind: pipeline
@@ -654,8 +718,8 @@ depends_on:
   - compliance
 
 trigger:
-  ref:
-  - "refs/pull/**"
+  event:
+    - pull_request
 
 steps:
   - name: dryrun
@@ -667,9 +731,6 @@ steps:
       tags: linux-arm64
       build_args:
         - GOPROXY=off
-    when:
-      event:
-        - pull_request
 
 ---
 kind: pipeline
@@ -689,8 +750,11 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
-  - "refs/tags/**"
+    - refs/heads/master
+    - "refs/tags/**"
+  event:
+    exclude:
+      - pull_request
 
 steps:
   - name: fetch-tags
@@ -712,10 +776,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    when:
-      event:
-        exclude:
-        - pull_request
 
 ---
 kind: pipeline
@@ -724,6 +784,18 @@ name: docker-manifest
 platform:
   os: linux
   arch: amd64
+
+trigger:
+  ref:
+    - refs/heads/master
+    - "refs/tags/**"
+  event:
+    exclude:
+      - pull_request
+
+depends_on:
+  - docker-linux-amd64-release
+  - docker-linux-arm64-release
 
 steps:
   - name: manifest
@@ -737,15 +809,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-
-trigger:
-  ref:
-  - refs/heads/master
-  - "refs/tags/**"
-
-depends_on:
-  - docker-linux-amd64-release
-  - docker-linux-arm64-release
 
 ---
 kind: pipeline
