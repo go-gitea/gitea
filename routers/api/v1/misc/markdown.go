@@ -53,7 +53,7 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	case "gfm":
 		md := []byte(form.Text)
 		urlPrefix := form.Context
-		var meta map[string]string
+		meta := map[string]string{}
 		if !strings.HasPrefix(setting.AppSubURL+"/", urlPrefix) {
 			// check if urlPrefix is already set to a URL
 			linkRegex, _ := xurls.StrictMatchingScheme("https?://")
