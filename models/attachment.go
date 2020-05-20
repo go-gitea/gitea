@@ -272,7 +272,7 @@ func DeleteAttachmentsByRelease(releaseID int64) error {
 	return err
 }
 
-// IterateAttachment iterates attachments
+// IterateAttachment iterates attachments; it should not be used when Gitea is servicing users.
 func IterateAttachment(f func(attach *Attachment) error) error {
 	var start int
 	const batchSize = 100

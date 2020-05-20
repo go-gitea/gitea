@@ -27,7 +27,7 @@ var CmdMigrateStorage = cli.Command{
 		cli.StringFlag{
 			Name:  "type, t",
 			Value: "",
-			Usage: "Files type to migrate, currently should be attachments",
+			Usage: "Kinds of files to migrate, currently only 'attachments' is supported",
 		},
 		cli.StringFlag{
 			Name:  "store, s",
@@ -37,41 +37,41 @@ var CmdMigrateStorage = cli.Command{
 		cli.StringFlag{
 			Name:  "path, p",
 			Value: "",
-			Usage: "New storage placement if store is local",
+			Usage: "New storage placement if store is local (leave blank for default)",
 		},
 		cli.StringFlag{
 			Name:  "minio-endpoint",
 			Value: "",
-			Usage: "New minio storage endpoint",
+			Usage: "Minio storage endpoint",
 		},
 		cli.StringFlag{
 			Name:  "minio-access-key-id",
 			Value: "",
-			Usage: "New minio storage accessKeyID",
+			Usage: "Minio storage accessKeyID",
 		},
 		cli.StringFlag{
 			Name:  "minio-secret-access-key",
 			Value: "",
-			Usage: "New minio storage secretAccessKey",
+			Usage: "Minio storage secretAccessKey",
 		},
 		cli.StringFlag{
 			Name:  "minio-bucket",
 			Value: "",
-			Usage: "New minio storage bucket",
+			Usage: "Minio storage bucket",
 		},
 		cli.StringFlag{
 			Name:  "minio-location",
 			Value: "",
-			Usage: "New minio storage location to create bucket",
+			Usage: "Minio storage location to create bucket",
 		},
 		cli.StringFlag{
 			Name:  "minio-base-path",
 			Value: "",
-			Usage: "New minio storage basepath on the bucket",
+			Usage: "Minio storage basepath on the bucket",
 		},
 		cli.BoolFlag{
 			Name:  "minio-use-ssl",
-			Usage: "New minio storage SSL enabled",
+			Usage: "Enable SSL for minio",
 		},
 	},
 }
