@@ -31,7 +31,7 @@ func NewLocalStorage(bucket string) (*LocalStorage, error) {
 	}, nil
 }
 
-// Open open a file
+// Open a file
 func (l *LocalStorage) Open(path string) (io.ReadCloser, error) {
 	f, err := os.Open(filepath.Join(l.dir, path))
 	if err != nil {
@@ -40,7 +40,7 @@ func (l *LocalStorage) Open(path string) (io.ReadCloser, error) {
 	return f, nil
 }
 
-// Save save a file
+// Save a file
 func (l *LocalStorage) Save(path string, r io.Reader) (int64, error) {
 	p := filepath.Join(l.dir, path)
 	if err := os.MkdirAll(filepath.Dir(p), os.ModePerm); err != nil {
