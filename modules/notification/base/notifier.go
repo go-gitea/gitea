@@ -36,6 +36,7 @@ type Notifier interface {
 	NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest)
 	NotifyPullRequestReview(*models.PullRequest, *models.Review, *models.Comment)
 	NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string)
+	NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment)
 
 	NotifyCreateIssueComment(*models.User, *models.Repository,
 		*models.Issue, *models.Comment)
