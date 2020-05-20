@@ -18,9 +18,11 @@
 			{{end}}
 		{{end}}
 		<div class="ui top attached info clearing segment {{$class}}">
+			{{if not $.PageIsWiki}}
 			<a class="ui floated right blue tiny button" href="{{EscapePound .SourcePath}}">
 				{{.i18n.Tr "repo.diff.browse_source"}}
 			</a>
+			{{end}}
 			<h3><span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commit_status" .CommitStatus}}</h3>
 			{{if IsMultilineCommitMessage .Commit.Message}}
 				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
@@ -29,7 +31,7 @@
 		</div>
 		<div class="ui attached info segment {{$class}}">
 			<div class="ui stackable grid">
-				<div class="nine wide column">
+				<div class="ten wide column">
 					{{if .Author}}
 						<img class="ui avatar image" src="{{.Author.RelAvatarLink}}" />
 					{{if .Author.FullName}}
@@ -45,7 +47,7 @@
 						<span> </span>
 						{{if ne .Verification.CommittingUser.ID 0}}
 							<img class="ui avatar image" src="{{.Verification.CommittingUser.RelAvatarLink}}" />
-							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong> &lt;{{.Commit.Committer.Email}}&gt;</a> 
+							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong> &lt;{{.Commit.Committer.Email}}&gt;</a>
 						{{else}}
 							<img class="ui avatar image" src="{{AvatarLink .Commit.Committer.Email}}" />
 							<strong>{{.Commit.Committer.Name}}</strong>
@@ -53,7 +55,7 @@
 					{{end}}
 					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
 				</div>
-				<div class="seven wide right aligned column">
+				<div class="six wide right aligned column">
 					<div class="ui horizontal list">
 						{{if .Parents}}
 							<div class="item">
@@ -61,7 +63,11 @@
 							</div>
 							<div class="item">
 								{{range .Parents}}
-									<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
+									{{if $.PageIsWiki}}
+										<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{.}}">{{ShortSha .}}</a>
+									{{else}}
+										<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
+									{{end}}
 								{{end}}
 							</div>
 						{{end}}
