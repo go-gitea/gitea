@@ -3,7 +3,6 @@
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import './publicpath.js';
-import './polyfills.js';
 
 import Vue from 'vue';
 import 'jquery.are-you-sure';
