@@ -662,7 +662,11 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 
 		err = issue_service.IsLegalReviewRequest(reviewer, ctx.User, isAdd, pr.Issue, permDoer)
 		if err != nil {
-			ctx.Error(http.StatusUnprocessableEntity, "IllegalReviewRequest", err)
+			if models.IsErrIllLegalReviewRequest(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "IllegalReviewRequest", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "IsLegalReviewRequest", err)
 			return
 		}
 

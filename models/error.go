@@ -1925,6 +1925,21 @@ func (err ErrReviewNotExist) Error() string {
 	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
 }
 
+// ErrIllLegalReviewRequest The review request doesn't follow permission rules. 
+type ErrIllLegalReviewRequest struct {
+	Msg string
+}
+
+// IsErrIllLegalReviewRequest checks if an error is a ErrIllLegalReviewRequest.
+func IsErrIllLegalReviewRequest(err error) bool {
+	_, ok := err.(ErrIllLegalReviewRequest)
+	return ok
+}
+
+func (err ErrIllLegalReviewRequest) Error() string {
+	return err.Msg
+}
+
 //  ________      _____          __  .__
 //  \_____  \    /  _  \  __ ___/  |_|  |__
 //   /   |   \  /  /_\  \|  |  \   __\  |  \

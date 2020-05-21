@@ -76,7 +76,9 @@ func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User
 // IsLegalReviewRequest check review request permission
 func IsLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue, permDoer models.Permission) error {
 	if !issue.IsPull {
-		return fmt.Errorf("this issue is not Pull Request [issue_id: %d]", issue.ID)
+		return models.ErrIllLegalReviewRequest{
+			Msg: fmt.Sprintf("this issue is not Pull Request [issue_id: %d]", issue.ID),
+		}
 	}
 
 	if err := issue.LoadRepo(); err != nil {
@@ -84,10 +86,14 @@ func IsLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 	}
 
 	if reviewer.IsOrganization() {
-		return fmt.Errorf("Organization can't be added as reviewer [user_id: %d, repo_id: %d]", reviewer.ID, issue.Repo.ID)
+		return models.ErrIllLegalReviewRequest{
+			Msg: fmt.Sprintf("Organization can't be added as reviewer [user_id: %d, repo_id: %d]", reviewer.ID, issue.Repo.ID),
+		}
 	}
 	if doer.IsOrganization() {
-		return fmt.Errorf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.Repo.ID)
+		return models.ErrIllLegalReviewRequest{
+			Msg: fmt.Sprintf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.Repo.ID),
+		}
 	}
 
 	permReviewer, err := models.GetUserRepoPermission(issue.Repo, reviewer)
@@ -104,35 +110,43 @@ func IsLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 	if isAdd {
 		pemResult = permReviewer.CanAccessAny(models.AccessModeRead, models.UnitTypePullRequests)
 		if !pemResult {
-			return fmt.Errorf("Reviewer can't read [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
+			return models.ErrIllLegalReviewRequest{
+				Msg: fmt.Sprintf("Reviewer can't read [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name),
+			}
 		}
 
 		pemResult = permDoer.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
 		if !pemResult {
-			pemResult, err = models.IsOfficialReviewer(issue, doer)
-			if err != nil {
+			if pemResult, err = models.IsOfficialReviewer(issue, doer); err != nil {
 				return err
 			}
 			if !pemResult {
-				return fmt.Errorf("Doer can't choose reviewer [user_id: %d, repo_name: %s, issue_id: %d]", doer.ID, issue.Repo.Name, issue.ID)
+				return models.ErrIllLegalReviewRequest{
+					Msg: fmt.Sprintf("Doer can't choose reviewer [user_id: %d, repo_name: %s, issue_id: %d]", doer.ID, issue.Repo.Name, issue.ID),
+				}
 			}
 		}
 
 		if doer.ID == reviewer.ID {
-			return fmt.Errorf("doer can't be reviewer [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
+			return models.ErrIllLegalReviewRequest{
+				Msg: fmt.Sprintf("doer can't be reviewer [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name),
+			}
 		}
 
 		if reviewer.ID == issue.PosterID {
-			return fmt.Errorf("poster of pr can't be reviewer [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
+			return models.ErrIllLegalReviewRequest{
+				Msg: fmt.Sprintf("poster of pr can't be reviewer [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name),
+			}
 		}
 	} else {
 		if lastreview.Type == models.ReviewTypeRequest && lastreview.ReviewerID == doer.ID {
 			return nil
 		}
 
-		pemResult = permDoer.IsAdmin()
-		if !pemResult {
-			return fmt.Errorf("Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
+		if !permDoer.IsAdmin() {
+			return models.ErrIllLegalReviewRequest{
+				Msg: fmt.Sprintf("Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name),
+			}
 		}
 	}
 
