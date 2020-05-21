@@ -140,10 +140,13 @@ type SearchRepoOptions struct {
 	PriorityOwnerID int64
 	OrderBy         SearchOrderBy
 	Private         bool // Include private repositories in results
-	OnlyPrivate     bool // Include only private repositories in results
 	StarredByID     int64
 	AllPublic       bool // Include also all public repositories of users and public organisations
 	AllLimited      bool // Include also all public repositories of limited organisations
+	// None -> include public and private
+	// True -> include just private
+	// False -> incude just public
+	IsPrivate util.OptionalBool
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> incude just non-collaborative
@@ -221,15 +224,8 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 				))))
 	}
 
-	if opts.OnlyPrivate {
-		cond = cond.And(
-			builder.Or(
-				builder.Eq{"is_private": true},
-				builder.In("owner_id", builder.Select("id").From("`user`").Where(
-					builder.And(
-						builder.Eq{"type": UserTypeOrganization},
-						builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
-					)))))
+	if opts.IsPrivate != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_private": opts.IsPrivate.IsTrue()})
 	}
 
 	if opts.Template != util.OptionalBoolNone {
