@@ -63,7 +63,17 @@
         url('../vendor/assets/noto-color-emoji/NotoColorEmoji.ttf') format('truetype');
 }
 
-@default-fonts: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+@font-face {
+    font-family: 'color-emoji';
+    src:
+        local('Apple Color Emoji'),
+        local('Segoe UI Emoji'),
+        local('Segoe UI Symbol'),
+        local('Noto Color Emoji'),
+        url('../vendor/assets/noto-color-emoji/NotoColorEmoji.ttf') format('truetype');
+}
+
+@default-fonts: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'color-emoji';
 @monospaced-fonts: 'SF Mono', Consolas, Menlo, 'Liberation Mono', Monaco, 'Lucida Console';
 
 .override-fonts(@fonts) {
