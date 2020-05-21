@@ -426,12 +426,12 @@
                 }
 
                 img {
-                    padding: 5px 5px 0 5px;
+                    padding: 5px 5px 0;
                 }
             }
 
             .plain-text {
-                padding: 1em 2em 1em 2em;
+                padding: 1em 2em;
 
                 pre {
                     word-break: break-word;
@@ -631,18 +631,11 @@
 
         .pull {
             &.tabular.menu {
-                margin-bottom: 10px;
+                margin-bottom: 1rem;
 
                 .svg {
                     margin-right: 5px;
                 }
-            }
-
-            &.tab.segment {
-                border: 0;
-                padding: 10px 0 0;
-                box-shadow: none;
-                background-color: inherit;
             }
 
             .merge.box {
@@ -655,12 +648,9 @@
                 }
                 .branch-update.grid {
                     .row {
-                        padding-bottom: 0;
+                        padding-bottom: 1rem;
                         .icon {
                             margin-top: 1.1rem;
-                        }
-                        .ui.button {
-                            margin-bottom: 1rem;
                         }
                     }
                 }
@@ -769,6 +759,12 @@
                     padding-bottom: 0 !important;
                 }
 
+                .badge.badge-commit {
+                    border-color: transparent;
+                    background: radial-gradient(white 60%, transparent 60%) no-repeat;
+                    height: 0 !important;
+                }
+
                 .badge {
                     width: 32px;
                     height: 32px;
@@ -811,8 +807,22 @@
                     line-height: 30px;
                 }
 
+                &.event.small-line-spacing {
+                    padding: 2px 0 0 15px;
+                }
+
+                &.event > .commit-status-link {
+                    float: right;
+                    margin-right: 8px;
+                    margin-top: 4px;
+                }
+
                 .author {
                     font-weight: 700;
+                }
+
+                .comment-form-reply .footer {
+                    padding-bottom: 1em;
                 }
             }
 
@@ -853,6 +863,18 @@
                     }
                 }
 
+                > .content {
+                    > div:first-child {
+                        border-top-left-radius: 4px;
+                        border-top-right-radius: 4px;
+                    }
+
+                    > div:last-child {
+                        border-bottom-left-radius: 4px;
+                        border-bottom-right-radius: 4px;
+                    }
+                }
+
                 .content {
                     > .header {
                         #avatar-arrow;
@@ -861,11 +883,8 @@
                         position: relative;
                         color: #767676;
                         background-color: #f7f7f7;
-                        border-top-left-radius: 3px;
-                        border-top-right-radius: 3px;
 
                         .text {
-                            max-width: 78%;
                             padding-top: 10px;
                             padding-bottom: 10px;
                         }
@@ -967,13 +986,18 @@
                 }
 
                 .ui.form {
-                    .field:first-child {
-                        clear: none;
-                    }
+                    .field {
+                        &:first-child {
+                            clear: none;
+                        }
 
-                    .tab.segment {
-                        border: 0;
-                        padding: 10px 0 0;
+                        &.footer {
+                            overflow: hidden;
+                        }
+
+                        .tab.markdown {
+                            min-height: 5rem;
+                        }
                     }
 
                     textarea {
@@ -1029,6 +1053,69 @@
                     }
                 }
 
+                & > .shabox {
+                    .sha.label {
+                        margin: 0;
+                        border: 1px solid #bbbbbb;
+
+                        &.isSigned.isWarning {
+                            border: 1px solid #db2828;
+                            background: fade(#db2828, 10%);
+
+                            .shortsha {
+                                display: inline-block;
+                                padding-top: 1px;
+                            }
+
+                            &:hover {
+                                background: fade(#db2828, 30%) !important;
+                            }
+                        }
+
+                        &.isSigned.isVerified {
+                            border: 1px solid #21ba45;
+                            background: fade(#21ba45, 10%);
+
+                            .shortsha {
+                                display: inline-block;
+                                padding-top: 1px;
+                            }
+
+                            &:hover {
+                                background: fade(#21ba45, 30%) !important;
+                            }
+                        }
+
+                        &.isSigned.isVerifiedUntrusted {
+                            border: 1px solid #fbbd08;
+                            background: fade(#fbbd08, 10%);
+
+                            .shortsha {
+                                display: inline-block;
+                                padding-top: 1px;
+                            }
+
+                            &:hover {
+                                background: fade(#fbbd08, 30%) !important;
+                            }
+                        }
+
+                        &.isSigned.isVerifiedUnmatched {
+                            border: 1px solid #f2711c;
+                            background: fade(#f2711c, 10%);
+
+                            .shortsha {
+                                display: inline-block;
+                                padding-top: 1px;
+                            }
+
+                            &:hover {
+                                background: fade(#f2711c, 30%) !important;
+                            }
+                        }
+                    }
+                }
+
                 .detail {
                     font-size: .9rem;
                     margin-top: 5px;
@@ -1080,11 +1167,6 @@
                 &:after {
                     border-right-color: #ffffff;
                 }
-            }
-
-            .tab.segment {
-                border: 0;
-                padding: 10px 0 0;
             }
 
             textarea {
@@ -1480,7 +1562,7 @@
                 height: 12px;
                 width: 40px;
                 display: inline-block;
-                margin: 2px 4px 0 4px;
+                margin: 2px 4px 0;
                 vertical-align: text-top;
 
                 .add {
@@ -1553,14 +1635,6 @@
 
                     td.center {
                         text-align: center;
-                    }
-
-                    .removed-code {
-                        background-color: #ff9999;
-                    }
-
-                    .added-code {
-                        background-color: #99ff99;
                     }
 
                     [data-line-num]::before {
@@ -1640,7 +1714,7 @@
         &.file-content {
             img {
                 max-width: 100%;
-                padding: 5px 5px 0 5px;
+                padding: 5px 5px 0;
             }
             img.emoji {
                 padding: 0;
@@ -1907,10 +1981,6 @@
         &.view {
             .choose.page {
                 margin-top: -5px;
-            }
-
-            .ui.sub.header {
-                text-transform: none;
             }
 
             > .markdown {
@@ -2183,8 +2253,10 @@
 
             > .item {
                 float: left;
-                padding: .5rem .5rem !important;
+                padding: .5rem !important;
                 font-size: 1.5em;
+                width: 45px;
+                left: 13px;
 
                 img.emoji {
                     margin-right: 0;
@@ -2197,9 +2269,12 @@
         padding: 0;
         display: flex;
 
-        .ui.label {
+        .ui.label,
+        .ui.label.visible {
             max-height: 40px;
-            padding: 9px 15px 7px;
+            padding: .4rem .8rem;
+            display: flex !important;
+            align-items: center;
             border: 0;
             border-right: 1px solid;
             border-radius: 0;
@@ -2220,19 +2295,16 @@
         }
 
         .reaction-count {
-            margin-left: 4px;
+            margin-left: .5rem;
         }
 
         .select-reaction {
-            float: left;
-            padding: .4em;
-            line-height: 21px;
+            display: flex;
+            align-items: center;
+            padding: .5rem;
 
             &:not(.active) a {
                 display: none;
-            }
-            > svg {
-                vertical-align: middle;
             }
         }
 
@@ -2459,10 +2531,19 @@
 
 .ui.form {
     .dropzone {
-        width: 100%;
-        margin-bottom: 10px;
         border: 2px dashed #0087f5;
         box-shadow: none !important;
+        padding: 0;
+        min-height: 5rem;
+        border-radius: 4px;
+
+        .dz-button {
+            color: rgba(0, 0, 0, .6);
+        }
+
+        &:hover .dz-button {
+            color: rgba(0, 0, 0, .8);
+        }
 
         .dz-error-message {
             top: 140px;
@@ -2489,7 +2570,7 @@
             &:not(:first-child) {
                 border-top: 1px solid #eaeaea;
                 padding: 1rem;
-                margin: 15px -1rem -1rem -1rem;
+                margin: 15px -1rem -1rem;
             }
 
             > .svg {
@@ -2572,7 +2653,7 @@
         .precolors {
             padding-left: 0;
             padding-right: 0;
-            margin: 3px 10px auto 10px;
+            margin: 3px 10px auto;
             width: 120px;
 
             .color {
@@ -2864,4 +2945,17 @@ td.blob-excerpt {
 .repository.file .repository-summary {
     height: 48px;
     overflow: hidden;
+}
+
+.ui.form .right .ui.button {
+    margin-left: .25em;
+    margin-right: 0;
+}
+
+.removed-code {
+    background-color: #ff9999;
+}
+
+.added-code {
+    background-color: #99ff99;
 }

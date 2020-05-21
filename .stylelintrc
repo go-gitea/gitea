@@ -14,3 +14,4 @@ rules:
   number-leading-zero: never
   rule-empty-line-before: null
   selector-pseudo-element-colon-notation: null
+  shorthand-property-no-redundant-values: true

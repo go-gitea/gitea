@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{.Language}}">
+<html lang="{{.Language}}" class="theme-{{.SignedUser.Theme}}">
 <head data-suburl="{{AppSubUrl}}">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -98,6 +98,7 @@
 				MinTimeout: {{NotificationSettings.MinTimeout}},
 				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
 				MaxTimeout: {{NotificationSettings.MaxTimeout}},
+				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
 			},
       {{if .RequireTribute}}
 			tributeValues: [
@@ -117,10 +118,6 @@
 	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/outline-icons.woff2" type="font/woff2" crossorigin="anonymous">
 {{if .RequireSimpleMDE}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.css">
-{{end}}
-
-{{if .RequireTribute}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/tribute/tribute.css">
 {{end}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/fomantic/semantic.min.css?v={{MD5 AppVer}}">
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">

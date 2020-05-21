@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -311,6 +312,24 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 	if err := pr.Issue.LoadRepo(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "pr.Issue.LoadRepo", err)
 		return
+	}
+
+	// if CommitID is empty, set it as lastCommitID
+	if opts.CommitID == "" {
+		gitRepo, err := git.OpenRepository(pr.Issue.Repo.RepoPath())
+		if err != nil {
+			ctx.ServerError("git.OpenRepository", err)
+			return
+		}
+		defer gitRepo.Close()
+
+		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		if err != nil {
+			ctx.ServerError("GetRefCommitID", err)
+			return
+		}
+
+		opts.CommitID = headCommitID
 	}
 
 	// create review comments
