@@ -7,6 +7,7 @@
 			<div class="ui container ten wide column">
 				{{if .EnableHeatmap}}
 					{{template "user/dashboard/heatmap" .}}
+					<div class="ui divider"></div>
 				{{end}}
 				{{template "user/dashboard/feeds" .}}
 			</div>
