@@ -169,8 +169,8 @@ func (action *Action) checkForConsistency(t *testing.T) {
 	assert.Equal(t, repo.IsPrivate, action.IsPrivate, "action: %+v", action)
 }
 
-// CountCorruptLabels return count of labels witch are broken and not accessible via ui anymore
-func CountCorruptLabels() (int64, error) {
+// CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
+func CountOrphanedLabels() (int64, error) {
 	noref, err := x.Table("label").Where("repo_id=? AND org_id=?", 0, 0).Count("label.id")
 	if err != nil {
 		return 0, err
@@ -195,8 +195,8 @@ func CountCorruptLabels() (int64, error) {
 	return noref + norepo + noorg, nil
 }
 
-// DeleteCorruptLabels delete labels witch are broken and not accessible via ui anymore
-func DeleteCorruptLabels() error {
+// DeleteOrphanedLabels delete labels witch are broken and not accessible via ui anymore
+func DeleteOrphanedLabels() error {
 	// delete labels with no reference
 	if _, err := x.Table("label").Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
 		return err
@@ -221,16 +221,16 @@ func DeleteCorruptLabels() error {
 	return nil
 }
 
-// CountCorruptIssues count issues without a repo
-func CountCorruptIssues() (int64, error) {
+// CountOrphanedIssues count issues without a repo
+func CountOrphanedIssues() (int64, error) {
 	return x.Table("issue").
 		Join("LEFT", "repository", "issue.repo_id=repository.id").
 		Where(builder.IsNull{"repository.id"}).
 		Count("id")
 }
 
-// DeleteCorruptIssues delete issues without a repo
-func DeleteCorruptIssues() error {
+// DeleteOrphanedIssues delete issues without a repo
+func DeleteOrphanedIssues() error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -266,16 +266,16 @@ func DeleteCorruptIssues() error {
 	return nil
 }
 
-// CountCorruptObject count subjects with have no existing refobject anymore
-func CountCorruptObject(subject, refobject, joinCond string) (int64, error) {
+// CountOrphanedObjects count subjects with have no existing refobject anymore
+func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 	return x.Table("`"+subject+"`").
 		Join("LEFT", refobject, joinCond).
 		Where("`" + refobject + "`.id is NULL").
 		Count("id")
 }
 
-// DeleteCorruptObject delete subjects with have no existing refobject anymore
-func DeleteCorruptObject(subject, refobject, joinCond string) error {
+// DeleteOrphanedObjects delete subjects with have no existing refobject anymore
+func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
 	_, err := x.In("id", builder.Select("`"+subject+"`.id").
 		From("`"+subject+"`").
 		Join("LEFT", "`"+refobject+"`", joinCond).

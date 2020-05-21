@@ -517,13 +517,13 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	}
 
 	//find labels without existing repo or org
-	count, err := models.CountCorruptLabels()
+	count, err := models.CountOrphanedLabels()
 	if err != nil {
 		return nil, err
 	}
 	if count > 0 {
 		if upToDate && ctx.Bool("fix") {
-			if err = models.DeleteCorruptLabels(); err != nil {
+			if err = models.DeleteOrphanedLabels(); err != nil {
 				return nil, err
 			}
 			results = append(results, fmt.Sprintf("%d labels without existing repository/organisation deleted", count))
@@ -533,13 +533,13 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	}
 
 	//find issues without existing repository
-	count, err = models.CountCorruptIssues()
+	count, err = models.CountOrphanedIssues()
 	if err != nil {
 		return nil, err
 	}
 	if count > 0 {
 		if ctx.Bool("fix") {
-			if err = models.DeleteCorruptIssues(); err != nil {
+			if err = models.DeleteOrphanedIssues(); err != nil {
 				return nil, err
 			}
 			results = append(results, fmt.Sprintf("%d issues without existing repository deleted", count))
@@ -549,13 +549,13 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	}
 
 	//find pulls without existing issues
-	count, err = models.CountCorruptObject("pull_request", "issue", "pull_request.issue_id=issue.id")
+	count, err = models.CountOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
 	if err != nil {
 		return nil, err
 	}
 	if count > 0 {
 		if ctx.Bool("fix") {
-			if err = models.DeleteCorruptObject("pull_request", "issue", "pull_request.issue_id=issue.id"); err != nil {
+			if err = models.DeleteOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id"); err != nil {
 				return nil, err
 			}
 			results = append(results, fmt.Sprintf("%d pull requests without existing issue deleted", count))
@@ -565,13 +565,13 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	}
 
 	//find tracked times without existing issues/pulls
-	count, err = models.CountCorruptObject("tracked_time", "issue", "tracked_time.issue_id=issue.id")
+	count, err = models.CountOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id")
 	if err != nil {
 		return nil, err
 	}
 	if count > 0 {
 		if ctx.Bool("fix") {
-			if err = models.DeleteCorruptObject("tracked_time", "issue", "tracked_time.issue_id=issue.id"); err != nil {
+			if err = models.DeleteOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id"); err != nil {
 				return nil, err
 			}
 			results = append(results, fmt.Sprintf("%d tracked times without existing issue deleted", count))
