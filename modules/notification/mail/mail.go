@@ -37,6 +37,8 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 		act = models.ActionCommentIssue
 	} else if comment.Type == models.CommentTypeCode {
 		act = models.ActionCommentIssue
+	} else if comment.Type == models.CommentTypePullPush {
+		act = 0
 	}
 
 	if err := mailer.MailParticipantsComment(comment, act, issue); err != nil {
@@ -116,4 +118,30 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 	if err := mailer.MailParticipants(pr.Issue, doer, models.ActionMergePullRequest); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
+}
+
+func (m *mailNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
+	var err error
+	if err = comment.LoadIssue(); err != nil {
+		log.Error("comment.LoadIssue: %v", err)
+		return
+	}
+	if err = comment.Issue.LoadRepo(); err != nil {
+		log.Error("comment.Issue.LoadRepo: %v", err)
+		return
+	}
+	if err = comment.Issue.LoadPullRequest(); err != nil {
+		log.Error("comment.Issue.LoadPullRequest: %v", err)
+		return
+	}
+	if err = comment.Issue.PullRequest.LoadBaseRepo(); err != nil {
+		log.Error("comment.Issue.PullRequest.LoadBaseRepo: %v", err)
+		return
+	}
+	if err := comment.LoadPushCommits(); err != nil {
+		log.Error("comment.LoadPushCommits: %v", err)
+	}
+	comment.Content = ""
+
+	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment)
 }
