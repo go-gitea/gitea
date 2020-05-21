@@ -13,7 +13,7 @@ export default async function initServiceWorker() {
 
   if (UseServiceWorker) {
     try {
-      navigator.serviceWorker.register(`${AppSubUrl}/serviceworker.js`);
+      await navigator.serviceWorker.register(`${AppSubUrl}/serviceworker.js`);
     } catch (err) {
       await unregister();
       throw err;
