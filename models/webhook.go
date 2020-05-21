@@ -803,7 +803,7 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 func DeleteDeliveredHookTasks(repoID int64, numberDeliveriesToKeep int64) error {
 	var ids = make([]int64, 0, 10)
 	err := x.Table("hook_task").
-		Where("hook_task.repo_id = ? AND hook_task.is_delivered = ?", repoID, 1).
+		Where("hook_task.repo_id = ? AND hook_task.is_delivered = ?", repoID, true).
 		Cols("hook_task.id").
 		Join("INNER", "repository", "hook_task.repo_id = repository.id").
 		And("repository.is_hook_task_purge_enabled = ?", 1).
