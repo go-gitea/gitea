@@ -239,7 +239,7 @@ func DeleteOrphanedIssues() error {
 
 	var ids []int64
 
-	if err := sess.Table("issue").Select("issue.repo_id").
+	if err := sess.Table("issue").Distinct("issue.repo_id").
 		Join("LEFT", "repository", "issue.repo_id=repository.id").
 		Where("repository.id is NULL").GroupBy("issue.repo_id").
 		Find(&ids); err != nil {
