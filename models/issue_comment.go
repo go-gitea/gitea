@@ -7,6 +7,8 @@
 package models
 
 import (
+	"container/list"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -90,6 +92,8 @@ const (
 	CommentTypeReviewRequest
 	// merge pull request
 	CommentTypeMergePull
+	// push to PR head branch
+	CommentTypePullPush
 )
 
 // CommentTag defines comment tag type
@@ -167,6 +171,18 @@ type Comment struct {
 	RefRepo    *Repository `xorm:"-"`
 	RefIssue   *Issue      `xorm:"-"`
 	RefComment *Comment    `xorm:"-"`
+
+	Commits     *list.List `xorm:"-"`
+	OldCommit   string     `xorm:"-"`
+	NewCommit   string     `xorm:"-"`
+	CommitsNum  int64      `xorm:"-"`
+	IsForcePush bool       `xorm:"-"`
+}
+
+// PushActionContent is content of push pull comment
+type PushActionContent struct {
+	IsForcePush bool     `json:"is_force_push"`
+	CommitIDs   []string `json:"commit_ids"`
 }
 
 // LoadIssue loads issue from database
@@ -543,6 +559,47 @@ func (c *Comment) CodeCommentURL() string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
 }
 
+// LoadPushCommits Load push commits
+func (c *Comment) LoadPushCommits() (err error) {
+	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullPush {
+		return nil
+	}
+
+	var data PushActionContent
+
+	err = json.Unmarshal([]byte(c.Content), &data)
+	if err != nil {
+		return
+	}
+
+	c.IsForcePush = data.IsForcePush
+
+	if c.IsForcePush {
+		if len(data.CommitIDs) != 2 {
+			return nil
+		}
+		c.OldCommit = data.CommitIDs[0]
+		c.NewCommit = data.CommitIDs[1]
+	} else {
+		repoPath := c.Issue.Repo.RepoPath()
+		gitRepo, err := git.OpenRepository(repoPath)
+		if err != nil {
+			return err
+		}
+		defer gitRepo.Close()
+
+		c.Commits = gitRepo.GetCommitsFromIDs(data.CommitIDs)
+		c.CommitsNum = int64(c.Commits.Len())
+		if c.CommitsNum > 0 {
+			c.Commits = ValidateCommitsWithEmails(c.Commits)
+			c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.Repo)
+			c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.Repo)
+		}
+	}
+
+	return err
+}
+
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {
@@ -576,6 +633,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		RefCommentID:     opts.RefCommentID,
 		RefAction:        opts.RefAction,
 		RefIsPull:        opts.RefIsPull,
+		IsForcePush:      opts.IsForcePush,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -738,6 +796,7 @@ type CreateCommentOptions struct {
 	RefCommentID     int64
 	RefAction        references.XRefAction
 	RefIsPull        bool
+	IsForcePush      bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -1015,4 +1074,93 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 			"original_author_id": 0,
 		})
 	return err
+}
+
+// CreatePushPullComment create push code to pull base commend
+func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
+	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
+		return nil, nil
+	}
+
+	ops := &CreateCommentOptions{
+		Type: CommentTypePullPush,
+		Doer: pusher,
+		Repo: pr.BaseRepo,
+	}
+
+	var data PushActionContent
+
+	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	ops.Issue = pr.Issue
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	ops.Content = string(dataJSON)
+
+	comment, err = CreateComment(ops)
+
+	return
+}
+
+// getCommitsFromRepo get commit IDs from repo in betwern oldCommitID and newCommitID
+// isForcePush will be true if oldCommit isn't on the branch
+// Commit on baseBranch will skip
+func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
+	repoPath := repo.RepoPath()
+	gitRepo, err := git.OpenRepository(repoPath)
+	if err != nil {
+		return nil, false, err
+	}
+	defer gitRepo.Close()
+
+	oldCommit, err := gitRepo.GetCommit(oldCommitID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	oldCommitBranch, err := oldCommit.GetBranchName()
+	if err != nil {
+		return nil, false, err
+	}
+
+	if oldCommitBranch == "undefined" {
+		commitIDs = make([]string, 2)
+		commitIDs[0] = oldCommitID
+		commitIDs[1] = newCommitID
+
+		return commitIDs, true, err
+	}
+
+	newCommit, err := gitRepo.GetCommit(newCommitID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	var commits *list.List
+	commits, err = newCommit.CommitsBeforeUntil(oldCommitID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	commitIDs = make([]string, 0, commits.Len())
+
+	for e := commits.Back(); e != nil; e = e.Prev() {
+		commit := e.Value.(*git.Commit)
+		commitBranch, err := commit.GetBranchName()
+		if err != nil {
+			return nil, false, err
+		}
+
+		if commitBranch != baseBranch {
+			commitIDs = append(commitIDs, commit.ID.String())
+		}
+	}
+
+	return
 }

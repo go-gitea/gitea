@@ -704,6 +704,11 @@ a.ui.basic.green.label:hover {
     color: #9e9e9e;
 }
 
+.repository.view.issue .comment-list .timeline-item .badge.badge-commit {
+    background: radial-gradient(#383c4a 60%, transparent 60%) no-repeat;
+    height: 0 !important;
+}
+
 .repository .comment.form .content .form:after {
     border-right-color: #313c47;
 }
@@ -1062,7 +1067,16 @@ input {
 }
 
 .ui.form .dropzone {
-    border: 2px dashed #4c505c;
+    border: 2px dashed #7f98ad;
+    background-color: #2e323e;
+
+    .dz-button {
+        color: rgba(158, 158, 158, .8);
+    }
+}
+
+.ui.form .dropzone:hover .dz-button {
+    color: rgba(158, 158, 158, 1);
 }
 
 .ui.basic.red.button,
@@ -1137,7 +1151,7 @@ td.blob-excerpt {
     background-color: rgba(0, 0, 0, .15);
 }
 
-.lines-code .code-view .active {
+.code-view .lines-code .active {
     background: #534d1b;
 }
 
@@ -1610,4 +1624,17 @@ footer .container .links > * {
 
 .repository.release #release-list > li .detail .dot {
     background-color: #888;
+}
+
+.tribute-container {
+    box-shadow: 0 .25rem .5rem rgba(0, 0, 0, .6);
+}
+
+.tribute-container ul {
+    background: #2d303b !important;
+}
+
+.tribute-container li.highlight,
+.tribute-container li:hover {
+    background: #728e5e !important;
 }
