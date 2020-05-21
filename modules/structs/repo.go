@@ -88,6 +88,7 @@ type Repository struct {
 	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
 	AllowSquash               bool             `json:"allow_squash_merge"`
 	AvatarURL                 string           `json:"avatar_url"`
+	Internal                  bool             `json:"internal"`
 }
 
 // CreateRepoOption options when creating repository

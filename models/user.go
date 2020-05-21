@@ -242,16 +242,15 @@ func (u *User) APIFormat() *api.User {
 		return nil
 	}
 	return &api.User{
-		ID:         u.ID,
-		UserName:   u.Name,
-		FullName:   u.FullName,
-		Email:      u.GetEmail(),
-		AvatarURL:  u.AvatarLink(),
-		Language:   u.Language,
-		IsAdmin:    u.IsAdmin,
-		LastLogin:  u.LastLoginUnix.AsTime(),
-		Created:    u.CreatedUnix.AsTime(),
-		Visibility: u.Visibility,
+		ID:        u.ID,
+		UserName:  u.Name,
+		FullName:  u.FullName,
+		Email:     u.GetEmail(),
+		AvatarURL: u.AvatarLink(),
+		Language:  u.Language,
+		IsAdmin:   u.IsAdmin,
+		LastLogin: u.LastLoginUnix.AsTime(),
+		Created:   u.CreatedUnix.AsTime(),
 	}
 }
 

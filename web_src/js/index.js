@@ -2952,7 +2952,7 @@ function initVueComponents() {
           return `octicon-repo-template${repo.private ? '-private' : ''}`;
         } if (repo.private) {
           return 'octicon-lock';
-        } if (repo.owner.visibility === 2) {
+        } if (repo.internal) {
           return 'octicon-internal-repo';
         }
         return 'octicon-repo';

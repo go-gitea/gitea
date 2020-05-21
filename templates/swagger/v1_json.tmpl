@@ -13850,6 +13850,10 @@
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
+        "internal": {
+          "type": "boolean",
+          "x-go-name": "Internal"
+        },
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
@@ -14370,9 +14374,6 @@
           "description": "the user's username",
           "type": "string",
           "x-go-name": "UserName"
-        },
-        "visibility": {
-          "$ref": "#/definitions/VisibleType"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14391,12 +14392,6 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/models"
-    },
-    "VisibleType": {
-      "description": "VisibleType defines the visibility (Organization only)",
-      "type": "integer",
-      "format": "int64",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",
