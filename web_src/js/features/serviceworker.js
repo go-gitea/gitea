@@ -15,8 +15,8 @@ export default async function initServiceWorker() {
     try {
       navigator.serviceWorker.register(`${AppSubUrl}/serviceworker.js`);
     } catch (err) {
-      console.error(err);
       await unregister();
+      throw err;
     }
   } else {
     await unregister();
