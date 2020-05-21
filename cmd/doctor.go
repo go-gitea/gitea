@@ -91,6 +91,12 @@ var checklist = []check{
 		abortIfFailed: true,
 	},
 	{
+		title:     "Check consistency of database",
+		name:      "check-db-consistency",
+		isDefault: false,
+		f:         runDoctorCheckDBConsistency,
+	},
+	{
 		title:     "Check if OpenSSH authorized_keys file is up-to-date",
 		name:      "authorized_keys",
 		isDefault: true,
@@ -113,12 +119,6 @@ var checklist = []check{
 		name:      "recalculate_merge_bases",
 		isDefault: false,
 		f:         runDoctorPRMergeBase,
-	},
-	{
-		title:     "Check consistency of database",
-		name:      "check-db-consistency",
-		isDefault: false,
-		f:         runDoctorCheckDBConsistency,
 	},
 	// more checks please append here
 }
