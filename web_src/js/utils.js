@@ -23,3 +23,8 @@ export function isObject(obj) {
 export function isDarkTheme() {
   return document.documentElement.classList.contains('theme-arc-green');
 }
+
+// removes duplicate elements in an array
+export function uniq(arr) {
+  return Array.from(new Set(arr));
+}
