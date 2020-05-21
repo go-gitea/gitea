@@ -816,7 +816,7 @@ func DeleteDeliveredHookTasks(repoID int64, numberDeliveriesToKeep int64) error 
 
 	if len(ids) > 0 {
 		deletes, err := x.
-			Where("repo_id = ? and is_delivered = ? and id <= ?", repoID, 1, ids[0]).
+			Where("repo_id = ? and is_delivered = ? and id <= ?", repoID, true, ids[0]).
 			Delete(new(HookTask))
 		if err != nil {
 			return err
