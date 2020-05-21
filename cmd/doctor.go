@@ -509,7 +509,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
 		results = append(results, err.Error())
 		if ctx.Bool("fix") {
-			results = append(results, "DB Version does not match the current one, cant fix Consistency")
+			results = append(results, "Warning: model version on the database does not match the current Gitea version. Model consistency can be checked but not fixed until the database is upgraded.")
 			return results, nil
 		}
 	}
