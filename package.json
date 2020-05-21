@@ -39,6 +39,7 @@
     "svgo-loader": "2.2.1",
     "swagger-ui": "3.25.3",
     "terser-webpack-plugin": "3.0.1",
+    "tributejs": "5.1.3",
     "vue": "2.6.11",
     "vue-bar-graph": "1.2.0",
     "vue-calendar-heatmap": "0.8.4",

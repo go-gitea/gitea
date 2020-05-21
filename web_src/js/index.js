@@ -14,7 +14,7 @@ import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initDateTimePicker from './features/datetimepicker.js';
-import {initTribute, issuesTribute, emojiTribute} from './features/tribute.js';
+import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
@@ -891,8 +891,7 @@ async function initRepository() {
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        issuesTribute.attach($textarea.get());
-        emojiTribute.attach($textarea.get());
+        attachTribute($textarea.get(), {mentions: true, emoji: true});
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
@@ -1496,7 +1495,8 @@ function setCommentSimpleMDE($editArea) {
   $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
-      if (!(issuesTribute.isActive || emojiTribute.isActive)) {
+      const tributeContainer = document.querySelector('.tribute-container');
+      if (tributeContainer && tributeContainer.style.display !== 'none') {
         return CodeMirror.Pass;
       }
     },
@@ -1507,8 +1507,7 @@ function setCommentSimpleMDE($editArea) {
       cm.execCommand('delCharBefore');
     }
   });
-  issuesTribute.attach(simplemde.codemirror.getInputField());
-  emojiTribute.attach(simplemde.codemirror.getInputField());
+  attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
   return simplemde;
 }
 
@@ -2431,7 +2430,6 @@ $(document).ready(async () => {
   initContextPopups();
   initNotificationsTable();
   initNotificationCount();
-  initTribute();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2473,6 +2471,7 @@ $(document).ready(async () => {
   // parallel init of lazy-loaded features
   await Promise.all([
     highlight(document.querySelectorAll('pre code')),
+    attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
