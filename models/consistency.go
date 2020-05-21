@@ -241,7 +241,7 @@ func DeleteOrphanedIssues() error {
 
 	if err := sess.Table("issue").Distinct("issue.repo_id").
 		Join("LEFT", "repository", "issue.repo_id=repository.id").
-		Where("repository.id is NULL").GroupBy("issue.repo_id").
+		Where(builder.IsNull{"repository.id"}).GroupBy("issue.repo_id").
 		Find(&ids); err != nil {
 		return err
 	}
@@ -270,7 +270,7 @@ func DeleteOrphanedIssues() error {
 func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 	return x.Table("`"+subject+"`").
 		Join("LEFT", refobject, joinCond).
-		Where("`" + refobject + "`.id is NULL").
+		Where(builder.IsNull{"`" + refobject + "`.id"}).
 		Count("id")
 }
 
