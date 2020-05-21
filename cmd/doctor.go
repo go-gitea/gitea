@@ -504,11 +504,9 @@ func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
 
 func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	var results []string
-	var upToDate = true
 
 	// make sure DB version is uptodate
 	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
-		upToDate = false
 		results = append(results, err.Error())
 		if ctx.Bool("fix") {
 			results = append(results, "DB Version does not match the current one, cant fix Consistency")
@@ -522,7 +520,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		return nil, err
 	}
 	if count > 0 {
-		if upToDate && ctx.Bool("fix") {
+		if ctx.Bool("fix") {
 			if err = models.DeleteOrphanedLabels(); err != nil {
 				return nil, err
 			}
