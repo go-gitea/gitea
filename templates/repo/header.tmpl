@@ -17,6 +17,8 @@
 					{{else if .Owner}}
 						{{if .Owner.Visibility.IsPrivate}}
 							{{svg "octicon-internal-repo" 32}}
+						{{else}}
+							{{svg "octicon-repo" 32}}
 						{{end}}
 					{{else if .IsMirror}}
 						{{svg "octicon-repo-clone" 32}}
