@@ -35,13 +35,20 @@ module.exports = {
     jquery: [
       resolve(__dirname, 'web_src/js/jquery.js'),
     ],
+    serviceworker: [
+      resolve(__dirname, 'web_src/js/serviceworker.js'),
+    ],
     icons: glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
     ...themes,
   },
   devtool: false,
   output: {
     path: resolve(__dirname, 'public'),
-    filename: 'js/[name].js',
+    filename: ({chunk}) => {
+      // serviceworker can only manage assets below it's script's directory so
+      // we have to put it in / instead of /js/
+      return chunk.id === 'serviceworker' ? '[name].js' : 'js/[name].js';
+    },
     chunkFilename: 'js/[name].js',
   },
   optimization: {
