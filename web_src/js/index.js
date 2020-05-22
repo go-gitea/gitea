@@ -15,6 +15,7 @@ import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initDateTimePicker from './features/datetimepicker.js';
+import initServiceWorker from './features/serviceworker.js';
 import {initTribute, issuesTribute, emojiTribute} from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
@@ -240,7 +241,7 @@ function initReactionSelector(parent) {
       if (resp && (resp.html || resp.empty)) {
         const content = $(vm).closest('.content');
         let react = content.find('.segment.reactions');
-        if (!resp.empty && react.length > 0) {
+        if ((!resp.empty || resp.html === '') && react.length > 0) {
           react.remove();
         }
         if (!resp.empty) {
@@ -2477,6 +2478,7 @@ $(document).ready(async () => {
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
+    initServiceWorker(),
   ]);
 });
 
