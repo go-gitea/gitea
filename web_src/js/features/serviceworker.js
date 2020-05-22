@@ -17,18 +17,14 @@ export default async function initServiceWorker() {
 
   // invalidate cache if it belongs to a different gitea version
   if (cacheKey && storedCacheKey !== cacheKey) {
-    try {
-      await caches.delete(cacheName);
-    } catch (_err) {}
+    await caches.delete(cacheName);
+    localStorage.setItem('serviceWorkerCacheKey', cacheKey);
   }
 
   // register or unregister the service worker script
   if (UseServiceWorker) {
     try {
       await navigator.serviceWorker.register(`${AppSubUrl}/serviceworker.js`);
-      if (cacheKey) {
-        localStorage.setItem('serviceWorkerCacheKey', cacheKey);
-      }
     } catch (err) {
       console.error(err);
       await unregister();
