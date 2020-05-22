@@ -46,6 +46,8 @@ PASSWD         = `password`
 
 For the full list of options check the [Config Cheat Sheet]({{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}})
 
+- NB: Go's internal libraries only permit authentication on localhost or `IS_TLS_ENABLED=true`.
+
 ### Gmail
 
 The following configuration should work with GMail's SMTP server:
