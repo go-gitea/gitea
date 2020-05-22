@@ -27,7 +27,6 @@ async function checkCacheValidity() {
 export default async function initServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
-  // register or unregister the service worker script
   if (UseServiceWorker) {
     await checkCacheValidity();
     try {
