@@ -1,6 +1,8 @@
 import {registerRoute} from 'workbox-routing';
 import {StaleWhileRevalidate} from 'workbox-strategies';
 
+const cacheName = 'static-cache-v2';
+
 const cachedDestinations = new Set([
   'manifest',
   'script',
@@ -10,5 +12,5 @@ const cachedDestinations = new Set([
 
 registerRoute(
   ({request}) => cachedDestinations.has(request.destination),
-  new StaleWhileRevalidate({cacheName: 'static-cache-v2'}),
+  new StaleWhileRevalidate({cacheName}),
 );
