@@ -5,7 +5,7 @@ async function unregister() {
   for (const registration of await navigator.serviceWorker.getRegistrations()) {
     const serviceWorker = registration.active;
     if (!serviceWorker) continue;
-    registration.unregister();
+    await registration.unregister();
   }
 }
 
@@ -19,7 +19,7 @@ async function checkCacheValidity() {
 
   // invalidate cache if it belongs to a different gitea version
   if (cacheKey && storedCacheKey !== cacheKey) {
-    invalidateCache();
+    await invalidateCache();
     localStorage.setItem('staticCacheKey', cacheKey);
   }
 }

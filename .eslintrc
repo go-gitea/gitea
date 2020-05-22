@@ -45,6 +45,7 @@ rules:
   multiline-comment-style: [2, separate-lines]
   newline-per-chained-call: [0]
   no-alert: [0]
+  no-await-in-loop: [0]
   no-cond-assign: [2, except-parens]
   no-console: [1, {allow: [info, warn, error]}]
   no-continue: [0]
