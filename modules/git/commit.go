@@ -477,6 +477,16 @@ func (c *Commit) GetBranchName() (string, error) {
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 
+// LoadBranchName load branch name for commit
+func (c *Commit) LoadBranchName() (err error) {
+	if c.Branch != "" {
+		return
+	}
+
+	c.Branch, err = c.GetBranchName()
+	return
+}
+
 // CommitFileStatus represents status of files in a commit.
 type CommitFileStatus struct {
 	Added    []string
