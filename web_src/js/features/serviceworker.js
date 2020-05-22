@@ -15,12 +15,12 @@ async function invalidateCache() {
 
 async function checkCacheValidity() {
   const cacheKey = AppVer;
-  const storedCacheKey = localStorage.getItem('serviceWorkerCacheKey');
+  const storedCacheKey = localStorage.getItem('staticCacheKey');
 
   // invalidate cache if it belongs to a different gitea version
   if (cacheKey && storedCacheKey !== cacheKey) {
     invalidateCache();
-    localStorage.setItem('serviceWorkerCacheKey', cacheKey);
+    localStorage.setItem('staticCacheKey', cacheKey);
   }
 }
 
