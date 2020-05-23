@@ -1048,10 +1048,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		ctx.HTML(200, "pwa/manifest_json")
 	})
 
-	m.Get("/serviceworker.js", templates.JSRenderer(), func(ctx *context.Context) {
-		ctx.HTML(200, "pwa/serviceworker_js")
-	})
-
 	// prometheus metrics endpoint
 	if setting.Metrics.Enabled {
 		c := metrics.NewCollector()

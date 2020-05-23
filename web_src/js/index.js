@@ -3,7 +3,6 @@
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import './publicpath.js';
-import './polyfills.js';
 
 import Vue from 'vue';
 import 'jquery.are-you-sure';
@@ -15,7 +14,8 @@ import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initDateTimePicker from './features/datetimepicker.js';
-import {initTribute, issuesTribute, emojiTribute} from './features/tribute.js';
+import initServiceWorker from './features/serviceworker.js';
+import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
@@ -240,7 +240,7 @@ function initReactionSelector(parent) {
       if (resp && (resp.html || resp.empty)) {
         const content = $(vm).closest('.content');
         let react = content.find('.segment.reactions');
-        if (!resp.empty && react.length > 0) {
+        if ((!resp.empty || resp.html === '') && react.length > 0) {
           react.remove();
         }
         if (!resp.empty) {
@@ -892,8 +892,7 @@ async function initRepository() {
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        issuesTribute.attach($textarea.get());
-        emojiTribute.attach($textarea.get());
+        attachTribute($textarea.get(), {mentions: true, emoji: true});
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
@@ -1109,8 +1108,10 @@ async function initRepository() {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
     $(this).addClass('blue');
-    $('#repo-clone-ssh').removeClass('blue');
-    localStorage.setItem('repo-clone-protocol', 'https');
+    if ($('#repo-clone-ssh').length > 0) {
+      $('#repo-clone-ssh').removeClass('blue');
+      localStorage.setItem('repo-clone-protocol', 'https');
+    }
   });
   $('#repo-clone-url').on('click', function () {
     $(this).select();
@@ -1495,7 +1496,8 @@ function setCommentSimpleMDE($editArea) {
   $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
-      if (!(issuesTribute.isActive || emojiTribute.isActive)) {
+      const tributeContainer = document.querySelector('.tribute-container');
+      if (!tributeContainer || tributeContainer.style.display === 'none') {
         return CodeMirror.Pass;
       }
     },
@@ -1506,8 +1508,7 @@ function setCommentSimpleMDE($editArea) {
       cm.execCommand('delCharBefore');
     }
   });
-  issuesTribute.attach(simplemde.codemirror.getInputField());
-  emojiTribute.attach(simplemde.codemirror.getInputField());
+  attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
   return simplemde;
 }
 
@@ -2430,13 +2431,14 @@ $(document).ready(async () => {
   initContextPopups();
   initNotificationsTable();
   initNotificationCount();
-  initTribute();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
     switch (localStorage.getItem('repo-clone-protocol')) {
       case 'ssh':
-        if ($('#repo-clone-ssh').length === 0) {
+        if ($('#repo-clone-ssh').length > 0) {
+          $('#repo-clone-ssh').trigger('click');
+        } else {
           $('#repo-clone-https').trigger('click');
         }
         break;
@@ -2470,9 +2472,11 @@ $(document).ready(async () => {
   // parallel init of lazy-loaded features
   await Promise.all([
     highlight(document.querySelectorAll('pre code')),
+    attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
+    initServiceWorker(),
   ]);
 });
 
@@ -2741,7 +2745,7 @@ function initVueComponents() {
         }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
         }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
         }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
-        }${this.privateFilter === 'private' ? '&onlyPrivate=true' : ''}${this.privateFilter === 'public' ? '&private=false' : ''
+        }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
         }`;
       },
       repoTypeCount() {
@@ -2907,55 +2911,17 @@ function initVueComponents() {
         this.searchRepos();
       },
 
-      showArchivedRepo(repo) {
-        switch (this.archivedFilter) {
-          case 'both':
-            return true;
-          case 'unarchived':
-            return !repo.archived;
-          case 'archived':
-            return repo.archived;
-          default:
-            return !repo.archived;
-        }
-      },
-
-      showPrivateRepo(repo) {
-        switch (this.privateFilter) {
-          case 'both':
-            return true;
-          case 'public':
-            return !repo.private;
-          case 'private':
-            return repo.private;
-          default:
-            return true;
-        }
-      },
-
-      showFilteredRepo(repo) {
-        switch (this.reposFilter) {
-          case 'sources':
-            return repo.owner.id === this.uid && !repo.mirror && !repo.fork;
-          case 'forks':
-            return repo.owner.id === this.uid && !repo.mirror && repo.fork;
-          case 'mirrors':
-            return repo.mirror;
-          case 'collaborative':
-            return repo.owner.id !== this.uid && !repo.mirror;
-          default:
-            return true;
-        }
-      },
-
-      showRepo(repo) {
-        return this.showArchivedRepo(repo) && this.showPrivateRepo(repo) && this.showFilteredRepo(repo);
-      },
-
       searchRepos() {
         const self = this;
 
         this.isLoading = true;
+
+        if (!this.reposTotalCount) {
+          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=&page=1&mode=`;
+          $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
+            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+          });
+        }
 
         const searchedMode = this.repoTypes[this.reposFilter].searchMode;
         const searchedURL = this.searchURL;

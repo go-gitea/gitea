@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
@@ -377,6 +378,14 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 			ctx.ServerError("IsUserExist", err)
 			return
+		}
+
+		if newOwner.Type == models.UserTypeOrganization {
+			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !ctx.User.IsUserPartOfOrg(newOwner.ID) {
+				// The user shouldn't know about this organization
+				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+				return
+			}
 		}
 
 		// Close the GitRepo if open
