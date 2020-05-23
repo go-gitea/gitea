@@ -295,6 +295,7 @@ lint-frontend: node_modules
 
 .PHONY: watch-frontend
 watch-frontend: node_modules
+	rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
 
 .PHONY: test
