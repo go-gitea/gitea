@@ -751,11 +751,11 @@
                     }
                 }
 
-                &:first-child {
+                &:first-child:not(.commit) {
                     padding-top: 0 !important;
                 }
 
-                &:last-child {
+                &:last-child:not(.commit) {
                     padding-bottom: 0 !important;
                 }
 
@@ -807,8 +807,9 @@
                     line-height: 30px;
                 }
 
-                &.event.small-line-spacing {
-                    padding: 2px 0 0 15px;
+                &.commits-list {
+                    padding-left: 15px;
+                    padding-top: 0;
                 }
 
                 &.event > .commit-status-link {
