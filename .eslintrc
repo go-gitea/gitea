@@ -48,6 +48,7 @@ rules:
   no-cond-assign: [2, except-parens]
   no-console: [1, {allow: [info, warn, error]}]
   no-continue: [0]
+  no-empty: [2, {allowEmptyCatch: true}]
   no-eq-null: [2]
   no-mixed-operators: [0]
   no-multi-assign: [0]

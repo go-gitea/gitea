@@ -14,6 +14,7 @@ import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initDateTimePicker from './features/datetimepicker.js';
+import initServiceWorker from './features/serviceworker.js';
 import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
@@ -1496,7 +1497,7 @@ function setCommentSimpleMDE($editArea) {
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
       const tributeContainer = document.querySelector('.tribute-container');
-      if (tributeContainer && tributeContainer.style.display !== 'none') {
+      if (!tributeContainer || tributeContainer.style.display === 'none') {
         return CodeMirror.Pass;
       }
     },
@@ -2475,6 +2476,7 @@ $(document).ready(async () => {
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
+    initServiceWorker(),
   ]);
 });
 
