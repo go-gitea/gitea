@@ -6,30 +6,6 @@
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
 	<link rel="manifest" href="{{AppSubUrl}}/manifest.json" crossorigin="use-credentials">
-	{{if UseServiceWorker}}
-	<script>
-		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.register('{{AppSubUrl}}/serviceworker.js').then(function(registration) {
-				// Registration was successful
-				console.info('ServiceWorker registration successful with scope: ', registration.scope);
-			}, function(err) {
-				// registration failed :(
-				console.info('ServiceWorker registration failed: ', err);
-			});
-		}
-	</script>
-	{{else}}
-	<script>
-		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.getRegistrations().then(function(registrations) {
-				registrations.forEach(function(registration) {
-					registration.unregister();
-					console.info('ServiceWorker unregistered');
-				});
-			});
-		}
-	</script>
-	{{end}}
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}" />
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}" />
@@ -84,8 +60,10 @@
 	</script>
 	<script>
 		window.config = {
+			AppVer: '{{AppVer}}',
 			AppSubUrl: '{{AppSubUrl}}',
 			StaticUrlPrefix: '{{StaticUrlPrefix}}',
+			UseServiceWorker: {{UseServiceWorker}},
 			csrf: '{{.CsrfToken}}',
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},

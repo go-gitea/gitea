@@ -15,6 +15,7 @@ import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initProject from './features/projects.js';
 import initDateTimePicker from './features/datetimepicker.js';
+import initServiceWorker from './features/serviceworker.js';
 import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import highlight from './features/highlight.js';
@@ -2482,6 +2483,7 @@ $(document).ready(async () => {
     initClipboard(),
     initUserHeatmap(),
     initProject(csrf),
+    initServiceWorker(),
   ]);
 });
 
