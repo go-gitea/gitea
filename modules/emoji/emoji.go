@@ -7,6 +7,7 @@ package emoji
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -59,6 +60,11 @@ func loadMap() {
 		codePairs := make([]string, 0)
 		aliasPairs := make([]string, 0)
 
+		// sort from largest to small so we match combined emoji first
+		sort.Slice(GemojiData, func(i, j int) bool {
+			return len(GemojiData[i].Emoji) > len(GemojiData[j].Emoji)
+		})
+
 		for i, e := range GemojiData {
 			if e.Emoji == "" || len(e.Aliases) == 0 {
 				continue
@@ -87,7 +93,7 @@ func loadMap() {
 		aliasReplacer = strings.NewReplacer(aliasPairs...)
 
 		//create regex to match all stored unicode values
-		regexpStr = "[" + codePoints.String() + "]"
+		regexpStr = "(" + strings.TrimSuffix(codePoints.String(), "|") + ")"
 		emojiUnicodeRegex = regexp.MustCompile(regexpStr)
 	})
 
