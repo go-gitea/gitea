@@ -6,6 +6,7 @@
 package emoji
 
 import (
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -35,6 +36,15 @@ var (
 	aliasReplacer *strings.Replacer
 
 	once sync.Once
+
+	// codePoints used for building regex string more efficiently
+	codePoints strings.Builder
+
+	// RegexpStr to store string of emoji for matching
+	regexpStr string
+
+	// EmojiUnicodeRegex to match any emoji present in emoji_data.go exactly
+	emojiUnicodeRegex *regexp.Regexp
 )
 
 func loadMap() {
@@ -48,6 +58,7 @@ func loadMap() {
 		// process emoji codes and aliases
 		codePairs := make([]string, 0)
 		aliasPairs := make([]string, 0)
+
 		for i, e := range GemojiData {
 			if e.Emoji == "" || len(e.Aliases) == 0 {
 				continue
@@ -56,6 +67,9 @@ func loadMap() {
 			// setup codes
 			codeMap[e.Emoji] = i
 			codePairs = append(codePairs, e.Emoji, ":"+e.Aliases[0]+":")
+
+			//used to build "or" type regex string with each emoji we support
+			codePoints.WriteString(e.Emoji + "|")
 
 			// setup aliases
 			for _, a := range e.Aliases {
@@ -71,7 +85,18 @@ func loadMap() {
 		// create replacers
 		codeReplacer = strings.NewReplacer(codePairs...)
 		aliasReplacer = strings.NewReplacer(aliasPairs...)
+
+		//create regex to match all stored unicode values
+		regexpStr = "[" + codePoints.String() + "]"
+		emojiUnicodeRegex = regexp.MustCompile(regexpStr)
 	})
+
+}
+
+// UnicodeRegex returns a regex that matches any individual emoji in emoji_data.go
+func UnicodeRegex() *regexp.Regexp {
+	loadMap()
+	return emojiUnicodeRegex
 }
 
 // FromCode retrieves the emoji data based on the provided unicode code (ie,
