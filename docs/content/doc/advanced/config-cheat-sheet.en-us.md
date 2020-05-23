@@ -398,7 +398,7 @@ set name for unique queues. Individual queues will default to
    the "Name" \<email@example.com\> format.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
-   - NB: Go's internal libraries will only permit authentication if `IS_TLS_ENABLED=true` or `HOST=localhost`.
+   - Please note: authentication is only supported when the SMTP server supports TLS through StartTLS, `IS_TLS_ENABLED=true` or is `HOST=localhost` due to protections imposed by the Go internal libraries.
 - `SKIP_VERIFY`: **\<empty\>**: Do not verify the self-signed certificates.
    - **Note:** Gitea only supports SMTP with STARTTLS.
 - `SUBJECT_PREFIX`: **\<empty\>**: Prefix to be placed before e-mail subject lines.
