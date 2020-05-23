@@ -516,12 +516,14 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.tabular.menu {
-    .active.item {
-        background: #383c4a;
+    border-bottom: 1px solid rgba(187, 187, 187, .6);
+
+    .item.active {
+        border-top: 1px solid rgba(187, 187, 187, .6);
+        border-left: 1px solid rgba(187, 187, 187, .6);
+        border-right: 1px solid rgba(187, 187, 187, .6);
+        background: #4b5162;
         color: #dbdbdb;
-        border-left: 1px solid transparent;
-        border-right: 1px solid transparent;
-        border-top: 0;
     }
 
     .item {
@@ -531,17 +533,13 @@ a.ui.basic.green.label:hover {
     .item:hover {
         color: #dbdbdb;
     }
-}
 
-.ui.container form .ui.tabular.menu {
-    border-bottom: 1px solid rgba(187, 187, 187, .6);
-
-    .active.item {
-        border-top: 1px solid rgba(187, 187, 187, .6);
-        border-left: 1px solid rgba(187, 187, 187, .6);
-        border-right: 1px solid rgba(187, 187, 187, .6);
-        &:hover {
-            background: #4b5162;
+    &.navbar {
+        .item.active {
+            background: #383c4a;
+            border-left: 1px solid transparent;
+            border-right: 1px solid transparent;
+            border-top: 0;
         }
     }
 }
@@ -824,10 +822,6 @@ a.ui.basic.green.label:hover {
 
 .ui.menu .ui.dropdown .menu > .active.item {
     color: #dbdbdb !important;
-}
-
-.ui.tabular.menu {
-    border-bottom: 1px solid #313c47;
 }
 
 .ui.card,
