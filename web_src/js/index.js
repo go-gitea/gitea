@@ -1325,7 +1325,8 @@ function initWikiForm() {
               _csrf: csrf,
               mode: 'gfm',
               context: $editArea.data('context'),
-              text: plainText
+              text: plainText,
+              wiki: true
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
               $(preview).find('pre code').each((_, e) => {
