@@ -810,6 +810,10 @@
                 &.commits-list {
                     padding-left: 15px;
                     padding-top: 0;
+
+                    .singular-commit:not(:last-child) {
+                        padding-bottom: 3px;
+                    }
                 }
 
                 &.event > .commit-status-link {
@@ -1313,6 +1317,10 @@
                     border-right-color: #ffffff;
                 }
             }
+        }
+
+        .markdown {
+            font-size: 14px;
         }
     }
 
