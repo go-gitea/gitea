@@ -7,6 +7,7 @@ package context
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -64,7 +65,7 @@ type APINotFound struct{}
 // swagger:response redirect
 type APIRedirect struct{}
 
-// Error responses error message to client with given message.
+// Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	var message string
@@ -74,12 +75,23 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 		message = obj.(string)
 	}
 
-	if status == 500 {
-		log.Error("%s: %s", title, message)
+	if status == http.StatusInternalServerError {
+		log.ErrorWithSkip(1, "%s: %s", title, message)
 	}
 
 	ctx.JSON(status, APIError{
 		Message: message,
+		URL:     setting.API.SwaggerURL,
+	})
+}
+
+// InternalServerError responds with an error message to the client with the error as a message
+// and the file and line of the caller.
+func (ctx *APIContext) InternalServerError(err error) {
+	log.ErrorWithSkip(1, "InternalServerError: %v", err)
+
+	ctx.JSON(http.StatusInternalServerError, APIError{
+		Message: err.Error(),
 		URL:     setting.API.SwaggerURL,
 	})
 }
