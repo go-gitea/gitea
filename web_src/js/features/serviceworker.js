@@ -1,16 +1,18 @@
 const {UseServiceWorker, AppSubUrl, AppVer} = window.config;
-const cacheName = 'static-cache-v2';
+const cachePrefix = 'static-cache-v'; // actual version is set in the service worker script
 
 async function unregister() {
-  for (const registration of await navigator.serviceWorker.getRegistrations()) {
-    const serviceWorker = registration.active;
-    if (!serviceWorker) continue;
-    registration.unregister();
-  }
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => {
+    return registration.active && registration.unregister();
+  }));
 }
 
 async function invalidateCache() {
-  await caches.delete(cacheName);
+  const cacheKeys = await caches.keys();
+  await Promise.all(cacheKeys.map((key) => {
+    return key.startsWith(cachePrefix) && caches.delete(key);
+  }));
 }
 
 async function checkCacheValidity() {
@@ -19,7 +21,7 @@ async function checkCacheValidity() {
 
   // invalidate cache if it belongs to a different gitea version
   if (cacheKey && storedCacheKey !== cacheKey) {
-    invalidateCache();
+    await invalidateCache();
     localStorage.setItem('staticCacheKey', cacheKey);
   }
 }
@@ -28,16 +30,24 @@ export default async function initServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
   if (UseServiceWorker) {
-    await checkCacheValidity();
     try {
-      await navigator.serviceWorker.register(`${AppSubUrl}/serviceworker.js`);
+      // normally we'd serve the service worker as a static asset from StaticUrlPrefix but
+      // the spec strictly requires it to be same-origin so it has to be AppSubUrl to work
+      await Promise.all([
+        checkCacheValidity(),
+        navigator.serviceWorker.register(`${AppSubUrl}/serviceworker.js`),
+      ]);
     } catch (err) {
       console.error(err);
-      await invalidateCache();
-      await unregister();
+      await Promise.all([
+        invalidateCache(),
+        unregister(),
+      ]);
     }
   } else {
-    await invalidateCache();
-    await unregister();
+    await Promise.all([
+      invalidateCache(),
+      unregister(),
+    ]);
   }
 }
