@@ -72,7 +72,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	if err, ok := obj.(error); ok {
 		message = err.Error()
 	} else {
-		message = obj.(string)
+		message = fmt.Sprintf("%s", obj)
 	}
 
 	if status == http.StatusInternalServerError {
