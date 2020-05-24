@@ -2852,7 +2852,12 @@ function initVueComponents() {
           params.set('repo-search-page', `${this.page}`);
         }
 
-        window.history.replaceState({}, '', `?${params.toString()}`);
+        const queryString = params.toString();
+        if (queryString) {
+          window.history.replaceState({}, '', `?${queryString}`);
+        } else {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
       },
 
       toggleArchivedFilter() {
