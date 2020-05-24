@@ -468,8 +468,13 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 
 // GetBranchName gets the closes branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
-	data, err := NewCommand("name-rev", "--name-only", c.ID.String()).RunInDir(c.repo.Path)
+	data, err := NewCommand("name-rev", "--name-only", "--no-undefined", c.ID.String()).RunInDir(c.repo.Path)
 	if err != nil {
+		// handle special case where git can not describe commit
+		if strings.Contains(err.Error(), "cannot describe") {
+			return "", nil
+		}
+
 		return "", err
 	}
 
