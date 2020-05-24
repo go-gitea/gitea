@@ -1497,7 +1497,7 @@ function setCommentSimpleMDE($editArea) {
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
       const tributeContainer = document.querySelector('.tribute-container');
-      if (tributeContainer && tributeContainer.style.display !== 'none') {
+      if (!tributeContainer || tributeContainer.style.display === 'none') {
         return CodeMirror.Pass;
       }
     },
