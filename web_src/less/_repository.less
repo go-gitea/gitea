@@ -881,8 +881,15 @@
                 }
 
                 .content {
-                    > .merge-section.no-header {
-                        #avatar-arrow;
+                    > .merge-section {
+                        .divider {
+                            margin-left: -1rem;
+                            margin-right: -1rem;
+                        }
+
+                        &.no-header {
+                            #avatar-arrow;
+                        }
                     }
 
                     > .header {
