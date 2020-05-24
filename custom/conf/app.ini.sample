@@ -627,7 +627,8 @@ SUBJECT_PREFIX =
 ; Mail server
 ; Gmail: smtp.gmail.com:587
 ; QQ: smtp.qq.com:465
-; Note, if the port ends with "465", SMTPS will be used. Using STARTTLS on port 587 is recommended per RFC 6409. If the server supports STARTTLS it will always be used.
+; Using STARTTLS on port 587 is recommended per RFC 6409. 
+; Note, if the port ends with "465", SMTPS will be used. 
 HOST =
 ; Disable HELO operation when hostnames are different.
 DISABLE_HELO =
@@ -639,11 +640,13 @@ SKIP_VERIFY =
 USE_CERTIFICATE = false
 CERT_FILE = custom/mailer/cert.pem
 KEY_FILE = custom/mailer/key.pem
-; Should SMTP connection use TLS
+; Should SMTP connect with TLS, (if port ends with 465 TLS will always be used.)
+; If this is false but STARTTLS is supported the connection will be upgraded to TLS opportunistically.
 IS_TLS_ENABLED = false
 ; Mail from address, RFC 5322. This can be just an email address, or the `"Name" <email@example.com>` format
 FROM =
 ; Mailer user name and password
+; Please Note: Authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via STARTTLS) or `HOST=localhost`.
 USER =
 ; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
