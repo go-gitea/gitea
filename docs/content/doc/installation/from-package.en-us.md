@@ -44,6 +44,7 @@ There is a [Gitea](https://chocolatey.org/packages/gitea) package for Windows by
 choco install gitea
 ```
 
+Or follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide.
 ## macOS
 
 Currently, the only supported method of installation on MacOS is [Homebrew](http://brew.sh/).
