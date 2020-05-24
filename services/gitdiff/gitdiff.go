@@ -367,9 +367,9 @@ func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 
 // Diff represents a difference between two git trees.
 type Diff struct {
-	TotalAddition, TotalDeletion int
-	Files                        []*DiffFile
-	IsIncomplete                 bool
+	NumFiles, TotalAddition, TotalDeletion int
+	Files                                  []*DiffFile
+	IsIncomplete                           bool
 }
 
 // LoadComments loads comments into each line
@@ -396,11 +396,6 @@ func (diff *Diff) LoadComments(issue *models.Issue, currentUser *models.User) er
 		}
 	}
 	return nil
-}
-
-// NumFiles returns number of files changes in a diff.
-func (diff *Diff) NumFiles() int {
-	return len(diff.Files)
 }
 
 const cmdDiffHead = "diff --git "
@@ -639,7 +634,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			}
 		}
 	}
-
+	diff.NumFiles = len(diff.Files)
 	return diff, nil
 }
 
@@ -714,6 +709,11 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 
 	if err = cmd.Wait(); err != nil {
 		return nil, fmt.Errorf("Wait: %v", err)
+	}
+
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, beforeCommitID+"..."+afterCommitID)
+	if err != nil {
+		return nil, err
 	}
 
 	return diff, nil
