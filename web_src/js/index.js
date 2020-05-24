@@ -2469,7 +2469,7 @@ $(document).ready(async () => {
     }
   });
 
-  // parallel init of lazy-loaded features
+  // parallel init of async loaded features
   await Promise.all([
     highlight(document.querySelectorAll('pre code')),
     attachTribute(document.querySelectorAll('#content, .emoji-input')),

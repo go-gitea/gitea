@@ -25,7 +25,7 @@ globals:
   Tribute: false
 
 overrides:
-  - files: ["web_src/**/*.worker.js"]
+  - files: ["web_src/**/*.worker.js", "web_src/js/serviceworker.js"]
     env:
       worker: true
     rules:
@@ -58,6 +58,7 @@ rules:
   no-restricted-syntax: [0]
   no-return-await: [0]
   no-shadow: [0]
+  no-underscore-dangle: [0]
   no-unused-vars: [2, {args: all, argsIgnorePattern: ^_, varsIgnorePattern: ^_, ignoreRestSiblings: true}]
   no-use-before-define: [0]
   no-var: [2]
