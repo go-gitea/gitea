@@ -42,7 +42,7 @@ function initCommentPreviewTab($form) {
     const $this = $(this);
     $.post($this.data('url'), {
       _csrf: csrf,
-      mode: 'gfm',
+      mode: 'comment',
       context: $this.data('context'),
       text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
@@ -66,6 +66,7 @@ function initEditPreviewTab($form) {
     $previewTab.on('click', function () {
       const $this = $(this);
       let context = `${$this.data('context')}/`;
+      const mode = $this.data('markdown-mode') || 'comment';
       const treePathEl = $form.find('input#tree_path');
       if (treePathEl.length > 0) {
         context += treePathEl.val();
@@ -73,7 +74,7 @@ function initEditPreviewTab($form) {
       context = context.substring(0, context.lastIndexOf('/'));
       $.post($this.data('url'), {
         _csrf: csrf,
-        mode: 'gfm',
+        mode,
         context,
         text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
       }, (data) => {
@@ -1324,7 +1325,8 @@ function initWikiForm() {
               _csrf: csrf,
               mode: 'gfm',
               context: $editArea.data('context'),
-              text: plainText
+              text: plainText,
+              wiki: true
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
               $(preview).find('pre code').each((_, e) => {
@@ -2852,7 +2854,12 @@ function initVueComponents() {
           params.set('repo-search-page', `${this.page}`);
         }
 
-        window.history.replaceState({}, '', `?${params.toString()}`);
+        const queryString = params.toString();
+        if (queryString) {
+          window.history.replaceState({}, '', `?${queryString}`);
+        } else {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
       },
 
       toggleArchivedFilter() {
