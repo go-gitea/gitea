@@ -107,10 +107,11 @@ func init() {
 
 // VirtualStore represents a virtual session store implementation.
 type VirtualStore struct {
-	p    *VirtualSessionProvider
-	sid  string
-	lock sync.RWMutex
-	data map[interface{}]interface{}
+	p        *VirtualSessionProvider
+	sid      string
+	lock     sync.RWMutex
+	data     map[interface{}]interface{}
+	released bool
 }
 
 // NewVirtualStore creates and returns a virtual session store.
@@ -164,7 +165,7 @@ func (s *VirtualStore) Release() error {
 		// Now ensure that we don't exist!
 		realProvider := s.p.provider
 
-		if realProvider.Exist(s.sid) {
+		if !s.released && realProvider.Exist(s.sid) {
 			// This is an error!
 			return fmt.Errorf("new sid '%s' already exists", s.sid)
 		}
@@ -172,12 +173,19 @@ func (s *VirtualStore) Release() error {
 		if err != nil {
 			return err
 		}
+		if err := realStore.Flush(); err != nil {
+			return err
+		}
 		for key, value := range s.data {
 			if err := realStore.Set(key, value); err != nil {
 				return err
 			}
 		}
-		return realStore.Release()
+		err = realStore.Release()
+		if err == nil {
+			s.released = true
+		}
+		return err
 	}
 	return nil
 }
