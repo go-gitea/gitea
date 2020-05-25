@@ -598,11 +598,8 @@
 	{{else if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-repo-force-push" 16}}</span>
-			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-				<img src="{{.Poster.RelAvatarLink}}">
-			</a>
 			<span class="text grey">
-				<a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{ if .IsForcePush }}
 					{{$.i18n.Tr "repo.issues.force_push_codes" $.Issue.PullRequest.HeadBranch (ShortSha .OldCommit) ($.Issue.Repo.CommitLink .OldCommit)  (ShortSha .NewCommit) ($.Issue.Repo.CommitLink .NewCommit) $createdStr | Safe}}
 				{{else}}
