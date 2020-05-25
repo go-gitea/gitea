@@ -7,7 +7,6 @@ package charset
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -142,32 +141,6 @@ func DetectEncoding(content []byte) (string, error) {
 
 	// Now we can't use DetectBest or just results[0] because the result isn't stable - so we need a tie break
 	results, err := textDetector.DetectAll(detectContent)
-
-	// Re-sort with a tie break
-	sort.SliceStable(results, func(i, j int) bool {
-		if results[i].Confidence == results[j].Confidence {
-			leftVal := strings.ToLower(strings.TrimSpace(results[i].Charset))
-			rightVal := strings.ToLower(strings.TrimSpace(results[j].Charset))
-			leftPref, leftHas := setting.Repository.DetectedCharsetScore[leftVal]
-			rightPref, rightHas := setting.Repository.DetectedCharsetScore[rightVal]
-
-			if !rightHas && !leftHas {
-				return i < j
-			}
-			if !rightHas {
-				return true
-			}
-			if !leftHas {
-				return false
-			}
-			return leftPref < rightPref
-		}
-		return results[i].Confidence > results[j].Confidence
-	})
-
-	// Choose the best result
-	result := results[0]
-
 	if err != nil {
 		if err == chardet.NotDetectedError && len(setting.Repository.AnsiCharset) > 0 {
 			log.Debug("Using default AnsiCharset: %s", setting.Repository.AnsiCharset)
@@ -176,12 +149,28 @@ func DetectEncoding(content []byte) (string, error) {
 		return "", err
 	}
 
+	topConfidence := results[0].Confidence
+	topResult := results[0]
+	priority, has := setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(topResult.Charset))]
+	for _, result := range results {
+		if result.Confidence == topConfidence {
+			resultPriority, resultHas := setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(result.Charset))]
+			if resultHas && (!has || resultPriority < priority) {
+				topResult = result
+				priority = resultPriority
+				has = true
+			}
+			continue
+		}
+		break
+	}
+
 	// FIXME: to properly decouple this function the fallback ANSI charset should be passed as an argument
-	if result.Charset != "UTF-8" && len(setting.Repository.AnsiCharset) > 0 {
+	if topResult.Charset != "UTF-8" && len(setting.Repository.AnsiCharset) > 0 {
 		log.Debug("Using default AnsiCharset: %s", setting.Repository.AnsiCharset)
 		return setting.Repository.AnsiCharset, err
 	}
 
-	log.Debug("Detected encoding: %s", result.Charset)
-	return result.Charset, err
+	log.Debug("Detected encoding: %s", topResult.Charset)
+	return topResult.Charset, err
 }
