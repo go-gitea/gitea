@@ -246,9 +246,9 @@ func newRepository() {
 	} else {
 		RepoRootPath = filepath.Clean(RepoRootPath)
 	}
-	defaultDetectedCharsetsOrder := Repository.DetectedCharsetsOrder
-	for i, charset := range defaultDetectedCharsetsOrder {
-		defaultDetectedCharsetsOrder[i] = strings.ToLower(strings.TrimSpace(charset))
+	defaultDetectedCharsetsOrder := make([]string, 0, len(Repository.DetectedCharsetsOrder))
+	for _, charset := range Repository.DetectedCharsetsOrder {
+		defaultDetectedCharsetsOrder = append(defaultDetectedCharsetsOrder, strings.ToLower(strings.TrimSpace(charset)))
 	}
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
 
@@ -283,6 +283,7 @@ func newRepository() {
 		if charset == "defaults" {
 			for _, charset := range defaultDetectedCharsetsOrder {
 				canonicalCharset := strings.ToLower(strings.TrimSpace(charset))
+				log.Error("%s", canonicalCharset)
 				if _, has := Repository.DetectedCharsetScore[canonicalCharset]; !has {
 					Repository.DetectedCharsetScore[canonicalCharset] = i
 					i++
@@ -290,6 +291,7 @@ func newRepository() {
 			}
 			continue
 		}
+		log.Error("%s", charset)
 		if _, has := Repository.DetectedCharsetScore[charset]; !has {
 			Repository.DetectedCharsetScore[charset] = i
 			i++
