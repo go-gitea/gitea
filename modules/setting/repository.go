@@ -283,7 +283,6 @@ func newRepository() {
 		if charset == "defaults" {
 			for _, charset := range defaultDetectedCharsetsOrder {
 				canonicalCharset := strings.ToLower(strings.TrimSpace(charset))
-				log.Error("%s", canonicalCharset)
 				if _, has := Repository.DetectedCharsetScore[canonicalCharset]; !has {
 					Repository.DetectedCharsetScore[canonicalCharset] = i
 					i++
