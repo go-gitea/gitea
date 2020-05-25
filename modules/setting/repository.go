@@ -290,7 +290,6 @@ func newRepository() {
 			}
 			continue
 		}
-		log.Error("%s", charset)
 		if _, has := Repository.DetectedCharsetScore[charset]; !has {
 			Repository.DetectedCharsetScore[charset] = i
 			i++
