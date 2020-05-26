@@ -751,6 +751,13 @@
                     }
                 }
 
+                .avatar.image,
+                .avatar.image img {
+                    width: 20px;
+                    height: 20px;
+                    margin-right: .15em;
+                }
+
                 &:first-child:not(.commit) {
                     padding-top: 0 !important;
                 }
@@ -774,7 +781,6 @@
                     display: flex;
                     float: left;
                     margin-left: -32px;
-                    margin-top: -1px;
                     margin-right: 8px;
                     color: #444;
 
@@ -811,8 +817,12 @@
                     padding-left: 15px;
                     padding-top: 0;
 
-                    .singular-commit:not(:last-child) {
-                        padding-bottom: 3px;
+                    .singular-commit {
+                        line-height: 30px;
+
+                        &:not(:last-child) {
+                            padding-bottom: 3px;
+                        }
                     }
                 }
 
@@ -1124,7 +1134,7 @@
                 .detail {
                     font-size: .9rem;
                     margin-top: 5px;
-                    margin-left: 43px;
+                    margin-left: 8px;
 
                     .svg {
                         &.octicon-git-commit {
