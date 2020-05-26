@@ -919,8 +919,20 @@
                     }
 
                     > .merge-section {
-                        border-top: 1px solid #d4d4d5;
                         background-color: #f7f7f7;
+
+                        .item + .item {
+                            padding-top: .5rem;
+                        }
+
+                        .divider {
+                            margin-left: -1rem;
+                            margin-right: -1rem;
+                        }
+
+                        &.no-header {
+                            #avatar-arrow;
+                        }
                     }
 
                     .markdown {
