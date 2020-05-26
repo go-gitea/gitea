@@ -291,7 +291,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Author"] = models.ValidateCommitWithEmail(commit)
 	ctx.Data["Diff"] = diff
 	ctx.Data["Parents"] = parents
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
+	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
 		ctx.ServerError("CalculateTrustStatus", err)
