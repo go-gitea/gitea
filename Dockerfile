@@ -38,7 +38,8 @@ RUN apk --no-cache add \
     sqlite \
     su-exec \
     tzdata \
-    gnupg
+    gnupg \
+    libcap
 
 RUN addgroup \
     -S -g 1000 \
@@ -62,4 +63,6 @@ CMD ["/bin/s6-svscan", "/etc/s6"]
 
 COPY docker/root /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
+
+RUN setcap 'cap_net_bind_service=+ep' /app/gitea/gitea
 RUN ln -s /app/gitea/gitea /usr/local/bin/gitea
