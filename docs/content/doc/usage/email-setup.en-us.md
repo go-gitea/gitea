@@ -46,6 +46,12 @@ PASSWD         = `password`
 
 For the full list of options check the [Config Cheat Sheet]({{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}})
 
+- Please note: authentication is only supported when the SMTP server communication is encrypted with TLS or `HOST=localhost`. TLS encryption can be through:
+  - Via the server supporting TLS through STARTTLS - usually provided on port 587. (Also known as Opportunistic TLS.)
+  - SMTPS connection (SMTP over transport layer security) via the default port 465. 
+  - Forced SMTPS connection with `IS_TLS_ENABLED=true`. (These are both known as Implicit TLS.)
+- This is due to protections imposed by the Go internal libraries against STRIPTLS attacks.
+
 ### Gmail
 
 The following configuration should work with GMail's SMTP server:
