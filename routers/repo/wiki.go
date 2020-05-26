@@ -209,7 +209,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	metas := ctx.Repo.Repository.ComposeMetas()
+	metas := ctx.Repo.Repository.ComposeDocumentMetas()
 	ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
 	ctx.Data["sidebarPresent"] = sidebarContent != nil
 	ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)

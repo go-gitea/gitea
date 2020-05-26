@@ -751,11 +751,11 @@
                     }
                 }
 
-                &:first-child {
+                &:first-child:not(.commit) {
                     padding-top: 0 !important;
                 }
 
-                &:last-child {
+                &:last-child:not(.commit) {
                     padding-bottom: 0 !important;
                 }
 
@@ -807,8 +807,13 @@
                     line-height: 30px;
                 }
 
-                &.event.small-line-spacing {
-                    padding: 2px 0 0 15px;
+                &.commits-list {
+                    padding-left: 15px;
+                    padding-top: 0;
+
+                    .singular-commit:not(:last-child) {
+                        padding-bottom: 3px;
+                    }
                 }
 
                 &.event > .commit-status-link {
@@ -914,8 +919,20 @@
                     }
 
                     > .merge-section {
-                        border-top: 1px solid #d4d4d5;
                         background-color: #f7f7f7;
+
+                        .item + .item {
+                            padding-top: .5rem;
+                        }
+
+                        .divider {
+                            margin-left: -1rem;
+                            margin-right: -1rem;
+                        }
+
+                        &.no-header {
+                            #avatar-arrow;
+                        }
                     }
 
                     .markdown {
@@ -1312,6 +1329,14 @@
                     border-right-color: #ffffff;
                 }
             }
+        }
+
+        .pullrequest-form {
+            margin-bottom: 1.5rem;
+        }
+
+        .markdown {
+            font-size: 14px;
         }
     }
 
