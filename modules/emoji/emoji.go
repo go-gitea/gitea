@@ -6,10 +6,10 @@
 package emoji
 
 import (
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
+	"unicode/utf8"
 )
 
 // Gemoji is a set of emoji data.
@@ -37,15 +37,6 @@ var (
 	aliasReplacer *strings.Replacer
 
 	once sync.Once
-
-	// codePoints used for building regex string more efficiently
-	codePoints strings.Builder
-
-	// RegexpStr to store string of emoji for matching
-	regexpStr string
-
-	// EmojiUnicodeRegex to match any emoji present in emoji_data.go exactly
-	emojiUnicodeRegex *regexp.Regexp
 )
 
 func loadMap() {
@@ -74,9 +65,6 @@ func loadMap() {
 			codeMap[e.Emoji] = i
 			codePairs = append(codePairs, e.Emoji, ":"+e.Aliases[0]+":")
 
-			//used to build "or" type regex string with each emoji we support
-			codePoints.WriteString(e.Emoji + "|")
-
 			// setup aliases
 			for _, a := range e.Aliases {
 				if a == "" {
@@ -91,18 +79,8 @@ func loadMap() {
 		// create replacers
 		codeReplacer = strings.NewReplacer(codePairs...)
 		aliasReplacer = strings.NewReplacer(aliasPairs...)
-
-		//create regex to match all stored unicode values
-		regexpStr = "(" + strings.TrimSuffix(codePoints.String(), "|") + ")"
-		emojiUnicodeRegex = regexp.MustCompile(regexpStr)
 	})
 
-}
-
-// UnicodeRegex returns a regex that matches any individual emoji in emoji_data.go
-func UnicodeRegex() *regexp.Regexp {
-	loadMap()
-	return emojiUnicodeRegex
 }
 
 // FromCode retrieves the emoji data based on the provided unicode code (ie,
@@ -147,4 +125,22 @@ func ReplaceCodes(s string) string {
 func ReplaceAliases(s string) string {
 	loadMap()
 	return aliasReplacer.Replace(s)
+}
+
+// FindEmojiSubmatchIndex returns index pair of longest emoji in a string
+func FindEmojiSubmatchIndex(s string) []int {
+	loadMap()
+
+	// if rune and string length are the same then no emoji will be present
+	// similar performance when there is unicode present but almost 200% faster when not
+	if utf8.RuneCountInString(s) == len(s) {
+		return nil
+	}
+	for j := range GemojiData {
+		i := strings.Index(s, GemojiData[j].Emoji)
+		if i != -1 {
+			return []int{i, i + len(GemojiData[j].Emoji)}
+		}
+	}
+	return nil
 }

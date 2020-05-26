@@ -918,7 +918,7 @@ func emojiShortCodeProcessor(ctx *postProcessCtx, node *html.Node) {
 
 // emoji processor to match emoji and add emoji class
 func emojiProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := emoji.UnicodeRegex().FindStringSubmatchIndex(node.Data)
+	m := emoji.FindEmojiSubmatchIndex(node.Data)
 	if m == nil {
 		return
 	}
