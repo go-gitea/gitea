@@ -437,7 +437,7 @@ func PrepareCompareDiff(
 		return false
 	}
 	ctx.Data["Diff"] = diff
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
+	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	headCommit, err := headGitRepo.GetCommit(headCommitID)
 	if err != nil {
