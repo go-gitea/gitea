@@ -17,7 +17,12 @@ import (
 
 func addCommitDivergenceToPulls(x *xorm.Engine) error {
 
-	if err := x.Sync2(new(models.PullRequest)); err != nil {
+	type PullRequest struct {
+		CommitsAhead  int
+		CommitsBehind int
+	}
+
+	if err := x.Sync2(new(PullRequest)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 
