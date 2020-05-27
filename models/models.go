@@ -182,7 +182,7 @@ func SetEngine() (err error) {
 }
 
 // NewEngine initializes a new xorm.Engine
-func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error, sync bool) (err error) {
 	if err = SetEngine(); err != nil {
 		return err
 	}
@@ -197,8 +197,10 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 		return fmt.Errorf("migrate: %v", err)
 	}
 
-	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
-		return fmt.Errorf("sync database struct error: %v", err)
+	if sync {
+		if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
+			return fmt.Errorf("sync database struct error: %v", err)
+		}
 	}
 
 	return nil

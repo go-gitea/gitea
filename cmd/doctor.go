@@ -365,9 +365,9 @@ func runDoctorAuthorizedKeys(ctx *cli.Context) ([]string, error) {
 }
 
 func runDoctorCheckDBVersion(ctx *cli.Context) ([]string, error) {
-	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate, false); err != nil {
 		if ctx.Bool("fix") {
-			return []string{fmt.Sprintf("WARN: Got Error %v during ensure up to date", err), "Attempting to migrate to the latest DB version to fix this."}, models.NewEngine(context.Background(), migrations.Migrate)
+			return []string{fmt.Sprintf("WARN: Got Error %v during ensure up to date", err), "Attempting to migrate to the latest DB version to fix this."}, models.NewEngine(context.Background(), migrations.Migrate, true)
 		}
 		return nil, err
 	}
@@ -507,7 +507,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	var outdatedDB bool
 
 	// make sure DB version is uptodate
-	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate, false); err != nil {
 		results = append(results, "Warning: model version on the database does not match the current Gitea version. Model consistency can be checked but not fixed until the database is upgraded.")
 		outdatedDB = true
 	}

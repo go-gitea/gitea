@@ -69,7 +69,7 @@ func initDBEngine(ctx context.Context) (err error) {
 		default:
 		}
 		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.Database.DBConnectRetries)
-		if err = models.NewEngine(ctx, migrations.Migrate); err == nil {
+		if err = models.NewEngine(ctx, migrations.Migrate, true); err == nil {
 			break
 		} else if i == setting.Database.DBConnectRetries-1 {
 			return err
