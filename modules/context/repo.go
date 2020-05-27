@@ -27,6 +27,8 @@ import (
 
 // IssueTemplateDirCandidates issue templates directory
 var IssueTemplateDirCandidates = []string{
+	"ISSUE_TEMPLATE",
+	"issue_template",
 	".gitea/ISSUE_TEMPLATE",
 	".gitea/issue_template",
 	".github/ISSUE_TEMPLATE",
@@ -855,18 +857,18 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 			if strings.HasSuffix(entry.Name(), ".md") {
 				r, err := entry.Blob().DataAsync()
 				if err != nil {
-					log.Warn("DataAsync: %v", err)
+					log.Debug("DataAsync: %v", err)
 					continue
 				}
 				defer r.Close()
 				data, err := ioutil.ReadAll(r)
 				if err != nil {
-					log.Warn("ReadAll: %v", err)
+					log.Debug("ReadAll: %v", err)
 					continue
 				}
 				meta, content, err := markdown.ExtractMetadata(string(data))
 				if err != nil {
-					log.Warn("ExtractMetadata: %v", err)
+					log.Debug("ExtractMetadata: %v", err)
 					continue
 				}
 				it := api.IssueTemplate{

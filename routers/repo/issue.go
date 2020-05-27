@@ -60,13 +60,6 @@ var (
 		".github/ISSUE_TEMPLATE.md",
 		".github/issue_template.md",
 	}
-	// IssueTemplateDirCandidates issue templates directory
-	IssueTemplateDirCandidates = []string{
-		".gitea/ISSUE_TEMPLATE",
-		".gitea/issue_template",
-		".github/ISSUE_TEMPLATE",
-		".github/issue_template",
-	}
 )
 
 // MustAllowUserComment checks to make sure if an issue is locked.
@@ -526,7 +519,7 @@ func NewIssue(ctx *context.Context) {
 		}
 	}
 
-	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateDirCandidates, IssueTemplateCandidates)
+	setTemplateIfExists(ctx, issueTemplateKey, context.IssueTemplateDirCandidates, IssueTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
