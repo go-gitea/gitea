@@ -7,6 +7,7 @@ package repo
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -198,6 +199,16 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
+	//   "403":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/error"
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+	}
 
 	if apiOpts.BranchName == "" {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
@@ -274,6 +285,16 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileResponse"
+	//   "403":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/error"
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+	}
 
 	if apiOpts.BranchName == "" {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
