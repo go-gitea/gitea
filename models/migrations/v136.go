@@ -6,16 +6,40 @@ package migrations
 
 import (
 	"fmt"
+	"math"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	pull_service "code.gitea.io/gitea/services/pull"
 
 	"xorm.io/xorm"
 )
 
 func addCommitDivergenceToPulls(x *xorm.Engine) error {
+	type Repository struct {
+		ID        int64 `xorm:"pk autoincr"`
+		OwnerID   int64 `xorm:"UNIQUE(s) index"`
+		OwnerName string
+		LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Name      string `xorm:"INDEX NOT NULL"`
+	}
+
+	type PullRequest struct {
+		ID int64 `xorm:"pk autoincr"`
+
+		CommitsAhead  int
+		CommitsBehind int
+
+		BaseRepoID int64 `xorm:"INDEX"`
+		BaseBranch string
+
+		HasMerged      bool   `xorm:"INDEX"`
+		MergedCommitID string `xorm:"VARCHAR(40)"`
+	}
 
 	if err := x.Sync2(new(models.PullRequest)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
@@ -25,6 +49,15 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 	batchSize := setting.Database.IterateBufferSize
 	sess := x.NewSession()
 	defer sess.Close()
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+	count, err := sess.Where("has_merged = ?", false).Count(new(PullRequest))
+	if err != nil {
+		return err
+	}
+	log.Info("%d Unmerged Pull Request(s) to migrate ...", count)
+
 	for {
 		if err := sess.Begin(); err != nil {
 			return err
@@ -40,16 +73,29 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 		last += len(results)
 
 		for _, pr := range results {
-			divergence, err := pull_service.GetDiverging(pr)
+			baseRepo := &Repository{ID: pr.BaseRepoID}
+			has, err := x.Table("repository").Get(baseRepo)
+			if err != nil {
+				return fmt.Errorf("Unable to get base repo %d %v", pr.BaseRepoID, err)
+			}
+			if !has {
+				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
+				continue
+			}
+			userPath := filepath.Join(setting.RepoRootPath, strings.ToLower(baseRepo.OwnerName))
+			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
+
+			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
+
+			divergence, err := git.GetDivergingCommits(repoPath, pr.BaseBranch, gitRefName)
 			if err != nil {
 				log.Warn("Could not recalculate Divergence for pull: %d", pr.ID)
 				pr.CommitsAhead = 0
 				pr.CommitsBehind = 0
 			}
-			if divergence != nil {
-				pr.CommitsAhead = divergence.Ahead
-				pr.CommitsBehind = divergence.Behind
-			}
+			pr.CommitsAhead = divergence.Ahead
+			pr.CommitsBehind = divergence.Behind
+
 			if _, err = sess.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr); err != nil {
 				return fmt.Errorf("Update Cols: %v", err)
 			}
@@ -58,6 +104,12 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 		if err := sess.Commit(); err != nil {
 			return err
 		}
+		select {
+		case <-ticker.C:
+			log.Info("%d/%d (%2.0f%%) Pull Request(s) migrated in %d batches. %d PRs Remaining ...", last, count, float64(last)/float64(count)*100, int(math.Ceil(float64(last)/float64(batchSize))), count-int64(last))
+		default:
+		}
 	}
+	log.Info("Completed migrating %d Pull Request(s) in: %d batches", count, int(math.Ceil(float64(last)/float64(batchSize))))
 	return nil
 }
