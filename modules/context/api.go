@@ -90,8 +90,13 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 func (ctx *APIContext) InternalServerError(err error) {
 	log.ErrorWithSkip(1, "InternalServerError: %v", err)
 
+	var message string
+	if macaron.Env != macaron.PROD {
+		message = err.Error()
+	}
+
 	ctx.JSON(http.StatusInternalServerError, APIError{
-		Message: err.Error(),
+		Message: message,
 		URL:     setting.API.SwaggerURL,
 	})
 }
