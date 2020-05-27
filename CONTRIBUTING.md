@@ -293,25 +293,25 @@ and lead the development of Gitea.
 To honor the past owners, here's the history of the owners and the time
 they served:
 
-* 2016-11-04 ~ 2017-12-31
-  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
-  * [Thomas Boerger](https://github.com/tboerger) <thomas@webhippie.de>
-  * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
+* 2020-01-01 ~ 2020-12-31 - https://github.com/go-gitea/gitea/issues/9230
+  * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
+  * [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
+  * [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
 
-* 2018-01-01 ~ 2018-12-31
-  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
-  * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
-  * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
-
-* 2019-01-01 ~ 2019-12-31
+* 2019-01-01 ~ 2019-12-31 - https://github.com/go-gitea/gitea/issues/5572
   * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
   * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
   * [Matti Ranta](https://github.com/techknowlogick) <techknowlogick@gitea.io>
 
-* 2020-01-01 ~ 2020-12-31
-  * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
-  * [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
-  * [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
+* 2018-01-01 ~ 2018-12-31 - https://github.com/go-gitea/gitea/issues/3255
+  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
+  * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
+  * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
+
+* 2016-11-04 ~ 2017-12-31
+  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
+  * [Thomas Boerger](https://github.com/tboerger) <thomas@webhippie.de>
+  * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
 
 ## Versions
 

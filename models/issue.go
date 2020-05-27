@@ -249,7 +249,7 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 }
 
 func (issue *Issue) loadMilestone(e Engine) (err error) {
-	if issue.Milestone == nil && issue.MilestoneID > 0 {
+	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
 		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
 		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
