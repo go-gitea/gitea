@@ -144,6 +144,8 @@ func CreateGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/GPGKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
