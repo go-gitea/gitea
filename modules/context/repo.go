@@ -831,6 +831,7 @@ func UnitTypes() macaron.Handler {
 	}
 }
 
+// IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
 func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 	var issueTemplates []api.IssueTemplate
 	if ctx.Repo.Commit == nil {
