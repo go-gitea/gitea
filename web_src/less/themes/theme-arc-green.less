@@ -704,6 +704,11 @@ a.ui.basic.green.label:hover {
     color: #9e9e9e;
 }
 
+.repository.view.issue .comment-list .comment .tag {
+    color: #dbdbdb;
+    border-color: rgb(152, 152, 152);
+}
+
 .repository.view.issue .comment-list .timeline-item .badge.badge-commit {
     background: radial-gradient(#383c4a 60%, transparent 60%) no-repeat;
     height: 0 !important;
@@ -1338,14 +1343,42 @@ a.ui.labels .label:hover {
 }
 
 .comment-code-cloud {
-    .ui.attached.tabular.menu {
+    border-color: #3a3a3a;
+
+    &:before {
+        border-bottom: 13px solid #5a5a5a;
+    }
+
+    .ui.attached.top.header {
         background: none transparent;
         border: 0;
     }
 
-    .footer .markdown-info {
-        color: inherit;
+    .ui.active.tab {
+        &:not(.markdown) {
+            textarea:focus {
+                border: none;
+            }
+
+            background: #404552;
+        }
+
+        border-color: rgba(187, 187, 187, .24);
     }
+
+    .footer {
+        border-top-color: #5a5a5a;
+
+        .markdown-info {
+            color: inherit;
+        }
+
+    }
+}
+
+.add-comment-left.add-comment-right .ui.attached.header {
+    border-color: #5d5c5c;
+    border-right: none;
 }
 
 .file-comment {

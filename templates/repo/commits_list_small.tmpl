@@ -13,6 +13,9 @@
 		{{end}}
 
 		<span class="ui float right shabox">
+			{{if eq (CommitType .) "SignCommitWithStatuses"}}
+        		{{template "repo/commit_status" .Status}}
+        	{{end}}
 			{{$class := "ui sha label"}}
 			{{if .Signature}}
 				{{$class = (printf "%s%s" $class " isSigned")}}
@@ -45,9 +48,6 @@
 		<span class="mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message ($.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink $.Issue.PullRequest.BaseRepo.ComposeMetas}}</span>
 		{{if IsMultilineCommitMessage .Message}}
 			<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
-		{{end}}
-		{{if eq (CommitType .) "SignCommitWithStatuses"}}
-			{{template "repo/commit_status" .Status}}
 		{{end}}
 		{{if IsMultilineCommitMessage .Message}}
 			<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message ($.Issue.PullRequest.BaseRepo.Link|Escape) $.Issue.PullRequest.BaseRepo.ComposeMetas}}</pre>
