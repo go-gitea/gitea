@@ -320,7 +320,7 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 }
 
 func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
-	if models.IsErrUserDoesNotHaveAccessToRepo(err) || models.IsErrUserCannotCommit(err) || models.IsErrFilePathProtected(err) {
+	if models.IsErrUserCannotCommit(err) || models.IsErrFilePathProtected(err) {
 		ctx.Error(http.StatusForbidden, "Access", err)
 		return
 	}
