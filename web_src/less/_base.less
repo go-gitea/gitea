@@ -7,9 +7,7 @@
         local('Roboto'),
         local('Roboto-Regular'),
         /* Chrome 26+, Opera 23+, Firefox 39+ */
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-regular.woff2') format('woff2'),
-        /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-regular.woff') format('woff');
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-regular.woff2') format('woff2');
 }
 
 /* roboto-italic - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
@@ -20,10 +18,7 @@
     src:
         local('Roboto Italic'),
         local('Roboto-Italic'),
-        /* Chrome 26+, Opera 23+, Firefox 39+ */
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-italic.woff2') format('woff2'),
-        /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-italic.woff') format('woff');
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-italic.woff2') format('woff2');
 }
 
 /* roboto-700 - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
@@ -34,10 +29,7 @@
     src:
         local('Roboto Bold'),
         local('Roboto-Bold'),
-        /* Chrome 26+, Opera 23+, Firefox 39+ */
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700.woff2') format('woff2'),
-        /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700.woff') format('woff');
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700.woff2') format('woff2');
 }
 
 /* roboto-700italic - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
@@ -48,10 +40,7 @@
     src:
         local('Roboto Bold Italic'),
         local('Roboto-BoldItalic'),
-        /* Chrome 26+, Opera 23+, Firefox 39+ */
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700italic.woff2') format('woff2'),
-        /* Chrome 6+, Firefox 3.6+, IE 9+, Safari 5.1+ */
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700italic.woff') format('woff');
+        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700italic.woff2') format('woff2');
 }
 
 @font-face {
@@ -318,11 +307,11 @@ code,
 }
 
 .ui {
-    &.left {
+    &.left:not(.action) {
         float: left;
     }
 
-    &.right {
+    &.right:not(.action) {
         float: right;
     }
 
@@ -334,7 +323,7 @@ code,
     &.container {
         &.fluid {
             &.padded {
-                padding: 0 10px 0 10px;
+                padding: 0 10px;
             }
         }
     }
@@ -593,7 +582,7 @@ code,
     .sha.label {
         font-family: @monospaced-fonts, monospace;
         font-size: 13px;
-        padding: 6px 10px 4px 10px;
+        padding: 6px 10px 4px;
         font-weight: normal;
         margin: 0 6px;
     }
@@ -725,6 +714,15 @@ code,
             .item:not(.active):not(.navigation),
             .item.navigation span.navigation_label {
                 display: none;
+            }
+        }
+        &.narrow .item {
+            padding-left: 8px;
+            padding-right: 8px;
+            min-width: 1em;
+            text-align: center;
+            .icon {
+                margin-right: 0;
             }
         }
     }
@@ -1167,8 +1165,8 @@ i.icon.centerlock {
         width: 100%;
     }
 
-    .active {
-        background: #fff866;
+    .lines-code .active {
+        background: #fff6af;
     }
 }
 
@@ -1225,7 +1223,7 @@ i.icon.centerlock {
 }
 
 /* https://github.com/go-gitea/gitea/issues/10210 */
-.ui.attached.segment + .ui.attached.header {
+.ui.attached.segment ~ .ui.top.attached.header {
     margin-top: 1rem;
 }
 
@@ -1259,9 +1257,9 @@ i.icon.centerlock {
 .reaction {
     font-size: 1.5em;
     line-height: 1.2;
-    font-weight: 400;
+    font-style: normal !important;
+    font-weight: normal !important;
     vertical-align: middle;
-    font-style: normal;
 }
 
 #issue-title > .emoji {
@@ -1286,4 +1284,9 @@ i.icon.centerlock {
     width: 1em !important;
     height: 1em !important;
     vertical-align: middle !important;
+}
+
+/* https://github.com/go-gitea/gitea/pull/11486 */
+.ui.sub.header {
+    text-transform: none;
 }

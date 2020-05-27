@@ -52,6 +52,9 @@ export function initNotificationCount() {
       source.close();
       window.location.href = AppSubUrl;
     });
+    window.addEventListener('beforeunload', () => {
+      source.close();
+    });
     return;
   }
 

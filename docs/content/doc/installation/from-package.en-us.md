@@ -25,12 +25,26 @@ Please follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}
 
 Should the packages get updated and fixed, we will provide up-to-date installation instructions here.
 
+## Alpine Linux
+
+Alpine Linux has gitea in its community repository. It follows the latest stable version.
+for more information look at https://pkgs.alpinelinux.org/packages?name=gitea&branch=edge.
+
+install as usual:
+```sh
+apk add gitea
+```
+config is found in **/etc/gitea/app.ini**
+
 ## Windows
 
-There are no published packages for Windows. This page will change when packages are published,
-in the form of `MSI` installers or via [Chocolatey](https://chocolatey.org/). In the meantime, follow
-the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide.
+There is a [Gitea](https://chocolatey.org/packages/gitea) package for Windows by [Chocolatey](https://chocolatey.org/).
 
+```sh
+choco install gitea
+```
+
+Or follow the [deployment from binary]({{< relref "from-binary.en-us.md" >}}) guide.
 ## macOS
 
 Currently, the only supported method of installation on MacOS is [Homebrew](http://brew.sh/).

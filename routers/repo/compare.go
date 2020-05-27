@@ -215,7 +215,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// check if they have a fork of the base repo and offer that as
 	// "OwnForkRepo"
 	var ownForkRepo *models.Repository
-	if baseRepo.OwnerID != ctx.User.ID {
+	if ctx.User != nil && baseRepo.OwnerID != ctx.User.ID {
 		repo, has := models.HasForkedRepo(ctx.User.ID, baseRepo.ID)
 		if has {
 			ownForkRepo = repo
@@ -437,7 +437,7 @@ func PrepareCompareDiff(
 		return false
 	}
 	ctx.Data["Diff"] = diff
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
+	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	headCommit, err := headGitRepo.GetCommit(headCommitID)
 	if err != nil {

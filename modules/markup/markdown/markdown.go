@@ -29,17 +29,19 @@ var once = sync.Once{}
 
 var urlPrefixKey = parser.NewContextKey()
 var isWikiKey = parser.NewContextKey()
+var renderMetasKey = parser.NewContextKey()
 
 // NewGiteaParseContext creates a parser.Context with the gitea context set
-func NewGiteaParseContext(urlPrefix string, isWiki bool) parser.Context {
+func NewGiteaParseContext(urlPrefix string, metas map[string]string, isWiki bool) parser.Context {
 	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
 	pc.Set(urlPrefixKey, urlPrefix)
 	pc.Set(isWikiKey, isWiki)
+	pc.Set(renderMetasKey, metas)
 	return pc
 }
 
-// RenderRaw renders Markdown to HTML without handling special links.
-func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
+// render renders Markdown to HTML without handling special links.
+func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) []byte {
 	once.Do(func() {
 		converter = goldmark.New(
 			goldmark.WithExtensions(extension.Table,
@@ -75,12 +77,9 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 			),
 		)
 
-		if setting.Markdown.EnableHardLineBreak {
-			converter.Renderer().AddOptions(html.WithHardWraps())
-		}
 	})
 
-	pc := NewGiteaParseContext(urlPrefix, wikiMarkdown)
+	pc := NewGiteaParseContext(urlPrefix, metas, wikiMarkdown)
 	var buf bytes.Buffer
 	if err := converter.Convert(giteautil.NormalizeEOL(body), &buf, parser.WithContext(pc)); err != nil {
 		log.Error("Unable to render: %v", err)
@@ -112,12 +111,17 @@ func (Parser) Extensions() []string {
 
 // Render implements markup.Parser
 func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	return RenderRaw(rawBytes, urlPrefix, isWiki)
+	return render(rawBytes, urlPrefix, metas, isWiki)
 }
 
 // Render renders Markdown to HTML with all specific handling stuff.
 func Render(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
 	return markup.Render("a.md", rawBytes, urlPrefix, metas)
+}
+
+// RenderRaw renders Markdown to HTML without handling special links.
+func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
+	return render(body, urlPrefix, map[string]string{}, wikiMarkdown)
 }
 
 // RenderString renders Markdown to HTML with special links and returns string type.

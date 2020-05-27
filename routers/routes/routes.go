@@ -860,6 +860,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/?:page", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
 			m.Get("/:page/_revision", repo.WikiRevision)
+			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
+			m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.RawDiff)
 
 			m.Group("", func() {
 				m.Combo("/_new").Get(repo.NewWiki).
@@ -868,7 +870,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Post(bindIgnErr(auth.NewWikiForm{}), repo.EditWikiPost)
 				m.Post("/:page/delete", repo.DeleteWikiPagePost)
 			}, context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter)
-		}, repo.MustEnableWiki, context.RepoRef())
+		}, repo.MustEnableWiki, context.RepoRef(), func(ctx *context.Context) {
+			ctx.Data["PageIsWiki"] = true
+		})
 
 		m.Group("/wiki", func() {
 			m.Get("/raw/*", repo.WikiRaw)
@@ -1045,10 +1049,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 	// Progressive Web App
 	m.Get("/manifest.json", templates.JSONRenderer(), func(ctx *context.Context) {
 		ctx.HTML(200, "pwa/manifest_json")
-	})
-
-	m.Get("/serviceworker.js", templates.JSRenderer(), func(ctx *context.Context) {
-		ctx.HTML(200, "pwa/serviceworker_js")
 	})
 
 	// prometheus metrics endpoint
