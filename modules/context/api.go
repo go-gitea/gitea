@@ -69,7 +69,6 @@ type APIRedirect struct{}
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	var message string
-
 	if err, ok := obj.(error); ok {
 		message = err.Error()
 	} else {
