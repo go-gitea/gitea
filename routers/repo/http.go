@@ -126,13 +126,8 @@ func HTTP(ctx *context.Context) {
 		return
 	}
 
-	if err := repo.GetOwner(); err != nil {
-		ctx.ServerError("GetOwner", err)
-		return
-	}
-
 	// Only public pull don't need auth.
-	isPublicPull := repoExist && !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic && isPull
+	isPublicPull := repoExist && !repo.IsPrivate && isPull
 	var (
 		askAuth      = !isPublicPull || setting.Service.RequireSignInView
 		authUser     *models.User
@@ -140,6 +135,18 @@ func HTTP(ctx *context.Context) {
 		authPasswd   string
 		environ      []string
 	)
+
+	// don't allow anonymous pulls if organization is not public
+	if isPublicPull {
+		if err := repo.GetOwner(); err != nil {
+			ctx.ServerError("GetOwner", err)
+			return
+		}
+
+		if repo.Owner.Visibility != structs.VisibleTypePublic {
+			askAuth = true
+		}
+	}
 
 	// check access
 	if askAuth {
