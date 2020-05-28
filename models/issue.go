@@ -1578,7 +1578,13 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 
 // SearchIssueIDsByKeyword search issues on database
 func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
-	var repoCond = builder.In("repo_id", repoIDs)
+	var repoCond builder.Cond
+	for i := len(repoIDs); len(repoIDs) > maxIssueIDs; i -= maxIssueIDs {
+		repoCond = repoCond.Or(builder.In("repo_id", repoIDs[:maxIssueIDs]))
+		repoIDs = repoIDs[maxIssueIDs:]
+	}
+	repoCond = repoCond.Or(builder.In("repo_id", repoIDs))
+
 	var subQuery = builder.Select("id").From("issue").Where(repoCond)
 	var cond = builder.And(
 		repoCond,
