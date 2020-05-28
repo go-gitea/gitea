@@ -127,9 +127,15 @@ func repoAssignment() macaron.Handler {
 			owner, err = models.GetUserByName(userName)
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
-					ctx.NotFound()
+					if redirectUserID, err := models.LookupUserRedirect(userName); err == nil {
+						context.RedirectToUser(ctx.Context, userName, redirectUserID)
+					} else if models.IsErrUserRedirectNotExist(err) {
+						ctx.NotFound("GetUserByName", err)
+					} else {
+						ctx.ServerError("LookupUserRedirect", err)
+					}
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+					ctx.ServerError("GetUserByName", err)
 				}
 				return
 			}
@@ -146,10 +152,10 @@ func repoAssignment() macaron.Handler {
 				} else if models.IsErrRepoRedirectNotExist(err) {
 					ctx.NotFound()
 				} else {
-					ctx.Error(http.StatusInternalServerError, "LookupRepoRedirect", err)
+					ctx.ServerError("LookupRepoRedirect", err)
 				}
 			} else {
-				ctx.Error(http.StatusInternalServerError, "GetRepositoryByName", err)
+				ctx.ServerError("GetRepositoryByName", err)
 			}
 			return
 		}

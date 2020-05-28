@@ -976,6 +976,10 @@ func CreateUser(u *User) (err error) {
 		return ErrUserAlreadyExist{u.Name}
 	}
 
+	if err = deleteUserRedirect(sess, u.Name); err != nil {
+		return err
+	}
+
 	u.Email = strings.ToLower(u.Email)
 	isExist, err = sess.
 		Where("email=?", u.Email).
@@ -1084,6 +1088,7 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 
 // ChangeUserName changes all corresponding setting from old user name to new one.
 func ChangeUserName(u *User, newUserName string) (err error) {
+	oldUserName := u.Name
 	if err = IsUsableUsername(newUserName); err != nil {
 		return err
 	}
@@ -1101,13 +1106,22 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
 		return fmt.Errorf("Change repo owner name: %v", err)
 	}
 
 	// Do not fail if directory does not exist
-	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+	if err = os.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
+	}
+
+	// If there was previously a redirect at this location, remove it.
+	if err = deleteUserRedirect(sess, newUserName); err != nil {
+		return fmt.Errorf("delete user redirect: %v", err)
+	}
+
+	if err := NewUserRedirect(DBContext{sess}, u.ID, oldUserName, newUserName); err != nil {
+		return err
 	}
 
 	return sess.Commit()

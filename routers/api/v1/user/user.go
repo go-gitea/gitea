@@ -105,9 +105,13 @@ func GetInfo(ctx *context.APIContext) {
 	u, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.NotFound()
+			if redirectUserID, err := models.LookupUserRedirect(ctx.Params(":username")); err == nil {
+				context.RedirectToUser(ctx.Context, ctx.Params(":username"), redirectUserID)
+			} else {
+				ctx.NotFound("GetUserByName", err)
+			}
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			ctx.ServerError("GetUserByName", err)
 		}
 		return
 	}
@@ -152,9 +156,13 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	user, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Status(http.StatusNotFound)
+			if redirectUserID, err := models.LookupUserRedirect(ctx.Params(":username")); err == nil {
+				context.RedirectToUser(ctx.Context, ctx.Params(":username"), redirectUserID)
+			} else {
+				ctx.NotFound("GetUserByName", err)
+			}
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			ctx.ServerError("GetUserByName", err)
 		}
 		return
 	}

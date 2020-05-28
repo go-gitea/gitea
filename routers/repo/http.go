@@ -101,7 +101,15 @@ func HTTP(ctx *context.Context) {
 
 	owner, err := models.GetUserByName(username)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetUserByName", models.IsErrUserNotExist, err)
+		if models.IsErrUserNotExist(err) {
+			if redirectUserID, err := models.LookupUserRedirect(username); err == nil {
+				context.RedirectToUser(ctx, username, redirectUserID)
+			} else {
+				ctx.NotFound("GetUserByName", err)
+			}
+		} else {
+			ctx.ServerError("GetUserByName", err)
+		}
 		return
 	}
 
@@ -109,6 +117,7 @@ func HTTP(ctx *context.Context) {
 	repo, err := models.GetRepositoryByName(owner.ID, reponame)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
+			log.Trace("routers/repo/http.go:HTTP")
 			if redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame); err == nil {
 				context.RedirectToRepo(ctx, redirectRepoID)
 				return

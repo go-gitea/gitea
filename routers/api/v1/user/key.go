@@ -41,12 +41,16 @@ func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defa
 
 // GetUserByParamsName get user by name
 func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
-	user, err := models.GetUserByName(ctx.Params(name))
+	user, err := models.GetUserByName(name)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.NotFound()
+			if redirectUserID, err := models.LookupUserRedirect(name); err == nil {
+				context.RedirectToUser(ctx.Context, name, redirectUserID)
+			} else {
+				ctx.NotFound("GetUserByName", err)
+			}
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			ctx.ServerError("GetUserByName", err)
 		}
 		return nil
 	}
