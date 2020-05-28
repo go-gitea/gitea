@@ -51,6 +51,8 @@ func deleteUserRedirect(e Engine, userName string) error {
 	return err
 }
 
+// DeleteUserRedirect delete any redirect from the specified user name to
+// anything else
 func DeleteUserRedirect(userName string) error {
 	return deleteUserRedirect(x, userName)
 }
