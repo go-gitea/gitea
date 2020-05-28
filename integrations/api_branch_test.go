@@ -105,7 +105,6 @@ func TestAPICreateBranch(t *testing.T) {
 }
 
 func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
-	defer resetFixtures(t)
 
 	username := "user2"
 	ctx := NewAPITestContext(t, username, "my-noo-repo")
@@ -149,6 +148,7 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 		},
 	}
 	for _, test := range tests {
+		defer resetFixtures(t)
 		session := ctx.Session
 		token := getTokenForLoggedInUser(t, session)
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/my-noo-repo/branches?token="+token, &api.CreateBranchRepoOption{
