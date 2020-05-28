@@ -6,7 +6,6 @@
 package context
 
 import (
-	"fmt"
 	"html"
 	"html/template"
 	"io"
@@ -95,7 +94,7 @@ func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
 
 	redirectPath := strings.Replace(
 		ctx.Req.URL.Path,
-		fmt.Sprintf("%s", userName),
+		userName,
 		user.Name,
 		1,
 	)
