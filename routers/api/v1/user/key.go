@@ -59,7 +59,7 @@ func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
 
 // GetUserByParams returns user whose name is presented in URL paramenter.
 func GetUserByParams(ctx *context.APIContext) *models.User {
-	return GetUserByParamsName(ctx, ":username")
+	return GetUserByParamsName(ctx, ctx.Params(":username"))
 }
 
 func composePublicKeysAPILink() string {
