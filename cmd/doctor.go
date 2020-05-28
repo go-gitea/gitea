@@ -504,12 +504,10 @@ func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
 
 func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	var results []string
-	var outdatedDB bool
 
 	// make sure DB version is uptodate
 	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
-		results = append(results, "Warning: model version on the database does not match the current Gitea version. Model consistency can be checked but not fixed until the database is upgraded.")
-		outdatedDB = true
+		return []string{"Warning: model version on the database does not match the current Gitea version. Model consistency can be checked but not fixed until the database is upgraded."}, err
 	}
 
 	//find labels without existing repo or org
@@ -517,7 +515,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !outdatedDB && count > 0 {
+	if count > 0 {
 		if ctx.Bool("fix") {
 			if err = models.DeleteOrphanedLabels(); err != nil {
 				return nil, err
@@ -533,7 +531,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !outdatedDB && count > 0 {
+	if count > 0 {
 		if ctx.Bool("fix") {
 			if err = models.DeleteOrphanedIssues(); err != nil {
 				return nil, err
@@ -549,7 +547,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !outdatedDB && count > 0 {
+	if count > 0 {
 		if ctx.Bool("fix") {
 			if err = models.DeleteOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id"); err != nil {
 				return nil, err
@@ -565,7 +563,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !outdatedDB && count > 0 {
+	if count > 0 {
 		if ctx.Bool("fix") {
 			if err = models.DeleteOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id"); err != nil {
 				return nil, err
