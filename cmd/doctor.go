@@ -88,7 +88,7 @@ var checklist = []check{
 		name:          "check-db-version",
 		isDefault:     true,
 		f:             runDoctorCheckDBVersion,
-		abortIfFailed: true,
+		abortIfFailed: false,
 	},
 	{
 		title:     "Check consistency of database",
@@ -507,7 +507,7 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 
 	// make sure DB version is uptodate
 	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
-		return []string{"Warning: model version on the database does not match the current Gitea version. Model consistency can be checked but not fixed until the database is upgraded."}, err
+		return nil, fmt.Errorf("model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 	}
 
 	//find labels without existing repo or org
