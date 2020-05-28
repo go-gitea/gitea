@@ -110,7 +110,7 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 		},
 	}
 	for _, test := range tests {
-		defer prepareTestEnv(t)()
+		defer resetFixtures(t)
 		session := loginUser(t, "user2")
 		if test.CreateRelease != "" {
 			createNewRelease(t, session, "/user2/repo1", test.CreateRelease, test.CreateRelease, false, false)
