@@ -123,6 +123,9 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
+		"StrLen": func(str string) int {
+			return strings.Count(str, "") - 1
+		},
 		"EllipsisString":        base.EllipsisString,
 		"DiffTypeToStr":         DiffTypeToStr,
 		"DiffLineTypeToStr":     DiffLineTypeToStr,

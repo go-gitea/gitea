@@ -28,7 +28,7 @@
 							</td>
 							<td>{{.ID}}</td>
 							<td>{{$.i18n.Tr .TrStr}}</td>
-							<td>{{SubStr .Description 0 120}}...</td>
+							<td>{{SubStr .Description 0 120}}{{if gt (StrLen .Description) 120 }}...{{end}}</td>
 							<td><span class="poping up" data-content="{{.CreatedUnix.AsTime}}" data-variation="inverted tiny">{{.CreatedUnix.FormatShort}}</span></td>
 							<td><a href="#"><i class="browser icon view-detail" data-content="{{.Description}}"></i></a></td>
 						</tr>
