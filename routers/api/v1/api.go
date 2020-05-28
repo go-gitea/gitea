@@ -392,9 +392,16 @@ func orgAssignment(args ...bool) macaron.Handler {
 			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":org"))
 			if err != nil {
 				if models.IsErrOrgNotExist(err) {
-					ctx.NotFound()
+					redirectUserID, err := models.LookupUserRedirect(ctx.Params(":orgname"))
+					if err == nil {
+						context.RedirectToUser(ctx.Context, ctx.Params(":orgname"), redirectUserID)
+					} else if models.IsErrUserRedirectNotExist(err) {
+						ctx.NotFound("GetOrgByName", err)
+					} else {
+						ctx.ServerError("LookupUserRedirect", err)
+					}
 				} else {
-					ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
+					ctx.ServerError("GetOrgByName", err)
 				}
 				return
 			}

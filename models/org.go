@@ -152,6 +152,10 @@ func CreateOrganization(org, owner *User) (err error) {
 		return ErrUserAlreadyExist{org.Name}
 	}
 
+	if err = DeleteUserRedirect(org.Name); err != nil {
+		return err
+	}
+
 	org.LowerName = strings.ToLower(org.Name)
 	if org.Rands, err = GetUserSalt(); err != nil {
 		return err

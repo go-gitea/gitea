@@ -54,7 +54,14 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Org.Organization, err = models.GetUserByName(orgName)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.NotFound("GetUserByName", err)
+			redirectUserID, err := models.LookupUserRedirect(orgName)
+			if err == nil {
+				RedirectToUser(ctx, orgName, redirectUserID)
+			} else if models.IsErrUserRedirectNotExist(err) {
+				ctx.NotFound("GetUserByName", err)
+			} else {
+				ctx.ServerError("LookupUserRedirect", err)
+			}
 		} else {
 			ctx.ServerError("GetUserByName", err)
 		}
