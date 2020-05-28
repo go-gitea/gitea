@@ -183,7 +183,34 @@ func DeleteBranch(ctx *context.APIContext) {
 }
 
 // CreateRepoBranch creates a branch for a user's repository
-func CreateRepoBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
+func CreateBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
+	// swagger:operation POST /repos/{owner}/{repo}/branches repository repoCreateBranch
+	// ---
+	// summary: Create a branch
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateBranchRepoOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Branch"
+	//   "409":
+	//     description: The branch with the same name already exists.
 
 	if len(opt.OldBranchName) == 0 {
 		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
@@ -233,39 +260,6 @@ func CreateRepoBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
 	}
 
 	ctx.JSON(http.StatusCreated, br)
-}
-
-// CreateBranch create a branch of a repository
-func CreateBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
-	// swagger:operation POST /repos/{owner}/{repo}/branches repository repoCreateBranch
-	// ---
-	// summary: Create a branch
-	// consumes:
-	// - application/json
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: body
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/CreateBranchRepoOption"
-	// responses:
-	//   "201":
-	//     "$ref": "#/responses/Branch"
-	//   "409":
-	//     description: The branch with the same name already exists.
-
-	CreateRepoBranch(ctx, opt)
 }
 
 // ListBranches list all the branches of a repository
