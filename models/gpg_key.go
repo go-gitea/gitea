@@ -273,7 +273,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	for i, k := range e.Subkeys {
 		subs, err := parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, expiry)
 		if err != nil {
-			return nil, err
+			return nil, ErrGPGKeyParsing{ParseError: err}
 		}
 		subkeys[i] = subs
 	}
