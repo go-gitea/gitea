@@ -143,9 +143,7 @@ func HTTP(ctx *context.Context) {
 			return
 		}
 
-		if repo.Owner.Visibility != structs.VisibleTypePublic {
-			askAuth = true
-		}
+		askAuth = askAuth || (repo.Owner.Visibility != structs.VisibleTypePublic)
 	}
 
 	// check access
