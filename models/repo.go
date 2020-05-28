@@ -174,9 +174,10 @@ type Repository struct {
 	*Mirror    `xorm:"-"`
 	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
-	RenderingMetas  map[string]string `xorm:"-"`
-	Units           []*RepoUnit       `xorm:"-"`
-	PrimaryLanguage *LanguageStat     `xorm:"-"`
+	RenderingMetas         map[string]string `xorm:"-"`
+	DocumentRenderingMetas map[string]string `xorm:"-"`
+	Units                  []*RepoUnit       `xorm:"-"`
+	PrimaryLanguage        *LanguageStat     `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -262,6 +263,17 @@ func (repo *Repository) FullName() string {
 // HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL() string {
 	return setting.AppURL + repo.FullName()
+}
+
+// CommitLink make link to by commit full ID
+// note: won't check whether it's an right id
+func (repo *Repository) CommitLink(commitID string) (result string) {
+	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
+		result = ""
+	} else {
+		result = repo.HTMLURL() + "/commit/" + commitID
+	}
+	return
 }
 
 // APIURL returns the repository API URL
@@ -534,11 +546,12 @@ func (repo *Repository) mustOwner(e Engine) *User {
 
 // ComposeMetas composes a map of metas for properly rendering issue links and external issue trackers.
 func (repo *Repository) ComposeMetas() map[string]string {
-	if repo.RenderingMetas == nil {
+	if len(repo.RenderingMetas) == 0 {
 		metas := map[string]string{
 			"user":     repo.OwnerName,
 			"repo":     repo.Name,
 			"repoPath": repo.RepoPath(),
+			"mode":     "comment",
 		}
 
 		unit, err := repo.GetUnit(UnitTypeExternalTracker)
@@ -568,6 +581,19 @@ func (repo *Repository) ComposeMetas() map[string]string {
 		repo.RenderingMetas = metas
 	}
 	return repo.RenderingMetas
+}
+
+// ComposeDocumentMetas composes a map of metas for properly rendering documents
+func (repo *Repository) ComposeDocumentMetas() map[string]string {
+	if len(repo.DocumentRenderingMetas) == 0 {
+		metas := map[string]string{}
+		for k, v := range repo.ComposeMetas() {
+			metas[k] = v
+		}
+		metas["mode"] = "document"
+		repo.DocumentRenderingMetas = metas
+	}
+	return repo.DocumentRenderingMetas
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.

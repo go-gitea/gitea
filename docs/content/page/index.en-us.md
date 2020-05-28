@@ -261,7 +261,9 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 
 ## Browser Support
 
-- Please see [Semantic UI](https://github.com/Semantic-Org/Semantic-UI#browser-support) for specific versions of supported browsers.
+- Last 2 versions of Chrome, Firefox and Safari
+- Firefox ESR
+- Edge 14+
 
 ## Components
 
