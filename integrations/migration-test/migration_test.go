@@ -254,7 +254,7 @@ func doMigrationTest(t *testing.T, version string) {
 	err := models.SetEngine()
 	assert.NoError(t, err)
 
-	err = models.NewEngine(context.Background(), wrappedMigrate, true)
+	err = models.NewEngine(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)
 	currentEngine.Close()
 }

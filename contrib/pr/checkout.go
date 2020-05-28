@@ -99,7 +99,7 @@ func runPR() {
 	var helper testfixtures.Helper = &testfixtures.SQLite{}
 	models.NewEngine(context.Background(), func(_ *xorm.Engine) error {
 		return nil
-	}, true)
+	})
 	models.HasEngine = true
 	//x.ShowSQL(true)
 	err = models.InitFixtures(
