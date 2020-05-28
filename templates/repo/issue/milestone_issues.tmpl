@@ -218,8 +218,8 @@
 						{{end}}
 
 						{{if .Ref}}
-							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
-								{{svg "octicon-git-branch" 16}} {{.Ref}}
+							<a class="ref" href="{{index $.IssueRefURLs .ID}}">
+								{{svg "octicon-git-branch" 16}} {{index $.IssueRefEndNames .ID}}
 							</a>
 						{{end}}
 						{{$tasks := .GetTasks}}

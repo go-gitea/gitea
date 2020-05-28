@@ -256,12 +256,14 @@ var (
 
 	// Markdown settings
 	Markdown = struct {
-		EnableHardLineBreak bool
-		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
-		FileExtensions      []string
+		EnableHardLineBreakInComments  bool
+		EnableHardLineBreakInDocuments bool
+		CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
+		FileExtensions                 []string
 	}{
-		EnableHardLineBreak: true,
-		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
+		EnableHardLineBreakInComments:  true,
+		EnableHardLineBreakInDocuments: false,
+		FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
 	// Admin settings
@@ -728,6 +730,8 @@ func NewContext() {
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
+		} else {
+			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))
 		}
 	}
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
@@ -749,10 +753,6 @@ func NewContext() {
 	LFS.HTTPAuthExpiry = sec.Key("LFS_HTTP_AUTH_EXPIRY").MustDuration(20 * time.Minute)
 
 	if LFS.StartServer {
-		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
-			log.Fatal("Failed to create '%s': %v", LFS.ContentPath, err)
-		}
-
 		LFS.JWTSecretBytes = make([]byte, 32)
 		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
 
@@ -985,7 +985,6 @@ func NewContext() {
 	u.Path = path.Join(u.Path, "api", "swagger")
 	API.SwaggerURL = u.String()
 
-	newCron()
 	newGit()
 
 	sec = Cfg.Section("mirror")
@@ -1074,7 +1073,7 @@ func loadInternalToken(sec *ini.Section) string {
 			return token
 		}
 
-		return string(buf)
+		return strings.TrimSpace(string(buf))
 	default:
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 	}
@@ -1111,11 +1110,20 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 	return token
 }
 
+func ensureLFSDirectory() {
+	if LFS.StartServer {
+		if err := os.MkdirAll(LFS.ContentPath, 0700); err != nil {
+			log.Fatal("Failed to create '%s': %v", LFS.ContentPath, err)
+		}
+	}
+}
+
 // NewServices initializes the services
 func NewServices() {
 	InitDBConfig()
 	newService()
 	NewLogServices(false)
+	ensureLFSDirectory()
 	newCacheService()
 	newSessionService()
 	newCORSService()

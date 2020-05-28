@@ -59,6 +59,17 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User) (bool, e
 		HeadBranch: pull.BaseBranch,
 		BaseBranch: pull.HeadBranch,
 	}
+
+	err = pr.LoadProtectedBranch()
+	if err != nil {
+		return false, err
+	}
+
+	// Update function need push permission
+	if pr.ProtectedBranch != nil && !pr.ProtectedBranch.CanUserPush(user.ID) {
+		return false, nil
+	}
+
 	return IsUserAllowedToMerge(pr, headRepoPerm, user)
 }
 
