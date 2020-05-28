@@ -64,13 +64,9 @@ EXTRA_GOFLAGS ?=
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
-ifneq ($(RACE_ENABLED),)
-	ifeq ($(RACE_ENABLED),"all")
-		GOFLAGS += -race
-		GOTESTFLAGS += -race
-	else
-		GOTESTFLAGS ?= -race
-	endif
+ifneq ($(RACE_ENABLED),"0")
+	GOFLAGS += -race
+	GOTESTFLAGS += -race
 endif
 
 STORED_VERSION_FILE := VERSION
