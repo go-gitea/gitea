@@ -40,6 +40,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 
 	deleteList := make(map[string]struct{})
 	start := 0
+	migrated := 0
 	for {
 		if err := sess.Begin(); err != nil {
 			return fmt.Errorf("session.Begin: %v", err)
@@ -52,6 +53,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 			_ = sess.Rollback()
 			break
 		}
+		start += 50
 
 		log.Info("select users [%d - %d]", start, start+len(users))
 
@@ -84,17 +86,17 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 			}
 
 			deleteList[filepath.Join(setting.AvatarUploadPath, oldAvatar)] = struct{}{}
-			start++
+			migrated++
 			select {
 			case <-ticker.C:
 				log.Info(
 					"%d/%d (%2.0f%%) User Avatar(s) migrated (%d old avatars to be deleted) in %d batches. %d Remaining ...",
-					start,
+					migrated,
 					count,
-					float64(start)/float64(count)*100,
+					float64(migrated)/float64(count)*100,
 					len(deleteList),
-					int(math.Ceil(float64(start)/float64(50))),
-					count-int64(start))
+					int(math.Ceil(float64(migrated)/float64(50))),
+					count-int64(migrated))
 			default:
 			}
 		}

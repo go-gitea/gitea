@@ -250,7 +250,6 @@ func doMigrationTest(t *testing.T, version string) {
 		return
 	}
 
-	setting.NewXORMLogService(false)
 	err := models.SetEngine()
 	assert.NoError(t, err)
 

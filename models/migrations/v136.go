@@ -45,7 +45,9 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 
-	var last int
+	last := 0
+	migrated := 0
+
 	batchSize := setting.Database.IterateBufferSize
 	sess := x.NewSession()
 	defer sess.Close()
@@ -70,7 +72,7 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 		if len(results) == 0 {
 			break
 		}
-		last += len(results)
+		last += batchSize
 
 		for _, pr := range results {
 			baseRepo := &Repository{ID: pr.BaseRepoID}
@@ -99,6 +101,7 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 			if _, err = sess.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr); err != nil {
 				return fmt.Errorf("Update Cols: %v", err)
 			}
+			migrated++
 		}
 
 		if err := sess.Commit(); err != nil {
@@ -106,10 +109,16 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 		}
 		select {
 		case <-ticker.C:
-			log.Info("%d/%d (%2.0f%%) Pull Request(s) migrated in %d batches. %d PRs Remaining ...", last, count, float64(last)/float64(count)*100, int(math.Ceil(float64(last)/float64(batchSize))), count-int64(last))
+			log.Info(
+				"%d/%d (%2.0f%%) Pull Request(s) migrated in %d batches. %d PRs Remaining ...",
+				migrated,
+				count,
+				float64(migrated)/float64(count)*100,
+				int(math.Ceil(float64(migrated)/float64(batchSize))),
+				count-int64(migrated))
 		default:
 		}
 	}
-	log.Info("Completed migrating %d Pull Request(s) in: %d batches", count, int(math.Ceil(float64(last)/float64(batchSize))))
+	log.Info("Completed migrating %d Pull Request(s) in: %d batches", count, int(math.Ceil(float64(migrated)/float64(batchSize))))
 	return nil
 }

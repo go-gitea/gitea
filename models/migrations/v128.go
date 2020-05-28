@@ -55,15 +55,17 @@ func fixMergeBase(x *xorm.Engine) error {
 	log.Info("%d Pull Request(s) to migrate ...", count)
 
 	i := 0
+	start := 0
 	for {
 		prs := make([]PullRequest, 0, 50)
-		if err := x.Limit(limit, i).Asc("id").Find(&prs); err != nil {
+		if err := x.Limit(limit, start).Asc("id").Find(&prs); err != nil {
 			return fmt.Errorf("Find: %v", err)
 		}
 		if len(prs) == 0 {
 			break
 		}
 
+		start += 50
 		for _, pr := range prs {
 			baseRepo := &Repository{ID: pr.BaseRepoID}
 			has, err := x.Table("repository").Get(baseRepo)
