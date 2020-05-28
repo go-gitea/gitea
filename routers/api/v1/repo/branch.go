@@ -182,7 +182,7 @@ func DeleteBranch(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// CreateRepoBranch creates a branch for a user's repository
+// CreateBranch creates a branch for a user's repository
 func CreateBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
 	// swagger:operation POST /repos/{owner}/{repo}/branches repository repoCreateBranch
 	// ---
@@ -209,8 +209,15 @@ func CreateBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Branch"
+	//   "404":
+	//     description: The old branch does not exist.
 	//   "409":
 	//     description: The branch with the same name already exists.
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
+		return
+	}
 
 	if len(opt.OldBranchName) == 0 {
 		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
@@ -219,6 +226,9 @@ func CreateBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
 	err := repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
 
 	if err != nil {
+		if models.IsErrBranchDoesNotExist(err) {
+			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
+		}
 		if models.IsErrTagAlreadyExists(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same tag already exists.")
 
