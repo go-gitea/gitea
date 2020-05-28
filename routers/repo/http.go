@@ -7,6 +7,7 @@ package repo
 
 import (
 	"bytes"
+	"code.gitea.io/gitea/modules/structs"
 	"compress/gzip"
 	gocontext "context"
 	"fmt"
@@ -125,8 +126,13 @@ func HTTP(ctx *context.Context) {
 		return
 	}
 
+	if err := repo.GetOwner(); err != nil {
+		ctx.ServerError("GetOwner", err)
+		return
+	}
+
 	// Only public pull don't need auth.
-	isPublicPull := repoExist && !repo.IsPrivate && isPull
+	isPublicPull := repoExist && !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic && isPull
 	var (
 		askAuth      = !isPublicPull || setting.Service.RequireSignInView
 		authUser     *models.User
