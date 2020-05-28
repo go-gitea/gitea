@@ -47,7 +47,7 @@ module.exports = {
     filename: ({chunk}) => {
       // serviceworker can only manage assets below it's script's directory so
       // we have to put it in / instead of /js/
-      return chunk.id === 'serviceworker' ? '[name].js' : 'js/[name].js';
+      return chunk.name === 'serviceworker' ? '[name].js' : 'js/[name].js';
     },
     chunkFilename: 'js/[name].js',
   },
