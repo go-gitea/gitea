@@ -6,8 +6,10 @@ package migrations
 
 import (
 	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -43,17 +45,26 @@ func refixMergeBase(x *xorm.Engine) error {
 		limit = 50
 	}
 
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+	count, err := x.Where("has_merged = ?", true).Count(new(PullRequest))
+	if err != nil {
+		return err
+	}
+	log.Info("%d Merged Pull Request(s) to migrate ...", count)
+
 	i := 0
+	start := 0
 	for {
 		prs := make([]PullRequest, 0, 50)
-		if err := x.Limit(limit, i).Asc("id").Where("has_merged = ?", true).Find(&prs); err != nil {
+		if err := x.Limit(limit, start).Asc("id").Where("has_merged = ?", true).Find(&prs); err != nil {
 			return fmt.Errorf("Find: %v", err)
 		}
 		if len(prs) == 0 {
 			break
 		}
 
-		i += len(prs)
+		start += 50
 		for _, pr := range prs {
 			baseRepo := &Repository{ID: pr.BaseRepoID}
 			has, err := x.Table("repository").Get(baseRepo)
@@ -90,7 +101,15 @@ func refixMergeBase(x *xorm.Engine) error {
 			}
 			pr.MergeBase = strings.TrimSpace(pr.MergeBase)
 			x.ID(pr.ID).Cols("merge_base").Update(pr)
+			i++
+			select {
+			case <-ticker.C:
+				log.Info("%d/%d (%2.0f%%) Pull Request(s) migrated in %d batches. %d PRs Remaining ...", i, count, float64(i)/float64(count)*100, int(math.Ceil(float64(i)/float64(limit))), count-int64(i))
+			default:
+			}
 		}
 	}
+
+	log.Info("Completed migrating %d Pull Request(s) in: %d batches", count, int(math.Ceil(float64(i)/float64(limit))))
 	return nil
 }
