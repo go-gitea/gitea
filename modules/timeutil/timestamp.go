@@ -77,7 +77,7 @@ func (ts TimeStamp) FormatShort() string {
 
 // FormatUTCDate formats as UTC date yyyy-mm-dd
 func (ts TimeStamp) FormatUTCDate() string {
-	return ts.Format(time.RFC3339)[:10]
+	return time.Unix(int64(ts), 0).UTC().String()[:10]
 }
 
 // IsZero is zero time
