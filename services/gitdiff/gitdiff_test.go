@@ -92,6 +92,65 @@ func TestParsePatch(t *testing.T) {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
 	println(result)
+
+	// Test diff numbers
+	var diff4 = `diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off
+diff --git a/README1.md b/README1.md
+--- a/README1.md
++++ b/README1.md
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off
+diff --git a/README2.md b/README2.md
+--- a/README2.md
++++ b/README2.md
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+
+	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff4))
+	if err != nil {
+		t.Errorf("ParsePatch failed: %s", err)
+	}
+	println(result)
+
+	result, err = ParsePatch(2, setting.Git.MaxGitDiffLineCharacters, 1, strings.NewReader(diff4))
+	if err != nil {
+		t.Errorf("ParsePatch failed: %s", err)
+	}
+	println(result)
+
+	if result.NumFiles != 3 {
+		t.Errorf("result.NumFiles is not right")
+	}
+
+	if result.Files[0].Addition != 4 {
+		t.Errorf("result.Files[0].Addition is not right")
+	}
+
+	if result.Files[0].Deletion != 1 {
+		t.Errorf("result.Files[0].Deletion is not right")
+	}
 }
 
 func setupDefaultDiff() *Diff {
