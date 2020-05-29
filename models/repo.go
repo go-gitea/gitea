@@ -1637,15 +1637,15 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	if projects, err := getProjects(sess, ProjectSearchOptions{
+	projects, err := getProjects(sess, ProjectSearchOptions{
 		RepoID: repoID,
-	}); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("get projects: %v", err)
-	} else {
-		for i := range projects {
-			if err := deleteProjectByID(sess, projects[i].ID); err != nil {
-				return fmt.Errorf("delete project [%d]: %v", projects[i].ID, err)
-			}
+	}
+	for i := range projects {
+		if err := deleteProjectByID(sess, projects[i].ID); err != nil {
+			return fmt.Errorf("delete project [%d]: %v", projects[i].ID, err)
 		}
 	}
 
