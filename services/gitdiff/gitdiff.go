@@ -13,7 +13,6 @@ import (
 	"html"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -413,13 +412,14 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 		}
 
 		leftLine, rightLine int
-		lineCount           int
 		curFileLinesCount   int
 		curFileLFSPrefix    bool
 	)
 
 	input := bufio.NewReader(reader)
 	isEOF := false
+	diff.NumFiles = 0
+
 	for !isEOF {
 		var linebuf bytes.Buffer
 		for {
@@ -437,7 +437,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			}
 			if linebuf.Len() < maxLineCharacters {
 				linebuf.WriteByte(b)
-			} else if linebuf.Len() == maxLineCharacters {
+			} else if linebuf.Len() == maxLineCharacters && curFile != nil {
 				curFile.IsIncomplete = true
 			}
 		}
@@ -449,11 +449,11 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 
 		trimLine := strings.Trim(line, "+- ")
 
-		if trimLine == models.LFSMetaFileIdentifier {
+		if trimLine == models.LFSMetaFileIdentifier && curFile != nil {
 			curFileLFSPrefix = true
 		}
 
-		if curFileLFSPrefix && strings.HasPrefix(trimLine, models.LFSMetaFileOidPrefix) {
+		if curFileLFSPrefix && strings.HasPrefix(trimLine, models.LFSMetaFileOidPrefix) && curFile != nil {
 			oid := strings.TrimPrefix(trimLine, models.LFSMetaFileOidPrefix)
 
 			if len(oid) == 64 {
@@ -469,20 +469,25 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 		}
 
 		curFileLinesCount++
-		lineCount++
 
 		// Diff data too large, we only show the first about maxLines lines
-		if curFileLinesCount >= maxLines {
+		if curFileLinesCount >= maxLines && curFile != nil {
 			curFile.IsIncomplete = true
 		}
 		switch {
 		case line[0] == ' ':
+			if curFile == nil {
+				continue
+			}
 			diffLine := &DiffLine{Type: DiffLinePlain, Content: line, LeftIdx: leftLine, RightIdx: rightLine}
 			leftLine++
 			rightLine++
 			curSection.Lines = append(curSection.Lines, diffLine)
 			continue
 		case line[0] == '@':
+			if curFile == nil {
+				continue
+			}
 			curSection = &DiffSection{}
 			curFile.Sections = append(curFile.Sections, curSection)
 			lineSectionInfo := getDiffLineSectionInfo(curFile.Name, line, leftLine-1, rightLine-1)
@@ -497,36 +502,35 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			rightLine = lineSectionInfo.RightIdx
 			continue
 		case line[0] == '+':
-			curFile.Addition++
 			diff.TotalAddition++
+			if curFile == nil {
+				continue
+			}
+			curFile.Addition++
 			diffLine := &DiffLine{Type: DiffLineAdd, Content: line, RightIdx: rightLine}
 			rightLine++
 			curSection.Lines = append(curSection.Lines, diffLine)
 			continue
 		case line[0] == '-':
-			curFile.Deletion++
 			diff.TotalDeletion++
+			if curFile == nil {
+				continue
+			}
+			curFile.Deletion++
 			diffLine := &DiffLine{Type: DiffLineDel, Content: line, LeftIdx: leftLine}
 			if leftLine > 0 {
 				leftLine++
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		case strings.HasPrefix(line, "Binary"):
-			curFile.IsBin = true
-			continue
+			if curFile != nil {
+				curFile.IsBin = true
+				continue
+			}
 		}
 
 		// Get new file.
 		if strings.HasPrefix(line, cmdDiffHead) {
-			if len(diff.Files) >= maxFiles {
-				diff.IsIncomplete = true
-				_, err := io.Copy(ioutil.Discard, reader)
-				if err != nil {
-					return nil, fmt.Errorf("Copy: %v", err)
-				}
-				break
-			}
-
 			var middle int
 
 			// Note: In case file name is surrounded by double quotes (it happens only in git-shell).
@@ -562,6 +566,12 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 
 			}
 
+			if diff.NumFiles > maxFiles {
+				diff.NumFiles++
+				curFile = nil
+				continue
+			}
+
 			curFile = &DiffFile{
 				Name:      b,
 				OldName:   a,
@@ -571,6 +581,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				IsRenamed: a != b,
 			}
 			diff.Files = append(diff.Files, curFile)
+			diff.NumFiles++
 			curFileLinesCount = 0
 			leftLine = 1
 			rightLine = 1
@@ -634,7 +645,11 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			}
 		}
 	}
-	diff.NumFiles = len(diff.Files)
+
+	if diff.NumFiles > maxFiles {
+		diff.IsIncomplete = true
+	}
+
 	return diff, nil
 }
 
