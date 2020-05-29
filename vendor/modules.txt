@@ -202,7 +202,7 @@ github.com/gliderlabs/ssh
 # github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
 ## explicit
 github.com/glycerine/go-unsnap-stream
-# github.com/go-enry/go-enry/v2 v2.5.1
+# github.com/go-enry/go-enry/v2 v2.5.2
 ## explicit
 github.com/go-enry/go-enry/v2
 github.com/go-enry/go-enry/v2/data
