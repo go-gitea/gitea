@@ -6,12 +6,18 @@ import (
 	"strings"
 
 	"github.com/go-enry/go-enry/v2/data"
+	"github.com/go-enry/go-enry/v2/regex"
 )
 
 const binSniffLen = 8000
 
-var configurationLanguages = map[string]bool{
-	"XML": true, "JSON": true, "TOML": true, "YAML": true, "INI": true, "SQL": true,
+var configurationLanguages = map[string]struct{}{
+	"XML":  {},
+	"JSON": {},
+	"TOML": {},
+	"YAML": {},
+	"INI":  {},
+	"SQL":  {},
 }
 
 // IsConfiguration tells if filename is in one of the configuration languages.
@@ -46,7 +52,7 @@ func GetMIMEType(path string, language string) string {
 
 // IsDocumentation returns whether or not path is a documentation path.
 func IsDocumentation(path string) bool {
-	return data.DocumentationMatchers.Match(path)
+	return matchRegexSlice(data.DocumentationMatchers, path)
 }
 
 // IsDotFile returns whether or not path has dot as a prefix.
@@ -57,7 +63,12 @@ func IsDotFile(path string) bool {
 
 // IsVendor returns whether or not path is a vendor path.
 func IsVendor(path string) bool {
-	return data.VendorMatchers.Match(path)
+	return matchRegexSlice(data.VendorMatchers, path)
+}
+
+// IsTest returns whether or not path is a test path.
+func IsTest(path string) bool {
+	return matchRegexSlice(data.TestMatchers, path)
 }
 
 // IsBinary detects if data is a binary value based on:
@@ -85,4 +96,38 @@ func GetColor(language string) string {
 	}
 
 	return "#cccccc"
+}
+
+func matchRegexSlice(exprs []regex.EnryRegexp, str string) bool {
+	for _, expr := range exprs {
+		if expr.MatchString(str) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsGenerated returns whether the file with the given path and content is a
+// generated file.
+func IsGenerated(path string, content []byte) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	if _, ok := data.GeneratedCodeExtensions[ext]; ok {
+		return true
+	}
+
+	for _, m := range data.GeneratedCodeNameMatchers {
+		if m(path) {
+			return true
+		}
+	}
+
+	path = strings.ToLower(path)
+	for _, m := range data.GeneratedCodeMatchers {
+		if m(path, ext, content) {
+			return true
+		}
+	}
+
+	return false
 }
