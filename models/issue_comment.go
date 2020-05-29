@@ -177,6 +177,8 @@ type Comment struct {
 	NewCommit   string     `xorm:"-"`
 	CommitsNum  int64      `xorm:"-"`
 	IsForcePush bool       `xorm:"-"`
+
+	IsCommentPoster bool `xorm:"-"`
 }
 
 // PushActionContent is content of push pull comment
