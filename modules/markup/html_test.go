@@ -263,7 +263,9 @@ func TestRender_emoji(t *testing.T) {
 	test(
 		"Some text with :smile: in the middle",
 		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
-
+	test(
+		"Some text with 😄😄 2 emoji next to each other",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
 	// should match nothing
 	test(
 		"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
