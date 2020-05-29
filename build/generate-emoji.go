@@ -108,11 +108,11 @@ func generate() ([]byte, error) {
 
 	var skinTones = make(map[string]string)
 
-	skinTones["🏻"] = "Light Skin Tone"
-	skinTones["🏼"] = "Medium-Light Skin Tone"
-	skinTones["🏽"] = "Medium Skin Tone"
-	skinTones["🏾"] = "Medium-Dark Skin Tone"
-	skinTones["🏿"] = "Dark Skin Tone"
+	skinTones["\U0001f3fb"] = "Light Skin Tone"
+	skinTones["\U0001f3fc"] = "Medium-Light Skin Tone"
+	skinTones["\U0001f3fd"] = "Medium Skin Tone"
+	skinTones["\U0001f3fe"] = "Medium-Dark Skin Tone"
+	skinTones["\U0001f3ff"] = "Dark Skin Tone"
 
 	var tmp Gemoji
 
@@ -182,7 +182,7 @@ func generate() ([]byte, error) {
 
 				newEmoji = strings.Join(s, "")
 				newDescription = data[i].Description + ": " + v
-				newAlias := data[i].Aliases[0] + strings.ReplaceAll(v, " ", "_")
+				newAlias := data[i].Aliases[0] + "_" + strings.ReplaceAll(v, " ", "_")
 
 				newData = Emoji{newEmoji, newDescription, []string{newAlias}, "12.0", false}
 				data = append(data, newData)
