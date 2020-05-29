@@ -7,7 +7,7 @@
 #include "chelper.h"
 
 int NewOnigRegex( char *pattern, int pattern_length, int option,
-                  OnigRegex *regex, OnigRegion **region, OnigEncoding *encoding, OnigErrorInfo **error_info, char **error_buffer) {
+                  OnigRegex *regex, OnigEncoding *encoding, OnigErrorInfo **error_info, char **error_buffer) {
     int ret = ONIG_NORMAL;
     int error_msg_len = 0;
 
@@ -23,8 +23,6 @@ int NewOnigRegex( char *pattern, int pattern_length, int option,
 
     memset(*error_buffer, 0, ONIG_MAX_ERROR_MESSAGE_LEN * sizeof(char));
 
-    *region = onig_region_new();
-
     ret = onig_new(regex, pattern_start, pattern_end, (OnigOptionType)(option), *encoding, OnigDefaultSyntax, *error_info);
 
     if (ret != ONIG_NORMAL) {
@@ -38,9 +36,10 @@ int NewOnigRegex( char *pattern, int pattern_length, int option,
 }
 
 int SearchOnigRegex( void *str, int str_length, int offset, int option,
-                  OnigRegex regex, OnigRegion *region, OnigErrorInfo *error_info, char *error_buffer, int *captures, int *numCaptures) {
+                  OnigRegex regex, OnigErrorInfo *error_info, char *error_buffer, int *captures, int *numCaptures) {
     int ret = ONIG_MISMATCH;
     int error_msg_len = 0;
+    OnigRegion *region;
 #ifdef BENCHMARK_CHELP
     struct timeval tim1, tim2;
     long t;
@@ -54,6 +53,8 @@ int SearchOnigRegex( void *str, int str_length, int offset, int option,
 #ifdef BENCHMARK_CHELP
     gettimeofday(&tim1, NULL);
 #endif
+
+    region = onig_region_new();
 
     ret = onig_search(regex, str_start, str_end, search_start, search_end, region, option);
     if (ret < 0 && error_buffer != NULL) {
@@ -74,6 +75,8 @@ int SearchOnigRegex( void *str, int str_length, int offset, int option,
         *numCaptures = count;
     }
 
+    onig_region_free(region, 1);
+
 #ifdef BENCHMARK_CHELP
     gettimeofday(&tim2, NULL);
     t = (tim2.tv_sec - tim1.tv_sec) * 1000000 + tim2.tv_usec - tim1.tv_usec;
@@ -83,9 +86,10 @@ int SearchOnigRegex( void *str, int str_length, int offset, int option,
 }
 
 int MatchOnigRegex(void *str, int str_length, int offset, int option,
-                  OnigRegex regex, OnigRegion *region) {
+                  OnigRegex regex) {
     int ret = ONIG_MISMATCH;
     int error_msg_len = 0;
+    OnigRegion *region;
 #ifdef BENCHMARK_CHELP
     struct timeval tim1, tim2;
     long t;
@@ -98,7 +102,9 @@ int MatchOnigRegex(void *str, int str_length, int offset, int option,
 #ifdef BENCHMARK_CHELP
     gettimeofday(&tim1, NULL);
 #endif
+    region = onig_region_new();
     ret = onig_match(regex, str_start, str_end, search_start, region, option);
+    onig_region_free(region, 1);
 #ifdef BENCHMARK_CHELP
     gettimeofday(&tim2, NULL);
     t = (tim2.tv_sec - tim1.tv_sec) * 1000000 + tim2.tv_usec - tim1.tv_usec;
@@ -108,8 +114,9 @@ int MatchOnigRegex(void *str, int str_length, int offset, int option,
 }
 
 int LookupOnigCaptureByName(char *name, int name_length,
-                  OnigRegex regex, OnigRegion *region) {
+                  OnigRegex regex) {
     int ret = ONIGERR_UNDEFINED_NAME_REFERENCE;
+    OnigRegion *region;
 #ifdef BENCHMARK_CHELP
     struct timeval tim1, tim2;
     long t;
@@ -119,7 +126,9 @@ int LookupOnigCaptureByName(char *name, int name_length,
 #ifdef BENCHMARK_CHELP
     gettimeofday(&tim1, NULL);
 #endif
+    region = onig_region_new();
     ret = onig_name_to_backref_number(regex, name_start, name_end, region);
+    onig_region_free(region, 1);
 #ifdef BENCHMARK_CHELP
     gettimeofday(&tim2, NULL);
     t = (tim2.tv_sec - tim1.tv_sec) * 1000000 + tim2.tv_usec - tim1.tv_usec;
@@ -181,4 +190,3 @@ int GetCaptureNames(OnigRegex reg, void *buffer, int bufferSize, int* groupNumbe
     onig_foreach_name(reg, name_callback, (void* )&groupInfo);
     return groupInfo.bufferOffset;
 }
-
