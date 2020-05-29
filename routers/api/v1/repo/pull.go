@@ -521,10 +521,10 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 				ctx.Error(http.StatusConflict, "IsErrPullRequestAlreadyExists", err)
 				return
 			} else if models.IsErrIssueIsClosed(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "IsErrPullRequestAlreadyExists", err)
+				ctx.Error(http.StatusUnprocessableEntity, "IsErrIssueIsClosed", err)
 				return
 			} else if models.IsErrPullRequestHasMerged(err) {
-				ctx.Error(http.StatusConflict, "IsErrPullRequestAlreadyExists", err)
+				ctx.Error(http.StatusConflict, "IsErrPullRequestHasMerged", err)
 				return
 			} else {
 				ctx.InternalServerError(err)
