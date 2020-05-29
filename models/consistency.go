@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 // consistencyCheckable a type that can be tested for database consistency
@@ -166,4 +167,119 @@ func (team *Team) checkForConsistency(t *testing.T) {
 func (action *Action) checkForConsistency(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: action.RepoID}).(*Repository)
 	assert.Equal(t, repo.IsPrivate, action.IsPrivate, "action: %+v", action)
+}
+
+// CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
+func CountOrphanedLabels() (int64, error) {
+	noref, err := x.Table("label").Where("repo_id=? AND org_id=?", 0, 0).Count("label.id")
+	if err != nil {
+		return 0, err
+	}
+
+	norepo, err := x.Table("label").
+		Join("LEFT", "repository", "label.repo_id=repository.id").
+		Where(builder.IsNull{"repository.id"}).And(builder.Gt{"label.repo_id": 0}).
+		Count("id")
+	if err != nil {
+		return 0, err
+	}
+
+	noorg, err := x.Table("label").
+		Join("LEFT", "`user`", "label.org_id=`user`.id").
+		Where(builder.IsNull{"`user`.id"}).And(builder.Gt{"label.org_id": 0}).
+		Count("id")
+	if err != nil {
+		return 0, err
+	}
+
+	return noref + norepo + noorg, nil
+}
+
+// DeleteOrphanedLabels delete labels witch are broken and not accessible via ui anymore
+func DeleteOrphanedLabels() error {
+	// delete labels with no reference
+	if _, err := x.Table("label").Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
+		return err
+	}
+
+	// delete labels with none existing repos
+	if _, err := x.In("id", builder.Select("label.id").From("label").
+		Join("LEFT", "repository", "label.repo_id=repository.id").
+		Where(builder.IsNull{"repository.id"}).And(builder.Gt{"label.repo_id": 0})).
+		Delete(Label{}); err != nil {
+		return err
+	}
+
+	// delete labels with none existing orgs
+	if _, err := x.In("id", builder.Select("label.id").From("label").
+		Join("LEFT", "`user`", "label.org_id=`user`.id").
+		Where(builder.IsNull{"`user`.id"}).And(builder.Gt{"label.org_id": 0})).
+		Delete(Label{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CountOrphanedIssues count issues without a repo
+func CountOrphanedIssues() (int64, error) {
+	return x.Table("issue").
+		Join("LEFT", "repository", "issue.repo_id=repository.id").
+		Where(builder.IsNull{"repository.id"}).
+		Count("id")
+}
+
+// DeleteOrphanedIssues delete issues without a repo
+func DeleteOrphanedIssues() error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	var ids []int64
+
+	if err := sess.Table("issue").Distinct("issue.repo_id").
+		Join("LEFT", "repository", "issue.repo_id=repository.id").
+		Where(builder.IsNull{"repository.id"}).GroupBy("issue.repo_id").
+		Find(&ids); err != nil {
+		return err
+	}
+
+	var attachmentPaths []string
+	for i := range ids {
+		paths, err := deleteIssuesByRepoID(sess, ids[i])
+		if err != nil {
+			return err
+		}
+		attachmentPaths = append(attachmentPaths, paths...)
+	}
+
+	if err := sess.Commit(); err != nil {
+		return err
+	}
+
+	// Remove issue attachment files.
+	for i := range attachmentPaths {
+		removeAllWithNotice(x, "Delete issue attachment", attachmentPaths[i])
+	}
+	return nil
+}
+
+// CountOrphanedObjects count subjects with have no existing refobject anymore
+func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
+	return x.Table("`"+subject+"`").
+		Join("LEFT", refobject, joinCond).
+		Where(builder.IsNull{"`" + refobject + "`.id"}).
+		Count("id")
+}
+
+// DeleteOrphanedObjects delete subjects with have no existing refobject anymore
+func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
+	_, err := x.In("id", builder.Select("`"+subject+"`.id").
+		From("`"+subject+"`").
+		Join("LEFT", "`"+refobject+"`", joinCond).
+		Where(builder.IsNull{"`" + refobject + "`.id"})).
+		Delete("`" + subject + "`")
+	return err
 }
