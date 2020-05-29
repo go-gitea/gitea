@@ -1489,6 +1489,7 @@ func ResetPasswdPost(ctx *context.Context) {
 func MustChangePassword(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
+	ctx.Data["MustChangePassword"] = true
 	ctx.HTML(200, tplMustChangePassword)
 }
 
