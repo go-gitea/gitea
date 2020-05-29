@@ -8,7 +8,9 @@
 		</div>
 	</div>
 
-	{{if .IsSigned}}
+	{{if and .IsSigned .MustChangePassword}}
+		{{/* No links */}}
+	{{else if .IsSigned}}
 		<a class="item {{if .PageIsDashboard}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "dashboard"}}</a>
 		{{if not .UnitIssuesGlobalDisabled}}
 		<a class="item {{if .PageIsIssues}}active{{end}}" href="{{AppSubUrl}}/issues">{{.i18n.Tr "issues"}}</a>
@@ -40,7 +42,30 @@
 		</div>
 	*/}}
 
-	{{if .IsSigned}}
+
+	{{if and .IsSigned .MustChangePassword}}
+		<div class="right stackable menu">
+			<div class="ui dropdown jump item poping up" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}" data-variation="tiny inverted">
+				<span class="text">
+					<img class="ui tiny avatar image" width="24" height="24" src="{{.SignedUser.RelAvatarLink}}">
+					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
+					<span class="mobile-only">{{.SignedUser.Name}}</span>
+					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down" 16}}</span>
+				</span>
+				<div class="menu user-menu" tabindex="-1">
+					<div class="ui header">
+						{{.i18n.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
+					</div>
+
+					<div class="divider"></div>
+					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout" data-redirect="{{AppSubUrl}}/">
+						{{svg "octicon-sign-out" 16}}
+						{{.i18n.Tr "sign_out"}}<!-- Sign Out -->
+					</a>
+				</div><!-- end content avatar menu -->
+			</div><!-- end dropdown avatar menu -->
+		</div>
+	{{else if .IsSigned}}
 		<div class="right stackable menu">
 			<a href="{{AppSubUrl}}/notifications" class="item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
 				<span class="text">
@@ -121,9 +146,7 @@
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		</div><!-- end signed user right menu -->
-
 	{{else}}
-
 		<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">{{.i18n.Tr "help"}}</a>
 		<div class="right stackable menu">
 			{{if .ShowRegistrationButton}}
@@ -135,6 +158,5 @@
 				{{svg "octicon-sign-in" 16}} {{.i18n.Tr "sign_in"}}
 			</a>
 		</div><!-- end anonymous right menu -->
-
 	{{end}}
 </div>

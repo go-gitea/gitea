@@ -50,11 +50,15 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]float32, e
 			return nil
 		}
 
+		// If content can not be read just do detection by filename
+		content, _ := readFile(f, fileSizeLimit)
+		if enry.IsGenerated(f.Name, content) {
+			return nil
+		}
+
 		// TODO: Use .gitattributes file for linguist overrides
 
-		language := analyze.GetCodeLanguageWithCallback(f.Name, func() ([]byte, error) {
-			return readFile(f, fileSizeLimit)
-		})
+		language := analyze.GetCodeLanguage(f.Name, content)
 		if language == enry.OtherLanguage || language == "" {
 			return nil
 		}
