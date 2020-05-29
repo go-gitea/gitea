@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
-	"xorm.io/builder"
 )
 
 var (
@@ -1612,90 +1611,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	// Projects
-
-	deleteRepoCond := builder.Select("id").From("project").Where(builder.Eq{"repo_id": repoID})
-
-	// Delete project boards for projects in this repository
-	if _, err = sess.In("project_id", deleteRepoCond).
-		Delete(&ProjectBoard{}); err != nil {
-		return err
-	}
-
-	// Delete project issues for projects in this repository
-	if _, err = sess.In("project_id", deleteRepoCond).
-		Delete(&ProjectIssues{}); err != nil {
-		return err
-	}
-
-	// delete projects in this repository
-	if err = deleteBeans(sess, &Project{RepoID: repoID}); err != nil {
-		return fmt.Errorf("deleteBeans: %v", err)
-	}
-
-	// Issues
-
-	deleteIssueCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
-	// Delete comments and attachments
-	if _, err = sess.In("issue_id", deleteIssueCond).
-		Delete(&Comment{}); err != nil {
-		return err
-	}
-
-	// Dependencies for issues in this repository
-	if _, err = sess.In("issue_id", deleteIssueCond).
-		Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	// Delete dependencies for issues in other repositories
-	if _, err = sess.In("dependency_id", deleteIssueCond).
-		Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteIssueCond).
-		Delete(&IssueUser{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteIssueCond).
-		Delete(&Reaction{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteIssueCond).
-		Delete(&IssueWatch{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteIssueCond).
-		Delete(&Stopwatch{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteIssueCond).
-		Delete(&TrackedTime{}); err != nil {
-		return err
-	}
-
-	attachments = attachments[:0]
-	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
-		Where("issue.repo_id = ?", repoID).
-		Find(&attachments); err != nil {
-		return err
-	}
-	attachmentPaths := make([]string, 0, len(attachments))
-	for j := range attachments {
-		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
-	}
-
-	if _, err = sess.In("issue_id", deleteIssueCond).
-		Delete(&Attachment{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+	// Delete Issues and related objects
+	var attachmentPaths []string
+	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
 		return err
 	}
 

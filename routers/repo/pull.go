@@ -611,7 +611,7 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	ctx.Data["Diff"] = diff
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
+	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
 	if err != nil {
