@@ -5,10 +5,11 @@
 package integrations
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
 	"net/http"
 	"net/url"
 	"testing"
+
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
