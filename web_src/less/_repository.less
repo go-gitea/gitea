@@ -769,7 +769,6 @@
                 .badge.badge-commit {
                     border-color: transparent;
                     background: radial-gradient(white 60%, transparent 60%) no-repeat;
-                    height: 0 !important;
                 }
 
                 .badge {
@@ -783,6 +782,7 @@
                     margin-left: -32px;
                     margin-right: 8px;
                     color: #444;
+                    align-items: center;
 
                     .svg {
                         width: 28px;
@@ -810,7 +810,8 @@
                 }
 
                 &.event > .text {
-                    line-height: 30px;
+                    line-height: 32px;
+                    vertical-align: middle;
                 }
 
                 &.commits-list {
@@ -821,7 +822,7 @@
                         line-height: 30px;
 
                         &:not(:last-child) {
-                            padding-bottom: 3px;
+                            padding-bottom: 2px;
                         }
 
                         .shabox {
@@ -1147,12 +1148,6 @@
                     font-size: .9rem;
                     margin-top: 5px;
                     margin-left: 8px;
-
-                    .svg {
-                        &.octicon-git-commit {
-                            margin-top: 2px;
-                        }
-                    }
                 }
 
                 .segments {
