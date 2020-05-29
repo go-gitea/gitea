@@ -646,6 +646,7 @@ func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxL
 }
 
 // GetDiffRangeWithWhitespaceBehavior builds a Diff between two commits of a repository.
+// if beforeCommitID is empty, get afterCommit diff by 'git show afterCommitID'
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
 func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
@@ -664,7 +665,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	ctx, cancel := context.WithCancel(git.DefaultContext)
 	defer cancel()
 	var cmd *exec.Cmd
-	if len(beforeCommitID) == 0 && commit.ParentCount() == 0 {
+	if (beforeCommitID == "" || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
 		cmd = exec.CommandContext(ctx, git.GitExecutable, "show", afterCommitID)
 	} else {
 		actualBeforeCommitID := beforeCommitID
@@ -709,11 +710,6 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 
 	if err = cmd.Wait(); err != nil {
 		return nil, fmt.Errorf("Wait: %v", err)
-	}
-
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, beforeCommitID+"..."+afterCommitID)
-	if err != nil {
-		return nil, err
 	}
 
 	return diff, nil
