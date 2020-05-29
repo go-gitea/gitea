@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -664,7 +665,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	ctx, cancel := context.WithCancel(git.DefaultContext)
 	defer cancel()
 	var cmd *exec.Cmd
-	if len(beforeCommitID) == 0 && commit.ParentCount() == 0 {
+	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
 		cmd = exec.CommandContext(ctx, git.GitExecutable, "show", afterCommitID)
 	} else {
 		actualBeforeCommitID := beforeCommitID
@@ -711,7 +712,21 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		return nil, fmt.Errorf("Wait: %v", err)
 	}
 
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, beforeCommitID+"..."+afterCommitID)
+	shortstatArgs := []string{beforeCommitID + "..." + afterCommitID}
+	var env []string
+	if len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA {
+		shortstatArgs = []string{"--cached", afterCommitID}
+		tmpDir, err := ioutil.TempDir("", "gitdiff")
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			_ = os.RemoveAll(tmpDir)
+		}()
+		env = append(os.Environ(), "GIT_INDEX_FILE="+filepath.Join(tmpDir, "non-existent-index"))
+
+	}
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(env, repoPath, shortstatArgs...)
 	if err != nil {
 		return nil, err
 	}
