@@ -233,17 +233,43 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 	if opt.AutoInit && opt.Readme == "" {
 		opt.Readme = "Default"
 	}
-	repo, err := repo_service.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
-		Name:          opt.Name,
-		Description:   opt.Description,
-		IssueLabels:   opt.IssueLabels,
-		Gitignores:    opt.Gitignores,
-		License:       opt.License,
-		Readme:        opt.Readme,
-		IsPrivate:     opt.Private,
-		AutoInit:      opt.AutoInit,
-		DefaultBranch: opt.DefaultBranch,
-	})
+
+	var err error
+	var repo *models.Repository
+
+	if opt.Template != nil {
+		templateRepo, err2 := models.GetRepositoryByID(opt.Template.RepoTemplate)
+		if err2 != nil {
+			if models.IsErrRepoNotExist(err) {
+				ctx.Error(http.StatusNotFound, "GetTemplateRepo", fmt.Errorf("Template Repo [%d] not found", opt.Template.RepoTemplate))
+			}
+			ctx.InternalServerError(err)
+			return
+		}
+		repo, err = repo_service.GenerateRepository(ctx.User, owner, templateRepo, models.GenerateRepoOptions{
+			Name:        opt.Name,
+			Description: opt.Description,
+			Private:     opt.Private,
+			GitContent:  opt.Template.GitContent,
+			Topics:      opt.Template.Topics,
+			GitHooks:    opt.Template.GitHooks,
+			Webhooks:    opt.Template.Webhooks,
+			Avatar:      opt.Template.Avatar,
+			IssueLabels: opt.Template.Labels,
+		})
+	} else {
+		repo, err = repo_service.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
+			Name:          opt.Name,
+			Description:   opt.Description,
+			IssueLabels:   opt.IssueLabels,
+			Gitignores:    opt.Gitignores,
+			License:       opt.License,
+			Readme:        opt.Readme,
+			IsPrivate:     opt.Private,
+			AutoInit:      opt.AutoInit,
+			DefaultBranch: opt.DefaultBranch,
+		})
+	}
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")

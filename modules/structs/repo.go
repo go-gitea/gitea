@@ -92,6 +92,18 @@ type Repository struct {
 
 // CreateRepoOption options when creating repository
 // swagger:model
+type CreateRepoTemplateOption struct {
+	RepoTemplate int64
+	GitContent   bool
+	Topics       bool
+	GitHooks     bool
+	Webhooks     bool
+	Avatar       bool
+	Labels       bool
+}
+
+// CreateRepoOption options when creating repository
+// swagger:model
 type CreateRepoOption struct {
 	// Name of the repository to create
 	//
@@ -114,6 +126,8 @@ type CreateRepoOption struct {
 	Readme string `json:"readme"`
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
+	// AAAA
+	Template *CreateRepoTemplateOption
 }
 
 // EditRepoOption options when editing a repository's properties
