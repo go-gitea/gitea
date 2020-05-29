@@ -82,10 +82,14 @@ type ProjectSearchOptions struct {
 
 // GetProjects returns a list of all projects that have been created in the repository
 func GetProjects(opts ProjectSearchOptions) ([]*Project, error) {
+	return getProjects(x, opts)
+}
+
+func getProjects(e Engine, opts ProjectSearchOptions) ([]*Project, error) {
 
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
-	sess := x.Where("repo_id = ?", opts.RepoID)
+	sess := e.Where("repo_id = ?", opts.RepoID)
 	switch opts.IsClosed {
 	case util.OptionalBoolTrue:
 		sess = sess.Where("is_closed = ?", true)
@@ -242,10 +246,6 @@ func DeleteProjectByID(id int64) error {
 		return err
 	}
 
-	if err := deleteProjectIssuesByProjectID(sess, id); err != nil {
-		return err
-	}
-
 	return sess.Commit()
 }
 
@@ -260,6 +260,14 @@ func deleteProjectByID(e Engine, id int64) error {
 
 	repo, err := getRepositoryByID(e, p.RepoID)
 	if err != nil {
+		return err
+	}
+
+	if err := deleteProjectIssuesByProjectID(e, id); err != nil {
+		return err
+	}
+
+	if err := deleteProjectBoardByProjectID(e, id); err != nil {
 		return err
 	}
 

@@ -134,6 +134,11 @@ func deleteProjectBoardByID(e Engine, boardID int64) error {
 	return nil
 }
 
+func deleteProjectBoardByProjectID(e Engine, projectID int64) error {
+	_, err := e.Where("project_id=?", projectID).Delete(&ProjectIssues{})
+	return err
+}
+
 // GetProjectBoard fetches the current board of a project
 func GetProjectBoard(boardID int64) (*ProjectBoard, error) {
 	return getProjectBoard(x, boardID)

@@ -1983,6 +1983,11 @@ func deleteIssuesByRepoID(sess Engine, repoID int64) (attachmentPaths []string, 
 		return
 	}
 
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&ProjectIssues{}); err != nil {
+		return
+	}
+
 	var attachments []*Attachment
 	if err = sess.In("issue_id", deleteCond).
 		Find(&attachments); err != nil {
