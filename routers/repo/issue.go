@@ -919,8 +919,6 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 
-		comment.IsCommentPoster = ctx.IsSigned && (ctx.User.ID == comment.PosterID)
-
 		if comment.Type == models.CommentTypeComment {
 			if err := comment.LoadAttachments(); err != nil {
 				ctx.ServerError("LoadAttachments", err)
