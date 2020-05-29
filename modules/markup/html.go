@@ -290,7 +290,7 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	}
 
 	for _, node := range nodes {
-		ctx.visitNode(node)
+		ctx.visitNode(node, true)
 	}
 
 	// Create buffer in which the data will be placed again. We know that the
@@ -313,7 +313,7 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	return res, nil
 }
 
-func (ctx *postProcessCtx) visitNode(node *html.Node) {
+func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 	// Add user-content- to IDs if they don't already have them
 	for idx, attr := range node.Attr {
 		if attr.Key == "id" && !(strings.HasPrefix(attr.Val, "user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
@@ -323,13 +323,37 @@ func (ctx *postProcessCtx) visitNode(node *html.Node) {
 	// We ignore code, pre and already generated links.
 	switch node.Type {
 	case html.TextNode:
-		ctx.textNode(node)
+		if visitText {
+			ctx.textNode(node)
+		}
 	case html.ElementNode:
-		if node.Data == "a" || node.Data == "code" || node.Data == "pre" {
+		if node.Data == "img" {
+			attrs := node.Attr
+			for idx, attr := range attrs {
+				if attr.Key != "src" {
+					continue
+				}
+				link := []byte(attr.Val)
+				if len(link) > 0 && !IsLink(link) {
+					prefix := ctx.urlPrefix
+					if ctx.isWikiMarkdown {
+						prefix = util.URLJoin(prefix, "wiki", "raw")
+					}
+					prefix = strings.Replace(prefix, "/src/", "/media/", 1)
+
+					lnk := string(link)
+					lnk = util.URLJoin(prefix, lnk)
+					link = []byte(lnk)
+				}
+				node.Attr[idx].Val = string(link)
+			}
+		} else if node.Data == "a" {
+			visitText = false
+		} else if node.Data == "code" || node.Data == "pre" {
 			return
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			ctx.visitNode(n)
+			ctx.visitNode(n, visitText)
 		}
 	}
 	// ignore everything else
