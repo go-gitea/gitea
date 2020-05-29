@@ -57,14 +57,14 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 	var total int64
 	for _, stat := range stats {
 		// Exclude specific languages from percentage calculation
-		if _, ok := specialLanguages[stat.Language]; ok {
+		if _, ok := specialLanguages[stat.Language]; ok && len(stats) > 1 {
 			continue
 		}
 		total += stat.Size
 	}
 	for _, stat := range stats {
 		// Exclude specific languages from percentage calculation
-		if _, ok := specialLanguages[stat.Language]; ok {
+		if _, ok := specialLanguages[stat.Language]; ok && len(stats) > 1 {
 			continue
 		}
 		perc := float32(math.Round(float64(stat.Size)/float64(total)*1000) / 10)
