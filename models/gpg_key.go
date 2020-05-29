@@ -609,10 +609,10 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 
 	keyID := ""
 	if sig.IssuerKeyId != nil && (*sig.IssuerKeyId) != 0 {
-		keyID = fmt.Sprintf("%X", *sig.IssuerKeyId)
+		keyID = fmt.Sprintf("%016X", *sig.IssuerKeyId)
 	}
 	if keyID == "" && sig.IssuerFingerprint != nil && len(sig.IssuerFingerprint) > 0 {
-		keyID = fmt.Sprintf("%X", sig.IssuerFingerprint[12:20])
+		keyID = fmt.Sprintf("%016X", sig.IssuerFingerprint[12:20])
 	}
 
 	defaultReason := NoKeyFound
