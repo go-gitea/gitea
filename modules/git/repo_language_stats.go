@@ -29,6 +29,7 @@ var specialLanguages = []string{
 	"SVG",
 	"Text",
 	"Markdown",
+	"TOML",
 }
 
 // GetLanguageStats calculates language stats for git repository at specified commit
