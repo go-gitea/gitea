@@ -3409,7 +3409,6 @@ window.updateDeadline = function (deadlineString) {
   $('#deadline-err-invalid-date').hide();
   $('#deadline-loader').addClass('loading');
 
-  let realDeadline = null;
   if (deadlineString !== '') {
     const newDate = Date.parse(deadlineString);
 
@@ -3418,12 +3417,11 @@ window.updateDeadline = function (deadlineString) {
       $('#deadline-err-invalid-date').show();
       return false;
     }
-    realDeadline = new Date(newDate);
   }
 
   $.ajax(`${$('#update-issue-deadline-form').attr('action')}/deadline`, {
     data: JSON.stringify({
-      due_date: realDeadline,
+      due_date: deadlineString ? new Date(`${deadlineString} 00:00:00`).toISOString() : null,
     }),
     headers: {
       'X-Csrf-Token': csrf,
