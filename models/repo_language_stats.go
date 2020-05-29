@@ -55,26 +55,38 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 	langPerc := make(map[string]float32)
 	var otherPerc float32 = 100
 	var total int64
+	// Check that repository has at least one non-special language
+	var skipSpecial bool
+	for _, stat := range stats {
+		if _, ok := specialLanguages[stat.Language]; !ok {
+			skipSpecial = true
+			break
+		}
+	}
 	for _, stat := range stats {
 		// Exclude specific languages from percentage calculation
-		if _, ok := specialLanguages[stat.Language]; ok && len(stats) > 1 {
+		if _, ok := specialLanguages[stat.Language]; ok && skipSpecial {
 			continue
 		}
 		total += stat.Size
 	}
-	for _, stat := range stats {
-		// Exclude specific languages from percentage calculation
-		if _, ok := specialLanguages[stat.Language]; ok && len(stats) > 1 {
-			continue
+	if total > 0 {
+		for _, stat := range stats {
+			// Exclude specific languages from percentage calculation
+			if _, ok := specialLanguages[stat.Language]; ok && skipSpecial {
+				continue
+			}
+			perc := float32(math.Round(float64(stat.Size)/float64(total)*1000) / 10)
+			if perc <= 0.1 {
+				continue
+			}
+			otherPerc -= perc
+			langPerc[stat.Language] = perc
 		}
-		perc := float32(math.Round(float64(stat.Size)/float64(total)*1000) / 10)
-		if perc <= 0.1 {
-			continue
-		}
-		otherPerc -= perc
-		langPerc[stat.Language] = perc
+		otherPerc = float32(math.Round(float64(otherPerc)*10) / 10)
+	} else {
+		otherPerc = 100
 	}
-	otherPerc = float32(math.Round(float64(otherPerc)*10) / 10)
 	if otherPerc > 0 {
 		langPerc["other"] = otherPerc
 	}

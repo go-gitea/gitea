@@ -69,6 +69,10 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
+	if len(sizes) == 0 {
+		sizes["other"] = 0
+	}
+
 	return sizes, nil
 }
 
