@@ -53,9 +53,9 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 			_ = sess.Rollback()
 			break
 		}
-		start += 50
 
 		log.Info("select users [%d - %d]", start, start+len(users))
+		start += 50
 
 		for _, user := range users {
 			oldAvatar := user.Avatar
