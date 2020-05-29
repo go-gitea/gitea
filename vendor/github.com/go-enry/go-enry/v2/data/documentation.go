@@ -3,24 +3,24 @@
 
 package data
 
-import "gopkg.in/toqueteos/substring.v1"
+import "github.com/go-enry/go-enry/v2/regex"
 
-var DocumentationMatchers = substring.Or(
-	substring.Regexp(`^[Dd]ocs?/`),
-	substring.Regexp(`(^|/)[Dd]ocumentation/`),
-	substring.Regexp(`(^|/)[Gg]roovydoc/`),
-	substring.Regexp(`(^|/)[Jj]avadoc/`),
-	substring.Regexp(`^[Mm]an/`),
-	substring.Regexp(`^[Ee]xamples/`),
-	substring.Regexp(`^[Dd]emos?/`),
-	substring.Regexp(`(^|/)inst/doc/`),
-	substring.Regexp(`(^|/)CHANGE(S|LOG)?(\.|$)`),
-	substring.Regexp(`(^|/)CONTRIBUTING(\.|$)`),
-	substring.Regexp(`(^|/)COPYING(\.|$)`),
-	substring.Regexp(`(^|/)INSTALL(\.|$)`),
-	substring.Regexp(`(^|/)LICEN[CS]E(\.|$)`),
-	substring.Regexp(`(^|/)[Ll]icen[cs]e(\.|$)`),
-	substring.Regexp(`(^|/)README(\.|$)`),
-	substring.Regexp(`(^|/)[Rr]eadme(\.|$)`),
-	substring.Regexp(`^[Ss]amples?/`),
-)
+var DocumentationMatchers = []regex.EnryRegexp{
+	regex.MustCompile(`^[Dd]ocs?/`),
+	regex.MustCompile(`(^|/)[Dd]ocumentation/`),
+	regex.MustCompile(`(^|/)[Gg]roovydoc/`),
+	regex.MustCompile(`(^|/)[Jj]avadoc/`),
+	regex.MustCompile(`^[Mm]an/`),
+	regex.MustCompile(`^[Ee]xamples/`),
+	regex.MustCompile(`^[Dd]emos?/`),
+	regex.MustCompile(`(^|/)inst/doc/`),
+	regex.MustCompile(`(^|/)CHANGE(S|LOG)?(\.|$)`),
+	regex.MustCompile(`(^|/)CONTRIBUTING(\.|$)`),
+	regex.MustCompile(`(^|/)COPYING(\.|$)`),
+	regex.MustCompile(`(^|/)INSTALL(\.|$)`),
+	regex.MustCompile(`(^|/)LICEN[CS]E(\.|$)`),
+	regex.MustCompile(`(^|/)[Ll]icen[cs]e(\.|$)`),
+	regex.MustCompile(`(^|/)README(\.|$)`),
+	regex.MustCompile(`(^|/)[Rr]eadme(\.|$)`),
+	regex.MustCompile(`^[Ss]amples?/`),
+}
