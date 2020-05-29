@@ -20,8 +20,9 @@ import (
 
 const fileSizeLimit int64 = 16 * 1024 * 1024
 
-// specialLanguages defines list of languages that are excluded from calculation
-// unless they are the only language present in repository
+// specialLanguages defines list of languages that are excluded from the calculation
+// unless they are the only language present in repository. Only languages which under
+// normal circumstances are not considered to be code should be listed here.
 var specialLanguages = []string{
 	"YAML",
 	"JSON",
