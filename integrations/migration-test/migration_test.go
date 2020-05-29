@@ -249,7 +249,7 @@ func doMigrationTest(t *testing.T, version string) {
 	if !restoreOldDB(t, version) {
 		return
 	}
-
+	setting.NewXORMLogService(false)
 	err := models.SetEngine()
 	assert.NoError(t, err)
 
