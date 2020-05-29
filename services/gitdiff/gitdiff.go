@@ -17,7 +17,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -713,20 +712,10 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	}
 
 	shortstatArgs := []string{beforeCommitID + "..." + afterCommitID}
-	var env []string
 	if len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA {
-		shortstatArgs = []string{"--cached", "-R", afterCommitID}
-		tmpDir, err := ioutil.TempDir("", "gitdiff")
-		if err != nil {
-			return nil, err
-		}
-		defer func() {
-			_ = os.RemoveAll(tmpDir)
-		}()
-		env = append(os.Environ(), "GIT_INDEX_FILE="+filepath.Join(tmpDir, "non-existent-index"))
-
+		shortstatArgs = []string{git.EmptyTreeSHA, afterCommitID}
 	}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(env, repoPath, shortstatArgs...)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, shortstatArgs...)
 	if err != nil {
 		return nil, err
 	}

@@ -122,11 +122,11 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string) (int, error) {
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
 func (repo *Repository) GetDiffShortStat(base, head string) (numFiles, totalAdditions, totalDeletions int, err error) {
-	return GetDiffShortStat(nil, repo.Path, base+"..."+head)
+	return GetDiffShortStat(repo.Path, base+"..."+head)
 }
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
-func GetDiffShortStat(env []string, repoPath string, args ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
+func GetDiffShortStat(repoPath string, args ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
 	// Now if we call:
 	// $ git diff --shortstat 1ebb35b98889ff77299f24d82da426b434b0cca0...788b8b1440462d477f45b0088875
 	// we get:
@@ -136,7 +136,7 @@ func GetDiffShortStat(env []string, repoPath string, args ...string) (numFiles, 
 		"--shortstat",
 	}, args...)
 
-	stdout, err := NewCommand(args...).RunInDirWithEnv(repoPath, env)
+	stdout, err := NewCommand(args...).RunInDir(repoPath)
 	if err != nil {
 		return 0, 0, 0, err
 	}
