@@ -715,7 +715,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	shortstatArgs := []string{beforeCommitID + "..." + afterCommitID}
 	var env []string
 	if len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA {
-		shortstatArgs = []string{"--cached", afterCommitID}
+		shortstatArgs = []string{"--cached", "-R", afterCommitID}
 		tmpDir, err := ioutil.TempDir("", "gitdiff")
 		if err != nil {
 			return nil, err
