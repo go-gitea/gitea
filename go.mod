@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	cloud.google.com/go v0.45.0 // indirect
+	code.gitea.io/sdk/gitea v0.12.0
 	gitea.com/jolheiser/gitea-vet v0.1.0
 	gitea.com/lunny/levelqueue v0.3.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b

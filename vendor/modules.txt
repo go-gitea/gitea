@@ -1,6 +1,9 @@
 # cloud.google.com/go v0.45.0
 ## explicit
 cloud.google.com/go/compute/metadata
+# code.gitea.io/sdk/gitea v0.12.0
+## explicit
+code.gitea.io/sdk/gitea
 # gitea.com/jolheiser/gitea-vet v0.1.0
 ## explicit
 gitea.com/jolheiser/gitea-vet
