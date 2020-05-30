@@ -8,7 +8,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * SECURITY
   * Fix missing authorization check on pull for public repos of private/limited org (#11656) (#11683)
-  * Allow all members of private orgs to see public repos (#11442) (#11459)
   * Use session for retrieving org teams (#11438) (#11439)
 * BUGFIXES
   * Return json on 500 error from API (#11574) (#11660)
@@ -18,6 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use media links for img in post-process (#10515) (#11504)
   * Ensure public repositories in private organizations are visible and fix admin organizations list (#11465) (#11475)
   * Set correct Content-Type value for Gogs/Gitea webhooks (#9504) (#10456) (#11461)
+  * Allow all members of private orgs to see public repos (#11442) (#11459)
   * Whenever the ctx.Session is updated, release it to save it before sending the redirect (#11456) (#11457)
   * Forcibly clean and destroy the session on logout (#11447) (#11451)
   * Fix /api/v1/orgs/* endpoints by changing parameter to :org from :orgname (#11381)
