@@ -19,6 +19,20 @@ import (
 
 const fileSizeLimit int64 = 16 * 1024 * 1024
 
+// specialLanguages defines list of languages that are excluded from the calculation
+// unless they are the only language present in repository. Only languages which under
+// normal circumstances are not considered to be code should be listed here.
+var specialLanguages = []string{
+	"XML",
+	"JSON",
+	"TOML",
+	"YAML",
+	"INI",
+	"SVG",
+	"Text",
+	"Markdown",
+}
+
 // GetLanguageStats calculates language stats for git repository at specified commit
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
 	r, err := git.PlainOpen(repo.Path)
@@ -58,7 +72,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 		language := analyze.GetCodeLanguage(f.Name, content)
 		if language == enry.OtherLanguage || language == "" {
-			language = "other"
+			return nil
 		}
 
 		sizes[language] += f.Size
@@ -69,8 +83,11 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
-	if len(sizes) == 0 {
-		sizes["other"] = 0
+	// filter special languages unless they are the only language
+	if len(sizes) > 1 {
+		for _, language := range specialLanguages {
+			delete(sizes, language)
+		}
 	}
 
 	return sizes, nil
