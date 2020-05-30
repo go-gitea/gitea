@@ -502,6 +502,10 @@ func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
 }
 
 func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
+	// make sure DB version is uptodate
+	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+		return nil, fmt.Errorf("model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
+	}
 	_, committer, err := models.TxDBContext()
 	if err != nil {
 		return nil, err
