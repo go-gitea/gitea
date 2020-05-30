@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -458,4 +459,15 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
+}
+
+// resetFixtures flushes queues, reloads fixtures and resets test repositories within a single test.
+// Most tests should call defer prepareTestEnv(t)() (or have onGiteaRun do that for them) but sometimes
+// within a single test this is required
+func resetFixtures(t *testing.T) {
+	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
+	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
+		setting.RepoRootPath))
 }

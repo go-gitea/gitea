@@ -565,7 +565,12 @@ code,
         font-weight: normal;
     }
 
-    .avatar.image {
+    .avatar.image,
+    .avatar.image img,
+    .avatar.image svg,
+    .avatar.images .image,
+    .avatar.images img,
+    .avatar.images svg {
         border-radius: 3px;
     }
 
@@ -1257,9 +1262,9 @@ i.icon.centerlock {
 .reaction {
     font-size: 1.5em;
     line-height: 1.2;
-    font-weight: 400;
+    font-style: normal !important;
+    font-weight: normal !important;
     vertical-align: middle;
-    font-style: normal;
 }
 
 #issue-title > .emoji {
