@@ -907,7 +907,7 @@ func ViewIssue(ctx *context.Context) {
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
-	if issue.ShowTag, err = commentTag(repo, issue.Poster, issue); err ! = nil {
+	if issue.ShowTag, err = commentTag(repo, issue.Poster, issue); err != nil {
 		ctx.ServerError("commentTag", err)
 		return
 	}
