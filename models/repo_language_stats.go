@@ -26,22 +26,6 @@ type LanguageStat struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 
-// specialLanguages defines list of languages that are excluded from the calculation
-// unless they are the only language present in repository. Only languages which under
-// normal circumstances are not considered to be code should be listed here.
-var specialLanguages = map[string]struct{}{
-	"XML":      {},
-	"JSON":     {},
-	"TOML":     {},
-	"YAML":     {},
-	"INI":      {},
-	"SQL":      {},
-	"SVG":      {},
-	"Text":     {},
-	"Markdown": {},
-	"other":    {},
-}
-
 // LanguageStatList defines a list of language statistics
 type LanguageStatList []*LanguageStat
 
@@ -55,27 +39,12 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 	langPerc := make(map[string]float32)
 	var otherPerc float32 = 100
 	var total int64
-	// Check that repository has at least one non-special language
-	var skipSpecial bool
+
 	for _, stat := range stats {
-		if _, ok := specialLanguages[stat.Language]; !ok {
-			skipSpecial = true
-			break
-		}
-	}
-	for _, stat := range stats {
-		// Exclude specific languages from percentage calculation
-		if _, ok := specialLanguages[stat.Language]; ok && skipSpecial {
-			continue
-		}
 		total += stat.Size
 	}
 	if total > 0 {
 		for _, stat := range stats {
-			// Exclude specific languages from percentage calculation
-			if _, ok := specialLanguages[stat.Language]; ok && skipSpecial {
-				continue
-			}
 			perc := float32(math.Round(float64(stat.Size)/float64(total)*1000) / 10)
 			if perc <= 0.1 {
 				continue
@@ -84,8 +53,6 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 			langPerc[stat.Language] = perc
 		}
 		otherPerc = float32(math.Round(float64(otherPerc)*10) / 10)
-	} else {
-		otherPerc = 100
 	}
 	if otherPerc > 0 {
 		langPerc["other"] = otherPerc
