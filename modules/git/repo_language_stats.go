@@ -57,7 +57,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 	sizes := make(map[string]int64)
 	err = tree.Files().ForEach(func(f *object.File) error {
-		if enry.IsVendor(f.Name) || enry.IsDotFile(f.Name) ||
+		if f.Size == 0 || enry.IsVendor(f.Name) || enry.IsDotFile(f.Name) ||
 			enry.IsDocumentation(f.Name) || enry.IsConfiguration(f.Name) {
 			return nil
 		}
@@ -73,6 +73,12 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		language := analyze.GetCodeLanguage(f.Name, content)
 		if language == enry.OtherLanguage || language == "" {
 			return nil
+		}
+
+		// group languages, such as Pug -> HTML; SCSS -> CSS
+		group := enry.GetLanguageGroup(language)
+		if group != "" {
+			language = group
 		}
 
 		sizes[language] += f.Size
