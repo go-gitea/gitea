@@ -22,7 +22,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix /api/v1/orgs/* endpoints by changing parameter to :org from :orgname (#11381)
   * Add tracked time fix to doctor (part of #11111) (#11138)
   * Fix webpack chunk loading with STATIC_URL_PREFIX (#11526) (#11544)
-* BUILD
   * Remove unnecessary parentheses in wiki/revision.tmpl to allow 1.11 to build on go1.14  (#11481)
 
 ## [1.11.5](https://github.com/go-gitea/gitea/releases/tag/v1.11.5) - 2020-05-09
