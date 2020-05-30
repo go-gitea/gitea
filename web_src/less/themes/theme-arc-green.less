@@ -385,22 +385,6 @@ a.ui.basic.green.label:hover {
     background-color: #2a2e3a;
 }
 
-.ui.tabular.menu .active.item {
-    background: #383c4a;
-    color: #dbdbdb;
-    border-left: 1px solid transparent;
-    border-right: 1px solid transparent;
-    border-top: 0;
-}
-
-.ui.tabular.menu .item {
-    color: #9e9e9e;
-}
-
-.ui.tabular.menu .item:hover {
-    color: #dbdbdb;
-}
-
 .ui.header,
 .ui.breadcrumb .divider {
     color: #9e9e9e;
@@ -531,15 +515,31 @@ a.ui.basic.green.label:hover {
     border-bottom: 1px solid #304251;
 }
 
-.repository.wiki.new .ui.container form .ui.tabular.menu {
-    border-bottom: 1px solid rgba(187, 187, 187, .6);
+.ui.tabular.menu {
+    border-bottom-color: rgba(187, 187, 187, .24);
 
-    .active.item {
-        border-top: 1px solid rgba(187, 187, 187, .6);
-        border-left: 1px solid rgba(187, 187, 187, .6);
-        border-right: 1px solid rgba(187, 187, 187, .6);
-        &:hover {
-            background: #4b5162;
+    .item.active {
+        border-top-color: transparent;
+        border-left-color: transparent;
+        border-right-color: transparent;
+        background: #404552;
+        color: #dbdbdb;
+    }
+
+    .item {
+        color: #9e9e9e;
+    }
+
+    .item:hover {
+        color: #dbdbdb;
+    }
+
+    &.navbar {
+        .item.active {
+            background: #383c4a;
+            border-left-color: transparent;
+            border-right-color: transparent;
+            border-top: none;
         }
     }
 }
@@ -827,10 +827,6 @@ a.ui.basic.green.label:hover {
 
 .ui.menu .ui.dropdown .menu > .active.item {
     color: #dbdbdb !important;
-}
-
-.ui.tabular.menu {
-    border-bottom: 1px solid #313c47;
 }
 
 .ui.card,
