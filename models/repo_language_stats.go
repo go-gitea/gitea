@@ -53,8 +53,6 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 			langPerc[stat.Language] = perc
 		}
 		otherPerc = float32(math.Round(float64(otherPerc)*10) / 10)
-	} else {
-		otherPerc = 100
 	}
 	if otherPerc > 0 {
 		langPerc["other"] = otherPerc
