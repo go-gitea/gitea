@@ -102,6 +102,7 @@ type CommentTag int
 // Enumerate all the comment tag types
 const (
 	CommentTagNone CommentTag = iota
+	CommentTagPoster
 	CommentTagWriter
 	CommentTagOwner
 )
