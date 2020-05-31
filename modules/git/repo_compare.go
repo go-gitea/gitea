@@ -6,9 +6,11 @@
 package git
 
 import (
+	"bytes"
 	"container/list"
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -84,12 +86,95 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 	}
 
 	// Count number of changed files.
-	stdout, err := NewCommand("diff", "--name-only", remoteBranch+"..."+headBranch).RunInDir(repo.Path)
+	// This probably should be removed as we need to use shortstat elsewhere
+	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
+	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(remoteBranch, headBranch)
 	if err != nil {
 		return nil, err
 	}
-	compareInfo.NumFiles = len(strings.Split(stdout, "\n")) - 1
 	return compareInfo, nil
+}
+
+type lineCountWriter struct {
+	numLines int
+}
+
+// Write counts the number of newlines in the provided bytestream
+func (l *lineCountWriter) Write(p []byte) (n int, err error) {
+	n = len(p)
+	l.numLines += bytes.Count(p, []byte{'\000'})
+	return
+}
+
+// GetDiffNumChangedFiles counts the number of changed files
+// This is substantially quicker than shortstat but...
+func (repo *Repository) GetDiffNumChangedFiles(base, head string) (int, error) {
+	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
+	w := &lineCountWriter{}
+	stderr := new(bytes.Buffer)
+
+	if err := NewCommand("diff", "-z", "--name-only", base+"..."+head).
+		RunInDirPipeline(repo.Path, w, stderr); err != nil {
+		return 0, fmt.Errorf("%v: Stderr: %s", err, stderr)
+	}
+	return w.numLines, nil
+}
+
+// GetDiffShortStat counts number of changed files, number of additions and deletions
+func (repo *Repository) GetDiffShortStat(base, head string) (numFiles, totalAdditions, totalDeletions int, err error) {
+	return GetDiffShortStat(repo.Path, base+"..."+head)
+}
+
+// GetDiffShortStat counts number of changed files, number of additions and deletions
+func GetDiffShortStat(repoPath string, args ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
+	// Now if we call:
+	// $ git diff --shortstat 1ebb35b98889ff77299f24d82da426b434b0cca0...788b8b1440462d477f45b0088875
+	// we get:
+	// " 9902 files changed, 2034198 insertions(+), 298800 deletions(-)\n"
+	args = append([]string{
+		"diff",
+		"--shortstat",
+	}, args...)
+
+	stdout, err := NewCommand(args...).RunInDir(repoPath)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	return parseDiffStat(stdout)
+}
+
+var shortStatFormat = regexp.MustCompile(
+	`\s*(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?`)
+
+func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int, err error) {
+	if len(stdout) == 0 || stdout == "\n" {
+		return 0, 0, 0, nil
+	}
+	groups := shortStatFormat.FindStringSubmatch(stdout)
+	if len(groups) != 4 {
+		return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s groups: %s", stdout, groups)
+	}
+
+	numFiles, err = strconv.Atoi(groups[1])
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumFiles %v", stdout, err)
+	}
+
+	if len(groups[2]) != 0 {
+		totalAdditions, err = strconv.Atoi(groups[2])
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumAdditions %v", stdout, err)
+		}
+	}
+
+	if len(groups[3]) != 0 {
+		totalDeletions, err = strconv.Atoi(groups[3])
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumDeletions %v", stdout, err)
+		}
+	}
+	return
 }
 
 // GetDiffOrPatch generates either diff or formatted patch data between given revisions
