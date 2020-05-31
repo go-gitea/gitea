@@ -717,6 +717,8 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 		return commitVerification
 	}
 
+	log.Info("PublicKeyContent: %s", gpgSettings.PublicKeyContent)
+
 	// Otherwise we have to parse the key
 	ekey, err := checkArmoredGPGKeyString(gpgSettings.PublicKeyContent)
 	if err != nil {
@@ -740,6 +742,21 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 		Content: content,
 		CanSign: pubkey.CanSign(),
 		KeyID:   pubkey.KeyIdString(),
+	}
+	for _, subKey := range ekey.Subkeys {
+		content, err := base64EncPubKey(subKey.PublicKey)
+		if err != nil {
+			return &CommitVerification{
+				CommittingUser: committer,
+				Verified:       false,
+				Reason:         "gpg.error.generate_hash",
+			}
+		}
+		k.SubsKey = append(k.SubsKey, &GPGKey{
+			Content: content,
+			CanSign: subKey.PublicKey.CanSign(),
+			KeyID:   subKey.PublicKey.KeyIdString(),
+		})
 	}
 	if commitVerification := hashAndVerifyWithSubKeys(sig, payload, k, committer, &User{
 		Name:  gpgSettings.Name,
