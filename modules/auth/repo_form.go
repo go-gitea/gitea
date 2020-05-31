@@ -45,6 +45,7 @@ type CreateRepoForm struct {
 	Webhooks     bool
 	Avatar       bool
 	Labels       bool
+	TrustModel   string
 }
 
 // Validate validates the fields
@@ -138,6 +139,9 @@ type RepoSettingForm struct {
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
 	IsArchived                       bool
+
+	// Signing Settings
+	TrustModel string
 
 	// Admin settings
 	EnableHealthCheck                     bool

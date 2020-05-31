@@ -11482,6 +11482,17 @@
           "description": "Readme of the repository to create",
           "type": "string",
           "x-go-name": "Readme"
+        },
+        "trust_model": {
+          "description": "TrustModel of the repository",
+          "type": "string",
+          "enum": [
+            "default",
+            "collaborator",
+            "committer",
+            "collaboratorcommitter"
+          ],
+          "x-go-name": "TrustModel"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

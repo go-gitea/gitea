@@ -79,13 +79,14 @@ var (
 		} `ini:"repository.issue"`
 
 		Signing struct {
-			SigningKey    string
-			SigningName   string
-			SigningEmail  string
-			InitialCommit []string
-			CRUDActions   []string `ini:"CRUD_ACTIONS"`
-			Merges        []string
-			Wiki          []string
+			SigningKey        string
+			SigningName       string
+			SigningEmail      string
+			InitialCommit     []string
+			CRUDActions       []string `ini:"CRUD_ACTIONS"`
+			Merges            []string
+			Wiki              []string
+			DefaultTrustModel string
 		} `ini:"repository.signing"`
 	}{
 		AnsiCharset:                             "",
@@ -168,21 +169,23 @@ var (
 
 		// Signing settings
 		Signing: struct {
-			SigningKey    string
-			SigningName   string
-			SigningEmail  string
-			InitialCommit []string
-			CRUDActions   []string `ini:"CRUD_ACTIONS"`
-			Merges        []string
-			Wiki          []string
+			SigningKey        string
+			SigningName       string
+			SigningEmail      string
+			InitialCommit     []string
+			CRUDActions       []string `ini:"CRUD_ACTIONS"`
+			Merges            []string
+			Wiki              []string
+			DefaultTrustModel string
 		}{
-			SigningKey:    "default",
-			SigningName:   "",
-			SigningEmail:  "",
-			InitialCommit: []string{"always"},
-			CRUDActions:   []string{"pubkey", "twofa", "parentsigned"},
-			Merges:        []string{"pubkey", "twofa", "basesigned", "commitssigned"},
-			Wiki:          []string{"never"},
+			SigningKey:        "default",
+			SigningName:       "",
+			SigningEmail:      "",
+			InitialCommit:     []string{"always"},
+			CRUDActions:       []string{"pubkey", "twofa", "parentsigned"},
+			Merges:            []string{"pubkey", "twofa", "basesigned", "commitssigned"},
+			Wiki:              []string{"never"},
+			DefaultTrustModel: "collaborator",
 		},
 	}
 	RepoRootPath string
@@ -220,6 +223,11 @@ func newRepository() {
 		log.Fatal("Failed to map Repository.Local settings: %v", err)
 	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
+	}
+
+	Repository.Signing.DefaultTrustModel = strings.ToLower(strings.TrimSpace(Repository.Signing.DefaultTrustModel))
+	if Repository.Signing.DefaultTrustModel == "default" {
+		Repository.Signing.DefaultTrustModel = "collaborator"
 	}
 
 	if !filepath.IsAbs(Repository.Upload.TempPath) {

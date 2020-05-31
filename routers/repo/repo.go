@@ -243,6 +243,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
 			DefaultBranch: form.DefaultBranch,
 			AutoInit:      form.AutoInit,
+			TrustModel:    models.ToTrustModel(form.TrustModel),
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)

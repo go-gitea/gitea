@@ -51,6 +51,11 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
+
+	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
+	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
+	ctx.Data["SigningSettings"] = setting.Repository.Signing
+
 	ctx.HTML(200, tplSettingsOptions)
 }
 
@@ -305,6 +310,26 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
+	case "signing":
+		changed := false
+
+		trustModel := models.ToTrustModel(form.TrustModel)
+		if trustModel != repo.TrustModel {
+			repo.TrustModel = trustModel
+			changed = true
+		}
+
+		if changed {
+			if err := models.UpdateRepository(repo, false); err != nil {
+				ctx.ServerError("UpdateRepository", err)
+				return
+			}
+		}
+		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")

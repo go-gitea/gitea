@@ -110,6 +110,8 @@ SIGNING_KEY = default
 ; by setting the SIGNING_KEY ID to the correct ID.)
 SIGNING_NAME =
 SIGNING_EMAIL =
+; Sets the default trust model for repositories. Options are: collaborator, committer, collaboratorcommitter
+DEFAULT_TRUST_MODEL=collaborator
 ; Determines when gitea should sign the initial commit when creating a repository
 ; Either:
 ; - never
