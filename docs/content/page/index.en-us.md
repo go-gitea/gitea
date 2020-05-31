@@ -261,9 +261,8 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 
 ## Browser Support
 
-- Last 2 versions of Chrome, Firefox and Safari
+- Last 2 versions of Chrome, Firefox, Safari, Edge (EdgeHTML) and Edge (Chromium)
 - Firefox ESR
-- Edge 14+
 
 ## Components
 
