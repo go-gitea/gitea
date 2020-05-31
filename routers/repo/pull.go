@@ -437,10 +437,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return nil
 	}
-	if len(commitStatuses) > 0 {
-		ctx.Data["LatestCommitStatuses"] = commitStatuses
-		ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
-	}
 
 	if pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck {
 		ctx.Data["is_context_required"] = func(context string) bool {
@@ -451,7 +447,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			}
 			return false
 		}
-		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
+		ctx.Data["RequiredStatusCheckState"], commitStatuses = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
+	}
+
+	if len(commitStatuses) > 0 {
+		ctx.Data["LatestCommitStatuses"] = commitStatuses
+		ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
 	}
 
 	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha

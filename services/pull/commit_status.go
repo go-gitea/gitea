@@ -14,13 +14,13 @@ import (
 )
 
 // MergeRequiredContextsCommitStatus returns a commit status state for given required contexts
-func MergeRequiredContextsCommitStatus(commitStatuses []*models.CommitStatus, requiredContexts []string) structs.CommitStatusState {
+func MergeRequiredContextsCommitStatus(commitStatuses []*models.CommitStatus, requiredContexts []string) (structs.CommitStatusState, []*models.CommitStatus) {
 	if len(requiredContexts) == 0 {
 		status := models.CalcCommitStatus(commitStatuses)
 		if status != nil {
-			return status.State
+			return status.State, commitStatuses
 		}
-		return structs.CommitStatusSuccess
+		return structs.CommitStatusSuccess, commitStatuses
 	}
 
 	var returnedStatus = structs.CommitStatusSuccess
@@ -38,14 +38,14 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*models.CommitStatus, re
 			commitStatuses = append(commitStatuses, &models.CommitStatus{
 				State:       targetStatus,
 				Context:     ctx,
-				Description: "Pending",
+				Description: "Waiting for status to be reported",
 			})
 		}
 		if targetStatus.NoBetterThan(returnedStatus) {
 			returnedStatus = targetStatus
 		}
 	}
-	return returnedStatus
+	return returnedStatus, commitStatuses
 }
 
 // IsCommitStatusContextSuccess returns true if all required status check contexts succeed.
@@ -126,5 +126,7 @@ func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStat
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}
 
-	return MergeRequiredContextsCommitStatus(commitStatuses, pr.ProtectedBranch.StatusCheckContexts), nil
+	result, _ := MergeRequiredContextsCommitStatus(commitStatuses, pr.ProtectedBranch.StatusCheckContexts)
+
+	return result, nil
 }
