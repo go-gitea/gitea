@@ -4,6 +4,27 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.6](https://github.com/go-gitea/gitea/releases/tag/v1.11.6) - 2020-05-30
+
+* SECURITY
+  * Fix missing authorization check on pull for public repos of private/limited org (#11656) (#11683)
+  * Use session for retrieving org teams (#11438) (#11439)
+* BUGFIXES
+  * Return json on 500 error from API (#11574) (#11660)
+  * Fix wrong milestone in webhook message (#11596) (#11612)
+  * Prevent (caught) panic on login (#11590) (#11598)
+  * Fix commit page js error (#11527)
+  * Use media links for img in post-process (#10515) (#11504)
+  * Ensure public repositories in private organizations are visible and fix admin organizations list (#11465) (#11475)
+  * Set correct Content-Type value for Gogs/Gitea webhooks (#9504) (#10456) (#11461)
+  * Allow all members of private orgs to see public repos (#11442) (#11459)
+  * Whenever the ctx.Session is updated, release it to save it before sending the redirect (#11456) (#11457)
+  * Forcibly clean and destroy the session on logout (#11447) (#11451)
+  * Fix /api/v1/orgs/* endpoints by changing parameter to :org from :orgname (#11381)
+  * Add tracked time fix to doctor (part of #11111) (#11138)
+  * Fix webpack chunk loading with STATIC_URL_PREFIX (#11526) (#11544)
+  * Remove unnecessary parentheses in wiki/revision.tmpl to allow 1.11 to build on go1.14  (#11481)
+
 ## [1.11.5](https://github.com/go-gitea/gitea/releases/tag/v1.11.5) - 2020-05-09
 
 * BUGFIXES
