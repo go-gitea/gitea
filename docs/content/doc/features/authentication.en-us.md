@@ -238,9 +238,9 @@ Before activating SSPI single sign-on authentication (SSO) you have to prepare y
 
 - Sign in to a client computer in the same domain with any domain user (client computer, different from the server running `gitea.exe`)
 
-- If you are using Chrome, Edge or Internet Explorer, add the URL of the web app to the Local intranet sites (`Internet Options -> Security -> Local intranet -> Sites`)
+- If you are using Chrome or Edge, add the URL of the web app to the Local intranet sites (`Internet Options -> Security -> Local intranet -> Sites`)
 
-- Start Chrome, Edge or Internet Explorer and navigate to the FQDN URL of gitea (eg. `http://host.domain.local:3000`)
+- Start Chrome or Edge and navigate to the FQDN URL of gitea (eg. `http://host.domain.local:3000`)
 
 - Click the `Sign In` button on the dashboard and choose SSPI to be automatically logged in with the same user that is currently logged on to the computer
 

@@ -93,15 +93,9 @@ func SlackLinkFormatter(url string, text string) string {
 
 // SlackLinkToRef slack-formatter link to a repo ref
 func SlackLinkToRef(repoURL, ref string) string {
+	url := git.RefURL(repoURL, ref)
 	refName := git.RefEndName(ref)
-	switch {
-	case strings.HasPrefix(ref, git.BranchPrefix):
-		return SlackLinkFormatter(repoURL+"/src/branch/"+refName, refName)
-	case strings.HasPrefix(ref, git.TagPrefix):
-		return SlackLinkFormatter(repoURL+"/src/tag/"+refName, refName)
-	default:
-		return SlackLinkFormatter(repoURL+"/src/commit/"+refName, refName)
-	}
+	return SlackLinkFormatter(url, refName)
 }
 
 func getSlackCreatePayload(p *api.CreatePayload, slack *SlackMeta) (*SlackPayload, error) {

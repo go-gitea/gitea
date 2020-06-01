@@ -20,7 +20,7 @@
 		{{if .Issue.IsPull}}
 			{{template "repo/issue/view_title" .}}
 			{{template "repo/pulls/tab_menu" .}}
-			<div class="ui bottom attached tab pull segment active" data-tab="request-{{.ID}}">
+			<div class="ui bottom attached tab pull active" data-tab="request-{{.ID}}">
 				{{template "repo/issue/view_content" .}}
 			</div>
 		{{else}}

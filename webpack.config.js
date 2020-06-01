@@ -2,6 +2,7 @@ const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
 const PostCSSSafeParser = require('postcss-safe-parser');
@@ -34,13 +35,20 @@ module.exports = {
     jquery: [
       resolve(__dirname, 'web_src/js/jquery.js'),
     ],
+    serviceworker: [
+      resolve(__dirname, 'web_src/js/serviceworker.js'),
+    ],
     icons: glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
     ...themes,
   },
   devtool: false,
   output: {
     path: resolve(__dirname, 'public'),
-    filename: 'js/[name].js',
+    filename: ({chunk}) => {
+      // serviceworker can only manage assets below it's script's directory so
+      // we have to put it in / instead of /js/
+      return chunk.name === 'serviceworker' ? '[name].js' : 'js/[name].js';
+    },
     chunkFilename: 'js/[name].js',
   },
   optimization: {
@@ -76,6 +84,14 @@ module.exports = {
     splitChunks: {
       chunks: 'async',
       name: (_, chunks) => chunks.map((item) => item.name).join('-'),
+      cacheGroups: {
+        // this bundles all monaco's languages into one file instead of emitting 1-65.js files
+        monaco: {
+          test: /monaco-editor/,
+          name: 'monaco',
+          chunks: 'async'
+        }
+      }
     }
   },
   module: {
@@ -91,6 +107,7 @@ module.exports = {
       },
       {
         test: /\.worker\.js$/,
+        exclude: /monaco/,
         use: [
           {
             loader: 'worker-loader',
@@ -149,7 +166,10 @@ module.exports = {
             loader: 'css-loader',
             options: {
               importLoaders: 2,
-              url: false,
+              url: (_url, resourcePath) => {
+                // only resolve URLs for dependencies
+                return resourcePath.includes('node_modules');
+              },
             }
           },
           {
@@ -187,6 +207,19 @@ module.exports = {
           },
         ],
       },
+      {
+        test: /\.(ttf|woff2?)$/,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]',
+              outputPath: 'fonts/',
+              publicPath: (url) => `../fonts/${url}`, // seems required for monaco's font
+            },
+          },
+        ],
+      },
     ],
   },
   plugins: [
@@ -209,9 +242,14 @@ module.exports = {
     new SpriteLoaderPlugin({
       plainSprite: true,
     }),
+    new MonacoWebpackPlugin({
+      filename: 'js/monaco-[name].worker.js',
+    }),
   ],
   performance: {
     hints: false,
+    maxEntrypointSize: Infinity,
+    maxAssetSize: Infinity,
   },
   resolve: {
     symlinks: false,
@@ -223,5 +261,8 @@ module.exports = {
     ignored: [
       'node_modules/**',
     ],
+  },
+  stats: {
+    children: false,
   },
 };
