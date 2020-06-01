@@ -366,7 +366,7 @@ steps:
 
   - name: update
     pull: default
-    image: alpine:3.11
+    image: alpine:3.12
     commands:
       - ./build/update-locales.sh
 
