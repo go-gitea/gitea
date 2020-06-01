@@ -405,6 +405,8 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 		}
 	}
 
+	reviewsUnfiltered = []*Review{}
+
 	// Get latest review of each reviwer, sorted in order they were made
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
