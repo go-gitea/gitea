@@ -995,6 +995,21 @@ func IsErrWontSign(err error) bool {
 //  |______  / |__|  (____  /___|  /\___  >___|  /
 //         \/             \/     \/     \/     \/
 
+// ErrBranchDoesNotExist represents an error that branch with such name does not exist.
+type ErrBranchDoesNotExist struct {
+	BranchName string
+}
+
+// IsErrBranchDoesNotExist checks if an error is an ErrBranchDoesNotExist.
+func IsErrBranchDoesNotExist(err error) bool {
+	_, ok := err.(ErrBranchDoesNotExist)
+	return ok
+}
+
+func (err ErrBranchDoesNotExist) Error() string {
+	return fmt.Sprintf("branch does not exist [name: %s]", err.BranchName)
+}
+
 // ErrBranchAlreadyExists represents an error that branch with such name already exists.
 type ErrBranchAlreadyExists struct {
 	BranchName string
