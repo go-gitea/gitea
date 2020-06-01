@@ -413,9 +413,7 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 	}
 
 	// Load reviewer and skip if user is deleted
-	for _, review := range reviewsUnfiltered {
-		reviews = append(reviews, review)
-	}
+	reviews = append(reviews, reviewsUnfiltered...)
 
 	return reviews, nil
 }
