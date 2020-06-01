@@ -14,20 +14,22 @@
 							{{else}}grey{{end}}">
 
 							{{$canChoose := false}}
-							{{if eq .Type 4}}
-								{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
-									{{$canChoose = true}}
+							{{if not .OriginalAuthor }}
+								{{if eq .Type 4}}
+									{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
+										{{$canChoose = true}}
+									{{end}}
+								{{else}}
+									{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
+										{{$canChoose = true}}
+									{{end}}
 								{{end}}
-							{{else}}
-								{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
-									{{$canChoose = true}}
-								{{end}}
-							{{end}}
 
-							{{if $canChoose }}
-								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-									{{svg "octicon-sync" 16}}
-								</a>
+								{{if $canChoose }}
+									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+										{{svg "octicon-sync" 16}}
+									</a>
+								{{end}}
 							{{end}}
 							{{svg (printf "octicon-%s" .Type.Icon) 16}}
 						</span>
@@ -36,10 +38,17 @@
 							<i class="octicon icon fa-hourglass-end"></i>
 						</span>
 						{{end}}
-						<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
-							<img src="{{.Reviewer.RelAvatarLink}}">
-						</a>
-						<span class="text grey"><a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
+						{{if not .OriginalAuthor }}
+							<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
+								<img src="{{.Reviewer.RelAvatarLink}}">
+							</a>
+						{{end}}
+						<span class="text grey">
+							{{if .OriginalAuthor }}
+								<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+							{{else}}
+								<a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
+							{{end}}
 							{{if eq .Type 1}}
 								{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
 							{{else if eq .Type 2}}

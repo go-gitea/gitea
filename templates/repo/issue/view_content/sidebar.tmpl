@@ -27,7 +27,7 @@
 					{{$notReviewed := true}}
 
 					{{range $.PullReviewers}}
-						{{if eq .ReviewerID $ReviewerID }}
+						{{if and (eq .ReviewerID $ReviewerID) (not .OriginalAuthor) }}
 							{{$notReviewed = false }} 
 							{{if  eq .Type 4 }}
 								{{$checked = true}}
@@ -59,7 +59,11 @@
 			<div class="selected">
 				{{range .PullReviewers}}
 					<div class="item" style="margin-bottom: 10px;">
-						<a href="{{.Reviewer.HomeLink}}"><img class="ui avatar image" src="{{.Reviewer.RelAvatarLink}}">&nbsp;{{.Reviewer.GetDisplayName}}</a>
+						{{if .OriginalAuthor}}
+							<a href="{{$.Repository.OriginalURL}}" class="ui poping up" data-content="({{$.i18n.Tr "repo.migrated_from_nolink" $.Repository.GetOriginalURLHostname | Safe }}"><span class="text black "><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span></a>
+						{{else}}
+							<a href="{{.Reviewer.HomeLink}}"><img class="ui avatar image" src="{{.Reviewer.RelAvatarLink}}">&nbsp;{{.Reviewer.GetDisplayName}}</a>
+						{{end}}
 						<span class="ui right type-icon text {{if eq .Type 1}}green
 							{{- else if eq .Type 2}}grey
 							{{- else if eq .Type 3}}red
@@ -67,13 +71,15 @@
 							{{- else}}grey{{end}} right ">
 
 							{{$canChoose := false}}
-							{{if eq .Type 4}}
-								{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
-									{{$canChoose = true}}
-								{{end}}
-							{{else}}
-								{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
-									{{$canChoose = true}}
+							{{if not .OriginalAuthor}}
+								{{if eq .Type 4}}
+									{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
+										{{$canChoose = true}}
+									{{end}}
+								{{else}}
+									{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
+										{{$canChoose = true}}
+									{{end}}
 								{{end}}
 							{{end}}
 
