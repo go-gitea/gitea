@@ -71,7 +71,9 @@ func CreateNewBranch(doer *models.User, repo *models.Repository, oldBranchName, 
 	}
 
 	if !git.IsBranchExist(repo.RepoPath(), oldBranchName) {
-		return fmt.Errorf("OldBranch: %s does not exist. Cannot create new branch from this", oldBranchName)
+		return models.ErrBranchDoesNotExist{
+			BranchName: oldBranchName,
+		}
 	}
 
 	basePath, err := models.CreateTemporaryPath("branch-maker")
