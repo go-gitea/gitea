@@ -153,16 +153,19 @@ func DetectEncoding(content []byte) (string, error) {
 	topResult := results[0]
 	priority, has := setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(topResult.Charset))]
 	for _, result := range results {
-		if result.Confidence == topConfidence {
-			resultPriority, resultHas := setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(result.Charset))]
-			if resultHas && (!has || resultPriority < priority) {
-				topResult = result
-				priority = resultPriority
-				has = true
-			}
-			continue
+		// As results are sorted in confidence order - if we have a different confidence
+		// we know it's less than the current confidence and can break out of the loop early
+		if result.Confidence != topConfidence {
+			break
 		}
-		break
+
+		// Otherwise check if this results is earlier in the DetectedCharsetOrder than our current top guesss
+		resultPriority, resultHas := setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(result.Charset))]
+		if resultHas && (!has || resultPriority < priority) {
+			topResult = result
+			priority = resultPriority
+			has = true
+		}
 	}
 
 	// FIXME: to properly decouple this function the fallback ANSI charset should be passed as an argument
