@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
-	"xorm.io/builder"
 )
 
 var (
@@ -805,6 +804,14 @@ func (repo *Repository) updateSize(e Engine) error {
 	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %v", err)
+	}
+
+	objs, err := repo.GetLFSMetaObjects(-1, 0)
+	if err != nil {
+		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+	}
+	for _, obj := range objs {
+		size += obj.Size
 	}
 
 	repo.Size = size
@@ -1601,67 +1608,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
-	// Delete comments and attachments
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Comment{}); err != nil {
-		return err
-	}
-
-	// Dependencies for issues in this repository
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	// Delete dependencies for issues in other repositories
-	if _, err = sess.In("dependency_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueUser{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Reaction{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueWatch{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Stopwatch{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&TrackedTime{}); err != nil {
-		return err
-	}
-
-	attachments = attachments[:0]
-	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
-		Where("issue.repo_id = ?", repoID).
-		Find(&attachments); err != nil {
-		return err
-	}
-	attachmentPaths := make([]string, 0, len(attachments))
-	for j := range attachments {
-		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Attachment{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+	// Delete Issues and related objects
+	var attachmentPaths []string
+	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
 		return err
 	}
 

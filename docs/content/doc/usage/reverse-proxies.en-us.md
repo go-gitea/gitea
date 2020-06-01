@@ -159,7 +159,15 @@ If you want Caddy to serve your Gitea instance, you can add the following server
 
 ```
 git.example.com {
-    proxy / http://localhost:3000
+    reverse_proxy localhost:3000
+}
+```
+
+If you still use Caddy v1, use:
+
+```
+git.example.com {
+    proxy / localhost:3000
 }
 ```
 
@@ -169,7 +177,18 @@ In case you already have a site, and you want Gitea to share the domain name, yo
 
 ```
 git.example.com {
-    proxy /git/ http://localhost:3000 # Note: Trailing Slash after /git/
+    route /git/* {
+        uri strip_prefix /git
+        reverse_proxy localhost:3000
+    }
+}
+```
+
+Or, for Caddy v1:
+
+```
+git.example.com {
+    proxy /git/ localhost:3000
 }
 ```
 
