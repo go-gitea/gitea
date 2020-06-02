@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -65,6 +66,27 @@ func TestMain(m *testing.M) {
 	initIntegrationTest()
 	mac = routes.NewMacaron()
 	routes.RegisterRoutes(mac)
+
+	// integration test settings...
+	if setting.Cfg != nil {
+		testingCfg := setting.Cfg.Section("integration-tests")
+		slowTest = testingCfg.Key("SLOW_TEST").MustDuration(slowTest)
+		slowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(slowFlush)
+	}
+
+	if os.Getenv("GITEA_SLOW_TEST_TIME") != "" {
+		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_TEST_TIME"))
+		if err == nil {
+			slowTest = duration
+		}
+	}
+
+	if os.Getenv("GITEA_SLOW_FLUSH_TIME") != "" {
+		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_FLUSH_TIME"))
+		if err == nil {
+			slowFlush = duration
+		}
+	}
 
 	var helper testfixtures.Helper
 	if setting.Database.UseMySQL {

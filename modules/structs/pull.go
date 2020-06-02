@@ -21,6 +21,7 @@ type PullRequest struct {
 	Assignee  *User      `json:"assignee"`
 	Assignees []*User    `json:"assignees"`
 	State     StateType  `json:"state"`
+	IsLocked  bool       `json:"is_locked"`
 	Comments  int        `json:"comments"`
 
 	HTMLURL  string `json:"html_url"`
