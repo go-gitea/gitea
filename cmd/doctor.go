@@ -502,33 +502,21 @@ func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
 }
 
 func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
+	var results []string
+
 	// make sure DB version is uptodate
 	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
 		return nil, fmt.Errorf("model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 	}
-	_, committer, err := models.TxDBContext()
-	if err != nil {
-		return nil, err
-	}
-	sess := committer.(models.Engine)
-	defer committer.Close()
-	var results []string
 
 	//find tracked times without existing issues/pulls
-	count, err := sess.Table("tracked_time").
-		Join("LEFT", "issue", "tracked_time.issue_id=issue.id").
-		Where("issue.id is NULL").
-		Count("id")
+	count, err := models.CountOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id")
 	if err != nil {
 		return nil, err
 	}
 	if count > 0 {
 		if ctx.Bool("fix") {
-			if _, err = sess.In("id", builder.Select("tracked_time.id").
-				From("tracked_time").
-				Join("LEFT", "issue", "tracked_time.issue_id=issue.id").
-				Where(builder.IsNull{"issue.id"})).
-				Delete(models.TrackedTime{}); err != nil {
+			if err = models.DeleteOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id"); err != nil {
 				return nil, err
 			}
 			results = append(results, fmt.Sprintf("%d tracked times without existing issue deleted", count))
@@ -537,8 +525,5 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		}
 	}
 
-	if ctx.Bool("fix") {
-		return results, committer.Commit()
-	}
 	return results, nil
 }
