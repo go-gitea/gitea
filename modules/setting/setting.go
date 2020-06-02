@@ -256,12 +256,14 @@ var (
 
 	// Markdown settings
 	Markdown = struct {
-		EnableHardLineBreak bool
-		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
-		FileExtensions      []string
+		EnableHardLineBreakInComments  bool
+		EnableHardLineBreakInDocuments bool
+		CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
+		FileExtensions                 []string
 	}{
-		EnableHardLineBreak: true,
-		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
+		EnableHardLineBreakInComments:  true,
+		EnableHardLineBreakInDocuments: false,
+		FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
 	// Admin settings
@@ -728,6 +730,8 @@ func NewContext() {
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
+		} else {
+			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))
 		}
 	}
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
@@ -1069,7 +1073,7 @@ func loadInternalToken(sec *ini.Section) string {
 			return token
 		}
 
-		return string(buf)
+		return strings.TrimSpace(string(buf))
 	default:
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 	}

@@ -80,6 +80,20 @@
 &.feeds {
     .news {
 
+        li {
+            display: flex;
+            align-items: baseline;
+            margin-top: .5rem;
+            margin-bottom: .5rem;
+
+            img {
+                align-self: flex-start;
+            }
+        }
+        li > * + * {
+            margin-left: .35rem;
+        }
+
         line-height: 1.2;
 
         > .ui.grid {
@@ -100,18 +114,13 @@
         }
 
         .push.news .content ul {
-            line-height: initial;
+            line-height: 18px;
             font-size: 13px;
             list-style: none;
             padding-left: 10px;
 
-            img {
-                margin-bottom: -2px;
-            }
-
             .text.truncate {
                 width: 80%;
-                margin-bottom: -5px;
             }
         }
 
