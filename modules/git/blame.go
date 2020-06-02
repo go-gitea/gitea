@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"time"
 
 	"code.gitea.io/gitea/modules/process"
 )
@@ -100,8 +101,9 @@ func CreateBlameReader(repoPath, commitID, file string) (*BlameReader, error) {
 }
 
 func createBlameReader(dir string, command ...string) (*BlameReader, error) {
-	// FIXME: graceful: This should have a timeout
-	ctx, cancel := context.WithCancel(DefaultContext)
+	// This timeout was abritrarily chosen just so that there are not hundreds of `git blame`
+	// processes sticking around after some operations.
+	ctx, cancel := context.WithTimeout(DefaultContext, 5*time.Minute)
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
 	cmd.Dir = dir
 	cmd.Stderr = os.Stderr
