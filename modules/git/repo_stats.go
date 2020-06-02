@@ -50,13 +50,13 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 	stats.CommitCountInAllBranches = c
 
-	stderrReader, stderrWriter, err := os.Pipe()
+	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to open stderr pipe: %v", err)
+		return nil, err
 	}
 	defer func() {
-		_ = stderrReader.Close()
-		_ = stderrWriter.Close()
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
 	}()
 
 	args := []string{"log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%an%n%ae%n", "--date=iso", fmt.Sprintf("--since='%s'", since)}
@@ -68,11 +68,11 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	err = NewCommand(args...).RunInDirTimeoutEnvFullPipelineFunc(
 		nil, -1, repo.Path,
-		nil, stderrWriter, stderrReader,
+		stdoutWriter, nil, nil,
 		func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stderrWriter.Close()
+			_ = stdoutWriter.Close()
 
-			scanner := bufio.NewScanner(stderrReader)
+			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)
 			stats.CommitCount = 0
 			stats.Additions = 0
@@ -141,7 +141,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			stats.ChangedFiles = int64(len(files))
 			stats.Authors = a
 
-			_ = stderrReader.Close()
+			_ = stdoutReader.Close()
 			return nil
 		})
 	if err != nil {
