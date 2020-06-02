@@ -171,10 +171,12 @@ func (action *Action) checkForConsistency(t *testing.T) {
 
 // CountOrphanedObjects count subjects with have no existing refobject anymore
 func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
-	return x.Table("`"+subject+"`").
+	var ids []int64
+
+	return int64(len(ids)), x.Table("`"+subject+"`").
 		Join("LEFT", refobject, joinCond).
 		Where(builder.IsNull{"`" + refobject + "`.id"}).
-		Count("id")
+		Select("id").Find(&ids)
 }
 
 // DeleteOrphanedObjects delete subjects with have no existing refobject anymore
