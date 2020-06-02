@@ -214,7 +214,7 @@ var migrations = []Migration{
 	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
 	// v140 -> v141
 	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
-  // v141 -> v142
+	// v141 -> v142
 	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 
