@@ -9,7 +9,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"unicode/utf8"
 )
 
 // Gemoji is a set of emoji data.
@@ -21,6 +20,7 @@ type Emoji struct {
 	Description    string
 	Aliases        []string
 	UnicodeVersion string
+	SkinTones      bool
 }
 
 var (
@@ -131,11 +131,12 @@ func ReplaceAliases(s string) string {
 func FindEmojiSubmatchIndex(s string) []int {
 	loadMap()
 
-	// if rune and string length are the same then no emoji will be present
-	// similar performance when there is unicode present but almost 200% faster when not
-	if utf8.RuneCountInString(s) == len(s) {
+	//see if there are any emoji in string before looking for position of specific ones
+	//no performance difference when there is a match but 10x faster when there are not
+	if s == ReplaceCodes(s) {
 		return nil
 	}
+
 	for j := range GemojiData {
 		i := strings.Index(s, GemojiData[j].Emoji)
 		if i != -1 {
