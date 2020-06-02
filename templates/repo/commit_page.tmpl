@@ -47,7 +47,7 @@
 					{{end}}
 					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
-						<div class="commited-by">
+						<div class="committed-by">
 							<span class="text grey">{{svg "octicon-git-commit" 16}}{{.i18n.Tr "repo.diff.commited_by"}}</span>
 							{{if ne .Verification.CommittingUser.ID 0}}
 								<img class="ui avatar image" src="{{.Verification.CommittingUser.RelAvatarLink}}" />
