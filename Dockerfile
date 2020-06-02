@@ -10,7 +10,7 @@ ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS "bindata $TAGS"
 ARG CGO_CFLAGS=""
-ENV CGO_CFLAGS "-DSQLITE_MAX_VARIABLE_NUMBER=32766 $CGO_CFLAGS"
+ENV CGO_CFLAGS "-DSQLITE_MAX_VARIABLE_NUMBER=32766 -g -O2 $CGO_CFLAGS"
 
 #Build deps
 RUN apk --no-cache add build-base git nodejs npm
