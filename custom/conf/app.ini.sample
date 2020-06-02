@@ -50,7 +50,7 @@ DISABLED_REPO_UNITS =
 DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
 ; Prefix archive files by placing them in a directory named after the repository
 PREFIX_ARCHIVE_FILES = true
-; Disable new mirror migrations
+; Disable the creation of new mirrors. Pre-existing mirrors remain valid.
 DISABLE_MIRRORS = false
 
 [repository.editor]
