@@ -9,7 +9,8 @@ ENV GOPROXY ${GOPROXY:-direct}
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS "bindata $TAGS"
-ENV CGO_CFLAGS "-DSQLITE_MAX_VARIABLE_NUMBER=32766"
+ARG CGO_CFLAGS=""
+ENV CGO_CFLAGS "-DSQLITE_MAX_VARIABLE_NUMBER=32766 $CGO_CFLAGS"
 
 #Build deps
 RUN apk --no-cache add build-base git nodejs npm
