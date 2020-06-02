@@ -68,7 +68,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	err = NewCommand(args...).RunInDirTimeoutEnvFullPipelineFunc(
 		nil, -1, repo.Path,
-		nil, stderrWriter, nil,
+		nil, stderrWriter, stderrReader,
 		func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stderrWriter.Close()
 
