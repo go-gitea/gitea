@@ -11,10 +11,29 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestAPIAllowedReactions(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	type allowed []string
+
+	a := new(allowed)
+
+	req := NewRequest(t, "GET", "/api/v1/settings/allowed_reactions")
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	DecodeJSON(t, resp, &a)
+	assert.Len(t, *a, len(setting.UI.Reactions))
+
+	for _, r := range *a {
+		assert.True(t, setting.UI.ReactionsMap[r])
+	}
+}
 
 func TestAPIIssuesReactions(t *testing.T) {
 	defer prepareTestEnv(t)()
