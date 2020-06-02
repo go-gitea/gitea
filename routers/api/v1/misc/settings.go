@@ -13,7 +13,7 @@ import (
 func SettingGetsAllowedReactions(ctx *context.APIContext) {
 	// swagger:operation GET /settings/allowed_reactions miscellaneous getAllowedReactions
 	// ---
-	// summary: Returns the version of the Gitea application
+	// summary: Returns string array of allowed reactions
 	// produces:
 	// - application/json
 	// responses:
