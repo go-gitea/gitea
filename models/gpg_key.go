@@ -717,8 +717,6 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 		return commitVerification
 	}
 
-	log.Info("PublicKeyContent: %s", gpgSettings.PublicKeyContent)
-
 	// Otherwise we have to parse the key
 	ekey, err := checkArmoredGPGKeyString(gpgSettings.PublicKeyContent)
 	if err != nil {
