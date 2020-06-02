@@ -125,6 +125,52 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	return nil, nil
 }
 
+// plainauth logic based on https://golang.org/src/net/smtp/auth.go#L41
+type plainAuth struct {
+	identity, username, password string
+	host                         string
+}
+
+// PlainAuth returns an Auth that implements the PLAIN authentication
+// mechanism as defined in RFC 4616. The returned Auth uses the given
+// username and password to authenticate to host and act as identity.
+// Usually identity should be the empty string, to act as username.
+//
+// PlainAuth will only send the credentials if the connection is using TLS
+// or is connected to localhost. Otherwise authentication will fail with an
+// error, without sending the credentials.
+func PlainAuth(identity, username, password, host string) smtp.Auth {
+	return &plainAuth{identity, username, password, host}
+}
+
+func isLocalhost(name string) bool {
+	return name == "localhost" || name == "127.0.0.1" || name == "::1"
+}
+
+func (a *plainAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
+	// Must have TLS, or else localhost server.
+	// Note: If TLS is not true, then we can't trust ANYTHING in ServerInfo.
+	// In particular, it doesn't matter if the server advertises PLAIN auth.
+	// That might just be the attacker saying
+	// "it's ok, you can trust me with your password."
+	if !server.TLS && !isLocalhost(server.Name) { // TODO: create override for "isLocalhost"
+		return "", nil, fmt.Errorf("unencrypted connection")
+	}
+	if server.Name != a.host {
+		return "", nil, fmt.Errorf("wrong host name")
+	}
+	resp := []byte(a.identity + "\x00" + a.username + "\x00" + a.password)
+	return "PLAIN", resp, nil
+}
+
+func (a *plainAuth) Next(fromServer []byte, more bool) ([]byte, error) {
+	if more {
+		// We've already sent everything.
+		return nil, fmt.Errorf("unexpected server challenge")
+	}
+	return nil, nil
+}
+
 // Sender SMTP mail sender
 type smtpSender struct {
 }
@@ -197,7 +243,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		if strings.Contains(options, "CRAM-MD5") {
 			auth = smtp.CRAMMD5Auth(opts.User, opts.Passwd)
 		} else if strings.Contains(options, "PLAIN") {
-			auth = smtp.PlainAuth("", opts.User, opts.Passwd, host)
+			auth = PlainAuth("", opts.User, opts.Passwd, host)
 		} else if strings.Contains(options, "LOGIN") {
 			// Patch for AUTH LOGIN
 			auth = LoginAuth(opts.User, opts.Passwd)
