@@ -48,24 +48,7 @@
 							{{end}}
 								<span class="shortsha">{{ShortSha .ID.String}}</span>
 								{{if .Signature}}
-									<div class="ui detail icon button">
-										{{if .Verification.Verified}}
-											<div title="{{if eq .Verification.TrustStatus "trusted"}}{{else if eq .Verification.TrustStatus "untrusted"}}{{$.i18n.Tr "repo.commits.signed_by_untrusted_user"}}: {{else}}{{$.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}: {{end}}{{.Verification.Reason}}">
-												{{if ne .Verification.SigningUser.ID 0}}
-													<i class="lock icon"></i>
-													<img class="ui signature avatar image" src="{{.Verification.SigningUser.RelAvatarLink}}" />
-												{{else}}
-													<i title="{{.Verification.Reason}}" class="icons">
-														<i class="lock icon"></i>
-														<i class="tiny inverted cog icon centerlock"></i>
-													</i>
-													<img class="ui signature avatar image" src="{{AvatarLink .Verification.SigningEmail}}" />
-												{{end}}
-											</div>
-										{{else}}
-											<i title="{{$.i18n.Tr .Verification.Reason}}" class="unlock icon"></i>
-										{{end}}
-									</div>
+									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
 								{{end}}
 							{{if $.Reponame}}
 								</a>
