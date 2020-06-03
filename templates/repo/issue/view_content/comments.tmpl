@@ -608,7 +608,7 @@
 			</span>
 		</div>
 		{{if not .IsForcePush}}
-			{{template "repo/commits_list_small" .}}
+			{{template "repo/commits_list_small" dict "comment" . "root" $}}
 		{{end}}
 	{{end}}
 {{end}}
