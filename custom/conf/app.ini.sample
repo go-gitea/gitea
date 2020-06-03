@@ -55,6 +55,8 @@ DISABLED_REPO_UNITS =
 DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
 ; Prefix archive files by placing them in a directory named after the repository
 PREFIX_ARCHIVE_FILES = true
+; Disable the creation of new mirrors. Pre-existing mirrors remain valid.
+DISABLE_MIRRORS = false
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the Monaco editor

@@ -42,6 +42,7 @@ var (
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
 		PrefixArchiveFiles                      bool
+		DisableMirrors                          bool
 
 		// Repository editor settings
 		Editor struct {
@@ -142,6 +143,7 @@ var (
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
 		PrefixArchiveFiles:                      true,
+		DisableMirrors:                          false,
 
 		// Repository editor settings
 		Editor: struct {
