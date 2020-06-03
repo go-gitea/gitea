@@ -55,7 +55,7 @@ DISABLED_REPO_UNITS =
 DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects
 ; Prefix archive files by placing them in a directory named after the repository
 PREFIX_ARCHIVE_FILES = true
-; Default templates for project borards
+; Default templates for project boards
 PROJECT_BOARD_BASIC_KANBAN_TYPE = To Do, In Progress, Done
 PROJECT_BOARD_BUG_TRIAGE_TYPE = Needs Triage, High priority, Low priority, Closed
 ; Disable the creation of new mirrors. Pre-existing mirrors remain valid.
