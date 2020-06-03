@@ -160,7 +160,7 @@ steps:
 
   - name: tag-pre-condition
     pull: always
-    image: alpine/git
+    image: drone/git
     commands:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
@@ -366,7 +366,7 @@ steps:
 
   - name: update
     pull: default
-    image: alpine:3.11
+    image: alpine:3.12
     commands:
       - ./build/update-locales.sh
 
