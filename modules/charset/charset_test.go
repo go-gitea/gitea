@@ -230,7 +230,11 @@ func TestDetectEncoding(t *testing.T) {
 	// we accept either.
 	assert.Contains(t, encoding, "ISO-8859")
 
+	old := setting.Repository.AnsiCharset
 	setting.Repository.AnsiCharset = "placeholder"
+	defer func() {
+		setting.Repository.AnsiCharset = old
+	}()
 	testSuccess(b, "placeholder")
 
 	// invalid bytes
