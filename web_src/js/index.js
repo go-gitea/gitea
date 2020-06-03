@@ -2485,7 +2485,7 @@ $(document).ready(async () => {
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
-    initProject(csrf),
+    initProject(),
     initServiceWorker(),
   ]);
 });

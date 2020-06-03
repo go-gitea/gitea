@@ -1,4 +1,6 @@
-export default async function initProject(csrf) {
+const {crsf} = window.config;
+
+export default async function initProject() {
   if (!window.config || !window.config.PageIsProjects) {
     return;
   }
@@ -9,10 +11,10 @@ export default async function initProject(csrf) {
 
   const boardColumns = document.getElementsByClassName('board-column');
 
-  for (let i = 0; i < boardColumns.length; i++) {
+  for (const column of boardColumns) {
     new Sortable(
       document.getElementById(
-        boardColumns[i].getElementsByClassName('board')[0].id
+        column.getElementsByClassName('board')[0].id
       ),
       {
         group: 'shared',
@@ -41,7 +43,7 @@ export default async function initProject(csrf) {
 
     $(this)
       .find('.content > .form > .actions > .red')
-      .click(function (e) {
+      .on('click', function (e) {
         e.preventDefault();
 
         $.ajax({
