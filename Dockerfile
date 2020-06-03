@@ -9,8 +9,7 @@ ENV GOPROXY ${GOPROXY:-direct}
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS "bindata $TAGS"
-ARG CGO_CFLAGS=""
-ENV CGO_CFLAGS "-DSQLITE_MAX_VARIABLE_NUMBER=32766 -g -O2 $CGO_CFLAGS"
+ARG CGO_EXTRA_CFLAGS=""
 
 #Build deps
 RUN apk --no-cache add build-base git nodejs npm
@@ -20,8 +19,9 @@ COPY . ${GOPATH}/src/code.gitea.io/gitea
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 
 #Checkout version if set
-RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
- && make clean-all build
+RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi && \
+ export CGO_CFLAGS="$(go env CGO_CFLAGS) -DSQLITE_MAX_VARIABLE_NUMBER=32766 $CGO_EXTRA_CFLAGS" && \
+ make clean-all build
 
 FROM alpine:3.11
 LABEL maintainer="maintainers@gitea.io"

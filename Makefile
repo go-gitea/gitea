@@ -82,7 +82,7 @@ else
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
-CGO_CFLAGS := -DSQLITE_MAX_VARIABLE_NUMBER=32766 -g -O2 $(CGO_CFLAGS)
+CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) -DSQLITE_MAX_VARIABLE_NUMBER=32766
 
 GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
