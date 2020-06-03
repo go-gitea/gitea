@@ -1259,7 +1259,13 @@ function initPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
     }
-    commentCloud.find('textarea').focus();
+    const $textarea = commentCloud.find('textarea');
+    attachTribute($textarea.get(), {mentions: true, emoji: true});
+
+    // Give new write/preview data-tab name to distinguish from others
+    const $simplemde = setCommentSimpleMDE($textarea);
+    $textarea.focus();
+    $simplemde.codemirror.focus();
   });
 }
 
