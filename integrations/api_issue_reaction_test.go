@@ -29,10 +29,7 @@ func TestAPIAllowedReactions(t *testing.T) {
 
 	DecodeJSON(t, resp, &a)
 	assert.Len(t, *a, len(setting.UI.Reactions))
-
-	for _, r := range *a {
-		assert.True(t, setting.UI.ReactionsMap[r])
-	}
+	assert.ElementsMatch(t, setting.UI.Reactions, *a)
 }
 
 func TestAPIIssuesReactions(t *testing.T) {
