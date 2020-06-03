@@ -6,4 +6,4 @@
 
 package public
 
-//go:generate go run -mod=vendor  ../../scripts/generate-bindata.go ../../public public bindata.go
+//go:generate go run -mod=vendor  ../../build/generate-bindata.go ../../public public bindata.go

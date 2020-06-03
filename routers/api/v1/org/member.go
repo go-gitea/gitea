@@ -69,7 +69,7 @@ func ListMembers(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
 		}
-		publicOnly = !isMember
+		publicOnly = !isMember && !ctx.User.IsAdmin
 	}
 	listMembers(ctx, publicOnly)
 }
@@ -135,7 +135,7 @@ func IsMember(ctx *context.APIContext) {
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
-		} else if userIsMember {
+		} else if userIsMember || ctx.User.IsAdmin {
 			userToCheckIsMember, err := ctx.Org.Organization.IsOrgMember(userToCheck.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)

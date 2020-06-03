@@ -94,6 +94,13 @@ func NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullReque
 	}
 }
 
+// NotifyPullRequestPushCommits notifies when push commits to pull request's head branch
+func NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestPushCommits(doer, pr, comment)
+	}
+}
+
 // NotifyUpdateComment notifies update comment to notifiers
 func NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
 	for _, notifier := range notifiers {
@@ -147,6 +154,13 @@ func NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent
 func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 	for _, notifier := range notifiers {
 		notifier.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
+	}
+}
+
+// NotifyPullReviewRequest notifies Request Review change
+func NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullReviewRequest(doer, issue, reviewer, isRequest, comment)
 	}
 }
 

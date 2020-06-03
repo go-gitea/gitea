@@ -393,13 +393,16 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		iss = append(iss, &is)
 	}
 
-	err := models.InsertIssues(iss...)
-	if err != nil {
-		return err
+	if len(iss) > 0 {
+		if err := models.InsertIssues(iss...); err != nil {
+			return err
+		}
+
+		for _, is := range iss {
+			g.issues.Store(is.Index, is.ID)
+		}
 	}
-	for _, is := range iss {
-		g.issues.Store(is.Index, is.ID)
-	}
+
 	return nil
 }
 
@@ -478,6 +481,9 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		cms = append(cms, &cm)
 	}
 
+	if len(cms) == 0 {
+		return nil
+	}
 	return models.InsertIssueComments(cms)
 }
 

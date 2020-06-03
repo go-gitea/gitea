@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -18,6 +19,10 @@ import (
 type Result struct {
 	RepoID         int64
 	Filename       string
+	CommitID       string
+	UpdatedUnix    timeutil.TimeStamp
+	Language       string
+	Color          string
 	HighlightClass string
 	LineNumbers    []int
 	FormattedLines gotemplate.HTML
@@ -100,6 +105,10 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 	return &Result{
 		RepoID:         result.RepoID,
 		Filename:       result.Filename,
+		CommitID:       result.CommitID,
+		UpdatedUnix:    result.UpdatedUnix,
+		Language:       result.Language,
+		Color:          result.Color,
 		HighlightClass: highlight.FileNameToHighlightClass(result.Filename),
 		LineNumbers:    lineNumbers,
 		FormattedLines: gotemplate.HTML(formattedLinesBuffer.String()),
@@ -107,14 +116,14 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 }
 
 // PerformSearch perform a search on a repository
-func PerformSearch(repoIDs []int64, keyword string, page, pageSize int) (int, []*Result, error) {
+func PerformSearch(repoIDs []int64, language, keyword string, page, pageSize int) (int, []*Result, []*SearchResultLanguages, error) {
 	if len(keyword) == 0 {
-		return 0, nil, nil
+		return 0, nil, nil, nil
 	}
 
-	total, results, err := indexer.Search(repoIDs, keyword, page, pageSize)
+	total, results, resultLanguages, err := indexer.Search(repoIDs, language, keyword, page, pageSize)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
 	displayResults := make([]*Result, len(results))
@@ -123,8 +132,8 @@ func PerformSearch(repoIDs []int64, keyword string, page, pageSize int) (int, []
 		startIndex, endIndex := indices(result.Content, result.StartIndex, result.EndIndex)
 		displayResults[i], err = searchResult(result, startIndex, endIndex)
 		if err != nil {
-			return 0, nil, err
+			return 0, nil, nil, err
 		}
 	}
-	return int(total), displayResults, nil
+	return int(total), displayResults, resultLanguages, nil
 }

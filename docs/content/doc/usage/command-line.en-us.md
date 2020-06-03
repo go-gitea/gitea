@@ -134,6 +134,7 @@ Admin operations:
                 - `--user-search-base value`: The LDAP base at which user accounts will be searched for. Required.
                 - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate. Required.
                 - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--restricted-filter value`: An LDAP filter specifying if a user should be given restricted status.
                 - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
                 - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
                 - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
@@ -158,6 +159,7 @@ Admin operations:
                 - `--user-search-base value`: The LDAP base at which user accounts will be searched for.
                 - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate.
                 - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--restricted-filter value`: An LDAP filter specifying if a user should be given restricted status.
                 - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
                 - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
                 - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
@@ -182,6 +184,7 @@ Admin operations:
                 - `--user-search-base value`: The LDAP base at which user accounts will be searched for.
                 - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate. Required.
                 - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--restricted-filter value`: An LDAP filter specifying if a user should be given restricted status.
                 - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
                 - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
                 - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
@@ -202,6 +205,7 @@ Admin operations:
                 - `--user-search-base value`: The LDAP base at which user accounts will be searched for.
                 - `--user-filter value`: An LDAP filter declaring how to find the user record that is attempting to authenticate.
                 - `--admin-filter value`: An LDAP filter specifying if a user should be given administrator privileges.
+                - `--restricted-filter value`: An LDAP filter specifying if a user should be given restricted status.
                 - `--username-attribute value`: The attribute of the user’s LDAP record containing the user name.
                 - `--firstname-attribute value`: The attribute of the user’s LDAP record containing the user’s first name.
                 - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.

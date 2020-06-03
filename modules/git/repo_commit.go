@@ -12,15 +12,20 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mcuadros/go-version"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	ref, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
 	if err != nil {
+		if err == plumbing.ErrReferenceNotFound {
+			return "", ErrNotExist{
+				ID: name,
+			}
+		}
 		return "", err
 	}
 
@@ -89,9 +94,15 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	gogitCommit, err := repo.gogitRepo.CommitObject(id)
 	if err == plumbing.ErrObjectNotFound {
 		tagObject, err = repo.gogitRepo.TagObject(id)
+		if err == plumbing.ErrObjectNotFound {
+			return nil, ErrNotExist{
+				ID: id.String(),
+			}
+		}
 		if err == nil {
 			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
 		}
+		// if we get a plumbing.ErrObjectNotFound here then the repository is broken and it should be 500
 	}
 	if err != nil {
 		return nil, err
@@ -319,7 +330,7 @@ func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List
 	var stdout []byte
 	var err error
 	if before == nil {
-		stdout, err = NewCommand("rev-list", before.ID.String()).RunInDirBytes(repo.Path)
+		stdout, err = NewCommand("rev-list", last.ID.String()).RunInDirBytes(repo.Path)
 	} else {
 		stdout, err = NewCommand("rev-list", before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
 	}
@@ -442,4 +453,22 @@ func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error)
 		branches[i] = parts[len(parts)-1]
 	}
 	return branches, nil
+}
+
+// GetCommitsFromIDs get commits from commit IDs
+func (repo *Repository) GetCommitsFromIDs(commitIDs []string) (commits *list.List) {
+	if len(commitIDs) == 0 {
+		return nil
+	}
+
+	commits = list.New()
+
+	for _, commitID := range commitIDs {
+		commit, err := repo.GetCommit(commitID)
+		if err == nil && commit != nil {
+			commits.PushBack(commit)
+		}
+	}
+
+	return commits
 }

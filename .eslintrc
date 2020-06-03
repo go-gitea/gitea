@@ -4,6 +4,9 @@ extends:
   - eslint-config-airbnb-base
   - eslint:recommended
 
+ignorePatterns:
+  - /web_src/js/vendor
+
 parserOptions:
   ecmaVersion: 2020
 
@@ -15,38 +18,57 @@ env:
 
 globals:
   __webpack_public_path__: true
-  Clipboard: false
   CodeMirror: false
   Dropzone: false
-  emojify: false
   SimpleMDE: false
   u2fApi: false
-  Vue: false
+  Tribute: false
+
+overrides:
+  - files: ["web_src/**/*.worker.js", "web_src/js/serviceworker.js"]
+    env:
+      worker: true
+    rules:
+      no-restricted-globals: [0]
 
 rules:
   arrow-body-style: [0]
+  arrow-parens: [2, always]
   camelcase: [0]
   comma-dangle: [2, only-multiline]
   consistent-return: [0]
   default-case: [0]
   func-names: [0]
-  import/extensions: [0]
+  import/extensions: [2, always, {ignorePackages: true}]
+  import/prefer-default-export: [0]
   max-len: [0]
+  multiline-comment-style: [2, separate-lines]
   newline-per-chained-call: [0]
   no-alert: [0]
+  no-cond-assign: [2, except-parens]
+  no-console: [1, {allow: [info, warn, error]}]
   no-continue: [0]
+  no-empty: [2, {allowEmptyCatch: true}]
+  no-eq-null: [2]
   no-mixed-operators: [0]
   no-multi-assign: [0]
   no-new: [0]
   no-param-reassign: [0]
   no-plusplus: [0]
   no-restricted-syntax: [0]
+  no-return-await: [0]
   no-shadow: [0]
+  no-underscore-dangle: [0]
   no-unused-vars: [2, {args: all, argsIgnorePattern: ^_, varsIgnorePattern: ^_, ignoreRestSiblings: true}]
   no-use-before-define: [0]
   no-var: [2]
+  object-curly-newline: [0]
+  object-curly-spacing: [2, never]
   one-var-declaration-per-line: [0]
   one-var: [0]
+  operator-linebreak: [2, after]
   prefer-const: [2, {destructuring: all}]
   prefer-destructuring: [0]
+  quotes: [2, single, {avoidEscape: true, allowTemplateLiterals: true}]
   radix: [2, as-needed]
+  semi: [2, always, {omitLastInOneLineBlock: true}]

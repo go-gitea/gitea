@@ -114,6 +114,16 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 		if err != nil {
 			return fmt.Errorf("GetMSTeamsPayload: %v", err)
 		}
+	case models.FEISHU:
+		payloader, err = GetFeishuPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetFeishuPayload: %v", err)
+		}
+	case models.MATRIX:
+		payloader, err = GetMatrixPayload(p, event, w.Meta)
+		if err != nil {
+			return fmt.Errorf("GetMatrixPayload: %v", err)
+		}
 	default:
 		p.SetSecret(w.Secret)
 		payloader = p
@@ -175,6 +185,13 @@ func prepareWebhooks(repo *models.Repository, event models.HookEventType, p api.
 		}
 		ws = append(ws, orgHooks...)
 	}
+
+	// Add any admin-defined system webhooks
+	systemHooks, err := models.GetSystemWebhooks()
+	if err != nil {
+		return fmt.Errorf("GetSystemWebhooks: %v", err)
+	}
+	ws = append(ws, systemHooks...)
 
 	if len(ws) == 0 {
 		return nil

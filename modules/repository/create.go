@@ -47,7 +47,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *m
 		// No need for init mirror.
 		if !opts.IsMirror {
 			repoPath := models.RepoPath(u.Name, repo.Name)
-			if err = initRepository(ctx, repoPath, u, repo, opts); err != nil {
+			if err = initRepository(ctx, repoPath, doer, repo, opts); err != nil {
 				if err2 := os.RemoveAll(repoPath); err2 != nil {
 					log.Error("initRepository: %v", err)
 					return fmt.Errorf(
@@ -58,15 +58,15 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *m
 
 			// Initialize Issue Labels if selected
 			if len(opts.IssueLabels) > 0 {
-				if err = models.InitalizeLabels(ctx, repo.ID, opts.IssueLabels); err != nil {
-					return fmt.Errorf("initalizeLabels: %v", err)
+				if err = models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
+					return fmt.Errorf("InitializeLabels: %v", err)
 				}
 			}
 
 			if stdout, err := git.NewCommand("update-server-info").
 				SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 				RunInDir(repoPath); err != nil {
-				log.Error("CreateRepitory(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+				log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 				return fmt.Errorf("CreateRepository(git update-server-info): %v", err)
 			}
 		}

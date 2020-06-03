@@ -7,6 +7,7 @@ package queue
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -36,6 +37,7 @@ func getQueueSettings(name string) (setting.QueueSettings, []byte) {
 	opts["Password"] = q.Password
 	opts["DBIndex"] = q.DBIndex
 	opts["QueueName"] = q.QueueName
+	opts["SetName"] = q.SetName
 	opts["Workers"] = q.Workers
 	opts["MaxWorkers"] = q.MaxWorkers
 	opts["BlockTimeout"] = q.BlockTimeout
@@ -80,4 +82,42 @@ func CreateQueue(name string, handle HandlerFunc, exemplar interface{}) Queue {
 		return nil
 	}
 	return returnable
+}
+
+// CreateUniqueQueue for name with provided handler and exemplar
+func CreateUniqueQueue(name string, handle HandlerFunc, exemplar interface{}) UniqueQueue {
+	q, cfg := getQueueSettings(name)
+	if len(cfg) == 0 {
+		return nil
+	}
+
+	if len(q.Type) > 0 && q.Type != "dummy" && !strings.HasPrefix(q.Type, "unique-") {
+		q.Type = "unique-" + q.Type
+	}
+
+	typ, err := validType(q.Type)
+	if err != nil || typ == PersistableChannelQueueType {
+		typ = PersistableChannelUniqueQueueType
+		if err != nil {
+			log.Error("Invalid type %s provided for queue named %s defaulting to %s", q.Type, name, string(typ))
+		}
+	}
+
+	returnable, err := NewQueue(typ, handle, cfg, exemplar)
+	if q.WrapIfNecessary && err != nil {
+		log.Warn("Unable to create unique queue for %s: %v", name, err)
+		log.Warn("Attempting to create wrapped queue")
+		returnable, err = NewQueue(WrappedUniqueQueueType, handle, WrappedUniqueQueueConfiguration{
+			Underlying:  typ,
+			Timeout:     q.Timeout,
+			MaxAttempts: q.MaxAttempts,
+			Config:      cfg,
+			QueueLength: q.Length,
+		}, exemplar)
+	}
+	if err != nil {
+		log.Error("Unable to create unique queue for %s: %v", name, err)
+		return nil
+	}
+	return returnable.(UniqueQueue)
 }

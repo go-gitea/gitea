@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -135,6 +136,16 @@ func HTTP(ctx *context.Context) {
 		environ      []string
 	)
 
+	// don't allow anonymous pulls if organization is not public
+	if isPublicPull {
+		if err := repo.GetOwner(); err != nil {
+			ctx.ServerError("GetOwner", err)
+			return
+		}
+
+		askAuth = askAuth || (repo.Owner.Visibility != structs.VisibleTypePublic)
+	}
+
 	// check access
 	if askAuth {
 		authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
@@ -188,27 +199,12 @@ func HTTP(ctx *context.Context) {
 			// Assume password is a token.
 			token, err := models.GetAccessTokenBySHA(authToken)
 			if err == nil {
-				if isUsernameToken {
-					authUser, err = models.GetUserByID(token.UID)
-					if err != nil {
-						ctx.ServerError("GetUserByID", err)
-						return
-					}
-				} else {
-					authUser, err = models.GetUserByName(authUsername)
-					if err != nil {
-						if models.IsErrUserNotExist(err) {
-							ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
-						} else {
-							ctx.ServerError("GetUserByName", err)
-						}
-						return
-					}
-					if authUser.ID != token.UID {
-						ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
-						return
-					}
+				authUser, err = models.GetUserByID(token.UID)
+				if err != nil {
+					ctx.ServerError("GetUserByID", err)
+					return
 				}
+
 				token.UpdatedUnix = timeutil.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.ServerError("UpdateAccessToken", err)
@@ -309,6 +305,19 @@ func HTTP(ctx *context.Context) {
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.Status(http.StatusNotFound)
+			return
+		}
+	}
+
+	if isWiki {
+		// Ensure the wiki is enabled before we allow access to it
+		if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+			if models.IsErrUnitTypeNotExist(err) {
+				ctx.HandleText(http.StatusForbidden, "repository wiki is disabled")
+				return
+			}
+			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
+			ctx.ServerError("GetUnit(UnitTypeWiki) for "+repo.FullName(), err)
 			return
 		}
 	}

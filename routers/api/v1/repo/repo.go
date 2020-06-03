@@ -78,9 +78,17 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: include private repositories this user has access to (defaults to true)
 	//   type: boolean
+	// - name: is_private
+	//   in: query
+	//   description: show only pubic, private or all repositories (defaults to all)
+	//   type: boolean
 	// - name: template
 	//   in: query
 	//   description: include template repositories this user has access to (defaults to true)
+	//   type: boolean
+	// - name: archived
+	//   in: query
+	//   description: show only archived, non-archived or all repositories (defaults to all)
 	//   type: boolean
 	// - name: mode
 	//   in: query
@@ -156,6 +164,14 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
+	if ctx.Query("archived") != "" {
+		opts.Archived = util.OptionalBoolOf(ctx.QueryBool("archived"))
+	}
+
+	if ctx.Query("is_private") != "" {
+		opts.IsPrivate = util.OptionalBoolOf(ctx.QueryBool("is_private"))
+	}
+
 	var sortMode = ctx.Query("sort")
 	if len(sortMode) > 0 {
 		var sortOrder = ctx.Query("order")
@@ -218,14 +234,15 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		opt.Readme = "Default"
 	}
 	repo, err := repo_service.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
-		Name:        opt.Name,
-		Description: opt.Description,
-		IssueLabels: opt.IssueLabels,
-		Gitignores:  opt.Gitignores,
-		License:     opt.License,
-		Readme:      opt.Readme,
-		IsPrivate:   opt.Private,
-		AutoInit:    opt.AutoInit,
+		Name:          opt.Name,
+		Description:   opt.Description,
+		IssueLabels:   opt.IssueLabels,
+		Gitignores:    opt.Gitignores,
+		License:       opt.License,
+		Readme:        opt.Readme,
+		IsPrivate:     opt.Private,
+		AutoInit:      opt.AutoInit,
+		DefaultBranch: opt.DefaultBranch,
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {

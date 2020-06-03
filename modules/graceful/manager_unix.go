@@ -110,8 +110,8 @@ func (g *Manager) handleSignals(ctx context.Context) {
 		case sig := <-signalChannel:
 			switch sig {
 			case syscall.SIGHUP:
-				log.Info("PID: %d. Received SIGHUP. Attempting GracefulShutdown...", pid)
-				g.DoGracefulShutdown()
+				log.Info("PID: %d. Received SIGHUP. Attempting GracefulRestart...", pid)
+				g.DoGracefulRestart()
 			case syscall.SIGUSR1:
 				log.Info("PID %d. Received SIGUSR1.", pid)
 			case syscall.SIGUSR2:

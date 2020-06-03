@@ -6,4 +6,4 @@
 
 package templates
 
-//go:generate go run -mod=vendor ../../scripts/generate-bindata.go ../../templates templates bindata.go
+//go:generate go run -mod=vendor ../../build/generate-bindata.go ../../templates templates bindata.go

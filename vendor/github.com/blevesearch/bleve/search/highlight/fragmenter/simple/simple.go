@@ -58,6 +58,11 @@ OUTER:
 		// push back towards beginning
 		// without cross maxbegin
 		for start > 0 && used < s.fragmentSize {
+			if start > len(orig) {
+				// bail if out of bounds, possibly due to token replacement
+				// e.g with a regexp replacement
+				continue OUTER
+			}
 			r, size := utf8.DecodeLastRune(orig[0:start])
 			if r == utf8.RuneError {
 				continue OUTER // bail

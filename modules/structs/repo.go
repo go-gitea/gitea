@@ -112,6 +112,8 @@ type CreateRepoOption struct {
 	License string `json:"license"`
 	// Readme of the repository to create
 	Readme string `json:"readme"`
+	// DefaultBranch of the repository (used when initializes and in template)
+	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -158,6 +160,31 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 }
 
+// CreateBranchRepoOption options when creating a branch in a repository
+// swagger:model
+type CreateBranchRepoOption struct {
+
+	// Name of the branch to create
+	//
+	// required: true
+	// unique: true
+	BranchName string `json:"new_branch_name" binding:"Required;GitRefName;MaxSize(100)"`
+
+	// Name of the old branch to create from
+	//
+	// unique: true
+	OldBranchName string `json:"old_branch_name" binding:"GitRefName;MaxSize(100)"`
+}
+
+// TransferRepoOption options when transfer a repository's ownership
+// swagger:model
+type TransferRepoOption struct {
+	// required: true
+	NewOwner string `json:"new_owner"`
+	// ID of the team or teams to add to the repository. Teams can only be added to organization-owned repositories.
+	TeamIDs *[]int64 `json:"team_ids"`
+}
+
 // GitServiceType represents a git service
 type GitServiceType int
 
@@ -192,6 +219,7 @@ var (
 	// TODO: add to this list after new git service added
 	SupportedFullGitService = []GitServiceType{
 		GithubService,
+		GitlabService,
 	}
 )
 

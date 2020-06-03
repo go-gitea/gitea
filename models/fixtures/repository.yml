@@ -4,6 +4,7 @@
   owner_name: user2
   lower_name: repo1
   name: repo1
+  is_empty: false
   is_private: false
   num_issues: 2
   num_closed_issues: 1

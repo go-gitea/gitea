@@ -132,15 +132,6 @@ func JSONRenderer() macaron.Handler {
 	})
 }
 
-// JSRenderer implements the macaron handler for serving JS templates.
-func JSRenderer() macaron.Handler {
-	return macaron.Renderer(macaron.RenderOptions{
-		Funcs:              NewFuncMap(),
-		TemplateFileSystem: NewTemplateFileSystem(),
-		HTMLContentType:    "application/javascript",
-	})
-}
-
 // Mailer provides the templates required for sending notification mails.
 func Mailer() (*texttmpl.Template, *template.Template) {
 	for _, funcs := range NewTextFuncMap() {
@@ -228,4 +219,17 @@ func AssetNames() []string {
 		results = append(results, k[1:])
 	}
 	return results
+}
+
+func AssetIsDir(name string) (bool, error) {
+	if f, err := Assets.Open("/" + name); err != nil {
+		return false, err
+	} else {
+		defer f.Close()
+		if fi, err := f.Stat(); err != nil {
+			return false, err
+		} else {
+			return fi.IsDir(), nil
+		}
+	}
 }

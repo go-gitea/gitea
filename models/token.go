@@ -77,13 +77,18 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	return nil, ErrAccessTokenNotExist{token}
 }
 
+// AccessTokenByNameExists checks if a token name has been used already by a user.
+func AccessTokenByNameExists(token *AccessToken) (bool, error) {
+	return x.Table("access_token").Where("name = ?", token.Name).And("uid = ?", token.UID).Exist()
+}
+
 // ListAccessTokens returns a list of access tokens belongs to given user.
 func ListAccessTokens(uid int64, listOptions ListOptions) ([]*AccessToken, error) {
 	sess := x.
 		Where("uid=?", uid).
 		Desc("id")
 
-	if listOptions.Page == 0 {
+	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
 
 		tokens := make([]*AccessToken, 0, listOptions.PageSize)

@@ -212,6 +212,9 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		),
 	}); err != nil {
 		log.Error("%v", err)
+		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
+			return err
+		}
 		return fmt.Errorf("Push: %v", err)
 	}
 
@@ -316,6 +319,9 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
 		Env:    models.PushingEnvironment(doer, repo),
 	}); err != nil {
+		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
+			return err
+		}
 		return fmt.Errorf("Push: %v", err)
 	}
 

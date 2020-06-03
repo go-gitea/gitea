@@ -69,17 +69,19 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 
 	// the level backend only needs temporary workers to catch up with the previously dropped work
 	levelCfg := LevelQueueConfiguration{
-		WorkerPoolConfiguration: WorkerPoolConfiguration{
-			QueueLength:  config.QueueLength,
-			BatchLength:  config.BatchLength,
-			BlockTimeout: 1 * time.Second,
-			BoostTimeout: 5 * time.Minute,
-			BoostWorkers: 5,
-			MaxWorkers:   6,
+		ByteFIFOQueueConfiguration: ByteFIFOQueueConfiguration{
+			WorkerPoolConfiguration: WorkerPoolConfiguration{
+				QueueLength:  config.QueueLength,
+				BatchLength:  config.BatchLength,
+				BlockTimeout: 1 * time.Second,
+				BoostTimeout: 5 * time.Minute,
+				BoostWorkers: 5,
+				MaxWorkers:   6,
+			},
+			Workers: 1,
+			Name:    config.Name + "-level",
 		},
 		DataDir: config.DataDir,
-		Workers: 1,
-		Name:    config.Name + "-level",
 	}
 
 	levelQueue, err := NewLevelQueue(handle, levelCfg, exemplar)
@@ -116,67 +118,67 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 }
 
 // Name returns the name of this queue
-func (p *PersistableChannelQueue) Name() string {
-	return p.delayedStarter.name
+func (q *PersistableChannelQueue) Name() string {
+	return q.delayedStarter.name
 }
 
 // Push will push the indexer data to queue
-func (p *PersistableChannelQueue) Push(data Data) error {
+func (q *PersistableChannelQueue) Push(data Data) error {
 	select {
-	case <-p.closed:
-		return p.internal.Push(data)
+	case <-q.closed:
+		return q.internal.Push(data)
 	default:
-		return p.channelQueue.Push(data)
+		return q.channelQueue.Push(data)
 	}
 }
 
 // Run starts to run the queue
-func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
-	log.Debug("PersistableChannelQueue: %s Starting", p.delayedStarter.name)
+func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
+	log.Debug("PersistableChannelQueue: %s Starting", q.delayedStarter.name)
 
-	p.lock.Lock()
-	if p.internal == nil {
-		err := p.setInternal(atShutdown, p.channelQueue.handle, p.channelQueue.exemplar)
-		p.lock.Unlock()
+	q.lock.Lock()
+	if q.internal == nil {
+		err := q.setInternal(atShutdown, q.channelQueue.handle, q.channelQueue.exemplar)
+		q.lock.Unlock()
 		if err != nil {
-			log.Fatal("Unable to create internal queue for %s Error: %v", p.Name(), err)
+			log.Fatal("Unable to create internal queue for %s Error: %v", q.Name(), err)
 			return
 		}
 	} else {
-		p.lock.Unlock()
+		q.lock.Unlock()
 	}
-	atShutdown(context.Background(), p.Shutdown)
-	atTerminate(context.Background(), p.Terminate)
+	atShutdown(context.Background(), q.Shutdown)
+	atTerminate(context.Background(), q.Terminate)
 
 	// Just run the level queue - we shut it down later
-	go p.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
+	go q.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
 
 	go func() {
-		_ = p.channelQueue.AddWorkers(p.channelQueue.workers, 0)
+		_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)
 	}()
 
-	log.Trace("PersistableChannelQueue: %s Waiting til closed", p.delayedStarter.name)
-	<-p.closed
-	log.Trace("PersistableChannelQueue: %s Cancelling pools", p.delayedStarter.name)
-	p.channelQueue.cancel()
-	p.internal.(*LevelQueue).cancel()
-	log.Trace("PersistableChannelQueue: %s Waiting til done", p.delayedStarter.name)
-	p.channelQueue.Wait()
-	p.internal.(*LevelQueue).Wait()
+	log.Trace("PersistableChannelQueue: %s Waiting til closed", q.delayedStarter.name)
+	<-q.closed
+	log.Trace("PersistableChannelQueue: %s Cancelling pools", q.delayedStarter.name)
+	q.channelQueue.cancel()
+	q.internal.(*LevelQueue).cancel()
+	log.Trace("PersistableChannelQueue: %s Waiting til done", q.delayedStarter.name)
+	q.channelQueue.Wait()
+	q.internal.(*LevelQueue).Wait()
 	// Redirect all remaining data in the chan to the internal channel
 	go func() {
-		log.Trace("PersistableChannelQueue: %s Redirecting remaining data", p.delayedStarter.name)
-		for data := range p.channelQueue.dataChan {
-			_ = p.internal.Push(data)
-			atomic.AddInt64(&p.channelQueue.numInQueue, -1)
+		log.Trace("PersistableChannelQueue: %s Redirecting remaining data", q.delayedStarter.name)
+		for data := range q.channelQueue.dataChan {
+			_ = q.internal.Push(data)
+			atomic.AddInt64(&q.channelQueue.numInQueue, -1)
 		}
-		log.Trace("PersistableChannelQueue: %s Done Redirecting remaining data", p.delayedStarter.name)
+		log.Trace("PersistableChannelQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
 	}()
-	log.Trace("PersistableChannelQueue: %s Done main loop", p.delayedStarter.name)
+	log.Trace("PersistableChannelQueue: %s Done main loop", q.delayedStarter.name)
 }
 
 // Flush flushes the queue and blocks till the queue is empty
-func (p *PersistableChannelQueue) Flush(timeout time.Duration) error {
+func (q *PersistableChannelQueue) Flush(timeout time.Duration) error {
 	var ctx context.Context
 	var cancel context.CancelFunc
 	if timeout > 0 {
@@ -185,24 +187,24 @@ func (p *PersistableChannelQueue) Flush(timeout time.Duration) error {
 		ctx, cancel = context.WithCancel(context.Background())
 	}
 	defer cancel()
-	return p.FlushWithContext(ctx)
+	return q.FlushWithContext(ctx)
 }
 
 // FlushWithContext flushes the queue and blocks till the queue is empty
-func (p *PersistableChannelQueue) FlushWithContext(ctx context.Context) error {
+func (q *PersistableChannelQueue) FlushWithContext(ctx context.Context) error {
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- p.channelQueue.FlushWithContext(ctx)
+		errChan <- q.channelQueue.FlushWithContext(ctx)
 	}()
 	go func() {
-		p.lock.Lock()
-		if p.internal == nil {
-			p.lock.Unlock()
-			errChan <- fmt.Errorf("not ready to flush internal queue %s yet", p.Name())
+		q.lock.Lock()
+		if q.internal == nil {
+			q.lock.Unlock()
+			errChan <- fmt.Errorf("not ready to flush internal queue %s yet", q.Name())
 			return
 		}
-		p.lock.Unlock()
-		errChan <- p.internal.FlushWithContext(ctx)
+		q.lock.Unlock()
+		errChan <- q.internal.FlushWithContext(ctx)
 	}()
 	err1 := <-errChan
 	err2 := <-errChan
@@ -214,44 +216,44 @@ func (p *PersistableChannelQueue) FlushWithContext(ctx context.Context) error {
 }
 
 // IsEmpty checks if a queue is empty
-func (p *PersistableChannelQueue) IsEmpty() bool {
-	if !p.channelQueue.IsEmpty() {
+func (q *PersistableChannelQueue) IsEmpty() bool {
+	if !q.channelQueue.IsEmpty() {
 		return false
 	}
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	if p.internal == nil {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.internal == nil {
 		return false
 	}
-	return p.internal.IsEmpty()
+	return q.internal.IsEmpty()
 }
 
 // Shutdown processing this queue
-func (p *PersistableChannelQueue) Shutdown() {
-	log.Trace("PersistableChannelQueue: %s Shutting down", p.delayedStarter.name)
+func (q *PersistableChannelQueue) Shutdown() {
+	log.Trace("PersistableChannelQueue: %s Shutting down", q.delayedStarter.name)
+	q.lock.Lock()
+	defer q.lock.Unlock()
 	select {
-	case <-p.closed:
+	case <-q.closed:
 	default:
-		p.lock.Lock()
-		defer p.lock.Unlock()
-		if p.internal != nil {
-			p.internal.(*LevelQueue).Shutdown()
+		if q.internal != nil {
+			q.internal.(*LevelQueue).Shutdown()
 		}
-		close(p.closed)
+		close(q.closed)
+		log.Debug("PersistableChannelQueue: %s Shutdown", q.delayedStarter.name)
 	}
-	log.Debug("PersistableChannelQueue: %s Shutdown", p.delayedStarter.name)
 }
 
 // Terminate this queue and close the queue
-func (p *PersistableChannelQueue) Terminate() {
-	log.Trace("PersistableChannelQueue: %s Terminating", p.delayedStarter.name)
-	p.Shutdown()
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	if p.internal != nil {
-		p.internal.(*LevelQueue).Terminate()
+func (q *PersistableChannelQueue) Terminate() {
+	log.Trace("PersistableChannelQueue: %s Terminating", q.delayedStarter.name)
+	q.Shutdown()
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.internal != nil {
+		q.internal.(*LevelQueue).Terminate()
 	}
-	log.Debug("PersistableChannelQueue: %s Terminated", p.delayedStarter.name)
+	log.Debug("PersistableChannelQueue: %s Terminated", q.delayedStarter.name)
 }
 
 func init() {

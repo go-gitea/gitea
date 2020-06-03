@@ -35,7 +35,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 
 	// Create org.
 	org := &models.User{
-		Name:       "All repo",
+		Name:       "All_repo",
 		IsActive:   true,
 		Type:       models.UserTypeOrganization,
 		Visibility: structs.VisibleTypePublic,

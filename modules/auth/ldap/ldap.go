@@ -46,6 +46,7 @@ type Source struct {
 	SearchPageSize        uint32 // Search with paging page size
 	Filter                string // Query filter to validate entry
 	AdminFilter           string // Query filter to check if user is admin
+	RestrictedFilter      string // Query filter to check if user is restricted
 	Enabled               bool   // if this source is disabled
 	AllowDeactivateAll    bool   // Allow an empty search response to deactivate all users from this source
 }
@@ -58,6 +59,7 @@ type SearchResult struct {
 	Mail         string   // E-mail address
 	SSHPublicKey []string // SSH Public Key
 	IsAdmin      bool     // if user is administrator
+	IsRestricted bool     // if user is restricted
 }
 
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
@@ -153,22 +155,48 @@ func bindUser(l *ldap.Conn, userDN, passwd string) error {
 }
 
 func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
-	if len(ls.AdminFilter) > 0 {
-		log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
-		search := ldap.NewSearchRequest(
-			userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
-			[]string{ls.AttributeName},
-			nil)
+	if len(ls.AdminFilter) == 0 {
+		return false
+	}
+	log.Trace("Checking admin with filter %s and base %s", ls.AdminFilter, userDN)
+	search := ldap.NewSearchRequest(
+		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.AdminFilter,
+		[]string{ls.AttributeName},
+		nil)
 
-		sr, err := l.Search(search)
+	sr, err := l.Search(search)
 
-		if err != nil {
-			log.Error("LDAP Admin Search failed unexpectedly! (%v)", err)
-		} else if len(sr.Entries) < 1 {
-			log.Trace("LDAP Admin Search found no matching entries.")
-		} else {
-			return true
-		}
+	if err != nil {
+		log.Error("LDAP Admin Search failed unexpectedly! (%v)", err)
+	} else if len(sr.Entries) < 1 {
+		log.Trace("LDAP Admin Search found no matching entries.")
+	} else {
+		return true
+	}
+	return false
+}
+
+func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
+	if len(ls.RestrictedFilter) == 0 {
+		return false
+	}
+	if ls.RestrictedFilter == "*" {
+		return true
+	}
+	log.Trace("Checking restricted with filter %s and base %s", ls.RestrictedFilter, userDN)
+	search := ldap.NewSearchRequest(
+		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, ls.RestrictedFilter,
+		[]string{ls.AttributeName},
+		nil)
+
+	sr, err := l.Search(search)
+
+	if err != nil {
+		log.Error("LDAP Restrictred Search failed unexpectedly! (%v)", err)
+	} else if len(sr.Entries) < 1 {
+		log.Trace("LDAP Restricted Search found no matching entries.")
+	} else {
+		return true
 	}
 	return false
 }
@@ -284,6 +312,10 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		sshPublicKey = sr.Entries[0].GetAttributeValues(ls.AttributeSSHPublicKey)
 	}
 	isAdmin := checkAdmin(l, ls, userDN)
+	var isRestricted bool
+	if !isAdmin {
+		isRestricted = checkRestricted(l, ls, userDN)
+	}
 
 	if !directBind && ls.AttributesInBind {
 		// binds user (checking password) after looking-up attributes in BindDN context
@@ -300,6 +332,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		Mail:         mail,
 		SSHPublicKey: sshPublicKey,
 		IsAdmin:      isAdmin,
+		IsRestricted: isRestricted,
 	}
 }
 
@@ -363,6 +396,9 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 			Surname:  v.GetAttributeValue(ls.AttributeSurname),
 			Mail:     v.GetAttributeValue(ls.AttributeMail),
 			IsAdmin:  checkAdmin(l, ls, v.DN),
+		}
+		if !result[i].IsAdmin {
+			result[i].IsRestricted = checkRestricted(l, ls, v.DN)
 		}
 		if isAttributeSSHPublicKeySet {
 			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)

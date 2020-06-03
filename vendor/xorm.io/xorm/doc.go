@@ -126,7 +126,7 @@ Attention: the above 8 methods should be the last chainable method.
 
     engine.ID(1).Get(&user) // for single primary key
     // SELECT * FROM user WHERE id = 1
-    engine.ID(core.PK{1, 2}).Get(&user) // for composite primary keys
+    engine.ID(schemas.PK{1, 2}).Get(&user) // for composite primary keys
     // SELECT * FROM user WHERE id1 = 1 AND id2 = 2
     engine.In("id", 1, 2, 3).Find(&users)
     // SELECT * FROM user WHERE id IN (1, 2, 3)

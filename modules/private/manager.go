@@ -15,7 +15,7 @@ import (
 
 // Shutdown calls the internal shutdown function
 func Shutdown() (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/shutdown")
+	reqURL := setting.LocalURL + "api/internal/manager/shutdown"
 
 	req := newInternalRequest(reqURL, "POST")
 	resp, err := req.Response()
@@ -33,7 +33,7 @@ func Shutdown() (int, string) {
 
 // Restart calls the internal restart function
 func Restart() (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/restart")
+	reqURL := setting.LocalURL + "api/internal/manager/restart"
 
 	req := newInternalRequest(reqURL, "POST")
 	resp, err := req.Response()
@@ -57,7 +57,7 @@ type FlushOptions struct {
 
 // FlushQueues calls the internal flush-queues function
 func FlushQueues(timeout time.Duration, nonBlocking bool) (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/flush-queues")
+	reqURL := setting.LocalURL + "api/internal/manager/flush-queues"
 
 	req := newInternalRequest(reqURL, "POST")
 	if timeout > 0 {

@@ -1,32 +1,35 @@
-/* globals wipPrefixes, issuesTribute, emojiTribute */
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
+/* globals wipPrefixes */
+/* exported timeAddManual, toggleStopwatch, cancelStopwatch */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
-import './publicPath.js';
-import './polyfills.js';
-import './gitGraphLoader.js';
-import './semanticDropdown.js';
-import initContextPopups from './features/contextPopup.js';
-import initHighlight from './features/highlight.js';
+import './publicpath.js';
 
+import Vue from 'vue';
+import 'jquery.are-you-sure';
+import './vendor/semanticdropdown.js';
+import {svg} from './utils.js';
+
+import initContextPopups from './features/contextpopup.js';
+import initGitGraph from './features/gitgraph.js';
+import initClipboard from './features/clipboard.js';
+import initUserHeatmap from './features/userheatmap.js';
+import initDateTimePicker from './features/datetimepicker.js';
+import initServiceWorker from './features/serviceworker.js';
+import attachTribute from './features/tribute.js';
+import createDropzone from './features/dropzone.js';
+import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {createCodeEditor} from './features/codeeditor.js';
+
+const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
 
-let csrf;
-let suburl;
 let previewFileModes;
-let simpleMDEditor;
 const commentMDEditors = {};
-let codeMirrorEditor;
-let hljs;
-
-// Disable Dropzone auto-discover because it's manually initialized
-if (typeof (Dropzone) !== 'undefined') {
-  Dropzone.autoDiscover = false;
-}
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -34,19 +37,18 @@ $.fn.tab.settings.silent = true;
 function initCommentPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
   $tabMenu.find('.item').tab();
-  $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`).click(function () {
+  $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`).on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
       _csrf: csrf,
-      mode: 'gfm',
+      mode: 'comment',
       context: $this.data('context'),
-      text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
-      const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
+      const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      emojify.run($previewPanel[0]);
       $('pre code', $previewPanel[0]).each(function () {
-        hljs.highlightBlock(this);
+        highlight(this);
       });
     });
   });
@@ -60,19 +62,25 @@ function initEditPreviewTab($form) {
   const $previewTab = $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`);
   if ($previewTab.length) {
     previewFileModes = $previewTab.data('preview-file-modes').split(',');
-    $previewTab.click(function () {
+    $previewTab.on('click', function () {
       const $this = $(this);
+      let context = `${$this.data('context')}/`;
+      const mode = $this.data('markdown-mode') || 'comment';
+      const treePathEl = $form.find('input#tree_path');
+      if (treePathEl.length > 0) {
+        context += treePathEl.val();
+      }
+      context = context.substring(0, context.lastIndexOf('/'));
       $.post($this.data('url'), {
         _csrf: csrf,
-        mode: 'gfm',
-        context: $this.data('context'),
-        text: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+        mode,
+        context,
+        text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
       }, (data) => {
-        const $previewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('preview')}"]`);
+        const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        emojify.run($previewPanel[0]);
         $('pre code', $previewPanel[0]).each(function () {
-          hljs.highlightBlock(this);
+          highlight(this);
         });
       });
     });
@@ -82,20 +90,18 @@ function initEditPreviewTab($form) {
 function initEditDiffTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
   $tabMenu.find('.item').tab();
-  $tabMenu.find(`.item[data-tab="${$tabMenu.data('diff')}"]`).click(function () {
+  $tabMenu.find(`.item[data-tab="${$tabMenu.data('diff')}"]`).on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
       _csrf: csrf,
       context: $this.data('context'),
-      content: $form.find(`.tab.segment[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      content: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
-      const $diffPreviewPanel = $form.find(`.tab.segment[data-tab="${$tabMenu.data('diff')}"]`);
+      const $diffPreviewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('diff')}"]`);
       $diffPreviewPanel.html(data);
-      emojify.run($diffPreviewPanel[0]);
     });
   });
 }
-
 
 function initEditForm() {
   if ($('.edit.form').length === 0) {
@@ -110,11 +116,10 @@ function initBranchSelector() {
   const $selectBranch = $('.ui.select-branch');
   const $branchMenu = $selectBranch.find('.reference-list-menu');
   $branchMenu.find('.item:not(.no-select)').click(function () {
-    const selectedValue = $(this).data('id');
-    $($(this).data('id-selector')).val(selectedValue);
-    $selectBranch.find('.ui .branch-name').text(selectedValue);
+    $($(this).data('id-selector')).val($(this).data('id'));
+    $selectBranch.find('.ui .branch-name').text($(this).data('name'));
   });
-  $selectBranch.find('.reference.column').click(function () {
+  $selectBranch.find('.reference.column').on('click', function () {
     $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
     $selectBranch.find('.reference .text').removeClass('black');
     $($(this).data('target')).css('display', 'block');
@@ -123,7 +128,40 @@ function initBranchSelector() {
   });
 }
 
-function updateIssuesMeta(url, action, issueIds, elementId) {
+function initLabelEdit() {
+// Create label
+  const $newLabelPanel = $('.new-label.segment');
+  $('.new-label.button').on('click', () => {
+    $newLabelPanel.show();
+  });
+  $('.new-label.segment .cancel').on('click', () => {
+    $newLabelPanel.hide();
+  });
+
+  $('.color-picker').each(function () {
+    $(this).minicolors();
+  });
+  $('.precolors .color').on('click', function () {
+    const color_hex = $(this).data('color-hex');
+    $('.color-picker').val(color_hex);
+    $('.minicolors-swatch-color').css('background-color', color_hex);
+  });
+  $('.edit-label-button').on('click', function () {
+    $('#label-modal-id').val($(this).data('id'));
+    $('.edit-label .new-label-input').val($(this).data('title'));
+    $('.edit-label .new-label-desc-input').val($(this).data('description'));
+    $('.edit-label .color-picker').val($(this).data('color'));
+    $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
+    $('.edit-label.modal').modal({
+      onApprove() {
+        $('.edit-label.form').trigger('submit');
+      }
+    }).modal('show');
+    return false;
+  });
+}
+
+function updateIssuesMeta(url, action, issueIds, elementId, isAdd) {
   return new Promise(((resolve) => {
     $.ajax({
       type: 'POST',
@@ -132,7 +170,8 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
         _csrf: csrf,
         action,
         issue_ids: issueIds,
-        id: elementId
+        id: elementId,
+        is_add: isAdd
       },
       success: resolve
     });
@@ -149,7 +188,7 @@ function initRepoStatusChecker() {
     }
     $.ajax({
       type: 'GET',
-      url: `${suburl}/${repo_name}/status`,
+      url: `${AppSubUrl}/${repo_name}/status`,
       data: {
         _csrf: csrf,
       },
@@ -181,7 +220,7 @@ function initReactionSelector(parent) {
     reactions = '.reactions > ';
   }
 
-  parent.find(`${reactions}a.label`).popup({ position: 'bottom left', metadata: { content: 'title', title: 'none' } });
+  parent.find(`${reactions}a.label`).popup({position: 'bottom left', metadata: {content: 'title', title: 'none'}});
 
   parent.find(`.select-reaction > .menu > .item, ${reactions}a.label`).on('click', function (e) {
     const vm = this;
@@ -189,9 +228,7 @@ function initReactionSelector(parent) {
 
     if ($(this).hasClass('disabled')) return;
 
-    const actionURL = $(this).hasClass('item')
-      ? $(this).closest('.select-reaction').data('action-url')
-      : $(this).data('action-url');
+    const actionURL = $(this).hasClass('item') ? $(this).closest('.select-reaction').data('action-url') : $(this).data('action-url');
     const url = `${actionURL}/${$(this).hasClass('blue') ? 'unreact' : 'react'}`;
     $.ajax({
       type: 'POST',
@@ -204,7 +241,7 @@ function initReactionSelector(parent) {
       if (resp && (resp.html || resp.empty)) {
         const content = $(vm).closest('.content');
         let react = content.find('.segment.reactions');
-        if (!resp.empty && react.length > 0) {
+        if ((!resp.empty || resp.html === '') && react.length > 0) {
           react.remove();
         }
         if (!resp.empty) {
@@ -216,10 +253,6 @@ function initReactionSelector(parent) {
             react.appendTo(content);
           }
           react.html(resp.html);
-          const hasEmoji = react.find('.has-emoji');
-          for (let i = 0; i < hasEmoji.length; i++) {
-            emojify.run(hasEmoji.get(i));
-          }
           react.find('.dropdown').dropdown();
           initReactionSelector(react);
         }
@@ -232,9 +265,7 @@ function insertAtCursor(field, value) {
   if (field.selectionStart || field.selectionStart === 0) {
     const startPos = field.selectionStart;
     const endPos = field.selectionEnd;
-    field.value = field.value.substring(0, startPos)
-            + value
-            + field.value.substring(endPos, field.value.length);
+    field.value = field.value.substring(0, startPos) + value + field.value.substring(endPos, field.value.length);
     field.selectionStart = startPos + value.length;
     field.selectionEnd = startPos + value.length;
   } else {
@@ -259,13 +290,13 @@ function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
     return;
   }
 
-  const { items } = pasteEvent.clipboardData;
+  const {items} = pasteEvent.clipboardData;
   if (typeof items === 'undefined') {
     return;
   }
 
   for (let i = 0; i < items.length; i++) {
-    if (items[i].type.indexOf('image') === -1) continue;
+    if (!items[i].type.includes('image')) continue;
     const blob = items[i].getAsFile();
 
     if (typeof (callback) === 'function') {
@@ -279,13 +310,13 @@ function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
 function uploadFile(file, callback) {
   const xhr = new XMLHttpRequest();
 
-  xhr.onload = function () {
+  xhr.addEventListener('load', () => {
     if (xhr.status === 200) {
       callback(xhr.responseText);
     }
-  };
+  });
 
-  xhr.open('post', `${suburl}/attachments`, true);
+  xhr.open('post', `${AppSubUrl}/attachments`, true);
   xhr.setRequestHeader('X-Csrf-Token', csrf);
   const formData = new FormData();
   formData.append('file', file, file.name);
@@ -305,7 +336,7 @@ function initImagePaste(target) {
         insertAtCursor(field, `![${name}]()`);
         uploadFile(img, (res) => {
           const data = JSON.parse(res);
-          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${suburl}/attachments/${data.uuid})`);
+          replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $('.files').append(input);
         });
@@ -321,7 +352,7 @@ function initSimpleMDEImagePaste(simplemde, files) {
       uploadFile(img, (res) => {
         const data = JSON.parse(res);
         const pos = simplemde.codemirror.getCursor();
-        simplemde.codemirror.replaceRange(`![${name}](${suburl}/attachments/${data.uuid})`, pos);
+        simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
         const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
         files.append(input);
       });
@@ -359,7 +390,8 @@ function initCommentForm() {
             label['update-url'],
             label.action,
             label['issue-id'],
-            elementId
+            elementId,
+            label['is-checked']
           );
           promises.push(promise);
         });
@@ -367,24 +399,32 @@ function initCommentForm() {
       }
     });
 
-    $listMenu.find('.item:not(.no-select)').click(function () {
+    $listMenu.find('.item:not(.no-select)').on('click', function () {
       // we don't need the action attribute when updating assignees
-      if (selector === 'select-assignees-modify') {
+      if (selector === 'select-assignees-modify' || selector === 'select-reviewers-modify') {
         // UI magic. We need to do this here, otherwise it would destroy the functionality of
         // adding/removing labels
+
+        if ($(this).data('can-change') === 'block') {
+          return false;
+        }
+
         if ($(this).hasClass('checked')) {
           $(this).removeClass('checked');
-          $(this).find('.octicon').removeClass('octicon-check');
+          $(this).find('.octicon-check').addClass('invisible');
+          $(this).data('is-checked', 'remove');
         } else {
           $(this).addClass('checked');
-          $(this).find('.octicon').addClass('octicon-check');
+          $(this).find('.octicon-check').removeClass('invisible');
+          $(this).data('is-checked', 'add');
         }
 
         updateIssuesMeta(
           $listMenu.data('update-url'),
           '',
           $listMenu.data('issue-id'),
-          $(this).data('id')
+          $(this).data('id'),
+          $(this).data('is-checked')
         );
         $listMenu.data('action', 'update'); // Update to reload the page when we updated items
         return false;
@@ -392,7 +432,7 @@ function initCommentForm() {
 
       if ($(this).hasClass('checked')) {
         $(this).removeClass('checked');
-        $(this).find('.octicon').removeClass('octicon-check');
+        $(this).find('.octicon-check').addClass('invisible');
         if (hasLabelUpdateAction) {
           if (!($(this).data('id') in labels)) {
             labels[$(this).data('id')] = {
@@ -406,7 +446,7 @@ function initCommentForm() {
         }
       } else {
         $(this).addClass('checked');
-        $(this).find('.octicon').addClass('octicon-check');
+        $(this).find('.octicon-check').removeClass('invisible');
         if (hasLabelUpdateAction) {
           if (!($(this).data('id') in labels)) {
             labels[$(this).data('id')] = {
@@ -437,19 +477,21 @@ function initCommentForm() {
       $($(this).parent().data('id')).val(listIds.join(','));
       return false;
     });
-    $listMenu.find('.no-select.item').click(function () {
+    $listMenu.find('.no-select.item').on('click', function () {
       if (hasLabelUpdateAction || selector === 'select-assignees-modify') {
         updateIssuesMeta(
           $listMenu.data('update-url'),
           'clear',
           $listMenu.data('issue-id'),
+          '',
           ''
         ).then(reload);
       }
 
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('checked');
-        $(this).find('.octicon').removeClass('octicon-check');
+        $(this).find('.octicon').addClass('invisible');
+        $(this).data('is-checked', 'remove');
       });
 
       $list.find('.item').each(function () {
@@ -464,13 +506,14 @@ function initCommentForm() {
   initListSubmits('select-label', 'labels');
   initListSubmits('select-assignees', 'assignees');
   initListSubmits('select-assignees-modify', 'assignees');
+  initListSubmits('select-reviewers-modify', 'assignees');
 
   function selectItem(select_id, input_id) {
     const $menu = $(`${select_id} .menu`);
     const $list = $(`.ui${select_id}.list`);
     const hasUpdateAction = $menu.data('action') === 'update';
 
-    $menu.find('.item:not(.no-select)').click(function () {
+    $menu.find('.item:not(.no-select)').on('click', function () {
       $(this).parent().find('.item').each(function () {
         $(this).removeClass('selected active');
       });
@@ -481,7 +524,8 @@ function initCommentForm() {
           $menu.data('update-url'),
           '',
           $menu.data('issue-id'),
-          $(this).data('id')
+          $(this).data('id'),
+          $(this).data('is-checked')
         ).then(reload);
       }
       switch (input_id) {
@@ -490,14 +534,14 @@ function initCommentForm() {
             htmlEncode($(this).text())}</a>`);
           break;
         case '#assignee_id':
-          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>`
-                        + `<img class="ui avatar image" src=${$(this).data('avatar')}>${
+          $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
+                        `<img class="ui avatar image" src=${$(this).data('avatar')}>${
                           htmlEncode($(this).text())}</a>`);
       }
       $(`.ui${select_id}.list .no-select`).addClass('hide');
       $(input_id).val($(this).data('id'));
     });
-    $menu.find('.no-select.item').click(function () {
+    $menu.find('.no-select.item').on('click', function () {
       $(this).parent().find('.item:not(.no-select)').each(function () {
         $(this).removeClass('selected active');
       });
@@ -507,7 +551,8 @@ function initCommentForm() {
           $menu.data('update-url'),
           '',
           $menu.data('issue-id'),
-          $(this).data('id')
+          $(this).data('id'),
+          $(this).data('is-checked')
         ).then(reload);
       }
 
@@ -534,7 +579,7 @@ function initInstall() {
   }
 
   // Database type change detection.
-  $('#db_type').change(function () {
+  $('#db_type').on('change', function () {
     const sqliteDefault = 'data/gitea.db';
     const tidbDefault = 'data/gitea_tidb';
 
@@ -571,26 +616,26 @@ function initInstall() {
   });
 
   // TODO: better handling of exclusive relations.
-  $('#offline-mode input').change(function () {
+  $('#offline-mode input').on('change', function () {
     if ($(this).is(':checked')) {
       $('#disable-gravatar').checkbox('check');
       $('#federated-avatar-lookup').checkbox('uncheck');
     }
   });
-  $('#disable-gravatar input').change(function () {
+  $('#disable-gravatar input').on('change', function () {
     if ($(this).is(':checked')) {
       $('#federated-avatar-lookup').checkbox('uncheck');
     } else {
       $('#offline-mode').checkbox('uncheck');
     }
   });
-  $('#federated-avatar-lookup input').change(function () {
+  $('#federated-avatar-lookup input').on('change', function () {
     if ($(this).is(':checked')) {
       $('#disable-gravatar').checkbox('uncheck');
       $('#offline-mode').checkbox('uncheck');
     }
   });
-  $('#enable-openid-signin input').change(function () {
+  $('#enable-openid-signin input').on('change', function () {
     if ($(this).is(':checked')) {
       if (!$('#disable-registration input').is(':checked')) {
         $('#enable-openid-signup').checkbox('check');
@@ -599,7 +644,7 @@ function initInstall() {
       $('#enable-openid-signup').checkbox('uncheck');
     }
   });
-  $('#disable-registration input').change(function () {
+  $('#disable-registration input').on('change', function () {
     if ($(this).is(':checked')) {
       $('#enable-captcha').checkbox('uncheck');
       $('#enable-openid-signup').checkbox('uncheck');
@@ -607,7 +652,7 @@ function initInstall() {
       $('#enable-openid-signup').checkbox('check');
     }
   });
-  $('#enable-captcha input').change(function () {
+  $('#enable-captcha input').on('change', function () {
     if ($(this).is(':checked')) {
       $('#disable-registration').checkbox('uncheck');
     }
@@ -615,9 +660,25 @@ function initInstall() {
 }
 
 function initIssueComments() {
-  if ($('.repository.view.issue .comments').length === 0) return;
+  if ($('.repository.view.issue .timeline').length === 0) return;
 
-  $(document).click((event) => {
+  $('.re-request-review').on('click', function (event) {
+    const url = $(this).data('update-url');
+    const issueId = $(this).data('issue-id');
+    const id = $(this).data('id');
+    const isChecked = $(this).data('is-checked');
+
+    event.preventDefault();
+    updateIssuesMeta(
+      url,
+      '',
+      issueId,
+      id,
+      isChecked
+    ).then(reload);
+  });
+
+  $(document).on('click', (event) => {
     const urlTarget = $(':target');
     if (urlTarget.length === 0) return;
 
@@ -636,7 +697,7 @@ function initIssueComments() {
   });
 }
 
-function initRepository() {
+async function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -651,7 +712,7 @@ function initRepository() {
           window.location.href = $choice.data('url');
         }
       },
-      message: { noResults: $dropdown.data('no-results') }
+      message: {noResults: $dropdown.data('no-results')}
     });
   }
 
@@ -667,17 +728,8 @@ function initRepository() {
 
   // Options
   if ($('.repository.settings.options').length > 0) {
-    $('#repo_name').keyup(function () {
-      const $prompt = $('#repo-name-change-prompt');
-      if ($(this).val().toString().toLowerCase() !== $(this).data('name').toString().toLowerCase()) {
-        $prompt.show();
-      } else {
-        $prompt.hide();
-      }
-    });
-
     // Enable or select internal/external wiki system and issue tracker.
-    $('.enable-system').change(function () {
+    $('.enable-system').on('change', function () {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
         if (!$(this).data('context')) $($(this).data('context')).addClass('disabled');
@@ -686,7 +738,7 @@ function initRepository() {
         if (!$(this).data('context')) $($(this).data('context')).removeClass('disabled');
       }
     });
-    $('.enable-system-radio').change(function () {
+    $('.enable-system-radio').on('change', function () {
       if (this.value === 'false') {
         $($(this).data('target')).addClass('disabled');
         if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).removeClass('disabled');
@@ -699,52 +751,24 @@ function initRepository() {
 
   // Labels
   if ($('.repository.labels').length > 0) {
-    // Create label
-    const $newLabelPanel = $('.new-label.segment');
-    $('.new-label.button').click(() => {
-      $newLabelPanel.show();
-    });
-    $('.new-label.segment .cancel').click(() => {
-      $newLabelPanel.hide();
-    });
-
-    $('.color-picker').each(function () {
-      $(this).minicolors();
-    });
-    $('.precolors .color').click(function () {
-      const color_hex = $(this).data('color-hex');
-      $('.color-picker').val(color_hex);
-      $('.minicolors-swatch-color').css('background-color', color_hex);
-    });
-    $('.edit-label-button').click(function () {
-      $('#label-modal-id').val($(this).data('id'));
-      $('.edit-label .new-label-input').val($(this).data('title'));
-      $('.edit-label .new-label-desc-input').val($(this).data('description'));
-      $('.edit-label .color-picker').val($(this).data('color'));
-      $('.minicolors-swatch-color').css('background-color', $(this).data('color'));
-      $('.edit-label.modal').modal({
-        onApprove() {
-          $('.edit-label.form').submit();
-        }
-      }).modal('show');
-      return false;
-    });
+    initLabelEdit();
   }
 
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
     const $datepicker = $('.milestone.datepicker');
+
+    await initDateTimePicker($datepicker.data('lang'));
+
     $datepicker.datetimepicker({
-      lang: $datepicker.data('lang'),
       inline: true,
       timepicker: false,
       startDate: $datepicker.data('start-date'),
-      formatDate: 'Y-m-d',
-      onSelectDate(ct) {
-        $('#deadline').val(ct.dateFormat('Y-m-d'));
-      }
+      onSelectDate(date) {
+        $('#deadline').val(date.toISOString().substring(0, 10));
+      },
     });
-    $('#clear-date').click(() => {
+    $('#clear-date').on('click', () => {
       $('#deadline').val('');
       return false;
     });
@@ -780,11 +804,11 @@ function initRepository() {
       ));
       selectionTextField.data('branch', branchNameNew); // update branch name in setting
     };
-    $('#branch-select > .item').click(changeBranchSelect);
+    $('#branch-select > .item').on('click', changeBranchSelect);
 
-    $('#edit-title').click(editTitleToggle);
-    $('#cancel-edit-title').click(editTitleToggle);
-    $('#save-edit-title').click(editTitleToggle).click(function () {
+    $('#edit-title').on('click', editTitleToggle);
+    $('#cancel-edit-title').on('click', editTitleToggle);
+    $('#save-edit-title').on('click', editTitleToggle).on('click', function () {
       const pullrequest_targetbranch_change = function (update_url) {
         const targetBranch = $('#pull-target-branch').data('branch');
         const $branchTarget = $('#branch_target');
@@ -794,13 +818,11 @@ function initRepository() {
         $.post(update_url, {
           _csrf: csrf,
           target_branch: targetBranch
-        })
-          .success((data) => {
-            $branchTarget.text(data.base_branch);
-          })
-          .always(() => {
-            reload();
-          });
+        }).done((data) => {
+          $branchTarget.text(data.base_branch);
+        }).always(() => {
+          reload();
+        });
       };
 
       const pullrequest_target_update_url = $(this).data('target-update-url');
@@ -811,8 +833,7 @@ function initRepository() {
         $.post($(this).data('update-url'), {
           _csrf: csrf,
           title: $editInput.val()
-        },
-        (data) => {
+        }, (data) => {
           $editInput.val(data.title);
           $issueTitle.text(data.title);
           pullrequest_targetbranch_change(pullrequest_target_update_url);
@@ -831,7 +852,7 @@ function initRepository() {
     });
 
     // Quote reply
-    $('.quote-reply').click(function (event) {
+    $('.quote-reply').on('click', function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const target = $(this).data('target');
       const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
@@ -840,7 +861,7 @@ function initRepository() {
       let $content;
       if ($(this).hasClass('quote-reply-diff')) {
         const $parent = $(this).closest('.comment-code-cloud');
-        $parent.find('button.comment-form-reply').click();
+        $parent.find('button.comment-form-reply').trigger('click');
         $content = $parent.find('[name="content"]');
         if ($content.val() !== '') {
           $content.val(`${$content.val()}\n\n${content}`);
@@ -859,7 +880,7 @@ function initRepository() {
     });
 
     // Edit issue or comment content
-    $('.edit-content').click(function (event) {
+    $('.edit-content').on('click', async function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
@@ -872,17 +893,18 @@ function initRepository() {
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        issuesTribute.attach($textarea.get());
-        emojiTribute.attach($textarea.get());
+        attachTribute($textarea.get(), {mentions: true, emoji: true});
 
+        let dz;
         const $dropzone = $editContentZone.find('.dropzone');
-        $dropzone.data('saved', false);
         const $files = $editContentZone.find('.comment-files');
         if ($dropzone.length > 0) {
+          $dropzone.data('saved', false);
+
           const filenameDict = {};
-          $dropzone.dropzone({
+          dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
-            headers: { 'X-Csrf-Token': csrf },
+            headers: {'X-Csrf-Token': csrf},
             maxFiles: $dropzone.data('max-file'),
             maxFilesize: $dropzone.data('max-size'),
             acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
@@ -919,15 +941,14 @@ function initRepository() {
               });
               this.on('reload', () => {
                 $.getJSON($editContentZone.data('attachment-url'), (data) => {
-                  const drop = $dropzone.get(0).dropzone;
-                  drop.removeAllFiles(true);
+                  dz.removeAllFiles(true);
                   $files.empty();
                   $.each(data, function () {
                     const imgSrc = `${$dropzone.data('upload-url')}/${this.uuid}`;
-                    drop.emit('addedfile', this);
-                    drop.emit('thumbnail', this, imgSrc);
-                    drop.emit('complete', this);
-                    drop.files.push(this);
+                    dz.emit('addedfile', this);
+                    dz.emit('thumbnail', this, imgSrc);
+                    dz.emit('complete', this);
+                    dz.files.push(this);
                     filenameDict[this.name] = {
                       submitted: true,
                       uuid: this.uuid
@@ -940,7 +961,7 @@ function initRepository() {
               });
             }
           });
-          $dropzone.get(0).dropzone.emit('reload');
+          dz.emit('reload');
         }
         // Give new write/preview data-tab name to distinguish from others
         const $editContentForm = $editContentZone.find('.ui.comment.form');
@@ -949,19 +970,19 @@ function initRepository() {
         $tabMenu.attr('data-preview', $editContentZone.data('preview'));
         $tabMenu.find('.write.item').attr('data-tab', $editContentZone.data('write'));
         $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
-        $editContentForm.find('.write.segment').attr('data-tab', $editContentZone.data('write'));
-        $editContentForm.find('.preview.segment').attr('data-tab', $editContentZone.data('preview'));
+        $editContentForm.find('.write').attr('data-tab', $editContentZone.data('write'));
+        $editContentForm.find('.preview').attr('data-tab', $editContentZone.data('preview'));
         $simplemde = setCommentSimpleMDE($textarea);
         commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
         initSimpleMDEImagePaste($simplemde, $files);
 
-        $editContentZone.find('.cancel.button').click(() => {
+        $editContentZone.find('.cancel.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
-          $dropzone.get(0).dropzone.emit('reload');
+          dz.emit('reload');
         });
-        $editContentZone.find('.save.button').click(() => {
+        $editContentZone.find('.save.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
           const $attachments = $files.find('[name=files]').map(function () {
@@ -977,9 +998,8 @@ function initRepository() {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
-              emojify.run($renderContent[0]);
               $('pre code', $renderContent[0]).each(function () {
-                hljs.highlightBlock(this);
+                highlight(this);
               });
             }
             const $content = $segment.parent();
@@ -995,8 +1015,8 @@ function initRepository() {
             } else {
               $content.find('.ui.small.images').html(data.attachments);
             }
-            $dropzone.get(0).dropzone.emit('submit');
-            $dropzone.get(0).dropzone.emit('reload');
+            dz.emit('submit');
+            dz.emit('reload');
           });
         });
       } else {
@@ -1017,12 +1037,12 @@ function initRepository() {
     });
 
     // Delete comment
-    $('.delete-comment').click(function () {
+    $('.delete-comment').on('click', function () {
       const $this = $(this);
       if (window.confirm($this.data('locale'))) {
         $.post($this.data('url'), {
           _csrf: csrf
-        }).success(() => {
+        }).done(() => {
           $(`#${$this.data('comment-id')}`).remove();
         });
       }
@@ -1031,16 +1051,16 @@ function initRepository() {
 
     // Change status
     const $statusButton = $('#status-button');
-    $('#comment-form .edit_area').keyup(function () {
+    $('#comment-form .edit_area').on('keyup', function () {
       if ($(this).val().length === 0) {
         $statusButton.text($statusButton.data('status'));
       } else {
         $statusButton.text($statusButton.data('status-and-comment'));
       }
     });
-    $statusButton.click(() => {
+    $statusButton.on('click', () => {
       $('#status').val($statusButton.data('status-val'));
-      $('#comment-form').submit();
+      $('#comment-form').trigger('submit');
     });
 
     // Pull Request merge button
@@ -1078,21 +1098,23 @@ function initRepository() {
   }
 
   // Quick start and repository home
-  $('#repo-clone-ssh').click(function () {
+  $('#repo-clone-ssh').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
     $(this).addClass('blue');
     $('#repo-clone-https').removeClass('blue');
     localStorage.setItem('repo-clone-protocol', 'ssh');
   });
-  $('#repo-clone-https').click(function () {
+  $('#repo-clone-https').on('click', function () {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
     $(this).addClass('blue');
-    $('#repo-clone-ssh').removeClass('blue');
-    localStorage.setItem('repo-clone-protocol', 'https');
+    if ($('#repo-clone-ssh').length > 0) {
+      $('#repo-clone-ssh').removeClass('blue');
+      localStorage.setItem('repo-clone-protocol', 'https');
+    }
   });
-  $('#repo-clone-url').click(function () {
+  $('#repo-clone-url').on('click', function () {
     $(this).select();
   });
 
@@ -1104,6 +1126,7 @@ function initRepository() {
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
       $repoComparePull.find('.pullrequest-form').show();
+      autoSimpleMDE.codemirror.refresh();
       $(this).parent().hide();
     });
   }
@@ -1111,17 +1134,25 @@ function initRepository() {
   // Branches
   if ($('.repository.settings.branches').length > 0) {
     initFilterSearchDropdown('.protected-branches .dropdown');
-    $('.enable-protection, .enable-whitelist').change(function () {
+    $('.enable-protection, .enable-whitelist, .enable-statuscheck').on('change', function () {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
         $($(this).data('target')).addClass('disabled');
       }
     });
-    $('.disable-whitelist').change(function () {
+    $('.disable-whitelist').on('change', function () {
       if (this.checked) {
         $($(this).data('target')).addClass('disabled');
       }
+    });
+  }
+
+  // Language stats
+  if ($('.language-stats').length > 0) {
+    $('.language-stats').on('click', (e) => {
+      e.preventDefault();
+      $('.language-stats-details, .repository-menu').slideToggle();
     });
   }
 }
@@ -1130,8 +1161,8 @@ function initMigration() {
   const toggleMigrations = function () {
     const authUserName = $('#auth_username').val();
     const cloneAddr = $('#clone_addr').val();
-    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0)
-        && (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com')))) {
+    if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0) &&
+        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com') || cloneAddr.startsWith('http://gitlab.com') || cloneAddr.startsWith('https://gitlab.com')))) {
       $('#migrate_items').show();
     } else {
       $('#migrate_items').hide();
@@ -1191,8 +1222,7 @@ function initPullRequestReview() {
     .on('mouseenter', function () {
       const parent = $(this).closest('td');
       $(this).closest('tr').addClass(
-        parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
-          ? 'focus-lines-old' : 'focus-lines-new'
+        parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old') ? 'focus-lines-old' : 'focus-lines-new'
       );
     })
     .on('mouseleave', function () {
@@ -1213,8 +1243,8 @@ function initPullRequestReview() {
     let ntr = tr.next();
     if (!ntr.hasClass('add-comment')) {
       ntr = $(`<tr class="add-comment">${
-        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>'
-          : '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>'
+        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>' :
+          '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right" colspan="2"></td>'
       }</tr>`);
       tr.after(ntr);
     }
@@ -1249,7 +1279,7 @@ function assingMenuAttributes(menu) {
 
 function initRepositoryCollaboration() {
   // Change collaborator access mode
-  $('.access-mode.menu .item').click(function () {
+  $('.access-mode.menu .item').on('click', function () {
     const $menu = $(this).parent();
     $.post($menu.data('url'), {
       _csrf: csrf,
@@ -1261,7 +1291,7 @@ function initRepositoryCollaboration() {
 
 function initTeamSettings() {
   // Change team access mode
-  $('.organization.new.team input[name=permission]').change(() => {
+  $('.organization.new.team input[name=permission]').on('change', () => {
     const val = $('input[name=permission]:checked', '.organization.new.team').val();
     if (val === 'admin') {
       $('.organization.new.team .team-units').hide();
@@ -1285,7 +1315,7 @@ function initWikiForm() {
           // FIXME: still send render request when return back to edit mode
           const render = function () {
             sideBySideChanges = 0;
-            if (sideBySideTimeout != null) {
+            if (sideBySideTimeout !== null) {
               clearTimeout(sideBySideTimeout);
               sideBySideTimeout = null;
             }
@@ -1293,13 +1323,12 @@ function initWikiForm() {
               _csrf: csrf,
               mode: 'gfm',
               context: $editArea.data('context'),
-              text: plainText
-            },
-            (data) => {
+              text: plainText,
+              wiki: true
+            }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-              emojify.run($('.editor-preview')[0]);
               $(preview).find('pre code').each((_, e) => {
-                hljs.highlightBlock(e);
+                highlight(e);
               });
             });
           };
@@ -1312,7 +1341,7 @@ function initWikiForm() {
               render();
             }
             // or delay preview by timeout
-            if (sideBySideTimeout != null) {
+            if (sideBySideTimeout !== null) {
               clearTimeout(sideBySideTimeout);
               sideBySideTimeout = null;
             }
@@ -1368,7 +1397,16 @@ function initWikiForm() {
         }, '|',
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
-        'clean-block', 'preview', 'fullscreen', 'side-by-side']
+        'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
+        {
+          name: 'revert-to-textarea',
+          action(e) {
+            e.toTextArea();
+          },
+          className: 'fa fa-file',
+          title: 'Revert to simple textarea',
+        },
+      ]
     });
     $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
 
@@ -1380,12 +1418,12 @@ function initWikiForm() {
       const $bSideBySide = $('.editor-toolbar a.fa-columns');
       $bEdit.on('click', () => {
         if ($toolbar.hasClass('disabled-for-preview')) {
-          $bPreview.click();
+          $bPreview.trigger('click');
         }
       });
       $bPrev.on('click', () => {
         if (!$toolbar.hasClass('disabled-for-preview')) {
-          $bPreview.click();
+          $bPreview.trigger('click');
         }
       });
       $bPreview.on('click', () => {
@@ -1430,54 +1468,6 @@ $.fn.getCursorPosition = function () {
   return pos;
 };
 
-function setSimpleMDE($editArea) {
-  if (codeMirrorEditor) {
-    codeMirrorEditor.toTextArea();
-    codeMirrorEditor = null;
-  }
-
-  if (simpleMDEditor) {
-    return true;
-  }
-
-  simpleMDEditor = new SimpleMDE({
-    autoDownloadFontAwesome: false,
-    element: $editArea[0],
-    forceSync: true,
-    renderingConfig: {
-      singleLineBreaks: false
-    },
-    indentWithTabs: false,
-    tabSize: 4,
-    spellChecker: false,
-    previewRender(plainText, preview) { // Async method
-      setTimeout(() => {
-        // FIXME: still send render request when return back to edit mode
-        $.post($editArea.data('url'), {
-          _csrf: csrf,
-          mode: 'gfm',
-          context: $editArea.data('context'),
-          text: plainText
-        },
-        (data) => {
-          preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-          emojify.run($('.editor-preview')[0]);
-        });
-      }, 0);
-
-      return 'Loading...';
-    },
-    toolbar: ['bold', 'italic', 'strikethrough', '|',
-      'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|',
-      'unordered-list', 'ordered-list', '|',
-      'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block', 'preview', 'fullscreen', 'side-by-side']
-  });
-
-  return true;
-}
-
 function setCommentSimpleMDE($editArea) {
   const simplemde = new SimpleMDE({
     autoDownloadFontAwesome: false,
@@ -1494,11 +1484,22 @@ function setCommentSimpleMDE($editArea) {
       'code', 'quote', '|',
       'unordered-list', 'ordered-list', '|',
       'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block']
+      'clean-block', '|',
+      {
+        name: 'revert-to-textarea',
+        action(e) {
+          e.toTextArea();
+        },
+        className: 'fa fa-file',
+        title: 'Revert to simple textarea',
+      },
+    ]
   });
+  $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
-      if (!(issuesTribute.isActive || emojiTribute.isActive)) {
+      const tributeContainer = document.querySelector('.tribute-container');
+      if (!tributeContainer || tributeContainer.style.display === 'none') {
         return CodeMirror.Pass;
       }
     },
@@ -1509,33 +1510,12 @@ function setCommentSimpleMDE($editArea) {
       cm.execCommand('delCharBefore');
     }
   });
-  issuesTribute.attach(simplemde.codemirror.getInputField());
-  emojiTribute.attach(simplemde.codemirror.getInputField());
+  attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
   return simplemde;
 }
 
-function setCodeMirror($editArea) {
-  if (simpleMDEditor) {
-    simpleMDEditor.toTextArea();
-    simpleMDEditor = null;
-  }
-
-  if (codeMirrorEditor) {
-    return true;
-  }
-
-  codeMirrorEditor = CodeMirror.fromTextArea($editArea[0], {
-    lineNumbers: true
-  });
-  codeMirrorEditor.on('change', (cm, _change) => {
-    $editArea.val(cm.getValue());
-  });
-
-  return true;
-}
-
-function initEditor() {
-  $('.js-quick-pull-choice-option').change(function () {
+async function initEditor() {
+  $('.js-quick-pull-choice-option').on('change', function () {
     if ($(this).val() === 'commit-to-new-branch') {
       $('.quick-pull-branch-name').show();
       $('.quick-pull-branch-name input').prop('required', true);
@@ -1547,7 +1527,7 @@ function initEditor() {
   });
 
   const $editFilename = $('#file-name');
-  $editFilename.keyup(function (e) {
+  $editFilename.on('keyup', function (e) {
     const $section = $('.breadcrumb span.section');
     const $divider = $('.breadcrumb div.divider');
     let value;
@@ -1595,89 +1575,7 @@ function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  const markdownFileExts = $editArea.data('markdown-file-exts').split(',');
-  const lineWrapExtensions = $editArea.data('line-wrap-extensions').split(',');
-
-  $editFilename.on('keyup', () => {
-    const val = $editFilename.val();
-    let mode, spec, extension, extWithDot, dataUrl, apiCall;
-
-    extension = extWithDot = '';
-    const m = /.+\.([^.]+)$/.exec(val);
-    if (m) {
-      extension = m[1];
-      extWithDot = `.${extension}`;
-    }
-
-    const info = CodeMirror.findModeByExtension(extension);
-    const previewLink = $('a[data-tab=preview]');
-    if (info) {
-      mode = info.mode;
-      spec = info.mime;
-      apiCall = mode;
-    } else {
-      apiCall = extension;
-    }
-
-    if (previewLink.length && apiCall && previewFileModes && previewFileModes.length && previewFileModes.indexOf(apiCall) >= 0) {
-      dataUrl = previewLink.data('url');
-      previewLink.data('url', dataUrl.replace(/(.*)\/.*/i, `$1/${mode}`));
-      previewLink.show();
-    } else {
-      previewLink.hide();
-    }
-
-    // If this file is a Markdown extensions, we will load that editor and return
-    if (markdownFileExts.indexOf(extWithDot) >= 0) {
-      if (setSimpleMDE($editArea)) {
-        return;
-      }
-    }
-
-    // Else we are going to use CodeMirror
-    if (!codeMirrorEditor && !setCodeMirror($editArea)) {
-      return;
-    }
-
-    if (mode) {
-      codeMirrorEditor.setOption('mode', spec);
-      CodeMirror.autoLoadMode(codeMirrorEditor, mode);
-    }
-
-    if (lineWrapExtensions.indexOf(extWithDot) >= 0) {
-      codeMirrorEditor.setOption('lineWrapping', true);
-    } else {
-      codeMirrorEditor.setOption('lineWrapping', false);
-    }
-
-    // get the filename without any folder
-    let value = $editFilename.val();
-    if (value.length === 0) {
-      return;
-    }
-    value = value.split('/');
-    value = value[value.length - 1];
-
-    $.getJSON($editFilename.data('ec-url-prefix') + value, (editorconfig) => {
-      if (editorconfig.indent_style === 'tab') {
-        codeMirrorEditor.setOption('indentWithTabs', true);
-        codeMirrorEditor.setOption('extraKeys', {});
-      } else {
-        codeMirrorEditor.setOption('indentWithTabs', false);
-        // required because CodeMirror doesn't seems to use spaces correctly for {"indentWithTabs": false}:
-        // - https://github.com/codemirror/CodeMirror/issues/988
-        // - https://codemirror.net/doc/manual.html#keymaps
-        codeMirrorEditor.setOption('extraKeys', {
-          Tab(cm) {
-            const spaces = Array(parseInt(cm.getOption('indentUnit')) + 1).join(' ');
-            cm.replaceSelection(spaces);
-          }
-        });
-      }
-      codeMirrorEditor.setOption('indentUnit', editorconfig.indent_size || 4);
-      codeMirrorEditor.setOption('tabSize', editorconfig.tab_width || 4);
-    });
-  }).trigger('keyup');
+  await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
@@ -1699,12 +1597,12 @@ function initEditor() {
     }
   });
 
-  $commitButton.click((event) => {
+  $commitButton.on('click', (event) => {
     // A modal which asks if an empty file should be committed
     if ($editArea.val().length === 0) {
       $('#edit-empty-content-modal').modal({
         onApprove() {
-          $('.edit.form').submit();
+          $('.edit.form').trigger('submit');
         }
       }).modal('show');
       event.preventDefault();
@@ -1719,7 +1617,7 @@ function initOrganization() {
 
   // Options
   if ($('.organization.settings.options').length > 0) {
-    $('#org_name').keyup(function () {
+    $('#org_name').on('keyup', function () {
       const $prompt = $('#org-name-change-prompt');
       if ($(this).val().toString().toLowerCase() !== $(this).data('org-name').toString().toLowerCase()) {
         $prompt.show();
@@ -1728,12 +1626,17 @@ function initOrganization() {
       }
     });
   }
+
+  // Labels
+  if ($('.organization.settings.labels').length > 0) {
+    initLabelEdit();
+  }
 }
 
 function initUserSettings() {
   // Options
   if ($('.user.settings.profile').length > 0) {
-    $('#username').keyup(function () {
+    $('#username').on('keyup', function () {
       const $prompt = $('#name-change-prompt');
       if ($(this).val().toString().toLowerCase() !== $(this).data('name').toString().toLowerCase()) {
         $prompt.show();
@@ -1760,12 +1663,12 @@ function initWebhook() {
     return;
   }
 
-  $('.events.checkbox input').change(function () {
+  $('.events.checkbox input').on('change', function () {
     if ($(this).is(':checked')) {
       $('.events.fields').show();
     }
   });
-  $('.non-events.checkbox input').change(function () {
+  $('.non-events.checkbox input').on('change', function () {
     if ($(this).is(':checked')) {
       $('.events.fields').hide();
     }
@@ -1776,12 +1679,12 @@ function initWebhook() {
     $('#content_type').parent().parent()[visible ? 'show' : 'hide']();
   };
   updateContentType();
-  $('#http_method').change(() => {
+  $('#http_method').on('change', () => {
     updateContentType();
   });
 
   // Test delivery
-  $('#test-delivery').click(function () {
+  $('#test-delivery').on('click', function () {
     const $this = $(this);
     $this.addClass('loading disabled');
     $.post($this.data('link'), {
@@ -1801,7 +1704,7 @@ function initAdmin() {
 
   // New user
   if ($('.admin.new.user').length > 0 || $('.admin.edit.user').length > 0) {
-    $('#login_type').change(function () {
+    $('#login_type').on('change', function () {
       if ($(this).val().substring(0, 1) === '0') {
         $('#login_name').removeAttr('required');
         $('.non-local').hide();
@@ -1849,6 +1752,7 @@ function initAdmin() {
       case 'github':
       case 'gitlab':
       case 'gitea':
+      case 'nextcloud':
         $('.oauth2_use_custom_url').show();
         break;
       case 'openidConnect':
@@ -1865,23 +1769,17 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      if (!$('#oauth2_token_url').val()) {
-        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-      }
-      if (!$('#oauth2_auth_url').val()) {
-        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-      }
-      if (!$('#oauth2_profile_url').val()) {
-        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-      }
-      if (!$('#oauth2_email_url').val()) {
-        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
-      }
+      $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
+      $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
+      $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
+      $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
+
       switch (provider) {
         case 'github':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
           $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
           break;
+        case 'nextcloud':
         case 'gitea':
         case 'gitlab':
           $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
@@ -1894,8 +1792,8 @@ function initAdmin() {
 
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
-    $('#auth_type').change(function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size .sspi').hide();
+    $('#auth_type').on('change', function () {
+      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi').hide();
 
       $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
@@ -1937,23 +1835,23 @@ function initAdmin() {
         onUsePagedSearchChange();
       }
     });
-    $('#auth_type').change();
-    $('#security_protocol').change(onSecurityProtocolChange);
-    $('#use_paged_search').change(onUsePagedSearchChange);
-    $('#oauth2_provider').change(onOAuth2Change);
-    $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
+    $('#auth_type').trigger('change');
+    $('#security_protocol').on('change', onSecurityProtocolChange);
+    $('#use_paged_search').on('change', onUsePagedSearchChange);
+    $('#oauth2_provider').on('change', onOAuth2Change);
+    $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
   }
   // Edit authentication
   if ($('.admin.edit.authentication').length > 0) {
     const authType = $('#auth_type').val();
     if (authType === '2' || authType === '5') {
-      $('#security_protocol').change(onSecurityProtocolChange);
+      $('#security_protocol').on('change', onSecurityProtocolChange);
       if (authType === '2') {
-        $('#use_paged_search').change(onUsePagedSearchChange);
+        $('#use_paged_search').on('change', onUsePagedSearchChange);
       }
     } else if (authType === '6') {
-      $('#oauth2_provider').change(onOAuth2Change);
-      $('#oauth2_use_custom_url').change(onOAuth2UseCustomURLChange);
+      $('#oauth2_provider').on('change', onOAuth2Change);
+      $('#oauth2_use_custom_url').on('change', onOAuth2UseCustomURLChange);
       onOAuth2Change();
     }
   }
@@ -1963,15 +1861,16 @@ function initAdmin() {
     const $detailModal = $('#detail-modal');
 
     // Attach view detail modals
-    $('.view-detail').click(function () {
-      $detailModal.find('.content p').text($(this).data('content'));
+    $('.view-detail').on('click', function () {
+      $detailModal.find('.content pre').text($(this).parents('tr').find('.notice-description').text());
+      $detailModal.find('.sub.header').text($(this).parents('tr').find('.notice-created-time').text());
       $detailModal.modal('show');
       return false;
     });
 
     // Select actions
     const $checkboxes = $('.select.table .ui.checkbox');
-    $('.select.action').click(function () {
+    $('.select.action').on('click', function () {
       switch ($(this).data('action')) {
         case 'select-all':
           $checkboxes.checkbox('check');
@@ -1984,7 +1883,7 @@ function initAdmin() {
           break;
       }
     });
-    $('#delete-selection').click(function () {
+    $('#delete-selection').on('click', function () {
       const $this = $(this);
       $this.addClass('loading disabled');
       const ids = [];
@@ -2004,9 +1903,9 @@ function initAdmin() {
 }
 
 function buttonsClickOnEnter() {
-  $('.ui.button').keypress(function (e) {
+  $('.ui.button').on('keypress', function (e) {
     if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
-      $(this).click();
+      $(this).trigger('click');
     }
   });
 }
@@ -2016,7 +1915,7 @@ function searchUsers() {
   $searchUserBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/users/search?q={query}`,
+      url: `${AppSubUrl}/api/v1/users/search?q={query}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2030,7 +1929,7 @@ function searchUsers() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['login', 'full_name'],
@@ -2043,8 +1942,8 @@ function searchTeams() {
   $searchTeamBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
-      headers: { 'X-Csrf-Token': csrf },
+      url: `${AppSubUrl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
+      headers: {'X-Csrf-Token': csrf},
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2054,7 +1953,7 @@ function searchTeams() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['name', 'description'],
@@ -2067,7 +1966,7 @@ function searchRepositories() {
   $searchRepoBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${suburl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
+      url: `${AppSubUrl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -2077,7 +1976,7 @@ function searchRepositories() {
           });
         });
 
-        return { results: items };
+        return {results: items};
       }
     },
     searchFields: ['full_name'],
@@ -2112,7 +2011,7 @@ function initCodeView() {
       }
     }).trigger('hashchange');
   }
-  $('.fold-code').on('click', ({ target }) => {
+  $('.fold-code').on('click', ({target}) => {
     const box = target.closest('.file-content');
     const folded = box.dataset.folded !== 'true';
     target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
@@ -2124,11 +2023,11 @@ function initCodeView() {
     const $row = $blob.parent().parent();
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
-      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e); });
+      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
       $('.diff-detail-box.ui.sticky').sticky();
     });
   }
-  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e); });
+  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
 }
 
 function initU2FAuth() {
@@ -2137,7 +2036,7 @@ function initU2FAuth() {
   }
   u2fApi.ensureSupport()
     .then(() => {
-      $.getJSON(`${suburl}/user/u2f/challenge`).success((req) => {
+      $.getJSON(`${AppSubUrl}/user/u2f/challenge`).done((req) => {
         u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
           .then(u2fSigned)
           .catch((err) => {
@@ -2150,14 +2049,14 @@ function initU2FAuth() {
       });
     }).catch(() => {
       // Fallback in case browser do not support U2F
-      window.location.href = `${suburl}/user/two_factor`;
+      window.location.href = `${AppSubUrl}/user/two_factor`;
     });
 }
 function u2fSigned(resp) {
   $.ajax({
-    url: `${suburl}/user/u2f/sign`,
+    url: `${AppSubUrl}/user/u2f/sign`,
     type: 'POST',
-    headers: { 'X-Csrf-Token': csrf },
+    headers: {'X-Csrf-Token': csrf},
     data: JSON.stringify(resp),
     contentType: 'application/json; charset=utf-8',
   }).done((res) => {
@@ -2172,9 +2071,9 @@ function u2fRegistered(resp) {
     return;
   }
   $.ajax({
-    url: `${suburl}/user/settings/security/u2f/register`,
+    url: `${AppSubUrl}/user/settings/security/u2f/register`,
     type: 'POST',
-    headers: { 'X-Csrf-Token': csrf },
+    headers: {'X-Csrf-Token': csrf},
     data: JSON.stringify(resp),
     contentType: 'application/json; charset=utf-8',
     success() {
@@ -2197,7 +2096,6 @@ function checkError(resp) {
   return true;
 }
 
-
 function u2fError(errorType) {
   const u2fErrors = {
     browser: $('#unsupported-browser'),
@@ -2218,8 +2116,8 @@ function u2fError(errorType) {
 }
 
 function initU2FRegister() {
-  $('#register-device').modal({ allowMultiple: false });
-  $('#u2f-error').modal({ allowMultiple: false });
+  $('#register-device').modal({allowMultiple: false});
+  $('#u2f-error').modal({allowMultiple: false});
   $('#register-security-key').on('click', (e) => {
     e.preventDefault();
     u2fApi.ensureSupport()
@@ -2231,10 +2129,10 @@ function initU2FRegister() {
 }
 
 function u2fRegisterRequest() {
-  $.post(`${suburl}/user/settings/security/u2f/request_register`, {
+  $.post(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
     _csrf: csrf,
     name: $('#nickname').val()
-  }).success((req) => {
+  }).done((req) => {
     $('#nickname').closest('div.field').removeClass('error');
     $('#register-device').modal('show');
     if (req.registeredKeys === null) {
@@ -2257,7 +2155,7 @@ function u2fRegisterRequest() {
 }
 
 function initWipTitle() {
-  $('.title_wip_desc > a').click((e) => {
+  $('.title_wip_desc > a').on('click', (e) => {
     e.preventDefault();
 
     const $issueTitle = $('#issue_title');
@@ -2287,16 +2185,16 @@ function initTemplateSearch() {
       $nonTemplate.show();
     }
   };
-  $repoTemplate.change(checkTemplate);
+  $repoTemplate.on('change', checkTemplate);
   checkTemplate();
 
   const changeOwner = function () {
     $('#repo_template_search')
       .dropdown({
         apiSettings: {
-          url: `${suburl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
+          url: `${AppSubUrl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
           onResponse(response) {
-            const filteredResponse = { success: true, results: [] };
+            const filteredResponse = {success: true, results: []};
             filteredResponse.results.push({
               name: '',
               value: ''
@@ -2316,14 +2214,11 @@ function initTemplateSearch() {
         fullTextSearch: true
       });
   };
-  $('#uid').change(changeOwner);
+  $('#uid').on('change', changeOwner);
   changeOwner();
 }
 
 $(document).ready(async () => {
-  csrf = $('meta[name=_csrf]').attr('content');
-  suburl = $('meta[name=_suburl]').attr('content');
-
   // Show exact time
   $('.time-since').each(function () {
     $(this)
@@ -2363,12 +2258,17 @@ $(document).ready(async () => {
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
 
-  $('.toggle.button').click(function () {
+  $('.toggle.button').on('click', function () {
     $($(this).data('target')).slideToggle(100);
   });
 
   // make table <tr> element clickable like a link
-  $('tr[data-href]').click(function () {
+  $('tr[data-href]').on('click', function () {
+    window.location = $(this).data('href');
+  });
+
+  // make table <td> element clickable like a link
+  $('td[data-href]').click(function () {
     window.location = $(this).data('href');
   });
 
@@ -2377,9 +2277,9 @@ $(document).ready(async () => {
   if ($dropzone.length > 0) {
     const filenameDict = {};
 
-    new Dropzone('#dropzone', {
+    await createDropzone('#dropzone', {
       url: $dropzone.data('upload-url'),
-      headers: { 'X-Csrf-Token': csrf },
+      headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
       maxFilesize: $dropzone.data('max-size'),
       acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
@@ -2409,46 +2309,15 @@ $(document).ready(async () => {
     });
   }
 
-  // Emojify
-  emojify.setConfig({
-    img_dir: `${suburl}/vendor/plugins/emojify/images`,
-    ignore_emoticons: true
-  });
-  const hasEmoji = document.getElementsByClassName('has-emoji');
-  for (let i = 0; i < hasEmoji.length; i++) {
-    emojify.run(hasEmoji[i]);
-    for (let j = 0; j < hasEmoji[i].childNodes.length; j++) {
-      if (hasEmoji[i].childNodes[j].nodeName === 'A') {
-        emojify.run(hasEmoji[i].childNodes[j]);
-      }
-    }
-  }
-
-  // Clipboard JS
-  const clipboard = new Clipboard('.clipboard');
-  clipboard.on('success', (e) => {
-    e.clearSelection();
-
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-success'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
-  clipboard.on('error', (e) => {
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-error'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
-  });
-
   // Helpers.
-  $('.delete-button').click(showDeletePopup);
-  $('.add-all-button').click(showAddAllPopup);
+  $('.delete-button').on('click', showDeletePopup);
+  $('.add-all-button').on('click', showAddAllPopup);
+  $('.link-action').on('click', linkAction);
+  $('.link-email-action').on('click', linkEmailAction);
 
-  $('.delete-branch-button').click(showDeletePopup);
+  $('.delete-branch-button').on('click', showDeletePopup);
 
-  $('.undo-button').click(function () {
+  $('.undo-button').on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
       _csrf: csrf,
@@ -2457,13 +2326,13 @@ $(document).ready(async () => {
       window.location.href = data.redirect;
     });
   });
-  $('.show-panel.button').click(function () {
+  $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
   });
-  $('.show-modal.button').click(function () {
+  $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
   });
-  $('.delete-post.button').click(function () {
+  $('.delete-post.button').on('click', function () {
     const $this = $(this);
     $.post($this.data('request-url'), {
       _csrf: csrf
@@ -2477,11 +2346,11 @@ $(document).ready(async () => {
     $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
       let node = $(this);
       node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}"><span class="octicon octicon-link"></span></a>`);
+      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
     });
   });
 
-  $('.issue-checkbox').click(() => {
+  $('.issue-checkbox').on('click', () => {
     const numChecked = $('.issue-checkbox').children('input:checked').length;
     if (numChecked > 0) {
       $('#issue-filters').addClass('hide');
@@ -2492,22 +2361,22 @@ $(document).ready(async () => {
     }
   });
 
-  $('.issue-action').click(function () {
-    let { action } = this.dataset;
-    let { elementId } = this.dataset;
+  $('.issue-action').on('click', function () {
+    let {action} = this.dataset;
+    let {elementId} = this.dataset;
     const issueIDs = $('.issue-checkbox').children('input:checked').map(function () {
       return this.dataset.issueId;
     }).get().join();
-    const { url } = this.dataset;
+    const {url} = this.dataset;
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
     }
-    updateIssuesMeta(url, action, issueIDs, elementId).then(() => {
+    updateIssuesMeta(url, action, issueIDs, elementId, '').then(() => {
       // NOTICE: This reset of checkbox state targets Firefox caching behaviour, as the checkboxes stay checked after reload
       if (action === 'close' || action === 'open') {
         // uncheck all checkboxes
-        $('.issue-checkbox input[type="checkbox"]').each((_, e) => { e.checked = false; });
+        $('.issue-checkbox input[type="checkbox"]').each((_, e) => { e.checked = false });
       }
       reload();
     });
@@ -2517,7 +2386,20 @@ $(document).ready(async () => {
   // trigger ckecked event, if checkboxes are checked on load
   $('.issue-checkbox input[type="checkbox"]:checked').first().each((_, e) => {
     e.checked = false;
-    $(e).click();
+    $(e).trigger('click');
+  });
+
+  $('.resolve-conversation').on('click', function (e) {
+    e.preventDefault();
+    const id = $(this).data('comment-id');
+    const action = $(this).data('action');
+    const url = $(this).data('update-url');
+
+    $.post(url, {
+      _csrf: csrf,
+      action,
+      comment_id: id,
+    }).then(reload);
   });
 
   buttonsClickOnEnter();
@@ -2549,18 +2431,22 @@ $(document).ready(async () => {
   initPullRequestReview();
   initRepoStatusChecker();
   initTemplateSearch();
-  initContextPopups(suburl);
+  initContextPopups();
+  initNotificationsTable();
+  initNotificationCount();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
     switch (localStorage.getItem('repo-clone-protocol')) {
       case 'ssh':
-        if ($('#repo-clone-ssh').click().length === 0) {
-          $('#repo-clone-https').click();
+        if ($('#repo-clone-ssh').length > 0) {
+          $('#repo-clone-ssh').trigger('click');
+        } else {
+          $('#repo-clone-https').trigger('click');
         }
         break;
       default:
-        $('#repo-clone-https').click();
+        $('#repo-clone-https').trigger('click');
         break;
     }
   }
@@ -2579,15 +2465,21 @@ $(document).ready(async () => {
   }
 
   const $cloneAddr = $('#clone_addr');
-  $cloneAddr.change(() => {
+  $cloneAddr.on('change', () => {
     const $repoName = $('#repo_name');
     if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
       $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
     }
   });
 
-  [hljs] = await Promise.all([
-    initHighlight(),
+  // parallel init of async loaded features
+  await Promise.all([
+    highlight(document.querySelectorAll('pre code')),
+    attachTribute(document.querySelectorAll('#content, .emoji-input')),
+    initGitGraph(),
+    initClipboard(),
+    initUserHeatmap(),
+    initServiceWorker(),
   ]);
 });
 
@@ -2663,7 +2555,7 @@ function showDeletePopup() {
     closable: false,
     onApprove() {
       if ($this.data('type') === 'form') {
-        $($this.data('form')).submit();
+        $($this.data('form')).trigger('submit');
         return;
       }
 
@@ -2692,7 +2584,7 @@ function showAddAllPopup() {
     closable: false,
     onApprove() {
       if ($this.data('type') === 'form') {
-        $($this.data('form')).submit();
+        $($this.data('form')).trigger('submit');
         return;
       }
 
@@ -2705,6 +2597,34 @@ function showAddAllPopup() {
     }
   }).modal('show');
   return false;
+}
+
+function linkAction(e) {
+  e.preventDefault();
+  const $this = $(this);
+  const redirect = $this.data('redirect');
+  $.post($this.data('url'), {
+    _csrf: csrf
+  }).done((data) => {
+    if (data.redirect) {
+      window.location.href = data.redirect;
+    } else if (redirect) {
+      window.location.href = redirect;
+    } else {
+      window.location.reload();
+    }
+  });
+}
+
+function linkEmailAction(e) {
+  const $this = $(this);
+  $('#form-uid').val($this.data('uid'));
+  $('#form-email').val($this.data('email'));
+  $('#form-primary').val($this.data('primary'));
+  $('#form-activate').val($this.data('activate'));
+  $('#form-uid').val($this.data('uid'));
+  $('#change-email-modal').modal('show');
+  e.preventDefault();
 }
 
 function initVueComponents() {
@@ -2749,32 +2669,70 @@ function initVueComponents() {
     },
 
     data() {
+      const params = new URLSearchParams(window.location.search);
+
+      let tab = params.get('repo-search-tab');
+      if (!tab) {
+        tab = 'repos';
+      }
+
+      let reposFilter = params.get('repo-search-filter');
+      if (!reposFilter) {
+        reposFilter = 'all';
+      }
+
+      let privateFilter = params.get('repo-search-private');
+      if (!privateFilter) {
+        privateFilter = 'both';
+      }
+
+      let archivedFilter = params.get('repo-search-archived');
+      if (!archivedFilter) {
+        archivedFilter = 'unarchived';
+      }
+
+      let searchQuery = params.get('repo-search-query');
+      if (!searchQuery) {
+        searchQuery = '';
+      }
+
+      let page = 1;
+      try {
+        page = parseInt(params.get('repo-search-page'));
+      } catch {
+        // noop
+      }
+      if (!page) {
+        page = 1;
+      }
+
       return {
-        tab: 'repos',
+        tab,
         repos: [],
         reposTotalCount: 0,
-        reposFilter: 'all',
-        searchQuery: '',
+        reposFilter,
+        archivedFilter,
+        privateFilter,
+        page,
+        finalPage: 1,
+        searchQuery,
         isLoading: false,
+        staticPrefix: StaticUrlPrefix,
+        counts: {},
         repoTypes: {
           all: {
-            count: 0,
             searchMode: '',
           },
           forks: {
-            count: 0,
             searchMode: 'fork',
           },
           mirrors: {
-            count: 0,
             searchMode: 'mirror',
           },
           sources: {
-            count: 0,
             searchMode: 'source',
           },
           collaborative: {
-            count: 0,
             searchMode: 'collaborative',
           },
         }
@@ -2783,21 +2741,26 @@ function initVueComponents() {
 
     computed: {
       showMoreReposLink() {
-        return this.repos.length > 0 && this.repos.length < this.repoTypes[this.reposFilter].count;
+        return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
         return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=${this.searchQuery
-        }&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
-        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''}`;
+        }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
+        }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
+        }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
+        }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
+        }`;
       },
       repoTypeCount() {
-        return this.repoTypes[this.reposFilter].count;
+        return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       }
     },
 
     mounted() {
       this.searchRepos(this.reposFilter);
-
+      $(this.$el).find('.poping.up').popup();
+      $(this.$el).find('.dropdown').dropdown();
+      this.setCheckboxes();
       const self = this;
       Vue.nextTick(() => {
         self.$refs.search.focus();
@@ -2807,36 +2770,168 @@ function initVueComponents() {
     methods: {
       changeTab(t) {
         this.tab = t;
+        this.updateHistory();
+      },
+
+      setCheckboxes() {
+        switch (this.archivedFilter) {
+          case 'unarchived':
+            $('#archivedFilterCheckbox').checkbox('set unchecked');
+            break;
+          case 'archived':
+            $('#archivedFilterCheckbox').checkbox('set checked');
+            break;
+          case 'both':
+            $('#archivedFilterCheckbox').checkbox('set indeterminate');
+            break;
+          default:
+            this.archivedFilter = 'unarchived';
+            $('#archivedFilterCheckbox').checkbox('set unchecked');
+            break;
+        }
+        switch (this.privateFilter) {
+          case 'public':
+            $('#privateFilterCheckbox').checkbox('set unchecked');
+            break;
+          case 'private':
+            $('#privateFilterCheckbox').checkbox('set checked');
+            break;
+          case 'both':
+            $('#privateFilterCheckbox').checkbox('set indeterminate');
+            break;
+          default:
+            this.privateFilter = 'both';
+            $('#privateFilterCheckbox').checkbox('set indeterminate');
+            break;
+        }
       },
 
       changeReposFilter(filter) {
         this.reposFilter = filter;
         this.repos = [];
-        this.repoTypes[filter].count = 0;
-        this.searchRepos(filter);
+        this.page = 1;
+        Vue.set(this.counts, `${filter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
       },
 
-      showRepo(repo, filter) {
-        switch (filter) {
-          case 'sources':
-            return repo.owner.id === this.uid && !repo.mirror && !repo.fork;
-          case 'forks':
-            return repo.owner.id === this.uid && !repo.mirror && repo.fork;
-          case 'mirrors':
-            return repo.mirror;
-          case 'collaborative':
-            return repo.owner.id !== this.uid && !repo.mirror;
-          default:
-            return true;
+      updateHistory() {
+        const params = new URLSearchParams(window.location.search);
+
+        if (this.tab === 'repos') {
+          params.delete('repo-search-tab');
+        } else {
+          params.set('repo-search-tab', this.tab);
+        }
+
+        if (this.reposFilter === 'all') {
+          params.delete('repo-search-filter');
+        } else {
+          params.set('repo-search-filter', this.reposFilter);
+        }
+
+        if (this.privateFilter === 'both') {
+          params.delete('repo-search-private');
+        } else {
+          params.set('repo-search-private', this.privateFilter);
+        }
+
+        if (this.archivedFilter === 'unarchived') {
+          params.delete('repo-search-archived');
+        } else {
+          params.set('repo-search-archived', this.archivedFilter);
+        }
+
+        if (this.searchQuery === '') {
+          params.delete('repo-search-query');
+        } else {
+          params.set('repo-search-query', this.searchQuery);
+        }
+
+        if (this.page === 1) {
+          params.delete('repo-search-page');
+        } else {
+          params.set('repo-search-page', `${this.page}`);
+        }
+
+        const queryString = params.toString();
+        if (queryString) {
+          window.history.replaceState({}, '', `?${queryString}`);
+        } else {
+          window.history.replaceState({}, '', window.location.pathname);
         }
       },
 
-      searchRepos(reposFilter) {
+      toggleArchivedFilter() {
+        switch (this.archivedFilter) {
+          case 'both':
+            this.archivedFilter = 'unarchived';
+            break;
+          case 'unarchived':
+            this.archivedFilter = 'archived';
+            break;
+          case 'archived':
+            this.archivedFilter = 'both';
+            break;
+          default:
+            this.archivedFilter = 'unarchived';
+            break;
+        }
+        this.page = 1;
+        this.repos = [];
+        this.setCheckboxes();
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+      togglePrivateFilter() {
+        switch (this.privateFilter) {
+          case 'both':
+            this.privateFilter = 'public';
+            break;
+          case 'public':
+            this.privateFilter = 'private';
+            break;
+          case 'private':
+            this.privateFilter = 'both';
+            break;
+          default:
+            this.privateFilter = 'both';
+            break;
+        }
+        this.page = 1;
+        this.repos = [];
+        this.setCheckboxes();
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+
+      changePage(page) {
+        this.page = page;
+        if (this.page > this.finalPage) {
+          this.page = this.finalPage;
+        }
+        if (this.page < 1) {
+          this.page = 1;
+        }
+        this.repos = [];
+        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.searchRepos();
+      },
+
+      searchRepos() {
         const self = this;
 
         this.isLoading = true;
 
-        const searchedMode = this.repoTypes[reposFilter].searchMode;
+        if (!this.reposTotalCount) {
+          const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&q=&page=1&mode=`;
+          $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
+            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+          });
+        }
+
+        const searchedMode = this.repoTypes[this.reposFilter].searchMode;
         const searchedURL = this.searchURL;
         const searchedQuery = this.searchQuery;
 
@@ -2844,10 +2939,12 @@ function initVueComponents() {
           if (searchedURL === self.searchURL) {
             self.repos = result.data;
             const count = request.getResponseHeader('X-Total-Count');
-            if (searchedQuery === '' && searchedMode === '') {
+            if (searchedQuery === '' && searchedMode === '' && self.archivedFilter === 'both') {
               self.reposTotalCount = count;
             }
-            self.repoTypes[reposFilter].count = count;
+            Vue.set(self.counts, `${self.reposFilter}:${self.archivedFilter}:${self.privateFilter}`, count);
+            self.finalPage = Math.floor(count / self.searchLimit) + 1;
+            self.updateHistory();
           }
         }).always(() => {
           if (searchedURL === self.searchURL) {
@@ -2858,22 +2955,24 @@ function initVueComponents() {
 
       repoClass(repo) {
         if (repo.fork) {
-          return 'octicon octicon-repo-forked';
+          return 'octicon-repo-forked';
         } if (repo.mirror) {
-          return 'octicon octicon-repo-clone';
+          return 'octicon-repo-clone';
+        } if (repo.template) {
+          return `octicon-repo-template${repo.private ? '-private' : ''}`;
         } if (repo.private) {
-          return 'octicon octicon-lock';
+          return 'octicon-lock';
         }
-        return 'octicon octicon-repo';
+        return 'octicon-repo';
       }
     }
   });
 }
 
 function initCtrlEnterSubmit() {
-  $('.js-quick-submit').keydown(function (e) {
+  $('.js-quick-submit').on('keydown', function (e) {
     if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode === 13 || e.keyCode === 10)) {
-      $(this).closest('form').submit();
+      $(this).closest('form').trigger('submit');
     }
   });
 }
@@ -2890,8 +2989,8 @@ function initVueApp() {
     delimiters: ['${', '}'],
     el,
     data: {
-      searchLimit: (document.querySelector('meta[name=_search_limit]') || {}).content,
-      suburl: document.querySelector('meta[name=_suburl]').content,
+      searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
+      suburl: AppSubUrl,
       uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
       activityTopAuthors: window.ActivityTopAuthors || [],
     },
@@ -2906,112 +3005,16 @@ window.timeAddManual = function () {
     .modal({
       duration: 200,
       onApprove() {
-        $('#add_time_manual_form').submit();
+        $('#add_time_manual_form').trigger('submit');
       }
     }).modal('show');
 };
 
 window.toggleStopwatch = function () {
-  $('#toggle_stopwatch_form').submit();
+  $('#toggle_stopwatch_form').trigger('submit');
 };
 window.cancelStopwatch = function () {
-  $('#cancel_stopwatch_form').submit();
-};
-
-window.initHeatmap = function (appElementId, heatmapUser, locale) {
-  const el = document.getElementById(appElementId);
-  if (!el) {
-    return;
-  }
-
-  locale = locale || {};
-
-  locale.contributions = locale.contributions || 'contributions';
-  locale.no_contributions = locale.no_contributions || 'No contributions';
-
-  const vueDelimeters = ['${', '}'];
-
-  Vue.component('activity-heatmap', {
-    delimiters: vueDelimeters,
-
-    props: {
-      user: {
-        type: String,
-        required: true
-      },
-      suburl: {
-        type: String,
-        required: true
-      },
-      locale: {
-        type: Object,
-        required: true
-      }
-    },
-
-    data() {
-      return {
-        isLoading: true,
-        colorRange: [],
-        endDate: null,
-        values: [],
-        totalContributions: 0,
-      };
-    },
-
-    mounted() {
-      this.colorRange = [
-        this.getColor(0),
-        this.getColor(1),
-        this.getColor(2),
-        this.getColor(3),
-        this.getColor(4),
-        this.getColor(5)
-      ];
-      this.endDate = new Date();
-      this.loadHeatmap(this.user);
-    },
-
-    methods: {
-      loadHeatmap(userName) {
-        const self = this;
-        $.get(`${this.suburl}/api/v1/users/${userName}/heatmap`, (chartRawData) => {
-          const chartData = [];
-          for (let i = 0; i < chartRawData.length; i++) {
-            self.totalContributions += chartRawData[i].contributions;
-            chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
-          }
-          self.values = chartData;
-          self.isLoading = false;
-        });
-      },
-
-      getColor(idx) {
-        const el = document.createElement('div');
-        el.className = `heatmap-color-${idx}`;
-        document.body.appendChild(el);
-
-        const color = getComputedStyle(el).backgroundColor;
-
-        document.body.removeChild(el);
-
-        return color;
-      }
-    },
-
-    template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><h4 class="total-contributions" v-if="!isLoading"><span v-html="totalContributions"></span> total contributions in the last 12 months</h4><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
-  });
-
-  new Vue({
-    delimiters: vueDelimeters,
-    el,
-
-    data: {
-      suburl: document.querySelector('meta[name=_suburl]').content,
-      heatmapUser,
-      locale
-    },
-  });
+  $('#cancel_stopwatch_form').trigger('submit');
 };
 
 function initFilterBranchTagDropdown(selector) {
@@ -3071,8 +3074,8 @@ function initFilterBranchTagDropdown(selector) {
           const vm = this;
 
           const items = vm.items.filter((item) => {
-            return ((vm.mode === 'branches' && item.branch) || (vm.mode === 'tags' && item.tag))
-              && (!vm.searchTerm || item.name.toLowerCase().indexOf(vm.searchTerm.toLowerCase()) >= 0);
+            return ((vm.mode === 'branches' && item.branch) || (vm.mode === 'tags' && item.tag)) &&
+              (!vm.searchTerm || item.name.toLowerCase().includes(vm.searchTerm.toLowerCase()));
           });
 
           vm.active = (items.length === 0 && vm.showCreateNewBranch ? 0 : -1);
@@ -3105,7 +3108,7 @@ function initFilterBranchTagDropdown(selector) {
           if (!this.showCreateNewBranch) {
             return;
           }
-          this.$refs.newBranchForm.submit();
+          $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
           const vm = this;
@@ -3193,7 +3196,7 @@ function initFilterBranchTagDropdown(selector) {
   });
 }
 
-$('.commit-button').click(function (e) {
+$('.commit-button').on('click', function (e) {
   e.preventDefault();
   $(this).parent().find('.commit-body').toggle();
 });
@@ -3202,7 +3205,7 @@ function initNavbarContentToggle() {
   const content = $('#navbar');
   const toggle = $('#navbar-expand-toggle');
   let isExpanded = false;
-  toggle.click(() => {
+  toggle.on('click', () => {
     isExpanded = !isExpanded;
     if (isExpanded) {
       content.addClass('shown');
@@ -3223,7 +3226,7 @@ function initTopicbar() {
   const topicForm = $('#topic_edit.ui.form');
   const topicPrompts = getPrompts();
 
-  mgrBtn.click(() => {
+  mgrBtn.on('click', () => {
     viewDiv.hide();
     editDiv.css('display', ''); // show Semantic UI Grid
   });
@@ -3238,7 +3241,7 @@ function initTopicbar() {
     return prompts;
   }
 
-  saveBtn.click(() => {
+  saveBtn.on('click', () => {
     const topics = $('input[name=topics]').val();
 
     $.post(saveBtn.data('link'), {
@@ -3253,7 +3256,7 @@ function initTopicbar() {
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
             const link = $('<a class="ui repo-topic small label topic"></a>');
-            link.attr('href', `${suburl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
+            link.attr('href', `${AppSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
             link.insertBefore(last);
           }
@@ -3266,7 +3269,7 @@ function initTopicbar() {
         if (xhr.responseJSON.invalidTopics.length > 0) {
           topicPrompts.formatPrompt = xhr.responseJSON.message;
 
-          const { invalidTopics } = xhr.responseJSON;
+          const {invalidTopics} = xhr.responseJSON;
           const topicLables = topicDropdown.children('a.ui.label');
 
           topics.split(',').forEach((value, index) => {
@@ -3288,7 +3291,7 @@ function initTopicbar() {
   topicDropdown.dropdown({
     allowAdditions: true,
     forceSelection: false,
-    fields: { name: 'description', value: 'data-value' },
+    fields: {name: 'description', value: 'data-value'},
     saveRemoteData: false,
     label: {
       transition: 'horizontal flip',
@@ -3301,7 +3304,7 @@ function initTopicbar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${suburl}/api/v1/topics/search?q={encodeURIComponent(query)}`,
+      url: `${AppSubUrl}/api/v1/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {
@@ -3316,20 +3319,20 @@ function initTopicbar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, e) => { current_topics.push(e.dataset.value); });
+        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, e) => { current_topics.push(e.dataset.value) });
 
         if (res.topics) {
           let found = false;
           for (let i = 0; i < res.topics.length; i++) {
             // skip currently added tags
-            if (current_topics.indexOf(res.topics[i].topic_name) !== -1) {
+            if (current_topics.includes(res.topics[i].topic_name)) {
               continue;
             }
 
             if (res.topics[i].topic_name.toLowerCase() === query.toLowerCase()) {
               found_query = true;
             }
-            formattedResponse.results.push({ description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name });
+            formattedResponse.results.push({description: res.topics[i].topic_name, 'data-value': res.topics[i].topic_name});
             found = true;
           }
           formattedResponse.success = found;
@@ -3337,7 +3340,7 @@ function initTopicbar() {
 
         if (query.length > 0 && !found_query) {
           formattedResponse.success = true;
-          formattedResponse.results.unshift({ description: query, 'data-value': query });
+          formattedResponse.results.unshift({description: query, 'data-value': query});
         } else if (query.length > 0 && found_query) {
           formattedResponse.results.sort((a, b) => {
             if (a.description.toLowerCase() === query.toLowerCase()) return -1;
@@ -3347,7 +3350,6 @@ function initTopicbar() {
             return 0;
           });
         }
-
 
         return formattedResponse;
       },
@@ -3448,7 +3450,7 @@ window.deleteDependencyModal = function (id, type) {
       onApprove() {
         $('#removeDependencyID').val(id);
         $('#dependencyType').val(type);
-        $('#removeDependencyForm').submit();
+        $('#removeDependencyForm').trigger('submit');
       }
     }).modal('show');
 };
@@ -3458,16 +3460,16 @@ function initIssueList() {
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
   const tp = $('#type').val();
-  let issueSearchUrl = `${suburl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
+  let issueSearchUrl = `${AppSubUrl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${suburl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${AppSubUrl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
       apiSettings: {
         url: issueSearchUrl,
         onResponse(response) {
-          const filteredResponse = { success: true, results: [] };
+          const filteredResponse = {success: true, results: []};
           const currIssueId = $('#new-dependency-drop-list').data('issue-id');
           // Parse the response from the api to work with our dropdown
           $.each(response, (_i, issue) => {
@@ -3490,7 +3492,7 @@ function initIssueList() {
     });
 
   $('.menu a.label-filter-item').each(function () {
-    $(this).click(function (e) {
+    $(this).on('click', function (e) {
       if (e.altKey) {
         e.preventDefault();
 
@@ -3505,7 +3507,7 @@ function initIssueList() {
     });
   });
 
-  $('.menu .ui.dropdown.label-filter').keydown((e) => {
+  $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.keyCode === 13) {
       const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
 
@@ -3532,6 +3534,14 @@ window.cancelCodeComment = function (btn) {
     form.closest('.comment-code-cloud').remove();
   }
 };
+
+window.submitReply = function (btn) {
+  const form = $(btn).closest('form');
+  if (form.length > 0 && form.hasClass('comment-form')) {
+    form.trigger('submit');
+  }
+};
+
 window.onOAuthLoginClick = function () {
   const oauthLoader = $('#oauth2-login-loader');
   const oauthNav = $('#oauth2-login-navigator');
@@ -3546,3 +3556,12 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
+
+// Pull SVGs via AJAX to workaround CORS issues with <use> tags
+// https://css-tricks.com/ajaxing-svg-sprite/
+$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
+  const div = document.createElement('div');
+  div.style.display = 'none';
+  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
+  document.body.insertBefore(div, document.body.childNodes[0]);
+});

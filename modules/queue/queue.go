@@ -74,25 +74,35 @@ type DummyQueue struct {
 }
 
 // Run does nothing
-func (b *DummyQueue) Run(_, _ func(context.Context, func())) {}
+func (*DummyQueue) Run(_, _ func(context.Context, func())) {}
 
 // Push fakes a push of data to the queue
-func (b *DummyQueue) Push(Data) error {
+func (*DummyQueue) Push(Data) error {
 	return nil
 }
 
+// PushFunc fakes a push of data to the queue with a function. The function is never run.
+func (*DummyQueue) PushFunc(Data, func() error) error {
+	return nil
+}
+
+// Has always returns false as this queue never does anything
+func (*DummyQueue) Has(Data) (bool, error) {
+	return false, nil
+}
+
 // Flush always returns nil
-func (b *DummyQueue) Flush(time.Duration) error {
+func (*DummyQueue) Flush(time.Duration) error {
 	return nil
 }
 
 // FlushWithContext always returns nil
-func (b *DummyQueue) FlushWithContext(context.Context) error {
+func (*DummyQueue) FlushWithContext(context.Context) error {
 	return nil
 }
 
 // IsEmpty asserts that the queue is empty
-func (b *DummyQueue) IsEmpty() bool {
+func (*DummyQueue) IsEmpty() bool {
 	return true
 }
 

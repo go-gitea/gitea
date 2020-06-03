@@ -43,7 +43,7 @@ type Manager struct {
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
-	shutdownRequested	   chan struct{}
+	shutdownRequested      chan struct{}
 }
 
 func newGracefulManager(ctx context.Context) *Manager {

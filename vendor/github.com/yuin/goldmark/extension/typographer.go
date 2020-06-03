@@ -1,6 +1,8 @@
 package extension
 
 import (
+	"unicode"
+
 	"github.com/yuin/goldmark"
 	gast "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -31,6 +33,8 @@ const (
 	LeftAngleQuote
 	// RightAngleQuote is >>
 	RightAngleQuote
+	// Apostrophe is '
+	Apostrophe
 
 	typographicPunctuationMax
 )
@@ -52,6 +56,7 @@ func newDefaultSubstitutions() [][]byte {
 	replacements[Ellipsis] = []byte("&hellip;")
 	replacements[LeftAngleQuote] = []byte("&laquo;")
 	replacements[RightAngleQuote] = []byte("&raquo;")
+	replacements[Apostrophe] = []byte("&rsquo;")
 
 	return replacements
 }
@@ -189,6 +194,26 @@ func (s *typographerParser) Parse(parent gast.Node, block text.Reader, pc parser
 			return nil
 		}
 		if c == '\'' {
+			if s.Substitutions[Apostrophe] != nil {
+				// Handle decade abbrevations such as '90s
+				if d.CanOpen && !d.CanClose && len(line) > 3 && util.IsNumeric(line[1]) && util.IsNumeric(line[2]) && line[3] == 's' {
+					after := util.ToRune(line, 4)
+					if len(line) == 3 || unicode.IsSpace(after) || unicode.IsPunct(after) {
+						node := gast.NewString(s.Substitutions[Apostrophe])
+						node.SetCode(true)
+						block.Advance(1)
+						return node
+					}
+				}
+				// Convert normal apostrophes. This is probably more flexible than necessary but
+				// converts any apostrophe in between two alphanumerics.
+				if len(line) > 1 && (unicode.IsDigit(before) || unicode.IsLetter(before)) && (util.IsAlphaNumeric(line[1])) {
+					node := gast.NewString(s.Substitutions[Apostrophe])
+					node.SetCode(true)
+					block.Advance(1)
+					return node
+				}
+			}
 			if s.Substitutions[LeftSingleQuote] != nil && d.CanOpen && !d.CanClose {
 				node := gast.NewString(s.Substitutions[LeftSingleQuote])
 				node.SetCode(true)
@@ -228,10 +253,10 @@ type typographer struct {
 	options []TypographerOption
 }
 
-// Typographer is an extension that repalace punctuations with typographic entities.
+// Typographer is an extension that replaces punctuations with typographic entities.
 var Typographer = &typographer{}
 
-// NewTypographer returns a new Entender that repalace punctuations with typographic entities.
+// NewTypographer returns a new Extender that replaces punctuations with typographic entities.
 func NewTypographer(opts ...TypographerOption) goldmark.Extender {
 	return &typographer{
 		options: opts,

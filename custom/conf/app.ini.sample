@@ -1,4 +1,3 @@
-
 ; This file lists the default values used by Gitea
 ; Copy required sections to your own app.ini (default is custom/conf/app.ini)
 ; and modify as needed.
@@ -15,7 +14,12 @@ RUN_MODE = dev
 [repository]
 ROOT =
 SCRIPT_TYPE = bash
-; Default ANSI charset
+; DETECTED_CHARSETS_ORDER tie-break order for detected charsets.
+; If the charsets have equal confidence, tie-breaking will be done by order in this list
+; with charsets earlier in the list chosen in preference to those later.
+; Adding "defaults" will place the unused charsets at that position. 
+DETECTED_CHARSETS_ORDER=UTF-8, UTF-16BE, UTF-16LE, UTF-32BE, UTF-32LE, ISO-8859, windows-1252, ISO-8859, windows-1250, ISO-8859, ISO-8859, ISO-8859, windows-1253, ISO-8859, windows-1255, ISO-8859, windows-1251, windows-1256, KOI8-R, ISO-8859, windows-1254, Shift_JIS, GB18030, EUC-JP, EUC-KR, Big5, ISO-2022, ISO-2022, ISO-2022, IBM424_rtl, IBM424_ltr, IBM420_rtl, IBM420_ltr
+; Default ANSI charset to override non-UTF-8 charsets to
 ANSI_CHARSET =
 ; Force every new repository to be private
 FORCE_PRIVATE = false
@@ -43,7 +47,7 @@ DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH = false
 ENABLE_PUSH_CREATE_USER = false
 ENABLE_PUSH_CREATE_ORG = false
 ; Comma separated list of globally disabled repo units. Allowed values: repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki
-DISABLED_REPO_UNITS = 
+DISABLED_REPO_UNITS =
 ; Comma separated list of default repo units. Allowed values: repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki.
 ; Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility.
 ; External wiki and issue tracker can't be enabled by default as it requires additional settings.
@@ -51,9 +55,11 @@ DISABLED_REPO_UNITS =
 DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
 ; Prefix archive files by placing them in a directory named after the repository
 PREFIX_ARCHIVE_FILES = true
+; Disable the creation of new mirrors. Pre-existing mirrors remain valid.
+DISABLE_MIRRORS = false
 
 [repository.editor]
-; List of file extensions for which lines should be wrapped in the CodeMirror editor
+; List of file extensions for which lines should be wrapped in the Monaco editor
 ; Separate extensions with a comma. To line wrap files without an extension, just put a comma
 LINE_WRAP_EXTENSIONS = .txt,.md,.markdown,.mdown,.mkd,
 ; Valid file modes that have a preview API associated with them, such as api/v1/markdown
@@ -172,8 +178,9 @@ SHOW_USER_EMAIL = true
 DEFAULT_THEME = gitea
 ; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
 THEMES = gitea,arc-green
-; All available reactions. Allow users react with different emoji's
-; For the whole list look at https://gitea.com/gitea/gitea.com/issues/8
+;All available reactions users can choose on issues/prs and comments.
+;Values can be emoji alias (:smile:) or a unicode emoji.
+;For custom reactions, add a tightly cropped square image to public/emoji/img/reaction_name.png
 REACTIONS = +1, -1, laugh, hooray, confused, heart, rocket, eyes
 ; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 DEFAULT_SHOW_FULL_NAME = false
@@ -201,9 +208,25 @@ AUTHOR = Gitea - Git with a cup of tea
 DESCRIPTION = Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go
 KEYWORDS = go,git,self-hosted,gitea
 
+[ui.notification]
+; Control how often the notification endpoint is polled to update the notification
+; The timeout will increase to MAX_TIMEOUT in TIMEOUT_STEPs if the notification count is unchanged
+; Set MIN_TIMEOUT to 0 to turn off
+MIN_TIMEOUT = 10s
+MAX_TIMEOUT = 60s
+TIMEOUT_STEP = 10s
+; This setting determines how often the db is queried to get the latest notification counts.
+; If the browser client supports EventSource, it will be used in preference to polling notification.
+EVENT_SOURCE_UPDATE_TIME = 10s
+
 [markdown]
-; Enable hard line break extension
-ENABLE_HARD_LINE_BREAK = false
+; Render soft line breaks as hard line breaks, which means a single newline character between
+; paragraphs will cause a line break and adding trailing whitespace to paragraphs is not
+; necessary to force a line break.
+; Render soft line breaks as hard line breaks for comments
+ENABLE_HARD_LINE_BREAK_IN_COMMENTS = true
+; Render soft line breaks as hard line breaks for markdown documents
+ENABLE_HARD_LINE_BREAK_IN_DOCUMENTS = false
 ; Comma separated list of custom URL-Schemes that are allowed as links when rendering Markdown
 ; for example git,magnet,ftp (more at https://en.wikipedia.org/wiki/List_of_URI_schemes)
 ; URLs starting with http and https are always displayed, whatever is put in this entry.
@@ -217,10 +240,11 @@ FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd
 PROTOCOL = http
 DOMAIN = localhost
 ROOT_URL = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
-; when STATIC_URL_PREFIX is empty it will follow APP_URL
+; when STATIC_URL_PREFIX is empty it will follow ROOT_URL
 STATIC_URL_PREFIX =
 ; The address to listen on. Either a IPv4/IPv6 address or the path to a unix socket.
 HTTP_ADDR = 0.0.0.0
+; The port to listen on. Leave empty when using a unix socket.
 HTTP_PORT = 3000
 ; If REDIRECT_OTHER_PORT is true, and PROTOCOL is set to https an http server
 ; will be started on PORT_TO_REDIRECT and it will redirect plain, non-secure http requests to the main
@@ -311,6 +335,10 @@ LFS_CONTENT_PATH = data/lfs
 LFS_JWT_SECRET =
 ; LFS authentication validity period (in time.Duration), pushes taking longer than this may fail.
 LFS_HTTP_AUTH_EXPIRY = 20m
+; Maximum allowed LFS file size in bytes (Set to 0 for no limit).
+LFS_MAX_FILE_SIZE = 0
+; Maximum number of locks returned per page
+LFS_LOCKS_PAGING_NUM = 50
 ; Allow graceful restarts using SIGHUP to fork
 ALLOW_GRACEFUL_RESTARTS = true
 ; After a restart the parent will finish ongoing requests before
@@ -331,7 +359,7 @@ RSA = 2048
 DSA = 1024
 
 [database]
-; Either "mysql", "postgres", "mssql" or "sqlite3", it's your choice
+; Database to use. Either "mysql", "postgres", "mssql" or "sqlite3".
 DB_TYPE = mysql
 HOST = 127.0.0.1:3306
 NAME = gitea
@@ -368,8 +396,12 @@ CONN_MAX_LIFETIME = 3s
 MAX_OPEN_CONNS = 0
 
 [indexer]
-; Issue indexer type, currently support: bleve or db, default is bleve
+; Issue indexer type, currently support: bleve, db or elasticsearch, default is bleve
 ISSUE_INDEXER_TYPE = bleve
+; Issue indexer connection string, available when ISSUE_INDEXER_TYPE is elasticsearch
+ISSUE_INDEXER_CONN_STR = http://elastic:changeme@localhost:9200
+; Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
+ISSUE_INDEXER_NAME = gitea_issues
 ; Issue indexer storage path, available when ISSUE_INDEXER_TYPE is bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
 ; Issue indexer queue, currently support: channel, levelqueue or redis, default is levelqueue
@@ -602,7 +634,8 @@ SUBJECT_PREFIX =
 ; Mail server
 ; Gmail: smtp.gmail.com:587
 ; QQ: smtp.qq.com:465
-; Note, if the port ends with "465", SMTPS will be used. Using STARTTLS on port 587 is recommended per RFC 6409. If the server supports STARTTLS it will always be used.
+; Using STARTTLS on port 587 is recommended per RFC 6409. 
+; Note, if the port ends with "465", SMTPS will be used. 
 HOST =
 ; Disable HELO operation when hostnames are different.
 DISABLE_HELO =
@@ -614,11 +647,13 @@ SKIP_VERIFY =
 USE_CERTIFICATE = false
 CERT_FILE = custom/mailer/cert.pem
 KEY_FILE = custom/mailer/key.pem
-; Should SMTP connection use TLS
+; Should SMTP connect with TLS, (if port ends with 465 TLS will always be used.)
+; If this is false but STARTTLS is supported the connection will be upgraded to TLS opportunistically.
 IS_TLS_ENABLED = false
 ; Mail from address, RFC 5322. This can be just an email address, or the `"Name" <email@example.com>` format
 FROM =
 ; Mailer user name and password
+; Please Note: Authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via STARTTLS) or `HOST=localhost`.
 USER =
 ; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
@@ -630,8 +665,12 @@ MAILER_TYPE = smtp
 SENDMAIL_PATH = sendmail
 ; Specify any extra sendmail arguments
 SENDMAIL_ARGS =
+; Timeout for Sendmail
+SENDMAIL_TIMEOUT = 5m
 
 [cache]
+; if the cache enabled
+ENABLED = true
 ; Either "memory", "redis", or "memcache", default is "memory"
 ADAPTER = memory
 ; For "memory" only, GC interval in seconds, default is 60
@@ -643,6 +682,16 @@ HOST =
 ; Time to keep items in cache if not used, default is 16 hours.
 ; Setting it to 0 disables caching
 ITEM_TTL = 16h
+
+; Last commit cache
+[cache.last_commit]
+; if the cache enabled
+ENABLED = true
+; Time to keep items in cache if not used, default is 8760 hours.
+; Setting it to 0 disables caching
+ITEM_TTL = 8760h
+; Only enable the cache when repository's commits count great than
+COMMITS_COUNT = 1000
 
 [session]
 ; Either "memory", "file", or "redis", default is "memory"
@@ -693,7 +742,7 @@ ENABLE_FEDERATED_AVATAR = false
 ENABLED = true
 ; Path for attachments. Defaults to `data/attachments`
 PATH = data/attachments
-; One or more allowed types, e.g. image/jpeg|image/png
+; One or more allowed types, e.g. "image/jpeg|image/png". Use "*/*" for all types.
 ALLOWED_TYPES = image/jpeg|image/png|application/zip|application/gzip
 ; Max size of each file. Defaults to 4MB
 MAX_SIZE = 4
@@ -833,7 +882,7 @@ SCHEDULE = @every 24h
 UPDATE_EXISTING = true
 
 ; Update migrated repositories' issues and comments' posterid, it will always attempt synchronization when the instance starts.
-[cron.update_migration_post_id]
+[cron.update_migration_poster_id]
 ; Interval as a duration between each synchronization. (default every 24h)
 SCHEDULE = @every 24h
 
@@ -852,7 +901,9 @@ MAX_GIT_DIFF_FILES = 100
 ; see more on http://git-scm.com/docs/git-gc/
 GC_ARGS =
 ; If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
-EnableAutoGitWireProtocol = true
+ENABLE_AUTO_GIT_WIRE_PROTOCOL = true
+; Respond to pushes to a non-default branch with a URL for creating a Pull Request (if the repository has them enabled)
+PULL_REQUEST_PUSH_MESSAGE = true
 
 ; Operation timeout in seconds
 [git.timeout]
@@ -892,6 +943,8 @@ REFRESH_TOKEN_EXPIRATION_TIME=730
 INVALIDATE_REFRESH_TOKENS=false
 ; OAuth2 authentication secret for access and refresh tokens, change this to a unique string.
 JWT_SECRET=Bk0yK7Y9g_p56v86KaHqjSbxvNvu3SbKoOdOt2ZcXvU
+; Maximum length of oauth2 token/cookie stored on server
+MAX_TOKEN_LENGTH=32767
 
 [i18n]
 LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR
@@ -941,8 +994,10 @@ SHOW_FOOTER_VERSION = true
 ; Show template execution time in the footer
 SHOW_FOOTER_TEMPLATE_LOAD_TIME = true
 
-[markup.sanitizer]
-; The following keys can be used multiple times to define sanitation policy rules.
+[markup.sanitizer.1]
+; The following keys can appear once to define a sanitation policy rule.
+; This section can appear multiple times by adding a unique alphanumeric suffix to define multiple rules.
+; e.g., [markup.sanitizer.1] -> [markup.sanitizer.2] -> [markup.sanitizer.TeX]
 ;ELEMENT = span
 ;ALLOW_ATTR = class
 ;REGEXP = ^(info|warning|error)$

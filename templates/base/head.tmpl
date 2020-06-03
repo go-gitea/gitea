@@ -1,42 +1,17 @@
 <!DOCTYPE html>
-<html lang="{{.Language}}">
+<html lang="{{.Language}}" class="theme-{{.SignedUser.Theme}}">
 <head data-suburl="{{AppSubUrl}}">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta http-equiv="x-ua-compatible" content="ie=edge">
-	<title>{{if .Title}}{{.Title}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
+	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
 	<link rel="manifest" href="{{AppSubUrl}}/manifest.json" crossorigin="use-credentials">
-	{{if UseServiceWorker}}
-	<script>
-		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.register('{{AppSubUrl}}/serviceworker.js').then(function(registration) {
-				// Registration was successful
-				console.info('ServiceWorker registration successful with scope: ', registration.scope);
-			}, function(err) {
-				// registration failed :(
-				console.info('ServiceWorker registration failed: ', err);
-			});
-		}
-	</script>
-	{{else}}
-	<script>
-		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.getRegistrations().then(function(registrations) {
-				registrations.forEach(function(registration) {
-					registration.unregister();
-					console.info('ServiceWorker unregistered');
-				});
-			});
-		}
-	</script>
-	{{end}}
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
 	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}" />
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}" />
 	<meta name="keywords" content="{{MetaKeywords}}">
 	<meta name="referrer" content="no-referrer" />
 	<meta name="_csrf" content="{{.CsrfToken}}" />
-	<meta name="_suburl" content="{{AppSubUrl}}" />
 	{{if .IsSigned}}
 		<meta name="_uid" content="{{.SignedUser.ID}}" />
 	{{end}}
@@ -85,29 +60,40 @@
 	</script>
 	<script>
 		window.config = {
-			Datetimepicker: {{if .RequireDatetimepicker}}true{{else}}false{{end}},
-			Dropzone: {{if .RequireDropzone}}true{{else}}false{{end}},
+			AppVer: '{{AppVer}}',
+			AppSubUrl: '{{AppSubUrl}}',
+			StaticUrlPrefix: '{{StaticUrlPrefix}}',
+			UseServiceWorker: {{UseServiceWorker}},
+			csrf: '{{.CsrfToken}}',
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
 			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
 			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
+			Heatmap: {{if .EnableHeatmap}}true{{else}}false{{end}},
+			heatmapUser: {{if .HeatmapUser}}'{{.HeatmapUser}}'{{else}}null{{end}},
+			NotificationSettings: {
+				MinTimeout: {{NotificationSettings.MinTimeout}},
+				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
+				MaxTimeout: {{NotificationSettings.MaxTimeout}},
+				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
+			},
+      {{if .RequireTribute}}
+			tributeValues: [
+				{{ range .Assignees }}
+				{key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
+				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'},
+				{{ end }}
+			],
+			{{end}}
 		};
 	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png">
-	<link rel="apple-touch-icon" href="{{StaticUrlPrefix}}/img/apple-touch-icon.png">
 	<link rel="mask-icon" href="{{StaticUrlPrefix}}/img/gitea-safari.svg" color="#609926">
+	<link rel="fluid-icon" href="{{StaticUrlPrefix}}/img/gitea-lg.png" title="{{AppName}}">
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css">
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/octicons/octicons.min.css">
-	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/icons.woff2" type="font/woff2" crossorigin="anonymous">
-	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/fomantic/themes/default/assets/fonts/outline-icons.woff2" type="font/woff2" crossorigin="anonymous">
-	<link rel="preload" as="font" href="{{StaticUrlPrefix}}/vendor/assets/octicons/octicons.woff2?ef21c39f0ca9b1b5116e5eb7ac5eabe6" type="font/woff2" crossorigin="anonymous">
 {{if .RequireSimpleMDE}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.css">
-{{end}}
-
-{{if .RequireTribute}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/tribute/tribute.css">
 {{end}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/fomantic/semantic.min.css?v={{MD5 AppVer}}">
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
@@ -119,15 +105,6 @@
 	</noscript>
 {{if .RequireMinicolors}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
-{{end}}
-{{if .RequireDatetimepicker}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css">
-{{end}}
-{{if .RequireDropzone}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/dropzone/dropzone.css">
-{{end}}
-{{if .EnableHeatmap}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.css">
 {{end}}
 	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
@@ -157,7 +134,7 @@
 {{else}}
 	<meta property="og:title" content="{{AppName}}">
 	<meta property="og:type" content="website" />
-	<meta property="og:image" content="{{StaticUrlPrefix}}img/gitea-lg.png" />
+	<meta property="og:image" content="{{StaticUrlPrefix}}/img/gitea-lg.png" />
 	<meta property="og:url" content="{{AppUrl}}" />
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}

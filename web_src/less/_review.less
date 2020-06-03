@@ -9,11 +9,20 @@
     float: left;
     margin: 2px -10px 2px -20px;
     opacity: 0;
-    transition: transform 0.1s ease-in-out;
+    transition: transform .1s ease-in-out;
     transform: scale(1, 1);
 
     &:hover {
         transform: scale(1.2, 1.2);
+    }
+}
+
+.add-comment-left.add-comment-right .ui.attached.header {
+    border: 1px solid #d4d4d5;
+    margin-top: .5em;
+
+    &:not(.top) {
+        margin-bottom: .5em;
     }
 }
 
@@ -53,12 +62,12 @@
         }
 
         &.header {
-            padding: 0.1rem 1rem;
+            padding: .1rem 1rem;
         }
     }
 
     .right.menu.options .item {
-        padding: 0.85714286em 0.442857em;
+        padding: .85714286em .442857em;
         cursor: pointer;
     }
 
@@ -66,23 +75,34 @@
         border: 0;
     }
 
-    .ui.attached.tabular.menu {
-        background: #f7f7f7;
+    .ui.active.tab {
         border: 1px solid #d4d4d5;
-        padding-top: 5px;
-        padding-left: 5px;
-        margin-top: 0;
+        padding: .5em;
+        border-radius: 0 .28571429rem .28571429rem;
+    }
+
+    .ui.active.markdown.tab {
+        border-top-left-radius: .28571429rem;
+    }
+
+    .ui.tabular.menu {
+        margin-bottom: 0;
+        border-bottom: 0;
+    }
+
+    .comment-list {
+        padding-bottom: 10px;
     }
 
     .footer {
         border-top: 1px solid #f1f1f1;
-        margin-top: 10px;
+        padding: 10px 0;
 
         .markdown-info {
             display: inline-block;
             margin: 5px 0;
             font-size: 12px;
-            color: rgba(0, 0, 0, 0.6);
+            color: rgba(0, 0, 0, .6);
         }
 
         .ui.right.floated {
@@ -97,17 +117,17 @@
     }
 
     button.comment-form-reply {
-        margin: 0.5em 0.5em 0.5em 4.5em;
+        margin: .5em .5em .5em 4.5em;
     }
 
     form.comment-form-reply {
-        margin: 0 0 0 4em;
+        margin: 0 0 0 1em;
     }
 }
 
 .file-comment {
     font: 12px @monospaced-fonts, monospace;
-    color: rgba(0, 0, 0, 0.87);
+    color: rgba(0, 0, 0, .87);
 }
 
 .ui.fold-code {
@@ -131,4 +151,37 @@
 
 .ui.blob-excerpt:hover {
     color: #428bca;
+}
+
+@media only screen and (max-width: 768px) {
+    #review-box > .menu {
+        > .ui.segment {
+            width: 94vw;
+        }
+        .editor-toolbar {
+            overflow-x: auto;
+        }
+    }
+
+    #review-box .CodeMirror-scroll {
+        max-width: calc(100vw - 70px);
+    }
+}
+
+@media only screen and (min-width: 768px) and (max-width: 992px) {
+    #review-box .CodeMirror-scroll {
+        max-width: 700px;
+    }
+}
+
+@media only screen and (min-width: 992px) and (max-width: 1200px) {
+    #review-box .CodeMirror-scroll {
+        max-width: 800px;
+    }
+}
+
+@media only screen and (min-width: 1200px) {
+    #review-box .CodeMirror-scroll {
+        max-width: 900px;
+    }
 }

@@ -261,9 +261,12 @@ func newLogService() {
 			continue
 		}
 
-		sec, err := Cfg.GetSection("log." + name)
+		sec, err := Cfg.GetSection("log." + name + ".default")
 		if err != nil {
-			sec, _ = Cfg.NewSection("log." + name)
+			sec, err = Cfg.GetSection("log." + name)
+			if err != nil {
+				sec, _ = Cfg.NewSection("log." + name)
+			}
 		}
 
 		provider, config, levelName := generateLogConfig(sec, name, options)

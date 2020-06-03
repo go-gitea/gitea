@@ -16,21 +16,57 @@ import (
 	_ "gitea.com/macaron/cache/redis"
 )
 
-var conn mc.Cache
+var (
+	conn mc.Cache
+)
+
+func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
+	return mc.NewCacher(cacheConfig.Adapter, mc.Options{
+		Adapter:       cacheConfig.Adapter,
+		AdapterConfig: cacheConfig.Conn,
+		Interval:      cacheConfig.Interval,
+	})
+}
 
 // NewContext start cache service
 func NewContext() error {
-	if setting.CacheService == nil || conn != nil {
-		return nil
+	var err error
+
+	if conn == nil && setting.CacheService.Enabled {
+		if conn, err = newCache(setting.CacheService.Cache); err != nil {
+			return err
+		}
 	}
 
-	var err error
-	conn, err = mc.NewCacher(setting.CacheService.Adapter, mc.Options{
-		Adapter:       setting.CacheService.Adapter,
-		AdapterConfig: setting.CacheService.Conn,
-		Interval:      setting.CacheService.Interval,
-	})
 	return err
+}
+
+// GetString returns the key value from cache with callback when no key exists in cache
+func GetString(key string, getFunc func() (string, error)) (string, error) {
+	if conn == nil || setting.CacheService.TTL == 0 {
+		return getFunc()
+	}
+	if !conn.IsExist(key) {
+		var (
+			value string
+			err   error
+		)
+		if value, err = getFunc(); err != nil {
+			return value, err
+		}
+		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		if err != nil {
+			return "", err
+		}
+	}
+	value := conn.Get(key)
+	if v, ok := value.(string); ok {
+		return v, nil
+	}
+	if v, ok := value.(fmt.Stringer); ok {
+		return v.String(), nil
+	}
+	return fmt.Sprintf("%s", conn.Get(key)), nil
 }
 
 // GetInt returns key value from cache with callback when no key exists in cache
