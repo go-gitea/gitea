@@ -1427,7 +1427,8 @@
     }
 
     #commits-table td.sha .sha.label,
-    #repo-files-table .sha.label {
+    #repo-files-table .sha.label,
+    .timeline-item.commits-list .singular-commit .sha.label {
         border: 1px solid #bbbbbb;
 
         .ui.signature.avatar {
@@ -2372,6 +2373,24 @@
                 padding: 0;
                 margin: 0;
                 height: 100%;
+            }
+        }
+    }
+
+    &.diff .committed-by {
+        padding-top: .5rem;
+
+        .ui.avatar {
+            width: 20px;
+            height: 20px;
+        }
+
+        span {
+            margin-right: .25rem;
+
+            svg {
+                vertical-align: text-bottom;
+                margin-right: 2px;
             }
         }
     }
