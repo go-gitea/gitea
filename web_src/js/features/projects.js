@@ -5,10 +5,7 @@ export default async function initProject() {
     return;
   }
 
-  const {Sortable} = await import(
-    /* webpackChunkName: "sortable" */ 'sortablejs'
-  );
-
+  const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
   const boardColumns = document.getElementsByClassName('board-column');
 
   for (const column of boardColumns) {
