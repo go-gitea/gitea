@@ -28,7 +28,7 @@ export default async function initProject() {
             contentType: 'application/json',
             type: 'POST',
             error: () => {
-              // move board back
+              // ToDo: move board back
             },
           });
         },
