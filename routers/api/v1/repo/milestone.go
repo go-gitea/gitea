@@ -141,8 +141,12 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Description,
-		IsClosed:     form.State == "closed",
 		DeadlineUnix: timeutil.TimeStamp(form.Deadline.Unix()),
+	}
+
+	if form.State == "closed" {
+		milestone.IsClosed = true
+		milestone.ClosedDateUnix = timeutil.TimeStampNow()
 	}
 
 	if err := models.NewMilestone(milestone); err != nil {
