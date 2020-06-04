@@ -154,7 +154,7 @@
 					{{svg "octicon-person" 16}} {{.i18n.Tr "register"}}
 				</a>
 			{{end}}
-			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{.Link}}">
+			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{.CurrentURL}}">
 				{{svg "octicon-sign-in" 16}} {{.i18n.Tr "sign_in"}}
 			</a>
 		</div><!-- end anonymous right menu -->
