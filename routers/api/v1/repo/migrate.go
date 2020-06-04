@@ -115,6 +115,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 
 	if form.Mirror && setting.Repository.DisableMirrors {
 		ctx.Error(http.StatusForbidden, "MirrorsGlobalDisabled", fmt.Errorf("the site administrator has disabled mirrors"))
+		return
 	}
 
 	var opts = migrations.MigrateOptions{
