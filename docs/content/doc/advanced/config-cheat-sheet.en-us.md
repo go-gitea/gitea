@@ -46,7 +46,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    an absolute path.
 - `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
-- `ANSI_CHARSET`: **\<empty\>**: The default charset for an unrecognized charset.
+- `DETECTED_CHARSETS_ORDER`: **UTF-8, UTF-16BE, UTF-16LE, UTF-32BE, UTF-32LE, ISO-8859, windows-1252, ISO-8859, windows-1250, ISO-8859, ISO-8859, ISO-8859, windows-1253, ISO-8859, windows-1255, ISO-8859, windows-1251, windows-1256, KOI8-R, ISO-8859, windows-1254, Shift_JIS, GB18030, EUC-JP, EUC-KR, Big5, ISO-2022, ISO-2022, ISO-2022, IBM424_rtl, IBM424_ltr, IBM420_rtl, IBM420_ltr**: Tie-break order of detected charsets - if the detected charsets have equal confidence, charsets earlier in the list will be chosen in preference to those later. Adding `defaults` will place the unnamed charsets at that point.
+- `ANSI_CHARSET`: **\<empty\>**: Default ANSI charset to override non-UTF-8 charsets to.
 - `FORCE_PRIVATE`: **false**: Force every new repository to be private.
 - `DEFAULT_PRIVATE`: **last**: Default private when creating a new repository.
    \[last, private, public\]
@@ -69,6 +70,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
+- `DISABLE_MIRRORS`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
 
 ### Repository - Pull Request (`repository.pull-request`)
 
@@ -152,7 +154,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Markdown (`markdown`)
 
-- `ENABLE_HARD_LINE_BREAK`: **true**: Render soft line breaks as hard line breaks, which
+- `ENABLE_HARD_LINE_BREAK_IN_COMMENTS`: **true**: Render soft line breaks as hard line breaks in comments, which
+  means a single newline character between paragraphs will cause a line break and adding
+  trailing whitespace to paragraphs is not necessary to force a line break.
+- `ENABLE_HARD_LINE_BREAK_IN_DOCUMENTS`: **false**: Render soft line breaks as hard line breaks in documents, which
   means a single newline character between paragraphs will cause a line break and adding
   trailing whitespace to paragraphs is not necessary to force a line break.
 - `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
@@ -394,10 +399,15 @@ set name for unique queues. Individual queues will default to
 - `DISABLE_HELO`: **\<empty\>**: Disable HELO operation.
 - `HELO_HOSTNAME`: **\<empty\>**: Custom hostname for HELO operation.
 - `HOST`: **\<empty\>**: SMTP mail host address and port (example: smtp.gitea.io:587).
+  - Using opportunistic TLS via STARTTLS on port 587 is recommended per RFC 6409.
+- `IS_TLS_ENABLED` :  **false** : Forcibly use TLS to connect even if not on a default SMTPS port. 
+  - Note, if the port ends with `465` SMTPS/SMTP over TLS will be used despite this setting.
+  - Otherwise if `IS_TLS_ENABLED=false` and the server supports `STARTTLS` this will be used. Thus if `STARTTLS` is preferred you should set `IS_TLS_ENABLED=false`.
 - `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
    the "Name" \<email@example.com\> format.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
+   - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or `HOST=localhost`. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
 - `SKIP_VERIFY`: **\<empty\>**: Do not verify the self-signed certificates.
    - **Note:** Gitea only supports SMTP with STARTTLS.
 - `SUBJECT_PREFIX`: **\<empty\>**: Prefix to be placed before e-mail subject lines.
@@ -412,7 +422,6 @@ set name for unique queues. Individual queues will default to
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
 - `SENDMAIL_TIMEOUT`: **5m**: default timeout for sending email through sendmail
-- ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
 
 ## Cache (`cache`)
 

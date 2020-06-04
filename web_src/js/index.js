@@ -41,7 +41,7 @@ function initCommentPreviewTab($form) {
     const $this = $(this);
     $.post($this.data('url'), {
       _csrf: csrf,
-      mode: 'gfm',
+      mode: 'comment',
       context: $this.data('context'),
       text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {
@@ -65,6 +65,7 @@ function initEditPreviewTab($form) {
     $previewTab.on('click', function () {
       const $this = $(this);
       let context = `${$this.data('context')}/`;
+      const mode = $this.data('markdown-mode') || 'comment';
       const treePathEl = $form.find('input#tree_path');
       if (treePathEl.length > 0) {
         context += treePathEl.val();
@@ -72,7 +73,7 @@ function initEditPreviewTab($form) {
       context = context.substring(0, context.lastIndexOf('/'));
       $.post($this.data('url'), {
         _csrf: csrf,
-        mode: 'gfm',
+        mode,
         context,
         text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
       }, (data) => {
@@ -1322,7 +1323,8 @@ function initWikiForm() {
               _csrf: csrf,
               mode: 'gfm',
               context: $editArea.data('context'),
-              text: plainText
+              text: plainText,
+              wiki: true
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
               $(preview).find('pre code').each((_, e) => {
@@ -1497,7 +1499,7 @@ function setCommentSimpleMDE($editArea) {
   simplemde.codemirror.setOption('extraKeys', {
     Enter: () => {
       const tributeContainer = document.querySelector('.tribute-container');
-      if (tributeContainer && tributeContainer.style.display !== 'none') {
+      if (!tributeContainer || tributeContainer.style.display === 'none') {
         return CodeMirror.Pass;
       }
     },
@@ -1860,7 +1862,8 @@ function initAdmin() {
 
     // Attach view detail modals
     $('.view-detail').on('click', function () {
-      $detailModal.find('.content pre').text($(this).data('content'));
+      $detailModal.find('.content pre').text($(this).parents('tr').find('.notice-description').text());
+      $detailModal.find('.sub.header').text($(this).parents('tr').find('.notice-created-time').text());
       $detailModal.modal('show');
       return false;
     });
@@ -2469,7 +2472,7 @@ $(document).ready(async () => {
     }
   });
 
-  // parallel init of lazy-loaded features
+  // parallel init of async loaded features
   await Promise.all([
     highlight(document.querySelectorAll('pre code')),
     attachTribute(document.querySelectorAll('#content, .emoji-input')),
@@ -2850,7 +2853,12 @@ function initVueComponents() {
           params.set('repo-search-page', `${this.page}`);
         }
 
-        window.history.replaceState({}, '', `?${params.toString()}`);
+        const queryString = params.toString();
+        if (queryString) {
+          window.history.replaceState({}, '', `?${queryString}`);
+        } else {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
       },
 
       toggleArchivedFilter() {

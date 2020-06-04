@@ -751,11 +751,11 @@
                     }
                 }
 
-                &:first-child {
+                &:first-child:not(.commit) {
                     padding-top: 0 !important;
                 }
 
-                &:last-child {
+                &:last-child:not(.commit) {
                     padding-bottom: 0 !important;
                 }
 
@@ -807,8 +807,78 @@
                     line-height: 30px;
                 }
 
-                &.event.small-line-spacing {
-                    padding: 2px 0 0 15px;
+                &.commits-list {
+                    padding-left: 15px;
+                    padding-top: 0;
+
+                    .singular-commit {
+                        &:not(:last-child) {
+                            padding-bottom: 3px;
+                        }
+
+                        .shabox {
+                            .sha.label {
+                                margin: 0;
+                                border: 1px solid #bbbbbb;
+
+                                &.isSigned.isWarning {
+                                    border: 1px solid #db2828;
+                                    background: fade(#db2828, 10%);
+
+                                    .shortsha {
+                                        display: inline-block;
+                                        padding-top: 1px;
+                                    }
+
+                                    &:hover {
+                                        background: fade(#db2828, 30%) !important;
+                                    }
+                                }
+
+                                &.isSigned.isVerified {
+                                    border: 1px solid #21ba45;
+                                    background: fade(#21ba45, 10%);
+
+                                    .shortsha {
+                                        display: inline-block;
+                                        padding-top: 1px;
+                                    }
+
+                                    &:hover {
+                                        background: fade(#21ba45, 30%) !important;
+                                    }
+                                }
+
+                                &.isSigned.isVerifiedUntrusted {
+                                    border: 1px solid #fbbd08;
+                                    background: fade(#fbbd08, 10%);
+
+                                    .shortsha {
+                                        display: inline-block;
+                                        padding-top: 1px;
+                                    }
+
+                                    &:hover {
+                                        background: fade(#fbbd08, 30%) !important;
+                                    }
+                                }
+
+                                &.isSigned.isVerifiedUnmatched {
+                                    border: 1px solid #f2711c;
+                                    background: fade(#f2711c, 10%);
+
+                                    .shortsha {
+                                        display: inline-block;
+                                        padding-top: 1px;
+                                    }
+
+                                    &:hover {
+                                        background: fade(#f2711c, 30%) !important;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 &.event > .commit-status-link {
@@ -914,8 +984,20 @@
                     }
 
                     > .merge-section {
-                        border-top: 1px solid #d4d4d5;
                         background-color: #f7f7f7;
+
+                        .item + .item {
+                            padding-top: .5rem;
+                        }
+
+                        .divider {
+                            margin-left: -1rem;
+                            margin-right: -1rem;
+                        }
+
+                        &.no-header {
+                            #avatar-arrow;
+                        }
                     }
 
                     .markdown {
@@ -1049,69 +1131,6 @@
 
                         &::before {
                             width: 20px;
-                        }
-                    }
-                }
-
-                & > .shabox {
-                    .sha.label {
-                        margin: 0;
-                        border: 1px solid #bbbbbb;
-
-                        &.isSigned.isWarning {
-                            border: 1px solid #db2828;
-                            background: fade(#db2828, 10%);
-
-                            .shortsha {
-                                display: inline-block;
-                                padding-top: 1px;
-                            }
-
-                            &:hover {
-                                background: fade(#db2828, 30%) !important;
-                            }
-                        }
-
-                        &.isSigned.isVerified {
-                            border: 1px solid #21ba45;
-                            background: fade(#21ba45, 10%);
-
-                            .shortsha {
-                                display: inline-block;
-                                padding-top: 1px;
-                            }
-
-                            &:hover {
-                                background: fade(#21ba45, 30%) !important;
-                            }
-                        }
-
-                        &.isSigned.isVerifiedUntrusted {
-                            border: 1px solid #fbbd08;
-                            background: fade(#fbbd08, 10%);
-
-                            .shortsha {
-                                display: inline-block;
-                                padding-top: 1px;
-                            }
-
-                            &:hover {
-                                background: fade(#fbbd08, 30%) !important;
-                            }
-                        }
-
-                        &.isSigned.isVerifiedUnmatched {
-                            border: 1px solid #f2711c;
-                            background: fade(#f2711c, 10%);
-
-                            .shortsha {
-                                display: inline-block;
-                                padding-top: 1px;
-                            }
-
-                            &:hover {
-                                background: fade(#f2711c, 30%) !important;
-                            }
                         }
                     }
                 }
@@ -1313,6 +1332,14 @@
                 }
             }
         }
+
+        .pullrequest-form {
+            margin-bottom: 1.5rem;
+        }
+
+        .markdown {
+            font-size: 14px;
+        }
     }
 
     .filter.dropdown .menu {
@@ -1400,7 +1427,8 @@
     }
 
     #commits-table td.sha .sha.label,
-    #repo-files-table .sha.label {
+    #repo-files-table .sha.label,
+    .timeline-item.commits-list .singular-commit .sha.label {
         border: 1px solid #bbbbbb;
 
         .ui.signature.avatar {
@@ -2348,6 +2376,24 @@
             }
         }
     }
+
+    &.diff .committed-by {
+        padding-top: .5rem;
+
+        .ui.avatar {
+            width: 20px;
+            height: 20px;
+        }
+
+        span {
+            margin-right: .25rem;
+
+            svg {
+                vertical-align: text-bottom;
+                margin-right: 2px;
+            }
+        }
+    }
 }
 
 // End of .repository
@@ -2461,6 +2507,12 @@
         .desc {
             padding-top: 5px;
             color: #999999;
+
+            .waiting,
+            .approvals,
+            .rejects {
+                padding-left: 5px;
+            }
 
             .checklist {
                 padding-left: 5px;

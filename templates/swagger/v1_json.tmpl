@@ -2241,6 +2241,53 @@
             "$ref": "#/responses/BranchList"
           }
         }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a branch",
+        "operationId": "repoCreateBranch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateBranchRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Branch"
+          },
+          "404": {
+            "description": "The old branch does not exist."
+          },
+          "409": {
+            "description": "The branch with the same name already exists."
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/branches/{branch}": {
@@ -2746,6 +2793,15 @@
         "responses": {
           "200": {
             "$ref": "#/responses/FileResponse"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -2795,6 +2851,15 @@
         "responses": {
           "201": {
             "$ref": "#/responses/FileResponse"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -8278,6 +8343,23 @@
         }
       }
     },
+    "/settings/allowed_reactions": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns string array of allowed reactions",
+        "operationId": "getAllowedReactions",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StringSlice"
+          }
+        }
+      }
+    },
     "/signing-key.gpg": {
       "get": {
         "produces": [
@@ -9105,6 +9187,9 @@
           "201": {
             "$ref": "#/responses/GPGKey"
           },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -9165,6 +9250,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -10876,6 +10964,28 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateBranchRepoOption": {
+      "description": "CreateBranchRepoOption options when creating a branch in a repository",
+      "type": "object",
+      "required": [
+        "new_branch_name"
+      ],
+      "properties": {
+        "new_branch_name": {
+          "description": "Name of the branch to create",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "BranchName"
+        },
+        "old_branch_name": {
+          "description": "Name of the old branch to create from",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "OldBranchName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -12735,6 +12845,10 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "is_locked": {
+          "type": "boolean",
+          "x-go-name": "IsLocked"
+        },
         "labels": {
           "type": "array",
           "items": {
@@ -13407,6 +13521,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "is_locked": {
+          "type": "boolean",
+          "x-go-name": "IsLocked"
         },
         "labels": {
           "type": "array",
@@ -14938,6 +15056,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/StopWatch"
+        }
+      }
+    },
+    "StringSlice": {
+      "description": "StringSlice",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
         }
       }
     },

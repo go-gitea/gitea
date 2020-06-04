@@ -14,7 +14,12 @@ RUN_MODE = dev
 [repository]
 ROOT =
 SCRIPT_TYPE = bash
-; Default ANSI charset
+; DETECTED_CHARSETS_ORDER tie-break order for detected charsets.
+; If the charsets have equal confidence, tie-breaking will be done by order in this list
+; with charsets earlier in the list chosen in preference to those later.
+; Adding "defaults" will place the unused charsets at that position. 
+DETECTED_CHARSETS_ORDER=UTF-8, UTF-16BE, UTF-16LE, UTF-32BE, UTF-32LE, ISO-8859, windows-1252, ISO-8859, windows-1250, ISO-8859, ISO-8859, ISO-8859, windows-1253, ISO-8859, windows-1255, ISO-8859, windows-1251, windows-1256, KOI8-R, ISO-8859, windows-1254, Shift_JIS, GB18030, EUC-JP, EUC-KR, Big5, ISO-2022, ISO-2022, ISO-2022, IBM424_rtl, IBM424_ltr, IBM420_rtl, IBM420_ltr
+; Default ANSI charset to override non-UTF-8 charsets to
 ANSI_CHARSET =
 ; Force every new repository to be private
 FORCE_PRIVATE = false
@@ -50,6 +55,8 @@ DISABLED_REPO_UNITS =
 DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
 ; Prefix archive files by placing them in a directory named after the repository
 PREFIX_ARCHIVE_FILES = true
+; Disable the creation of new mirrors. Pre-existing mirrors remain valid.
+DISABLE_MIRRORS = false
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the Monaco editor
@@ -216,7 +223,10 @@ EVENT_SOURCE_UPDATE_TIME = 10s
 ; Render soft line breaks as hard line breaks, which means a single newline character between
 ; paragraphs will cause a line break and adding trailing whitespace to paragraphs is not
 ; necessary to force a line break.
-ENABLE_HARD_LINE_BREAK = true
+; Render soft line breaks as hard line breaks for comments
+ENABLE_HARD_LINE_BREAK_IN_COMMENTS = true
+; Render soft line breaks as hard line breaks for markdown documents
+ENABLE_HARD_LINE_BREAK_IN_DOCUMENTS = false
 ; Comma separated list of custom URL-Schemes that are allowed as links when rendering Markdown
 ; for example git,magnet,ftp (more at https://en.wikipedia.org/wiki/List_of_URI_schemes)
 ; URLs starting with http and https are always displayed, whatever is put in this entry.
@@ -624,7 +634,8 @@ SUBJECT_PREFIX =
 ; Mail server
 ; Gmail: smtp.gmail.com:587
 ; QQ: smtp.qq.com:465
-; Note, if the port ends with "465", SMTPS will be used. Using STARTTLS on port 587 is recommended per RFC 6409. If the server supports STARTTLS it will always be used.
+; Using STARTTLS on port 587 is recommended per RFC 6409. 
+; Note, if the port ends with "465", SMTPS will be used. 
 HOST =
 ; Disable HELO operation when hostnames are different.
 DISABLE_HELO =
@@ -636,11 +647,13 @@ SKIP_VERIFY =
 USE_CERTIFICATE = false
 CERT_FILE = custom/mailer/cert.pem
 KEY_FILE = custom/mailer/key.pem
-; Should SMTP connection use TLS
+; Should SMTP connect with TLS, (if port ends with 465 TLS will always be used.)
+; If this is false but STARTTLS is supported the connection will be upgraded to TLS opportunistically.
 IS_TLS_ENABLED = false
 ; Mail from address, RFC 5322. This can be just an email address, or the `"Name" <email@example.com>` format
 FROM =
 ; Mailer user name and password
+; Please Note: Authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via STARTTLS) or `HOST=localhost`.
 USER =
 ; Use PASSWD = `your password` for quoting if you use special characters in the password.
 PASSWD =
