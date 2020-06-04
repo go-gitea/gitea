@@ -5,6 +5,8 @@
 package misc
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -19,5 +21,5 @@ func SettingGetsAllowedReactions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StringSlice"
-	ctx.JSON(200, setting.UI.Reactions)
+	ctx.JSON(http.StatusOK, setting.UI.Reactions)
 }
