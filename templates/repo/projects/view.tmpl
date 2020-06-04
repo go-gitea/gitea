@@ -122,7 +122,7 @@
 									{{else}}{{svg "octicon-issue-opened" 16}}
 									{{end}}
 								</span>
-								<a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">{{ .Title }}</a>
+								<a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">#{{.Index}} {{.Title}}</a>
 							</div>
 							<div class="meta">
 								{{ if .MilestoneID }}
