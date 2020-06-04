@@ -8343,6 +8343,23 @@
         }
       }
     },
+    "/settings/allowed_reactions": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns string array of allowed reactions",
+        "operationId": "getAllowedReactions",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StringSlice"
+          }
+        }
+      }
+    },
     "/signing-key.gpg": {
       "get": {
         "produces": [
@@ -15039,6 +15056,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/StopWatch"
+        }
+      }
+    },
+    "StringSlice": {
+      "description": "StringSlice",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
         }
       }
     },

@@ -475,13 +475,19 @@
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 											<div class="comment" id="{{.HashTag}}">
-												<a class="avatar">
-													<img src="{{.Poster.RelAvatarLink}}">
-												</a>
+												{{if not .OriginalAuthor }}
+													<a class="avatar">
+														<img src="{{.Poster.RelAvatarLink}}">
+													</a>
+												{{end}}
 												<div class="content">
 													<div class="code-comment-content">
 														<span class="text grey">
-															<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+															{{if .OriginalAuthor }}
+																<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+															{{else}}
+																<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+															{{end}}
 															{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}
 															<div class="text">
 																<div class="render-content markdown">
@@ -608,7 +614,7 @@
 			</span>
 		</div>
 		{{if not .IsForcePush}}
-			{{template "repo/commits_list_small" .}}
+			{{template "repo/commits_list_small" dict "comment" . "root" $}}
 		{{end}}
 	{{end}}
 {{end}}

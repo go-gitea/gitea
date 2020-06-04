@@ -118,7 +118,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		RepoName:       form.RepoName,
 		Description:    form.Description,
 		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror,
+		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		Wiki:           form.Wiki,

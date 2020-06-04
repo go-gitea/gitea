@@ -77,6 +77,10 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, "%s: %s", title, message)
+
+		if macaron.Env == macaron.PROD {
+			message = ""
+		}
 	}
 
 	ctx.JSON(status, APIError{
