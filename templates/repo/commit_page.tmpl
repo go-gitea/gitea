@@ -33,7 +33,7 @@
 		</div>
 		<div class="ui attached info segment {{$class}}">
 			<div class="ui stackable grid">
-				<div class="ten wide column">
+				<div class="nine wide column">
 					{{if .Author}}
 						<img class="ui avatar image" src="{{.Author.RelAvatarLink}}" />
 					{{if .Author.FullName}}
@@ -45,19 +45,22 @@
 						<img class="ui avatar image" src="{{AvatarLink .Commit.Author.Email}}" />
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
-					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
-						<span> </span>
-						{{if ne .Verification.CommittingUser.ID 0}}
-							<img class="ui avatar image" src="{{.Verification.CommittingUser.RelAvatarLink}}" />
-							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong> &lt;{{.Commit.Committer.Email}}&gt;</a>
-						{{else}}
-							<img class="ui avatar image" src="{{AvatarLink .Commit.Committer.Email}}" />
-							<strong>{{.Commit.Committer.Name}}</strong>
-						{{end}}
-					{{end}}
 					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
+					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
+						<div class="committed-by">
+							<span class="text grey">{{svg "octicon-git-commit" 16}}{{.i18n.Tr "repo.diff.committed_by"}}</span>
+							{{if ne .Verification.CommittingUser.ID 0}}
+								<img class="ui avatar image" src="{{.Verification.CommittingUser.RelAvatarLink}}" />
+								<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong> &lt;{{.Commit.Committer.Email}}&gt;</a>
+							{{else}}
+								<img class="ui avatar image" src="{{AvatarLink .Commit.Committer.Email}}" />
+								<strong>{{.Commit.Committer.Name}}</strong>
+							{{end}}
+						</div>
+					{{end}}
+
 				</div>
-				<div class="six wide right aligned column">
+				<div class="seven wide right aligned column">
 					<div class="ui horizontal list">
 						{{if .Parents}}
 							<div class="item">

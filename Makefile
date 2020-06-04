@@ -107,7 +107,7 @@ endif
 
 GO_SOURCES_OWN := $(filter-out vendor/% %/bindata.go, $(GO_SOURCES))
 
-FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables web_src/fomantic/css.js
+FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
 FOMANTIC_DEST := public/fomantic/semantic.min.js public/fomantic/semantic.min.css
 FOMANTIC_DEST_DIR := public/fomantic
 
@@ -591,7 +591,6 @@ $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
 	rm -rf $(FOMANTIC_DEST_DIR)
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp -r web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
-	cp web_src/fomantic/css.js node_modules/fomantic-ui/tasks/build/css.js
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 	@touch $(FOMANTIC_DEST)
 

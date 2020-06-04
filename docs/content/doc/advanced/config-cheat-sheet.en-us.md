@@ -46,7 +46,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    an absolute path.
 - `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
-- `ANSI_CHARSET`: **\<empty\>**: The default charset for an unrecognized charset.
+- `DETECTED_CHARSETS_ORDER`: **UTF-8, UTF-16BE, UTF-16LE, UTF-32BE, UTF-32LE, ISO-8859, windows-1252, ISO-8859, windows-1250, ISO-8859, ISO-8859, ISO-8859, windows-1253, ISO-8859, windows-1255, ISO-8859, windows-1251, windows-1256, KOI8-R, ISO-8859, windows-1254, Shift_JIS, GB18030, EUC-JP, EUC-KR, Big5, ISO-2022, ISO-2022, ISO-2022, IBM424_rtl, IBM424_ltr, IBM420_rtl, IBM420_ltr**: Tie-break order of detected charsets - if the detected charsets have equal confidence, charsets earlier in the list will be chosen in preference to those later. Adding `defaults` will place the unnamed charsets at that point.
+- `ANSI_CHARSET`: **\<empty\>**: Default ANSI charset to override non-UTF-8 charsets to.
 - `FORCE_PRIVATE`: **false**: Force every new repository to be private.
 - `DEFAULT_PRIVATE`: **last**: Default private when creating a new repository.
    \[last, private, public\]
@@ -69,6 +70,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
+- `DISABLE_MIRRORS`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
 
 ### Repository - Pull Request (`repository.pull-request`)
 
