@@ -67,7 +67,7 @@ type APIRedirect struct{}
 
 //APIString is a string response
 // swagger:response string
-type APIString struct{}
+type APIString string
 
 // Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
