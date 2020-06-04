@@ -22,10 +22,12 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -64,6 +66,27 @@ func TestMain(m *testing.M) {
 	initIntegrationTest()
 	mac = routes.NewMacaron()
 	routes.RegisterRoutes(mac)
+
+	// integration test settings...
+	if setting.Cfg != nil {
+		testingCfg := setting.Cfg.Section("integration-tests")
+		slowTest = testingCfg.Key("SLOW_TEST").MustDuration(slowTest)
+		slowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(slowFlush)
+	}
+
+	if os.Getenv("GITEA_SLOW_TEST_TIME") != "" {
+		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_TEST_TIME"))
+		if err == nil {
+			slowTest = duration
+		}
+	}
+
+	if os.Getenv("GITEA_SLOW_FLUSH_TIME") != "" {
+		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_FLUSH_TIME"))
+		if err == nil {
+			slowFlush = duration
+		}
+	}
 
 	var helper testfixtures.Helper
 	if setting.Database.UseMySQL {
@@ -458,4 +481,15 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
+}
+
+// resetFixtures flushes queues, reloads fixtures and resets test repositories within a single test.
+// Most tests should call defer prepareTestEnv(t)() (or have onGiteaRun do that for them) but sometimes
+// within a single test this is required
+func resetFixtures(t *testing.T) {
+	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
+	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
+		setting.RepoRootPath))
 }
