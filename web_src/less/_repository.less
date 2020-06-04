@@ -2972,22 +2972,29 @@ tbody.commit-list {
     overflow-y: scroll;
     flex: 0 0 auto;
     overflow: visible;
+    display: flex;
+    flex-direction: column;
+}
+
+.board-column-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.board-label {
+    line-height: 1.25 !important;
 }
 
 .board-column > .cards {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     margin: 0 !important;
-    display: list-item;
-    height: 92%;
     padding: 5px;
 
     .card .meta > a.milestone {
         color: #999999;
     }
-}
-
-.board-column > .board-label {
-    margin-left: 5px !important;
-    margin-top: 3px !important;
 }
 
 .board-column > .divider {
@@ -3020,12 +3027,6 @@ tbody.commit-list {
 
 .board-card .extra.content {
     padding: 5px 8px !important;
-}
-
-.board-label {
-    padding: .4em .6em !important;
-    margin-right: .4em !important;
-    margin-bottom: .4em !important;
 }
 
 td.blob-excerpt {
