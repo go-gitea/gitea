@@ -171,11 +171,11 @@ func GetPullRequest(ctx *context.APIContext) {
 
 // DownloadPullDiff render a pull's raw diff
 func DownloadPullDiff(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.diff repository repoGetPullRequestDiff
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.diff repository repoDownloadPullDiff
 	// ---
 	// summary: Get a pull request diff
 	// produces:
-	// - application/json
+	// - text/plain
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -195,9 +195,7 @@ func DownloadPullDiff(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     description: A diff file
-	//	   schema:
-	//	     type: string
+	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	DownloadPullDiffOrPatch(ctx, false)
@@ -205,11 +203,11 @@ func DownloadPullDiff(ctx *context.APIContext) {
 
 // DownloadPullPatch render a pull's raw patch
 func DownloadPullPatch(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.patch repository repoGetPullRequestDiff
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.patch repository repoDownloadPullPatch
 	// ---
 	// summary: Get a pull request patch file
 	// produces:
-	// - application/json
+	// - text/plain
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -229,9 +227,7 @@ func DownloadPullPatch(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     description: A patch file
-	//	   schema:
-	//	     type: string
+	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	DownloadPullDiffOrPatch(ctx, true)
