@@ -512,6 +512,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
+		m.Group("/settings", func() {
+			m.Get("/allowed_reactions", misc.SettingGetsAllowedReactions)
+		})
 
 		// Notifications
 		m.Group("/notifications", func() {
@@ -793,6 +796,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Group("/:index", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
+						m.Get(".diff", repo.DownloadPullDiff)
+						m.Get(".patch", repo.DownloadPullPatch)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 						m.Group("/reviews", func() {

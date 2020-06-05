@@ -14,6 +14,12 @@
 				{{else}}
 					{{if .IsPrivate}}
 						{{svg "octicon-lock" 32}}
+					{{else if and (not .IsMirror) (not .IsFork) (.Owner)}}
+						{{if .Owner.Visibility.IsPrivate}}
+							{{svg "octicon-internal-repo" 32}}
+						{{else}}
+							{{svg "octicon-repo" 32}}
+						{{end}}
 					{{else if .IsMirror}}
 						{{svg "octicon-repo-clone" 32}}
 					{{else if .IsFork}}
