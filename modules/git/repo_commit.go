@@ -94,9 +94,15 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	gogitCommit, err := repo.gogitRepo.CommitObject(id)
 	if err == plumbing.ErrObjectNotFound {
 		tagObject, err = repo.gogitRepo.TagObject(id)
+		if err == plumbing.ErrObjectNotFound {
+			return nil, ErrNotExist{
+				ID: id.String(),
+			}
+		}
 		if err == nil {
 			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
 		}
+		// if we get a plumbing.ErrObjectNotFound here then the repository is broken and it should be 500
 	}
 	if err != nil {
 		return nil, err
@@ -447,4 +453,22 @@ func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error)
 		branches[i] = parts[len(parts)-1]
 	}
 	return branches, nil
+}
+
+// GetCommitsFromIDs get commits from commit IDs
+func (repo *Repository) GetCommitsFromIDs(commitIDs []string) (commits *list.List) {
+	if len(commitIDs) == 0 {
+		return nil
+	}
+
+	commits = list.New()
+
+	for _, commitID := range commitIDs {
+		commit, err := repo.GetCommit(commitID)
+		if err == nil && commit != nil {
+			commits.PushBack(commit)
+		}
+	}
+
+	return commits
 }

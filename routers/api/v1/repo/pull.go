@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -113,6 +114,7 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
 	ctx.JSON(http.StatusOK, &apiPrs)
 }
 
@@ -165,6 +167,88 @@ func GetPullRequest(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr))
+}
+
+// DownloadPullDiff render a pull's raw diff
+func DownloadPullDiff(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.diff repository repoDownloadPullDiff
+	// ---
+	// summary: Get a pull request diff
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	DownloadPullDiffOrPatch(ctx, false)
+}
+
+// DownloadPullPatch render a pull's raw patch
+func DownloadPullPatch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.patch repository repoDownloadPullPatch
+	// ---
+	// summary: Get a pull request patch file
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	DownloadPullDiffOrPatch(ctx, true)
+}
+
+// DownloadPullDiffOrPatch render a pull's raw diff or patch
+func DownloadPullDiffOrPatch(ctx *context.APIContext, patch bool) {
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.InternalServerError(err)
+		}
+		return
+	}
+
+	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
 }
 
 // CreatePullRequest does what it says
@@ -240,10 +324,26 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 			return
 		}
 
-		labelIDs = make([]int64, len(labels))
+		labelIDs = make([]int64, len(form.Labels))
+		orgLabelIDs := make([]int64, len(form.Labels))
+
 		for i := range labels {
 			labelIDs[i] = labels[i].ID
 		}
+
+		if ctx.Repo.Owner.IsOrganization() {
+			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
+				return
+			}
+
+			for i := range orgLabels {
+				orgLabelIDs[i] = orgLabels[i].ID
+			}
+		}
+
+		labelIDs = append(labelIDs, orgLabelIDs...)
 	}
 
 	if form.Milestone > 0 {
@@ -392,6 +492,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if len(form.Title) > 0 {
 		issue.Title = form.Title
 	}
@@ -451,25 +552,42 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDsError", err)
 			return
 		}
+
+		if ctx.Repo.Owner.IsOrganization() {
+			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
+				return
+			}
+
+			labels = append(labels, orgLabels...)
+		}
+
 		if err = issue.ReplaceLabels(labels, ctx.User); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
 			return
 		}
 	}
 
-	if err = models.UpdateIssueByAPI(issue); err != nil {
+	if form.State != nil {
+		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+	}
+	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
+	if err != nil {
+		if models.IsErrDependenciesLeft(err) {
+			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueByAPI", err)
 		return
 	}
-	if form.State != nil {
-		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
-			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
-			return
-		}
+
+	if titleChanged {
+		notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
+	}
+
+	if statusChangeComment != nil {
+		notification.NotifyIssueChangeStatus(ctx.User, issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database
@@ -678,11 +796,11 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		} else if models.IsErrMergeUnrelatedHistories(err) {
 			conflictError := err.(models.ErrMergeUnrelatedHistories)
 			ctx.JSON(http.StatusConflict, conflictError)
-		} else if models.IsErrMergePushOutOfDate(err) {
+		} else if git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "Merge", "merge push out of date")
 			return
-		} else if models.IsErrPushRejected(err) {
-			errPushRej := err.(models.ErrPushRejected)
+		} else if git.IsErrPushRejected(err) {
+			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
 				ctx.Error(http.StatusConflict, "Merge", "PushRejected without remote error message")
 				return

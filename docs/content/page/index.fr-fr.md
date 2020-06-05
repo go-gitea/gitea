@@ -263,7 +263,6 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
   * [DropzoneJS](http://www.dropzonejs.com/)
   * [Highlight](https://highlightjs.org/)
   * [Clipboard](https://zenorocha.github.io/clipboard.js/)
-  * [Emojify](https://github.com/Ranks/emojify.js)
   * [CodeMirror](https://codemirror.net/)
   * [jQuery Date Time Picker](https://github.com/xdan/datetimepicker)
   * [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)

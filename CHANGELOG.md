@@ -4,6 +4,69 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.6](https://github.com/go-gitea/gitea/releases/tag/v1.11.6) - 2020-05-30
+
+* SECURITY
+  * Fix missing authorization check on pull for public repos of private/limited org (#11656) (#11683)
+  * Use session for retrieving org teams (#11438) (#11439)
+* BUGFIXES
+  * Return json on 500 error from API (#11574) (#11660)
+  * Fix wrong milestone in webhook message (#11596) (#11612)
+  * Prevent (caught) panic on login (#11590) (#11598)
+  * Fix commit page js error (#11527)
+  * Use media links for img in post-process (#10515) (#11504)
+  * Ensure public repositories in private organizations are visible and fix admin organizations list (#11465) (#11475)
+  * Set correct Content-Type value for Gogs/Gitea webhooks (#9504) (#10456) (#11461)
+  * Allow all members of private orgs to see public repos (#11442) (#11459)
+  * Whenever the ctx.Session is updated, release it to save it before sending the redirect (#11456) (#11457)
+  * Forcibly clean and destroy the session on logout (#11447) (#11451)
+  * Fix /api/v1/orgs/* endpoints by changing parameter to :org from :orgname (#11381)
+  * Add tracked time fix to doctor (part of #11111) (#11138)
+  * Fix webpack chunk loading with STATIC_URL_PREFIX (#11526) (#11544)
+  * Remove unnecessary parentheses in wiki/revision.tmpl to allow 1.11 to build on go1.14  (#11481)
+
+## [1.11.5](https://github.com/go-gitea/gitea/releases/tag/v1.11.5) - 2020-05-09
+
+* BUGFIXES
+  * Prevent timer leaks in Workerpool and others (#11333) (#11340)
+  * Fix tracked time issues (#11349) (#11354)
+  * Add NotifySyncPushCommits to indexer notifier (#11309) (#11338)
+  * Allow X in addition to x in tasks (#10979) (#11335)
+  * When delete tracked time through the API return 404 not 500 (#11319) (#11326)
+  * Prevent duplicate records in organizations list when creating a repository (#11303) (#11325)
+  * Manage port in submodule refurl (#11305) (#11323)
+  * api.Context.NotFound(...) should tolerate nil (#11288) (#11306)
+  * Show pull request selection even when unrelated branches (#11239) (#11283)
+  * Repo: milestone: make /milestone/:id endpoint accessible (#11264) (#11282)
+  * Fix GetContents(): Dont't ignore Executables (#11192) (#11209)
+  * Fix submodule paths when AppSubUrl is not root (#11098) (#11176)
+  * Prevent clones and pushes to disabled wiki (#11131) (#11134)
+  * Remove errant third closing curly-bracket from account.tmpl and send account ID in account.tmpl (#11130)
+  * On Repo Deletion: Delete related TrackedTimes too (#11110) (#11125)
+  * Refresh codemirror on show pull comment tab (#11100) (#11122)
+  * Fix merge dialog on protected branch with missing required statuses (#11074) (#11084)
+  * Load pr Issue Poster on API too (#11033) (#11039)
+  * Fix release counter on API repository info (#10968) (#10996)
+  * Generate Diff and Patch direct from Pull head (#10936) (#10938)
+  * Fix rebase conflict detection in git 2.26 (#10929) (#10930)
+* ENHANCEMENT
+  * Fix 404 and 500 image size in small size screen (#11043) (#11049)
+  * Multiple Gitea Doctor improvements (#10943) (#10990) (#10064) (#9095) (#10991)
+
+## [1.11.4](https://github.com/go-gitea/gitea/releases/tag/v1.11.4) - 2020-04-01
+
+* BUGFIXES
+  * Only update merge_base if not already merged (#10909)
+  * Fix milestones too many SQL variables bug (#10880) (#10904)
+  * Protect against NPEs in notifications list (#10879) (#10883)
+  * Convert plumbing.ErrObjectNotFound to git.ErrNotExist in getCommit (#10862) (#10868)
+  * Convert plumbing.ErrReferenceNotFound to git.ErrNotExist in GetRefCommitID (#10676) (#10797)
+  * Account for empty lines in receive-hook message (#10773) (#10784)
+  * Fix bug on branch API (#10767) (#10775)
+  * Migrate to go-git/go-git v5.0.0 (#10735) (#10753)
+  * Fix hiding of fields in authorization source page (#10734) (#10752)
+  * Prevent default for linkAction (#10742) (#10743)
+
 ## [1.11.3](https://github.com/go-gitea/gitea/releases/tag/v1.11.3) - 2020-03-10
 
 * BUGFIXES

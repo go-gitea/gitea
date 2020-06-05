@@ -383,7 +383,7 @@ func orgAssignment(args ...bool) macaron.Handler {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":orgname"))
+			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":org"))
 			if err != nil {
 				if models.IsErrOrgNotExist(err) {
 					ctx.NotFound()
@@ -500,7 +500,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
 	if setting.API.EnableSwagger {
-		m.Get("/swagger", misc.Swagger) //Render V1 by default
+		m.Get("/swagger", misc.Swagger) // Render V1 by default
 	}
 
 	m.Group("/v1", func() {
@@ -512,6 +512,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
+		m.Group("/settings", func() {
+			m.Get("/allowed_reactions", misc.SettingGetsAllowedReactions)
+		})
 
 		// Notifications
 		m.Group("/notifications", func() {
@@ -580,7 +583,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("/oauth2").
 					Get(user.ListOauth2Applications).
 					Post(bind(api.CreateOAuth2ApplicationOptions{}), user.CreateOauth2Application)
-				m.Delete("/oauth2/:id", user.DeleteOauth2Application)
+				m.Combo("/oauth2/:id").
+					Delete(user.DeleteOauth2Application).
+					Patch(bind(api.CreateOAuth2ApplicationOptions{}), user.UpdateOauth2Application).
+					Get(user.GetOauth2Application)
 			}, reqToken())
 
 			m.Group("/gpg_keys", func() {
@@ -649,11 +655,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 					}, reqGitHook(), context.ReferencesGitRepo(true))
 				}, reqToken(), reqAdmin())
 				m.Group("/collaborators", func() {
-					m.Get("", repo.ListCollaborators)
-					m.Combo("/:collaborator").Get(repo.IsCollaborator).
-						Put(bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
-						Delete(repo.DeleteCollaborator)
-				}, reqToken(), reqAdmin())
+					m.Get("", reqAnyRepoReader(), repo.ListCollaborators)
+					m.Combo("/:collaborator").Get(reqAnyRepoReader(), repo.IsCollaborator).
+						Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
+						Delete(reqAdmin(), repo.DeleteCollaborator)
+				}, reqToken())
 				m.Get("/raw/*", context.RepoRefByType(context.RepoRefAny), reqRepoReader(models.UnitTypeCode), repo.GetRawFile)
 				m.Get("/archive/*", reqRepoReader(models.UnitTypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
@@ -661,6 +667,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", context.RepoRefByType(context.RepoRefBranch), repo.GetBranch)
+					m.Delete("/*", reqRepoWriter(models.UnitTypeCode), context.RepoRefByType(context.RepoRefBranch), repo.DeleteBranch)
+					m.Post("", reqRepoWriter(models.UnitTypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
@@ -731,6 +739,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						})
 						m.Group("/subscriptions", func() {
 							m.Get("", repo.GetIssueSubscribers)
+							m.Get("/check", reqToken(), repo.CheckIssueSubscription)
 							m.Put("/:user", reqToken(), repo.AddIssueSubscription)
 							m.Delete("/:user", reqToken(), repo.DelIssueSubscription)
 						})
@@ -787,8 +796,24 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Group("/:index", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
+						m.Get(".diff", repo.DownloadPullDiff)
+						m.Get(".patch", repo.DownloadPullPatch)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
-							Post(reqToken(), mustNotBeArchived, reqRepoWriter(models.UnitTypePullRequests), bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
+							Post(reqToken(), mustNotBeArchived, bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
+						m.Group("/reviews", func() {
+							m.Combo("").
+								Get(repo.ListPullReviews).
+								Post(reqToken(), bind(api.CreatePullReviewOptions{}), repo.CreatePullReview)
+							m.Group("/:id", func() {
+								m.Combo("").
+									Get(repo.GetPullReview).
+									Delete(reqToken(), repo.DeletePullReview).
+									Post(reqToken(), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
+								m.Combo("/comments").
+									Get(repo.GetPullReviewComments)
+							})
+						})
+
 					})
 				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(false))
 				m.Group("/statuses", func() {
@@ -798,7 +823,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/commits", func() {
 					m.Get("", repo.GetAllCommits)
 					m.Group("/:ref", func() {
-						// TODO: Add m.Get("") for single commit (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
 					})
@@ -839,7 +863,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/users/:username/orgs", org.ListUserOrgs)
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll)
-		m.Group("/orgs/:orgname", func() {
+		m.Group("/orgs/:org", func() {
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
@@ -861,6 +885,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
 				m.Get("/search", org.SearchTeam)
 			}, reqOrgMembership())
+			m.Group("/labels", func() {
+				m.Get("", org.ListLabels)
+				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)
+				m.Combo("/:id").Get(org.GetLabel).
+					Patch(reqToken(), reqOrgOwnership(), bind(api.EditLabelOption{}), org.EditLabel).
+					Delete(reqToken(), reqOrgOwnership(), org.DeleteLabel)
+			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
@@ -882,7 +913,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 			m.Group("/repos", func() {
 				m.Get("", org.GetTeamRepos)
-				m.Combo("/:orgname/:reponame").
+				m.Combo("/:org/:reponame").
 					Put(org.AddTeamRepository).
 					Delete(org.RemoveTeamRepository)
 			})

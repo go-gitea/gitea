@@ -51,7 +51,10 @@ func RemoveLabel(issue *models.Issue, doer *models.User, label *models.Label) er
 		return err
 	}
 	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		return models.ErrLabelNotExist{}
+		if label.OrgID > 0 {
+			return models.ErrOrgLabelNotExist{}
+		}
+		return models.ErrRepoLabelNotExist{}
 	}
 
 	if err := models.DeleteIssueLabel(issue, label, doer); err != nil {

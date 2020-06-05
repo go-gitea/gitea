@@ -61,7 +61,7 @@ func checkAndUpdateStatus(pr *models.PullRequest) {
 	}
 
 	if !has {
-		if err := pr.UpdateCols("merge_base", "status", "conflicted_files"); err != nil {
+		if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files"); err != nil {
 			log.Error("Update[%d]: %v", pr.ID, err)
 		}
 	}

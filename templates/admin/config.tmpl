@@ -228,6 +228,8 @@
 						<dd>{{.Mailer.SendmailPath}}</dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_args"}}</dt>
 						<dd>{{.Mailer.SendmailArgs}}</dd>
+						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_timeout"}}</dt>
+						<dd>{{.Mailer.SendmailTimeout}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
 					{{end}}
 					<dt>{{.i18n.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>

@@ -13,6 +13,7 @@ import (
 // PullRequest defines a standard pull request information
 type PullRequest struct {
 	Number         int64
+	OriginalNumber int64
 	Title          string
 	PosterName     string
 	PosterID       int64

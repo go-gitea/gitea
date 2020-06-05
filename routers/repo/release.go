@@ -131,6 +131,65 @@ func Releases(ctx *context.Context) {
 	ctx.HTML(200, tplReleases)
 }
 
+// SingleRelease renders a single release's page
+func SingleRelease(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
+	ctx.Data["PageIsReleaseList"] = true
+
+	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
+	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
+
+	release, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("tag"))
+	if err != nil {
+		ctx.ServerError("GetReleasesByRepoID", err)
+		return
+	}
+
+	err = models.GetReleaseAttachments(release)
+	if err != nil {
+		ctx.ServerError("GetReleaseAttachments", err)
+		return
+	}
+
+	release.Publisher, err = models.GetUserByID(release.PublisherID)
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			release.Publisher = models.NewGhostUser()
+		} else {
+			ctx.ServerError("GetUserByID", err)
+			return
+		}
+	}
+	if err := calReleaseNumCommitsBehind(ctx.Repo, release, make(map[string]int64)); err != nil {
+		ctx.ServerError("calReleaseNumCommitsBehind", err)
+		return
+	}
+	release.Note = markdown.RenderString(release.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
+
+	ctx.Data["Releases"] = []*models.Release{release}
+	ctx.HTML(200, tplReleases)
+}
+
+// LatestRelease redirects to the latest release
+func LatestRelease(ctx *context.Context) {
+	release, err := models.GetLatestReleaseByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		if models.IsErrReleaseNotExist(err) {
+			ctx.NotFound("LatestRelease", err)
+			return
+		}
+		ctx.ServerError("GetLatestReleaseByRepoID", err)
+		return
+	}
+
+	if err := release.LoadAttributes(); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
+	}
+
+	ctx.Redirect(release.HTMLURL())
+}
+
 // NewRelease render creating release page
 func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")

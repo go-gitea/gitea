@@ -91,12 +91,7 @@ The simplest recommended way to build from source is:
 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
-However, there are a number of additional make tasks you should be aware of.
-These are documented below but you can look at our
-[`Makefile`](https://github.com/go-gitea/gitea/blob/master/Makefile) for more,
-and look at our
-[`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see
-how our continuous integration works.
+See `make help` for all available `make` tasks. Also see [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see how our continuous integration works.
 
 ### Formatting, code analysis and spell check
 
@@ -128,13 +123,33 @@ make revive vet misspell-check
 
 ### Working on JS and CSS
 
-Edit files in `web_src` and run the linter and build the files in `public`:
+For simple changes, edit files in `web_src`, run the build and start the server to test:
 
 ```bash
-make webpack
+make build && ./gitea
 ```
 
-Note: When working on frontend code, it is advisable to set `USE_SERVICE_WORKER` to `false` in `app.ini` which will prevent undesirable caching of frontend assets.
+`make build` runs both `make frontend` and `make backend` which can be run individually as well as long as the `bindata` tag is not used (which compiles frontend files into the binary).
+
+For more involved changes use the `watch-frontend` task to continuously rebuild files when their sources change. The `bindata` tag must be absent. First, build and run the backend:
+
+```bash
+make backend && ./gitea
+```
+
+With the backend running, open another terminal and run:
+
+```bash
+make watch-frontend
+```
+
+Before committing, make sure the linters pass:
+
+```bash
+make lint-frontend
+```
+
+Note: When working on frontend code, set `USE_SERVICE_WORKER` to `false` in `app.ini` to prevent undesirable caching of frontend assets.
 
 ### Building Images
 

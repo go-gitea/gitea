@@ -917,19 +917,12 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 		}
 
 		// Remove watches from now unaccessible
-		has, err := hasAccess(e, userID, repo)
-		if err != nil {
-			return err
-		} else if has {
-			continue
-		}
-
-		if err = watchRepo(e, userID, repo.ID, false); err != nil {
+		if err := repo.reconsiderWatches(e, userID); err != nil {
 			return err
 		}
 
-		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := removeIssueWatchersByRepoID(e, userID, repo.ID); err != nil {
+		// Remove issue assignments from now unaccessible
+		if err := repo.reconsiderIssueAssignees(e, userID); err != nil {
 			return err
 		}
 	}

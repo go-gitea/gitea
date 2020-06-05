@@ -53,6 +53,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		Assignee:  apiIssue.Assignee,
 		Assignees: apiIssue.Assignees,
 		State:     apiIssue.State,
+		IsLocked:  apiIssue.IsLocked,
 		Comments:  apiIssue.Comments,
 		HTMLURL:   pr.Issue.HTMLURL(),
 		DiffURL:   pr.Issue.DiffURL(),

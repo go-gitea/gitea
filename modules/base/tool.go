@@ -193,11 +193,32 @@ func SizedAvatarLink(email string, size int) string {
 	return avatarURL.String()
 }
 
-// AvatarLink returns relative avatar link to the site domain by given email,
-// which includes app sub-url as prefix. However, it is possible
-// to return full URL if user enables Gravatar-like service.
-func AvatarLink(email string) string {
-	return SizedAvatarLink(email, DefaultAvatarSize)
+// SizedAvatarLinkWithDomain returns a sized link to the avatar for the given email
+// address.
+func SizedAvatarLinkWithDomain(email string, size int) string {
+	var avatarURL *url.URL
+	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
+		var err error
+		avatarURL, err = libravatarURL(email)
+		if err != nil {
+			return DefaultAvatarLink()
+		}
+	} else if !setting.DisableGravatar {
+		// copy GravatarSourceURL, because we will modify its Path.
+		copyOfGravatarSourceURL := *setting.GravatarSourceURL
+		avatarURL = &copyOfGravatarSourceURL
+		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
+	} else {
+		return DefaultAvatarLink()
+	}
+
+	vals := avatarURL.Query()
+	vals.Set("d", "identicon")
+	if size != DefaultAvatarSize {
+		vals.Set("s", strconv.Itoa(size))
+	}
+	avatarURL.RawQuery = vals.Encode()
+	return avatarURL.String()
 }
 
 // FileSize calculates the file size and generate user-friendly string.

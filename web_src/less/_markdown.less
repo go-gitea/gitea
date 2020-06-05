@@ -9,7 +9,7 @@
     }
 
     &.file-view {
-        padding: 2em 2em 2em !important;
+        padding: 2em !important;
     }
 
     > *:first-child {
@@ -192,9 +192,9 @@
         list-style-type: none;
     }
 
-    ul.task-list,
-    ol.task-list {
+    li.task-list-item {
         list-style-type: none;
+        margin-left: calc(-2em + 2px);
     }
 
     ul ul,
@@ -371,19 +371,11 @@
 
     code,
     tt {
-        padding: .2em 0;
+        padding: .2em .3em;
         margin: 0;
         font-size: 85%;
         background-color: rgba(0, 0, 0, .04);
         border-radius: 3px;
-    }
-
-    code:before,
-    code:after,
-    tt:before,
-    tt:after {
-        letter-spacing: -.2em;
-        content: "\00a0";
     }
 
     code br,

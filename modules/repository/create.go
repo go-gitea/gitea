@@ -47,7 +47,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *m
 		// No need for init mirror.
 		if !opts.IsMirror {
 			repoPath := models.RepoPath(u.Name, repo.Name)
-			if err = initRepository(ctx, repoPath, u, repo, opts); err != nil {
+			if err = initRepository(ctx, repoPath, doer, repo, opts); err != nil {
 				if err2 := os.RemoveAll(repoPath); err2 != nil {
 					log.Error("initRepository: %v", err)
 					return fmt.Errorf(
@@ -58,7 +58,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *m
 
 			// Initialize Issue Labels if selected
 			if len(opts.IssueLabels) > 0 {
-				if err = models.InitializeLabels(ctx, repo.ID, opts.IssueLabels); err != nil {
+				if err = models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 					return fmt.Errorf("InitializeLabels: %v", err)
 				}
 			}

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // WrappedQueueType is the type for a wrapped delayed starting queue
@@ -56,7 +57,11 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 	for q.internal == nil {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("Timedout creating queue %v with cfg %#v in %s", q.underlying, q.cfg, q.name)
+			var cfg = q.cfg
+			if s, ok := cfg.([]byte); ok {
+				cfg = string(s)
+			}
+			return fmt.Errorf("Timedout creating queue %v with cfg %#v in %s", q.underlying, cfg, q.name)
 		default:
 			queue, err := NewQueue(q.underlying, handle, q.cfg, exemplar)
 			if err == nil {
@@ -64,10 +69,17 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 				break
 			}
 			if err.Error() != "resource temporarily unavailable" {
-				log.Warn("[Attempt: %d] Failed to create queue: %v for %s cfg: %#v error: %v", i, q.underlying, q.name, q.cfg, err)
+				if bs, ok := q.cfg.([]byte); ok {
+					log.Warn("[Attempt: %d] Failed to create queue: %v for %s cfg: %s error: %v", i, q.underlying, q.name, string(bs), err)
+				} else {
+					log.Warn("[Attempt: %d] Failed to create queue: %v for %s cfg: %#v error: %v", i, q.underlying, q.name, q.cfg, err)
+				}
 			}
 			i++
 			if q.maxAttempts > 0 && i > q.maxAttempts {
+				if bs, ok := q.cfg.([]byte); ok {
+					return fmt.Errorf("Unable to create queue %v for %s with cfg %s by max attempts: error: %v", q.underlying, q.name, string(bs), err)
+				}
 				return fmt.Errorf("Unable to create queue %v for %s with cfg %#v by max attempts: error: %v", q.underlying, q.name, q.cfg, err)
 			}
 			sleepTime := 100 * time.Millisecond
@@ -77,7 +89,7 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 			t := time.NewTimer(sleepTime)
 			select {
 			case <-ctx.Done():
-				t.Stop()
+				util.StopTimer(t)
 			case <-t.C:
 			}
 		}

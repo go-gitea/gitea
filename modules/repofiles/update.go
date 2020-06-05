@@ -446,6 +446,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	// Then push this tree to NewBranch
 	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
+		log.Error("%T %v", err, err)
 		return nil, err
 	}
 

@@ -15,6 +15,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -425,6 +426,9 @@ func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 	defer os.Remove(tmpPath)
 	stdout, stderr, err := process.GetManager().Exec("AddPublicKey", "ssh-keygen", "-lf", tmpPath)
 	if err != nil {
+		if strings.Contains(stderr, "is not a public key file") {
+			return "", ErrKeyUnableVerify{stderr}
+		}
 		return "", fmt.Errorf("'ssh-keygen -lf %s' failed with error '%s': %s", tmpPath, err, stderr)
 	} else if len(stdout) < 2 {
 		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
@@ -455,6 +459,10 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 		fp, err = calcFingerprintSSHKeygen(publicKeyContent)
 	}
 	if err != nil {
+		if IsErrKeyUnableVerify(err) {
+			log.Info("%s", publicKeyContent)
+			return "", err
+		}
 		return "", fmt.Errorf("%s: %v", fnName, err)
 	}
 	return fp, nil
@@ -694,7 +702,21 @@ func rewriteAllPublicKeys(e Engine) error {
 		}
 	}
 
-	err = e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+	if err := regeneratePublicKeys(e, t); err != nil {
+		return err
+	}
+
+	t.Close()
+	return os.Rename(tmpPath, fPath)
+}
+
+// RegeneratePublicKeys regenerates the authorized_keys file
+func RegeneratePublicKeys(t io.StringWriter) error {
+	return regeneratePublicKeys(x, t)
+}
+
+func regeneratePublicKeys(e Engine, t io.StringWriter) error {
+	err := e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	})
@@ -702,6 +724,7 @@ func rewriteAllPublicKeys(e Engine) error {
 		return err
 	}
 
+	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	if com.IsExist(fPath) {
 		f, err := os.Open(fPath)
 		if err != nil {
@@ -722,9 +745,7 @@ func rewriteAllPublicKeys(e Engine) error {
 		}
 		f.Close()
 	}
-
-	t.Close()
-	return os.Rename(tmpPath, fPath)
+	return nil
 }
 
 // ________                .__                 ____  __.

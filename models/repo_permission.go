@@ -339,10 +339,14 @@ func HasAccessUnit(user *User, repo *Repository, unitType UnitType, testMode Acc
 // Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
 // FIXME: user could send PullRequest also could be assigned???
 func CanBeAssigned(user *User, repo *Repository, isPull bool) (bool, error) {
+	return canBeAssigned(x, user, repo, isPull)
+}
+
+func canBeAssigned(e Engine, user *User, repo *Repository, _ bool) (bool, error) {
 	if user.IsOrganization() {
 		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
-	perm, err := GetUserRepoPermission(repo, user)
+	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
 		return false, err
 	}

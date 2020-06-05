@@ -171,12 +171,12 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	label, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	label, err := models.GetLabelByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrLabelNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLabelInRepoByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetLabelByID", err)
 		}
 		return
 	}
@@ -308,9 +308,9 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return
 	}
 
-	labels, err = models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
+	labels, err = models.GetLabelsByIDs(form.Labels)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDs", err)
+		ctx.Error(http.StatusInternalServerError, "GetLabelsByIDs", err)
 		return
 	}
 
