@@ -253,6 +253,16 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
+
+	// for internal repo just check if user is member of organization
+	internal, err := repo.IsInternal()
+	if err != nil {
+		return false, err
+	}
+	if internal {
+		return repo.Owner.IsOrgMember(userID)
+	}
+
 	teamMember, err := x.Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
 		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
 		Where("team_repo.repo_id = ?", repo.ID).

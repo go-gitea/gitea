@@ -898,6 +898,18 @@ func (repo *Repository) IsReader(userID int64) (bool, error) {
 	return x.Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, AccessModeRead).Get(&Access{})
 }
 
+func (repo *Repository) IsInternal() (bool, error) {
+	if err := repo.GetOwner(); err != nil {
+		return false, err
+	}
+
+	if repo.Owner.IsOrganization() && repo.Owner.Visibility == api.VisibleTypePrivate && !repo.IsPrivate {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.
 func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*User, err error) {
 	if err = repo.getOwner(e); err != nil {
