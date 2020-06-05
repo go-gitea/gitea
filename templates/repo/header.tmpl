@@ -7,25 +7,25 @@
 					<img class="ui avatar image" src="{{.RelAvatarLink}}">
 				{{else if .IsTemplate}}
 					{{if .IsPrivate}}
-						{{svg "octicon-repo-template-private" 32}}
+						{{svg "octicon-repo-template-private" 28 32}}
 					{{else}}
-						{{svg "octicon-repo-template" 32}}
+						{{svg "octicon-repo-template" 28 32}}
 					{{end}}
 				{{else}}
 					{{if .IsPrivate}}
-						{{svg "octicon-lock" 32}}
+						{{svg "octicon-lock" 24 32}}
 					{{else if and (not .IsMirror) (not .IsFork) (.Owner)}}
 						{{if .Owner.Visibility.IsPrivate}}
-							{{svg "octicon-internal-repo" 32}}
+							{{svg "octicon-internal-repo" 26 32}}
 						{{else}}
-							{{svg "octicon-repo" 32}}
+							{{svg "octicon-repo" 24 32}}
 						{{end}}
 					{{else if .IsMirror}}
-						{{svg "octicon-repo-clone" 32}}
+						{{svg "octicon-repo-clone" 32 32}}
 					{{else if .IsFork}}
-						{{svg "octicon-repo-forked" 32}}
+						{{svg "octicon-repo-forked" 20 32}}
 					{{else}}
-						{{svg "octicon-repo" 32}}
+						{{svg "octicon-repo" 24 32}}
 					{{end}}
 				{{end}}
 				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
@@ -34,19 +34,19 @@
 				{{if .RelAvatarLink}}
 					{{if .IsTemplate}}
 						{{if .IsPrivate}}
-							{{svg "octicon-repo-template-private" 32}}
+							{{svg "octicon-repo-template-private" 28 32}}
 						{{else}}
-							{{svg "octicon-repo-template" 32}}
+							{{svg "octicon-repo-template" 28 32}}
 						{{end}}
 					{{else}}
 						{{if .IsPrivate}}
-							{{svg "octicon-lock" 32}}
+							{{svg "octicon-lock" 24 32}}
 						{{else if .IsMirror}}
-							{{svg "octicon-repo-clone" 32}}
+							{{svg "octicon-repo-clone" 32 32}}
 						{{else if .IsFork}}
-							{{svg "octicon-repo-forked" 32}}
+							{{svg "octicon-repo-forked" 20 32}}
 						{{else}}
-							{{svg "octicon-repo" 32}}
+							{{svg "octicon-repo" 24 32}}
 						{{end}}
 					{{end}}
 				{{end}}
@@ -82,7 +82,7 @@
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button {{if and ($.IsSigned) (not $.CanSignedUserFork)}}disabled-repo-button{{end}}" tabindex="0">
 							<a class="ui compact basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
-								{{svg "octicon-repo-forked" 15}}{{$.i18n.Tr "repo.fork"}}
+								{{svg "octicon-repo-forked" 15 15}}{{$.i18n.Tr "repo.fork"}}
 							</a>
 							<a class="ui basic label" href="{{.Link}}/forks">
 								{{.NumForks}}
@@ -99,43 +99,43 @@
 			<div class="ui tabular stackable menu navbar">
 				{{if .Permission.CanRead $.UnitTypeCode}}
 				<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL | EscapePound}}{{end}}">
-					{{svg "octicon-code" 16}} {{.i18n.Tr "repo.code"}}
+					{{svg "octicon-code" 16 16}} {{.i18n.Tr "repo.code"}}
 				</a>
 				{{end}}
 
 				{{if .Permission.CanRead $.UnitTypeIssues}}
 					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
-						{{svg "octicon-issue-opened" 16}} {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
+						{{svg "octicon-issue-opened" 16 16}} {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
 					</a>
 				{{end}}
 
 				{{if .Permission.CanRead $.UnitTypeExternalTracker}}
 					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
-						{{svg "octicon-link-external" 16}} {{.i18n.Tr "repo.issues"}} </span>
+						{{svg "octicon-link-external" 16 16}} {{.i18n.Tr "repo.issues"}} </span>
 					</a>
 				{{end}}
 
 				{{if and .Repository.CanEnablePulls (.Permission.CanRead $.UnitTypePullRequests)}}
 					<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls">
-						{{svg "octicon-git-pull-request" 16}} {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
+						{{svg "octicon-git-pull-request" 16 16}} {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
 					</a>
 				{{end}}
 
 				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo) }}
 				<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
-					{{svg "octicon-tag" 16}} {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .NumReleases}}gray{{else}}blue{{end}} small label">{{.NumReleases}}</span>
+					{{svg "octicon-tag" 16 16}} {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .NumReleases}}gray{{else}}blue{{end}} small label">{{.NumReleases}}</span>
 				</a>
 				{{end}}
 
 				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
 					<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Permission.CanRead $.UnitTypeExternalWiki)}} target="_blank" rel="noopener noreferrer" {{end}}>
-						{{svg "octicon-book" 16}} {{.i18n.Tr "repo.wiki"}}
+						{{svg "octicon-book" 16 16}} {{.i18n.Tr "repo.wiki"}}
 					</a>
 				{{end}}
 
 				{{if and (.Permission.CanReadAny $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsEmptyRepo)}}
 					<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
-						{{svg "octicon-pulse" 16}} {{.i18n.Tr "repo.activity"}}
+						{{svg "octicon-pulse" 16 16}} {{.i18n.Tr "repo.activity"}}
 					</a>
 				{{end}}
 
@@ -144,7 +144,7 @@
 				{{if .Permission.IsAdmin}}
 					<div class="right menu">
 						<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
-							{{svg "octicon-tools" 16}} {{.i18n.Tr "repo.settings"}}
+							{{svg "octicon-tools" 16 16}} {{.i18n.Tr "repo.settings"}}
 						</a>
 					</div>
 				{{end}}

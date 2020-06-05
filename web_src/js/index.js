@@ -2955,17 +2955,17 @@ function initVueComponents() {
 
       repoClass(repo) {
         if (repo.fork) {
-          return 'octicon-repo-forked';
+          return {icon: 'octicon-repo-forked', width: 10, height: 16};
         } if (repo.mirror) {
-          return 'octicon-repo-clone';
+          return {icon: 'octicon-repo-clone', width: 16, height: 16};
         } if (repo.template) {
-          return `octicon-repo-template${repo.private ? '-private' : ''}`;
+          return {icon: `octicon-repo-template${repo.private ? '-private' : ''}`, width: 14, height: 16};
         } if (repo.private) {
-          return 'octicon-lock';
+          return {icon: 'octicon-lock', width: 12, height: 16};
         } if (repo.internal) {
-          return 'octicon-internal-repo';
+          return {icon: 'octicon-internal-repo', width: 13, height: 16};
         }
-        return 'octicon-repo';
+        return {icon: 'octicon-repo', width: 12, height: 16};
       }
     }
   });

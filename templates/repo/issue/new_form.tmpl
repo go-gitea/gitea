@@ -42,7 +42,7 @@
 				<span class="text">
 					<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
 					{{if .HasIssuesOrPullsWritePermission}}
-						{{svg "octicon-gear" 16}}
+						{{svg "octicon-gear" 16 16}}
 					{{end}}
 				</span>
 				<div class="filter menu" data-id="#label_ids">
@@ -56,13 +56,13 @@
 					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 					{{if or .Labels .OrgLabels}}
 						{{range .Labels}}
-							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 							{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 						{{end}}
-					
+
 						<div class="ui divider"></div>
 						{{range .OrgLabels}}
-							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+							<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check" 16 16}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 							{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 						{{end}}
 					{{else}}
@@ -87,7 +87,7 @@
 				<span class="text">
 					<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
 					{{if .HasIssuesOrPullsWritePermission}}
-						{{svg "octicon-gear" 16}}
+						{{svg "octicon-gear" 16 16}}
 					{{end}}
 				</span>
 				<div class="menu">
@@ -107,7 +107,7 @@
 						{{if .OpenMilestones}}
 							<div class="divider"></div>
 							<div class="header">
-								{{svg "octicon-milestone" 16}}
+								{{svg "octicon-milestone" 16 16}}
 								{{.i18n.Tr "repo.issues.new.open_milestone"}}
 							</div>
 							{{range .OpenMilestones}}
@@ -117,7 +117,7 @@
 						{{if .ClosedMilestones}}
 							<div class="divider"></div>
 							<div class="header">
-								{{svg "octicon-milestone" 16}}
+								{{svg "octicon-milestone" 16 16}}
 								{{.i18n.Tr "repo.issues.new.closed_milestone"}}
 							</div>
 							{{range .ClosedMilestones}}
@@ -143,7 +143,7 @@
 					<span class="text">
 						<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
 						{{if .HasIssuesOrPullsWritePermission}}
-							{{svg "octicon-gear" 16}}
+							{{svg "octicon-gear" 16 16}}
 						{{end}}
 					</span>
 					<div class="filter menu" data-id="#assignee_ids">
@@ -155,7 +155,7 @@
 						<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_assignees"}}</div>
 						{{range .Assignees}}
 							<a class="item" href="#" data-id="{{.ID}}" data-id-selector="#assignee_{{.ID}}">
-								<span class="octicon-check invisible">{{svg "octicon-check" 16}}</span>
+								<span class="octicon-check invisible">{{svg "octicon-check" 16 16}}</span>
 								<span class="text">
 									<img class="ui avatar image" src="{{.RelAvatarLink}}"> {{.GetDisplayName}}
 								</span>

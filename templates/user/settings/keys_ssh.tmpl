@@ -21,7 +21,7 @@
                     </button>
                 </div>
                 <div class="left floated content">
-                	<span class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted tiny"{{end}}>{{svg "octicon-key" 32}}</span>
+                	<span class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted tiny"{{end}}>{{svg "octicon-key" 32 32}}</span>
                 </div>
                 <div class="content">
                     <strong>{{.Name}}</strong>
@@ -29,7 +29,7 @@
                         {{.Fingerprint}}
                     </div>
                     <div class="activity meta">
-                        <i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —	{{svg "octicon-info" 16}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
+                        <i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —	{{svg "octicon-info" 16 16}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
                     </div>
                 </div>
 			</div>
