@@ -63,7 +63,7 @@
 		<div class="ui attached segment horizontal segments">
 			{{if .Permission.CanRead $.UnitTypePullRequests}}
 				<a href="#merged-pull-requests" class="ui attached segment text center">
-					<span class="text purple">{{svg "octicon-git-pull-request" 16 16}}</span> <strong>{{.Activity.MergedPRCount}}</strong><br>
+					<span class="text purple">{{svg "octicon-git-pull-request" 12 16}}</span> <strong>{{.Activity.MergedPRCount}}</strong><br>
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.MergedPRCount "repo.activity.merged_prs_count_1" "repo.activity.merged_prs_count_n") }}
 				</a>
 				<a href="#proposed-pull-requests" class="ui attached segment text center">
@@ -77,7 +77,7 @@
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueCount "repo.activity.closed_issues_count_1" "repo.activity.closed_issues_count_n") }}
 				</a>
 				<a href="#new-issues" class="ui attached segment text center">
-					<span class="text green">{{svg "octicon-issue-opened" 16 16}}</span> <strong>{{.Activity.OpenedIssueCount}}</strong><br>
+					<span class="text green">{{svg "octicon-issue-opened" 14 16}}</span> <strong>{{.Activity.OpenedIssueCount}}</strong><br>
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.OpenedIssueCount "repo.activity.new_issues_count_1" "repo.activity.new_issues_count_n") }}
 				</a>
 			{{end}}
@@ -139,7 +139,7 @@
 
 		{{if gt .Activity.MergedPRCount 0}}
 			<h4 class="ui horizontal divider header" id="merged-pull-requests">
-				<span class="text">{{svg "octicon-git-pull-request" 16 16}}</span>
+				<span class="text">{{svg "octicon-git-pull-request" 12 16}}</span>
 				{{.i18n.Tr "repo.activity.title.prs_merged_by" (.i18n.Tr (TrN .i18n.Lang .Activity.MergedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n") .Activity.MergedPRCount) (.i18n.Tr (TrN .i18n.Lang .Activity.MergedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n") .Activity.MergedPRAuthorCount) }}
 			</h4>
 			<div class="list">
@@ -187,7 +187,7 @@
 
 		{{if gt .Activity.OpenedIssueCount 0}}
 			<h4 class="ui horizontal divider header" id="new-issues">
-				<span class="text">{{svg "octicon-issue-opened" 16 16}}</span>
+				<span class="text">{{svg "octicon-issue-opened" 14 16}}</span>
 				{{.i18n.Tr "repo.activity.title.issues_created_by" (.i18n.Tr (TrN .i18n.Lang .Activity.OpenedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n") .Activity.OpenedIssueCount) (.i18n.Tr (TrN .i18n.Lang .Activity.OpenedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n") .Activity.OpenedIssueAuthorCount) }}
 			</h4>
 			<div class="list">

@@ -21,9 +21,9 @@
 	{{else if .Issue.IsClosed}}
 		<div class="ui red large label">{{svg "octicon-issue-closed" 16 16}} {{.i18n.Tr "repo.issues.closed_title"}}</div>
 	{{else if .Issue.IsPull}}
-		<div class="ui green large label">{{svg "octicon-git-pull-request" 16 16}} {{.i18n.Tr "repo.issues.open_title"}}</div>
+		<div class="ui green large label">{{svg "octicon-git-pull-request" 12 16}} {{.i18n.Tr "repo.issues.open_title"}}</div>
 	{{else}}
-		<div class="ui green large label">{{svg "octicon-issue-opened" 16 16}} {{.i18n.Tr "repo.issues.open_title"}}</div>
+		<div class="ui green large label">{{svg "octicon-issue-opened" 14 16}} {{.i18n.Tr "repo.issues.open_title"}}</div>
 	{{end}}
 
 	{{if .Issue.IsPull}}

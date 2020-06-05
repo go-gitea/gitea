@@ -16,7 +16,7 @@
 						{{range .Branches}}
 							{{if eq .Name $.DefaultBranch}}
 								{{if .IsProtected}}
-									{{svg "octicon-shield-lock" 16 16}}
+									{{svg "octicon-shield-lock" 14 16}}
 								{{end}}
 								<a href="{{$.RepoLink}}/src/branch/{{$.DefaultBranch | EscapePound}}">{{$.DefaultBranch}}</a>
 								<p class="info">{{svg "octicon-git-commit" 16 16}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
@@ -53,7 +53,7 @@
 										<p class="info">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
 									{{else}}
 										{{if .IsProtected}}
-											{{svg "octicon-shield-lock" 16 16}}
+											{{svg "octicon-shield-lock" 14 16}}
 										{{end}}
 										<a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a>
 										<p class="info">{{svg "octicon-git-commit" 16 16}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
@@ -77,7 +77,7 @@
 										{{if not .LatestPullRequest}}
 											{{if .IsIncluded}}
 												<a class="ui poping up orange small label" data-content="{{$.i18n.Tr "repo.branch.included_desc"}}" data-variation="tiny inverted" data-position="top right">
-													{{svg "octicon-git-pull-request" 16 16}} {{$.i18n.Tr "repo.branch.included"}}
+													{{svg "octicon-git-pull-request" 12 16}} {{$.i18n.Tr "repo.branch.included"}}
 												</a>
 											{{else if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
@@ -97,7 +97,7 @@
 											{{else if .LatestPullRequest.Issue.IsClosed}}
 												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label red mini label">{{svg "octicon-issue-closed" 16 16}} {{$.i18n.Tr "repo.issues.closed_title"}}</a>
 											{{else}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label green mini label">{{svg "octicon-issue-opened" 16 16}} {{$.i18n.Tr "repo.issues.open_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label green mini label">{{svg "octicon-issue-opened" 14 16}} {{$.i18n.Tr "repo.issues.open_title"}}</a>
 											{{end}}
 										{{end}}
 									</td>

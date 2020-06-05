@@ -41,7 +41,7 @@
 						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.i18n.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 					{{end}}
 					<label>
-						{{svg "octicon-git-pull-request" 16 16}}
+						{{svg "octicon-git-pull-request" 12 16}}
 						{{if $pullRequestEnabled}}
 							{{.i18n.Tr "repo.editor.create_new_branch" | Safe}}
 						{{else}}

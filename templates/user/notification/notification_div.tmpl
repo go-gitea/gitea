@@ -44,16 +44,16 @@
                                             {{if $issue.GetPullRequest.HasMerged}}
                                                 <span class="purple">{{svg "octicon-git-merge" 16 16}}</span>
                                             {{else}}
-                                                <span class="red">{{svg "octicon-git-pull-request" 16 16}}</span>
+                                                <span class="red">{{svg "octicon-git-pull-request" 12 16}}</span>
                                             {{end}}
                                         {{else}}
-                                            <span class="green">{{svg "octicon-git-pull-request" 16 16}}</span>
+                                            <span class="green">{{svg "octicon-git-pull-request" 12 16}}</span>
                                         {{end}}
                                     {{else}}
                                         {{if $issue.IsClosed}}
                                             <span class="red">{{svg "octicon-issue-closed" 16 16}}</span>
                                         {{else}}
-                                            <span class="green">{{svg "octicon-issue-opened" 16 16}}</span>
+                                            <span class="green">{{svg "octicon-issue-opened" 14 16}}</span>
                                         {{end}}
                                     {{end}}
                                 </td>
@@ -97,7 +97,7 @@
                                                 data-page="{{$.Page.Paginater.Current}}"
                                                 data-notification-id="{{.ID}}"
                                                 data-q="{{$.Keyword}}">
-                                                {{svg "octicon-check" 16 16}}
+                                                {{svg "octicon-check" 12 16}}
                                             </button>
                                         </form>
                                     {{else if eq .Status 2}}

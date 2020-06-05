@@ -24,7 +24,7 @@
 							{{end}}
 							{{if .ShowUserEmail }}
 								<li>
-									{{svg "octicon-clock" 14 16}}
+									{{svg "octicon-mail" 14 16}}
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
 								</li>
 							{{end}}
@@ -87,10 +87,10 @@
 						{{svg "octicon-repo" 12 16}} {{.i18n.Tr "user.repositories"}}
 					</a>
 					<a class='{{if eq .TabName "activity"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=activity">
-						{{svg "octicon-rss" 16 16}} {{.i18n.Tr "user.activity"}}
+						{{svg "octicon-rss" 10 16}} {{.i18n.Tr "user.activity"}}
 					</a>
 					<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
-						{{svg "octicon-star" 16 16}}  {{.i18n.Tr "user.starred"}}
+						{{svg "octicon-star" 14 16}}  {{.i18n.Tr "user.starred"}}
 						<div class="ui label">{{.Owner.NumStars}}</div>
 					</a>
 					<a class='{{if eq .TabName "following"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=following">
