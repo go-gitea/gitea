@@ -51,7 +51,7 @@
 							<span class="info">{{.i18n.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash" 16}}{{else if .IsSelected}}{{svg "octicon-check" 12 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}</a>
+								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash" 14 16}}{{else if .IsSelected}}{{svg "octicon-check" 12 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}</a>
 							{{end}}
 						</div>
 					</div>
