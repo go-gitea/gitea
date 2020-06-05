@@ -88,6 +88,19 @@ func RefEndName(refStr string) string {
 	return refStr
 }
 
+// RefURL returns the absolute URL for a ref in a repository
+func RefURL(repoURL, ref string) string {
+	refName := RefEndName(ref)
+	switch {
+	case strings.HasPrefix(ref, BranchPrefix):
+		return repoURL + "/src/branch/" + refName
+	case strings.HasPrefix(ref, TagPrefix):
+		return repoURL + "/src/tag/" + refName
+	default:
+		return repoURL + "/src/commit/" + refName
+	}
+}
+
 // SplitRefName splits a full refname to reftype and simple refname
 func SplitRefName(refStr string) (string, string) {
 	if strings.HasPrefix(refStr, BranchPrefix) {

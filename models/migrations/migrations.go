@@ -210,7 +210,11 @@ var migrations = []Migration{
 	NewMigration("Add Branch Protection Block Outdated Branch", addBlockOnOutdatedBranch),
 	// v138 -> v139
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
-	// v139 -> 140
+	// v139 -> v140
+	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
+	// v140 -> v141
+	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
+  // v141 -> 142
 	NewMigration("Add KeepActivityPrivate to User table", addKeepActivityPrivateUserColumn),
 }
 

@@ -151,7 +151,7 @@ func TestLDAPUserSync(t *testing.T) {
 	}
 	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
-	models.SyncExternalUsers(context.Background())
+	models.SyncExternalUsers(context.Background(), true)
 
 	session := loginUser(t, "user1")
 	// Check if users exists
@@ -216,7 +216,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "sshPublicKey")
 
-	models.SyncExternalUsers(context.Background())
+	models.SyncExternalUsers(context.Background(), true)
 
 	// Check if users has SSH keys synced
 	for _, u := range gitLDAPUsers {

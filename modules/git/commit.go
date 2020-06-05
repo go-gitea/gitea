@@ -466,15 +466,20 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 	return nil, nil
 }
 
-// GetBranchName gets the closes branch name (as returned by 'git name-rev')
+// GetBranchName gets the closes branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
-	data, err := NewCommand("name-rev", c.ID.String()).RunInDirBytes(c.repo.Path)
+	data, err := NewCommand("name-rev", "--name-only", "--no-undefined", c.ID.String()).RunInDir(c.repo.Path)
 	if err != nil {
+		// handle special case where git can not describe commit
+		if strings.Contains(err.Error(), "cannot describe") {
+			return "", nil
+		}
+
 		return "", err
 	}
 
-	// name-rev commitID output will be "COMMIT_ID master" or "COMMIT_ID master~12"
-	return strings.Split(strings.Split(string(data), " ")[1], "~")[0], nil
+	// name-rev commitID output will be "master" or "master~12"
+	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 
 // CommitFileStatus represents status of files in a commit.
@@ -529,10 +534,6 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
 func GetFullCommitID(repoPath, shortID string) (string, error) {
-	if len(shortID) >= 40 {
-		return shortID, nil
-	}
-
 	commitID, err := NewCommand("rev-parse", shortID).RunInDir(repoPath)
 	if err != nil {
 		if strings.Contains(err.Error(), "exit status 128") {

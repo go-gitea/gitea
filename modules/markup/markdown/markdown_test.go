@@ -141,10 +141,10 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <h2 id="user-content-custom-id">More tests</h2>
 <p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
 <h3 id="user-content-checkboxes">Checkboxes</h3>
-<ul class="task-list">
-<li><span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>unchecked</label></span></li>
-<li><span class="ui checked checkbox"><input type="checkbox" checked="" readonly="readonly"/><label>checked</label></span></li>
-<li><span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>still unchecked</label></span></li>
+<ul>
+<li class="task-list-item"><span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>unchecked</label></span></li>
+<li class="task-list-item"><span class="ui checked checkbox"><input type="checkbox" checked="" readonly="readonly"/><label>checked</label></span></li>
+<li class="task-list-item"><span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>still unchecked</label></span></li>
 </ul>
 <h3 id="user-content-definition-list">Definition list</h3>
 <dl>

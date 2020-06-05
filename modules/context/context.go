@@ -242,6 +242,7 @@ func Contexter() macaron.Handler {
 		}
 		ctx.Data["Language"] = ctx.Locale.Language()
 		c.Data["Link"] = ctx.Link
+		ctx.Data["CurrentURL"] = setting.AppSubURL + c.Req.URL.RequestURI()
 		ctx.Data["PageStartTime"] = time.Now()
 		// Quick responses appropriate go-get meta with status 200
 		// regardless of if user have access to the repository,

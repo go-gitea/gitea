@@ -25,7 +25,7 @@ globals:
   Tribute: false
 
 overrides:
-  - files: ["web_src/**/*.worker.js"]
+  - files: ["web_src/**/*.worker.js", "web_src/js/serviceworker.js"]
     env:
       worker: true
     rules:
@@ -48,6 +48,7 @@ rules:
   no-cond-assign: [2, except-parens]
   no-console: [1, {allow: [info, warn, error]}]
   no-continue: [0]
+  no-empty: [2, {allowEmptyCatch: true}]
   no-eq-null: [2]
   no-mixed-operators: [0]
   no-multi-assign: [0]
@@ -57,9 +58,11 @@ rules:
   no-restricted-syntax: [0]
   no-return-await: [0]
   no-shadow: [0]
+  no-underscore-dangle: [0]
   no-unused-vars: [2, {args: all, argsIgnorePattern: ^_, varsIgnorePattern: ^_, ignoreRestSiblings: true}]
   no-use-before-define: [0]
   no-var: [2]
+  object-curly-newline: [0]
   object-curly-spacing: [2, never]
   one-var-declaration-per-line: [0]
   one-var: [0]
