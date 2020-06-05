@@ -899,6 +899,7 @@ func (repo *Repository) IsReader(userID int64) (bool, error) {
 	return x.Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, AccessModeRead).Get(&Access{})
 }
 
+// IsInternal returns true if repository is internal (public repository within private organization)
 func (repo *Repository) IsInternal() (bool, error) {
 	if err := repo.GetOwner(); err != nil {
 		return false, err
