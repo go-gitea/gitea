@@ -18,9 +18,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"gitea.com/macaron/session"
 
 	archiver "github.com/mholt/archiver/v3"
+	"gitea.com/macaron/session"
 	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 )
