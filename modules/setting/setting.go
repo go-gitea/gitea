@@ -289,7 +289,6 @@ var (
 	LogLevel           string
 	StacktraceLogLevel string
 	LogRootPath        string
-	LogDescriptions    = make(map[string]*LogDescription)
 	RedirectMacaronLog bool
 	DisableRouterLog   bool
 	RouterLogLevel     log.Level
