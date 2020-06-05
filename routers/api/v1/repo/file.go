@@ -7,6 +7,7 @@ package repo
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -198,6 +199,16 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/FileResponse"
+	//   "403":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/error"
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+	}
 
 	if apiOpts.BranchName == "" {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
@@ -235,7 +246,7 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	}
 
 	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateFile", err)
+		handleCreateOrUpdateFileError(ctx, err)
 	} else {
 		ctx.JSON(http.StatusCreated, fileResponse)
 	}
@@ -274,6 +285,16 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileResponse"
+	//   "403":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/error"
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
+	}
 
 	if apiOpts.BranchName == "" {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
@@ -313,10 +334,24 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	}
 
 	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateFile", err)
+		handleCreateOrUpdateFileError(ctx, err)
 	} else {
 		ctx.JSON(http.StatusOK, fileResponse)
 	}
+}
+
+func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
+	if models.IsErrUserCannotCommit(err) || models.IsErrFilePathProtected(err) {
+		ctx.Error(http.StatusForbidden, "Access", err)
+		return
+	}
+	if models.IsErrBranchAlreadyExists(err) || models.IsErrFilenameInvalid(err) || models.IsErrSHADoesNotMatch(err) ||
+		models.IsErrFilePathInvalid(err) || models.IsErrRepoFileAlreadyExists(err) {
+		ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
+		return
+	}
+
+	ctx.Error(http.StatusInternalServerError, "UpdateFile", err)
 }
 
 // Called from both CreateFile or UpdateFile to handle both
