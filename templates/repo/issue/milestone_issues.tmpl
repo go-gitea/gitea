@@ -22,7 +22,7 @@
             <div class="column">
                 {{ $closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.Lang }}
                 {{if .IsClosed}}
-					{{svg "octicon-clock" 16 16}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+					{{svg "octicon-clock" 14 16}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
                 {{else}}
 					{{svg "octicon-calendar" 16 16}}
                     {{if .Milestone.DeadlineString}}
@@ -204,7 +204,7 @@
 					{{end}}
 
 					{{if .TotalTrackedTime}}
-						<span class="comment ui right">{{svg "octicon-clock" 16 16}} {{.TotalTrackedTime | Sec2Time}}</span>
+						<span class="comment ui right">{{svg "octicon-clock" 14 16}} {{.TotalTrackedTime | Sec2Time}}</span>
 					{{end}}
 
 					<p class="desc">
@@ -219,7 +219,7 @@
 
 						{{if .Ref}}
 							<a class="ref" href="{{index $.IssueRefURLs .ID}}">
-								{{svg "octicon-git-branch" 16 16}} {{index $.IssueRefEndNames .ID}}
+								{{svg "octicon-git-branch" 10 16}} {{index $.IssueRefEndNames .ID}}
 							</a>
 						{{end}}
 						{{$tasks := .GetTasks}}

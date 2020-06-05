@@ -99,7 +99,7 @@
 			<div class="ui tabular stackable menu navbar">
 				{{if .Permission.CanRead $.UnitTypeCode}}
 				<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL | EscapePound}}{{end}}">
-					{{svg "octicon-code" 16 16}} {{.i18n.Tr "repo.code"}}
+					{{svg "octicon-code" 14 16}} {{.i18n.Tr "repo.code"}}
 				</a>
 				{{end}}
 

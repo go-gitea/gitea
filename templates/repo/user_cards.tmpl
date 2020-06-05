@@ -16,9 +16,9 @@
 					{{if .Website}}
 						{{svg "octicon-link" 16 16}} <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
 					{{else if .Location}}
-						{{svg "octicon-location" 16 16}} {{.Location}}
+						{{svg "octicon-location" 12 16}} {{.Location}}
 					{{else}}
-						{{svg "octicon-clock" 16 16}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+						{{svg "octicon-clock" 14 16}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 					{{end}}
 				</div>
 			</li>

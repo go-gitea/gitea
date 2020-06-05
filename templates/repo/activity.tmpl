@@ -67,7 +67,7 @@
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.MergedPRCount "repo.activity.merged_prs_count_1" "repo.activity.merged_prs_count_n") }}
 				</a>
 				<a href="#proposed-pull-requests" class="ui attached segment text center">
-					<span class="text green">{{svg "octicon-git-branch" 16 16}}</span> <strong>{{.Activity.OpenedPRCount}}</strong><br>
+					<span class="text green">{{svg "octicon-git-branch" 10 16}}</span> <strong>{{.Activity.OpenedPRCount}}</strong><br>
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.OpenedPRCount "repo.activity.opened_prs_count_1" "repo.activity.opened_prs_count_n") }}
 				</a>
 			{{end}}
@@ -155,7 +155,7 @@
 
 		{{if gt .Activity.OpenedPRCount 0}}
 			<h4 class="ui horizontal divider header" id="proposed-pull-requests">
-				<span class="text">{{svg "octicon-git-branch" 16 16}}</span>
+				<span class="text">{{svg "octicon-git-branch" 10 16}}</span>
 				{{.i18n.Tr "repo.activity.title.prs_opened_by" (.i18n.Tr (TrN .i18n.Lang .Activity.OpenedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n") .Activity.OpenedPRCount) (.i18n.Tr (TrN .i18n.Lang .Activity.OpenedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n") .Activity.OpenedPRAuthorCount) }}
 			</h4>
 			<div class="list">

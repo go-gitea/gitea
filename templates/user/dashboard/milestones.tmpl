@@ -75,7 +75,7 @@
                             <div class="meta">
                                 {{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.Lang }}
                                 {{if .IsClosed}}
-									{{svg "octicon-clock" 16 16}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+									{{svg "octicon-clock" 14 16}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
                                 {{else}}
 									{{svg "octicon-calendar" 16 16}}
                                     {{if .DeadlineString}}
@@ -87,7 +87,7 @@
                                 <span class="issue-stats">
                                     {{svg "octicon-issue-opened" 16 16}} {{$.i18n.Tr "repo.milestones.open_tab" .NumOpenIssues}}
 									{{svg "octicon-issue-closed" 16 16}} {{$.i18n.Tr "repo.milestones.close_tab" .NumClosedIssues}}
-                                    {{if .TotalTrackedTime}}{{svg "octicon-clock" 16 16}} {{.TotalTrackedTime|Sec2Time}}{{end}}
+                                    {{if .TotalTrackedTime}}{{svg "octicon-clock" 14 16}} {{.TotalTrackedTime|Sec2Time}}{{end}}
                                 </span>
                             </div>
                             {{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}

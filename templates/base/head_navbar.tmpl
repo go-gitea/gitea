@@ -114,7 +114,7 @@
 
 					<div class="divider"></div>
 					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}">
-						{{svg "octicon-person" 16 16}}
+						{{svg "octicon-person" 12 16}}
 						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
 					</a>
 					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
@@ -151,7 +151,7 @@
 		<div class="right stackable menu">
 			{{if .ShowRegistrationButton}}
 				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
-					{{svg "octicon-person" 16 16}} {{.i18n.Tr "register"}}
+					{{svg "octicon-person" 12 16}} {{.i18n.Tr "register"}}
 				</a>
 			{{end}}
 			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{.CurrentURL}}">

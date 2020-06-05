@@ -8,7 +8,7 @@
 			{{end}}
 			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) }}
 				<div class="item{{if .PageIsBranches}} active{{end}}">
-					<a class="ui" href="{{.RepoLink}}/branches/">{{svg "octicon-git-branch" 16 16}} <b>{{.BranchesCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .BranchesCount "repo.branch" "repo.branches") }}</a>
+					<a class="ui" href="{{.RepoLink}}/branches/">{{svg "octicon-git-branch" 10 16}} <b>{{.BranchesCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .BranchesCount "repo.branch" "repo.branches") }}</a>
 				</div>
 				<div class="item">
 					<a class="ui" href="#">{{svg "octicon-database" 16 16}} <b>{{SizeFmt .Repository.Size}}</b></a>

@@ -28,7 +28,7 @@
 				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
 			{{if .BranchName}}
-				<span class="text grey">{{svg "octicon-git-branch" 16 16}}{{.BranchName}}</span>
+				<span class="text grey">{{svg "octicon-git-branch" 10 16}}{{.BranchName}}</span>
 			{{end}}
 		</div>
 		<div class="ui attached info segment {{$class}}">

@@ -17,13 +17,13 @@
 					</span>
 					<div class="description">
 						{{if .Location}}
-							{{svg "octicon-location" 16 16}} {{.Location}}
+							{{svg "octicon-location" 12 16}} {{.Location}}
 						{{end}}
 						{{if and .Website}}
 							{{svg "octicon-link" 16 16}}
 							<a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
 						{{end}}
-						{{svg "octicon-clock" 16 16}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+						{{svg "octicon-clock" 14 16}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 					</div>
 				  </div>
 				</div>
