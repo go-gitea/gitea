@@ -145,6 +145,7 @@ type MultiChannelledLog struct {
 	level           Level
 	stacktraceLevel Level
 	closed          chan bool
+	paused          chan bool
 }
 
 // NewMultiChannelledLog a new logger instance with given logger provider and config.
@@ -159,6 +160,7 @@ func NewMultiChannelledLog(name string, bufferLength int64) *MultiChannelledLog 
 		stacktraceLevel: NONE,
 		close:           make(chan bool),
 		closed:          make(chan bool),
+		paused:          make(chan bool),
 	}
 	return m
 }
@@ -229,6 +231,16 @@ func (m *MultiChannelledLog) closeLoggers() {
 	m.closed <- true
 }
 
+// Pause pauses this Logger
+func (m *MultiChannelledLog) Pause() {
+	m.paused <- true
+}
+
+// Resume resumes this Logger
+func (m *MultiChannelledLog) Resume() {
+	m.paused <- false
+}
+
 // Start processing the MultiChannelledLog
 func (m *MultiChannelledLog) Start() {
 	m.mutex.Lock()
@@ -238,8 +250,35 @@ func (m *MultiChannelledLog) Start() {
 	}
 	m.started = true
 	m.mutex.Unlock()
+	paused := false
 	for {
+		if paused {
+			select {
+			case paused = <-m.paused:
+				if !paused {
+					m.ResetLevel()
+				}
+			case _, ok := <-m.flush:
+				if !ok {
+					m.closeLoggers()
+					return
+				}
+				m.mutex.Lock()
+				for _, logger := range m.loggers {
+					logger.Flush()
+				}
+				m.mutex.Unlock()
+			case <-m.close:
+				m.closeLoggers()
+				return
+			}
+			continue
+		}
 		select {
+		case paused = <-m.paused:
+			if paused && m.level < INFO {
+				m.level = INFO
+			}
 		case event, ok := <-m.queue:
 			if !ok {
 				m.closeLoggers()
@@ -275,7 +314,7 @@ func (m *MultiChannelledLog) LogEvent(event *Event) error {
 	select {
 	case m.queue <- event:
 		return nil
-	case <-time.After(60 * time.Second):
+	case <-time.After(100 * time.Millisecond):
 		// We're blocked!
 		return ErrTimeout{
 			Name:     m.name,

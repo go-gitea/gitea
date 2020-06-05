@@ -318,3 +318,55 @@ var checklist = []check{
 ```
 
 This function will receive a command line context and return a list of details about the problems or error.
+
+#### manager
+
+Manage running server operations:
+
+- Commands:
+  - `shutdown`:      Gracefully shutdown the running process
+  - `restart`:       Gracefully restart the running process - (not implemented for windows servers)
+  - `flush-queues`:  Flush queues in the running process
+    - Options:
+      - `--timeout value`: Timeout for the flushing process (default: 1m0s)
+      - `--non-blocking`: Set to true to not wait for flush to complete before returning
+  - `logging`:       Adjust logging commands
+    - Commands:
+      - `pause`:   Pause logging
+        - Notes:
+          - The logging level will be raised to INFO temporarily if it is below this level.
+          - Gitea will buffer logs up to a certain point and will drop them after that point.
+      - `resume`:  Resume logging
+      - `remove name`:  Remove sub-logger `name`
+        - Options:
+          - `--group group`, `-g group`: Set the group to remove the sublogger from. (defaults to `default`)
+      - `add`:     Add a logger
+        - Commands:
+          - `console`: Add a console logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`: Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-S value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--stderr`: Output console logs to stderr - only relevant for console
+          - `file`: Add a file logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`:  Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-S value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--filename value`, `-f value`: Filename for the logger - 
+              - `--rotate`, `-r`: Rotate logs
+              - `--max-size value`, `-s value`: Maximum size in bytes before rotation
+              - `--daily`, `-d`: Rotate logs daily
+              - `--max-days value`, `-D value`: Maximum number of daily logs to keep
+              - `--compress`, `-z`: Compress rotated logs
+              - `--compression-level value`, `-Z value`: Compression level to use

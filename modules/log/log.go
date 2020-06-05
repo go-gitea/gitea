@@ -192,6 +192,25 @@ func IsFatal() bool {
 	return GetLevel() <= FATAL
 }
 
+// Pause pauses all the loggers
+func Pause() {
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*Logger)
+		logger.Pause()
+		logger.Flush()
+		return true
+	})
+}
+
+// Resume resumes all the loggers
+func Resume() {
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*Logger)
+		logger.Resume()
+		return true
+	})
+}
+
 // Close closes all the loggers
 func Close() {
 	l, ok := NamedLoggers.Load(DEFAULT)
