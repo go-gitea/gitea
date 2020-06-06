@@ -6,6 +6,7 @@
 package emoji
 
 import (
+	"sort"
 	"strings"
 	"sync"
 )
@@ -19,6 +20,7 @@ type Emoji struct {
 	Description    string
 	Aliases        []string
 	UnicodeVersion string
+	SkinTones      bool
 }
 
 var (
@@ -48,6 +50,12 @@ func loadMap() {
 		// process emoji codes and aliases
 		codePairs := make([]string, 0)
 		aliasPairs := make([]string, 0)
+
+		// sort from largest to small so we match combined emoji first
+		sort.Slice(GemojiData, func(i, j int) bool {
+			return len(GemojiData[i].Emoji) > len(GemojiData[j].Emoji)
+		})
+
 		for i, e := range GemojiData {
 			if e.Emoji == "" || len(e.Aliases) == 0 {
 				continue
@@ -72,6 +80,7 @@ func loadMap() {
 		codeReplacer = strings.NewReplacer(codePairs...)
 		aliasReplacer = strings.NewReplacer(aliasPairs...)
 	})
+
 }
 
 // FromCode retrieves the emoji data based on the provided unicode code (ie,
@@ -116,4 +125,23 @@ func ReplaceCodes(s string) string {
 func ReplaceAliases(s string) string {
 	loadMap()
 	return aliasReplacer.Replace(s)
+}
+
+// FindEmojiSubmatchIndex returns index pair of longest emoji in a string
+func FindEmojiSubmatchIndex(s string) []int {
+	loadMap()
+
+	//see if there are any emoji in string before looking for position of specific ones
+	//no performance difference when there is a match but 10x faster when there are not
+	if s == ReplaceCodes(s) {
+		return nil
+	}
+
+	for j := range GemojiData {
+		i := strings.Index(s, GemojiData[j].Emoji)
+		if i != -1 {
+			return []int{i, i + len(GemojiData[j].Emoji)}
+		}
+	}
+	return nil
 }

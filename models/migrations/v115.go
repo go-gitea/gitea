@@ -8,8 +8,10 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -26,8 +28,19 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 		LowerName string `xorm:"UNIQUE NOT NULL"`
 		Avatar    string
 	}
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	count, err := x.Count(new(User))
+	if err != nil {
+		return err
+	}
+	log.Info("%d User Avatar(s) to migrate ...", count)
+
 	deleteList := make(map[string]struct{})
 	start := 0
+	migrated := 0
 	for {
 		if err := sess.Begin(); err != nil {
 			return fmt.Errorf("session.Begin: %v", err)
@@ -73,6 +86,19 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 			}
 
 			deleteList[filepath.Join(setting.AvatarUploadPath, oldAvatar)] = struct{}{}
+			migrated++
+			select {
+			case <-ticker.C:
+				log.Info(
+					"%d/%d (%2.0f%%) User Avatar(s) migrated (%d old avatars to be deleted) in %d batches. %d Remaining ...",
+					migrated,
+					count,
+					float64(migrated)/float64(count)*100,
+					len(deleteList),
+					int(math.Ceil(float64(migrated)/float64(50))),
+					count-int64(migrated))
+			default:
+			}
 		}
 		if err := sess.Commit(); err != nil {
 			_ = sess.Rollback()
@@ -80,11 +106,28 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 		}
 	}
 
+	deleteCount := len(deleteList)
+	log.Info("Deleting %d old avatars ...", deleteCount)
+	i := 0
 	for file := range deleteList {
 		if err := os.Remove(file); err != nil {
 			log.Warn("os.Remove: %v", err)
 		}
+		i++
+		select {
+		case <-ticker.C:
+			log.Info(
+				"%d/%d (%2.0f%%) Old User Avatar(s) deleted. %d Remaining ...",
+				i,
+				deleteCount,
+				float64(i)/float64(deleteCount)*100,
+				deleteCount-i)
+		default:
+		}
 	}
+
+	log.Info("Completed migrating %d User Avatar(s) and deleting %d Old Avatars", count, deleteCount)
+
 	return nil
 }
 

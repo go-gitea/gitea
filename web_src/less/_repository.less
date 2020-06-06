@@ -898,8 +898,20 @@
                     }
 
                     > .merge-section {
-                        border-top: 1px solid #d4d4d5;
                         background-color: #f7f7f7;
+
+                        .item + .item {
+                            padding-top: .5rem;
+                        }
+
+                        .divider {
+                            margin-left: -1rem;
+                            margin-right: -1rem;
+                        }
+
+                        &.no-header {
+                            #avatar-arrow;
+                        }
                     }
 
                     .markdown {
@@ -1233,6 +1245,14 @@
                     border-right-color: #ffffff;
                 }
             }
+        }
+
+        .pullrequest-form {
+            margin-bottom: 1.5rem;
+        }
+
+        .markdown {
+            font-size: 14px;
         }
     }
 
@@ -2270,6 +2290,24 @@
                 padding: 0;
                 margin: 0;
                 height: 100%;
+            }
+        }
+    }
+
+    &.diff .committed-by {
+        padding-top: .5rem;
+
+        .ui.avatar {
+            width: 20px;
+            height: 20px;
+        }
+
+        span {
+            margin-right: .25rem;
+
+            svg {
+                vertical-align: text-bottom;
+                margin-right: 2px;
             }
         }
     }
