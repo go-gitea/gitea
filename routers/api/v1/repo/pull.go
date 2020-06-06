@@ -169,6 +169,88 @@ func GetPullRequest(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr))
 }
 
+// DownloadPullDiff render a pull's raw diff
+func DownloadPullDiff(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.diff repository repoDownloadPullDiff
+	// ---
+	// summary: Get a pull request diff
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	DownloadPullDiffOrPatch(ctx, false)
+}
+
+// DownloadPullPatch render a pull's raw patch
+func DownloadPullPatch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.patch repository repoDownloadPullPatch
+	// ---
+	// summary: Get a pull request patch file
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	DownloadPullDiffOrPatch(ctx, true)
+}
+
+// DownloadPullDiffOrPatch render a pull's raw diff or patch
+func DownloadPullDiffOrPatch(ctx *context.APIContext, patch bool) {
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.InternalServerError(err)
+		}
+		return
+	}
+
+	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+}
+
 // CreatePullRequest does what it says
 func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls repository repoCreatePullRequest
