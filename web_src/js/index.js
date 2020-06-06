@@ -1262,7 +1262,6 @@ function initPullRequestReview() {
     const $textarea = commentCloud.find('textarea');
     attachTribute($textarea.get(), {mentions: true, emoji: true});
 
-    // Give new write/preview data-tab name to distinguish from others
     const $simplemde = setCommentSimpleMDE($textarea);
     $textarea.focus();
     $simplemde.codemirror.focus();
