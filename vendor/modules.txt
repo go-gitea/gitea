@@ -62,6 +62,8 @@ github.com/PuerkitoBio/urlesc
 # github.com/RoaringBitmap/roaring v0.4.23
 ## explicit
 github.com/RoaringBitmap/roaring
+# github.com/andybalholm/brotli v0.0.0-20190621154722-5f990b63d2d6
+github.com/andybalholm/brotli
 # github.com/andybalholm/cascadia v1.0.0
 github.com/andybalholm/cascadia
 # github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239
@@ -167,6 +169,13 @@ github.com/denisenkom/go-mssqldb/internal/querytext
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 ## explicit
 github.com/dgrijalva/jwt-go
+# github.com/dsnet/compress v0.0.1
+github.com/dsnet/compress
+github.com/dsnet/compress/bzip2
+github.com/dsnet/compress/bzip2/internal/sais
+github.com/dsnet/compress/internal
+github.com/dsnet/compress/internal/errors
+github.com/dsnet/compress/internal/prefix
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
@@ -342,6 +351,9 @@ github.com/gogs/chardet
 github.com/gogs/cron
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 github.com/golang-sql/civil
+# github.com/golang/gddo v0.0.0-20190419222130-af0f2af80721
+github.com/golang/gddo/httputil
+github.com/golang/gddo/httputil/header
 # github.com/golang/protobuf v1.4.1
 ## explicit
 github.com/golang/protobuf/proto
@@ -423,7 +435,14 @@ github.com/keybase/go-crypto/rsa
 # github.com/klauspost/compress v1.10.2
 ## explicit
 github.com/klauspost/compress/flate
+github.com/klauspost/compress/fse
 github.com/klauspost/compress/gzip
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/snappy
+github.com/klauspost/compress/zstd
+github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/klauspost/pgzip v1.2.1
+github.com/klauspost/pgzip
 # github.com/kr/pretty v0.1.0
 github.com/kr/pretty
 # github.com/kr/text v0.2.0
@@ -497,6 +516,9 @@ github.com/mgechev/dots
 github.com/mgechev/revive/formatter
 github.com/mgechev/revive/lint
 github.com/mgechev/revive/rule
+# github.com/mholt/archiver/v3 v3.3.0
+## explicit
+github.com/mholt/archiver/v3
 # github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912
 ## explicit
 github.com/microcosm-cc/bluemonday
@@ -518,6 +540,8 @@ github.com/nfnt/resize
 # github.com/niklasfasching/go-org v0.1.9
 ## explicit
 github.com/niklasfasching/go-org/org
+# github.com/nwaples/rardecode v1.0.0
+github.com/nwaples/rardecode
 # github.com/olekukonko/tablewriter v0.0.4
 github.com/olekukonko/tablewriter
 # github.com/oliamb/cutter v0.2.2
@@ -532,6 +556,9 @@ github.com/olivere/elastic/v7/uritemplates
 github.com/pelletier/go-toml
 # github.com/philhofer/fwd v1.0.0
 github.com/philhofer/fwd
+# github.com/pierrec/lz4 v2.0.5+incompatible
+github.com/pierrec/lz4
+github.com/pierrec/lz4/internal/xxh32
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -619,10 +646,11 @@ github.com/toqueteos/webbrowser
 # github.com/tstranex/u2f v1.0.0
 ## explicit
 github.com/tstranex/u2f
-# github.com/unknwon/cae v1.0.0
-## explicit
-github.com/unknwon/cae
-github.com/unknwon/cae/zip
+# github.com/ulikunitz/xz v0.5.6
+github.com/ulikunitz/xz
+github.com/ulikunitz/xz/internal/hash
+github.com/ulikunitz/xz/internal/xlog
+github.com/ulikunitz/xz/lzma
 # github.com/unknwon/com v1.0.1
 ## explicit
 github.com/unknwon/com
@@ -642,6 +670,8 @@ github.com/willf/bitset
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
 github.com/xanzy/ssh-agent
+# github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
+github.com/xi2/xz
 # github.com/yohcop/openid-go v1.0.0
 ## explicit
 github.com/yohcop/openid-go

@@ -33,11 +33,14 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2201
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = data/lfs-mssql
+LFS_CONTENT_PATH = integrations/gitea-integration-mssql/data/lfs-mssql
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-mssql/data
 BUILTIN_SSH_SERVER_USER = git
+
+[attachment]
+PATH = integrations/gitea-integration-mssql/data
 
 [mailer]
 ENABLED = true
@@ -56,12 +59,14 @@ NO_REPLY_ADDRESS                  = noreply.example.org
 ENABLE_NOTIFY_MAIL                = true
 
 [picture]
-DISABLE_GRAVATAR        = false
-ENABLE_FEDERATED_AVATAR = false
+DISABLE_GRAVATAR              = false
+ENABLE_FEDERATED_AVATAR       = false
+AVATAR_UPLOAD_PATH            = integrations/gitea-integration-mssql/data/avatars
+REPOSITORY_AVATAR_UPLOAD_PATH = integrations/gitea-integration-mssql/data/repo-avatars
 
 [session]
-PROVIDER = file
-PROVIDER_CONFIG = data/sessions-mssql
+PROVIDER        = file
+PROVIDER_CONFIG = integrations/gitea-integration-mssql/data/sessions
 
 [log]
 MODE                 = test,file
