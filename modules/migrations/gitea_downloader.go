@@ -471,6 +471,21 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 	return allPRs, nil
 }
 
+func mapReviewState(stateType sdk.ReviewStateType) string {
+	switch stateType {
+	case sdk.ReviewStatePending:
+		return base.ReviewStatePending
+	case sdk.ReviewStateApproved:
+		return base.ReviewStateApproved
+	case sdk.ReviewStateRequestChanges:
+		return base.ReviewStateChangesRequested
+	case sdk.ReviewStateComment:
+		return base.ReviewStateCommented
+	default:
+		return ""
+	}
+}
+
 // GetReviews returns pull requests review
 func (g *GiteaDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
 	prrs, err := g.client.ListPullReviews(g.owner, g.repoName, pullRequestNumber, sdk.ListPullReviewsOptions{})
@@ -518,7 +533,7 @@ func (g *GiteaDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, e
 			CommitID:     prr.CommitID,
 			Content:      prr.Body,
 			CreatedAt:    prr.Submitted,
-			State:        string(prr.State),
+			State:        mapReviewState(prr.State),
 			Comments:     currentReviewComments,
 		})
 	}
