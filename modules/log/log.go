@@ -5,6 +5,7 @@
 package log
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -209,6 +210,23 @@ func Resume() {
 		logger.Resume()
 		return true
 	})
+}
+
+// ReleaseReopen releases and reopens logging files
+func ReleaseReopen() error {
+	var accumulatedErr error
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		logger := value.(*Logger)
+		if err := logger.ReleaseReopen(); err != nil {
+			if accumulatedErr == nil {
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v", key.(string), err)
+			} else {
+				accumulatedErr = fmt.Errorf("Error reopening %s: %v & %v", key.(string), err, accumulatedErr)
+			}
+		}
+		return true
+	})
+	return accumulatedErr
 }
 
 // Close closes all the loggers

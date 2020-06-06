@@ -30,13 +30,23 @@ var (
 		},
 	}
 	subcmdShutdown = cli.Command{
-		Name:   "shutdown",
-		Usage:  "Gracefully shutdown the running process",
+		Name:  "shutdown",
+		Usage: "Gracefully shutdown the running process",
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 		Action: runShutdown,
 	}
 	subcmdRestart = cli.Command{
-		Name:   "restart",
-		Usage:  "Gracefully restart the running process - (not implemented for windows servers)",
+		Name:  "restart",
+		Usage: "Gracefully restart the running process - (not implemented for windows servers)",
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 		Action: runRestart,
 	}
 	subcmdFlushQueues = cli.Command{
@@ -51,6 +61,9 @@ var (
 			}, cli.BoolFlag{
 				Name:  "non-blocking",
 				Usage: "Set to true to not wait for flush to complete before returning",
+			},
+			cli.BoolFlag{
+				Name: "debug",
 			},
 		},
 	}
@@ -88,13 +101,32 @@ var (
 		Usage: "Adjust logging commands",
 		Subcommands: []cli.Command{
 			{
-				Name:   "pause",
-				Usage:  "Pause logging (Gitea will buffer logs up to a certain point and will drop them after that point)",
+				Name:  "pause",
+				Usage: "Pause logging (Gitea will buffer logs up to a certain point and will drop them after that point)",
+				Flags: []cli.Flag{
+					cli.BoolFlag{
+						Name: "debug",
+					},
+				},
 				Action: runPauseLogging,
 			}, {
-				Name:   "resume",
-				Usage:  "Resume logging",
+				Name:  "resume",
+				Usage: "Resume logging",
+				Flags: []cli.Flag{
+					cli.BoolFlag{
+						Name: "debug",
+					},
+				},
 				Action: runResumeLogging,
+			}, {
+				Name:  "release-and-reopen",
+				Usage: "Cause Gitea to release and re-open files used for logging",
+				Flags: []cli.Flag{
+					cli.BoolFlag{
+						Name: "debug",
+					},
+				},
+				Action: runReleaseReopenLogging,
 			}, {
 				Name:      "remove",
 				Usage:     "Remove a logger",
@@ -350,7 +382,7 @@ func commonAddLogger(c *cli.Context, mode string, vals map[string]interface{}) e
 }
 
 func runShutdown(c *cli.Context) error {
-	setup("manager", false)
+	setup("manager", c.Bool("debug"))
 	statusCode, msg := private.Shutdown()
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -362,7 +394,7 @@ func runShutdown(c *cli.Context) error {
 }
 
 func runRestart(c *cli.Context) error {
-	setup("manager", false)
+	setup("manager", c.Bool("debug"))
 	statusCode, msg := private.Restart()
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -374,7 +406,7 @@ func runRestart(c *cli.Context) error {
 }
 
 func runFlushQueues(c *cli.Context) error {
-	setup("manager", false)
+	setup("manager", c.Bool("debug"))
 	statusCode, msg := private.FlushQueues(c.Duration("timeout"), c.Bool("non-blocking"))
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -386,7 +418,7 @@ func runFlushQueues(c *cli.Context) error {
 }
 
 func runPauseLogging(c *cli.Context) error {
-	setup("manager", false)
+	setup("manager", c.Bool("debug"))
 	statusCode, msg := private.PauseLogging()
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -398,8 +430,20 @@ func runPauseLogging(c *cli.Context) error {
 }
 
 func runResumeLogging(c *cli.Context) error {
-	setup("manager", false)
+	setup("manager", c.Bool("debug"))
 	statusCode, msg := private.ResumeLogging()
+	switch statusCode {
+	case http.StatusInternalServerError:
+		fail("InternalServerError", msg)
+	}
+
+	fmt.Fprintln(os.Stdout, msg)
+	return nil
+}
+
+func runReleaseReopenLogging(c *cli.Context) error {
+	setup("manager", c.Bool("debug"))
+	statusCode, msg := private.ReleaseReopenLogging()
 	switch statusCode {
 	case http.StatusInternalServerError:
 		fail("InternalServerError", msg)

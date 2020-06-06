@@ -337,7 +337,8 @@ Manage running server operations:
           - The logging level will be raised to INFO temporarily if it is below this level.
           - Gitea will buffer logs up to a certain point and will drop them after that point.
       - `resume`:  Resume logging
-      - `remove name`:  Remove sub-logger `name`
+      - `release-and-reopen`: Cause Gitea to release and re-open files and connections used for logging (Equivalent to sending SIGUSR1 to Gitea.)
+      - `remove name`: Remove the named logger
         - Options:
           - `--group group`, `-g group`: Set the group to remove the sublogger from. (defaults to `default`)
       - `add`:     Add a logger

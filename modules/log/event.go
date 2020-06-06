@@ -29,6 +29,7 @@ type EventLogger interface {
 	GetLevel() Level
 	GetStacktraceLevel() Level
 	GetName() string
+	ReleaseReopen() error
 }
 
 // ChannelledLog represents a cached channel to a LoggerProvider
@@ -115,6 +116,11 @@ func (l *ChannelledLog) Close() {
 // Flush this ChannelledLog
 func (l *ChannelledLog) Flush() {
 	l.flush <- true
+}
+
+// ReleaseReopen this ChannelledLog
+func (l *ChannelledLog) ReleaseReopen() error {
+	return l.loggerProvider.ReleaseReopen()
 }
 
 // GetLevel gets the level of this ChannelledLog
@@ -239,6 +245,23 @@ func (m *MultiChannelledLog) Pause() {
 // Resume resumes this Logger
 func (m *MultiChannelledLog) Resume() {
 	m.paused <- false
+}
+
+// ReleaseReopen causes this logger to tell its subloggers to release and reopen
+func (m *MultiChannelledLog) ReleaseReopen() error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	var accumulatedErr error
+	for _, logger := range m.loggers {
+		if err := logger.ReleaseReopen(); err != nil {
+			if accumulatedErr == nil {
+				accumulatedErr = fmt.Errorf("Error whilst reopening: %s Error: %v", logger.GetName(), err)
+			} else {
+				accumulatedErr = fmt.Errorf("Error whilst reopening: %s Error: %v & %v", logger.GetName(), err, accumulatedErr)
+			}
+		}
+	}
+	return accumulatedErr
 }
 
 // Start processing the MultiChannelledLog

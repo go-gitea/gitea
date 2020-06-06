@@ -37,7 +37,7 @@ func FlushQueues(ctx *macaron.Context, opts private.FlushOptions) {
 	err := queue.GetManager().FlushAll(ctx.Req.Request.Context(), opts.Timeout)
 	if err != nil {
 		ctx.JSON(http.StatusRequestTimeout, map[string]interface{}{
-			"err": err,
+			"err": fmt.Sprintf("%v", err),
 		})
 	}
 	ctx.PlainText(http.StatusOK, []byte("success"))
@@ -55,6 +55,17 @@ func ResumeLogging(ctx *macaron.Context) {
 	ctx.PlainText(http.StatusOK, []byte("success"))
 }
 
+// ReleaseReopenLogging releases and reopens logging files
+func ReleaseReopenLogging(ctx *macaron.Context) {
+	if err := log.ReleaseReopen(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"err": fmt.Sprintf("Error during release and reopen: %v", err),
+		})
+		return
+	}
+	ctx.PlainText(http.StatusOK, []byte("success"))
+}
+
 // RemoveLogger removes a logger
 func RemoveLogger(ctx *macaron.Context) {
 	group := ctx.Params("group")
@@ -62,7 +73,7 @@ func RemoveLogger(ctx *macaron.Context) {
 	ok, err := log.GetLogger(group).DelLogger(name)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": fmt.Errorf("Failed to remove logger: %s %s %v", group, name, err),
+			"err": fmt.Sprintf("Failed to remove logger: %s %s %v", group, name, err),
 		})
 		return
 	}
@@ -121,7 +132,7 @@ func AddLogger(ctx *macaron.Context, opts private.LoggerOptions) {
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", opts.Config, err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": fmt.Errorf("Failed to marshal log configuration: %v %v", opts.Config, err),
+			"err": fmt.Sprintf("Failed to marshal log configuration: %v %v", opts.Config, err),
 		})
 		return
 	}
@@ -130,7 +141,7 @@ func AddLogger(ctx *macaron.Context, opts private.LoggerOptions) {
 	if err := log.NewNamedLogger(opts.Group, bufferLen, opts.Name, opts.Mode, config); err != nil {
 		log.Error("Failed to create new named logger: %s %v", config, err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": fmt.Errorf("Failed to create new named logger: %s %v", config, err),
+			"err": fmt.Sprintf("Failed to create new named logger: %s %v", config, err),
 		})
 		return
 	}

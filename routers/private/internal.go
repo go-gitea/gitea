@@ -44,6 +44,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/manager/flush-queues", bind(private.FlushOptions{}), FlushQueues)
 		m.Post("/manager/pause-logging", PauseLogging)
 		m.Post("/manager/resume-logging", ResumeLogging)
+		m.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
 		m.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
 		m.Post("/manager/remove-logger/:group/:name", RemoveLogger)
 	}, CheckInternalToken)

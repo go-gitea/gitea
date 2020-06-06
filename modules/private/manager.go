@@ -119,6 +119,24 @@ func ResumeLogging() (int, string) {
 	return http.StatusOK, "Logging Restarted"
 }
 
+// ReleaseReopenLogging releases and reopens logging files
+func ReleaseReopenLogging() (int, string) {
+	reqURL := setting.LocalURL + "api/internal/manager/release-and-reopen-logging"
+
+	req := newInternalRequest(reqURL, "POST")
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, decodeJSONError(resp).Err
+	}
+
+	return http.StatusOK, "Logging Restarted"
+}
+
 // LoggerOptions represents the options for the add logger call
 type LoggerOptions struct {
 	Group  string
