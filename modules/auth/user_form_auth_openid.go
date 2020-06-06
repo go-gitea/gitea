@@ -15,7 +15,7 @@ type SignInOpenIDForm struct {
 	Remember bool
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *SignInOpenIDForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -27,7 +27,7 @@ type SignUpOpenIDForm struct {
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *SignUpOpenIDForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -38,7 +38,7 @@ type ConnectOpenIDForm struct {
 	Password string `binding:"Required;MaxSize(255)"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *ConnectOpenIDForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

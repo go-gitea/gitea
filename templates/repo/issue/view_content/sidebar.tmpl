@@ -28,7 +28,7 @@
 
 					{{range $.PullReviewers}}
 						{{if eq .ReviewerID $ReviewerID }}
-							{{$notReviewed = false }} 
+							{{$notReviewed = false }}
 							{{if  eq .Type 4 }}
 								{{$checked = true}}
 								{{if or (eq $ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
@@ -357,7 +357,7 @@
 			{{if ne .Issue.DeadlineUnix 0}}
 				<p>
 					{{svg "octicon-calendar" 16}}
-					{{.Issue.DeadlineUnix.FormatShort}}
+					{{.Issue.DeadlineUnix.FormatDate}}
 					{{if .Issue.IsOverdue}}
 						<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
 					{{end}}

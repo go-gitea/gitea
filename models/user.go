@@ -163,8 +163,9 @@ type User struct {
 	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 
 	// Preferences
-	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
-	Theme         string `xorm:"NOT NULL DEFAULT ''"`
+	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
+	Theme               string `xorm:"NOT NULL DEFAULT ''"`
+	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 }
 
 // SearchOrganizationsOptions options to filter organizations

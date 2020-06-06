@@ -35,6 +35,12 @@ function updateEditor(monaco, editor, filenameInput) {
   if (language !== newLanguage) monaco.editor.setModelLanguage(model, newLanguage);
 }
 
+// export editor for customization - https://github.com/go-gitea/gitea/issues/10409
+function exportEditor(editor) {
+  if (!window.codeEditors) window.codeEditors = [];
+  if (!window.codeEditors.includes(editor)) window.codeEditors.push(editor);
+}
+
 export async function createCodeEditor(textarea, filenameInput, previewFileModes) {
   const filename = basename(filenameInput.value);
   const previewLink = document.querySelector('a[data-tab=preview]');
@@ -80,6 +86,8 @@ export async function createCodeEditor(textarea, filenameInput, previewFileModes
 
   const loading = document.querySelector('.editor-loading');
   if (loading) loading.remove();
+
+  exportEditor(editor);
 
   return editor;
 }
