@@ -148,7 +148,7 @@ var (
 								Usage: "Compression level to use",
 							},
 						}...),
-						Action: runAddConsoleLogger,
+						Action: runAddFileLogger,
 					},
 				},
 			},
