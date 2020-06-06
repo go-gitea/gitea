@@ -347,7 +347,7 @@ Manage running server operations:
               - `--group value`, `-g value`: Group to add logger to - will default to "default"
               - `--name value`, `-n value`: Name of the new logger - will default to mode
               - `--level value`, `-l value`: Logging level for the new logger
-              - `--stacktrace-level value`, `-S value`: Stacktrace logging level
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
               - `--flags value`, `-F value`: Flags for the logger
               - `--expression value`, `-e value`: Matching expression for the logger
               - `--prefix value`, `-p value`: Prefix for the logger
@@ -358,7 +358,7 @@ Manage running server operations:
               - `--group value`, `-g value`: Group to add logger to - will default to "default"
               - `--name value`, `-n value`:  Name of the new logger - will default to mode
               - `--level value`, `-l value`: Logging level for the new logger
-              - `--stacktrace-level value`, `-S value`: Stacktrace logging level
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
               - `--flags value`, `-F value`: Flags for the logger
               - `--expression value`, `-e value`: Matching expression for the logger
               - `--prefix value`, `-p value`: Prefix for the logger
@@ -370,3 +370,32 @@ Manage running server operations:
               - `--max-days value`, `-D value`: Maximum number of daily logs to keep
               - `--compress`, `-z`: Compress rotated logs
               - `--compression-level value`, `-Z value`: Compression level to use
+          - `conn`: Add a network connection logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`:  Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--reconnect-on-message`, `-R`: Reconnect to host for every message
+              - `--reconnect`, `-r`: Reconnect to host when connection is dropped
+              - `--protocol value`, `-P value`: Set protocol to use: tcp, unix, or udp (defaults to tcp)
+              - `--address value`, `-a value`: Host address and port to connect to (defaults to :7020)
+          - `smtp`: Add an SMTP logger
+            - Options:
+              - `--group value`, `-g value`: Group to add logger to - will default to "default"
+              - `--name value`, `-n value`: Name of the new logger - will default to mode
+              - `--level value`, `-l value`: Logging level for the new logger
+              - `--stacktrace-level value`, `-L value`: Stacktrace logging level
+              - `--flags value`, `-F value`: Flags for the logger
+              - `--expression value`, `-e value`: Matching expression for the logger
+              - `--prefix value`, `-p value`: Prefix for the logger
+              - `--color`: Use color in the logs
+              - `--username value`, `-u value`: Mail server username
+              - `--password value`, `-P value`: Mail server password
+              - `--host value`, `-H value`: Mail server host (defaults to: 127.0.0.1:25)
+              - `--send-to value`, `-s value`: Email address(es) to send to
+              - `--subject value`, `-S value`: Subject header of sent emails

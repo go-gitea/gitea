@@ -65,7 +65,7 @@ var (
 			Name:  "level, l",
 			Usage: "Logging level for the new logger",
 		}, cli.StringFlag{
-			Name:  "stacktrace-level, S",
+			Name:  "stacktrace-level, L",
 			Usage: "Stacktrace logging level",
 		}, cli.StringFlag{
 			Name:  "flags, F",
@@ -149,6 +149,47 @@ var (
 							},
 						}...),
 						Action: runAddFileLogger,
+					}, {
+						Name:  "conn",
+						Usage: "Add a net conn logger",
+						Flags: append(defaultLoggingFlags, []cli.Flag{
+							cli.BoolFlag{
+								Name:  "reconnect-on-message, R",
+								Usage: "Reconnect to host for every message",
+							}, cli.BoolFlag{
+								Name:  "reconnect, r",
+								Usage: "Reconnect to host when connection is dropped",
+							}, cli.StringFlag{
+								Name:  "protocol, P",
+								Usage: "Set protocol to use: tcp, unix, or udp (defaults to tcp)",
+							}, cli.StringFlag{
+								Name:  "address, a",
+								Usage: "Host address and port to connect to (defaults to :7020)",
+							},
+						}...),
+						Action: runAddConnLogger,
+					}, {
+						Name:  "smtp",
+						Usage: "Add an SMTP logger",
+						Flags: append(defaultLoggingFlags, []cli.Flag{
+							cli.StringFlag{
+								Name:  "username, u",
+								Usage: "Mail server username",
+							}, cli.StringFlag{
+								Name:  "password, P",
+								Usage: "Mail server password",
+							}, cli.StringFlag{
+								Name:  "host, H",
+								Usage: "Mail server host (defaults to: 127.0.0.1:25)",
+							}, cli.StringSliceFlag{
+								Name:  "send-to, s",
+								Usage: "Email address(es) to send to",
+							}, cli.StringFlag{
+								Name:  "subject, S",
+								Usage: "Subject header of sent emails",
+							},
+						}...),
+						Action: runAddSMTPLogger,
 					},
 				},
 			},
@@ -171,6 +212,64 @@ func runRemoveLogger(c *cli.Context) error {
 
 	fmt.Fprintln(os.Stdout, msg)
 	return nil
+}
+
+func runAddSMTPLogger(c *cli.Context) error {
+	setup("manager", c.Bool("debug"))
+	vals := map[string]interface{}{}
+	mode := "smtp"
+	if c.IsSet("host") {
+		vals["host"] = c.String("host")
+	} else {
+		vals["host"] = "127.0.0.1:25"
+	}
+
+	if c.IsSet("username") {
+		vals["username"] = c.String("username")
+	}
+	if c.IsSet("password") {
+		vals["password"] = c.String("password")
+	}
+
+	if !c.IsSet("send-to") {
+		return fmt.Errorf("Some recipients must be provided")
+	}
+	vals["sendTos"] = c.StringSlice("send-to")
+
+	if c.IsSet("subject") {
+		vals["subject"] = c.String("subject")
+	} else {
+		vals["subject"] = "Diagnostic message from Gitea"
+	}
+
+	return commonAddLogger(c, mode, vals)
+}
+
+func runAddConnLogger(c *cli.Context) error {
+	setup("manager", c.Bool("debug"))
+	vals := map[string]interface{}{}
+	mode := "conn"
+	vals["net"] = "tcp"
+	if c.IsSet("protocol") {
+		switch c.String("protocol") {
+		case "udp":
+			vals["net"] = "udp"
+		case "unix":
+			vals["net"] = "unix"
+		}
+	}
+	if c.IsSet("address") {
+		vals["address"] = c.String("address")
+	} else {
+		vals["address"] = ":7020"
+	}
+	if c.IsSet("reconnect") {
+		vals["reconnect"] = c.Bool("reconnect")
+	}
+	if c.IsSet("reconnect-on-message") {
+		vals["reconnectOnMsg"] = c.Bool("reconnect-on-message")
+	}
+	return commonAddLogger(c, mode, vals)
 }
 
 func runAddFileLogger(c *cli.Context) error {
