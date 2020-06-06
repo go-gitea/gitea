@@ -432,12 +432,10 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			ctx.Data["IsPullRequestBroken"] = true
 			if pull.IsSameRepo() {
 				ctx.Data["HeadTarget"] = pull.HeadBranch
+			} else if pull.HeadRepo == nil {
+				ctx.Data["HeadTarget"] = "<deleted>:" + pull.HeadBranch
 			} else {
-				if pull.HeadRepo == nil {
-					ctx.Data["HeadTarget"] = "<deleted>:" + pull.HeadBranch
-				} else {
-					ctx.Data["HeadTarget"] = pull.HeadRepo.OwnerName + ":" + pull.HeadBranch
-				}
+				ctx.Data["HeadTarget"] = pull.HeadRepo.OwnerName + ":" + pull.HeadBranch
 			}
 			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0
@@ -478,12 +476,10 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		ctx.Data["IsPullRequestBroken"] = true
 		if pull.IsSameRepo() {
 			ctx.Data["HeadTarget"] = pull.HeadBranch
+		} else if pull.HeadRepo == nil {
+			ctx.Data["HeadTarget"] = "<deleted>:" + pull.HeadBranch
 		} else {
-			if pull.HeadRepo == nil {
-				ctx.Data["HeadTarget"] = "<deleted>:" + pull.HeadBranch
-			} else {
-				ctx.Data["HeadTarget"] = pull.HeadRepo.OwnerName + ":" + pull.HeadBranch
-			}
+			ctx.Data["HeadTarget"] = pull.HeadRepo.OwnerName + ":" + pull.HeadBranch
 		}
 	}
 
