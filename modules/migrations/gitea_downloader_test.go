@@ -284,12 +284,12 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			MergeCommitSHA: "",
 			Reactions: []*base.Reaction{
 				{
-					UserID:   81045,
+					UserID:   1,
 					UserName: "lunny",
 					Content:  "heart",
 				},
 				{
-					UserID:   81045,
+					UserID:   1,
 					UserName: "lunny",
 					Content:  "+1",
 				},
@@ -373,7 +373,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		{
 			ID:           1411,
 			IssueIndex:   4,
-			ReviewerID:   0,
+			ReviewerID:   1,
 			ReviewerName: "lunny",
 			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
 			CreatedAt:    time.Date(2020, 01, 04, 05, 33, 18, 0, time.UTC),
@@ -386,7 +386,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 					DiffHunk:  "@@ -1,2 +1,4 @@\n # test_repo\n Test repository for testing migration from github to gitea\n+",
 					Position:  3,
 					CommitID:  "2be9101c543658591222acbee3eb799edfc3853d",
-					PosterID:  81045,
+					PosterID:  1,
 					CreatedAt: time.Date(2020, 01, 04, 05, 33, 06, 0, time.UTC),
 					UpdatedAt: time.Date(2020, 01, 04, 05, 33, 18, 0, time.UTC),
 				},
@@ -395,7 +395,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		{
 			ID:           1412,
 			IssueIndex:   4,
-			ReviewerID:   0,
+			ReviewerID:   1,
 			ReviewerName: "lunny",
 			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
 			CreatedAt:    time.Date(2020, 01, 04, 06, 07, 06, 0, time.UTC),
@@ -405,7 +405,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		{
 			ID:           1413,
 			IssueIndex:   4,
-			ReviewerID:   81045,
+			ReviewerID:   1,
 			ReviewerName: "lunny",
 			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
 			CreatedAt:    time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
@@ -418,7 +418,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 					DiffHunk:  "@@ -19,3 +19,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n SOFTWARE.\n+",
 					Position:  4,
 					CommitID:  "2be9101c543658591222acbee3eb799edfc3853d",
-					PosterID:  81045,
+					PosterID:  1,
 					CreatedAt: time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
 					UpdatedAt: time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
 				},
