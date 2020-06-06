@@ -84,7 +84,11 @@
         for the JavaScript code in this page.
 	*/`}}
 	</script>
-
+	<script>
+		window.config = {
+			StaticUrlPrefix: '{{StaticUrlPrefix}}'
+		}
+	</script>
 	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png" />
 	<link rel="mask-icon" href="{{StaticUrlPrefix}}/img/gitea-safari.svg" color="#609926">
 	<link rel="preload" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css" as="style" onload="this.rel='stylesheet'">

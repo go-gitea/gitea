@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -134,6 +135,16 @@ func HTTP(ctx *context.Context) {
 		authPasswd   string
 		environ      []string
 	)
+
+	// don't allow anonymous pulls if organization is not public
+	if isPublicPull {
+		if err := repo.GetOwner(); err != nil {
+			ctx.ServerError("GetOwner", err)
+			return
+		}
+
+		askAuth = askAuth || (repo.Owner.Visibility != structs.VisibleTypePublic)
+	}
 
 	// check access
 	if askAuth {

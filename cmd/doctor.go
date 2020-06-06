@@ -84,7 +84,7 @@ var checklist = []check{
 	},
 	{
 		title:         "Check Database Version",
-		name:          "check-db",
+		name:          "check-db-version",
 		isDefault:     true,
 		f:             runDoctorCheckDBVersion,
 		abortIfFailed: true,
@@ -112,6 +112,12 @@ var checklist = []check{
 		name:      "recalculate_merge_bases",
 		isDefault: false,
 		f:         runDoctorPRMergeBase,
+	},
+	{
+		title:     "Check consistency of database",
+		name:      "check-db-consistency",
+		isDefault: true,
+		f:         runDoctorCheckDBConsistency,
 	},
 	// more checks please append here
 }
@@ -493,4 +499,46 @@ func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
 		return []string{fmt.Sprintf("ScriptType %s is not on the current PATH", setting.ScriptType)}, err
 	}
 	return []string{fmt.Sprintf("ScriptType %s is on the current PATH at %s", setting.ScriptType, path)}, nil
+}
+
+func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
+	// make sure DB version is uptodate
+	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+		return nil, fmt.Errorf("model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
+	}
+	_, committer, err := models.TxDBContext()
+	if err != nil {
+		return nil, err
+	}
+	sess := committer.(models.Engine)
+	defer committer.Close()
+	var results []string
+
+	//find tracked times without existing issues/pulls
+	count, err := sess.Table("tracked_time").
+		Join("LEFT", "issue", "tracked_time.issue_id=issue.id").
+		Where("issue.id is NULL").
+		Count("id")
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		if ctx.Bool("fix") {
+			if _, err = sess.In("id", builder.Select("tracked_time.id").
+				From("tracked_time").
+				Join("LEFT", "issue", "tracked_time.issue_id=issue.id").
+				Where(builder.IsNull{"issue.id"})).
+				Delete(models.TrackedTime{}); err != nil {
+				return nil, err
+			}
+			results = append(results, fmt.Sprintf("%d tracked times without existing issue deleted", count))
+		} else {
+			results = append(results, fmt.Sprintf("%d tracked times without existing issue", count))
+		}
+	}
+
+	if ctx.Bool("fix") {
+		return results, committer.Commit()
+	}
+	return results, nil
 }
