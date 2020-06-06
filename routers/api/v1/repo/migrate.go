@@ -113,12 +113,17 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		gitServiceType = api.GithubService
 	}
 
+	if form.Mirror && setting.Repository.DisableMirrors {
+		ctx.Error(http.StatusForbidden, "MirrorsGlobalDisabled", fmt.Errorf("the site administrator has disabled mirrors"))
+		return
+	}
+
 	var opts = migrations.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
 		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
+		Mirror:         form.Mirror,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		Wiki:           form.Wiki,
