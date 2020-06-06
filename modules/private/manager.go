@@ -85,7 +85,7 @@ func FlushQueues(timeout time.Duration, nonBlocking bool) (int, string) {
 
 // PauseLogging pauses logging
 func PauseLogging() (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/pause-logging")
+	reqURL := setting.LocalURL + "api/internal/manager/pause-logging"
 
 	req := newInternalRequest(reqURL, "POST")
 	resp, err := req.Response()
@@ -103,7 +103,7 @@ func PauseLogging() (int, string) {
 
 // ResumeLogging resumes logging
 func ResumeLogging() (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/resume-logging")
+	reqURL := setting.LocalURL + "api/internal/manager/resume-logging"
 
 	req := newInternalRequest(reqURL, "POST")
 	resp, err := req.Response()
