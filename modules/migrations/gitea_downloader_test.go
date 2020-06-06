@@ -1,4 +1,5 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2018 Jonas Franz. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -176,9 +177,9 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			Title:       "Please add an animated gif icon to the merge button",
 			Content:     "I just want the merge button to hurt my eyes a little. \xF0\x9F\x98\x9D ",
 			Milestone:   "1.0.0",
-			PosterID:    5610,
-			PosterName:  "j-be",
-			PosterEmail: "j-be@noreply.gitea.io",
+			PosterID:    18600385,
+			PosterName:  "guillep2k",
+			PosterEmail: "",
 			State:       "closed",
 			Created:     time.Date(2019, 11, 9, 17, 0, 29, 0, time.UTC),
 			Updated:     time.Date(2019, 11, 12, 20, 29, 53, 0, time.UTC),
@@ -281,7 +282,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 				RepoName:  "test_repo",
 			},
 			Merged:         false,
-			MergeCommitSHA: "",
+			MergeCommitSHA: "565d1208f5fffdc1c5ae1a2436491eb9a5e4ebae",
 			Reactions: []*base.Reaction{
 				{
 					UserID:   1,
@@ -341,7 +342,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		{
 			ID:           1408,
 			IssueIndex:   3,
-			ReviewerID:   0,
+			ReviewerID:   42128690,
 			ReviewerName: "jolheiser",
 			CommitID:     "076160cf0b039f13e5eff19619932d181269414b",
 			CreatedAt:    time.Date(2019, 11, 12, 21, 35, 24, 0, time.UTC),
