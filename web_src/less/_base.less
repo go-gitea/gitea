@@ -1048,6 +1048,14 @@ i.icon.centerlock {
     top: 1.45em;
 }
 
+// temporary workaround for fomantic 2.8.5 bug
+// https://github.com/go-gitea/gitea/pull/11767
+i.icon,
+i.icons {
+    vertical-align: unset;
+    line-height: unset;
+}
+
 .ui.label {
     padding: .3em .5em;
 }
