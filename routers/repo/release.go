@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
@@ -361,5 +362,60 @@ func DeleteRelease(ctx *context.Context) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/releases",
+	})
+}
+
+// GetReleaseAttachments get release attachments for edit page
+func GetReleaseAttachments(ctx *context.Context) {
+	var (
+		rel *models.Release
+		err error
+	)
+
+	tagName := ctx.Params("*")
+	rel, err = models.GetRelease(ctx.Repo.Repository.ID, tagName)
+	if err != nil {
+		if models.IsErrReleaseNotExist(err) {
+			ctx.NotFound("GetRelease", err)
+		} else {
+			ctx.ServerError("GetRelease", err)
+		}
+		return
+	}
+	if rel.IsTag {
+		ctx.NotFound("GetRelease", err)
+		return
+	}
+
+	err = models.GetReleaseAttachments(rel)
+	if err != nil {
+		ctx.ServerError("GetReleaseAttachments", err)
+		return
+	}
+
+	var attachments = make([]*api.Attachment, 0)
+
+	for i := 0; i < len(rel.Attachments); i++ {
+		attachments = append(attachments, rel.Attachments[i].APIFormat())
+	}
+	ctx.JSON(200, attachments)
+}
+
+// DeleteReleaseAttachment response for deleting release's attachment
+func DeleteReleaseAttachment(ctx *context.Context) {
+	file := ctx.Query("file")
+	attach, err := models.GetAttachmentByUUID(file)
+	if err != nil {
+		ctx.Error(400, err.Error())
+		return
+	}
+
+	err = models.DeleteAttachment(attach, true)
+	if err != nil {
+		ctx.Error(500, fmt.Sprintf("DeleteAttachment: %v", err))
+		return
+	}
+	ctx.JSON(200, map[string]string{
+		"uuid": attach.UUID,
 	})
 }

@@ -824,7 +824,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)
+			m.Get("/attachments/*", repo.GetReleaseAttachments)
 			m.Post("/edit/*", bindIgnErr(auth.EditReleaseForm{}), repo.EditReleasePost)
+			m.Post("/attachments/delete", repo.DeleteReleaseAttachment)
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, func(ctx *context.Context) {
 			var err error
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)

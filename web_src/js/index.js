@@ -2290,10 +2290,11 @@ $(document).ready(async () => {
 
   // Dropzone
   const $dropzone = $('#dropzone');
+
   if ($dropzone.length > 0) {
     const filenameDict = {};
 
-    await createDropzone('#dropzone', {
+    const dz = await createDropzone('#dropzone', {
       url: $dropzone.data('upload-url'),
       headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
@@ -2311,9 +2312,10 @@ $(document).ready(async () => {
           $('.files').append(input);
         });
         this.on('removedfile', (file) => {
-          if (file.name in filenameDict) {
-            $(`#${filenameDict[file.name]}`).remove();
+          if (!(file.name in filenameDict)) {
+            return;
           }
+          $(`#${filenameDict[file.name].uuid}`).remove();
           if ($dropzone.data('remove-url') && $dropzone.data('csrf')) {
             $.post($dropzone.data('remove-url'), {
               file: filenameDict[file.name],
@@ -2321,8 +2323,32 @@ $(document).ready(async () => {
             });
           }
         });
-      },
+        this.on('reload', () => {
+          if ($dropzone.data('attachment-url') === null) {
+            return;
+          }
+          $.getJSON($dropzone.data('attachment-url'), (data) => {
+            dz.removeAllFiles(true);
+            $('.files').empty();
+            $.each(data, function () {
+              const imgSrc = `${$dropzone.data('upload-url')}/${this.uuid}`;
+              dz.emit('addedfile', this);
+              dz.emit('thumbnail', this, imgSrc);
+              dz.emit('complete', this);
+              dz.files.push(this);
+              filenameDict[this.name] = {
+                submitted: true,
+                uuid: this.uuid
+              };
+              $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
+              const input = $(`<input id="${this.uuid}" name="files" type="hidden">`).val(this.uuid);
+              $('.files').append(input);
+            });
+          });
+        });
+      }
     });
+    dz.emit('reload');
   }
 
   // Helpers.
