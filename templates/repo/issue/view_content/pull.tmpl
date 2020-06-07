@@ -283,7 +283,7 @@
 								</button>
 								<div class="ui dropdown icon button">
 									<i class="dropdown icon"></i>
-									<div class="menu">
+									<div class="menu left">
 										{{if $prUnit.PullRequestsConfig.AllowMerge}}
 										<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
 										{{end}}
