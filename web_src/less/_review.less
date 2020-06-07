@@ -54,15 +54,14 @@
             border: 0;
             padding: 0;
             margin: 0;
-
-            &.markdown {
-                padding: 1em;
-                min-height: 168px;
-            }
         }
 
         &.header {
             padding: .1rem 1rem;
+
+            .text {
+                margin: 0;
+            }
         }
     }
 
@@ -76,18 +75,16 @@
     }
 
     .ui.active.tab {
-        border: 1px solid #d4d4d5;
         padding: .5em;
-        border-radius: 0 .28571429rem .28571429rem;
-    }
 
-    .ui.active.markdown.tab {
-        border-top-left-radius: .28571429rem;
+        &.markdown {
+            padding: 1em;
+            min-height: 168px;
+        }
     }
 
     .ui.tabular.menu {
-        margin-bottom: 0;
-        border-bottom: 0;
+        margin: .5em;
     }
 
     .comment-list {

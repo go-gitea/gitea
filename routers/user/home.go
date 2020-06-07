@@ -112,7 +112,9 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
-	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
+	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
+	// so everyone would get the same empty heatmap
+	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate
 	ctx.Data["HeatmapUser"] = ctxUser.Name
 
 	var err error
