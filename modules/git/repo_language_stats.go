@@ -24,6 +24,7 @@ const fileSizeLimit int64 = 16 * 1024 * 1024
 // normal circumstances are not considered to be code should be listed here.
 var specialLanguages = []string{
 	"XML",
+	"XSLT",
 	"JSON",
 	"TOML",
 	"YAML",
