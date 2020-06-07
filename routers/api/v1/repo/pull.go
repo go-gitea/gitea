@@ -464,6 +464,8 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	//     "$ref": "#/responses/PullRequest"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "412":
 	//     "$ref": "#/responses/error"
 	//   "422":
@@ -588,6 +590,30 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 
 	if statusChangeComment != nil {
 		notification.NotifyIssueChangeStatus(ctx.User, issue, statusChangeComment, issue.IsClosed)
+	}
+
+	// change pull target branch
+	if len(form.Base) != 0 && form.Base != pr.BaseBranch {
+		if !ctx.Repo.GitRepo.IsBranchExist(form.Base) {
+			ctx.Error(http.StatusNotFound, "NewBaseBranchNotExist", fmt.Errorf("new base '%s' not exist", form.Base))
+			return
+		}
+		if err := pull_service.ChangeTargetBranch(pr, ctx.User, form.Base); err != nil {
+			if models.IsErrPullRequestAlreadyExists(err) {
+				ctx.Error(http.StatusConflict, "IsErrPullRequestAlreadyExists", err)
+				return
+			} else if models.IsErrIssueIsClosed(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "IsErrIssueIsClosed", err)
+				return
+			} else if models.IsErrPullRequestHasMerged(err) {
+				ctx.Error(http.StatusConflict, "IsErrPullRequestHasMerged", err)
+				return
+			} else {
+				ctx.InternalServerError(err)
+			}
+			return
+		}
+		notification.NotifyPullRequestChangeTargetBranch(ctx.User, pr, form.Base)
 	}
 
 	// Refetch from database
