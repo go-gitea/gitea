@@ -76,7 +76,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
 			}
-			if err := repo_service.ChangeRepositoryName(ctx.Repo.Owner, repo, newRepoName); err != nil {
+			if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case models.IsErrRepoAlreadyExist(err):
