@@ -350,6 +350,10 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 		ctx.Error(http.StatusUnprocessableEntity, "Invalid", err)
 		return
 	}
+	if models.IsErrBranchDoesNotExist(err) || git.IsErrBranchNotExist(err) {
+		ctx.Error(http.StatusNotFound, "BranchDoesNotExist", err)
+		return
+	}
 
 	ctx.Error(http.StatusInternalServerError, "UpdateFile", err)
 }
