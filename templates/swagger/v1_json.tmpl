@@ -6049,6 +6049,42 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/languages": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get languages and number of bytes of code written",
+        "operationId": "repoGetLanguages",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LanguageStatistics"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/milestones": {
       "get": {
         "produces": [
@@ -14914,6 +14950,16 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Label"
+        }
+      }
+    },
+    "LanguageStatistics": {
+      "description": "LanguageStatistics",
+      "schema": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer",
+          "format": "int64"
         }
       }
     },
