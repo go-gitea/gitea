@@ -6676,6 +6676,9 @@
           "403": {
             "$ref": "#/responses/forbidden"
           },
+          "409": {
+            "$ref": "#/responses/error"
+          },
           "412": {
             "$ref": "#/responses/error"
           },
@@ -12194,6 +12197,10 @@
             "type": "string"
           },
           "x-go-name": "Assignees"
+        },
+        "base": {
+          "type": "string",
+          "x-go-name": "Base"
         },
         "body": {
           "type": "string",
