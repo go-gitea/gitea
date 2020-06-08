@@ -33,7 +33,6 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user/forgot_password",
 		"/api/swagger",
 		"/api/v1/swagger",
-		"/js/licenses.txt",
 	}
 
 	for _, link := range links {
