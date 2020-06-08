@@ -9,6 +9,7 @@ import (
 	"encoding/gob"
 	"net/http"
 	"path"
+	"strings"
 	"text/template"
 	"time"
 
@@ -277,6 +278,60 @@ func RegisterRoutes(m *macaron.Macaron) {
 		ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
 	})
 
+	// get theme now
+	m.Use(func(ctx *context.Context) {
+		themeNow := ""
+		// Change theme handle
+		chooseTheme := ctx.Query("theme")
+
+		if len(chooseTheme) != 0 {
+			var exists bool
+
+			for _, v := range setting.UI.Themes {
+				if strings.ToLower(v) == strings.ToLower(chooseTheme) {
+					exists = true
+					break
+				}
+			}
+
+			if exists {
+				themeNow = chooseTheme
+				ctx.SetCookie("themeNow", themeNow, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+			} else {
+				ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+			}
+		}
+
+		if themeNow == "" {
+			chooseTheme = ctx.GetCookie("themeNow")
+			var exists bool
+
+			for _, v := range setting.UI.Themes {
+				if strings.ToLower(v) == strings.ToLower(chooseTheme) {
+					exists = true
+					break
+				}
+			}
+
+			if exists {
+				themeNow = chooseTheme
+			} else {
+				ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+			}
+		}
+
+		if themeNow == "" && ctx.IsSigned {
+			themeNow = ctx.User.Theme
+		}
+
+		if themeNow == "" {
+			themeNow = setting.UI.DefaultTheme
+		}
+
+		ctx.Data["ThemeNow"] = themeNow
+		ctx.Data["AllThemes"] = setting.UI.Themes
+	})
+
 	// FIXME: not all routes need go through same middlewares.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -403,7 +458,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/repos", userSetting.Repos)
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
-		ctx.Data["AllThemes"] = setting.UI.Themes
 	})
 
 	m.Group("/user", func() {

@@ -16,6 +16,15 @@
 					{{end}}
 				</div>
 			</div>
+			<div class="ui bottom floating slide up dropdown link item">
+				{{svg "octicon-book" 16}}
+				<div class="text">{{.ThemeNow}}</div>
+				<div class="menu">
+					{{range .AllThemes}}
+						<a class="item {{if eq $.ThemeNow . }}active selected{{end}}" href="{{if eq $.ThemeNow . }}#{{else}}{{$.Link}}?theme={{.}}{{end}}">{{.}}</a>
+					{{end}}
+				</div>
+			</div>
 			<a href="{{StaticUrlPrefix}}/vendor/librejs.html" data-jslicense="1">JavaScript licenses</a>
 			{{if .EnableSwagger}}<a href="{{AppSubUrl}}/api/swagger">API</a>{{end}}
 			<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.i18n.Tr "website"}}</a>

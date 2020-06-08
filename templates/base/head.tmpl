@@ -139,12 +139,8 @@
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
 <meta property="og:site_name" content="{{AppName}}" />
-{{if .IsSigned }}
-	{{ if ne .SignedUser.Theme "gitea" }}
-		<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/theme-{{.SignedUser.Theme}}.css?v={{MD5 AppVer}}">
-	{{end}}
-{{else if ne DefaultTheme "gitea"}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/theme-{{DefaultTheme}}.css?v={{MD5 AppVer}}">
+{{if ne $.ThemeNow "gitea"}}
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/theme-{{$.ThemeNow}}.css?v={{MD5 AppVer}}">
 {{end}}
 {{template "custom/header" .}}
 </head>
