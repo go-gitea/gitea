@@ -215,6 +215,8 @@ var migrations = []Migration{
 	// v140 -> v141
 	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
 	// v141 -> v142
+	NewMigration("Add KeepActivityPrivate to User table", addKeepActivityPrivateUserColumn),
+	// v142 -> v143
 	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 

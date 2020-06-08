@@ -93,7 +93,9 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
-	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
+	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
+	// so everyone would get the same empty heatmap
+	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate
 	ctx.Data["HeatmapUser"] = ctxUser.Name
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 

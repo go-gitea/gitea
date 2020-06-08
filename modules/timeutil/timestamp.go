@@ -75,6 +75,11 @@ func (ts TimeStamp) FormatShort() string {
 	return ts.Format("Jan 02, 2006")
 }
 
+// FormatDate formats a date in YYYY-MM-DD server time zone
+func (ts TimeStamp) FormatDate() string {
+	return time.Unix(int64(ts), 0).String()[:10]
+}
+
 // IsZero is zero time
 func (ts TimeStamp) IsZero() bool {
 	return ts.AsTimeInLocation(time.Local).IsZero()
