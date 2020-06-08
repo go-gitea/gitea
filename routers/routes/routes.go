@@ -288,7 +288,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			var exists bool
 
 			for _, v := range setting.UI.Themes {
-				if strings.ToLower(v) == strings.ToLower(chooseTheme) {
+				if strings.EqualFold(strings.ToLower(v), strings.ToLower(chooseTheme)) {
 					exists = true
 					break
 				}
@@ -307,7 +307,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			var exists bool
 
 			for _, v := range setting.UI.Themes {
-				if strings.ToLower(v) == strings.ToLower(chooseTheme) {
+				if strings.EqualFold(strings.ToLower(v), strings.ToLower(chooseTheme)) {
 					exists = true
 					break
 				}
