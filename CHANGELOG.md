@@ -12,7 +12,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Initialize SimpleMDE when making a code comment (#11749) (#11785)
   * Fix timezone on issue deadline (#11697) (#11784)
   * Fix to allow comment poster to edit or delete his own comments (#11671) (#11774)
-  * [API] on 500 error only show message if gitea in dev mode (#11641) (#11753)
+  * Show full 500 error in API when Gitea in dev mode (#11641) (#11753)
   * Add missing templates for Matrix system webhooks (#11729) (#11748)
   * Fix verification of subkeys of default gpg key (#11713) (#11747)
   * Fix styling for commiter on diff view (#11715) (#11744)
