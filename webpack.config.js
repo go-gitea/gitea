@@ -12,7 +12,7 @@ const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
 const {resolve, parse} = require('path');
-const {LicenseWebpackPlugin} = require("license-webpack-plugin");
+const {LicenseWebpackPlugin} = require('license-webpack-plugin');
 const {SourceMapDevToolPlugin} = require('webpack');
 
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
