@@ -5,8 +5,11 @@
 package repo
 
 import (
+	"container/list"
 	"fmt"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -840,6 +843,96 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 
 	log.Trace("Pull request merged: %d", pr.ID)
 	ctx.Status(http.StatusOK)
+}
+
+// GetPullRequestCommits gets all commits associated with a given PR
+func GetPullRequestCommits(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}/commits repository repoGetPullRequestCommits
+	// ---
+	// summary: Get commits for a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/CommitList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/EmptyPullRequest"
+
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	var commits *list.List
+	var prInfo *git.CompareInfo
+	headGitRepo, err := git.OpenRepository(models.RepoPath(pr.HeadRepo.OwnerName, pr.HeadRepo.Name))
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return
+	}
+	defer headGitRepo.Close()
+	prInfo, err = headGitRepo.GetCompareInfo(models.RepoPath(pr.BaseRepo.OwnerName, pr.BaseRepo.Name), pr.BaseBranch, pr.HeadBranch)
+	if err != nil {
+		ctx.ServerError("GetCompareInfo", err)
+		return
+	}
+	commits = prInfo.Commits
+	commits = models.ValidateCommitsWithEmails(commits)
+	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
+	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
+
+	listOptions := utils.GetListOptions(ctx)
+	if listOptions.Page <= 0 {
+		listOptions.Page = 1
+	}
+
+	if listOptions.PageSize > git.CommitsRangeSize {
+		listOptions.PageSize = git.CommitsRangeSize
+	}
+
+	commitsCount := commits.Len()
+	pageCount := int(math.Ceil(float64(commitsCount) / float64(listOptions.PageSize)))
+
+	ctx.SetLinkHeader(int(commitsCount), listOptions.PageSize)
+
+	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
+	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
+	ctx.Header().Set("X-Total", strconv.FormatInt(int64(commitsCount), 10))
+	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
+	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
+	ctx.JSON(http.StatusOK, &commits)
 }
 
 func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (*models.User, *models.Repository, *git.Repository, *git.CompareInfo, string, string) {

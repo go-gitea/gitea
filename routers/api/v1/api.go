@@ -813,7 +813,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 									Get(repo.GetPullReviewComments)
 							})
 						})
-
+						m.Get("/commits", repo.GetPullRequestCommits)
 					})
 				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(false))
 				m.Group("/statuses", func() {
