@@ -193,17 +193,22 @@
 				
 				{{$canAutoMerge = true}}
 				{{if (gt .Issue.PullRequest.CommitsBehind 0)}}
-					<div class="item text grey">
-						<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
-						{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
-						{{if .UpdateAllowed}}
-							<form action="{{.Link}}/update" method="post" class="ui floating right">
-								{{.CsrfTokenHtml}}
-								<button class="ui compact small button" data-do="update">
-									<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
-								</button>
-							</form>
-						{{end}}
+					<div class="ui divider"></div>
+					<div class="item item-section text grey">
+						<div class="item-section-left">
+							<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+							{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
+						</div>
+						<div class="item-section-right">
+							{{if .UpdateAllowed}}
+								<form action="{{.Link}}/update" method="post" class="ui update-branch-form">
+									{{.CsrfTokenHtml}}
+									<button class="ui compact small button" data-do="update">
+										<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+									</button>
+								</form>
+							{{end}}
+						</div>
 					</div>
 				{{end}}
 
