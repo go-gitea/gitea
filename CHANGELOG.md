@@ -39,7 +39,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * API PullReviewComment HTMLPullURL should return the HTMLURL (#11501) (#11533)
   * Fix repo-list private and total count bugs (#11500) (#11532)
   * Fix form action template substitutions on admin pages (backport #11519) (#11531)
-  * Fix the bug that the emoji don't disappear. Backport(#11489) (#11530)
+  * Fix a bug where the reaction emoji doesn't disappear. (#11489) (#11530)
   * TrimSpace when reading InternalToken from a file (#11502) (#11524)
   * Fix selected line color in arc-green (#11492) (#11520)
   * Make localstorage read ssh or https correctly (#11483) (#11490)
