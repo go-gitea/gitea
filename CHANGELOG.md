@@ -7,13 +7,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.12.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.12.0-rc2) - 2020-06-08
 
 * BREAKING
-  * Remove migration support from versions earlier than 1.6.0 (#10026)
+  * When using API CreateRelease set created_unix to the tag commit time (#11218)
   * Enable ENABLE_HARD_LINE_BREAK by default for rendering markdown (#11162)
   * Fix sanitizer config - multiple rules (#11133)
-  * When using API CreateRelease set created_unix to the tag commit time (#11218)
   * Remove check on username when using AccessToken authentication for the API (#11015)
   * Return 404 from Contents API when items don't exist (#10323)
   * Notification API should always return a JSON object with the current count of notifications (#10059)
+  * Remove migration support from versions earlier than 1.6.0 (#10026)
 * FEATURES
   * Improve config logging when WrappedQueue times out (#11174)
   * Add branch delete to API (#11112)
@@ -332,7 +332,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Return issue subscription status from API subscribe (#10966)
   * Fix queue log param (#10733)
   * Add warning when using relative path to app.ini (#10104)
-  
+
 ## [1.11.6](https://github.com/go-gitea/gitea/releases/tag/v1.11.6) - 2020-05-30
 
 * SECURITY
