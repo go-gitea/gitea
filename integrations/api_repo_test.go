@@ -58,9 +58,9 @@ func TestAPISearchRepo(t *testing.T) {
 	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 20}).(*models.User)
 	orgUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
 
-	oldApiDefaultNum := setting.API.DefaultPagingNum
+	oldAPIDefaultNum := setting.API.DefaultPagingNum
 	defer func() {
-		setting.API.DefaultPagingNum = oldApiDefaultNum
+		setting.API.DefaultPagingNum = oldAPIDefaultNum
 	}()
 	setting.API.DefaultPagingNum = 10
 

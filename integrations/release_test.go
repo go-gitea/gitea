@@ -107,9 +107,9 @@ func TestCreateReleaseDraft(t *testing.T) {
 func TestCreateReleasePaging(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	oldApiDefaultNum := setting.API.DefaultPagingNum
+	oldAPIDefaultNum := setting.API.DefaultPagingNum
 	defer func() {
-		setting.API.DefaultPagingNum = oldApiDefaultNum
+		setting.API.DefaultPagingNum = oldAPIDefaultNum
 	}()
 	setting.API.DefaultPagingNum = 10
 
