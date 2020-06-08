@@ -1766,7 +1766,9 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, error) {
 		sess.And("is_private=?", false)
 	}
 
-	sess = opts.setSessionPagination(sess)
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
 
 	repos := make([]*Repository, 0, opts.PageSize)
 	return repos, opts.setSessionPagination(sess).Find(&repos)
