@@ -275,12 +275,6 @@ func TopicSearch(ctx *context.APIContext) {
 	kw := ctx.Query("q")
 
 	listOptions := utils.GetListOptions(ctx)
-	if listOptions.Page < 1 {
-		listOptions.Page = 1
-	}
-	if listOptions.PageSize < 1 {
-		listOptions.PageSize = 10
-	}
 
 	topics, err := models.FindTopics(&models.FindTopicOptions{
 		Keyword:     kw,
