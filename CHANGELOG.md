@@ -4,16 +4,70 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.12.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.12.0-rc2) - 2020-06-08
+
+* BUGFIXES
+  * In File Create/Update API return 404 if Branch does not exist (#11791) (#11795)
+  * Fix doer of rename repo (#11789) (#11794)
+  * Initialize SimpleMDE when making a code comment (#11749) (#11785)
+  * Fix timezone on issue deadline (#11697) (#11784)
+  * Fix to allow comment poster to edit or delete his own comments (#11671) (#11774)
+  * Show full 500 error in API when Gitea in dev mode (#11641) (#11753)
+  * Add missing templates for Matrix system webhooks (#11729) (#11748)
+  * Fix verification of subkeys of default gpg key (#11713) (#11747)
+  * Fix styling for commiter on diff view (#11715) (#11744)
+  * Properly truncate system notices (#11714) (#11742)
+  * Handle expected errors in FileCreate & FileUpdate API (#11643) (#11718)
+  * Fix missing authorization check on pull for public repos of private/limited org (#11656) (#11682)
+  * Update emoji regex (#11584) (#11679)
+  * Doctor check & fix db consistency (#11111) (#11676)
+  * Default MSSQL port 0 to allow automatic detection by default (#11642) (#11673)
+  * Exclude generated files from language statistics (#11653) (#11670)
+  * Use -1 to disable key algorithm type in ssh.minimum_key_sizes (#11635) (#11662)
+  * Return json on 500 error from API (#11574) (#11659)
+  * When must change password only show Signout (#11600) (#11637)
+  * Backport various styling fixes (#11619)
+  * Fix wrong milestone in webhook message (#11596) (#11611)
+  * Fix serviceworker output file and misc improvements (#11562) (#11610)
+  * When initialising repositories ensure that the user doing the creation is the initializer (#11601) (#11608)
+  * Prevent empty query parameter being set on dashboard (#11561) (#11604)
+  * Fix images in wiki edit preview (#11546) (#11602)
+  * Allow different HardBreaks settings for documents and comments (#11515) (#11599)
+  * Prevent (caught) panic on login (#11590) (#11597)
+  * Prevent transferring repos to invisible orgs (#11517) (#11549)
+  * Move serviceworker to workbox and fix SSE interference (#11538) (#11547)
+  * API PullReviewComment HTMLPullURL should return the HTMLURL (#11501) (#11533)
+  * Fix repo-list private and total count bugs (#11500) (#11532)
+  * Fix form action template substitutions on admin pages (backport #11519) (#11531)
+  * Fix a bug where the reaction emoji doesn't disappear. (#11489) (#11530)
+  * TrimSpace when reading InternalToken from a file (#11502) (#11524)
+  * Fix selected line color in arc-green (#11492) (#11520)
+  * Make localstorage read ssh or https correctly (#11483) (#11490)
+* ENHANCEMENTS
+  * Make tabular menu styling consistent for arc-green (#11570) (#11798)
+  * Add option to API to update PullRequest base branch (#11666) (#11796)
+  * Increase maximum SQLite variables count to 32766 (#11696) (#11783)
+  * Update emoji dataset with skin tone variants (#11678) (#11763)
+  * Add logging to long migrations (#11647) (#11691)
+  * Change language statistics to save size instead of percentage (#11681) (#11690)
+  * Fix alignment for commits on dashboard (#11595) (#11680)
+  * Handle expected errors in AddGPGkey API  (#11644) (#11661)
+  * Close EventSource before unloading the page (#11539) (#11557)
+  * Ensure emoji render with regular font-weight (#11541) (#11545)
+  * Fix webpack chunk loading with STATIC_URL_PREFIX (#11526) (#11542)
+  * Tweak reaction buttons (#11516)
+  * Use more toned colors for selected line (#11493) (#11511)
+
 ## [1.12.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.12.0-rc1) - 2020-05-18
 
 * BREAKING
-  * Remove migration support from versions earlier than 1.6.0 (#10026)
+  * When using API CreateRelease set created_unix to the tag commit time (#11218)
   * Enable ENABLE_HARD_LINE_BREAK by default for rendering markdown (#11162)
   * Fix sanitizer config - multiple rules (#11133)
-  * When using API CreateRelease set created_unix to the tag commit time (#11218)
   * Remove check on username when using AccessToken authentication for the API (#11015)
   * Return 404 from Contents API when items don't exist (#10323)
   * Notification API should always return a JSON object with the current count of notifications (#10059)
+  * Remove migration support from versions earlier than 1.6.0 (#10026)
 * FEATURES
   * Improve config logging when WrappedQueue times out (#11174)
   * Add branch delete to API (#11112)
@@ -283,7 +337,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Return issue subscription status from API subscribe (#10966)
   * Fix queue log param (#10733)
   * Add warning when using relative path to app.ini (#10104)
-  
+
 ## [1.11.6](https://github.com/go-gitea/gitea/releases/tag/v1.11.6) - 2020-05-30
 
 * SECURITY
