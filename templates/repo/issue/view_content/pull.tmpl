@@ -389,7 +389,7 @@
 					{{if .UpdateAllowed}}
 						<form action="{{.Link}}/update" method="post" class="ui floating right">
 							{{.CsrfTokenHtml}}
-							<button class="ui compact small button" data-do="update">
+							<button class="ui compact button" data-do="update">
 								<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
 							</button>
 						</form>
