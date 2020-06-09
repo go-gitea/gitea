@@ -77,7 +77,7 @@ func ReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.User
 func IsLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models.Issue, permDoer models.Permission) error {
 	if !issue.IsPull {
 		return models.ErrIllLegalReviewRequest{
-			Msg: fmt.Sprintf("this issue is not Pull Request [issue_id: %d]", issue.ID),
+			Msg: fmt.Sprintf("Issue is not a Pull Request [issue_id: %d]", issue.ID),
 		}
 	}
 
@@ -129,13 +129,13 @@ func IsLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 
 		if doer.ID == reviewer.ID {
 			return models.ErrIllLegalReviewRequest{
-				Msg: fmt.Sprintf("doer can't be reviewer [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name),
+				Msg: fmt.Sprintf("Doer can't be reviewer [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name),
 			}
 		}
 
 		if reviewer.ID == issue.PosterID {
 			return models.ErrIllLegalReviewRequest{
-				Msg: fmt.Sprintf("poster of pr can't be reviewer [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name),
+				Msg: fmt.Sprintf("Poster of pr can't be reviewer [user_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name),
 			}
 		}
 	} else {
