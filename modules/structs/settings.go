@@ -4,9 +4,8 @@
 
 package structs
 
-// GeneralRepoSettings contains general repo settings exposed by api
+// GeneralRepoSettings contains global repository settings exposed by API
 type GeneralRepoSettings struct {
 	MirrorsDisabled  bool `json:"mirrors_disabled"`
 	HTTPGitDisabled  bool `json:"http_git_disabled"`
-	MaxCreationLimit int  `json:"max_creation_limit"`
 }

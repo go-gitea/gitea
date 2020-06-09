@@ -25,11 +25,11 @@ func SettingGetsAllowedReactions(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, setting.UI.Reactions)
 }
 
-// GetGeneralRepoSettings return general repo settings
+// GetGeneralRepoSettings returns instance's global settings for repositories
 func GetGeneralRepoSettings(ctx *context.APIContext) {
 	// swagger:operation GET /settings/repository miscellaneous getGeneralRepositorySettings
 	// ---
-	// summary: get general repo settings
+	// summary: Get instance's global settings for repositories
 	// produces:
 	// - application/json
 	// responses:
@@ -38,6 +38,5 @@ func GetGeneralRepoSettings(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, api.GeneralRepoSettings{
 		MirrorsDisabled:  setting.Repository.DisableMirrors,
 		HTTPGitDisabled:  setting.Repository.DisableHTTPGit,
-		MaxCreationLimit: setting.Repository.MaxCreationLimit,
 	})
 }
