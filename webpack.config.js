@@ -258,10 +258,10 @@ module.exports = {
         },
       ],
       renderLicenses: (modules) => {
+        const line = '-'.repeat(80);
         return modules.map((module) => {
           const {name, version} = module.packageJson;
           const {licenseId, licenseText} = module;
-          const line = '-'.repeat(80);
           const body = wrapAnsi(licenseText || '', 80);
           return `${line}\n${name}@${version} - ${licenseId}\n${line}\n${body}`;
         }).join('\n');
