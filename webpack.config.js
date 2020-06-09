@@ -268,7 +268,7 @@ module.exports = {
       },
       stats: {
         warnings: false,
-        errors: true
+        errors: true,
       },
     }),
   ],
