@@ -45,7 +45,7 @@ func ListMilestones(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -142,6 +142,11 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 		Name:         form.Title,
 		Content:      form.Description,
 		DeadlineUnix: timeutil.TimeStamp(form.Deadline.Unix()),
+	}
+
+	if form.State == "closed" {
+		milestone.IsClosed = true
+		milestone.ClosedDateUnix = timeutil.TimeStampNow()
 	}
 
 	if err := models.NewMilestone(milestone); err != nil {
