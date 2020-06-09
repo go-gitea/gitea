@@ -117,7 +117,6 @@ func HTTP(ctx *context.Context) {
 	repo, err := models.GetRepositoryByName(owner.ID, reponame)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			log.Trace("routers/repo/http.go:HTTP")
 			if redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame); err == nil {
 				context.RedirectToRepo(ctx, redirectRepoID)
 				return
