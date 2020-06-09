@@ -8495,7 +8495,7 @@
         "tags": [
           "miscellaneous"
         ],
-        "summary": "get general repo settings",
+        "summary": "Get instance's global settings for repositories",
         "operationId": "getGeneralRepositorySettings",
         "responses": {
           "200": {
@@ -12731,17 +12731,12 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "GeneralRepoSettings": {
-      "description": "GeneralRepoSettings contains general repo settings exposed by api",
+      "description": "GeneralRepoSettings contains global repository settings exposed by API",
       "type": "object",
       "properties": {
         "http_git_disabled": {
           "type": "boolean",
           "x-go-name": "HTTPGitDisabled"
-        },
-        "max_creation_limit": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "MaxCreationLimit"
         },
         "mirrors_disabled": {
           "type": "boolean",
