@@ -29,7 +29,6 @@ import (
 
 	shellquote "github.com/kballard/go-shellquote"
 	version "github.com/mcuadros/go-version"
-	"github.com/unknwon/cae/zip"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
@@ -256,12 +255,14 @@ var (
 
 	// Markdown settings
 	Markdown = struct {
-		EnableHardLineBreak bool
-		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
-		FileExtensions      []string
+		EnableHardLineBreakInComments  bool
+		EnableHardLineBreakInDocuments bool
+		CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
+		FileExtensions                 []string
 	}{
-		EnableHardLineBreak: true,
-		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
+		EnableHardLineBreakInComments:  true,
+		EnableHardLineBreakInDocuments: false,
+		FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
 	// Admin settings
@@ -728,6 +729,8 @@ func NewContext() {
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
+		} else {
+			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))
 		}
 	}
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
@@ -999,15 +1002,15 @@ func NewContext() {
 	if len(Langs) == 0 {
 		Langs = []string{
 			"en-US", "zh-CN", "zh-HK", "zh-TW", "de-DE", "fr-FR", "nl-NL", "lv-LV",
-			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pl-PL", "bg-BG", "it-IT",
-			"fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR"}
+			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pt-PT", "pl-PL", "bg-BG",
+			"it-IT", "fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR"}
 	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
 	if len(Names) == 0 {
 		Names = []string{"English", "简体中文", "繁體中文（香港）", "繁體中文（台灣）", "Deutsch",
 			"français", "Nederlands", "latviešu", "русский", "Українська", "日本語",
-			"español", "português do Brasil", "polski", "български", "italiano",
-			"suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
+			"español", "português do Brasil", "Português de Portugal", "polski", "български",
+			"italiano", "suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
 	}
 	dateLangs = Cfg.Section("i18n.datelang").KeysHash()
 
@@ -1027,8 +1030,6 @@ func NewContext() {
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
-
-	zip.Verbose = false
 
 	UI.ReactionsMap = make(map[string]bool)
 	for _, reaction := range UI.Reactions {

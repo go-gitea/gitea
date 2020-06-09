@@ -273,7 +273,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity) (*GPGKey, error) {
 	for i, k := range e.Subkeys {
 		subs, err := parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, expiry)
 		if err != nil {
-			return nil, err
+			return nil, ErrGPGKeyParsing{ParseError: err}
 		}
 		subkeys[i] = subs
 	}
@@ -740,6 +740,21 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 		Content: content,
 		CanSign: pubkey.CanSign(),
 		KeyID:   pubkey.KeyIdString(),
+	}
+	for _, subKey := range ekey.Subkeys {
+		content, err := base64EncPubKey(subKey.PublicKey)
+		if err != nil {
+			return &CommitVerification{
+				CommittingUser: committer,
+				Verified:       false,
+				Reason:         "gpg.error.generate_hash",
+			}
+		}
+		k.SubsKey = append(k.SubsKey, &GPGKey{
+			Content: content,
+			CanSign: subKey.PublicKey.CanSign(),
+			KeyID:   subKey.PublicKey.KeyIdString(),
+		})
 	}
 	if commitVerification := hashAndVerifyWithSubKeys(sig, payload, k, committer, &User{
 		Name:  gpgSettings.Name,

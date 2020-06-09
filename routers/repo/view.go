@@ -319,7 +319,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				if markupType := markup.Type(readmeFile.name); markupType != "" {
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["MarkupType"] = string(markupType)
-					ctx.Data["FileContent"] = string(markup.Render(readmeFile.name, buf, readmeTreelink, ctx.Repo.Repository.ComposeMetas()))
+					ctx.Data["FileContent"] = string(markup.Render(readmeFile.name, buf, readmeTreelink, ctx.Repo.Repository.ComposeDocumentMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
 					ctx.Data["FileContent"] = strings.Replace(
@@ -459,7 +459,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if markupType := markup.Type(blob.Name()); markupType != "" {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
+			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.Replace(
@@ -538,7 +538,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			buf = append(buf, d...)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
+			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
 		}
 
 	}

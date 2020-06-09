@@ -319,6 +319,12 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
+	if opts.Actor == nil || !opts.Actor.IsAdmin {
+		if opts.RequestedUser.KeepActivityPrivate && actorID != opts.RequestedUser.ID {
+			return make([]*Action, 0), nil
+		}
+	}
+
 	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
 
 	if opts.OnlyPerformedBy {

@@ -565,7 +565,12 @@ code,
         font-weight: normal;
     }
 
-    .avatar.image {
+    .avatar.image,
+    .avatar.image img,
+    .avatar.image svg,
+    .avatar.images .image,
+    .avatar.images img,
+    .avatar.images svg {
         border-radius: 3px;
     }
 
@@ -1041,6 +1046,14 @@ i.icons .icon:first-child {
 
 i.icon.centerlock {
     top: 1.45em;
+}
+
+// temporary workaround for fomantic 2.8.5 bug
+// https://github.com/go-gitea/gitea/pull/11767
+i.icon,
+i.icons {
+    vertical-align: unset;
+    line-height: unset;
 }
 
 .ui.label {
