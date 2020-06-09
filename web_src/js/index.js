@@ -2977,7 +2977,7 @@ function initVueComponents() {
           return `octicon-repo-template${repo.private ? '-private' : ''}`;
         } else if (repo.private) {
           return 'octicon-lock';
-        } if (repo.internal) {
+        } else if (repo.internal) {
           return 'octicon-internal-repo';
         }
         return 'octicon-repo';
