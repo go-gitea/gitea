@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 // consistencyCheckable a type that can be tested for database consistency
@@ -166,4 +167,24 @@ func (team *Team) checkForConsistency(t *testing.T) {
 func (action *Action) checkForConsistency(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: action.RepoID}).(*Repository)
 	assert.Equal(t, repo.IsPrivate, action.IsPrivate, "action: %+v", action)
+}
+
+// CountOrphanedObjects count subjects with have no existing refobject anymore
+func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
+	var ids []int64
+
+	return int64(len(ids)), x.Table("`"+subject+"`").
+		Join("LEFT", refobject, joinCond).
+		Where(builder.IsNull{"`" + refobject + "`.id"}).
+		Select("id").Find(&ids)
+}
+
+// DeleteOrphanedObjects delete subjects with have no existing refobject anymore
+func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
+	_, err := x.In("id", builder.Select("`"+subject+"`.id").
+		From("`"+subject+"`").
+		Join("LEFT", "`"+refobject+"`", joinCond).
+		Where(builder.IsNull{"`" + refobject + "`.id"})).
+		Delete("`" + subject + "`")
+	return err
 }
