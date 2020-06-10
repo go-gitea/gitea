@@ -482,7 +482,7 @@ func (c *Commit) GetBranchName() (string, error) {
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 
-// GetBranchName gets the current tag name for given commit
+// GetTagName gets the current tag name for given commit
 func (c *Commit) GetTagName() (string, error) {
 	data, err := NewCommand("describe", "--exact-match", "--tags", c.ID.String()).RunInDir(c.repo.Path)
 	if err != nil {
