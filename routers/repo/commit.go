@@ -132,7 +132,7 @@ func SearchCommits(ctx *context.Context) {
 	}
 
 	all := ctx.QueryBool("all")
-	opts := git.NewSearchCommitsOptions(query, all)
+	opts := git.NewSearchCommitsOptions(query, all, ctx.Repo.BranchName)
 	commits, err := ctx.Repo.Commit.SearchCommits(opts)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
@@ -306,9 +306,15 @@ func Diff(ctx *context.Context) {
 		ctx.Data["NoteAuthor"] = models.ValidateCommitWithEmail(note.Commit)
 	}
 
-	ctx.Data["BranchName"], err = commit.GetBranchName()
+	ctx.Data["Branches"], err = commit.GetBranches()
 	if err != nil {
-		ctx.ServerError("commit.GetBranchName", err)
+		ctx.ServerError("commit.GetBranches", err)
+		return
+	}
+
+	ctx.Data["Tags"], err = commit.GetTags()
+	if err != nil {
+		ctx.ServerError("commit.GetTags", err)
 		return
 	}
 	ctx.HTML(200, tplCommitPage)

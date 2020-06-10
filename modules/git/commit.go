@@ -466,7 +466,7 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 	return nil, nil
 }
 
-// GetBranchName gets the closes branch name (as returned by 'git name-rev --name-only')
+// GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
 	data, err := NewCommand("name-rev", "--name-only", "--no-undefined", c.ID.String()).RunInDir(c.repo.Path)
 	if err != nil {
@@ -480,6 +480,38 @@ func (c *Commit) GetBranchName() (string, error) {
 
 	// name-rev commitID output will be "master" or "master~12"
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
+}
+
+// GetBranches gets all branches that commit exists in
+func (c *Commit) GetBranches() ([]string, error) {
+	data, err := NewCommand("branch", "--format", "%(refname:short)", "--contains", c.ID.String()).RunInDir(c.repo.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	// handle case where there are no refs for given commit
+	if len(strings.TrimSpace(data)) == 0 {
+		return nil, nil
+	}
+
+	// name-rev commitID output will be "master" or "master~12"
+	return strings.SplitN(strings.TrimSpace(data), "\n", -1), nil
+}
+
+// GetTags gets all branches that commit exists in
+func (c *Commit) GetTags() ([]string, error) {
+	data, err := NewCommand("tag", "--format", "%(refname:short)", "--contains", c.ID.String()).RunInDir(c.repo.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	// handle case where there are no refs for given commit
+	if len(strings.TrimSpace(data)) == 0 {
+		return nil, nil
+	}
+
+	// name-rev commitID output will be "master" or "master~12"
+	return strings.SplitN(strings.TrimSpace(data), "\n", -1), nil
 }
 
 // CommitFileStatus represents status of files in a commit.
