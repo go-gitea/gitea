@@ -35,6 +35,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
+	"xorm.io/builder"
 )
 
 var (
@@ -1779,18 +1780,21 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 		opts.OrderBy = "updated_unix DESC"
 	}
 
-	sess := x.
-		Where("owner_id = ?", opts.Actor.ID).
-		OrderBy(opts.OrderBy.String())
+	var cond = builder.NewCond()
+	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
-		sess.And("is_private=?", false)
+		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	count, err := sess.Count(new(Repository))
+	sess := x.NewSession()
+	defer sess.Close()
+
+	count, err := sess.Where(cond).Count(new(Repository))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
+	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
 	return repos, count, opts.setSessionPagination(sess).Find(&repos)
 }
