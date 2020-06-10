@@ -881,8 +881,6 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	//     "$ref": "#/responses/CommitList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/EmptyPullRequest"
 
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {

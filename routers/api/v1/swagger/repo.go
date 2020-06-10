@@ -261,13 +261,6 @@ type swaggerEmptyRepository struct {
 	Body api.APIError `json:"body"`
 }
 
-// EmptyPullRequest
-// swagger:response EmptyPullRequest
-type swaggerEmptyPullRequest struct {
-	//in: body
-	Body api.APIError `json:"body"`
-}
-
 // FileResponse
 // swagger:response FileResponse
 type swaggerFileResponse struct {
