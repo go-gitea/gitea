@@ -2034,7 +2034,7 @@ function initCodeView() {
     box.dataset.folded = String(folded);
   });
   function insertBlobExcerpt(e) {
-    const $blob = $(e.target.parentElement.parentElement); // <use> -> <svg> -> <span>
+    const $blob = $(e.currentTarget); // <use> -> <svg> -> <span>
     const $row = $blob.parent().parent();
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
