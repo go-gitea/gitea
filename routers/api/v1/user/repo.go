@@ -109,28 +109,19 @@ func ListMyRepos(ctx *context.APIContext) {
 	var err error
 	repos, count, err := models.SearchRepository(opts)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, api.SearchError{
-			OK:    false,
-			Error: err.Error(),
-		})
+		ctx.Error(http.StatusInternalServerError, "SearchRepository", err)
 		return
 	}
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.GetOwner(); err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
+			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
 			return
 		}
 		accessMode, err := models.AccessLevel(ctx.User, repo)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
+			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		}
 		results[i] = repo.APIFormat(accessMode)
 	}
