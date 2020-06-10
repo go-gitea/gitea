@@ -260,7 +260,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list
 				hashCmd := NewCommand("log", "-1", prettyLogFormat)
 				hashCmd.AddArguments(args...)
 				hashCmd.AddArguments(v)
-				hashMatching, err := hashCmd.RunInDirBytes(repo.Path)
+				hashMatching, err := hashCmd.RunInDirBytes(opts.Branch)
 				if err != nil || bytes.Contains(stdout, hashMatching) {
 					continue
 				}

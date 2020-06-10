@@ -347,10 +347,11 @@ type SearchCommitsOptions struct {
 	Authors, Committers []string
 	After, Before       string
 	All                 bool
+	Branch              string
 }
 
 // NewSearchCommitsOptions construct a SearchCommitsOption from a space-delimited search string
-func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommitsOptions {
+func NewSearchCommitsOptions(searchString string, forAllRefs bool, branch string) SearchCommitsOptions {
 	var keywords, authors, committers []string
 	var after, before string
 
@@ -377,6 +378,7 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 		After:      after,
 		Before:     before,
 		All:        forAllRefs,
+		Branch:     branch,
 	}
 }
 
