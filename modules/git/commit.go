@@ -498,7 +498,7 @@ func (c *Commit) GetBranches() ([]string, error) {
 	return strings.SplitN(strings.TrimSpace(data), "\n", -1), nil
 }
 
-// GetTags gets all branches that commit exists in
+// GetTags gets all tags that commit exists in
 func (c *Commit) GetTags() ([]string, error) {
 	data, err := NewCommand("tag", "--format", "%(refname:short)", "--contains", c.ID.String()).RunInDir(c.repo.Path)
 	if err != nil {
