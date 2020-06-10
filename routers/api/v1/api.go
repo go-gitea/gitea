@@ -514,6 +514,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 		m.Group("/settings", func() {
 			m.Get("/allowed_reactions", misc.SettingGetsAllowedReactions)
+			m.Get("/repository", misc.GetGeneralRepoSettings)
 		})
 
 		// Notifications
