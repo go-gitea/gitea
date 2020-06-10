@@ -239,7 +239,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list
 		args = append(args, "--before="+opts.Before)
 	}
 	if opts.All {
-		args = append(args, "--all")
+		cmd.AddArguments("--all")
 	}
 	if len(opts.Keywords) > 0 {
 		for _, v := range opts.Keywords {
