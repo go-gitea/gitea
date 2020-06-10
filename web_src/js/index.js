@@ -1268,8 +1268,7 @@ function initPullRequestReview() {
           ` : `
             <td class="lines-num"></td>
             <td class="lines-num"></td>
-            <td class="add-comment-left add-comment-right" colspan="2">
-            </td>
+            <td class="add-comment-left add-comment-right" colspan="2"></td>
           `}
         </tr>`);
       tr.after(ntr);
