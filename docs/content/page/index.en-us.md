@@ -276,7 +276,6 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
   * [Highlight](https://highlightjs.org/)
   * [Clipboard](https://zenorocha.github.io/clipboard.js/)
   * [CodeMirror](https://codemirror.net/)
-  * [jQuery Date Time Picker](https://github.com/xdan/datetimepicker)
   * [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)
 * Database drivers:
   * [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
