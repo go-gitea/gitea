@@ -44,4 +44,17 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	var apiMilestone2 structs.Milestone
 	DecodeJSON(t, resp, &apiMilestone2)
 	assert.EqualValues(t, "closed", apiMilestone2.State)
+
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/milestones?token=%s", owner.Name, repo.Name, token), structs.CreateMilestoneOption{
+		Title:       "wow",
+		Description: "closed one",
+		State:       "closed",
+	})
+	resp = session.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, &apiMilestone)
+	assert.Equal(t, "wow", apiMilestone.Title)
+	assert.Equal(t, structs.StateClosed, apiMilestone.State)
+
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%d?token=%s", owner.Name, repo.Name, apiMilestone.ID, token))
+	resp = session.MakeRequest(t, req, http.StatusNoContent)
 }

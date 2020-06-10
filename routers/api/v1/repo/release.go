@@ -79,7 +79,7 @@ func ListReleases(ctx *context.APIContext) {
 	//   required: true
 	// - name: per_page
 	//   in: query
-	//   description: items count every page wants to load
+	//   description: page size of results, deprecated - use limit
 	//   type: integer
 	//   deprecated: true
 	// - name: page
@@ -88,7 +88,7 @@ func ListReleases(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
