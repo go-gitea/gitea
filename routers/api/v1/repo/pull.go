@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"container/list"
 	"fmt"
 	"math"
 	"net/http"
@@ -895,7 +894,15 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		return
 	}
 
-	var commits *list.List
+	if err := pr.LoadBaseRepo(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if err := pr.LoadHeadRepo(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	var prInfo *git.CompareInfo
 	headGitRepo, err := git.OpenRepository(models.RepoPath(pr.HeadRepo.OwnerName, pr.HeadRepo.Name))
 	if err != nil {
@@ -908,10 +915,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		ctx.ServerError("GetCompareInfo", err)
 		return
 	}
-	commits = prInfo.Commits
-	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
-	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
+	commits := prInfo.Commits
 
 	listOptions := utils.GetListOptions(ctx)
 	if listOptions.Page <= 0 {
@@ -925,6 +929,24 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	commitsCount := commits.Len()
 	pageCount := int(math.Ceil(float64(commitsCount) / float64(listOptions.PageSize)))
 
+	userCache := make(map[string]*models.User)
+
+	apiCommits := make([]*api.Commit, commits.Len())
+
+	i := 0
+	for commitPointer := commits.Front(); commitPointer != nil; commitPointer = commitPointer.Next() {
+		commit := commitPointer.Value.(*git.Commit)
+
+		// Create json struct
+		apiCommits[i], err = toCommit(ctx, ctx.Repo.Repository, commit, userCache)
+		if err != nil {
+			ctx.ServerError("toCommit", err)
+			return
+		}
+
+		i++
+	}
+
 	ctx.SetLinkHeader(int(commitsCount), listOptions.PageSize)
 
 	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
@@ -932,7 +954,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	ctx.Header().Set("X-Total", strconv.FormatInt(int64(commitsCount), 10))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
-	ctx.JSON(http.StatusOK, &commits)
+	ctx.JSON(http.StatusOK, &apiCommits)
 }
 
 func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (*models.User, *models.Repository, *git.Repository, *git.CompareInfo, string, string) {
