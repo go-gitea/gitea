@@ -22,9 +22,7 @@
     "file-loader": "6.0.0",
     "fomantic-ui": "2.8.5",
     "highlight.js": "10.0.3",
-    "imports-loader": "0.8.0",
     "jquery": "3.5.1",
-    "jquery-datetimepicker": "2.5.21",
     "jquery.are-you-sure": "1.9.0",
     "less-loader": "6.1.0",
     "mini-css-extract-plugin": "0.9.0",
@@ -53,9 +51,10 @@
     "worker-loader": "2.0.0"
   },
   "devDependencies": {
-    "eslint": "6.8.0",
-    "eslint-config-airbnb-base": "14.1.0",
-    "eslint-plugin-import": "2.20.2",
+    "eslint": "7.2.0",
+    "eslint-plugin-import": "2.21.1",
+    "eslint-plugin-sonarjs": "0.5.0",
+    "eslint-plugin-unicorn": "20.1.0",
     "stylelint": "13.3.3",
     "stylelint-config-standard": "20.0.0",
     "updates": "10.2.11"

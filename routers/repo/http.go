@@ -332,8 +332,9 @@ func HTTP(ctx *context.Context) {
 		Env:         environ,
 	}
 
+	r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
+
 	for _, route := range routes {
-		r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
 		if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
 			if setting.Repository.DisableHTTPGit {
 				w.WriteHeader(http.StatusForbidden)
