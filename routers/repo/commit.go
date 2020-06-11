@@ -311,6 +311,12 @@ func Diff(ctx *context.Context) {
 		ctx.ServerError("commit.GetBranchName", err)
 		return
 	}
+
+	ctx.Data["TagName"], err = commit.GetTagName()
+	if err != nil {
+		ctx.ServerError("commit.GetTagName", err)
+		return
+	}
 	ctx.HTML(200, tplCommitPage)
 }
 
