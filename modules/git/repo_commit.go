@@ -46,7 +46,7 @@ func (repo *Repository) GetBranchCommitID(name string) (string, error) {
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	stdout, err := NewCommand("rev-list", "-n", "1", name).RunInDir(repo.Path)
+	stdout, err := NewCommand("rev-list", "-n", "1", TagPrefix+name).RunInDir(repo.Path)
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") {
 			return "", ErrNotExist{name, ""}
