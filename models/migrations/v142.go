@@ -14,7 +14,9 @@ func setIsArchivedToFalse(x *xorm.Engine) error {
 	type Repository struct {
 		IsArchived bool `xorm:"INDEX"`
 	}
-	count, err := x.Where(builder.IsNull{"is_archived"}).SetExpr("is_archived", false).Update(new(Repository))
+	count, err := x.Where(builder.IsNull{"is_archived"}).Cols("is_archived").Update(&Repository{
+		IsArchived: false,
+	})
 	if err == nil {
 		log.Debug("Updated %d repositories with is_archived IS NULL", count)
 	}
