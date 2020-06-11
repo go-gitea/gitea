@@ -14,7 +14,7 @@ import (
 
 // SettingGetsAllowedReactions return allowed reactions
 func SettingGetsAllowedReactions(ctx *context.APIContext) {
-	// swagger:operation GET /settings/allowed_reactions miscellaneous getAllowedReactions
+	// swagger:operation GET /settings/allowed_reactions settings getAllowedReactions
 	// ---
 	// summary: Returns string array of allowed reactions
 	// produces:
@@ -27,7 +27,7 @@ func SettingGetsAllowedReactions(ctx *context.APIContext) {
 
 // GetGeneralRepoSettings returns instance's global settings for repositories
 func GetGeneralRepoSettings(ctx *context.APIContext) {
-	// swagger:operation GET /settings/repository miscellaneous getGeneralRepositorySettings
+	// swagger:operation GET /settings/repository settings getGeneralRepositorySettings
 	// ---
 	// summary: Get instance's global settings for repositories
 	// produces:
