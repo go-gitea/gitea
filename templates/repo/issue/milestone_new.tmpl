@@ -23,26 +23,21 @@
 		{{template "base/alert" .}}
 		<form class="ui form grid" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
-			<div class="eleven wide column">
+			<div class="twelve wide column">
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<label>{{.i18n.Tr "repo.milestones.title"}}</label>
 					<input name="title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
 				</div>
-				<div class="field">
-					<label>{{.i18n.Tr "repo.milestones.desc"}}</label>
-					<textarea name="content">{{.content}}</textarea>
-				</div>
-			</div>
-			<div class="four wide column">
 				<div class="field {{if .Err_Deadline}}error{{end}}">
 					<label>
 						{{.i18n.Tr "repo.milestones.due_date"}}
-						<a id="clear-date" href="#">{{.i18n.Tr "repo.milestones.clear"}}</a>
+						<a id="clear-date">{{.i18n.Tr "repo.milestones.clear"}}</a>
 					</label>
-					<input id="deadline" name="deadline" value="{{.deadline}}">
+					<input type="date" id="deadline" name="deadline" value="{{.deadline}}" placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}">
 				</div>
 				<div class="field">
-					<input class="milestone datepicker" data-lang="{{.DateLang}}" data-start-date="{{.deadline}}">
+					<label>{{.i18n.Tr "repo.milestones.desc"}}</label>
+					<textarea name="content">{{.content}}</textarea>
 				</div>
 			</div>
 			<div class="ui container">
