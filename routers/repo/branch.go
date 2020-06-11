@@ -117,12 +117,6 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if err := ctx.Repo.Repository.RemoveDeletedBranch(deletedBranch.ID); err != nil {
-		log.Error("RemoveDeletedBranch: %v", err)
-		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
-		return
-	}
-
 	// Don't return error below this
 	if err := repofiles.PushUpdate(
 		ctx.Repo.Repository,
