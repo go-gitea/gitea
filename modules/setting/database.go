@@ -105,7 +105,7 @@ func DBConnStr() (string, error) {
 	switch Database.Type {
 	case "mysql":
 		connType := "tcp"
-		if Database.Host[0] == '/' { // looks like a unix socket
+		if len(Database.Host) > 0 && Database.Host[0] == '/' { // looks like a unix socket
 			connType = "unix"
 		}
 		tls := Database.SSLMode
