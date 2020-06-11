@@ -262,7 +262,7 @@ func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
 		return
 	}
 
-	ctx.SetCookie("themeNow", ctx.User.Theme, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	ctx.SetCookie("current_theme", ctx.User.Theme, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	log.Trace("Update user theme: %s", ctx.User.Name)
 	ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")

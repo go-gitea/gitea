@@ -296,14 +296,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			if exists {
 				themeNow = chooseTheme
-				ctx.SetCookie("themeNow", themeNow, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+				ctx.SetCookie("current_theme", themeNow, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 			} else {
 				ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 			}
 		}
 
 		if themeNow == "" {
-			chooseTheme = ctx.GetCookie("themeNow")
+			chooseTheme = ctx.GetCookie("current_theme")
 			var exists bool
 
 			for _, v := range setting.UI.Themes {
