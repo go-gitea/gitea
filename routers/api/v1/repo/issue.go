@@ -220,7 +220,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -691,7 +691,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	var deadline time.Time
 	if form.Deadline != nil && !form.Deadline.IsZero() {
 		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-			23, 59, 59, 0, form.Deadline.Location())
+			23, 59, 59, 0, time.Local)
 		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 	}
 

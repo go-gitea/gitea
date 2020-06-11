@@ -212,6 +212,10 @@ var migrations = []Migration{
 	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
 	// v139 -> v140
 	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
+	// v140 -> v141
+	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
+	// v141 -> 142
+	NewMigration("Add KeepActivityPrivate to User table", addKeepActivityPrivateUserColumn),
 }
 
 // GetCurrentDBVersion returns the current db version

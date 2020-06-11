@@ -302,3 +302,10 @@ type swaggerTopicNames struct {
 	// in: body
 	Body api.TopicName `json:"body"`
 }
+
+// LanguageStatistics
+// swagger:response LanguageStatistics
+type swaggerLanguageStatistics struct {
+	// in: body
+	Body map[string]int64 `json:"body"`
+}
