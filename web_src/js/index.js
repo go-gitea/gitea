@@ -1,4 +1,3 @@
-/* globals wipPrefixes */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
@@ -13,7 +12,6 @@ import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
-import initDateTimePicker from './features/datetimepicker.js';
 import initServiceWorker from './features/serviceworker.js';
 import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
@@ -757,18 +755,6 @@ async function initRepository() {
 
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
-    const $datepicker = $('.milestone.datepicker');
-
-    await initDateTimePicker($datepicker.data('lang'));
-
-    $datepicker.datetimepicker({
-      inline: true,
-      timepicker: false,
-      startDate: $datepicker.data('start-date'),
-      onSelectDate(date) {
-        $('#deadline').val(date.toISOString().substring(0, 10));
-      },
-    });
     $('#clear-date').on('click', () => {
       $('#deadline').val('');
       return false;
@@ -1201,6 +1187,17 @@ function initPullRequestReview() {
     $(this).hide();
     const form = $(this).parent().find('.comment-form');
     form.removeClass('hide');
+    const $textarea = form.find('textarea');
+    let $simplemde;
+    if ($textarea.data('simplemde')) {
+      $simplemde = $textarea.data('simplemde');
+    } else {
+      attachTribute($textarea.get(), {mentions: true, emoji: true});
+      $simplemde = setCommentSimpleMDE($textarea);
+      $textarea.data('simplemde', $simplemde);
+    }
+    $textarea.focus();
+    $simplemde.codemirror.focus();
     assingMenuAttributes(form.find('.menu'));
   });
   // The following part is only for diff views
@@ -1230,25 +1227,41 @@ function initPullRequestReview() {
       $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
     });
   $('.add-code-comment').on('click', function (e) {
-    // https://github.com/go-gitea/gitea/issues/4745
-    if ($(e.target).hasClass('btn-add-single')) {
-      return;
-    }
+    if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
+
     const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
     const side = $(this).data('side');
     const idx = $(this).data('idx');
     const path = $(this).data('path');
     const form = $('#pull_review_add_comment').html();
     const tr = $(this).closest('tr');
+
+    const oldLineNum = tr.find('.lines-num-old').data('line-num');
+    const newLineNum = tr.find('.lines-num-new').data('line-num');
+    const addCommentKey = `${oldLineNum}|${newLineNum}`;
+    if (document.querySelector(`[data-add-comment-key="${addCommentKey}"]`)) return; // don't add same comment box twice
+
     let ntr = tr.next();
     if (!ntr.hasClass('add-comment')) {
-      ntr = $(`<tr class="add-comment">${
-        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>' :
-          '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right" colspan="2"></td>'
-      }</tr>`);
+      ntr = $(`
+        <tr class="add-comment" data-add-comment-key="${addCommentKey}">
+          ${isSplit ? `
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-left"></td>
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-right"></td>
+          ` : `
+            <td class="lines-num"></td>
+            <td class="lines-num"></td>
+            <td class="add-comment-left add-comment-right" colspan="2"></td>
+          `}
+        </tr>`);
       tr.after(ntr);
     }
+
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0) {
@@ -1260,7 +1273,12 @@ function initPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
     }
-    commentCloud.find('textarea').focus();
+    const $textarea = commentCloud.find('textarea');
+    attachTribute($textarea.get(), {mentions: true, emoji: true});
+
+    const $simplemde = setCommentSimpleMDE($textarea);
+    $textarea.focus();
+    $simplemde.codemirror.focus();
   });
 }
 
@@ -1863,7 +1881,8 @@ function initAdmin() {
 
     // Attach view detail modals
     $('.view-detail').on('click', function () {
-      $detailModal.find('.content pre').text($(this).data('content'));
+      $detailModal.find('.content pre').text($(this).parents('tr').find('.notice-description').text());
+      $detailModal.find('.sub.header').text($(this).parents('tr').find('.notice-created-time').text());
       $detailModal.modal('show');
       return false;
     });
@@ -2019,7 +2038,7 @@ function initCodeView() {
     box.dataset.folded = String(folded);
   });
   function insertBlobExcerpt(e) {
-    const $blob = $(e.target);
+    const $blob = $(e.currentTarget);
     const $row = $blob.parent().parent();
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
@@ -2162,8 +2181,9 @@ function initWipTitle() {
     $issueTitle.focus();
     const value = $issueTitle.val().trim().toUpperCase();
 
-    for (const i in wipPrefixes) {
-      if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+    const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
+    for (const prefix of wipPrefixes) {
+      if (value.startsWith(prefix.toUpperCase())) {
         return;
       }
     }
@@ -2457,10 +2477,9 @@ $(document).ready(async () => {
     'div.repository.settings.collaboration': initRepositoryCollaboration
   };
 
-  let selector;
-  for (selector in routes) {
+  for (const [selector, fn] of Object.entries(routes)) {
     if ($(selector).length > 0) {
-      routes[selector]();
+      fn();
       break;
     }
   }
@@ -2957,12 +2976,14 @@ function initVueComponents() {
       repoClass(repo) {
         if (repo.fork) {
           return 'octicon-repo-forked';
-        } if (repo.mirror) {
+        } else if (repo.mirror) {
           return 'octicon-repo-clone';
-        } if (repo.template) {
+        } else if (repo.template) {
           return `octicon-repo-template${repo.private ? '-private' : ''}`;
-        } if (repo.private) {
+        } else if (repo.private) {
           return 'octicon-lock';
+        } else if (repo.internal) {
+          return 'octicon-internal-repo';
         }
         return 'octicon-repo';
       }

@@ -21,7 +21,13 @@ menu:
 
 ## Windows
 
-目前尚未發佈任何 Windows 套件，如果我們發佈了，會直接更新此網頁。我們計畫使用 `MSI`，或 [Chocolatey](https://chocolatey.org/) 來製作套件。在這之前請先參考[執行檔安裝]({{< relref "from-binary.zh-tw.md" >}})方式。
+在 Windows 作業系統你可以透過 [Chocolatey](https://chocolatey.org/) 套件管理器安裝 [Gitea](https://chocolatey.org/packages/gitea) 套件：
+
+```sh
+choco install gitea
+```
+
+也可以參考[執行檔安裝]({{< relref "from-binary.zh-tw.md" >}})方式。
 
 ## macOS
 
