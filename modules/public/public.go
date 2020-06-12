@@ -34,7 +34,6 @@ type Options struct {
 var KnownPublicEntries = []string{
 	"css",
 	"fomantic",
-	"fonts",
 	"img",
 	"js",
 	"misc",

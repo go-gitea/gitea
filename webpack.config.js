@@ -212,8 +212,8 @@ module.exports = {
             loader: 'file-loader',
             options: {
               name: '[name].[ext]',
-              outputPath: 'fonts/',
-              publicPath: (url) => `../fonts/${url}`, // seems required for monaco's font
+              outputPath: 'misc/',
+              publicPath: (url) => `../misc/${url}`, // seems required for monaco's font
             },
           },
         ],
