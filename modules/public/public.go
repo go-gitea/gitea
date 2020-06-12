@@ -34,8 +34,11 @@ type Options struct {
 var knownEntries = []string{
 	"css",
 	"fomantic",
+	"fonts",
 	"img",
 	"js",
+	"misc",
+	"serviceworker.js",
 	"vendor",
 }
 

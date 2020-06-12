@@ -244,7 +244,7 @@ module.exports = {
       filename: 'js/monaco-[name].worker.js',
     }),
     new LicenseWebpackPlugin({
-      outputFilename: 'js/licenses.txt',
+      outputFilename: 'misc/licenses.txt',
       perChunkOutput: false,
       addBanner: false,
       skipChildCompilers: true,
