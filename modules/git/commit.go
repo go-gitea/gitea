@@ -466,7 +466,7 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 	return nil, nil
 }
 
-// GetBranchName gets the closes branch name (as returned by 'git name-rev --name-only')
+// GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
 	data, err := NewCommand("name-rev", "--exclude", "refs/tags/*", "--name-only", "--no-undefined", c.ID.String()).RunInDir(c.repo.Path)
 	if err != nil {
@@ -480,6 +480,21 @@ func (c *Commit) GetBranchName() (string, error) {
 
 	// name-rev commitID output will be "master" or "master~12"
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
+}
+
+// GetTagName gets the current tag name for given commit
+func (c *Commit) GetTagName() (string, error) {
+	data, err := NewCommand("describe", "--exact-match", "--tags", c.ID.String()).RunInDir(c.repo.Path)
+	if err != nil {
+		// handle special case where there is no tag for this commit
+		if strings.Contains(err.Error(), "no tag exactly matches") {
+			return "", nil
+		}
+
+		return "", err
+	}
+
+	return strings.TrimSpace(data), nil
 }
 
 // CommitFileStatus represents status of files in a commit.
