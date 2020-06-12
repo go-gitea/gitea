@@ -17,7 +17,7 @@
 
 <body>
 	{{if .IsMention}}<p><b>@{{.Doer.Name}}</b> mentioned you:</p>{{end}}
-	{{if eq .Comment.Type 29}}
+	{{if eq .ActionName "push"}}
 		<p>
 			<b>{{.Doer.Name}}</b>  
 			{{if .Comment.IsForcePush}}
