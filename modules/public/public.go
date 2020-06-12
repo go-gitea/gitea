@@ -30,7 +30,7 @@ type Options struct {
 	Prefix       string
 }
 
-// List of known entries inside the `public` directory
+// KnownPublicEntries list all direct children in the `public` directory
 var KnownPublicEntries = []string{
 	"css",
 	"fomantic",
