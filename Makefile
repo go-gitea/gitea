@@ -517,6 +517,10 @@ migrations.pgsql.test: $(GO_SOURCES)
 migrations.mssql.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.mssql.test
 
+.PHONY: migrations.cockroach.test
+migrations.cockroach.test: $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.cockroach.test
+
 .PHONY: migrations.sqlite.test
 migrations.sqlite.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags 'sqlite sqlite_unlock_notify'
