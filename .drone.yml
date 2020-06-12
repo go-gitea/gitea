@@ -117,7 +117,7 @@ services:
     pull: default
     image: cockroachdb/cockroach:v20.1.1
     commands:
-    - /cockroach/cockroach start-single-node --insecure
+    - /cockroach/cockroach start-single-node --insecure --store /opt/cockroachdb
 
   - name: mssql
     pull: default
