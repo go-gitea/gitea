@@ -138,6 +138,10 @@ TEST_MSSQL_HOST ?= mssql:1433
 TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
+TEST_COCKROACH_HOST ?= cockroach:26257
+TEST_COCKROACH_DBNAME ?= gitea
+TEST_COCKROACH_USERNAME ?= postgres
+TEST_COCKROACH_PASSWORD ?= 
 
 .PHONY: all
 all: build
@@ -418,6 +422,26 @@ test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql
 .PHONY: test-pgsql-migration
 test-pgsql-migration: migrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./migrations.pgsql.test
+
+generate-ini-cockroach:
+	sed -e 's|{{TEST_COCKROACH_HOST}}|${TEST_COCKROACH_HOST}|g' \
+		-e 's|{{TEST_COCKROACH_DBNAME}}|${TEST_COCKROACH_DBNAME}|g' \
+		-e 's|{{TEST_COCKROACH_USERNAME}}|${TEST_COCKROACH_USERNAME}|g' \
+		-e 's|{{TEST_COCKROACH_PASSWORD}}|${TEST_COCKROACH_PASSWORD}|g' \
+		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+			integrations/cockroach.ini.tmpl > integrations/cockroach.ini
+
+.PHONY: test-cockroach
+test-cockroach: integrations.cockroach.test generate-ini-cockroach
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/cockroach.ini ./integrations.cockroach.test
+
+.PHONY: test-cockroach\#%
+test-cockroach\#%: integrations.cockroach.test generate-ini-cockroach
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/cockroach.ini ./integrations.cockroach.test -test.run $(subst .,/,$*)
+
+.PHONY: test-cockroach-migration
+test-cockroach-migration: migrations.cockroach.test generate-ini-cockroach
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/cockroach.ini ./migrations.cockroach.test
 
 generate-ini-mssql:
 	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
