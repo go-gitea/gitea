@@ -49,20 +49,6 @@ func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown
 				extension.TaskList,
 				extension.DefinitionList,
 				common.FootnoteExtension,
-				extension.NewTypographer(
-					extension.WithTypographicSubstitutions(extension.TypographicSubstitutions{
-						extension.Apostrophe: nil,
-						extension.Ellipsis: nil,
-						extension.EmDash: nil,
-						extension.EnDash: nil,
-						extension.LeftAngleQuote: nil,
-						extension.LeftDoubleQuote: nil,
-						extension.LeftSingleQuote: nil,
-						extension.RightAngleQuote: nil,
-						extension.RightDoubleQuote: nil,
-						extension.RightSingleQuote: nil,
-					}),
-				),
 				meta.Meta,
 			),
 			goldmark.WithParserOptions(
