@@ -12,17 +12,19 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// SettingGetsAllowedReactions return allowed reactions
-func SettingGetsAllowedReactions(ctx *context.APIContext) {
-	// swagger:operation GET /settings/allowed_reactions settings getAllowedReactions
+// GetGeneralUISettings returns instance's global settings for ui
+func GetGeneralUISettings(ctx *context.APIContext) {
+	// swagger:operation GET /settings/ui settings getGeneralUISettings
 	// ---
-	// summary: Returns string array of allowed reactions
+	// summary: Get instance's global settings for ui
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/StringSlice"
-	ctx.JSON(http.StatusOK, setting.UI.Reactions)
+	//     "$ref": "#/responses/GeneralUISettings"
+	ctx.JSON(http.StatusOK, api.GeneralUISettings{
+		AllowedReactions: setting.UI.Reactions,
+	})
 }
 
 // GetGeneralRepoSettings returns instance's global settings for repositories
