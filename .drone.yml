@@ -211,7 +211,7 @@ steps:
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
-      - make test-cockroach-migration test-cockroach
+      - make test-cockroach
     environment:
       GOPROXY: off
       TAGS: bindata
