@@ -30,6 +30,9 @@
 			{{if .BranchName}}
 				<span class="text grey">{{svg "octicon-git-branch" 16}}{{.BranchName}}</span>
 			{{end}}
+			{{if .TagName}}
+				<span class="text grey">{{svg "octicon-tag" 16}}{{.TagName}}</span>
+			{{end}}
 		</div>
 		<div class="ui attached info segment {{$class}}">
 			<div class="ui stackable grid">

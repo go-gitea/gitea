@@ -574,6 +574,22 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		}
 	}
 
+	count, err = models.CountNullArchivedRepository()
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		if ctx.Bool("fix") {
+			updatedCount, err := models.FixNullArchivedRepository()
+			if err != nil {
+				return nil, err
+			}
+			results = append(results, fmt.Sprintf("%d repositories with null is_archived updated", updatedCount))
+		} else {
+			results = append(results, fmt.Sprintf("%d repositories with null is_archived", count))
+		}
+	}
+
 	//ToDo: function to recalc all counters
 
 	return results, nil
