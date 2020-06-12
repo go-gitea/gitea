@@ -209,8 +209,9 @@ clean:
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
 		integrations*.test \
 		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-mysql8/ integrations/gitea-integration-sqlite/ \
-		integrations/gitea-integration-mssql/ integrations/indexers-mysql/ integrations/indexers-mysql8/ integrations/indexers-pgsql integrations/indexers-sqlite \
-		integrations/indexers-mssql integrations/mysql.ini integrations/mysql8.ini integrations/pgsql.ini integrations/mssql.ini
+		integrations/gitea-integration-mssql/ integrations/gitea-integration-cockroach/ integrations/indexers-mysql/ integrations/indexers-mysql8/ \
+		integrations/indexers-pgsql integrations/indexers-sqlite integrations/indexers-mssql integrations/indexers-cockroach integrations/mysql.ini \
+		integrations/mysql8.ini integrations/pgsql.ini integrations/mssql.ini
 
 .PHONY: fmt
 fmt:
@@ -491,6 +492,9 @@ integrations.mysql8.test: git-check $(GO_SOURCES)
 
 integrations.pgsql.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
+
+integrations.cockroach.test: git-check $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.cockroach.test
 
 integrations.mssql.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mssql.test
