@@ -20,8 +20,6 @@ import (
 func TestAPIAllowedReactions(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	type allowed []string
-
 	a := new(api.GeneralUISettings)
 
 	req := NewRequest(t, "GET", "/api/v1/settings/ui")
