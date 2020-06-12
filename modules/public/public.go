@@ -31,7 +31,7 @@ type Options struct {
 }
 
 // List of known entries inside the `public` directory
-var knownEntries = []string{
+var KnownPublicEntries = []string{
 	"css",
 	"fomantic",
 	"fonts",
@@ -117,7 +117,7 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 			if len(parts) < 2 {
 				return false
 			}
-			for _, entry := range knownEntries {
+			for _, entry := range KnownPublicEntries {
 				if entry == parts[1] {
 					ctx.Resp.WriteHeader(404)
 					return true
