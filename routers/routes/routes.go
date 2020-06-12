@@ -302,29 +302,32 @@ func RegisterRoutes(m *macaron.Macaron) {
 			}
 		}
 
-		if themeNow == "" {
+		if len(themeNow) == 0 {
 			chooseTheme = ctx.GetCookie("current_theme")
-			var exists bool
 
-			for _, v := range setting.UI.Themes {
-				if strings.EqualFold(strings.ToLower(v), strings.ToLower(chooseTheme)) {
-					exists = true
-					break
+			if len(chooseTheme) != 0 {
+				var exists bool
+
+				for _, v := range setting.UI.Themes {
+					if strings.EqualFold(strings.ToLower(v), strings.ToLower(chooseTheme)) {
+						exists = true
+						break
+					}
 				}
-			}
 
-			if exists {
-				themeNow = chooseTheme
-			} else {
-				ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+				if exists {
+					themeNow = chooseTheme
+				} else {
+					ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+				}
 			}
 		}
 
-		if themeNow == "" && ctx.IsSigned {
+		if len(themeNow) == 0 && ctx.IsSigned {
 			themeNow = ctx.User.Theme
 		}
 
-		if themeNow == "" {
+		if len(themeNow) == 0 {
 			themeNow = setting.UI.DefaultTheme
 		}
 
