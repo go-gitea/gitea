@@ -80,6 +80,7 @@ coverage.all
 /public/css
 /public/fonts
 /public/fomantic
+/public/misc
 /public/img/svg
 /VERSION
 
