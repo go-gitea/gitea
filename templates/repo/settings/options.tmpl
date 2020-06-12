@@ -369,7 +369,7 @@
 				</div>
 				<div class="ui divider"></div>
 			{{end}}
-			{{if .Repository.IsFork}}
+			{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
 				<div class="item">
 					<div class="ui right">
 						<button class="ui basic red show-modal button" data-modal="#convert-fork-repo-modal">{{.i18n.Tr "repo.settings.convert_fork"}}</button>
@@ -478,7 +478,7 @@
 			</div>
 		</div>
 	{{end}}
-	{{if .Repository.IsFork}}
+	{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
 		<div class="ui small modal" id="convert-fork-repo-modal">
 			<div class="header">
 				{{.i18n.Tr "repo.settings.convert_fork"}}

@@ -365,6 +365,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Error(404)
 			return
 		}
+		if err := repo.GetOwner(); err != nil {
+			ctx.ServerError("Convert Fork", err)
+			return
+		}
 		if repo.Name != form.RepoName {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
@@ -374,6 +378,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Error(404)
 			return
 		}
+
+		if !ctx.Repo.Owner.CanCreateRepo() {
+			ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()))
+			ctx.Redirect(repo.Link() + "/settings")
+			return
+		}
+
 		repo.IsFork = false
 		repo.ForkID = 0
 		if err := models.UpdateRepository(repo, false); err != nil {
