@@ -22,14 +22,14 @@ func TestAPIAllowedReactions(t *testing.T) {
 
 	type allowed []string
 
-	a := new(allowed)
+	a := new(api.GeneralUISettings)
 
-	req := NewRequest(t, "GET", "/api/v1/settings/allowed_reactions")
+	req := NewRequest(t, "GET", "/api/v1/settings/ui")
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &a)
-	assert.Len(t, *a, len(setting.UI.Reactions))
-	assert.ElementsMatch(t, setting.UI.Reactions, *a)
+	assert.Len(t, a.AllowedReactions, len(setting.UI.Reactions))
+	assert.ElementsMatch(t, setting.UI.Reactions, a.AllowedReactions)
 }
 
 func TestAPIIssuesReactions(t *testing.T) {
