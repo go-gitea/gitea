@@ -658,7 +658,14 @@
 
             .review-item {
                 display: flex;
+                justify-content: space-between;
                 align-items: center;
+
+                .review-item-left,
+                .review-item-right {
+                    display: flex;
+                    align-items: center;
+                }
 
                 .avatar,
                 .type-icon {
@@ -670,10 +677,6 @@
 
                 .text {
                     margin: .3em 0 .5em .5em;
-                }
-
-                :nth-child(3) {
-                    margin-left: auto;
                 }
 
                 .type-icon {
