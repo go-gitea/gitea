@@ -645,7 +645,7 @@ func (u *User) GetOrganizationCount() (int64, error) {
 
 // GetRepositories returns repositories that user owns, including private repositories.
 func (u *User) GetRepositories(listOpts ListOptions) (err error) {
-	u.Repos, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts})
+	u.Repos, _, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts})
 	return err
 }
 
