@@ -1,5 +1,6 @@
 const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
+const wrapAnsi = require('wrap-ansi');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
@@ -11,6 +12,7 @@ const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
 const {resolve, parse} = require('path');
+const {LicenseWebpackPlugin} = require('license-webpack-plugin');
 const {SourceMapDevToolPlugin} = require('webpack');
 
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
@@ -240,6 +242,34 @@ module.exports = {
     }),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].worker.js',
+    }),
+    new LicenseWebpackPlugin({
+      outputFilename: 'js/licenses.txt',
+      perChunkOutput: false,
+      addBanner: false,
+      skipChildCompilers: true,
+      modulesDirectories: [
+        resolve(__dirname, 'node_modules'),
+      ],
+      additionalModules: [
+        {
+          name: 'fomantic-ui',
+          directory: resolve(__dirname, 'node_modules/fomantic-ui'),
+        },
+      ],
+      renderLicenses: (modules) => {
+        const line = '-'.repeat(80);
+        return modules.map((module) => {
+          const {name, version} = module.packageJson;
+          const {licenseId, licenseText} = module;
+          const body = wrapAnsi(licenseText || '', 80);
+          return `${line}\n${name}@${version} - ${licenseId}\n${line}\n${body}`;
+        }).join('\n');
+      },
+      stats: {
+        warnings: false,
+        errors: true,
+      },
     }),
   ],
   performance: {
