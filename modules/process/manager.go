@@ -198,6 +198,7 @@ func (err *Error) Error() string {
 	return fmt.Sprintf("exec(%d:%s) failed: %v(%v) stdout: %s stderr: %s", err.PID, err.Description, err.Err, err.CtxErr, err.Stdout, err.Stderr)
 }
 
+// Unwrap implements the unwrappable implicit interface for go1.13 Unwrap()
 func (err *Error) Unwrap() error {
 	return err.Err
 }
