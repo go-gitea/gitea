@@ -75,6 +75,7 @@
 	{{- else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
 	<div class="content">
 		{{template "repo/pulls/status" .}}
+		{{$canAutoMerge := false}}
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
 				<div class="item text purple">
@@ -188,6 +189,30 @@
 							{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 						</div>
 					{{end}}
+				{{end}}
+				
+				{{$canAutoMerge = true}}
+				{{if (gt .Issue.PullRequest.CommitsBehind 0)}}
+					<div class="ui divider"></div>
+					<div class="item item-section text grey">
+						<div class="item-section-left">
+							<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+							{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
+						</div>
+						<div class="item-section-right">
+							{{if .UpdateAllowed}}
+								<form action="{{.Link}}/update" method="post" class="ui update-branch-form">
+									{{.CsrfTokenHtml}}
+									<button class="ui compact button" data-do="update">
+										<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+									</button>
+								</form>
+							{{end}}
+						</div>
+					</div>
+				{{end}}
+
+				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
 					{{if .AllowMerge}}
 						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 						{{$approvers := .Issue.PullRequest.GetApprovers}}
@@ -300,6 +325,7 @@
 								</div>
 							</div>
 						{{else}}
+							<div class="ui divider"></div>
 							<div class="item text red">
 								{{svg "octicon-x" 16}}
 								{{$.i18n.Tr "repo.pulls.no_merge_desc"}}
@@ -310,31 +336,12 @@
 							</div>
 						{{end}}
 					{{else}}
+						<div class="ui divider"></div>
 						<div class="item text grey">
 							{{svg "octicon-info" 16}}
 							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
 						</div>
 					{{end}}
-				{{end}}
-				{{if gt .Issue.PullRequest.CommitsBehind 0}}
-				<div class="ui very compact branch-update grid">
-						<div class="row">
-						<div class="item text gray eleven wide left floated column">
-							<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
-							{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
-						</div>
-						{{if .UpdateAllowed}}
-							<div class="item text five wide right floated column">
-								<form action="{{.Link}}/update" method="post">
-									{{.CsrfTokenHtml}}
-									<button class="ui button" data-do="update">
-										<span class="item text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
-									</button>
-								</form>
-							</div>
-						{{end}}
-					</div>
-				</div>
 				{{end}}
 			{{else}}
 				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
@@ -373,6 +380,21 @@
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
 					</div>
 				{{end}}
+			{{end}}
+
+			{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
+				<div class="item text grey">
+					<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+					{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
+					{{if .UpdateAllowed}}
+						<form action="{{.Link}}/update" method="post" class="ui floating right">
+							{{.CsrfTokenHtml}}
+							<button class="ui compact button" data-do="update">
+								<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+							</button>
+						</form>
+					{{end}}
+				</div>
 			{{end}}
 		</div>
 	</div>
