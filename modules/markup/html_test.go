@@ -208,7 +208,7 @@ func TestRender_email(t *testing.T) {
 	// Test that should *not* be turned into email links
 	test(
 		"\"info@gitea.com\"",
-		`<p>“info@gitea.com”</p>`)
+		`<p>&#34;info@gitea.com&#34;</p>`)
 	test(
 		"/home/gitea/mailstore/info@gitea/com",
 		`<p>/home/gitea/mailstore/info@gitea/com</p>`)

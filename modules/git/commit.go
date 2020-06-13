@@ -484,7 +484,7 @@ func (c *Commit) GetBranchName() (string, error) {
 
 // GetTagName gets the current tag name for given commit
 func (c *Commit) GetTagName() (string, error) {
-	data, err := NewCommand("describe", "--exact-match", "--tags", c.ID.String()).RunInDir(c.repo.Path)
+	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
 	if err != nil {
 		// handle special case where there is no tag for this commit
 		if strings.Contains(err.Error(), "no tag exactly matches") {
