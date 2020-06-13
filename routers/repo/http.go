@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -134,6 +135,16 @@ func HTTP(ctx *context.Context) {
 		authPasswd   string
 		environ      []string
 	)
+
+	// don't allow anonymous pulls if organization is not public
+	if isPublicPull {
+		if err := repo.GetOwner(); err != nil {
+			ctx.ServerError("GetOwner", err)
+			return
+		}
+
+		askAuth = askAuth || (repo.Owner.Visibility != structs.VisibleTypePublic)
+	}
 
 	// check access
 	if askAuth {
@@ -298,6 +309,19 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
+	if isWiki {
+		// Ensure the wiki is enabled before we allow access to it
+		if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+			if models.IsErrUnitTypeNotExist(err) {
+				ctx.HandleText(http.StatusForbidden, "repository wiki is disabled")
+				return
+			}
+			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
+			ctx.ServerError("GetUnit(UnitTypeWiki) for "+repo.FullName(), err)
+			return
+		}
+	}
+
 	environ = append(environ, models.ProtectedBranchRepoID+fmt.Sprintf("=%d", repo.ID))
 
 	w := ctx.Resp
@@ -308,8 +332,9 @@ func HTTP(ctx *context.Context) {
 		Env:         environ,
 	}
 
+	r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
+
 	for _, route := range routes {
-		r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
 		if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
 			if setting.Repository.DisableHTTPGit {
 				w.WriteHeader(http.StatusForbidden)

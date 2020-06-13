@@ -85,6 +85,28 @@ func (err ErrSSHDisabled) Error() string {
 	return "SSH is disabled"
 }
 
+// ErrCancelled represents an error due to context cancellation
+type ErrCancelled struct {
+	Message string
+}
+
+// IsErrCancelled checks if an error is a ErrCancelled.
+func IsErrCancelled(err error) bool {
+	_, ok := err.(ErrCancelled)
+	return ok
+}
+
+func (err ErrCancelled) Error() string {
+	return "Cancelled: " + err.Message
+}
+
+// ErrCancelledf returns an ErrCancelled for the provided format and args
+func ErrCancelledf(format string, args ...interface{}) error {
+	return ErrCancelled{
+		fmt.Sprintf(format, args...),
+	}
+}
+
 //  ____ ___
 // |    |   \______ ___________
 // |    |   /  ___// __ \_  __ \
@@ -973,6 +995,21 @@ func IsErrWontSign(err error) bool {
 //  |______  / |__|  (____  /___|  /\___  >___|  /
 //         \/             \/     \/     \/     \/
 
+// ErrBranchDoesNotExist represents an error that branch with such name does not exist.
+type ErrBranchDoesNotExist struct {
+	BranchName string
+}
+
+// IsErrBranchDoesNotExist checks if an error is an ErrBranchDoesNotExist.
+func IsErrBranchDoesNotExist(err error) bool {
+	_, ok := err.(ErrBranchDoesNotExist)
+	return ok
+}
+
+func (err ErrBranchDoesNotExist) Error() string {
+	return fmt.Sprintf("branch does not exist [name: %s]", err.BranchName)
+}
+
 // ErrBranchAlreadyExists represents an error that branch with such name already exists.
 type ErrBranchAlreadyExists struct {
 	BranchName string
@@ -1560,6 +1597,7 @@ func (err ErrLabelNotExist) Error() string {
 type ErrMilestoneNotExist struct {
 	ID     int64
 	RepoID int64
+	Name   string
 }
 
 // IsErrMilestoneNotExist checks if an error is a ErrMilestoneNotExist.
@@ -1569,6 +1607,9 @@ func IsErrMilestoneNotExist(err error) bool {
 }
 
 func (err ErrMilestoneNotExist) Error() string {
+	if len(err.Name) > 0 {
+		return fmt.Sprintf("milestone does not exist [name: %s, repo_id: %d]", err.Name, err.RepoID)
+	}
 	return fmt.Sprintf("milestone does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
 }
 

@@ -24,7 +24,7 @@ type Notifier interface {
 	NotifyIssueChangeStatus(*models.User, *models.Issue, *models.Comment, bool)
 	NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64)
 	NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment)
-	NotifyPullRewiewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment)
+	NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment)
 	NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string)
 	NotifyIssueClearLabels(doer *models.User, issue *models.Issue)
 	NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string)
@@ -36,6 +36,7 @@ type Notifier interface {
 	NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest)
 	NotifyPullRequestReview(*models.PullRequest, *models.Review, *models.Comment)
 	NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string)
+	NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment)
 
 	NotifyCreateIssueComment(*models.User, *models.Repository,
 		*models.Issue, *models.Comment)

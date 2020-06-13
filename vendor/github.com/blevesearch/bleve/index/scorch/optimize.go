@@ -18,10 +18,8 @@ import (
 	"fmt"
 
 	"github.com/RoaringBitmap/roaring"
-
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/scorch/segment"
-	"github.com/blevesearch/bleve/index/scorch/segment/zap"
 )
 
 var OptimizeConjunction = true
@@ -81,25 +79,25 @@ func (o *OptimizeTFRConjunction) Finish() (index.Optimized, error) {
 	}
 
 	for i := range o.snapshot.segment {
-		itr0, ok := o.tfrs[0].iterators[i].(*zap.PostingsIterator)
-		if !ok || itr0.ActualBM == nil {
+		itr0, ok := o.tfrs[0].iterators[i].(segment.OptimizablePostingsIterator)
+		if !ok || itr0.ActualBitmap() == nil {
 			continue
 		}
 
-		itr1, ok := o.tfrs[1].iterators[i].(*zap.PostingsIterator)
-		if !ok || itr1.ActualBM == nil {
+		itr1, ok := o.tfrs[1].iterators[i].(segment.OptimizablePostingsIterator)
+		if !ok || itr1.ActualBitmap() == nil {
 			continue
 		}
 
-		bm := roaring.And(itr0.ActualBM, itr1.ActualBM)
+		bm := roaring.And(itr0.ActualBitmap(), itr1.ActualBitmap())
 
 		for _, tfr := range o.tfrs[2:] {
-			itr, ok := tfr.iterators[i].(*zap.PostingsIterator)
-			if !ok || itr.ActualBM == nil {
+			itr, ok := tfr.iterators[i].(segment.OptimizablePostingsIterator)
+			if !ok || itr.ActualBitmap() == nil {
 				continue
 			}
 
-			bm.And(itr.ActualBM)
+			bm.And(itr.ActualBitmap())
 		}
 
 		// in this conjunction optimization, the postings iterators
@@ -107,10 +105,9 @@ func (o *OptimizeTFRConjunction) Finish() (index.Optimized, error) {
 		// regular conjunction searcher machinery will still be used,
 		// but the underlying bitmap will be smaller.
 		for _, tfr := range o.tfrs {
-			itr, ok := tfr.iterators[i].(*zap.PostingsIterator)
-			if ok && itr.ActualBM != nil {
-				itr.ActualBM = bm
-				itr.Actual = bm.Iterator()
+			itr, ok := tfr.iterators[i].(segment.OptimizablePostingsIterator)
+			if ok && itr.ActualBitmap() != nil {
+				itr.ReplaceActual(bm)
 			}
 		}
 	}
@@ -191,9 +188,9 @@ OUTER:
 				continue OUTER
 			}
 
-			itr, ok := tfr.iterators[i].(*zap.PostingsIterator)
+			itr, ok := tfr.iterators[i].(segment.OptimizablePostingsIterator)
 			if !ok {
-				// We optimize zap postings iterators only.
+				// We only optimize postings iterators that support this operation.
 				return nil, nil
 			}
 
@@ -201,12 +198,6 @@ OUTER:
 			// can perform several optimizations up-front here.
 			docNum1Hit, ok := itr.DocNum1Hit()
 			if ok {
-				if docNum1Hit == zap.DocNum1HitFinished {
-					// An empty docNum here means the entire AND is empty.
-					oTFR.iterators[i] = segment.AnEmptyPostingsIterator
-					continue OUTER
-				}
-
 				if docNum1HitLastOk && docNum1HitLast != docNum1Hit {
 					// The docNum1Hit doesn't match the previous
 					// docNum1HitLast, so the entire AND is empty.
@@ -220,14 +211,14 @@ OUTER:
 				continue
 			}
 
-			if itr.ActualBM == nil {
+			if itr.ActualBitmap() == nil {
 				// An empty actual bitmap means the entire AND is empty.
 				oTFR.iterators[i] = segment.AnEmptyPostingsIterator
 				continue OUTER
 			}
 
 			// Collect the actual bitmap for more processing later.
-			actualBMs = append(actualBMs, itr.ActualBM)
+			actualBMs = append(actualBMs, itr.ActualBitmap())
 		}
 
 		if docNum1HitLastOk {
@@ -245,11 +236,7 @@ OUTER:
 
 			// The actual bitmaps and docNum1Hits all contain or have
 			// the same 1-hit docNum, so that's our AND'ed result.
-			oTFR.iterators[i], err = zap.PostingsIteratorFrom1Hit(
-				docNum1HitLast, zap.NormBits1Hit, false, false)
-			if err != nil {
-				return nil, nil
-			}
+			oTFR.iterators[i] = segment.NewUnadornedPostingsIteratorFrom1Hit(docNum1HitLast)
 
 			continue OUTER
 		}
@@ -263,11 +250,7 @@ OUTER:
 
 		if len(actualBMs) == 1 {
 			// If we've only 1 actual bitmap, then that's our result.
-			oTFR.iterators[i], err = zap.PostingsIteratorFromBitmap(
-				actualBMs[0], false, false)
-			if err != nil {
-				return nil, nil
-			}
+			oTFR.iterators[i] = segment.NewUnadornedPostingsIteratorFromBitmap(actualBMs[0])
 
 			continue OUTER
 		}
@@ -279,11 +262,7 @@ OUTER:
 			bm.And(actualBM)
 		}
 
-		oTFR.iterators[i], err = zap.PostingsIteratorFromBitmap(
-			bm, false, false)
-		if err != nil {
-			return nil, nil
-		}
+		oTFR.iterators[i] = segment.NewUnadornedPostingsIteratorFromBitmap(bm)
 	}
 
 	return oTFR, nil
@@ -337,13 +316,13 @@ func (o *OptimizeTFRDisjunctionUnadorned) Finish() (rv index.Optimized, err erro
 		var cMax uint64
 
 		for _, tfr := range o.tfrs {
-			itr, ok := tfr.iterators[i].(*zap.PostingsIterator)
+			itr, ok := tfr.iterators[i].(segment.OptimizablePostingsIterator)
 			if !ok {
 				return nil, nil
 			}
 
-			if itr.ActualBM != nil {
-				c := itr.ActualBM.GetCardinality()
+			if itr.ActualBitmap() != nil {
+				c := itr.ActualBitmap().GetCardinality()
 				if cMax < c {
 					cMax = c
 				}
@@ -379,7 +358,7 @@ func (o *OptimizeTFRDisjunctionUnadorned) Finish() (rv index.Optimized, err erro
 		actualBMs = actualBMs[:0]
 
 		for _, tfr := range o.tfrs {
-			itr, ok := tfr.iterators[i].(*zap.PostingsIterator)
+			itr, ok := tfr.iterators[i].(segment.OptimizablePostingsIterator)
 			if !ok {
 				return nil, nil
 			}
@@ -390,8 +369,8 @@ func (o *OptimizeTFRDisjunctionUnadorned) Finish() (rv index.Optimized, err erro
 				continue
 			}
 
-			if itr.ActualBM != nil {
-				actualBMs = append(actualBMs, itr.ActualBM)
+			if itr.ActualBitmap() != nil {
+				actualBMs = append(actualBMs, itr.ActualBitmap())
 			}
 		}
 
@@ -410,10 +389,7 @@ func (o *OptimizeTFRDisjunctionUnadorned) Finish() (rv index.Optimized, err erro
 
 		bm.AddMany(docNums)
 
-		oTFR.iterators[i], err = zap.PostingsIteratorFromBitmap(bm, false, false)
-		if err != nil {
-			return nil, nil
-		}
+		oTFR.iterators[i] = segment.NewUnadornedPostingsIteratorFromBitmap(bm)
 	}
 
 	return oTFR, nil

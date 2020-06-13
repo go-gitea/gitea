@@ -88,6 +88,7 @@ type Repository struct {
 	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
 	AllowSquash               bool             `json:"allow_squash_merge"`
 	AvatarURL                 string           `json:"avatar_url"`
+	Internal                  bool             `json:"internal"`
 }
 
 // CreateRepoOption options when creating repository
@@ -160,6 +161,22 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 }
 
+// CreateBranchRepoOption options when creating a branch in a repository
+// swagger:model
+type CreateBranchRepoOption struct {
+
+	// Name of the branch to create
+	//
+	// required: true
+	// unique: true
+	BranchName string `json:"new_branch_name" binding:"Required;GitRefName;MaxSize(100)"`
+
+	// Name of the old branch to create from
+	//
+	// unique: true
+	OldBranchName string `json:"old_branch_name" binding:"GitRefName;MaxSize(100)"`
+}
+
 // TransferRepoOption options when transfer a repository's ownership
 // swagger:model
 type TransferRepoOption struct {
@@ -203,6 +220,7 @@ var (
 	// TODO: add to this list after new git service added
 	SupportedFullGitService = []GitServiceType{
 		GithubService,
+		GitlabService,
 	}
 )
 

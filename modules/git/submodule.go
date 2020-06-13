@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -38,7 +39,7 @@ func NewSubModuleFile(c *Commit, refURL, refID string) *SubModuleFile {
 	}
 }
 
-func getRefURL(refURL, urlPrefix, parentPath string) string {
+func getRefURL(refURL, urlPrefix, repoFullName string) string {
 	if refURL == "" {
 		return ""
 	}
@@ -51,14 +52,14 @@ func getRefURL(refURL, urlPrefix, parentPath string) string {
 		urlPrefixHostname = prefixURL.Host
 	}
 
+	if strings.HasSuffix(urlPrefix, "/") {
+		urlPrefix = urlPrefix[:len(urlPrefix)-1]
+	}
+
+	// FIXME: Need to consider branch - which will require changes in modules/git/commit.go:GetSubModules
 	// Relative url prefix check (according to git submodule documentation)
 	if strings.HasPrefix(refURI, "./") || strings.HasPrefix(refURI, "../") {
-		// ...construct and return correct submodule url here...
-		idx := strings.Index(parentPath, "/src/")
-		if idx == -1 {
-			return refURI
-		}
-		return strings.TrimSuffix(urlPrefix, "/") + parentPath[:idx] + "/" + refURI
+		return urlPrefix + path.Clean(path.Join("/", repoFullName, refURI))
 	}
 
 	if !strings.Contains(refURI, "://") {
@@ -69,16 +70,16 @@ func getRefURL(refURL, urlPrefix, parentPath string) string {
 
 			m := match[0]
 			refHostname := m[2]
-			path := m[3]
+			pth := m[3]
 
-			if !strings.HasPrefix(path, "/") {
-				path = "/" + path
+			if !strings.HasPrefix(pth, "/") {
+				pth = "/" + pth
 			}
 
 			if urlPrefixHostname == refHostname {
-				return prefixURL.Scheme + "://" + urlPrefixHostname + path
+				return urlPrefix + path.Clean(path.Join("/", pth))
 			}
-			return "http://" + refHostname + path
+			return "http://" + refHostname + pth
 		}
 	}
 
@@ -97,7 +98,7 @@ func getRefURL(refURL, urlPrefix, parentPath string) string {
 	for _, scheme := range supportedSchemes {
 		if ref.Scheme == scheme {
 			if urlPrefixHostname == refHostname {
-				return prefixURL.Scheme + "://" + prefixURL.Host + ref.Path
+				return urlPrefix + path.Clean(path.Join("/", ref.Path))
 			} else if ref.Scheme == "http" || ref.Scheme == "https" {
 				if len(ref.User.Username()) > 0 {
 					return ref.Scheme + "://" + fmt.Sprintf("%v", ref.User) + "@" + ref.Host + ref.Path
@@ -113,8 +114,8 @@ func getRefURL(refURL, urlPrefix, parentPath string) string {
 }
 
 // RefURL guesses and returns reference URL.
-func (sf *SubModuleFile) RefURL(urlPrefix string, parentPath string) string {
-	return getRefURL(sf.refURL, urlPrefix, parentPath)
+func (sf *SubModuleFile) RefURL(urlPrefix string, repoFullName string) string {
+	return getRefURL(sf.refURL, urlPrefix, repoFullName)
 }
 
 // RefID returns reference ID.

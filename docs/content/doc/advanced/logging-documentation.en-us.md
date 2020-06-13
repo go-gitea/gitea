@@ -48,8 +48,10 @@ Calls to `log.Info`, `log.Debug`, `log.Error` etc. from the `code.gitea.io/gitea
 You can configure the outputs of this logger by setting the `MODE`
 value in the `[log]` section of the configuration.
 
-Each output sublogger is configured in a separate `[log.sublogger]`
-section, but there are certain default values. These will not be inherited from the `[log]` section:
+Each output sublogger is configured in a separate `[log.sublogger.default]`
+which inherits from the sublogger `[log.sublogger]` section and from the 
+generic `[log]` section, but there are certain default values. These will
+not be inherited from the `[log]` section:
 
 * `FLAGS` is `stdflags` (Equal to
 `date,time,medfile,shortfuncname,levelinitial`)
@@ -69,6 +71,9 @@ through setting the `REDIRECT_MACARON_LOG` setting in the `[log]`
 section which you can configure the outputs of by setting the `MACARON`
 value in the `[log]` section of the configuration. `MACARON` defaults
 to `file` if unset.
+
+Please note, the macaron logger will log at `INFO` level, setting the
+`LEVEL` of this logger to `WARN` or above will result in no macaron logs.
 
 Each output sublogger for this logger is configured in
 `[log.sublogger.macaron]` sections. There are certain default values
@@ -97,6 +102,9 @@ configuration. `ROUTER` will default to `console` if unset. The Gitea
 Router logs the same data as the Macaron log but has slightly different
 coloring. It logs at the `Info` level by default, but this can be
 changed if desired by setting the `ROUTER_LOG_LEVEL` value.
+
+Please note, setting the `LEVEL` of this logger to a level above
+`ROUTER_LOG_LEVEL` will result in no router logs.
 
 Each output sublogger for this logger is configured in
 `[log.sublogger.router]` sections. There are certain default values
@@ -135,6 +143,9 @@ which will not be inherited from the `[log]` or relevant
 
 If desired the format of the Access logger can be changed by changing
 the value of the `ACCESS_LOG_TEMPLATE`.
+
+Please note, the access logger will log at `INFO` level, setting the
+`LEVEL` of this logger to `WARN` or above will result in no access logs.
 
 NB: You can redirect the access logger to send its events to the Gitea
 log using the value: `ACCESS = ,`

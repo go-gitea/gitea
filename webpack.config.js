@@ -1,8 +1,9 @@
 const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
-const CopyPlugin = require('copy-webpack-plugin');
+const wrapAnsi = require('wrap-ansi');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
 const PostCSSSafeParser = require('postcss-safe-parser');
@@ -11,6 +12,7 @@ const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
 const {resolve, parse} = require('path');
+const {LicenseWebpackPlugin} = require('license-webpack-plugin');
 const {SourceMapDevToolPlugin} = require('webpack');
 
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
@@ -35,13 +37,20 @@ module.exports = {
     jquery: [
       resolve(__dirname, 'web_src/js/jquery.js'),
     ],
+    serviceworker: [
+      resolve(__dirname, 'web_src/js/serviceworker.js'),
+    ],
     icons: glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
     ...themes,
   },
   devtool: false,
   output: {
     path: resolve(__dirname, 'public'),
-    filename: 'js/[name].js',
+    filename: ({chunk}) => {
+      // serviceworker can only manage assets below it's script's directory so
+      // we have to put it in / instead of /js/
+      return chunk.name === 'serviceworker' ? '[name].js' : 'js/[name].js';
+    },
     chunkFilename: 'js/[name].js',
   },
   optimization: {
@@ -77,6 +86,14 @@ module.exports = {
     splitChunks: {
       chunks: 'async',
       name: (_, chunks) => chunks.map((item) => item.name).join('-'),
+      cacheGroups: {
+        // this bundles all monaco's languages into one file instead of emitting 1-65.js files
+        monaco: {
+          test: /monaco-editor/,
+          name: 'monaco',
+          chunks: 'async'
+        }
+      }
     }
   },
   module: {
@@ -87,11 +104,8 @@ module.exports = {
         loader: 'vue-loader',
       },
       {
-        test: require.resolve('jquery-datetimepicker'),
-        use: 'imports-loader?define=>false,exports=>false',
-      },
-      {
         test: /\.worker\.js$/,
+        exclude: /monaco/,
         use: [
           {
             loader: 'worker-loader',
@@ -150,7 +164,10 @@ module.exports = {
             loader: 'css-loader',
             options: {
               importLoaders: 2,
-              url: false,
+              url: (_url, resourcePath) => {
+                // only resolve URLs for dependencies
+                return resourcePath.includes('node_modules');
+              },
             }
           },
           {
@@ -188,6 +205,19 @@ module.exports = {
           },
         ],
       },
+      {
+        test: /\.(ttf|woff2?)$/,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]',
+              outputPath: 'fonts/',
+              publicPath: (url) => `../fonts/${url}`, // seems required for monaco's font
+            },
+          },
+        ],
+      },
     ],
   },
   plugins: [
@@ -210,13 +240,42 @@ module.exports = {
     new SpriteLoaderPlugin({
       plainSprite: true,
     }),
-    new CopyPlugin([
-      // workaround for https://github.com/go-gitea/gitea/issues/10653
-      {from: 'node_modules/fomantic-ui/dist/semantic.min.css', to: 'fomantic/semantic.min.css'},
-    ]),
+    new MonacoWebpackPlugin({
+      filename: 'js/monaco-[name].worker.js',
+    }),
+    new LicenseWebpackPlugin({
+      outputFilename: 'js/licenses.txt',
+      perChunkOutput: false,
+      addBanner: false,
+      skipChildCompilers: true,
+      modulesDirectories: [
+        resolve(__dirname, 'node_modules'),
+      ],
+      additionalModules: [
+        {
+          name: 'fomantic-ui',
+          directory: resolve(__dirname, 'node_modules/fomantic-ui'),
+        },
+      ],
+      renderLicenses: (modules) => {
+        const line = '-'.repeat(80);
+        return modules.map((module) => {
+          const {name, version} = module.packageJson;
+          const {licenseId, licenseText} = module;
+          const body = wrapAnsi(licenseText || '', 80);
+          return `${line}\n${name}@${version} - ${licenseId}\n${line}\n${body}`;
+        }).join('\n');
+      },
+      stats: {
+        warnings: false,
+        errors: true,
+      },
+    }),
   ],
   performance: {
     hints: false,
+    maxEntrypointSize: Infinity,
+    maxAssetSize: Infinity,
   },
   resolve: {
     symlinks: false,
@@ -228,5 +287,8 @@ module.exports = {
     ignored: [
       'node_modules/**',
     ],
+  },
+  stats: {
+    children: false,
   },
 };

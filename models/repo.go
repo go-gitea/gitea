@@ -174,9 +174,10 @@ type Repository struct {
 	*Mirror    `xorm:"-"`
 	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
-	RenderingMetas  map[string]string `xorm:"-"`
-	Units           []*RepoUnit       `xorm:"-"`
-	PrimaryLanguage *LanguageStat     `xorm:"-"`
+	RenderingMetas         map[string]string `xorm:"-"`
+	DocumentRenderingMetas map[string]string `xorm:"-"`
+	Units                  []*RepoUnit       `xorm:"-"`
+	PrimaryLanguage        *LanguageStat     `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -262,6 +263,17 @@ func (repo *Repository) FullName() string {
 // HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL() string {
 	return setting.AppURL + repo.FullName()
+}
+
+// CommitLink make link to by commit full ID
+// note: won't check whether it's an right id
+func (repo *Repository) CommitLink(commitID string) (result string) {
+	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
+		result = ""
+	} else {
+		result = repo.HTMLURL() + "/commit/" + commitID
+	}
+	return
 }
 
 // APIURL returns the repository API URL
@@ -394,6 +406,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		AllowRebaseMerge:          allowRebaseMerge,
 		AllowSquash:               allowSquash,
 		AvatarURL:                 repo.avatarLink(e),
+		Internal:                  !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 	}
 }
 
@@ -534,11 +547,12 @@ func (repo *Repository) mustOwner(e Engine) *User {
 
 // ComposeMetas composes a map of metas for properly rendering issue links and external issue trackers.
 func (repo *Repository) ComposeMetas() map[string]string {
-	if repo.RenderingMetas == nil {
+	if len(repo.RenderingMetas) == 0 {
 		metas := map[string]string{
 			"user":     repo.OwnerName,
 			"repo":     repo.Name,
 			"repoPath": repo.RepoPath(),
+			"mode":     "comment",
 		}
 
 		unit, err := repo.GetUnit(UnitTypeExternalTracker)
@@ -568,6 +582,19 @@ func (repo *Repository) ComposeMetas() map[string]string {
 		repo.RenderingMetas = metas
 	}
 	return repo.RenderingMetas
+}
+
+// ComposeDocumentMetas composes a map of metas for properly rendering documents
+func (repo *Repository) ComposeDocumentMetas() map[string]string {
+	if len(repo.DocumentRenderingMetas) == 0 {
+		metas := map[string]string{}
+		for k, v := range repo.ComposeMetas() {
+			metas[k] = v
+		}
+		metas["mode"] = "document"
+		repo.DocumentRenderingMetas = metas
+	}
+	return repo.DocumentRenderingMetas
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
@@ -779,6 +806,14 @@ func (repo *Repository) updateSize(e Engine) error {
 	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %v", err)
+	}
+
+	objs, err := repo.GetLFSMetaObjects(-1, 0)
+	if err != nil {
+		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+	}
+	for _, obj := range objs {
+		size += obj.Size
 	}
 
 	repo.Size = size
@@ -1241,7 +1276,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	if newOwner.IsOrganization() {
-		if err := newOwner.GetTeams(&SearchTeamOptions{}); err != nil {
+		if err := newOwner.getTeams(sess); err != nil {
 			return fmt.Errorf("GetTeams: %v", err)
 		}
 		for _, t := range newOwner.Teams {
@@ -1420,7 +1455,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 			return fmt.Errorf("getRepositoriesByForkID: %v", err)
 		}
 		for i := range forkRepos {
-			forkRepos[i].IsPrivate = repo.IsPrivate
+			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
 			if err = updateRepository(e, forkRepos[i], true); err != nil {
 				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
 			}
@@ -1575,62 +1610,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
-	// Delete comments and attachments
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Comment{}); err != nil {
-		return err
-	}
-
-	// Dependencies for issues in this repository
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	// Delete dependencies for issues in other repositories
-	if _, err = sess.In("dependency_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueUser{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Reaction{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueWatch{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Stopwatch{}); err != nil {
-		return err
-	}
-
-	attachments = attachments[:0]
-	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
-		Where("issue.repo_id = ?", repoID).
-		Find(&attachments); err != nil {
-		return err
-	}
-	attachmentPaths := make([]string, 0, len(attachments))
-	for j := range attachments {
-		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Attachment{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+	// Delete Issues and related objects
+	var attachmentPaths []string
+	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
 		return err
 	}
 
@@ -1793,22 +1775,28 @@ func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, error) {
+func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
 
-	sess := x.
-		Where("owner_id = ?", opts.Actor.ID).
-		OrderBy(opts.OrderBy.String())
+	var cond = builder.NewCond()
+	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
-		sess.And("is_private=?", false)
+		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	sess = opts.setSessionPagination(sess)
+	sess := x.NewSession()
+	defer sess.Close()
 
+	count, err := sess.Where(cond).Count(new(Repository))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, opts.setSessionPagination(sess).Find(&repos)
+	return repos, count, opts.setSessionPagination(sess).Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.
@@ -1848,35 +1836,44 @@ func GetPrivateRepositoryCount(u *User) (int64, error) {
 }
 
 // DeleteRepositoryArchives deletes all repositories' archives.
-func DeleteRepositoryArchives() error {
+func DeleteRepositoryArchives(ctx context.Context) error {
 	return x.
 		Where("id > 0").
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
+				select {
+				case <-ctx.Done():
+					return ErrCancelledf("before deleting repository archives for %s", repo.FullName())
+				default:
+				}
 				return os.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
 			})
 }
 
 // DeleteOldRepositoryArchives deletes old repository archives.
-func DeleteOldRepositoryArchives(ctx context.Context) {
+func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) error {
 	log.Trace("Doing: ArchiveCleanup")
 
 	if err := x.Where("id > 0").Iterate(new(Repository), func(idx int, bean interface{}) error {
-		return deleteOldRepositoryArchives(ctx, idx, bean)
+		return deleteOldRepositoryArchives(ctx, olderThan, idx, bean)
 	}); err != nil {
-		log.Error("ArchiveClean: %v", err)
+		log.Trace("Error: ArchiveClean: %v", err)
+		return err
 	}
+
+	log.Trace("Finished: ArchiveCleanup")
+	return nil
 }
 
-func deleteOldRepositoryArchives(ctx context.Context, idx int, bean interface{}) error {
+func deleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration, idx int, bean interface{}) error {
 	repo := bean.(*Repository)
 	basePath := filepath.Join(repo.RepoPath(), "archives")
 
 	for _, ty := range []string{"zip", "targz"} {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("Aborted due to shutdown:\nin delete of old repository archives %v\nat delete file %s", repo, ty)
+			return ErrCancelledf("before deleting old repository archives with filetype %s for %s", ty, repo.FullName())
 		default:
 		}
 
@@ -1899,12 +1896,12 @@ func deleteOldRepositoryArchives(ctx context.Context, idx int, bean interface{})
 			return err
 		}
 
-		minimumOldestTime := time.Now().Add(-setting.Cron.ArchiveCleanup.OlderThan)
+		minimumOldestTime := time.Now().Add(-olderThan)
 		for _, info := range files {
 			if info.ModTime().Before(minimumOldestTime) && !info.IsDir() {
 				select {
 				case <-ctx.Done():
-					return fmt.Errorf("Aborted due to shutdown:\nin delete of old repository archives %v\nat delete file %s - %s", repo, ty, info.Name())
+					return ErrCancelledf("before deleting old repository archive file %s with filetype %s for %s", info.Name(), ty, repo.FullName())
 				default:
 				}
 				toDelete := filepath.Join(path, info.Name())
@@ -1931,13 +1928,13 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 		return
 	}
 	for _, result := range results {
+		id := com.StrTo(result["id"]).MustInt64()
 		select {
 		case <-ctx.Done():
-			log.Warn("CheckRepoStats: Aborting due to shutdown")
+			log.Warn("CheckRepoStats: Cancelled before checking %s for Repo[%d]", checker.desc, id)
 			return
 		default:
 		}
-		id := com.StrTo(result["id"]).MustInt64()
 		log.Trace("Updating %s: %d", checker.desc, id)
 		_, err = x.Exec(checker.correctSQL, id, id)
 		if err != nil {
@@ -1947,7 +1944,7 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 }
 
 // CheckRepoStats checks the repository stats
-func CheckRepoStats(ctx context.Context) {
+func CheckRepoStats(ctx context.Context) error {
 	log.Trace("Doing: CheckRepoStats")
 
 	checkers := []*repoChecker{
@@ -1982,13 +1979,13 @@ func CheckRepoStats(ctx context.Context) {
 			"issue count 'num_comments'",
 		},
 	}
-	for i := range checkers {
+	for _, checker := range checkers {
 		select {
 		case <-ctx.Done():
-			log.Warn("CheckRepoStats: Aborting due to shutdown")
-			return
+			log.Warn("CheckRepoStats: Cancelled before %s", checker.desc)
+			return ErrCancelledf("before checking %s", checker.desc)
 		default:
-			repoStatsCheck(ctx, checkers[i])
+			repoStatsCheck(ctx, checker)
 		}
 	}
 
@@ -1999,13 +1996,13 @@ func CheckRepoStats(ctx context.Context) {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
 			select {
 			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Aborting due to shutdown")
-				return
+				log.Warn("CheckRepoStats: Cancelled during %s for repo ID %d", desc, id)
+				return ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
-			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating %s: %d", desc, id)
 			_, err = x.Exec("UPDATE `repository` SET num_closed_issues=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
 			if err != nil {
@@ -2022,13 +2019,13 @@ func CheckRepoStats(ctx context.Context) {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
 			select {
 			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Aborting due to shutdown")
-				return
+				log.Warn("CheckRepoStats: Cancelled")
+				return ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
-			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating %s: %d", desc, id)
 			_, err = x.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
 			if err != nil {
@@ -2045,13 +2042,13 @@ func CheckRepoStats(ctx context.Context) {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {
 		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
 			select {
 			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Aborting due to shutdown")
-				return
+				log.Warn("CheckRepoStats: Cancelled")
+				return ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
-			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating repository count 'num_forks': %d", id)
 
 			repo, err := GetRepositoryByID(id)
@@ -2074,6 +2071,7 @@ func CheckRepoStats(ctx context.Context) {
 		}
 	}
 	// ***** END: Repository.NumForks *****
+	return nil
 }
 
 // SetArchiveRepoState sets if a repo is archived
@@ -2184,12 +2182,17 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 }
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
-func RemoveRandomAvatars() error {
+func RemoveRandomAvatars(ctx context.Context) error {
 	return x.
 		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repository := bean.(*Repository)
+				select {
+				case <-ctx.Done():
+					return ErrCancelledf("before random avatars removed for %s", repository.FullName())
+				default:
+				}
 				stringifiedID := strconv.FormatInt(repository.ID, 10)
 				if repository.Avatar == stringifiedID {
 					return repository.DeleteAvatar()

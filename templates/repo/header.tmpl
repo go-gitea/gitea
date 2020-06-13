@@ -5,44 +5,14 @@
 			<div class="ui huge breadcrumb repo-title">
 				{{if .RelAvatarLink}}
 					<img class="ui avatar image" src="{{.RelAvatarLink}}">
-				{{else if .IsTemplate}}
-					{{if .IsPrivate}}
-						{{svg "octicon-repo-template-private" 32}}
-					{{else}}
-						{{svg "octicon-repo-template" 32}}
-					{{end}}
 				{{else}}
-					{{if .IsPrivate}}
-						{{svg "octicon-lock" 32}}
-					{{else if .IsMirror}}
-						{{svg "octicon-repo-clone" 32}}
-					{{else if .IsFork}}
-						{{svg "octicon-repo-forked" 32}}
-					{{else}}
-						{{svg "octicon-repo" 32}}
-					{{end}}
+					{{template "repo/header_icon" .}}
 				{{end}}
 				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 				<div class="divider"> / </div>
 				<a href="{{$.RepoLink}}">{{.Name}}</a>
 				{{if .RelAvatarLink}}
-					{{if .IsTemplate}}
-						{{if .IsPrivate}}
-							{{svg "octicon-repo-template-private" 32}}
-						{{else}}
-							{{svg "octicon-repo-template" 32}}
-						{{end}}
-					{{else}}
-						{{if .IsPrivate}}
-							{{svg "octicon-lock" 32}}
-						{{else if .IsMirror}}
-							{{svg "octicon-repo-clone" 32}}
-						{{else if .IsFork}}
-							{{svg "octicon-repo-forked" 32}}
-						{{else}}
-							{{svg "octicon-repo" 32}}
-						{{end}}
-					{{end}}
+					{{template "repo/header_icon" .}}
 				{{end}}
 				{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
 				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{MirrorAddress $.Mirror}}{{end}}">{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{MirrorAddress $.Mirror}}{{end}}</a></div>{{end}}

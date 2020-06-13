@@ -14,3 +14,17 @@ type swaggerResponseServerVersion struct {
 	// in:body
 	Body api.ServerVersion `json:"body"`
 }
+
+// StringSlice
+// swagger:response StringSlice
+type swaggerResponseStringSlice struct {
+	// in:body
+	Body []string `json:"body"`
+}
+
+// GeneralRepoSettings
+// swagger:response GeneralRepoSettings
+type swaggerResponseGeneralRepoSettings struct {
+	// in:body
+	Body api.GeneralRepoSettings `json:"body"`
+}

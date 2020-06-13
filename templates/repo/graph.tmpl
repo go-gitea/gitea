@@ -24,7 +24,7 @@
 		    <a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.Rev}}">{{ .ShortRev}}</a>
 		  </code>
 		  <strong> {{.Branch}}</strong>
-		  <span class="has-emoji">{{RenderCommitMessage .Subject $.RepoLink $.Repository.ComposeMetas}}</span> by
+		  <span>{{RenderCommitMessage .Subject $.RepoLink $.Repository.ComposeMetas}}</span> by
 		  <span class="author">
 		    {{.Author}}
 		  </span>

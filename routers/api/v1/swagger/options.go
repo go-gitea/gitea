@@ -130,6 +130,9 @@ type swaggerParameterBodies struct {
 	EditReactionOption api.EditReactionOption
 
 	// in:body
+	CreateBranchRepoOption api.CreateBranchRepoOption
+
+	// in:body
 	CreateBranchProtectionOption api.CreateBranchProtectionOption
 
 	// in:body
@@ -137,4 +140,13 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateOAuth2ApplicationOptions api.CreateOAuth2ApplicationOptions
+
+	// in:body
+	CreatePullReviewOptions api.CreatePullReviewOptions
+
+	// in:body
+	CreatePullReviewComment api.CreatePullReviewComment
+
+	// in:body
+	SubmitPullReviewOptions api.SubmitPullReviewOptions
 }

@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -95,15 +96,16 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 
-	ctx.Data["repo_name"] = forkRepo.Name
-	ctx.Data["description"] = forkRepo.Description
-	ctx.Data["IsPrivate"] = forkRepo.IsPrivate
-	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
-
 	if err := forkRepo.GetOwner(); err != nil {
 		ctx.ServerError("GetOwner", err)
 		return nil
 	}
+
+	ctx.Data["repo_name"] = forkRepo.Name
+	ctx.Data["description"] = forkRepo.Description
+	ctx.Data["IsPrivate"] = forkRepo.IsPrivate || forkRepo.Owner.Visibility == structs.VisibleTypePrivate
+	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
+
 	ctx.Data["ForkFrom"] = forkRepo.Owner.Name + "/" + forkRepo.Name
 	ctx.Data["ForkFromOwnerID"] = forkRepo.Owner.ID
 
@@ -428,6 +430,20 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
 	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.Data["IsPullRequestBroken"] = true
+			if pull.IsSameRepo() {
+				ctx.Data["HeadTarget"] = pull.HeadBranch
+			} else if pull.HeadRepo == nil {
+				ctx.Data["HeadTarget"] = "<deleted>:" + pull.HeadBranch
+			} else {
+				ctx.Data["HeadTarget"] = pull.HeadRepo.OwnerName + ":" + pull.HeadBranch
+			}
+			ctx.Data["BaseTarget"] = pull.BaseBranch
+			ctx.Data["NumCommits"] = 0
+			ctx.Data["NumFiles"] = 0
+			return nil
+		}
 		ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitRefName()), err)
 		return nil
 	}
@@ -451,9 +467,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			}
 			return false
 		}
-		state := pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
-		ctx.Data["RequiredStatusCheckState"] = state
-		ctx.Data["IsRequiredStatusCheckSuccess"] = state.IsSuccess()
+		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
 	}
 
 	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha
@@ -464,17 +478,15 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		ctx.Data["IsPullRequestBroken"] = true
 		if pull.IsSameRepo() {
 			ctx.Data["HeadTarget"] = pull.HeadBranch
+		} else if pull.HeadRepo == nil {
+			ctx.Data["HeadTarget"] = "<deleted>:" + pull.HeadBranch
 		} else {
-			if pull.HeadRepo == nil {
-				ctx.Data["HeadTarget"] = "<deleted>:" + pull.HeadBranch
-			} else {
-				ctx.Data["HeadTarget"] = pull.HeadRepo.OwnerName + ":" + pull.HeadBranch
-			}
+			ctx.Data["HeadTarget"] = pull.HeadRepo.OwnerName + ":" + pull.HeadBranch
 		}
 	}
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
-		pull.BaseBranch, pull.GetGitRefName())
+		git.BranchPrefix+pull.BaseBranch, pull.GetGitRefName())
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -613,7 +625,7 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	ctx.Data["Diff"] = diff
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
+	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
 	if err != nil {
@@ -624,6 +636,13 @@ func ViewPullFiles(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return
+	}
+
+	if ctx.IsSigned && ctx.User != nil {
+		if ctx.Data["CanMarkConversation"], err = models.CanMarkConversation(issue, ctx.User); err != nil {
+			ctx.ServerError("CanMarkConversation", err)
+			return
+		}
 	}
 
 	setImageCompareContext(ctx, baseCommit, commit)
@@ -944,6 +963,16 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
+			return
+		} else if git.IsErrPushRejected(err) {
+			pushrejErr := err.(*git.ErrPushRejected)
+			message := pushrejErr.Message
+			if len(message) == 0 {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))
+			} else {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected", utils.SanitizeFlashErrorString(pushrejErr.Message)))
+			}
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pullIssue.Index))
 			return
 		}
 		ctx.ServerError("NewPullRequest", err)

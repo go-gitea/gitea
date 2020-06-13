@@ -319,7 +319,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				if markupType := markup.Type(readmeFile.name); markupType != "" {
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["MarkupType"] = string(markupType)
-					ctx.Data["FileContent"] = string(markup.Render(readmeFile.name, buf, readmeTreelink, ctx.Repo.Repository.ComposeMetas()))
+					ctx.Data["FileContent"] = string(markup.Render(readmeFile.name, buf, readmeTreelink, ctx.Repo.Repository.ComposeDocumentMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
 					ctx.Data["FileContent"] = strings.Replace(
@@ -459,7 +459,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if markupType := markup.Type(blob.Name()); markupType != "" {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
+			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.Replace(
@@ -538,7 +538,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			buf = append(buf, d...)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
+			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
 		}
 
 	}
@@ -621,6 +621,17 @@ func renderLanguageStats(ctx *context.Context) {
 	ctx.Data["LanguageStats"] = langs
 }
 
+func renderRepoTopics(ctx *context.Context) {
+	topics, err := models.FindTopics(&models.FindTopicOptions{
+		RepoID: ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("models.FindTopics", err)
+		return
+	}
+	ctx.Data["Topics"] = topics
+}
+
 func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
@@ -645,14 +656,10 @@ func renderCode(ctx *context.Context) {
 	}
 
 	// Get Topics of this repo
-	topics, err := models.FindTopics(&models.FindTopicOptions{
-		RepoID: ctx.Repo.Repository.ID,
-	})
-	if err != nil {
-		ctx.ServerError("models.FindTopics", err)
+	renderRepoTopics(ctx)
+	if ctx.Written() {
 		return
 	}
-	ctx.Data["Topics"] = topics
 
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)

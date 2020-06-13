@@ -17,6 +17,15 @@
     }
 }
 
+.add-comment-left.add-comment-right .ui.attached.header {
+    border: 1px solid #d4d4d5;
+    margin-top: .5em;
+
+    &:not(.top) {
+        margin-bottom: .5em;
+    }
+}
+
 .focus-lines-new .ui.button.add-code-comment.add-code-comment-right,
 .focus-lines-old .ui.button.add-code-comment.add-code-comment-left {
     opacity: 1;
@@ -45,15 +54,14 @@
             border: 0;
             padding: 0;
             margin: 0;
-
-            &.markdown {
-                padding: 1em;
-                min-height: 168px;
-            }
         }
 
         &.header {
             padding: .1rem 1rem;
+
+            .text {
+                margin: 0;
+            }
         }
     }
 
@@ -66,17 +74,26 @@
         border: 0;
     }
 
-    .ui.attached.tabular.menu {
-        background: #f7f7f7;
-        border: 1px solid #d4d4d5;
-        padding-top: 5px;
-        padding-left: 5px;
-        margin-top: 0;
+    .ui.active.tab {
+        padding: .5em;
+
+        &.markdown {
+            padding: 1em;
+            min-height: 168px;
+        }
+    }
+
+    .ui.tabular.menu {
+        margin: .5em;
+    }
+
+    .comment-list {
+        padding-bottom: 10px;
     }
 
     .footer {
         border-top: 1px solid #f1f1f1;
-        margin-top: 10px;
+        padding: 10px 0;
 
         .markdown-info {
             display: inline-block;
@@ -101,7 +118,7 @@
     }
 
     form.comment-form-reply {
-        margin: 0 0 0 4em;
+        margin: 0 0 0 1em;
     }
 }
 

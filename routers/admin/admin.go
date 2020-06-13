@@ -21,11 +21,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/mailer"
@@ -124,22 +122,6 @@ func updateSystemStatus() {
 	sysStatus.NumGC = m.NumGC
 }
 
-// Operation Operation types.
-type Operation int
-
-const (
-	cleanInactivateUser Operation = iota + 1
-	cleanRepoArchives
-	cleanMissingRepos
-	gitGCRepos
-	syncSSHAuthorizedKey
-	syncRepositoryUpdateHook
-	reinitMissingRepository
-	syncExternalUsers
-	gitFsck
-	deleteGeneratedRepositoryAvatars
-)
-
 // Dashboard show admin panel dashboard
 func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
@@ -162,48 +144,13 @@ func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
 	ctx.Data["SysStatus"] = sysStatus
 
 	// Run operation.
-	if form.Op > 0 {
-		var err error
-		var success string
-		shutdownCtx := graceful.GetManager().ShutdownContext()
-
-		switch Operation(form.Op) {
-		case cleanInactivateUser:
-			success = ctx.Tr("admin.dashboard.delete_inactivate_accounts_success")
-			err = models.DeleteInactivateUsers()
-		case cleanRepoArchives:
-			success = ctx.Tr("admin.dashboard.delete_repo_archives_success")
-			err = models.DeleteRepositoryArchives()
-		case cleanMissingRepos:
-			success = ctx.Tr("admin.dashboard.delete_missing_repos_success")
-			err = repo_module.DeleteMissingRepositories(ctx.User)
-		case gitGCRepos:
-			success = ctx.Tr("admin.dashboard.git_gc_repos_success")
-			err = repo_module.GitGcRepos(shutdownCtx)
-		case syncSSHAuthorizedKey:
-			success = ctx.Tr("admin.dashboard.resync_all_sshkeys_success")
-			err = models.RewriteAllPublicKeys()
-		case syncRepositoryUpdateHook:
-			success = ctx.Tr("admin.dashboard.resync_all_hooks_success")
-			err = repo_module.SyncRepositoryHooks(shutdownCtx)
-		case reinitMissingRepository:
-			success = ctx.Tr("admin.dashboard.reinit_missing_repos_success")
-			err = repo_module.ReinitMissingRepositories()
-		case syncExternalUsers:
-			success = ctx.Tr("admin.dashboard.sync_external_users_started")
-			go graceful.GetManager().RunWithShutdownContext(models.SyncExternalUsers)
-		case gitFsck:
-			success = ctx.Tr("admin.dashboard.git_fsck_started")
-			err = repo_module.GitFsck(shutdownCtx)
-		case deleteGeneratedRepositoryAvatars:
-			success = ctx.Tr("admin.dashboard.delete_generated_repository_avatars_success")
-			err = models.RemoveRandomAvatars()
-		}
-
-		if err != nil {
-			ctx.Flash.Error(err.Error())
+	if form.Op != "" {
+		task := cron.GetTask(form.Op)
+		if task != nil {
+			go task.RunWithUser(ctx.User, nil)
+			ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
 		} else {
-			ctx.Flash.Success(success)
+			ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
 		}
 	}
 

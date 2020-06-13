@@ -261,7 +261,8 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 
 ## Browser Support
 
-- Please see [Semantic UI](https://github.com/Semantic-Org/Semantic-UI#browser-support) for specific versions of supported browsers.
+- Last 2 versions of Chrome, Firefox, Safari, Edge (EdgeHTML) and Edge (Chromium)
+- Firefox ESR
 
 ## Components
 
@@ -274,9 +275,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
   * [DropzoneJS](http://www.dropzonejs.com/)
   * [Highlight](https://highlightjs.org/)
   * [Clipboard](https://zenorocha.github.io/clipboard.js/)
-  * [Emojify](https://github.com/Ranks/emojify.js)
   * [CodeMirror](https://codemirror.net/)
-  * [jQuery Date Time Picker](https://github.com/xdan/datetimepicker)
   * [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)
 * Database drivers:
   * [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)

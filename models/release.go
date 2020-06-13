@@ -80,6 +80,11 @@ func (r *Release) TarURL() string {
 	return fmt.Sprintf("%s/archive/%s.tar.gz", r.Repo.HTMLURL(), r.TagName)
 }
 
+// HTMLURL the url for a release on the web UI. release must have attributes loaded
+func (r *Release) HTMLURL() string {
+	return fmt.Sprintf("%s/releases/tag/%s", r.Repo.HTMLURL(), r.TagName)
+}
+
 // APIFormat convert a Release to api.Release
 func (r *Release) APIFormat() *api.Release {
 	assets := make([]*api.Attachment, 0)
@@ -93,6 +98,7 @@ func (r *Release) APIFormat() *api.Release {
 		Title:        r.Title,
 		Note:         r.Note,
 		URL:          r.APIURL(),
+		HTMLURL:      r.HTMLURL(),
 		TarURL:       r.TarURL(),
 		ZipURL:       r.ZipURL(),
 		IsDraft:      r.IsDraft,
@@ -215,6 +221,28 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, er
 
 	rels := make([]*Release, 0, opts.PageSize)
 	return rels, sess.Find(&rels)
+}
+
+// GetLatestReleaseByRepoID returns the latest release for a repository
+func GetLatestReleaseByRepoID(repoID int64) (*Release, error) {
+	cond := builder.NewCond().
+		And(builder.Eq{"repo_id": repoID}).
+		And(builder.Eq{"is_draft": false}).
+		And(builder.Eq{"is_prerelease": false}).
+		And(builder.Eq{"is_tag": false})
+
+	rel := new(Release)
+	has, err := x.
+		Desc("created_unix", "id").
+		Where(cond).
+		Get(rel)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrReleaseNotExist{0, "latest"}
+	}
+
+	return rel, nil
 }
 
 // GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
