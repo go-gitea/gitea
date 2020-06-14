@@ -506,7 +506,7 @@ func (c *Comment) LoadReview() error {
 	return c.loadReview(x)
 }
 
-var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines`)
+var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
 
 func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
