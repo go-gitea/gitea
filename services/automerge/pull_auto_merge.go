@@ -100,8 +100,6 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 			return err
 		}
 
-		// FIXME: Is headGitRepo the right thing to use here? Maybe we should get the git repo based on scheduledPRM.RepoID?
-
 		if err = pr.LoadBaseRepo(); err != nil {
 			return err
 		}
