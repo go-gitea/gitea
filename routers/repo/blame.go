@@ -245,9 +245,9 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 			//Line number
 			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
-				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" class="bottom-line">%d</span>`, i, i))
+				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" data-line-number="%d" class="bottom-line"></span>`, i, i))
 			} else {
-				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i, i))
+				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" data-line-number="%d"></span>`, i, i))
 			}
 
 			//Code line
