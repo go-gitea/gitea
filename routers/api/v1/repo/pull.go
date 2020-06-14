@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -70,7 +71,7 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -166,6 +167,88 @@ func GetPullRequest(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr))
+}
+
+// DownloadPullDiff render a pull's raw diff
+func DownloadPullDiff(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.diff repository repoDownloadPullDiff
+	// ---
+	// summary: Get a pull request diff
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	DownloadPullDiffOrPatch(ctx, false)
+}
+
+// DownloadPullPatch render a pull's raw patch
+func DownloadPullPatch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.patch repository repoDownloadPullPatch
+	// ---
+	// summary: Get a pull request patch file
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	DownloadPullDiffOrPatch(ctx, true)
+}
+
+// DownloadPullDiffOrPatch render a pull's raw diff or patch
+func DownloadPullDiffOrPatch(ctx *context.APIContext, patch bool) {
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.InternalServerError(err)
+		}
+		return
+	}
+
+	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
 }
 
 // CreatePullRequest does what it says
@@ -381,6 +464,8 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	//     "$ref": "#/responses/PullRequest"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "412":
 	//     "$ref": "#/responses/error"
 	//   "422":
@@ -409,6 +494,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if len(form.Title) > 0 {
 		issue.Title = form.Title
 	}
@@ -485,19 +571,49 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
-	if err = models.UpdateIssueByAPI(issue); err != nil {
+	if form.State != nil {
+		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+	}
+	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
+	if err != nil {
+		if models.IsErrDependenciesLeft(err) {
+			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueByAPI", err)
 		return
 	}
-	if form.State != nil {
-		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
-			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
+
+	if titleChanged {
+		notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
+	}
+
+	if statusChangeComment != nil {
+		notification.NotifyIssueChangeStatus(ctx.User, issue, statusChangeComment, issue.IsClosed)
+	}
+
+	// change pull target branch
+	if len(form.Base) != 0 && form.Base != pr.BaseBranch {
+		if !ctx.Repo.GitRepo.IsBranchExist(form.Base) {
+			ctx.Error(http.StatusNotFound, "NewBaseBranchNotExist", fmt.Errorf("new base '%s' not exist", form.Base))
 			return
 		}
+		if err := pull_service.ChangeTargetBranch(pr, ctx.User, form.Base); err != nil {
+			if models.IsErrPullRequestAlreadyExists(err) {
+				ctx.Error(http.StatusConflict, "IsErrPullRequestAlreadyExists", err)
+				return
+			} else if models.IsErrIssueIsClosed(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "IsErrIssueIsClosed", err)
+				return
+			} else if models.IsErrPullRequestHasMerged(err) {
+				ctx.Error(http.StatusConflict, "IsErrPullRequestHasMerged", err)
+				return
+			} else {
+				ctx.InternalServerError(err)
+			}
+			return
+		}
+		notification.NotifyPullRequestChangeTargetBranch(ctx.User, pr, form.Base)
 	}
 
 	// Refetch from database

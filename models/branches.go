@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -561,11 +560,11 @@ func RemoveDeletedBranch(repoID int64, branch string) error {
 }
 
 // RemoveOldDeletedBranches removes old deleted branches
-func RemoveOldDeletedBranches(ctx context.Context) {
+func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 	// Nothing to do for shutdown or terminate
 	log.Trace("Doing: DeletedBranchesCleanup")
 
-	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)
+	deleteBefore := time.Now().Add(-olderThan)
 	_, err := x.Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
 	if err != nil {
 		log.Error("DeletedBranchesCleanup: %v", err)

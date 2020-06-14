@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
@@ -75,7 +76,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
 			}
-			if err := repo_service.ChangeRepositoryName(ctx.Repo.Owner, repo, newRepoName); err != nil {
+			if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case models.IsErrRepoAlreadyExist(err):
@@ -101,7 +102,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {
-			form.Private = repo.BaseRepo.IsPrivate
+			form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
 		}
 
 		visibilityChanged := repo.IsPrivate != form.Private
@@ -377,6 +378,14 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 			ctx.ServerError("IsUserExist", err)
 			return
+		}
+
+		if newOwner.Type == models.UserTypeOrganization {
+			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !ctx.User.IsUserPartOfOrg(newOwner.ID) {
+				// The user shouldn't know about this organization
+				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+				return
+			}
 		}
 
 		// Close the GitRepo if open

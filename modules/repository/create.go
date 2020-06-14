@@ -47,7 +47,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *m
 		// No need for init mirror.
 		if !opts.IsMirror {
 			repoPath := models.RepoPath(u.Name, repo.Name)
-			if err = initRepository(ctx, repoPath, u, repo, opts); err != nil {
+			if err = initRepository(ctx, repoPath, doer, repo, opts); err != nil {
 				if err2 := os.RemoveAll(repoPath); err2 != nil {
 					log.Error("initRepository: %v", err)
 					return fmt.Errorf(

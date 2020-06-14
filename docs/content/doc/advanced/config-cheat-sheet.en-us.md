@@ -46,7 +46,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    an absolute path.
 - `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
-- `ANSI_CHARSET`: **\<empty\>**: The default charset for an unrecognized charset.
+- `DETECTED_CHARSETS_ORDER`: **UTF-8, UTF-16BE, UTF-16LE, UTF-32BE, UTF-32LE, ISO-8859, windows-1252, ISO-8859, windows-1250, ISO-8859, ISO-8859, ISO-8859, windows-1253, ISO-8859, windows-1255, ISO-8859, windows-1251, windows-1256, KOI8-R, ISO-8859, windows-1254, Shift_JIS, GB18030, EUC-JP, EUC-KR, Big5, ISO-2022, ISO-2022, ISO-2022, IBM424_rtl, IBM424_ltr, IBM420_rtl, IBM420_ltr**: Tie-break order of detected charsets - if the detected charsets have equal confidence, charsets earlier in the list will be chosen in preference to those later. Adding `defaults` will place the unnamed charsets at that point.
+- `ANSI_CHARSET`: **\<empty\>**: Default ANSI charset to override non-UTF-8 charsets to.
 - `FORCE_PRIVATE`: **false**: Force every new repository to be private.
 - `DEFAULT_PRIVATE`: **last**: Default private when creating a new repository.
    \[last, private, public\]
@@ -69,6 +70,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
+- `DISABLE_MIRRORS`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
 
 ### Repository - Pull Request (`repository.pull-request`)
 
@@ -144,14 +146,18 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ### UI - Notification (`ui.notification`)
 
-- `MIN_TIMEOUT`: **10s**: These options control how often notification is queried to update the notification count. On page load the notification count will be checked after `MIN_TIMEOUT`. The timeout will increase to `MAX_TIMEOUT` by `TIMEOUT_STEP` if the notification count is unchanged. Set MIN_TIMEOUT to 0 to turn off.
+- `MIN_TIMEOUT`: **10s**: These options control how often notification endpoint is polled to update the notification count. On page load the notification count will be checked after `MIN_TIMEOUT`. The timeout will increase to `MAX_TIMEOUT` by `TIMEOUT_STEP` if the notification count is unchanged. Set MIN_TIMEOUT to 0 to turn off.
 - `MAX_TIMEOUT`: **60s**.
 - `TIMEOUT_STEP`: **10s**.
+- `EVENT_SOURCE_UPDATE_TIME`: **10s**: This setting determines how often the database is queried to update notification counts. If the browser client supports `EventSource`, it will be used in preference to polling notification endpoint.
 
 
 ## Markdown (`markdown`)
 
-- `ENABLE_HARD_LINE_BREAK`: **true**: Render soft line breaks as hard line breaks, which
+- `ENABLE_HARD_LINE_BREAK_IN_COMMENTS`: **true**: Render soft line breaks as hard line breaks in comments, which
+  means a single newline character between paragraphs will cause a line break and adding
+  trailing whitespace to paragraphs is not necessary to force a line break.
+- `ENABLE_HARD_LINE_BREAK_IN_DOCUMENTS`: **false**: Render soft line breaks as hard line breaks in documents, which
   means a single newline character between paragraphs will cause a line break and adding
   trailing whitespace to paragraphs is not necessary to force a line break.
 - `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
@@ -393,10 +399,15 @@ set name for unique queues. Individual queues will default to
 - `DISABLE_HELO`: **\<empty\>**: Disable HELO operation.
 - `HELO_HOSTNAME`: **\<empty\>**: Custom hostname for HELO operation.
 - `HOST`: **\<empty\>**: SMTP mail host address and port (example: smtp.gitea.io:587).
+  - Using opportunistic TLS via STARTTLS on port 587 is recommended per RFC 6409.
+- `IS_TLS_ENABLED` :  **false** : Forcibly use TLS to connect even if not on a default SMTPS port. 
+  - Note, if the port ends with `465` SMTPS/SMTP over TLS will be used despite this setting.
+  - Otherwise if `IS_TLS_ENABLED=false` and the server supports `STARTTLS` this will be used. Thus if `STARTTLS` is preferred you should set `IS_TLS_ENABLED=false`.
 - `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
    the "Name" \<email@example.com\> format.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
+   - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or `HOST=localhost`. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
 - `SKIP_VERIFY`: **\<empty\>**: Do not verify the self-signed certificates.
    - **Note:** Gitea only supports SMTP with STARTTLS.
 - `SUBJECT_PREFIX`: **\<empty\>**: Prefix to be placed before e-mail subject lines.
@@ -411,7 +422,6 @@ set name for unique queues. Individual queues will default to
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
 - `SENDMAIL_TIMEOUT`: **5m**: default timeout for sending email through sendmail
-- ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
 
 ## Cache (`cache`)
 
@@ -601,33 +611,8 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ## i18n (`i18n`)
 
-- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR**: List of locales shown in language selector
-- `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어**: Visible names corresponding to the locales
-
-### i18n - Datepicker Language (`i18n.datelang`)
-Maps locales to the languages used by the datepicker plugin
-
-- `en-US`: **en**
-- `zh-CN`: **zh**
-- `zh-HK`: **zh-HK**
-- `zh-TW`: **zh-TW**
-- `de-DE`: **de**
-- `fr-FR`: **fr**
-- `nl-NL`: **nl**
-- `lv-LV`: **lv**
-- `ru-RU`: **ru**
-- `ja-JP`: **ja**
-- `es-ES`: **es**
-- `pt-BR`: **pt-BR**
-- `pl-PL`: **pl**
-- `bg-BG`: **bg**
-- `it-IT`: **it**
-- `fi-FI`: **fi**
-- `tr-TR`: **tr**
-- `cs-CZ`: **cs-CZ**
-- `sr-SP`: **sr**
-- `sv-SE`: **sv**
-- `ko-KR`: **ko**
+- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pt-PT,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR**: List of locales shown in language selector
+- `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,Português de Portugal,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어**: Visible names corresponding to the locales
 
 ## U2F (`U2F`)
 - `APP_ID`: **`ROOT_URL`**: Declares the facet of the application. Requires HTTPS.

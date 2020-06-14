@@ -1,20 +1,27 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/modules/setting"
 
-func addAutoMergeTable(x *xorm.Engine) error {
-	type MergeStyle string
-	type ScheduledPullRequestMerge struct {
-		ID         int64      `xorm:"pk autoincr"`
-		PullID     int64      `xorm:"BIGINT"`
-		UserID     int64      `xorm:"BIGINT"`
-		MergeStyle MergeStyle `xorm:"varchar(50)"`
-		Message    string     `xorm:"TEXT"`
+	"xorm.io/xorm"
+)
+
+func prependRefsHeadsToIssueRefs(x *xorm.Engine) error {
+	var query string
+
+	switch {
+	case setting.Database.UseMSSQL:
+		query = "UPDATE `issue` SET `ref` = 'refs/heads/' + `ref` WHERE `ref` IS NOT NULL AND `ref` <> '' AND `ref` NOT LIKE 'refs/%'"
+	case setting.Database.UseMySQL:
+		query = "UPDATE `issue` SET `ref` = CONCAT('refs/heads/', `ref`) WHERE `ref` IS NOT NULL AND `ref` <> '' AND `ref` NOT LIKE 'refs/%';"
+	default:
+		query = "UPDATE `issue` SET `ref` = 'refs/heads/' || `ref` WHERE `ref` IS NOT NULL AND `ref` <> '' AND `ref` NOT LIKE 'refs/%'"
 	}
 
-	return x.Sync2(&ScheduledPullRequestMerge{})
+	_, err := x.Exec(query)
+	return err
 }

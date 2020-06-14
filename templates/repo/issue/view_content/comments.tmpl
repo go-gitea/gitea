@@ -7,7 +7,8 @@
 	 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE,
 	 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
 	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED,
-	 26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST -->
+	 26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
+	 29 = PULL_PUSH_EVENT -->
 	{{if eq .Type 0}}
 		<div class="timeline-item comment" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
@@ -38,7 +39,7 @@
 								</div>
 							{{end}}
 							{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-							{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "diff" false }}
+							{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 						</div>
 					{{end}}
 				</div>
@@ -474,13 +475,19 @@
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 											<div class="comment" id="{{.HashTag}}">
-												<a class="avatar">
-													<img src="{{.Poster.RelAvatarLink}}">
-												</a>
+												{{if not .OriginalAuthor }}
+													<a class="avatar">
+														<img src="{{.Poster.RelAvatarLink}}">
+													</a>
+												{{end}}
 												<div class="content">
 													<div class="code-comment-content">
 														<span class="text grey">
-															<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+															{{if .OriginalAuthor }}
+																<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+															{{else}}
+																<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+															{{end}}
 															{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}
 															<div class="text">
 																<div class="render-content markdown">
@@ -594,5 +601,20 @@
 				{{end}}
 			</span>
 		</div>
+	{{else if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush)}}
+		<div class="timeline-item event" id="{{.HashTag}}">
+			<span class="badge">{{svg "octicon-repo-force-push" 16}}</span>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{ if .IsForcePush }}
+					{{$.i18n.Tr "repo.issues.force_push_codes" $.Issue.PullRequest.HeadBranch (ShortSha .OldCommit) ($.Issue.Repo.CommitLink .OldCommit)  (ShortSha .NewCommit) ($.Issue.Repo.CommitLink .NewCommit) $createdStr | Safe}}
+				{{else}}
+					{{$.i18n.Tr (TrN $.i18n.Lang .Commits.Len "repo.issues.push_commit_1" "repo.issues.push_commits_n") .Commits.Len $createdStr | Safe}}
+				{{end}}
+			</span>
+		</div>
+		{{if not .IsForcePush}}
+			{{template "repo/commits_list_small" dict "comment" . "root" $}}
+		{{end}}
 	{{end}}
 {{end}}

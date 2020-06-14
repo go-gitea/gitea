@@ -20,20 +20,22 @@
 					{{range .Deploykeys}}
 						<div class="item">
 						    <div class="right floated content">
-									<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-										{{$.i18n.Tr "settings.delete_key"}}
-									</button>
+								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+									{{$.i18n.Tr "settings.delete_key"}}
+								</button>
 						    </div>
+						    <div class="left floated content">
 								<i class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted"{{end}}>{{svg "octicon-key" 32}}</i>
-								<div class="content">
-									<strong>{{.Name}}</strong>
-									<div class="print meta">
-										{{.Fingerprint}}
-									</div>
-									<div class="activity meta">
-										<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}} - <span>{{$.i18n.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{$.i18n.Tr "settings.can_write_info"}} {{end}}</span></i>
-									</div>
+							</div>
+							<div class="content">
+								<strong>{{.Name}}</strong>
+								<div class="print meta">
+									{{.Fingerprint}}
 								</div>
+								<div class="activity meta">
+									<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}} - <span>{{$.i18n.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{$.i18n.Tr "settings.can_write_info"}} {{end}}</span></i>
+								</div>
+							</div>
 						</div>
 					{{end}}
 				</div>

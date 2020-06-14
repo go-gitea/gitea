@@ -13,12 +13,17 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 )
 
-var prefix string
+var (
+	prefix    string
+	slowTest  = 10 * time.Second
+	slowFlush = 5 * time.Second
+)
 
 // TestLogger is a logger which will write to the testing log
 type TestLogger struct {
@@ -87,6 +92,7 @@ func (w *testLoggerWriterCloser) Close() error {
 
 // PrintCurrentTest prints the current test to os.Stdout
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
+	start := time.Now()
 	actualSkip := 1
 	if len(skip) > 0 {
 		actualSkip = skip[0]
@@ -100,8 +106,32 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	}
 	writerCloser.setT(&t)
 	return func() {
+		took := time.Since(start)
+		if took > slowTest {
+			if log.CanColorStdout {
+				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgYellow)), fmt.Formatter(log.NewColoredValue(took, log.Bold, log.FgYellow)))
+			} else {
+				fmt.Fprintf(os.Stdout, "+++ %s is a slow tets (took %v)\n", t.Name(), took)
+			}
+		}
+		timer := time.AfterFunc(slowFlush, func() {
+			if log.CanColorStdout {
+				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), slowFlush)
+			} else {
+				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", t.Name(), slowFlush)
+			}
+		})
 		if err := queue.GetManager().FlushAll(context.Background(), -1); err != nil {
 			t.Errorf("Flushing queues failed with error %v", err)
+		}
+		timer.Stop()
+		flushTook := time.Since(start) - took
+		if flushTook > slowFlush {
+			if log.CanColorStdout {
+				fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), fmt.Formatter(log.NewColoredValue(flushTook, log.Bold, log.FgRed)))
+			} else {
+				fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", t.Name(), flushTook)
+			}
 		}
 		_ = writerCloser.Close()
 	}

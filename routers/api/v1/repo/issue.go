@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -219,7 +220,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -544,6 +545,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if len(form.Title) > 0 {
 		issue.Title = form.Title
 	}
@@ -598,20 +600,25 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			return
 		}
 	}
-
-	if err = models.UpdateIssueByAPI(issue); err != nil {
+	if form.State != nil {
+		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+	}
+	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
+	if err != nil {
+		if models.IsErrDependenciesLeft(err) {
+			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueByAPI", err)
 		return
 	}
-	if form.State != nil {
-		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
-			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
-			return
-		}
+
+	if titleChanged {
+		notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
+	}
+
+	if statusChangeComment != nil {
+		notification.NotifyIssueChangeStatus(ctx.User, issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database to assign some automatic values
@@ -684,7 +691,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	var deadline time.Time
 	if form.Deadline != nil && !form.Deadline.IsZero() {
 		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-			23, 59, 59, 0, form.Deadline.Location())
+			23, 59, 59, 0, time.Local)
 		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 	}
 
