@@ -118,28 +118,14 @@ func RefBlame(ctx *context.Context) {
 
 	ctx.Data["IsBlame"] = true
 
-	if ctx.Repo.CanEnableEditor() {
-		// Check LFS Lock
-		lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
-		if err != nil {
-			ctx.ServerError("GetTreePathLock", err)
-			return
-		}
-		if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
-			ctx.Data["CanDeleteFile"] = false
-			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-		} else {
-			ctx.Data["CanDeleteFile"] = true
-			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
-		}
-	} else if !ctx.Repo.IsViewBranch {
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
-	}
-
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
+
+	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
+	if err != nil {
+		ctx.NotFound("GetBlobLineCount", err)
+		return
+	}
 
 	blameReader, err := git.CreateBlameReader(models.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
