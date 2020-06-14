@@ -1128,7 +1128,7 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 		return nil, false, err
 	}
 
-	if oldCommit.Branch == "" {
+	if len(oldCommit.Branch) == 0{
 		commitIDs = make([]string, 2)
 		commitIDs[0] = oldCommitID
 		commitIDs[1] = newCommitID
