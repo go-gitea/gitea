@@ -108,44 +108,58 @@ func SetExecutablePath(path string) error {
 // Init initializes git module
 func Init(ctx context.Context) error {
 	DefaultContext = ctx
-	// Git requires setting user.name and user.email in order to commit changes.
+	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults
 	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
-		if stdout, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", configKey); err != nil || strings.TrimSpace(stdout) == "" {
-			// ExitError indicates this config is not set
-			if _, ok := err.(*exec.ExitError); ok || strings.TrimSpace(stdout) == "" {
-				if _, stderr, gerr := process.GetManager().Exec("git.Init(set "+configKey+")", "git", "config", "--global", configKey, defaultValue); gerr != nil {
-					return fmt.Errorf("Failed to set git %s(%s): %s", configKey, gerr, stderr)
-				}
-			} else {
-				return fmt.Errorf("Failed to get git %s(%s): %s", configKey, err, stderr)
-			}
+		if err := checkAndSetConfig(configKey, defaultValue, false); err != nil {
+			return err
 		}
 	}
 
-	// Set git some configurations.
-	if _, stderr, err := process.GetManager().Exec("git.Init(git config --global core.quotepath false)",
-		GitExecutable, "config", "--global", "core.quotepath", "false"); err != nil {
-		return fmt.Errorf("Failed to execute 'git config --global core.quotepath false': %s", stderr)
+	// Set git some configurations - these must be set to these values for gitea to work correctly
+	if err := checkAndSetConfig("core.quotePath", "false", true); err != nil {
+		return err
 	}
 
 	if version.Compare(gitVersion, "2.18", ">=") {
-		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global core.commitGraph true)",
-			GitExecutable, "config", "--global", "core.commitGraph", "true"); err != nil {
-			return fmt.Errorf("Failed to execute 'git config --global core.commitGraph true': %s", stderr)
+		if err := checkAndSetConfig("core.commitGraph", "true", true); err != nil {
+			return err
 		}
-
-		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global gc.writeCommitGraph true)",
-			GitExecutable, "config", "--global", "gc.writeCommitGraph", "true"); err != nil {
-			return fmt.Errorf("Failed to execute 'git config --global gc.writeCommitGraph true': %s", stderr)
+		if err := checkAndSetConfig("gc.writeCommitGraph", "true", true); err != nil {
+			return err
 		}
 	}
 
 	if runtime.GOOS == "windows" {
-		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global core.longpaths true)",
-			GitExecutable, "config", "--global", "core.longpaths", "true"); err != nil {
-			return fmt.Errorf("Failed to execute 'git config --global core.longpaths true': %s", stderr)
+		if err := checkAndSetConfig("core.longpaths", "true", true); err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+func checkAndSetConfig(key, defaultValue string, forceToDefault bool) error {
+	stdout, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", key)
+	if err != nil {
+		perr, ok := err.(*process.Error)
+		if !ok {
+			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+		}
+		eerr, ok := perr.Err.(*exec.ExitError)
+		if !ok || eerr.ExitCode() != 1 {
+			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+		}
+	}
+
+	currValue := strings.TrimSpace(stdout)
+
+	if currValue == defaultValue || (!forceToDefault && len(currValue) > 0) {
+		return nil
+	}
+
+	if _, stderr, err = process.GetManager().Exec(fmt.Sprintf("git.Init(set %s)", key), "git", "config", "--global", key, defaultValue); err != nil {
+		return fmt.Errorf("Failed to set git %s(%s): %s", key, err, stderr)
+	}
+
 	return nil
 }
 

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // SettingGetsAllowedReactions return allowed reactions
@@ -22,4 +23,20 @@ func SettingGetsAllowedReactions(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/StringSlice"
 	ctx.JSON(http.StatusOK, setting.UI.Reactions)
+}
+
+// GetGeneralRepoSettings returns instance's global settings for repositories
+func GetGeneralRepoSettings(ctx *context.APIContext) {
+	// swagger:operation GET /settings/repository miscellaneous getGeneralRepositorySettings
+	// ---
+	// summary: Get instance's global settings for repositories
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/GeneralRepoSettings"
+	ctx.JSON(http.StatusOK, api.GeneralRepoSettings{
+		MirrorsDisabled: setting.Repository.DisableMirrors,
+		HTTPGitDisabled: setting.Repository.DisableHTTPGit,
+	})
 }
