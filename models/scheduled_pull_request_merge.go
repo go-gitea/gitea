@@ -41,15 +41,7 @@ func ScheduleAutoMerge(opts *ScheduledPullRequestMerge) (err error) {
 		return err
 	}
 
-	if err := pr.LoadIssue(); err != nil {
-		return err
-	}
-
-	if err := pr.LoadBaseRepo(); err != nil {
-		return err
-	}
-
-	_, err = CreateScheduledPRToAutoMerge(opts.User, pr)
+	_, err = CreateScheduledPRToAutoMergeComment(opts.User, pr)
 	return err
 }
 

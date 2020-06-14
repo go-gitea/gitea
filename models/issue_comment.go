@@ -96,6 +96,8 @@ const (
 	CommentTypePullPush
 	// pr was scheduled to auto merge when checks succeed
 	CommentTypePRScheduledToAutoMerge
+	// pr was un scheduled to auto merge when checks succeed
+	CommentTypePRUnScheduledToAutoMerge
 )
 
 // CommentTag defines comment tag type
@@ -1167,10 +1169,52 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 	return
 }
 
-// CreateScheduledPRToAutoMerge creates a comment when a pr was set to auto merge once all checks succeed
-func CreateScheduledPRToAutoMerge(user *User, pr *PullRequest) (comment *Comment, err error) {
+// CreateScheduledPRToAutoMergeComment creates a comment when a pr was set to auto merge once all checks succeed
+func CreateScheduledPRToAutoMergeComment(user *User, pr *PullRequest) (comment *Comment, err error) {
+
+	if pr.Issue == nil {
+		err = pr.LoadIssue()
+		if err != nil {
+			return
+		}
+	}
+
+	if pr.BaseRepo == nil {
+		err = pr.LoadBaseRepo()
+		if err != nil {
+			return
+		}
+	}
+
 	opts := &CreateCommentOptions{
 		Type:  CommentTypePRScheduledToAutoMerge,
+		Doer:  user,
+		Repo:  pr.BaseRepo,
+		Issue: pr.Issue,
+	}
+
+	comment, err = CreateComment(opts)
+	return
+}
+
+// CreateScheduledPRToAutoMergeComment creates a comment when a pr was set to auto merge once all checks succeed
+func CreateUnScheduledPRToAutoMergeComment(user *User, pr *PullRequest) (comment *Comment, err error) {
+	if pr.Issue == nil {
+		err = pr.LoadIssue()
+		if err != nil {
+			return
+		}
+	}
+
+	if pr.BaseRepo == nil {
+		err = pr.LoadBaseRepo()
+		if err != nil {
+			return
+		}
+	}
+
+	opts := &CreateCommentOptions{
+		Type:  CommentTypePRUnScheduledToAutoMerge,
 		Doer:  user,
 		Repo:  pr.BaseRepo,
 		Issue: pr.Issue,

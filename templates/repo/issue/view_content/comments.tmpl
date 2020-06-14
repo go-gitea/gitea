@@ -624,5 +624,13 @@
 				{{$.i18n.Tr "repo.pulls.pull_request_scheduled_auto_merge" $createdStr | Safe}}
 			</span>
 		</div>
+	{{else if eq .Type 31}}
+		<div class="timeline-item event" id="{{.HashTag}}">
+			<span class="badge">{{svg "octicon-git-merge" 16}}</span>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.pulls.pull_request_canceled_scheduled_auto_merge" $createdStr | Safe}}
+			</span>
+		</div>
 	{{end}}
 {{end}}
