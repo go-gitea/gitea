@@ -94,6 +94,8 @@ const (
 	CommentTypeMergePull
 	// push to PR head branch
 	CommentTypePullPush
+	// pr was scheduled to auto merge when checks succeed
+	CommentTypePRScheduledToAutoMerge
 )
 
 // CommentTag defines comment tag type
@@ -1162,5 +1164,18 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 		}
 	}
 
+	return
+}
+
+// CreateScheduledPRToAutoMerge creates a comment when a pr was set to auto merge once all checks succeed
+func CreateScheduledPRToAutoMerge(user *User, pr *PullRequest) (comment *Comment, err error) {
+	opts := &CreateCommentOptions{
+		Type:  CommentTypePRScheduledToAutoMerge,
+		Doer:  user,
+		Repo:  pr.BaseRepo,
+		Issue: pr.Issue,
+	}
+
+	comment, err = CreateComment(opts)
 	return
 }

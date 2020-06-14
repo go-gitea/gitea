@@ -29,7 +29,27 @@ func ScheduleAutoMerge(opts *ScheduledPullRequestMerge) (err error) {
 		return nil
 	}
 
+	opts.UserID = opts.User.ID
+
 	_, err = x.Insert(opts)
+	if err != nil {
+		return
+	}
+
+	pr, err := GetPullRequestByID(opts.PullID)
+	if err != nil {
+		return err
+	}
+
+	if err := pr.LoadIssue(); err != nil {
+		return err
+	}
+
+	if err := pr.LoadBaseRepo(); err != nil {
+		return err
+	}
+
+	_, err = CreateScheduledPRToAutoMerge(opts.User, pr)
 	return err
 }
 
