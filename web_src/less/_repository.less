@@ -657,14 +657,18 @@
             }
 
             .review-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+
+                .review-item-left,
+                .review-item-right {
+                    display: flex;
+                    align-items: center;
+                }
 
                 .avatar,
                 .type-icon {
-                    float: none;
-                    display: inline-block;
-                    text-align: center;
-                    vertical-align: middle;
-
                     .svg {
                         width: 23px;
                         height: 23px;
@@ -676,8 +680,12 @@
                 }
 
                 .type-icon {
-                    float: right;
+                    align-self: flex-start;
                     margin-right: 1em;
+
+                    i {
+                        line-height: 1.8em;
+                    }
                 }
 
                 .divider {
