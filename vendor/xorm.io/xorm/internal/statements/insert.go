@@ -5,6 +5,7 @@
 package statements
 
 import (
+	"fmt"
 	"strings"
 
 	"xorm.io/builder"
@@ -23,18 +24,15 @@ func (statement *Statement) writeInsertOutput(buf *strings.Builder, table *schem
 	return nil
 }
 
+// GenInsertSQL generates insert beans SQL
 func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) (string, []interface{}, error) {
 	var (
+		buf       = builder.NewWriter()
+		exprs     = statement.ExprColumns
 		table     = statement.RefTable
 		tableName = statement.TableName()
-		exprs     = statement.ExprColumns
-		colPlaces = strings.Repeat("?, ", len(colNames))
 	)
-	if exprs.Len() <= 0 && len(colPlaces) > 0 {
-		colPlaces = colPlaces[0 : len(colPlaces)-2]
-	}
 
-	var buf = builder.NewWriter()
 	if _, err := buf.WriteString("INSERT INTO "); err != nil {
 		return "", nil, err
 	}
@@ -43,7 +41,7 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 		return "", nil, err
 	}
 
-	if len(colPlaces) <= 0 {
+	if len(colNames) <= 0 {
 		if statement.dialect.URI().DBType == schemas.MYSQL {
 			if _, err := buf.WriteString(" VALUES ()"); err != nil {
 				return "", nil, err
@@ -65,13 +63,14 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 			return "", nil, err
 		}
 
+		if _, err := buf.WriteString(")"); err != nil {
+			return "", nil, err
+		}
+		if err := statement.writeInsertOutput(buf.Builder, table); err != nil {
+			return "", nil, err
+		}
+
 		if statement.Conds().IsValid() {
-			if _, err := buf.WriteString(")"); err != nil {
-				return "", nil, err
-			}
-			if err := statement.writeInsertOutput(buf.Builder, table); err != nil {
-				return "", nil, err
-			}
 			if _, err := buf.WriteString(" SELECT "); err != nil {
 				return "", nil, err
 			}
@@ -105,19 +104,18 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 				return "", nil, err
 			}
 		} else {
-			buf.Append(args...)
-
-			if _, err := buf.WriteString(")"); err != nil {
-				return "", nil, err
-			}
-			if err := statement.writeInsertOutput(buf.Builder, table); err != nil {
-				return "", nil, err
-			}
 			if _, err := buf.WriteString(" VALUES ("); err != nil {
 				return "", nil, err
 			}
-			if _, err := buf.WriteString(colPlaces); err != nil {
+
+			if err := statement.WriteArgs(buf, args); err != nil {
 				return "", nil, err
+			}
+
+			if len(exprs.Args) > 0 {
+				if _, err := buf.WriteString(","); err != nil {
+					return "", nil, err
+				}
 			}
 
 			if err := exprs.WriteArgs(buf); err != nil {
@@ -135,6 +133,72 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 			return "", nil, err
 		}
 		if err := statement.dialect.Quoter().QuoteTo(buf.Builder, table.AutoIncrement); err != nil {
+			return "", nil, err
+		}
+	}
+
+	return buf.String(), buf.Args(), nil
+}
+
+// GenInsertMapSQL generates insert map SQL
+func (statement *Statement) GenInsertMapSQL(columns []string, args []interface{}) (string, []interface{}, error) {
+	var (
+		buf       = builder.NewWriter()
+		exprs     = statement.ExprColumns
+		tableName = statement.TableName()
+	)
+
+	if _, err := buf.WriteString(fmt.Sprintf("INSERT INTO %s (", statement.quote(tableName))); err != nil {
+		return "", nil, err
+	}
+
+	if err := statement.dialect.Quoter().JoinWrite(buf.Builder, append(columns, exprs.ColNames...), ","); err != nil {
+		return "", nil, err
+	}
+
+	// if insert where
+	if statement.Conds().IsValid() {
+		if _, err := buf.WriteString(") SELECT "); err != nil {
+			return "", nil, err
+		}
+
+		if err := statement.WriteArgs(buf, args); err != nil {
+			return "", nil, err
+		}
+
+		if len(exprs.Args) > 0 {
+			if _, err := buf.WriteString(","); err != nil {
+				return "", nil, err
+			}
+			if err := exprs.WriteArgs(buf); err != nil {
+				return "", nil, err
+			}
+		}
+
+		if _, err := buf.WriteString(fmt.Sprintf(" FROM %s WHERE ", statement.quote(tableName))); err != nil {
+			return "", nil, err
+		}
+
+		if err := statement.Conds().WriteTo(buf); err != nil {
+			return "", nil, err
+		}
+	} else {
+		if _, err := buf.WriteString(") VALUES ("); err != nil {
+			return "", nil, err
+		}
+		if err := statement.WriteArgs(buf, args); err != nil {
+			return "", nil, err
+		}
+
+		if len(exprs.Args) > 0 {
+			if _, err := buf.WriteString(","); err != nil {
+				return "", nil, err
+			}
+			if err := exprs.WriteArgs(buf); err != nil {
+				return "", nil, err
+			}
+		}
+		if _, err := buf.WriteString(")"); err != nil {
 			return "", nil, err
 		}
 	}
