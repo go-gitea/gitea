@@ -1180,14 +1180,12 @@ func CreateScheduledPRToAutoMergeComment(user *User, pr *PullRequest) (comment *
 		return
 	}
 
-	opts := &CreateCommentOptions{
+	comment, err = CreateComment(&CreateCommentOptions{
 		Type:  CommentTypePRScheduledToAutoMerge,
 		Doer:  user,
 		Repo:  pr.BaseRepo,
 		Issue: pr.Issue,
-	}
-
-	comment, err = CreateComment(opts)
+	})
 	return
 }
 
