@@ -15,19 +15,20 @@
             font-weight: 400;
             font-size: 1.5rem;
 
-            svg {
+            &.repo-title .repo-owner-avatar {
+                display: inline-block;
                 position: relative;
-                top: 5px;
-            }
 
-            &.repo-title .avatar {
-                margin-left: -23px;
-                color: #fafafa;
-                box-shadow: 0 0 0 2px;
-                width: 16px;
-                height: 16px;
-                margin-bottom: -30px;
-                border-radius: 2px;
+                .avatar {
+                    position: absolute;
+                    right: 0;
+                    bottom: 0;
+                    width: 16px;
+                    height: 16px;
+                    color: #fafafa;
+                    box-shadow: 0 0 0 2px;
+                    margin: 0;
+                }
             }
 
             svg.octicon-lock {
