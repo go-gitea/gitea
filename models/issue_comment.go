@@ -1189,7 +1189,7 @@ func CreateScheduledPRToAutoMergeComment(user *User, pr *PullRequest) (comment *
 	return
 }
 
-// CreateScheduledPRToAutoMergeComment creates a comment when a pr was set to auto merge once all checks succeed
+// CreateUnScheduledPRToAutoMergeComment creates a comment when a pr was set to auto merge once all checks succeed
 func CreateUnScheduledPRToAutoMergeComment(user *User, pr *PullRequest) (comment *Comment, err error) {
 	if pr.Issue == nil {
 		err = pr.LoadIssue()
