@@ -924,7 +924,10 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	_, err = models.CreateUnScheduledPRToAutoMergeComment(ctx.User, pr)
+	if _, err := models.CreateUnScheduledPRToAutoMergeComment(ctx.User, pr); err != nil {
+		ctx.ServerError("CreateUnScheduledPRToAutoMergeComment", err)
+		return
+	}
 
 	ctx.Flash.Success(ctx.Tr("repo.pulls.pull_request_schedule_canceled"))
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
