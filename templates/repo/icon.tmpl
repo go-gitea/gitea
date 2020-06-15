@@ -1,0 +1,23 @@
+{{if .repo.IsTemplate}}
+	{{if .repo.IsPrivate}}
+		{{svg "octicon-repo-template-private" .size}}
+	{{else}}
+		{{svg "octicon-repo-template" .size}}
+	{{end}}
+{{else}}
+	{{if .repo.IsPrivate}}
+		{{svg "octicon-lock" .size}}
+	{{else if and (not .repo.IsMirror) (not .repo.IsFork) (.repo.Owner)}}
+		{{if .repo.Owner.Visibility.IsPrivate}}
+			{{svg "octicon-internal-repo" .size}}
+		{{else}}
+			{{svg "octicon-repo" .size}}
+		{{end}}
+	{{else if .repo.IsMirror}}
+		{{svg "octicon-repo-clone" .size}}
+	{{else if .repo.IsFork}}
+		{{svg "octicon-repo-forked" .size}}
+	{{else}}
+		{{svg "octicon-repo" .size}}
+	{{end}}
+{{end}}
