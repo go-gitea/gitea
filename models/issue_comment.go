@@ -1176,11 +1176,8 @@ func CreateScheduledPRToAutoMergeComment(user *User, pr *PullRequest) (comment *
 		return
 	}
 
-	if pr.BaseRepo == nil {
-		err = pr.LoadBaseRepo()
-		if err != nil {
-			return
-		}
+	if err = pr.LoadBaseRepo(); err != nil {
+		return
 	}
 
 	opts := &CreateCommentOptions{
