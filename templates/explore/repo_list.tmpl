@@ -7,7 +7,7 @@
 				{{end}}
 				<a class="name" href="{{.Link}}">
 					{{if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
-					{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
+					{{if .IsArchived}}<span class="ui compact label">{{$.i18n.Tr "repo.desc.archived"}}</span>{{end}}
 				</a>
 				{{if .IsPrivate}}
 					<span class="middle text gold">{{svg "octicon-lock" 16}}</span>
