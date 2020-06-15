@@ -1172,11 +1172,8 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 // CreateScheduledPRToAutoMergeComment creates a comment when a pr was set to auto merge once all checks succeed
 func CreateScheduledPRToAutoMergeComment(user *User, pr *PullRequest) (comment *Comment, err error) {
 
-	if pr.Issue == nil {
-		err = pr.LoadIssue()
-		if err != nil {
-			return
-		}
+	if err = pr.LoadIssue(); err != nil {
+		return
 	}
 
 	if pr.BaseRepo == nil {
