@@ -561,7 +561,10 @@ func GetBranchNamesForSha(sha string, repoPath string) (branchNames []string, er
 			if s == "" {
 				continue
 			}
-			branchNames = append(branchNames, strings.Split(strings.Split(s, " ")[1], "~")[0])
+			// The names from this other way don't have "refs/" prepended before them, so we just add it to make the
+			// result of the function always the same. This still opens the door for invalid branches, but at least
+			// it minimizes them by only affecting users with an old git version.
+			branchNames = append(branchNames, "refs/"+strings.Split(strings.Split(s, " ")[1], "~")[0])
 		}
 	}
 
