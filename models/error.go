@@ -1459,6 +1459,22 @@ func IsErrPullRequestHasMerged(err error) bool {
 	return ok
 }
 
+// Error is the error implementation
+func (err ErrPullRequestAlreadyScheduledToAutoMerge) Error() string {
+	return fmt.Sprintf("pull request is already scheduled to auto merge when checks succeed [pull_id: %d]", err.PullID)
+}
+
+// ErrPullRequestAlreadyScheduledToAutoMerge represents a "PullRequestHasMerged"-error
+type ErrPullRequestAlreadyScheduledToAutoMerge struct {
+	PullID int64
+}
+
+// IsErrPullRequestAlreadyScheduledToAutoMerge checks if an error is a ErrPullRequestAlreadyScheduledToAutoMerge.
+func IsErrPullRequestAlreadyScheduledToAutoMerge(err error) bool {
+	_, ok := err.(ErrPullRequestAlreadyScheduledToAutoMerge)
+	return ok
+}
+
 // Error does pretty-printing :D
 func (err ErrPullRequestHasMerged) Error() string {
 	return fmt.Sprintf("pull request has merged [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",

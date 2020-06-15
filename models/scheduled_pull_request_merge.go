@@ -25,8 +25,7 @@ func ScheduleAutoMerge(opts *ScheduledPullRequestMerge) (err error) {
 		return
 	}
 	if exists {
-		// Maybe FIXME: Should we return a custom error here?
-		return nil
+		return ErrPullRequestAlreadyScheduledToAutoMerge{PullID: opts.PullID}
 	}
 
 	opts.UserID = opts.User.ID

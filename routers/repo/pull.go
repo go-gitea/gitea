@@ -836,6 +836,11 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 			Message:    message,
 		})
 		if err != nil {
+			if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
+				ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_already_scheduled"))
+				ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+				return
+			}
 			ctx.ServerError("ScheduleAutoMerge", err)
 			return
 		}
