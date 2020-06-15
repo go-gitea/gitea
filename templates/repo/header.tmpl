@@ -6,7 +6,9 @@
 				{{if .RelAvatarLink}}
 					<img class="ui avatar image" src="{{.RelAvatarLink}}">
 				{{else}}
-					{{template "repo/header_icon" .}}
+					<div class="repo-header-icon">
+						{{template "repo/header_icon" .}}
+					</div>
 				{{end}}
 				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 				<div class="divider"> / </div>
