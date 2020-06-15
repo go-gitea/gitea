@@ -521,7 +521,7 @@ func GetBranchNamesForSha(sha string, repoPath string) (branchNames []string, er
 		).
 			RunInDirBytes(commit.repo.Path)
 		if err != nil {
-			return
+			return branchNames, err
 		}
 		namesRaw := strings.Split(string(data), "\n")
 		for _, s := range namesRaw {
@@ -539,7 +539,7 @@ func GetBranchNamesForSha(sha string, repoPath string) (branchNames []string, er
 		).
 			RunInDirBytes(commit.repo.Path)
 		if err != nil {
-			return
+			return branchNames, err
 		}
 
 		dataPulls, err := NewCommand(
@@ -549,7 +549,7 @@ func GetBranchNamesForSha(sha string, repoPath string) (branchNames []string, er
 		).
 			RunInDirBytes(commit.repo.Path)
 		if err != nil {
-			return
+			return branchNames, err
 		}
 
 		namesRawPull := strings.Split(string(dataPulls), "\n")

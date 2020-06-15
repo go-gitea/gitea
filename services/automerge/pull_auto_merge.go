@@ -5,6 +5,7 @@
 package automerge
 
 import (
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -32,7 +33,23 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		// If the branch starts with "pull/*" we know we're dealing with a fork.
 		// In that case, head and base branch are not in the same repo and we need to do some extra work
 		// to get the pull request for this branch.
-		pr, err := models.GetPullRequestByHeadBranch(branch, repo)
+		// Each pull branch starts with refs/pull/ we then go from there to find the index of the pr and then
+		// use that to get the pr.
+		var pr *models.PullRequest
+		err = nil // Could be filled with an error from an earlier run
+		if strings.HasPrefix(branch, "refs/pull/") {
+
+			parts := strings.Split(branch, "/")
+
+			prIndex, err := strconv.ParseInt(parts[2], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			pr, err = models.GetPullRequestByIndex(repo.ID, prIndex)
+		} else {
+			pr, err = models.GetPullRequestByHeadBranch(branch, repo)
+		}
 		if err != nil {
 			// If there is no pull request for this branch, we don't try to merge it.
 			if models.IsErrPullRequestNotExist(err) {
