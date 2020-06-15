@@ -1069,7 +1069,6 @@ i.icons {
 }
 
 .lines-num {
-    vertical-align: top;
     text-align: right !important;
     color: #999999;
     background: #f5f5f5;
@@ -1077,7 +1076,13 @@ i.icons {
     user-select: none;
 
     span {
-        &:before {
+        &.bottom-line {
+            &:after {
+                border-bottom: 1px solid #eaecef;
+            }
+        }
+
+        &:after {
             content: attr(data-line-number);
             line-height: 20px !important;
             padding: 0 10px;
@@ -1090,6 +1095,7 @@ i.icons {
 .lines-num,
 .lines-code {
     padding: 0 !important;
+    vertical-align: top;
 
     pre,
     ol,
@@ -1101,7 +1107,7 @@ i.icons {
         li {
             display: block;
             width: calc(100% - 1ch);
-            margin-left: 1ch;
+            padding-left: 1ch;
         }
     }
 }
@@ -1149,7 +1155,6 @@ i.icons {
     }
 }
 
-.lines-num,
 .lines-code,
 .lines-commit {
     .bottom-line {
