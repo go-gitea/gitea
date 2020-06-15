@@ -12,7 +12,29 @@
 				<div class="divider"> / </div>
 				<a href="{{$.RepoLink}}">{{.Name}}</a>
 				{{if .RelAvatarLink}}
-					{{template "repo/header_icon" .}}
+					<span class="ui basic label">
+						{{if .IsTemplate}}
+							{{if .IsPrivate}}
+								{{$.i18n.Tr "repo.desc.private_template"}}
+							{{else}}
+								{{if .Owner.Visibility.IsPrivate}}
+									{{$.i18n.Tr "repo.desc.internal_template"}}
+								{{else}}
+									{{$.i18n.Tr "repo.desc.public_template"}}
+								{{end}}
+							{{end}}
+						{{else}}
+							{{if .IsPrivate}}
+								{{$.i18n.Tr "repo.desc.private"}}
+							{{else}}
+								{{if .Owner.Visibility.IsPrivate}}
+									{{$.i18n.Tr "repo.desc.internal"}}
+								{{else}}
+									{{$.i18n.Tr "repo.desc.public"}}
+								{{end}}
+							{{end}}
+						{{end}}
+					</span>
 				{{end}}
 				{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
 				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{MirrorAddress $.Mirror}}{{end}}">{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{MirrorAddress $.Mirror}}{{end}}</a></div>{{end}}
