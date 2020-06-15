@@ -6,24 +6,24 @@
 				{{if .RelAvatarLink}}
 					<img class="ui avatar image" src="{{.RelAvatarLink}}">
 				{{else}}
-					{{if $.IsTemplate}}
-						{{if $.IsPrivate}}
+					{{if .IsTemplate}}
+						{{if .IsPrivate}}
 							{{svg "octicon-repo-template-private" 32}}
 						{{else}}
 							{{svg "octicon-repo-template" 32}}
 						{{end}}
 					{{else}}
-						{{if $.IsPrivate}}
+						{{if .IsPrivate}}
 							{{svg "octicon-lock" 32}}
-						{{else if and (not $.IsMirror) (not $.IsFork) ($.Owner)}}
-							{{if $.Owner.Visibility.IsPrivate}}
+						{{else if and (not .IsMirror) (not .IsFork) ($.Owner)}}
+							{{if .Owner.Visibility.IsPrivate}}
 								{{svg "octicon-internal-repo" 32}}
 							{{else}}
 								{{svg "octicon-repo" 32}}
 							{{end}}
-						{{else if $.IsMirror}}
+						{{else if .IsMirror}}
 							{{svg "octicon-repo-clone" 32}}
-						{{else if $.IsFork}}
+						{{else if .IsFork}}
 							{{svg "octicon-repo-forked" 32}}
 						{{else}}
 							{{svg "octicon-repo" 32}}
@@ -33,30 +33,22 @@
 				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 				<div class="divider"> / </div>
 				<a href="{{$.RepoLink}}">{{.Name}}</a>
-				{{if .RelAvatarLink}}
-					<span class="ui basic label">
-						{{if .IsTemplate}}
-							{{if .IsPrivate}}
-								{{$.i18n.Tr "repo.desc.private_template"}}
-							{{else}}
-								{{if .Owner.Visibility.IsPrivate}}
-									{{$.i18n.Tr "repo.desc.internal_template"}}
-								{{else}}
-									{{$.i18n.Tr "repo.desc.public_template"}}
-								{{end}}
-							{{end}}
-						{{else}}
-							{{if .IsPrivate}}
-								{{$.i18n.Tr "repo.desc.private"}}
-							{{else}}
-								{{if .Owner.Visibility.IsPrivate}}
-									{{$.i18n.Tr "repo.desc.internal"}}
-								{{else}}
-									{{$.i18n.Tr "repo.desc.public"}}
-								{{end}}
-							{{end}}
+				{{if .IsTemplate}}
+					{{if .IsPrivate}}
+						<span class="ui basic label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
+					{{else}}
+						{{if .Owner.Visibility.IsPrivate}}
+							<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal_template"}}</span>
 						{{end}}
-					</span>
+					{{end}}
+				{{else}}
+					{{if .IsPrivate}}
+						<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
+					{{else}}
+						{{if .Owner.Visibility.IsPrivate}}
+							<span class="ui basic label">{{$.i18n.Tr "repo.desc.internal"}}</span>
+						{{end}}
+					{{end}}
 				{{end}}
 				{{if .IsArchived}}<span class="ui compact label">{{$.i18n.Tr "repo.desc.archived"}}</span>{{end}}
 				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{MirrorAddress $.Mirror}}{{end}}">{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{MirrorAddress $.Mirror}}{{end}}</a></div>{{end}}
