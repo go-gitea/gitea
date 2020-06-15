@@ -47,6 +47,8 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	topics, err := downloader.GetTopics()
 	assert.NoError(t, err)
 	assert.Contains(t, topics, "gitea")
+	assert.Contains(t, topics, "test")
+	assert.Contains(t, topics, "migration")
 
 	milestones, err := downloader.GetMilestones()
 	assert.NoError(t, err)
@@ -340,7 +342,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, []*base.Review{
 		{
-			ID:           1408,
+			ID:           1453,
 			IssueIndex:   3,
 			ReviewerID:   42128690,
 			ReviewerName: "jolheiser",
@@ -349,7 +351,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			State:        base.ReviewStateApproved,
 		},
 		{
-			ID:           1409,
+			ID:           1454,
 			IssueIndex:   3,
 			ReviewerID:   1824502,
 			ReviewerName: "zeripath",
@@ -358,7 +360,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			State:        base.ReviewStateApproved,
 		},
 		{
-			ID:           1410,
+			ID:           1455,
 			IssueIndex:   3,
 			ReviewerID:   165205,
 			ReviewerName: "lafriks",
@@ -372,7 +374,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, []*base.Review{
 		{
-			ID:           1411,
+			ID:           1456,
 			IssueIndex:   4,
 			ReviewerID:   1,
 			ReviewerName: "lunny",
@@ -381,7 +383,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			State:        base.ReviewStateApproved,
 			Comments: []*base.ReviewComment{
 				{
-					ID:        113997,
+					ID:        114540,
 					Content:   "This is a good pull request.",
 					TreePath:  "README.md",
 					DiffHunk:  "@@ -1,2 +1,4 @@\n # test_repo\n Test repository for testing migration from github to gitea\n+",
@@ -394,7 +396,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			},
 		},
 		{
-			ID:           1412,
+			ID:           1457,
 			IssueIndex:   4,
 			ReviewerID:   1,
 			ReviewerName: "lunny",
@@ -404,7 +406,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			Content:      "Don't add more reviews",
 		},
 		{
-			ID:           1413,
+			ID:           1458,
 			IssueIndex:   4,
 			ReviewerID:   1,
 			ReviewerName: "lunny",
@@ -413,7 +415,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			State:        base.ReviewStateCommented,
 			Comments: []*base.ReviewComment{
 				{
-					ID:        114000,
+					ID:        114543,
 					Content:   "test a single comment.",
 					TreePath:  "LICENSE",
 					DiffHunk:  "@@ -19,3 +19,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n SOFTWARE.\n+",
