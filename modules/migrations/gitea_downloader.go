@@ -441,7 +441,6 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 		allPRs = append(allPRs, &base.PullRequest{
 			Number:         pr.Index,
-			OriginalNumber: 0,
 			Title:          pr.Title,
 			PosterName:     pr.Poster.UserName,
 			PosterID:       pr.Poster.ID,
