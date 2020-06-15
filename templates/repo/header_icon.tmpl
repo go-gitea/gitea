@@ -10,6 +10,7 @@
 	{{else if and (not $.IsMirror) (not $.IsFork) ($.Owner)}}
 		{{if $.Owner.Visibility.IsPrivate}}
 			{{svg "octicon-internal-repo" 32}}
+			<img class="ui avatar image" src="{{$.Owner.RelAvatarLink}}">
 		{{else}}
 			{{svg "octicon-repo" 32}}
 		{{end}}
