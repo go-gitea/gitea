@@ -190,8 +190,7 @@ func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 			if !requiredField && fieldValue.Uint() == 0 {
 				continue
 			}
-			t := int64(fieldValue.Uint())
-			val = reflect.ValueOf(&t).Interface()
+			val = fieldValue.Interface()
 		case reflect.Struct:
 			if fieldType.ConvertibleTo(schemas.TimeType) {
 				t := fieldValue.Convert(schemas.TimeType).Interface().(time.Time)
