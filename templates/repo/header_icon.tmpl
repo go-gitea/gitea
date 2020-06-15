@@ -6,7 +6,7 @@
 	{{end}}
 {{else}}
 	{{if $.IsPrivate}}
-		{{svg "octicon-lock" .size}}
+		{{svg "octicon-lock" 32}}
 	{{else if and (not $.IsMirror) (not $.IsFork) ($.Owner)}}
 		{{if $.Owner.Visibility.IsPrivate}}
 			{{svg "octicon-internal-repo" 32}}
