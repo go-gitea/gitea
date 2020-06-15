@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"github.com/mcuadros/go-version"
 	"image"
 	"image/color"
 	_ "image/gif"  // for processing gif images
@@ -497,20 +498,71 @@ func (c *Commit) GetTagName() (string, error) {
 	return strings.TrimSpace(data), nil
 }
 
-// GetBranchNames returns all branches a commit is part of
-func (c *Commit) GetBranchNames() (branchNames []string, err error) {
-	data, err := NewCommand("name-rev", c.ID.String()).RunInDirBytes(c.repo.Path)
+// GetBranchNamesForSha returns all branches with the ref/* prefix that belong to a sha commit hash
+func GetBranchNamesForSha(sha string, repoPath string) (branchNames []string, err error) {
+	r, err := OpenRepository(repoPath)
 	if err != nil {
 		return
 	}
+	defer r.Close()
+	commitID := MustIDFromString(sha)
+	tree := NewTree(r, commitID)
+	commit := &Commit{
+		Tree: *tree,
+		ID:   commitID,
+	}
 
-	namesRaw := strings.Split(string(data), "\n")
-	for _, s := range namesRaw {
-		s = strings.TrimSpace(s)
-		if s == "" {
-			continue
+	if version.Compare(gitVersion, "2.7", ">=") {
+		data, err := NewCommand(
+			"for-each-ref",
+			"--points-at="+commit.ID.String(),
+			"refs/heads",
+			"refs/pull",
+		).
+			RunInDirBytes(commit.repo.Path)
+		if err != nil {
+			return
 		}
-		branchNames = append(branchNames, strings.Split(strings.Split(s, " ")[1], "~")[0])
+		namesRaw := strings.Split(string(data), "\n")
+		for _, s := range namesRaw {
+			s = strings.TrimSpace(s)
+			if s == "" {
+				continue
+			}
+			branchNames = append(branchNames, strings.Split(strings.Split(s, " ")[1], "\t")[1])
+		}
+	} else {
+		data, err := NewCommand(
+			"name-ref",
+			"--refs='refs/heads/*'",
+			commit.ID.String(),
+		).
+			RunInDirBytes(commit.repo.Path)
+		if err != nil {
+			return
+		}
+
+		dataPulls, err := NewCommand(
+			"name-ref",
+			"--refs='refs/pull/*'",
+			commit.ID.String(),
+		).
+			RunInDirBytes(commit.repo.Path)
+		if err != nil {
+			return
+		}
+
+		namesRawPull := strings.Split(string(dataPulls), "\n")
+
+		namesRaw := strings.Split(string(data), "\n")
+		namesRaw = append(namesRaw, namesRawPull...)
+		for _, s := range namesRaw {
+			s = strings.TrimSpace(s)
+			if s == "" {
+				continue
+			}
+			branchNames = append(branchNames, strings.Split(strings.Split(s, " ")[1], "~")[0])
+		}
 	}
 
 	return

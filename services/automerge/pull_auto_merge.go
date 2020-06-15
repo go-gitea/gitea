@@ -19,19 +19,7 @@ import (
 // MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded
 // Maybe FIXME: Move the whole check this function does into a separate go routine and just ping from here?
 func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) {
-	// First, get the branch associated with that commit sha
-	r, err := git.OpenRepository(repo.RepoPath())
-	if err != nil {
-		return
-	}
-	defer r.Close()
-	commitID := git.MustIDFromString(sha)
-	tree := git.NewTree(r, commitID)
-	commit := &git.Commit{
-		Tree: *tree,
-		ID:   commitID,
-	}
-	branches, err := commit.GetBranchNames()
+	branches, err := git.GetBranchNamesForSha(sha, repo.RepoPath())
 	if err != nil {
 		return
 	}
@@ -40,6 +28,10 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		// We get the branch name with a \n at the end which is not in the db so we strip it out
 		branch = strings.Trim(branch, "\n")
 		// Then get all prs for that branch
+
+		// If the branch starts with "pull/*" we know we're dealing with a fork.
+		// In that case, head and base branch are not in the same repo and we need to do some extra work
+		// to get the pull request for this branch.
 		pr, err := models.GetPullRequestByHeadBranch(branch, repo)
 		if err != nil {
 			// If there is no pull request for this branch, we don't try to merge it.
