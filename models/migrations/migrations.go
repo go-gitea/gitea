@@ -217,6 +217,8 @@ var migrations = []Migration{
 	// v141 -> v142
 	NewMigration("Add KeepActivityPrivate to User table", addKeepActivityPrivateUserColumn),
 	// v142 -> v143
+	NewMigration("Ensure Repository.IsArchived is not null", setIsArchivedToFalse),
+	// v143 -> v144
 	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 

@@ -33,8 +33,6 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user/forgot_password",
 		"/api/swagger",
 		"/api/v1/swagger",
-		// TODO: follow this page and test every link
-		"/vendor/librejs.html",
 		"/user2/repo1",
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",

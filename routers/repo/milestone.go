@@ -90,7 +90,6 @@ func NewMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
-	ctx.Data["DateLang"] = setting.DateLang(ctx.Locale.Language())
 	ctx.HTML(200, tplMilestoneNew)
 }
 
@@ -99,7 +98,6 @@ func NewMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
-	ctx.Data["DateLang"] = setting.DateLang(ctx.Locale.Language())
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplMilestoneNew)
@@ -136,7 +134,6 @@ func EditMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
-	ctx.Data["DateLang"] = setting.DateLang(ctx.Locale.Language())
 
 	m, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -160,7 +157,6 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
-	ctx.Data["DateLang"] = setting.DateLang(ctx.Locale.Language())
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplMilestoneNew)

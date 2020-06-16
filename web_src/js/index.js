@@ -1,4 +1,3 @@
-/* globals wipPrefixes */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
@@ -14,7 +13,6 @@ import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initProject from './features/projects.js';
-import initDateTimePicker from './features/datetimepicker.js';
 import initServiceWorker from './features/serviceworker.js';
 import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
@@ -762,18 +760,6 @@ async function initRepository() {
 
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
-    const $datepicker = $('.milestone.datepicker');
-
-    await initDateTimePicker($datepicker.data('lang'));
-
-    $datepicker.datetimepicker({
-      inline: true,
-      timepicker: false,
-      startDate: $datepicker.data('start-date'),
-      onSelectDate(date) {
-        $('#deadline').val(date.toISOString().substring(0, 10));
-      },
-    });
     $('#clear-date').on('click', () => {
       $('#deadline').val('');
       return false;
@@ -1246,25 +1232,41 @@ function initPullRequestReview() {
       $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
     });
   $('.add-code-comment').on('click', function (e) {
-    // https://github.com/go-gitea/gitea/issues/4745
-    if ($(e.target).hasClass('btn-add-single')) {
-      return;
-    }
+    if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
+
     const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
     const side = $(this).data('side');
     const idx = $(this).data('idx');
     const path = $(this).data('path');
     const form = $('#pull_review_add_comment').html();
     const tr = $(this).closest('tr');
+
+    const oldLineNum = tr.find('.lines-num-old').data('line-num');
+    const newLineNum = tr.find('.lines-num-new').data('line-num');
+    const addCommentKey = `${oldLineNum}|${newLineNum}`;
+    if (document.querySelector(`[data-add-comment-key="${addCommentKey}"]`)) return; // don't add same comment box twice
+
     let ntr = tr.next();
     if (!ntr.hasClass('add-comment')) {
-      ntr = $(`<tr class="add-comment">${
-        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>' :
-          '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right" colspan="2"></td>'
-      }</tr>`);
+      ntr = $(`
+        <tr class="add-comment" data-add-comment-key="${addCommentKey}">
+          ${isSplit ? `
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-left"></td>
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-right"></td>
+          ` : `
+            <td class="lines-num"></td>
+            <td class="lines-num"></td>
+            <td class="add-comment-left add-comment-right" colspan="2"></td>
+          `}
+        </tr>`);
       tr.after(ntr);
     }
+
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0) {
@@ -2041,7 +2043,7 @@ function initCodeView() {
     box.dataset.folded = String(folded);
   });
   function insertBlobExcerpt(e) {
-    const $blob = $(e.target);
+    const $blob = $(e.currentTarget);
     const $row = $blob.parent().parent();
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
@@ -2184,8 +2186,9 @@ function initWipTitle() {
     $issueTitle.focus();
     const value = $issueTitle.val().trim().toUpperCase();
 
-    for (const i in wipPrefixes) {
-      if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+    const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
+    for (const prefix of wipPrefixes) {
+      if (value.startsWith(prefix.toUpperCase())) {
         return;
       }
     }
@@ -2478,10 +2481,9 @@ $(document).ready(async () => {
     'div.repository.settings.collaboration': initRepositoryCollaboration
   };
 
-  let selector;
-  for (selector in routes) {
+  for (const [selector, fn] of Object.entries(routes)) {
     if ($(selector).length > 0) {
-      routes[selector]();
+      fn();
       break;
     }
   }
@@ -2979,13 +2981,13 @@ function initVueComponents() {
       repoClass(repo) {
         if (repo.fork) {
           return 'octicon-repo-forked';
-        } if (repo.mirror) {
+        } else if (repo.mirror) {
           return 'octicon-repo-clone';
-        } if (repo.template) {
+        } else if (repo.template) {
           return `octicon-repo-template${repo.private ? '-private' : ''}`;
-        } if (repo.private) {
+        } else if (repo.private) {
           return 'octicon-lock';
-        } if (repo.internal) {
+        } else if (repo.internal) {
           return 'octicon-internal-repo';
         }
         return 'octicon-repo';

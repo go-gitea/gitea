@@ -61,7 +61,7 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/klauspost/compress v1.10.2
 	github.com/lafriks/xormstore v1.3.2
-	github.com/lib/pq v1.2.0
+	github.com/lib/pq v1.7.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/markbates/goth v1.61.2
@@ -120,5 +120,5 @@ require (
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.7
-	xorm.io/xorm v1.0.1
+	xorm.io/xorm v1.0.2
 )

@@ -1,5 +1,4 @@
 .repository {
-
     padding-top: 15px;
 
     .repo-header {
@@ -86,6 +85,10 @@
         }
 
         .ui.list {
+            &.assignees .icon {
+                line-height: 2em;
+            }
+
             .hide {
                 display: none !important;
             }
@@ -242,6 +245,12 @@
     }
 
     &.file.list {
+        &.blame {
+            .ui.container:not(.flex) {
+                width: 98%;
+            }
+        }
+
         .repo-description {
             display: flex;
             justify-content: space-between;
@@ -318,7 +327,7 @@
                     margin-right: 5px;
                     color: #777777;
 
-                    &.octicon-mail-reply {
+                    &.octicon-reply {
                         margin-right: 10px;
                     }
 
@@ -657,14 +666,18 @@
             }
 
             .review-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+
+                .review-item-left,
+                .review-item-right {
+                    display: flex;
+                    align-items: center;
+                }
 
                 .avatar,
                 .type-icon {
-                    float: none;
-                    display: inline-block;
-                    text-align: center;
-                    vertical-align: middle;
-
                     .svg {
                         width: 23px;
                         height: 23px;
@@ -676,8 +689,12 @@
                 }
 
                 .type-icon {
-                    float: right;
+                    align-self: flex-start;
                     margin-right: 1em;
+
+                    i {
+                        line-height: 1.8em;
+                    }
                 }
 
                 .divider {
@@ -995,8 +1012,17 @@
                     > .merge-section {
                         background-color: #f7f7f7;
 
-                        .item + .item {
-                            padding-top: .5rem;
+                        .item {
+                            padding: .25rem 0;
+                        }
+
+                        .item-section {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            padding: 0;
+                            margin-top: -.25rem;
+                            margin-bottom: -.25rem;
                         }
 
                         .divider {
@@ -1152,6 +1178,11 @@
 
                 .segments {
                     box-shadow: none;
+
+                    .show-outdated,
+                    .hide-outdated {
+                        display: block;
+                    }
                 }
             }
         }
@@ -1308,10 +1339,6 @@
     &.new.milestone {
         textarea {
             height: 200px;
-        }
-
-        #deadline {
-            width: 150px;
         }
     }
 
@@ -1629,7 +1656,6 @@
                 width: 1%;
                 min-width: 50px;
                 user-select: none;
-                vertical-align: top;
 
                 span.fold {
                     display: block;
