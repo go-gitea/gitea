@@ -65,6 +65,10 @@ type APINotFound struct{}
 // swagger:response redirect
 type APIRedirect struct{}
 
+//APIString is a string response
+// swagger:response string
+type APIString string
+
 // Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) Error(status int, title string, obj interface{}) {
@@ -77,6 +81,10 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, "%s: %s", title, message)
+
+		if macaron.Env == macaron.PROD {
+			message = ""
+		}
 	}
 
 	ctx.JSON(status, APIError{

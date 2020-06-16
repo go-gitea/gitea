@@ -38,7 +38,7 @@ require (
 	github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 // indirect
 	github.com/gliderlabs/ssh v0.2.2
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
-	github.com/go-enry/go-enry/v2 v2.3.0
+	github.com/go-enry/go-enry/v2 v2.5.2
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.0.0
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
@@ -72,6 +72,7 @@ require (
 	github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 	github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 	github.com/mgechev/revive v1.0.2
+	github.com/mholt/archiver/v3 v3.3.0
 	github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
@@ -94,7 +95,6 @@ require (
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/tstranex/u2f v1.0.0
-	github.com/unknwon/cae v1.0.0
 	github.com/unknwon/com v1.0.1
 	github.com/unknwon/i18n v0.0.0-20190805065654-5c6446a380b6
 	github.com/unknwon/paginater v0.0.0-20151104151617-7748a72e0141
@@ -121,5 +121,5 @@ require (
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.7
-	xorm.io/xorm v1.0.1
+	xorm.io/xorm v1.0.2
 )

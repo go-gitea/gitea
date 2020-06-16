@@ -406,6 +406,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		AllowRebaseMerge:          allowRebaseMerge,
 		AllowSquash:               allowSquash,
 		AvatarURL:                 repo.avatarLink(e),
+		Internal:                  !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 	}
 }
 
@@ -805,6 +806,14 @@ func (repo *Repository) updateSize(e Engine) error {
 	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %v", err)
+	}
+
+	objs, err := repo.GetLFSMetaObjects(-1, 0)
+	if err != nil {
+		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+	}
+	for _, obj := range objs {
+		size += obj.Size
 	}
 
 	repo.Size = size
@@ -1446,7 +1455,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 			return fmt.Errorf("getRepositoriesByForkID: %v", err)
 		}
 		for i := range forkRepos {
-			forkRepos[i].IsPrivate = repo.IsPrivate
+			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
 			if err = updateRepository(e, forkRepos[i], true); err != nil {
 				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
 			}
@@ -1601,67 +1610,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
-	// Delete comments and attachments
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Comment{}); err != nil {
-		return err
-	}
-
-	// Dependencies for issues in this repository
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	// Delete dependencies for issues in other repositories
-	if _, err = sess.In("dependency_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueUser{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Reaction{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueWatch{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Stopwatch{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&TrackedTime{}); err != nil {
-		return err
-	}
-
-	attachments = attachments[:0]
-	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
-		Where("issue.repo_id = ?", repoID).
-		Find(&attachments); err != nil {
-		return err
-	}
-	attachmentPaths := make([]string, 0, len(attachments))
-	for j := range attachments {
-		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Attachment{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+	// Delete Issues and related objects
+	var attachmentPaths []string
+	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
 		return err
 	}
 
@@ -1824,22 +1775,28 @@ func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, error) {
+func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
 
-	sess := x.
-		Where("owner_id = ?", opts.Actor.ID).
-		OrderBy(opts.OrderBy.String())
+	var cond = builder.NewCond()
+	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
-		sess.And("is_private=?", false)
+		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	sess = opts.setSessionPagination(sess)
+	sess := x.NewSession()
+	defer sess.Close()
 
+	count, err := sess.Where(cond).Count(new(Repository))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, opts.setSessionPagination(sess).Find(&repos)
+	return repos, count, opts.setSessionPagination(sess).Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.

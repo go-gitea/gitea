@@ -10,6 +10,7 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -505,10 +506,12 @@ func (c *Comment) LoadReview() error {
 	return c.loadReview(x)
 }
 
+var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
+
 func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
-	if err != nil && strings.Contains(err.Error(), "fatal: no such path") {
+	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
 		c.Invalidated = true
 		return UpdateComment(c, doer)
 	}

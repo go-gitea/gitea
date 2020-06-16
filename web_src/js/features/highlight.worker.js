@@ -1,7 +1,7 @@
 import {highlightBlock} from 'highlight.js';
 import {createWindow} from 'domino';
 
-self.onmessage = function ({data}) {
+self.addEventListener('message', ({data}) => {
   const window = createWindow();
   self.document = window.document;
 
@@ -9,4 +9,4 @@ self.onmessage = function ({data}) {
   document.body.innerHTML = html;
   highlightBlock(document.body.firstChild);
   self.postMessage({index, html: document.body.innerHTML});
-};
+});
