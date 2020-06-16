@@ -37,7 +37,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	context2 "github.com/gorilla/context"
 	"github.com/unknwon/com"
-	"gopkg.in/testfixtures.v2"
 	"xorm.io/xorm"
 )
 
@@ -96,14 +95,12 @@ func runPR() {
 	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
-	var helper testfixtures.Helper = &testfixtures.SQLite{}
 	models.NewEngine(context.Background(), func(_ *xorm.Engine) error {
 		return nil
 	})
 	models.HasEngine = true
 	//x.ShowSQL(true)
 	err = models.InitFixtures(
-		helper,
 		path.Join(curDir, "models/fixtures/"),
 	)
 	if err != nil {

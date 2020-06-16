@@ -487,7 +487,7 @@ func FormatTimestamp(t time.Time) []byte {
 	b := []byte(t.Format("2006-01-02 15:04:05.999999999Z07:00"))
 
 	_, offset := t.Zone()
-	offset = offset % 60
+	offset %= 60
 	if offset != 0 {
 		// RFC3339Nano already printed the minus sign
 		if offset < 0 {
