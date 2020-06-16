@@ -253,11 +253,6 @@ func deleteProjectByID(e Engine, id int64) error {
 		return err
 	}
 
-	repo, err := getRepositoryByID(e, p.RepoID)
-	if err != nil {
-		return err
-	}
-
 	if err := deleteProjectIssuesByProjectID(e, id); err != nil {
 		return err
 	}
@@ -270,20 +265,20 @@ func deleteProjectByID(e Engine, id int64) error {
 		return err
 	}
 
-	numProjects, err := countRepoProjects(e, repo.ID)
+	numProjects, err := countRepoProjects(e, p.RepoID)
 	if err != nil {
 		return err
 	}
 
-	numClosedProjects, err := countRepoClosedProjects(e, repo.ID)
+	numClosedProjects, err := countRepoClosedProjects(e, p.RepoID)
 	if err != nil {
 		return err
 	}
 
-	repo.NumProjects = int(numProjects)
-	repo.NumClosedProjects = int(numClosedProjects)
-
-	if _, err = e.ID(repo.ID).Cols("num_projects, num_closed_projects").Update(repo); err != nil {
+	if _, err = e.ID(p.RepoID).Cols("num_projects, num_closed_projects").Update(&Repository{
+		NumProjects:       int(numProjects),
+		NumClosedProjects: int(numClosedProjects),
+	}); err != nil {
 		return err
 	}
 

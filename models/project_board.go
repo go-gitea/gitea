@@ -82,7 +82,6 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 	for _, v := range items {
 		boards = append(boards, ProjectBoard{
 			CreatedUnix: timeutil.TimeStampNow(),
-			UpdatedUnix: timeutil.TimeStampNow(),
 			CreatorID:   project.CreatorID,
 			Title:       v,
 			ProjectID:   project.ID,
@@ -163,11 +162,9 @@ func UpdateProjectBoard(board *ProjectBoard) error {
 }
 
 func updateProjectBoard(e Engine, board *ProjectBoard) error {
-	board.UpdatedUnix = timeutil.TimeStampNow()
 	_, err := e.ID(board.ID).Cols(
 		"title",
 		"default",
-		"updated_unix",
 	).Update(board)
 	return err
 }
