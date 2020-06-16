@@ -61,7 +61,7 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/klauspost/compress v1.10.2
 	github.com/lafriks/xormstore v1.3.2
-	github.com/lib/pq v1.2.0
+	github.com/lib/pq v1.7.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/markbates/goth v1.61.2
