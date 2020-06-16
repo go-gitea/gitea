@@ -198,36 +198,31 @@ func countRepoClosedProjects(e Engine, repoID int64) (int64, error) {
 // ChangeProjectStatus toggle a project between opened and closed
 func ChangeProjectStatus(p *Project, isClosed bool) error {
 
-	repo, err := GetRepositoryByID(p.RepoID)
-	if err != nil {
-		return err
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
 	p.IsClosed = isClosed
-	if _, err = sess.ID(p.ID).Cols("is_closed").Update(p); err != nil {
+	if _, err := sess.ID(p.ID).Cols("is_closed").Update(p); err != nil {
 		return err
 	}
 
-	numProjects, err := countRepoProjects(sess, repo.ID)
+	numProjects, err := countRepoProjects(sess, p.RepoID)
 	if err != nil {
 		return err
 	}
 
-	numClosedProjects, err := countRepoClosedProjects(sess, repo.ID)
+	numClosedProjects, err := countRepoClosedProjects(sess, p.RepoID)
 	if err != nil {
 		return err
 	}
 
-	repo.NumProjects = int(numProjects)
-	repo.NumClosedProjects = int(numClosedProjects)
-
-	if _, err = sess.ID(repo.ID).Cols("num_projects, num_closed_projects").Update(repo); err != nil {
+	if _, err = sess.ID(p.RepoID).Cols("num_projects, num_closed_projects").Update(&Repository{
+		NumProjects:       int(numProjects),
+		NumClosedProjects: int(numClosedProjects),
+	}); err != nil {
 		return err
 	}
 
