@@ -433,7 +433,7 @@ func (i IssueLockForm) HasValidReason() bool {
 
 // CreateProjectForm form for creating a project
 type CreateProjectForm struct {
-	Title     string `binding:"Required;MaxSize(50)"`
+	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
 	BoardType models.ProjectBoardType
 }
@@ -441,7 +441,7 @@ type CreateProjectForm struct {
 // UserCreateProjectForm is a from for creating an individual or organization
 // form.
 type UserCreateProjectForm struct {
-	Title     string `binding:"Required;MaxSize(50)"`
+	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
 	BoardType models.ProjectBoardType
 	UID       int64 `binding:"Required"`
@@ -450,7 +450,7 @@ type UserCreateProjectForm struct {
 // EditProjectBoardTitleForm is a form for editing the title of a project's
 // board
 type EditProjectBoardTitleForm struct {
-	Title string `binding:"Required;MaxSize(50)"`
+	Title string `binding:"Required;MaxSize(100)"`
 }
 
 //    _____  .__.__                   __

@@ -181,11 +181,11 @@ func GetProjectBoards(projectID int64) ([]*ProjectBoard, error) {
 	return boards, sess.Find(&boards)
 }
 
-// GetUnCategorizedBoard represents a board for issues not assigned to one
-func GetUnCategorizedBoard(projectID int64) (*ProjectBoard, error) {
+// GetUncategorizedBoard represents a board for issues not assigned to one
+func GetUncategorizedBoard(projectID int64) (*ProjectBoard, error) {
 	return &ProjectBoard{
 		ProjectID: projectID,
-		Title:     "UnCategorized",
+		Title:     "Uncategorized",
 		Default:   true,
 	}, nil
 }

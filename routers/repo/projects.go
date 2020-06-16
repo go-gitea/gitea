@@ -279,10 +279,10 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	unCategorizedBoard, err := models.GetUnCategorizedBoard(project.ID)
-	unCategorizedBoard.Title = ctx.Tr("repo.projects.type.uncategorized")
+	uncategorizedBoard, err := models.GetUncategorizedBoard(project.ID)
+	uncategorizedBoard.Title = ctx.Tr("repo.projects.type.uncategorized")
 	if err != nil {
-		ctx.ServerError("GetUnCategorizedBoard", err)
+		ctx.ServerError("GetUncategorizedBoard", err)
 		return
 	}
 
@@ -292,7 +292,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	allBoards := models.ProjectBoardList{unCategorizedBoard}
+	allBoards := models.ProjectBoardList{uncategorizedBoard}
 	allBoards = append(allBoards, boards...)
 
 	if ctx.Data["Issues"], err = allBoards.LoadIssues(); err != nil {
