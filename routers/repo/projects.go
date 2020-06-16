@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -160,7 +159,6 @@ func ChangeProjectStatus(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=open")
 	case "close":
 		if !p.IsClosed {
-			p.ClosedDateUnix = timeutil.TimeStampNow()
 			if err = models.ChangeProjectStatus(p, true); err != nil {
 				ctx.ServerError("ChangeProjectStatus", err)
 				return

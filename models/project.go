@@ -203,7 +203,8 @@ func ChangeProjectStatus(p *Project, isClosed bool) error {
 	}
 
 	p.IsClosed = isClosed
-	if _, err := sess.ID(p.ID).Cols("is_closed").Update(p); err != nil {
+	p.ClosedDateUnix = timeutil.TimeStampNow()
+	if _, err := sess.ID(p.ID).Cols("is_closed", "closed_date_unix").Update(p); err != nil {
 		return err
 	}
 
