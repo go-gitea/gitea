@@ -437,6 +437,8 @@ github.com/lestrrat-go/jwx v0.9.0/go.mod h1:iEoxlYfZjvoGpuWwxUz+eR5e6KTJGsaRcy/Y
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.2.0 h1:LXpIM/LZ5xGFhOpXAQUIMM1HdyqzVYM13zNdjCEEcA0=
 github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
+github.com/lib/pq v1.7.0 h1:h93mCPfUSkaul3Ka/VG8uZdmW1uMHDGxzu0NWHuJmHY=
+github.com/lib/pq v1.7.0/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96 h1:uNwtsDp7ci48vBTTxDuwcoTXz4lwtDTe7TjCQ0noaWY=
 github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96/go.mod h1:mmIfjCSQlGYXmJ95jFN84AkQFnVABtKuJL8IrzwvUKQ=
 github.com/lunny/log v0.0.0-20160921050905-7887c61bf0de h1:nyxwRdWHAVxpFcDThedEgQ07DbcRc5xgNObtbTp76fk=

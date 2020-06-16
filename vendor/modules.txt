@@ -451,7 +451,7 @@ github.com/kr/text
 ## explicit
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
-# github.com/lib/pq v1.2.0
+# github.com/lib/pq v1.7.0
 ## explicit
 github.com/lib/pq
 github.com/lib/pq/oid
