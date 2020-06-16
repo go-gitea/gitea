@@ -128,7 +128,16 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	if pr.Status == models.PullRequestStatusChecking {
 		pr.Status = models.PullRequestStatusMergeable
 	}
-	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "base_branch"); err != nil {
+
+	// Update Commit Divergence
+	divergence, err := GetDiverging(pr)
+	if err != nil {
+		return err
+	}
+	pr.CommitsAhead = divergence.Ahead
+	pr.CommitsBehind = divergence.Behind
+
+	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
 		return err
 	}
 
