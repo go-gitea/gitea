@@ -17,8 +17,7 @@ var fixtures *testfixtures.Loader
 
 // InitFixtures initialize test fixtures for a test database
 func InitFixtures(dir string) (err error) {
-	var testfiles func(loader *testfixtures.Loader) error
-	testfiles = testfixtures.Directory(dir)
+	testfiles := testfixtures.Directory(dir)
 	dialect := "unknown"
 	switch x.Dialect().URI().DBType {
 	case schemas.POSTGRES:
