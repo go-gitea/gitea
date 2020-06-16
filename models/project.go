@@ -175,11 +175,9 @@ func UpdateProject(p *Project) error {
 }
 
 func updateProject(e Engine, p *Project) error {
-	p.UpdatedUnix = timeutil.TimeStampNow()
 	_, err := e.ID(p.ID).Cols(
 		"title",
 		"description",
-		"updated_unix",
 	).Update(p)
 	return err
 }
