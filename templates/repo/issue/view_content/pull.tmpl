@@ -7,51 +7,55 @@
 					{{ $createdStr:= TimeSinceUnix .UpdatedUnix $.Lang }}
 					<div class="ui divider"></div>
 					<div class="review-item">
-						<span class="type-icon text {{if eq .Type 1}}green
-							{{- else if eq .Type 2}}grey
-							{{- else if eq .Type 3}}red
-							{{- else if eq .Type 4}}yellow
-							{{else}}grey{{end}}">
-
-							{{$canChoose := false}}
-							{{if eq .Type 4}}
-								{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
-									{{$canChoose = true}}
+						<div class="review-item-left">
+							<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
+								<img src="{{.Reviewer.RelAvatarLink}}">
+							</a>
+							<span class="text grey"><a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
+								{{if eq .Type 1}}
+									{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
+								{{else if eq .Type 2}}
+									{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+								{{else if eq .Type 3}}
+									{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+								{{else if eq .Type 4}}
+									{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
+								{{else}}
+									{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 								{{end}}
-							{{else}}
-								{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
-									{{$canChoose = true}}
-								{{end}}
+							</span>
+						</div>
+						<div class="review-item-right">
+							{{if .Stale}}
+							<span class="type-icon text grey">
+								<i class="octicon icon fa-hourglass-end"></i>
+							</span>
 							{{end}}
+							<span class="type-icon text {{if eq .Type 1}}green
+								{{- else if eq .Type 2}}grey
+								{{- else if eq .Type 3}}red
+								{{- else if eq .Type 4}}yellow
+								{{else}}grey{{end}}">
 
-							{{if $canChoose }}
-								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-									{{svg "octicon-sync" 16}}
-								</a>
-							{{end}}
-							{{svg (printf "octicon-%s" .Type.Icon) 16}}
-						</span>
-						{{if .Stale}}
-						<span class="type-icon text grey">
-							<i class="octicon icon fa-hourglass-end"></i>
-						</span>
-						{{end}}
-						<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
-							<img src="{{.Reviewer.RelAvatarLink}}">
-						</a>
-						<span class="text grey"><a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
-							{{if eq .Type 1}}
-								{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
-							{{else if eq .Type 2}}
-								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
-							{{else if eq .Type 3}}
-								{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
-							{{else if eq .Type 4}}
-								{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
-							{{else}}
-								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
-							{{end}}
-						</span>
+								{{$canChoose := false}}
+								{{if eq .Type 4}}
+									{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
+										{{$canChoose = true}}
+									{{end}}
+								{{else}}
+									{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
+										{{$canChoose = true}}
+									{{end}}
+								{{end}}
+
+								{{if $canChoose }}
+									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+										{{svg "octicon-sync" 16}}
+									</a>
+								{{end}}
+								{{svg (printf "octicon-%s" .Type.Icon) 16}}
+							</span>
+						</div>
 					</div>
 				{{end}}
 			</div>

@@ -451,7 +451,7 @@ github.com/kr/text
 ## explicit
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
-# github.com/lib/pq v1.2.0
+# github.com/lib/pq v1.7.0
 ## explicit
 github.com/lib/pq
 github.com/lib/pq/oid
@@ -878,7 +878,7 @@ strk.kbt.io/projects/go/libravatar
 # xorm.io/builder v0.3.7
 ## explicit
 xorm.io/builder
-# xorm.io/xorm v1.0.1
+# xorm.io/xorm v1.0.2
 ## explicit
 xorm.io/xorm
 xorm.io/xorm/caches
