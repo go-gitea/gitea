@@ -46,23 +46,34 @@ func TestCreateRepositoryNotice(t *testing.T) {
 
 func TestCountNotices(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	assert.Equal(t, int64(3), CountNotices())
+	num, err := CountNotices(0)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(3), num)
+	num, err = CountNotices(2)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), num)
 }
 
 func TestNotices(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	notices, err := Notices(1, 2)
+	notices, err := Notices(0, 1, 2)
 	assert.NoError(t, err)
 	if assert.Len(t, notices, 2) {
 		assert.Equal(t, int64(3), notices[0].ID)
 		assert.Equal(t, int64(2), notices[1].ID)
 	}
 
-	notices, err = Notices(2, 2)
+	notices, err = Notices(0, 2, 2)
 	assert.NoError(t, err)
 	if assert.Len(t, notices, 1) {
 		assert.Equal(t, int64(1), notices[0].ID)
+	}
+
+	notices, err = Notices(2, 1, 2)
+	assert.NoError(t, err)
+	if assert.Len(t, notices, 1) {
+		assert.Equal(t, int64(3), notices[0].ID)
 	}
 }
 

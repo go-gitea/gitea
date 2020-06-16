@@ -25,13 +25,19 @@ func Notices(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminNotices"] = true
 
-	total := models.CountNotices()
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
 	}
 
-	notices, err := models.Notices(page, setting.UI.Admin.NoticePagingNum)
+	typ := ctx.QueryInt("type")
+	total, err := models.CountNotices(typ)
+	if err != nil {
+		ctx.ServerError("CountNotices", err)
+		return
+	}
+
+	notices, err := models.Notices(typ, page, setting.UI.Admin.NoticePagingNum)
 	if err != nil {
 		ctx.ServerError("Notices", err)
 		return
@@ -40,7 +46,11 @@ func Notices(ctx *context.Context) {
 
 	ctx.Data["Total"] = total
 
-	ctx.Data["Page"] = context.NewPagination(int(total), setting.UI.Admin.NoticePagingNum, page, 5)
+	p := context.NewPagination(int(total), setting.UI.Admin.NoticePagingNum, page, 5)
+	ctx.Data["Page"] = p
+
+	ctx.Data["NoticesType"] = typ
+	p.AddParam(ctx, "type", "NoticesType")
 
 	ctx.HTML(200, tplNotices)
 }

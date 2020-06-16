@@ -10,5 +10,5 @@
 
 -
   id: 3
-  type: 1 # NoticeRepository
+  type: 2 # NoticeTaskSuccess
   description: description3

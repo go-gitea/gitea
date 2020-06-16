@@ -5,6 +5,26 @@
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.notices.system_notice_list"}} ({{.i18n.Tr "admin.total" .Total}})
+			<div class="ui floating dropdown small teal button">
+				<span class="text">
+					{{.i18n.Tr "admin.notices.type_filter"}} : 
+					{{if eq .NoticesType 1}}
+						{{.i18n.Tr "admin.notices.type_1"}}
+					{{else if eq .NoticesType 2}}
+						{{.i18n.Tr "admin.notices.type_2"}}
+					{{else if eq .NoticesType 3}}
+						{{.i18n.Tr "admin.notices.type_3"}}
+					{{else}}
+						{{.i18n.Tr "admin.notices.type_all"}}
+					{{end}}
+				</span>
+				<div class="menu">
+					<a class="item" href="{{$.Link}}?type=1">{{.i18n.Tr "admin.notices.type_1"}}</a>
+					<a class="item" href="{{$.Link}}?type=2">{{.i18n.Tr "admin.notices.type_2"}}</a>
+					<a class="item" href="{{$.Link}}?type=3">{{.i18n.Tr "admin.notices.type_3"}}</a>
+					<a class="item" href="{{$.Link}}">{{.i18n.Tr "admin.notices.type_all"}}</a>
+				</div>
+			</div>
 		</h4>
 		<div class="ui attached table segment">
 			<table id="notice-table" class="ui very basic select selectable table">
