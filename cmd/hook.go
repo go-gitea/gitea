@@ -47,7 +47,7 @@ var (
 		Description: "This command should only be called by Git",
 		Action:      runHookPreReceive,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
@@ -58,7 +58,7 @@ var (
 		Description: "This command should only be called by Git",
 		Action:      runHookUpdate,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},
@@ -69,7 +69,7 @@ var (
 		Description: "This command should only be called by Git",
 		Action:      runHookPostReceive,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},

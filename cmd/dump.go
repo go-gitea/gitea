@@ -160,7 +160,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Aliases: []string{"L"},
 			Usage:   "Skip the log dumping",
 		},
-		cli.GenericFlag{
+		&cli.GenericFlag{
 			Name:  "type",
 			Value: outputTypeEnum,
 			Usage: fmt.Sprintf("Dump output format: %s", outputTypeEnum.Join()),
