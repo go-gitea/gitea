@@ -134,6 +134,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["readme"] = "Default"
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
