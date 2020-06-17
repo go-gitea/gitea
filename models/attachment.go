@@ -136,9 +136,8 @@ func GetAttachmentByID(id int64) (*Attachment, error) {
 }
 
 func getAttachmentByID(e Engine, id int64) (*Attachment, error) {
-	attach := &Attachment{ID: id}
-
-	if has, err := e.Get(attach); err != nil {
+	attach := &Attachment{}
+	if has, err := e.ID(id).Get(attach); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrAttachmentNotExist{ID: id, UUID: ""}
@@ -147,8 +146,8 @@ func getAttachmentByID(e Engine, id int64) (*Attachment, error) {
 }
 
 func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
-	attach := &Attachment{UUID: uuid}
-	has, err := e.Get(attach)
+	attach := &Attachment{}
+	has, err := e.Where("uuid=?", uuid).Get(attach)
 	if err != nil {
 		return nil, err
 	} else if !has {
