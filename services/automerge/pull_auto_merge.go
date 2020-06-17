@@ -47,15 +47,22 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 			}
 
 			pr, err = models.GetPullRequestByIndex(repo.ID, prIndex)
+			if err != nil {
+				// If there is no pull request for this branch, we don't try to merge it.
+				if models.IsErrPullRequestNotExist(err) {
+					continue
+				}
+				return err
+			}
 		} else {
 			pr, err = models.GetPullRequestByHeadBranch(branch, repo)
-		}
-		if err != nil {
-			// If there is no pull request for this branch, we don't try to merge it.
-			if models.IsErrPullRequestNotExist(err) {
-				continue
+			if err != nil {
+				// If there is no pull request for this branch, we don't try to merge it.
+				if models.IsErrPullRequestNotExist(err) {
+					continue
+				}
+				return err
 			}
-			return err
 		}
 		if pr.HasMerged {
 			log.Info("PR scheduled for auto merge is already merged [ID: %d", pr.ID)

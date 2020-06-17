@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"github.com/mcuadros/go-version"
 	"image"
 	"image/color"
 	_ "image/gif"  // for processing gif images
@@ -22,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/mcuadros/go-version"
 )
 
 // Commit represents a git commit.
