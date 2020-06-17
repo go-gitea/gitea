@@ -1,4 +1,4 @@
-// Copyright (C) 2014 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
+// Copyright (C) 2019 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
 // Copyright (C) 2018 G.J.R. Timmer <gjr.timmer@gmail.com>.
 //
 // Use of this source code is governed by an MIT-style
@@ -183,6 +183,12 @@ static int _sqlite3_limit(sqlite3* db, int limitId, int newLimit) {
   return sqlite3_limit(db, limitId, newLimit);
 #endif
 }
+
+#if SQLITE_VERSION_NUMBER < 3012000
+static int sqlite3_system_errno(sqlite3 *db) {
+  return 0;
+}
+#endif
 */
 import "C"
 import (
@@ -198,6 +204,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 	"unsafe"
 )
@@ -328,7 +335,7 @@ type SQLiteRows struct {
 	decltype []string
 	cls      bool
 	closed   bool
-	done     chan struct{}
+	ctx      context.Context // no better alternative to pass context into Next() method
 }
 
 type functionInfo struct {
@@ -749,15 +756,28 @@ func (c *SQLiteConn) lastError() error {
 	return lastError(c.db)
 }
 
+// Note: may be called with db == nil
 func lastError(db *C.sqlite3) error {
-	rv := C.sqlite3_errcode(db)
+	rv := C.sqlite3_errcode(db) // returns SQLITE_NOMEM if db == nil
 	if rv == C.SQLITE_OK {
 		return nil
 	}
+	extrv := C.sqlite3_extended_errcode(db)    // returns SQLITE_NOMEM if db == nil
+	errStr := C.GoString(C.sqlite3_errmsg(db)) // returns "out of memory" if db == nil
+
+	// https://www.sqlite.org/c3ref/system_errno.html
+	// sqlite3_system_errno is only meaningful if the error code was SQLITE_CANTOPEN,
+	// or it was SQLITE_IOERR and the extended code was not SQLITE_IOERR_NOMEM
+	var systemErrno syscall.Errno
+	if rv == C.SQLITE_CANTOPEN || (rv == C.SQLITE_IOERR && extrv != C.SQLITE_IOERR_NOMEM) {
+		systemErrno = syscall.Errno(C.sqlite3_system_errno(db))
+	}
+
 	return Error{
 		Code:         ErrNo(rv),
-		ExtendedCode: ErrNoExtended(C.sqlite3_extended_errcode(db)),
-		err:          C.GoString(C.sqlite3_errmsg(db)),
+		ExtendedCode: ErrNoExtended(extrv),
+		SystemErrno:  systemErrno,
+		err:          errStr,
 	}
 }
 
@@ -869,10 +889,6 @@ func (c *SQLiteConn) begin(ctx context.Context) (driver.Tx, error) {
 	return &SQLiteTx{c}, nil
 }
 
-func errorString(err Error) string {
-	return C.GoString(C.sqlite3_errstr(C.int(err.Code)))
-}
-
 // Open database and return a new connection.
 //
 // A pragma can take either zero or one argument.
@@ -897,7 +913,7 @@ func errorString(err Error) string {
 //      - rwc
 //      - memory
 //
-//   shared
+//   cache
 //     SQLite Shared-Cache Mode
 //     https://www.sqlite.org/sharedcache.html
 //     Values:
@@ -1000,7 +1016,7 @@ func (d *SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	deferForeignKeys := -1
 	foreignKeys := -1
 	ignoreCheckConstraints := -1
-	journalMode := "DELETE"
+	var journalMode string
 	lockingMode := "NORMAL"
 	queryOnly := -1
 	recursiveTriggers := -1
@@ -1232,7 +1248,7 @@ func (d *SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 		if _, ok := params["_locking"]; ok {
 			pkey = "_locking"
 		}
-		if val := params.Get("_locking"); val != "" {
+		if val := params.Get(pkey); val != "" {
 			switch strings.ToUpper(val) {
 			case "NORMAL", "EXCLUSIVE":
 				lockingMode = strings.ToUpper(val)
@@ -1342,10 +1358,13 @@ func (d *SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 		mutex|C.SQLITE_OPEN_READWRITE|C.SQLITE_OPEN_CREATE,
 		nil)
 	if rv != 0 {
+		// Save off the error _before_ closing the database.
+		// This is safe even if db is nil.
+		err := lastError(db)
 		if db != nil {
 			C.sqlite3_close_v2(db)
 		}
-		return nil, Error{Code: ErrNo(rv)}
+		return nil, err
 	}
 	if db == nil {
 		return nil, errors.New("sqlite succeeded without returning a database")
@@ -1522,10 +1541,10 @@ func (d *SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 		// Before going any further, we need to check that the user
 		// has provided an username and password within the DSN.
 		// We are not allowed to continue.
-		if len(authUser) < 0 {
+		if len(authUser) == 0 {
 			return nil, fmt.Errorf("Missing '_auth_user' while user authentication was requested with '_auth'")
 		}
-		if len(authPass) < 0 {
+		if len(authPass) == 0 {
 			return nil, fmt.Errorf("Missing '_auth_pass' while user authentication was requested with '_auth'")
 		}
 
@@ -1571,10 +1590,11 @@ func (d *SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	}
 
 	// Journal Mode
-	// Because default Journal Mode is DELETE this PRAGMA can always be executed.
-	if err := exec(fmt.Sprintf("PRAGMA journal_mode = %s;", journalMode)); err != nil {
-		C.sqlite3_close_v2(db)
-		return nil, err
+	if journalMode != "" {
+		if err := exec(fmt.Sprintf("PRAGMA journal_mode = %s;", journalMode)); err != nil {
+			C.sqlite3_close_v2(db)
+			return nil, err
+		}
 	}
 
 	// Locking Mode
@@ -1846,28 +1866,13 @@ func (s *SQLiteStmt) query(ctx context.Context, args []namedValue) (driver.Rows,
 		decltype: nil,
 		cls:      s.cls,
 		closed:   false,
-		done:     make(chan struct{}),
-	}
-
-	if ctxdone := ctx.Done(); ctxdone != nil {
-		go func(db *C.sqlite3) {
-			select {
-			case <-ctxdone:
-				select {
-				case <-rows.done:
-				default:
-					C.sqlite3_interrupt(db)
-					rows.Close()
-				}
-			case <-rows.done:
-			}
-		}(s.c.db)
+		ctx:      ctx,
 	}
 
 	return rows, nil
 }
 
-// LastInsertId teturn last inserted ID.
+// LastInsertId return last inserted ID.
 func (r *SQLiteResult) LastInsertId() (int64, error) {
 	return r.id, nil
 }
@@ -1889,27 +1894,41 @@ func (s *SQLiteStmt) Exec(args []driver.Value) (driver.Result, error) {
 	return s.exec(context.Background(), list)
 }
 
+// exec executes a query that doesn't return rows. Attempts to honor context timeout.
 func (s *SQLiteStmt) exec(ctx context.Context, args []namedValue) (driver.Result, error) {
+	if ctx.Done() == nil {
+		return s.execSync(args)
+	}
+
+	type result struct {
+		r   driver.Result
+		err error
+	}
+	resultCh := make(chan result)
+	go func() {
+		r, err := s.execSync(args)
+		resultCh <- result{r, err}
+	}()
+	select {
+	case rv := <-resultCh:
+		return rv.r, rv.err
+	case <-ctx.Done():
+		select {
+		case <-resultCh: // no need to interrupt
+		default:
+			// this is still racy and can be no-op if executed between sqlite3_* calls in execSync.
+			C.sqlite3_interrupt(s.c.db)
+			<-resultCh // ensure goroutine completed
+		}
+		return nil, ctx.Err()
+	}
+}
+
+func (s *SQLiteStmt) execSync(args []namedValue) (driver.Result, error) {
 	if err := s.bind(args); err != nil {
 		C.sqlite3_reset(s.s)
 		C.sqlite3_clear_bindings(s.s)
 		return nil, err
-	}
-
-	if ctxdone := ctx.Done(); ctxdone != nil {
-		done := make(chan struct{})
-		defer close(done)
-		go func(db *C.sqlite3) {
-			select {
-			case <-done:
-			case <-ctxdone:
-				select {
-				case <-done:
-				default:
-					C.sqlite3_interrupt(db)
-				}
-			}
-		}(s.c.db)
 	}
 
 	var rowid, changes C.longlong
@@ -1932,9 +1951,6 @@ func (rc *SQLiteRows) Close() error {
 		return nil
 	}
 	rc.closed = true
-	if rc.done != nil {
-		close(rc.done)
-	}
 	if rc.cls {
 		rc.s.mu.Unlock()
 		return rc.s.Close()
@@ -1978,13 +1994,39 @@ func (rc *SQLiteRows) DeclTypes() []string {
 	return rc.declTypes()
 }
 
-// Next move cursor to next.
+// Next move cursor to next. Attempts to honor context timeout from QueryContext call.
 func (rc *SQLiteRows) Next(dest []driver.Value) error {
 	rc.s.mu.Lock()
 	defer rc.s.mu.Unlock()
+
 	if rc.s.closed {
 		return io.EOF
 	}
+
+	if rc.ctx.Done() == nil {
+		return rc.nextSyncLocked(dest)
+	}
+	resultCh := make(chan error)
+	go func() {
+		resultCh <- rc.nextSyncLocked(dest)
+	}()
+	select {
+	case err := <-resultCh:
+		return err
+	case <-rc.ctx.Done():
+		select {
+		case <-resultCh: // no need to interrupt
+		default:
+			// this is still racy and can be no-op if executed between sqlite3_* calls in nextSyncLocked.
+			C.sqlite3_interrupt(rc.s.c.db)
+			<-resultCh // ensure goroutine completed
+		}
+		return rc.ctx.Err()
+	}
+}
+
+// nextSyncLocked moves cursor to next; must be called with locked mutex.
+func (rc *SQLiteRows) nextSyncLocked(dest []driver.Value) error {
 	rv := C._sqlite3_step_internal(rc.s.s)
 	if rv == C.SQLITE_DONE {
 		return io.EOF
