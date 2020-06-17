@@ -152,7 +152,9 @@ func (ci *copyin) resploop() {
 		case 'C':
 			// complete
 		case 'N':
-			// NoticeResponse
+			if n := ci.cn.noticeHandler; n != nil {
+				n(parseError(&r))
+			}
 		case 'Z':
 			ci.cn.processReadyForQuery(&r)
 			ci.done <- true
