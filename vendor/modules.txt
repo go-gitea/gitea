@@ -333,6 +333,9 @@ github.com/go-swagger/go-swagger/cmd/swagger/commands/initcmd
 github.com/go-swagger/go-swagger/codescan
 github.com/go-swagger/go-swagger/generator
 github.com/go-swagger/go-swagger/scan
+# github.com/go-testfixtures/testfixtures/v3 v3.2.0
+## explicit
+github.com/go-testfixtures/testfixtures/v3
 # github.com/gobwas/glob v0.2.3
 ## explicit
 github.com/gobwas/glob
@@ -409,8 +412,6 @@ github.com/jbenet/go-context/io
 # github.com/jessevdk/go-flags v1.4.0
 github.com/jessevdk/go-flags
 # github.com/jmhodges/levigo v1.0.0
-## explicit
-# github.com/joho/godotenv v1.3.0
 ## explicit
 # github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 ## explicit
@@ -496,11 +497,9 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.11
 ## explicit
 github.com/mattn/go-isatty
-# github.com/mattn/go-oci8 v0.0.0-20190320171441-14ba190cf52d
-## explicit
 # github.com/mattn/go-runewidth v0.0.7
 github.com/mattn/go-runewidth
-# github.com/mattn/go-sqlite3 v1.11.0
+# github.com/mattn/go-sqlite3 v2.0.2+incompatible
 ## explicit
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -613,7 +612,7 @@ github.com/spf13/afero/mem
 github.com/spf13/cast
 # github.com/spf13/jwalterweatherman v1.1.0
 github.com/spf13/jwalterweatherman
-# github.com/spf13/pflag v1.0.3
+# github.com/spf13/pflag v1.0.5
 github.com/spf13/pflag
 # github.com/spf13/viper v1.4.0
 github.com/spf13/viper
@@ -861,12 +860,9 @@ gopkg.in/ini.v1
 # gopkg.in/ldap.v3 v3.0.2
 ## explicit
 gopkg.in/ldap.v3
-# gopkg.in/testfixtures.v2 v2.5.0
-## explicit
-gopkg.in/testfixtures.v2
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
-# gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.3.0
 ## explicit
 gopkg.in/yaml.v2
 # mvdan.cc/xurls/v2 v2.1.0

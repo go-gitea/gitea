@@ -23,7 +23,7 @@ _testmain.go
 *.test
 *.prof
 
-# SQLite databases
 *.sqlite3
-
 .env
+/testfixtures
+/dist
