@@ -8,13 +8,12 @@ import (
 const (
 	paramTypeDollar = iota + 1
 	paramTypeQuestion
-	paramTypeColon
+	paramTypeAtSign
 )
 
 type loadFunction func(tx *sql.Tx) error
 
-// Helper is the generic interface for the database helper
-type Helper interface {
+type helper interface {
 	init(*sql.DB) error
 	disableReferentialIntegrity(*sql.DB, loadFunction) error
 	paramType() int
@@ -43,11 +42,10 @@ type batchSplitter interface {
 }
 
 var (
-	_ Helper = &MySQL{}
-	_ Helper = &PostgreSQL{}
-	_ Helper = &SQLite{}
-	_ Helper = &Oracle{}
-	_ Helper = &SQLServer{}
+	_ helper = &mySQL{}
+	_ helper = &postgreSQL{}
+	_ helper = &sqlite{}
+	_ helper = &sqlserver{}
 )
 
 type baseHelper struct{}
