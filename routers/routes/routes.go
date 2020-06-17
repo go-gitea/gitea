@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/themes"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
@@ -403,7 +404,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/repos", userSetting.Repos)
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
-		ctx.Data["AllThemes"] = setting.UI.Themes
+		ctx.Data["Themes"] = themes.Themes
 	})
 
 	m.Group("/user", func() {

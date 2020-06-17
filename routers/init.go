@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/task"
+	"code.gitea.io/gitea/modules/themes"
 	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -123,6 +124,8 @@ func GlobalInit(ctx context.Context) {
 
 	// Setup i18n
 	InitLocales()
+
+	themes.Init()
 
 	log.Info("%s", unknwoni18n.Tr("en-US", "admin.dashboard.delete_repo_archives"))
 

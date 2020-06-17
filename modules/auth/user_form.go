@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/themes"
 
 	"gitea.com/macaron/binding"
 	"gitea.com/macaron/macaron"
@@ -251,11 +252,11 @@ func (f *UpdateThemeForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// IsThemeExists checks if the theme is a theme available in the config.
+// IsThemeExists checks if a theme is available
 func (f UpdateThemeForm) IsThemeExists() bool {
 	var exists bool
 
-	for _, v := range setting.UI.Themes {
+	for _, v := range themes.Themes {
 		if strings.EqualFold(v, f.Theme) {
 			exists = true
 			break

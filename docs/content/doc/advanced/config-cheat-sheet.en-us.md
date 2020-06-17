@@ -128,9 +128,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MEMBERS_PAGING_NUM`: **20**: Number of members that are shown in organization members.
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
-- `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
-- `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
-  regardless of the value of `DEFAULT_THEME`.
+- `DEFAULT_THEME`: **gitea**: Set the default theme for the Gitea install.
+- `THEMES`: **\***: Comma-separated list of enabled themes. If set to `*` will automatically discover installed themes.
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
     For custom reactions, add a tightly cropped square image to public/emoji/img/reaction_name.png

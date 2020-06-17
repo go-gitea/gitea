@@ -146,13 +146,13 @@
 							<input name="theme" type="hidden" value="{{.SignedUser.Theme}}">
 							<i class="dropdown icon"></i>
 							<div class="text">
-								{{range $i,$a := .AllThemes}}
+								{{range $i,$a := .Themes}}
 									{{if eq $.SignedUser.Theme $a}}{{$a}}{{end}}
 								{{end}}
 							</div>
 
 							<div class="menu">
-							{{range $i,$a := .AllThemes}}
+							{{range $i,$a := .Themes}}
 								<div class="item{{if eq $.SignedUser.Theme $a}} active selected{{end}}" data-value="{{$a}}">
 									{{$a}}
 								</div>
