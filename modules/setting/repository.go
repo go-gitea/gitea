@@ -39,7 +39,7 @@ var (
 		EnablePushCreateOrg                     bool
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
-		PrefixArchiveFiles                       bool
+		PrefixArchiveFiles                      bool
 		DefaultBranch                           string
 
 		// Repository editor settings
