@@ -212,11 +212,8 @@ func getLabelInRepoByName(e Engine, repoID int64, labelName string) (*Label, err
 		return nil, ErrLabelNotExist{0, repoID}
 	}
 
-	l := &Label{
-		Name:   labelName,
-		RepoID: repoID,
-	}
-	has, err := e.Get(l)
+	l := &Label{}
+	has, err := e.Where("name=? AND repo_id=?", labelName, repoID).Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {
