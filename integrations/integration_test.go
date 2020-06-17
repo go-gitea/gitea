@@ -36,7 +36,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
-	"gopkg.in/testfixtures.v2"
 )
 
 var mac *macaron.Macaron
@@ -88,22 +87,7 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	var helper testfixtures.Helper
-	if setting.Database.UseMySQL {
-		helper = &testfixtures.MySQL{}
-	} else if setting.Database.UsePostgreSQL {
-		helper = &testfixtures.PostgreSQL{}
-	} else if setting.Database.UseSQLite3 {
-		helper = &testfixtures.SQLite{}
-	} else if setting.Database.UseMSSQL {
-		helper = &testfixtures.SQLServer{}
-	} else {
-		fmt.Println("Unsupported RDBMS for integration tests")
-		os.Exit(1)
-	}
-
 	err := models.InitFixtures(
-		helper,
 		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
 	)
 	if err != nil {

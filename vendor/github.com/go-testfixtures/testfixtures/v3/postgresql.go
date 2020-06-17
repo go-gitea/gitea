@@ -6,15 +6,12 @@ import (
 	"strings"
 )
 
-// PostgreSQL is the PG helper for this package
-type PostgreSQL struct {
+type postgreSQL struct {
 	baseHelper
 
-	// UseAlterConstraint If true, the contraint disabling will do
-	// using ALTER CONTRAINT sintax, only allowed in PG >= 9.4.
-	// If false, the constraint disabling will use DISABLE TRIGGER ALL,
-	// which requires SUPERUSER privileges.
-	UseAlterConstraint bool
+	useAlterConstraint bool
+	skipResetSequences bool
+	resetSequencesTo   int64
 
 	tables                   []string
 	sequences                []string
@@ -27,7 +24,7 @@ type pgConstraint struct {
 	constraintName string
 }
 
-func (h *PostgreSQL) init(db *sql.DB) error {
+func (h *postgreSQL) init(db *sql.DB) error {
 	var err error
 
 	h.tables, err = h.tableNames(db)
@@ -48,17 +45,17 @@ func (h *PostgreSQL) init(db *sql.DB) error {
 	return nil
 }
 
-func (*PostgreSQL) paramType() int {
+func (*postgreSQL) paramType() int {
 	return paramTypeDollar
 }
 
-func (*PostgreSQL) databaseName(q queryable) (string, error) {
+func (*postgreSQL) databaseName(q queryable) (string, error) {
 	var dbName string
 	err := q.QueryRow("SELECT current_database()").Scan(&dbName)
 	return dbName, err
 }
 
-func (h *PostgreSQL) tableNames(q queryable) ([]string, error) {
+func (h *postgreSQL) tableNames(q queryable) ([]string, error) {
 	var tables []string
 
 	sql := `
@@ -67,7 +64,8 @@ func (h *PostgreSQL) tableNames(q queryable) ([]string, error) {
 		INNER JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
 		WHERE pg_class.relkind = 'r'
 		  AND pg_namespace.nspname NOT IN ('pg_catalog', 'information_schema')
-		  AND pg_namespace.nspname NOT LIKE 'pg_toast%';
+		  AND pg_namespace.nspname NOT LIKE 'pg_toast%'
+		  AND pg_namespace.nspname NOT LIKE '\_timescaledb%';
 	`
 	rows, err := q.Query(sql)
 	if err != nil {
@@ -88,12 +86,13 @@ func (h *PostgreSQL) tableNames(q queryable) ([]string, error) {
 	return tables, nil
 }
 
-func (h *PostgreSQL) getSequences(q queryable) ([]string, error) {
+func (h *postgreSQL) getSequences(q queryable) ([]string, error) {
 	const sql = `
 		SELECT pg_namespace.nspname || '.' || pg_class.relname AS sequence_name
 		FROM pg_class
 		INNER JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
 		WHERE pg_class.relkind = 'S'
+		  AND pg_namespace.nspname NOT LIKE '\_timescaledb%'
 	`
 
 	rows, err := q.Query(sql)
@@ -116,7 +115,7 @@ func (h *PostgreSQL) getSequences(q queryable) ([]string, error) {
 	return sequences, nil
 }
 
-func (*PostgreSQL) getNonDeferrableConstraints(q queryable) ([]pgConstraint, error) {
+func (*postgreSQL) getNonDeferrableConstraints(q queryable) ([]pgConstraint, error) {
 	var constraints []pgConstraint
 
 	sql := `
@@ -124,6 +123,7 @@ func (*PostgreSQL) getNonDeferrableConstraints(q queryable) ([]pgConstraint, err
 		FROM information_schema.table_constraints
 		WHERE constraint_type = 'FOREIGN KEY'
 		  AND is_deferrable = 'NO'
+		  AND table_schema NOT LIKE '\_timescaledb%'
   	`
 	rows, err := q.Query(sql)
 	if err != nil {
@@ -144,7 +144,7 @@ func (*PostgreSQL) getNonDeferrableConstraints(q queryable) ([]pgConstraint, err
 	return constraints, nil
 }
 
-func (h *PostgreSQL) disableTriggers(db *sql.DB, loadFn loadFunction) (err error) {
+func (h *postgreSQL) disableTriggers(db *sql.DB, loadFn loadFunction) (err error) {
 	defer func() {
 		// re-enable triggers after load
 		var sql string
@@ -177,7 +177,7 @@ func (h *PostgreSQL) disableTriggers(db *sql.DB, loadFn loadFunction) (err error
 	return tx.Commit()
 }
 
-func (h *PostgreSQL) makeConstraintsDeferrable(db *sql.DB, loadFn loadFunction) (err error) {
+func (h *postgreSQL) makeConstraintsDeferrable(db *sql.DB, loadFn loadFunction) (err error) {
 	defer func() {
 		// ensure constraint being not deferrable again after load
 		var sql string
@@ -214,21 +214,28 @@ func (h *PostgreSQL) makeConstraintsDeferrable(db *sql.DB, loadFn loadFunction) 
 	return tx.Commit()
 }
 
-func (h *PostgreSQL) disableReferentialIntegrity(db *sql.DB, loadFn loadFunction) (err error) {
+func (h *postgreSQL) disableReferentialIntegrity(db *sql.DB, loadFn loadFunction) (err error) {
 	// ensure sequences being reset after load
-	defer func() {
-		if err2 := h.resetSequences(db); err2 != nil && err == nil {
-			err = err2
-		}
-	}()
+	if !h.skipResetSequences {
+		defer func() {
+			if err2 := h.resetSequences(db); err2 != nil && err == nil {
+				err = err2
+			}
+		}()
+	}
 
-	if h.UseAlterConstraint {
+	if h.useAlterConstraint {
 		return h.makeConstraintsDeferrable(db, loadFn)
 	}
 	return h.disableTriggers(db, loadFn)
 }
 
-func (h *PostgreSQL) resetSequences(db *sql.DB) error {
+func (h *postgreSQL) resetSequences(db *sql.DB) error {
+	resetSequencesTo := h.resetSequencesTo
+	if resetSequencesTo == 0 {
+		resetSequencesTo = 10000
+	}
+
 	for _, sequence := range h.sequences {
 		_, err := db.Exec(fmt.Sprintf("SELECT SETVAL('%s', %d)", sequence, resetSequencesTo))
 		if err != nil {
@@ -238,7 +245,7 @@ func (h *PostgreSQL) resetSequences(db *sql.DB) error {
 	return nil
 }
 
-func (h *PostgreSQL) isTableModified(q queryable, tableName string) (bool, error) {
+func (h *postgreSQL) isTableModified(q queryable, tableName string) (bool, error) {
 	checksum, err := h.getChecksum(q, tableName)
 	if err != nil {
 		return false, err
@@ -249,7 +256,7 @@ func (h *PostgreSQL) isTableModified(q queryable, tableName string) (bool, error
 	return oldChecksum == "" || checksum != oldChecksum, nil
 }
 
-func (h *PostgreSQL) afterLoad(q queryable) error {
+func (h *postgreSQL) afterLoad(q queryable) error {
 	if h.tablesChecksum != nil {
 		return nil
 	}
@@ -265,7 +272,7 @@ func (h *PostgreSQL) afterLoad(q queryable) error {
 	return nil
 }
 
-func (h *PostgreSQL) getChecksum(q queryable, tableName string) (string, error) {
+func (h *postgreSQL) getChecksum(q queryable, tableName string) (string, error) {
 	sqlStr := fmt.Sprintf(`
 			SELECT md5(CAST((array_agg(t.*)) AS TEXT))
 			FROM %s AS t
@@ -280,7 +287,7 @@ func (h *PostgreSQL) getChecksum(q queryable, tableName string) (string, error) 
 	return checksum.String, nil
 }
 
-func (*PostgreSQL) quoteKeyword(s string) string {
+func (*postgreSQL) quoteKeyword(s string) string {
 	parts := strings.Split(s, ".")
 	for i, p := range parts {
 		parts[i] = fmt.Sprintf(`"%s"`, p)
