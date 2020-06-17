@@ -76,8 +76,8 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 
 // GetUploadByUUID returns the Upload by UUID
 func GetUploadByUUID(uuid string) (*Upload, error) {
-	upload := &Upload{UUID: uuid}
-	has, err := x.Get(upload)
+	upload := &Upload{}
+	has, err := x.Where("uuid=?", uuid).Get(upload)
 	if err != nil {
 		return nil, err
 	} else if !has {

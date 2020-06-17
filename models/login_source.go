@@ -300,7 +300,7 @@ func (source *LoginSource) SSPI() *SSPIConfig {
 // CreateLoginSource inserts a LoginSource in the DB if not already
 // existing with the given name.
 func CreateLoginSource(source *LoginSource) error {
-	has, err := x.Get(&LoginSource{Name: source.Name})
+	has, err := x.Where("name=?", source.Name).Exist(new(LoginSource))
 	if err != nil {
 		return err
 	} else if has {
