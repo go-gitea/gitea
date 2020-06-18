@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -109,10 +108,7 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.Data["HighlightClass"] = highlight.FileNameToHighlightClass(entry.Name())
-	if !markup.IsReadmeFile(blob.Name()) {
-		ctx.Data["RequireHighlightJS"] = true
-	}
+
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
 	ctx.Data["PageIsViewCode"] = true
 
@@ -236,11 +232,11 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" data-line-number="%d"></span>`, i, i))
 			}
 
-			//Code line
-			line = gotemplate.HTMLEscapeString(line)
 			if i != len(lines)-1 {
 				line += "\n"
 			}
+			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
+			line = highlight.Code(fileName, line)
 			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
 				codeLines.WriteString(fmt.Sprintf(`<li class="L%d bottom-line" rel="L%d">%s</li>`, i, i, line))
 			} else {

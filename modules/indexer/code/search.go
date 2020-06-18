@@ -23,7 +23,6 @@ type Result struct {
 	UpdatedUnix    timeutil.TimeStamp
 	Language       string
 	Color          string
-	HighlightClass string
 	LineNumbers    []int
 	FormattedLines gotemplate.HTML
 }
@@ -109,9 +108,8 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		UpdatedUnix:    result.UpdatedUnix,
 		Language:       result.Language,
 		Color:          result.Color,
-		HighlightClass: highlight.FileNameToHighlightClass(result.Filename),
 		LineNumbers:    lineNumbers,
-		FormattedLines: gotemplate.HTML(formattedLinesBuffer.String()),
+		FormattedLines: gotemplate.HTML(highlight.Code(result.Filename, formattedLinesBuffer.String())),
 	}, nil
 }
 
