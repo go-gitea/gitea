@@ -274,7 +274,7 @@ workspace:
 services:
   - name: pgsql
     pull: default
-    image: postgres:9.5
+    image: postgres:9.3
     environment:
       POSTGRES_DB: test
       POSTGRES_PASSWORD: postgres
