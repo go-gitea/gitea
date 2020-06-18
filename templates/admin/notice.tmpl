@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.notices.system_notice_list"}} ({{.i18n.Tr "admin.total" .Total}})
-			<div class="ui floating dropdown small teal button">
+			<div class="ui right dropdown small teal button">
 				<span class="text">
 					{{.i18n.Tr "admin.notices.type_filter"}} : 
 					{{if eq .NoticesType 1}}

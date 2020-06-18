@@ -103,9 +103,9 @@ func Notices(typ, page, pageSize int) ([]*Notice, error) {
 			Find(&notices)
 	}
 	return notices, x.
-			Limit(pageSize, (page-1)*pageSize).
-			Desc("id").
-			Find(&notices)
+		Limit(pageSize, (page-1)*pageSize).
+		Desc("id").
+		Find(&notices)
 }
 
 // DeleteNotice deletes a system notice by given ID.
