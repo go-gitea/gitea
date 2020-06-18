@@ -408,6 +408,8 @@ func (s *ObjectStorage) getFromUnpacked(h plumbing.Hash) (obj plumbing.EncodedOb
 		return nil, err
 	}
 
+	defer ioutil.CheckClose(w, &err)
+
 	s.objectCache.Put(obj)
 
 	_, err = io.Copy(w, r)
