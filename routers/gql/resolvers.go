@@ -12,20 +12,23 @@ type Resolver struct {
 // RepositoryResolver resolves our repository
 func (r *Resolver) RepositoryResolver(p graphql.ResolveParams) (interface{}, error) {
 	//owner, ownerOk := p.Args["name"].(string)
-	name, nameOk := p.Args["name"].(string)
+	name, nameOk := p.Args["Name"].(string)
 	//if ownerOk && nameOk {
 	if nameOk {
 		//it would be great here if we could call routers/api/v1/repo/repo.go Search function as
 		//that has all the logic. However, you pass a http context type object there and it is ued.
 		//repositories := .GetUsersByName(name)
-		repositories := []api.Repository{}
+		//repositories := []api.Repository{}
+		//s := make([]string, 3)
+		//repositories := make([]api.Repository{}, 1)
 		//results[i] = repo.APIFormat(accessMode)
-		repositories[0] = api.Repository{
+		repo := api.Repository{
 			ID:          0,
 			Name:        name,
 			FullName:    "full name",
 			Description: "description",
 		}
+		var repositories = []api.Repository{repo}
 		return repositories, nil
 	}
 
