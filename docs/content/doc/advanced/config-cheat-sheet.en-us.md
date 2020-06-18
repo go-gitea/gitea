@@ -23,7 +23,7 @@ or any corresponding location. When installing from a distribution, this will
 typically be found at `/etc/gitea/conf/app.ini`.
 
 The defaults provided here are best-effort (not built automatically). They are
-accurately recorded in [app.ini.sample](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
 (s/master/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
@@ -470,7 +470,7 @@ set name for unique queues. Individual queues will default to
 
 - `ENABLED`: **true**: Enable this to allow uploading attachments.
 - `PATH`: **data/attachments**: Path to store attachments.
-- `ALLOWED_TYPES`: **see app.ini.sample**: Allowed MIME types, e.g. `image/jpeg|image/png`.
+- `ALLOWED_TYPES`: **see app.example.ini**: Allowed MIME types, e.g. `image/jpeg|image/png`.
    Use `*/*` for all types.
 - `MAX_SIZE`: **4**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
