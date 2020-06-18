@@ -11,7 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix __webpack_public_path__ for 1.11 (#11907)
   * Fix verification of subkeys of default gpg key (#11713) (#11902)
   * Remove unnecessary parentheses in wiki/view template (#11781)
-  * [Workaround] doctor xorm.Count nil on sqlite error (#11741)
+  * Doctor fix xorm.Count nil on sqlite error (#11741)
 
 ## [1.11.6](https://github.com/go-gitea/gitea/releases/tag/v1.11.6) - 2020-05-30
 
