@@ -53,7 +53,7 @@ coverage.all
 /custom/*
 !/custom/conf
 /custom/conf/*
-!/custom/conf/app.ini.sample
+!/custom/conf/app.example.ini
 /data
 /indexers
 /log

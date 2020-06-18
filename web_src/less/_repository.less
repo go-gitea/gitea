@@ -1,5 +1,4 @@
 .repository {
-
     padding-top: 15px;
 
     .repo-header {
@@ -86,6 +85,10 @@
         }
 
         .ui.list {
+            &.assignees .icon {
+                line-height: 2em;
+            }
+
             .hide {
                 display: none !important;
             }
@@ -242,6 +245,12 @@
     }
 
     &.file.list {
+        &.blame {
+            .ui.container:not(.flex) {
+                width: 98%;
+            }
+        }
+
         .repo-description {
             display: flex;
             justify-content: space-between;
@@ -642,9 +651,6 @@
                 .avatar {
                     margin-left: 10px;
                     margin-top: 10px;
-                }
-                .icon-octicon {
-                    padding-left: 2px;
                 }
                 .branch-update.grid {
                     .row {
@@ -1169,6 +1175,11 @@
 
                 .segments {
                     box-shadow: none;
+
+                    .show-outdated,
+                    .hide-outdated {
+                        display: block;
+                    }
                 }
             }
         }
@@ -1642,7 +1653,6 @@
                 width: 1%;
                 min-width: 50px;
                 user-select: none;
-                vertical-align: top;
 
                 span.fold {
                     display: block;
