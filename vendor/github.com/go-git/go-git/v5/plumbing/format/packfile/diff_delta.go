@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/utils/ioutil"
 )
 
 // See https://github.com/jelmer/dulwich/blob/master/dulwich/pack.py and
@@ -27,17 +28,20 @@ func GetDelta(base, target plumbing.EncodedObject) (plumbing.EncodedObject, erro
 	return getDelta(new(deltaIndex), base, target)
 }
 
-func getDelta(index *deltaIndex, base, target plumbing.EncodedObject) (plumbing.EncodedObject, error) {
+func getDelta(index *deltaIndex, base, target plumbing.EncodedObject) (o plumbing.EncodedObject, err error) {
 	br, err := base.Reader()
 	if err != nil {
 		return nil, err
 	}
-	defer br.Close()
+
+	defer ioutil.CheckClose(br, &err)
+
 	tr, err := target.Reader()
 	if err != nil {
 		return nil, err
 	}
-	defer tr.Close()
+
+	defer ioutil.CheckClose(tr, &err)
 
 	bb := bufPool.Get().(*bytes.Buffer)
 	defer bufPool.Put(bb)

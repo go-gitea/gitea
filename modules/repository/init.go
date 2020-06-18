@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
@@ -147,7 +148,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 	}
 
 	if len(defaultBranch) == 0 {
-		defaultBranch = "master"
+		defaultBranch = setting.Repository.DefaultBranch
 	}
 
 	if stdout, err := git.NewCommand("push", "origin", "master:"+defaultBranch).

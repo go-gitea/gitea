@@ -205,7 +205,11 @@ var (
 		"PROC":                           true,
 	}
 
-	mssqlQuoter = schemas.Quoter{'[', ']', schemas.AlwaysReserve}
+	mssqlQuoter = schemas.Quoter{
+		Prefix:     '[',
+		Suffix:     ']',
+		IsReserved: schemas.AlwaysReserve,
+	}
 )
 
 type mssql struct {
@@ -501,11 +505,8 @@ func (db *mssql) CreateTableSQL(table *schemas.Table, tableName string) ([]strin
 
 	for _, colName := range table.ColumnsSeq() {
 		col := table.GetColumn(colName)
-		if col.IsPrimaryKey && len(pkList) == 1 {
-			sql += db.String(col)
-		} else {
-			sql += db.StringNoPk(col)
-		}
+		s, _ := ColumnString(db, col, col.IsPrimaryKey && len(pkList) == 1)
+		sql += s
 		sql = strings.TrimSpace(sql)
 		sql += ", "
 	}
