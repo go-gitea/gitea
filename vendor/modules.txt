@@ -317,7 +317,7 @@ github.com/go-git/go-git/v5/utils/merkletrie/filesystem
 github.com/go-git/go-git/v5/utils/merkletrie/index
 github.com/go-git/go-git/v5/utils/merkletrie/internal/frame
 github.com/go-git/go-git/v5/utils/merkletrie/noder
-# github.com/go-ini/ini v1.56.0
+# github.com/go-ini/ini v1.57.0
 ## explicit
 github.com/go-ini/ini
 # github.com/go-openapi/analysis v0.19.5

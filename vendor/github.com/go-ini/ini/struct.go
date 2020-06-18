@@ -278,7 +278,9 @@ func parseTagOptions(tag string) (rawName string, omitEmpty bool, allowShadow bo
 	return rawName, omitEmpty, allowShadow, allowNonUnique
 }
 
-func (s *Section) mapToField(val reflect.Value, isStrict bool) error {
+// mapToField maps the given value to the matching field of the given section.
+// The sectionIndex is the index (if non unique sections are enabled) to which the value should be added.
+func (s *Section) mapToField(val reflect.Value, isStrict bool, sectionIndex int) error {
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
@@ -307,13 +309,16 @@ func (s *Section) mapToField(val reflect.Value, isStrict bool) error {
 		}
 
 		if isAnonymous || isStruct || isStructPtr {
-			if sec, err := s.f.GetSection(fieldName); err == nil {
+			if secs, err := s.f.SectionsByName(fieldName); err == nil {
+				if len(secs) <= sectionIndex {
+					return fmt.Errorf("there are not enough sections (%d <= %d) for the field %q", len(secs), sectionIndex, fieldName)
+				}
 				// Only set the field to non-nil struct value if we have a section for it.
 				// Otherwise, we end up with a non-nil struct ptr even though there is no data.
 				if isStructPtr && field.IsNil() {
 					field.Set(reflect.New(tpField.Type.Elem()))
 				}
-				if err = sec.mapToField(field, isStrict); err != nil {
+				if err = secs[sectionIndex].mapToField(field, isStrict, sectionIndex); err != nil {
 					return fmt.Errorf("map to field %q: %v", fieldName, err)
 				}
 				continue
@@ -350,9 +355,9 @@ func (s *Section) mapToSlice(secName string, val reflect.Value, isStrict bool) (
 	}
 
 	typ := val.Type().Elem()
-	for _, sec := range secs {
+	for i, sec := range secs {
 		elem := reflect.New(typ)
-		if err = sec.mapToField(elem, isStrict); err != nil {
+		if err = sec.mapToField(elem, isStrict, i); err != nil {
 			return reflect.Value{}, fmt.Errorf("map to field from section %q: %v", secName, err)
 		}
 
@@ -382,7 +387,7 @@ func (s *Section) mapTo(v interface{}, isStrict bool) error {
 		return nil
 	}
 
-	return s.mapToField(val, isStrict)
+	return s.mapToField(val, isStrict, 0)
 }
 
 // MapTo maps section to given struct.
