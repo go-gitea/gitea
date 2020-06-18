@@ -29,7 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 )
 
 var (
@@ -260,7 +260,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 		for _, asset := range release.Assets {
 			var attach = models.Attachment{
-				UUID:          gouuid.NewV4().String(),
+				UUID:          gouuid.New().String(),
 				Name:          asset.Name,
 				DownloadCount: int64(*asset.DownloadCount),
 				Size:          int64(*asset.Size),
