@@ -14,7 +14,7 @@ import (
 
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 )
 
 // Ensure the struct implements the interface.
@@ -92,7 +92,7 @@ func (r *ReverseProxy) newUser(ctx *macaron.Context) *models.User {
 		return nil
 	}
 
-	email := gouuid.NewV4().String() + "@localhost"
+	email := gouuid.New().String() + "@localhost"
 	if setting.Service.EnableReverseProxyEmail {
 		webAuthEmail := ctx.Req.Header.Get(setting.ReverseProxyAuthEmail)
 		if len(webAuthEmail) > 0 {
