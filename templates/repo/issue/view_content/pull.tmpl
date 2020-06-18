@@ -194,7 +194,7 @@
 						</div>
 					{{end}}
 				{{end}}
-				
+
 				{{$canAutoMerge = true}}
 				{{if (gt .Issue.PullRequest.CommitsBehind 0)}}
 					<div class="ui divider"></div>
@@ -312,7 +312,7 @@
 								</button>
 								<div class="ui dropdown icon button">
 									<i class="dropdown icon"></i>
-									<div class="menu left">
+									<div class="menu">
 										{{if $prUnit.PullRequestsConfig.AllowMerge}}
 										<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
 										{{end}}
