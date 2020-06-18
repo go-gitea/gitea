@@ -4,6 +4,15 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.11.7](https://github.com/go-gitea/gitea/releases/tag/v1.11.7) - 2020-06-18
+
+* BUGFIXES
+  * Use ID or Where to instead directly use Get when load object from database (#11925) (#11935)
+  * Fix __webpack_public_path__ for 1.11 (#11907)
+  * Fix verification of subkeys of default gpg key (#11713) (#11902)
+  * Remove unnecessary parentheses in wiki/view template (#11781)
+  * Doctor fix xorm.Count nil on sqlite error (#11741)
+
 ## [1.11.6](https://github.com/go-gitea/gitea/releases/tag/v1.11.6) - 2020-05-30
 
 * SECURITY
