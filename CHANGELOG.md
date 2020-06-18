@@ -57,6 +57,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Language statistics bar for repositories (#8037)
   * Restricted users (#6274)
 * BUGFIXES
+  * Fix commenting on non-utf8 encoded files (#11916) (#11950)
   * Use google/uuid to instead satori/go.uuid (#11943) (#11946)
   * Align show/hide outdated button on code review block (#11932) (#11944)
   * Update to go-git v5.1.0 (#11936) (#11941)
