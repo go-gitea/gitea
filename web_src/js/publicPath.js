@@ -3,7 +3,7 @@
 const { StaticUrlPrefix } = window.config;
 
 if (StaticUrlPrefix) {
-  __webpack_public_path__ = `${StaticUrlPrefix.endsWith('/') ? StaticUrlPrefix : `${StaticUrlPrefix}/`}js`;
+  __webpack_public_path__ = `${StaticUrlPrefix.endsWith('/') ? StaticUrlPrefix : `${StaticUrlPrefix}/`}js/`;
 } else if (document.currentScript && document.currentScript.src) {
   const url = new URL(document.currentScript.src);
   __webpack_public_path__ = `${url.pathname.replace(/\/[^/]*$/, '')}/`;
