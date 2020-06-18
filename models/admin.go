@@ -62,14 +62,11 @@ func CreateRepositoryNotice(desc string, args ...interface{}) error {
 }
 
 // CreateTaskNotice creates new system notice with type NoticeTaskSuccess or NoticeTaskFail.
-func CreateTaskNotice(isSuccess bool, desc string, args ...interface{}) (err error) {
+func CreateTaskNotice(isSuccess bool, desc string, args ...interface{}) error {
 	if isSuccess {
-		err = createNotice(x, NoticeTaskSuccess, desc, args...)
-	} else {
-		err = createNotice(x, NoticeTaskFail, desc, args...)
+		return createNotice(x, NoticeTaskSuccess, desc, args...)
 	}
-
-	return
+	return createNotice(x, NoticeTaskFail, desc, args...)
 }
 
 // RemoveAllWithNotice removes all directories in given path and
@@ -89,32 +86,26 @@ func removeAllWithNotice(e Engine, title, path string) {
 }
 
 // CountNotices returns number of notices.
-func CountNotices(typ int) (count int64, err error) {
+func CountNotices(typ int) (int64, error) {
 	if typ >= 1 {
-		count, err = x.Where("type = ?", typ).Count(new(Notice))
-	} else {
-		count, err = x.Count(new(Notice))
+		return x.Where("type = ?", typ).Count(new(Notice))
 	}
-	return
+	return x.Count(new(Notice))
 }
 
 // Notices returns notices in given page.
-func Notices(typ, page, pageSize int) (notices []*Notice, err error) {
-	notices = make([]*Notice, 0, pageSize)
-
+func Notices(typ, page, pageSize int) ([]*Notice, error) {
+	notices := make([]*Notice, 0, pageSize)
 	if typ >= 1 {
-		err = x.Where("type = ?", typ).
-			Limit(pageSize, (page-1)*pageSize).
-			Desc("id").
-			Find(&notices)
-	} else {
-		err = x.
+		return notices, x.Where("type = ?", typ).
 			Limit(pageSize, (page-1)*pageSize).
 			Desc("id").
 			Find(&notices)
 	}
-
-	return notices, err
+	return notices, x.
+			Limit(pageSize, (page-1)*pageSize).
+			Desc("id").
+			Find(&notices)
 }
 
 // DeleteNotice deletes a system notice by given ID.
