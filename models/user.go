@@ -1559,8 +1559,8 @@ func GetUserByEmailContext(ctx DBContext, email string) (*User, error) {
 	// Finally, if email address is the protected email address:
 	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
 		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
-		user := &User{LowerName: username}
-		has, err := ctx.e.Get(user)
+		user := &User{}
+		has, err := ctx.e.Where("lower_name=?", username).Get(user)
 		if err != nil {
 			return nil, err
 		}

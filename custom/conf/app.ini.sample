@@ -57,6 +57,8 @@ DEFAULT_REPO_UNITS = repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki
 PREFIX_ARCHIVE_FILES = true
 ; Disable the creation of new mirrors. Pre-existing mirrors remain valid.
 DISABLE_MIRRORS = false
+; The default branch name of new repositories
+DEFAULT_BRANCH=master
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the Monaco editor

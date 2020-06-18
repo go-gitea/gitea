@@ -5,16 +5,15 @@ import (
 	"path/filepath"
 )
 
-// SQLite is the SQLite Helper for this package
-type SQLite struct {
+type sqlite struct {
 	baseHelper
 }
 
-func (*SQLite) paramType() int {
+func (*sqlite) paramType() int {
 	return paramTypeQuestion
 }
 
-func (*SQLite) databaseName(q queryable) (string, error) {
+func (*sqlite) databaseName(q queryable) (string, error) {
 	var seq int
 	var main, dbName string
 	err := q.QueryRow("PRAGMA database_list").Scan(&seq, &main, &dbName)
@@ -25,7 +24,7 @@ func (*SQLite) databaseName(q queryable) (string, error) {
 	return dbName, nil
 }
 
-func (*SQLite) tableNames(q queryable) ([]string, error) {
+func (*sqlite) tableNames(q queryable) ([]string, error) {
 	query := `
 		SELECT name
 		FROM sqlite_master
@@ -51,7 +50,7 @@ func (*SQLite) tableNames(q queryable) ([]string, error) {
 	return tables, nil
 }
 
-func (*SQLite) disableReferentialIntegrity(db *sql.DB, loadFn loadFunction) (err error) {
+func (*sqlite) disableReferentialIntegrity(db *sql.DB, loadFn loadFunction) (err error) {
 	defer func() {
 		if _, err2 := db.Exec("PRAGMA defer_foreign_keys = OFF"); err2 != nil && err == nil {
 			err = err2
