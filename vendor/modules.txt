@@ -49,6 +49,9 @@ gitea.com/macaron/session/redis
 # gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 ## explicit
 gitea.com/macaron/toolbox
+# github.com/graphql-go/graphql v0.7.9
+## explicit
+github.com/graphql-go/graphql
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml

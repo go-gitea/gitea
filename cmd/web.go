@@ -16,9 +16,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/gql"
 	"code.gitea.io/gitea/routers/routes"
 
 	context2 "github.com/gorilla/context"
+	"github.com/graphql-go/graphql"
 	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/acme/autocert"
@@ -115,6 +117,23 @@ func runWeb(ctx *cli.Context) error {
 	// Perform global initialization
 	routers.GlobalInit(graceful.GetManager().HammerContext())
 
+	//sql, this should probably go into the GlobalInit once I understand that
+	// Create our root query for graphql
+	rootQuery := gql.NewRoot()
+	// Create a new graphql schema, passing in the the root query
+	schema, err := graphql.NewSchema(
+		graphql.SchemaConfig{Query: rootQuery.Query},
+	)
+	if err != nil {
+		fmt.Println("Error creating graphql schema: ", err)
+	}
+	gql.Init(schema)
+	// Create a server struct that holds a pointer to our database as well
+	// as the address of our graphql schema
+	//s := server.Server{
+	//	GqlSchema: &schema,
+	//}
+
 	// Set up Macaron
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)
@@ -133,7 +152,7 @@ func runWeb(ctx *cli.Context) error {
 			cfg := ini.Empty()
 			if com.IsFile(setting.CustomConf) {
 				// Keeps custom settings if there is already something.
-				if err := cfg.Append(setting.CustomConf); err != nil {
+				if err = cfg.Append(setting.CustomConf); err != nil {
 					return fmt.Errorf("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 				}
 			}
@@ -148,7 +167,7 @@ func runWeb(ctx *cli.Context) error {
 
 			cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
 
-			if err := cfg.SaveTo(setting.CustomConf); err != nil {
+			if err = cfg.SaveTo(setting.CustomConf); err != nil {
 				return fmt.Errorf("Error saving generated JWT Secret to custom config: %v", err)
 			}
 		}
@@ -171,7 +190,6 @@ func runWeb(ctx *cli.Context) error {
 		}()
 	}
 
-	var err error
 	switch setting.Protocol {
 	case setting.HTTP:
 		NoHTTPRedirector()

@@ -50,6 +50,7 @@ require (
 	github.com/golang/protobuf v1.4.1 // indirect
 	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
+	github.com/graphql-go/graphql v0.7.9
 	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
 	github.com/huandu/xstrings v1.3.0
 	github.com/issue9/assert v1.3.2 // indirect

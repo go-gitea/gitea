@@ -75,6 +75,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/gql"
 
 	"gitea.com/macaron/binding"
 	"gitea.com/macaron/macaron"
@@ -502,6 +503,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 	if setting.API.EnableSwagger {
 		m.Get("/swagger", misc.Swagger) // Render V1 by default
 	}
+
+	m.Group("/", func() {
+		m.Post("/graphql", gql.GraphQL)
+	}, securityHeaders(), context.APIContexter(), sudo())
 
 	m.Group("/v1", func() {
 		// Miscellaneous
