@@ -51,6 +51,7 @@ func WeightRandomPolicy(weights []int) GroupPolicyHandler {
 	}
 }
 
+// RoundRobinPolicy returns a group policy handler
 func RoundRobinPolicy() GroupPolicyHandler {
 	var pos = -1
 	var lock sync.Mutex
@@ -68,6 +69,7 @@ func RoundRobinPolicy() GroupPolicyHandler {
 	}
 }
 
+// WeightRoundRobinPolicy returns a group policy handler
 func WeightRoundRobinPolicy(weights []int) GroupPolicyHandler {
 	var rands = make([]int, 0, len(weights))
 	for i := 0; i < len(weights); i++ {

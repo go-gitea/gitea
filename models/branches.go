@@ -240,8 +240,8 @@ func getProtectedBranchBy(e Engine, repoID int64, branchName string) (*Protected
 
 // GetProtectedBranchByID getting protected branch by ID
 func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{ID: id}
-	has, err := x.Get(rel)
+	rel := &ProtectedBranch{}
+	has, err := x.ID(id).Get(rel)
 	if err != nil {
 		return nil, err
 	}
@@ -509,9 +509,9 @@ func (repo *Repository) GetDeletedBranches() ([]*DeletedBranch, error) {
 }
 
 // GetDeletedBranchByID get a deleted branch by its ID
-func (repo *Repository) GetDeletedBranchByID(ID int64) (*DeletedBranch, error) {
-	deletedBranch := &DeletedBranch{ID: ID}
-	has, err := x.Get(deletedBranch)
+func (repo *Repository) GetDeletedBranchByID(id int64) (*DeletedBranch, error) {
+	deletedBranch := &DeletedBranch{}
+	has, err := x.ID(id).Get(deletedBranch)
 	if err != nil {
 		return nil, err
 	}

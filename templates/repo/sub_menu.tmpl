@@ -11,7 +11,7 @@
 					<a class="ui" href="{{.RepoLink}}/branches/">{{svg "octicon-git-branch" 16}} <b>{{.BranchesCount}}</b> {{.i18n.Tr (TrN .i18n.Lang .BranchesCount "repo.branch" "repo.branches") }}</a>
 				</div>
 				<div class="item">
-					<a class="ui" href="#">{{svg "octicon-database" 16}} <b>{{SizeFmt .Repository.Size}}</b></a>
+					<span class="ui">{{svg "octicon-database" 16}} <b>{{SizeFmt .Repository.Size}}</b></span>
 				</div>
 			{{end}}
 		</div>
