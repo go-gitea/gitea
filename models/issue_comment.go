@@ -11,7 +11,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -143,7 +145,8 @@ type Comment struct {
 	RenderedContent string `xorm:"-"`
 
 	// Path represents the 4 lines of code cemented by this comment
-	Patch string `xorm:"TEXT"`
+	Patch       string `xorm:"-"`
+	PatchQuoted string `xorm:"TEXT patch"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -197,6 +200,33 @@ func (c *Comment) loadIssue(e Engine) (err error) {
 	}
 	c.Issue, err = getIssueByID(e, c.IssueID)
 	return
+}
+
+// BeforeInsert will be invoked by XORM before inserting a record
+func (c *Comment) BeforeInsert() {
+	c.PatchQuoted = c.Patch
+	if !utf8.ValidString(c.Patch) {
+		c.PatchQuoted = strconv.Quote(c.Patch)
+	}
+}
+
+// BeforeUpdate will be invoked by XORM before updating a record
+func (c *Comment) BeforeUpdate() {
+	c.PatchQuoted = c.Patch
+	if !utf8.ValidString(c.Patch) {
+		c.PatchQuoted = strconv.Quote(c.Patch)
+	}
+}
+
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (c *Comment) AfterLoad(session *xorm.Session) {
+	c.Patch = c.PatchQuoted
+	if len(c.PatchQuoted) > 0 && c.PatchQuoted[0] == '"' {
+		unquoted, err := strconv.Unquote(c.PatchQuoted)
+		if err == nil {
+			c.Patch = unquoted
+		}
+	}
 }
 
 func (c *Comment) loadPoster(e Engine) (err error) {

@@ -368,6 +368,9 @@ github.com/golang/snappy
 github.com/google/go-github/v24/github
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
+# github.com/google/uuid v1.1.1
+## explicit
+github.com/google/uuid
 # github.com/gorilla/context v1.1.1
 ## explicit
 github.com/gorilla/context
@@ -594,9 +597,6 @@ github.com/quasoft/websspi
 github.com/quasoft/websspi/secctx
 # github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001
 ## explicit
-# github.com/satori/go.uuid v1.2.0
-## explicit
-github.com/satori/go.uuid
 # github.com/sergi/go-diff v1.1.0
 ## explicit
 github.com/sergi/go-diff/diffmatchpatch

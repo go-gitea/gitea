@@ -14,7 +14,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 	"xorm.io/xorm"
 )
 
@@ -97,7 +97,7 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 
 // NewAttachment creates a new attachment object.
 func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
-	attach.UUID = gouuid.NewV4().String()
+	attach.UUID = gouuid.New().String()
 
 	localPath := attach.LocalPath()
 	if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
