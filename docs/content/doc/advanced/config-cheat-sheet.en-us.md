@@ -245,7 +245,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
      - `require`: Enable TLS without any verifications.
      - `verify-ca`: Enable TLS with verification of the database server certificate against its root certificate.
      - `verify-full`: Enable TLS and verify the database server name matches the given certificate in either the `Common Name` or `Subject Alternative Name` fields.
-- `CHARSET`: **utf8**: For MySQL only, either "utf8" or "utf8mb4", default is "utf8". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
+- `CHARSET`: **utf8mb4**: For MySQL only, either "utf8" or "utf8mb4". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
