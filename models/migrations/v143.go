@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/xorm"
@@ -19,19 +20,18 @@ func recalculateStars(x *xorm.Engine) (err error) {
 	defer sess.Close()
 
 	for start := 0; ; start += batchSize {
-		userIDs := make([]int64, 0, batchSize)
-		if err = sess.Table("`user`").Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&userIDs); err != nil {
+		users := make([]models.User, 0, batchSize)
+		if err = sess.Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
 			return err
 		}
-		if len(userIDs) == 0 {
+		if len(users) == 0 {
 			break
 		}
 
-		for _, uid := range userIDs {
-			if _, err = x.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", uid, uid); err != nil {
+		for _, user := range users {
+			if _, err = x.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
 				return err
 			}
-
 		}
 	}
 
