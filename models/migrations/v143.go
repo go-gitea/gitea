@@ -14,25 +14,33 @@ func recalculateStars(x *xorm.Engine) (err error) {
 	// because of issue https://github.com/go-gitea/gitea/issues/11949,
 	// recalculate Stars number for all users to fully fix it.
 
-	userIDs := make([]int64, 0)
-	err = x.SQL("SELECT id FROM `user` WHERE type = 0").Find(&userIDs)
-	if err != nil {
-		return
-	}
+	const batchSize = 100
+	sess := x.NewSession()
+	defer sess.Close()
 
-	var number int64
-
-	for _, uid := range userIDs {
-		if number, err = x.Where("uid = ?", uid).Count(new(models.Star)); err != nil {
-			return
+	for start := 0; ; start += batchSize {
+		userIDs := make([]int64, 0, batchSize)
+		if err = sess.Table("user").Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&userIDs); err != nil {
+			return err
+		}
+		if len(userIDs) == 0 {
+			break
 		}
 
-		if _, err = x.Exec("UPDATE `user` SET num_stars=? WHERE id = ?", number, uid); err != nil {
-			return err
+		var number int64
+
+		for _, uid := range userIDs {
+			if number, err = x.Where("uid = ?", uid).Count(new(models.Star)); err != nil {
+				return
+			}
+
+			if _, err = x.Exec("UPDATE `user` SET num_stars=? WHERE id = ?", number, uid); err != nil {
+				return err
+			}
 		}
 	}
 
 	log.Debug("recalculate Stars number for all user finished")
 
-	return err
+	return sess.Commit()
 }
