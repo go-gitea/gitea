@@ -35,7 +35,7 @@ Again `gitea help` will allow you review this variable and you can override it u
 `--config` option on the `gitea` binary.
 
 - [Quick Cheat Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/)
-- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
 
 If the `CustomPath` folder can't be found despite checking `gitea help`, check the `GITEA_CUSTOM`
 environment variable; this can be used to override the default path to something else.

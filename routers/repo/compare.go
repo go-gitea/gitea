@@ -381,7 +381,20 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		return nil, nil, nil, nil, "", ""
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranch, headBranch)
+	baseBranchRef := baseBranch
+	if baseIsBranch {
+		baseBranchRef = git.BranchPrefix + baseBranch
+	} else if baseIsTag {
+		baseBranchRef = git.TagPrefix + baseBranch
+	}
+	headBranchRef := headBranch
+	if headIsBranch {
+		headBranchRef = git.BranchPrefix + headBranch
+	} else if headIsTag {
+		headBranchRef = git.TagPrefix + headBranch
+	}
+
+	compareInfo, err := headGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil, nil, nil, nil, "", ""

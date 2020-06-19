@@ -163,8 +163,9 @@ type User struct {
 	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 
 	// Preferences
-	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
-	Theme         string `xorm:"NOT NULL DEFAULT ''"`
+	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
+	Theme               string `xorm:"NOT NULL DEFAULT ''"`
+	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 }
 
 // SearchOrganizationsOptions options to filter organizations
@@ -645,7 +646,7 @@ func (u *User) GetOrganizationCount() (int64, error) {
 
 // GetRepositories returns repositories that user owns, including private repositories.
 func (u *User) GetRepositories(listOpts ListOptions) (err error) {
-	u.Repos, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts})
+	u.Repos, _, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts})
 	return err
 }
 
@@ -1558,8 +1559,8 @@ func GetUserByEmailContext(ctx DBContext, email string) (*User, error) {
 	// Finally, if email address is the protected email address:
 	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
 		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
-		user := &User{LowerName: username}
-		has, err := ctx.e.Get(user)
+		user := &User{}
+		has, err := ctx.e.Where("lower_name=?", username).Get(user)
 		if err != nil {
 			return nil, err
 		}

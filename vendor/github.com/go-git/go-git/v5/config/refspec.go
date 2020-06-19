@@ -25,7 +25,7 @@ var (
 // reference even if it isn’t a fast-forward.
 // eg.: "+refs/heads/*:refs/remotes/origin/*"
 //
-// https://git-scm.com/book/es/v2/Git-Internals-The-Refspec
+// https://git-scm.com/book/en/v2/Git-Internals-The-Refspec
 type RefSpec string
 
 // Validate validates the RefSpec
@@ -59,6 +59,11 @@ func (s RefSpec) IsDelete() bool {
 	return s[0] == refSpecSeparator[0]
 }
 
+// IsExactSHA1 returns true if the source is a SHA1 hash.
+func (s RefSpec) IsExactSHA1() bool {
+	return plumbing.IsHash(s.Src())
+}
+
 // Src return the src side.
 func (s RefSpec) Src() string {
 	spec := string(s)
@@ -69,8 +74,8 @@ func (s RefSpec) Src() string {
 	} else {
 		start = 0
 	}
-	end := strings.Index(spec, refSpecSeparator)
 
+	end := strings.Index(spec, refSpecSeparator)
 	return spec[start:end]
 }
 

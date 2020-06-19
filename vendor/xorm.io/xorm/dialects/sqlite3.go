@@ -144,7 +144,11 @@ var (
 		"WITHOUT":           true,
 	}
 
-	sqlite3Quoter = schemas.Quoter{'`', '`', schemas.AlwaysReserve}
+	sqlite3Quoter = schemas.Quoter{
+		Prefix:     '`',
+		Suffix:     '`',
+		IsReserved: schemas.AlwaysReserve,
+	}
 )
 
 type sqlite3 struct {
@@ -260,11 +264,8 @@ func (db *sqlite3) CreateTableSQL(table *schemas.Table, tableName string) ([]str
 
 		for _, colName := range table.ColumnsSeq() {
 			col := table.GetColumn(colName)
-			if col.IsPrimaryKey && len(pkList) == 1 {
-				sql += db.String(col)
-			} else {
-				sql += db.StringNoPk(col)
-			}
+			s, _ := ColumnString(db, col, col.IsPrimaryKey && len(pkList) == 1)
+			sql += s
 			sql = strings.TrimSpace(sql)
 			sql += ", "
 		}

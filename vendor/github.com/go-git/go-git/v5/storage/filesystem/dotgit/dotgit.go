@@ -57,6 +57,9 @@ var (
 	// targeting a non-existing object. This usually means the repository
 	// is corrupt.
 	ErrSymRefTargetNotFound = errors.New("symbolic reference target not found")
+	// ErrIsDir is returned when a reference file is attempting to be read,
+	// but the path specified is a directory.
+	ErrIsDir = errors.New("reference path is a directory")
 )
 
 // Options holds configuration for the storage.
@@ -926,6 +929,14 @@ func (d *DotGit) addRefFromHEAD(refs *[]*plumbing.Reference) error {
 
 func (d *DotGit) readReferenceFile(path, name string) (ref *plumbing.Reference, err error) {
 	path = d.fs.Join(path, d.fs.Join(strings.Split(name, "/")...))
+	st, err := d.fs.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if st.IsDir() {
+		return nil, ErrIsDir
+	}
+
 	f, err := d.fs.Open(path)
 	if err != nil {
 		return nil, err
