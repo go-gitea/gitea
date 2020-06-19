@@ -27,8 +27,6 @@ func recalculateStars(x *xorm.Engine) (err error) {
 			break
 		}
 
-		var number int64
-
 		for _, uid := range userIDs {
 			if _, err = x.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", uid, uid); err != nil {
 				return err
