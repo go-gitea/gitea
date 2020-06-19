@@ -124,11 +124,12 @@ type IssueDeadline struct {
 // IssueTemplate represents an issue template for a repository
 // swagger:model
 type IssueTemplate struct {
-	Name     string `json:"name"`
-	Title    string `json:"title"`
-	About    string `json:"about"`
-	Content  string `json:"content"`
-	FileName string `json:"file_name"`
+	Name     string   `json:"name" yaml:"name"`
+	Title    string   `json:"title" yaml:"title"`
+	About    string   `json:"about" yaml:"about"`
+	Labels   []string `json:"labels" yaml:"labels"`
+	Content  string   `json:"content" yaml:"-"`
+	FileName string   `json:"file_name" yaml:"-"`
 }
 
 // Valid checks whether an IssueTemplate is considered valid, e.g. at least name and about

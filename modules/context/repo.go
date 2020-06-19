@@ -866,18 +866,14 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 					log.Debug("ReadAll: %v", err)
 					continue
 				}
-				meta, content, err := markdown.ExtractMetadata(string(data))
+				var it api.IssueTemplate
+				content, err := markdown.ExtractMetadata(string(data), &it)
 				if err != nil {
 					log.Debug("ExtractMetadata: %v", err)
 					continue
 				}
-				it := api.IssueTemplate{
-					Name:     fmt.Sprintf("%v", meta["name"]),
-					Title:    fmt.Sprintf("%v", meta["title"]),
-					About:    fmt.Sprintf("%v", meta["about"]),
-					Content:  content,
-					FileName: entry.Name(),
-				}
+				it.Content = content
+				it.FileName = entry.Name()
 				if it.Valid() {
 					issueTemplates = append(issueTemplates, it)
 				}

@@ -22,7 +22,7 @@ func isYAMLSeparator(line string) bool {
 
 // ExtractMetadata consumes a markdown file, parses YAML frontmatter,
 // and returns the frontmatter metadata separated from the markdown content
-func ExtractMetadata(contents string) (map[string]interface{}, string, error) {
+func ExtractMetadata(contents string, out interface{}) (string, error) {
 	var front, body []string
 	var seps int
 	lines := strings.Split(contents, "\n")
@@ -38,9 +38,8 @@ func ExtractMetadata(contents string) (map[string]interface{}, string, error) {
 		front = append(front, line)
 	}
 
-	var meta map[string]interface{}
-	if err := yaml.Unmarshal([]byte(strings.Join(front, "\n")), &meta); err != nil {
-		return nil, "", err
+	if err := yaml.Unmarshal([]byte(strings.Join(front, "\n")), out); err != nil {
+		return "", err
 	}
-	return meta, strings.Join(body, "\n"), nil
+	return strings.Join(body, "\n"), nil
 }

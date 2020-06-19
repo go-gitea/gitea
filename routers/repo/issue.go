@@ -476,9 +476,25 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs [
 		for _, dirName := range possibleDirs {
 			content, found := getFileContentFromDefaultBranch(ctx, path.Join(dirName, ctx.Query("template")))
 			if found {
-				if meta, contents, err := markdown.ExtractMetadata(content); err == nil {
-					ctx.Data[issueTemplateTitleKey] = meta["title"]
+				var meta api.IssueTemplate
+				if contents, err := markdown.ExtractMetadata(content, &meta); err == nil {
+					ctx.Data[issueTemplateTitleKey] = meta.Title
 					ctx.Data[ctxDataKey] = contents
+					labelIDs := make([]string, 0, len(meta.Labels))
+					if repoLabels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", models.ListOptions{}); err == nil {
+						for _, labelName := range meta.Labels {
+							for _, repoLabel := range repoLabels {
+								if strings.EqualFold(repoLabel.Name, labelName) {
+									repoLabel.IsChecked = true
+									labelIDs = append(labelIDs, fmt.Sprintf("%d", repoLabel.ID))
+									break
+								}
+							}
+						}
+						ctx.Data["Labels"] = repoLabels
+					}
+					ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
+					ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
 					return
 				}
 				// If err, fall back to default template if it exists?
@@ -519,10 +535,10 @@ func NewIssue(ctx *context.Context) {
 		}
 	}
 
-	setTemplateIfExists(ctx, issueTemplateKey, context.IssueTemplateDirCandidates, IssueTemplateCandidates)
 	renderAttachmentSettings(ctx)
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
+	setTemplateIfExists(ctx, issueTemplateKey, context.IssueTemplateDirCandidates, IssueTemplateCandidates)
 	if ctx.Written() {
 		return
 	}
