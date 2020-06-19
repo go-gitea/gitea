@@ -20,7 +20,7 @@ func recalculateStars(x *xorm.Engine) (err error) {
 
 	for start := 0; ; start += batchSize {
 		userIDs := make([]int64, 0, batchSize)
-		if err = sess.Table("user").Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&userIDs); err != nil {
+		if err = sess.Table("`user`").Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&userIDs); err != nil {
 			return err
 		}
 		if len(userIDs) == 0 {
