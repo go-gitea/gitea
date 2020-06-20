@@ -360,7 +360,7 @@ export default function gitGraph(canvas, rawGraphList, config) {
         // inline intersect
         if ((colomn === '_' || colomn === '/')
           && currentRow[colomnIndex - 1] === '|'
-          && currentRow[colomnIndex - 2] === '_' ) {
+          && currentRow[colomnIndex - 2] === '_') {
           inlineIntersect = true;
 
           tempFlow = flows.splice(colomnIndex - 2, 1)[0];
