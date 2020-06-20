@@ -88,10 +88,8 @@
 				{{end}}
 			</div>
 		</div>
-
-		{{end}}
-
 		<div class="ui divider"></div>
+		{{end}}
 
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
 			<span class="text">
