@@ -252,12 +252,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	ctx.Data["Issues"] = issues
 	ctx.Data["CommitStatus"] = commitStatus
 
-	// Get assignees.
-	ctx.Data["Assignees"], err = repo.GetAssignees()
-	if err != nil {
-		ctx.ServerError("GetAssignees", err)
-		return
-	}
+	RetrieveRepoMilestonesAndAssignees(ctx, repo)
 
 	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
 	if err != nil {
@@ -352,14 +347,6 @@ func Issues(ctx *context.Context) {
 	}
 
 	issues(ctx, ctx.QueryInt64("milestone"), util.OptionalBoolOf(isPullList))
-
-	var err error
-	// Get milestones.
-	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")), models.ListOptions{})
-	if err != nil {
-		ctx.ServerError("GetAllRepoMilestones", err)
-		return
-	}
 
 	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.CanWriteIssuesOrPulls(isPullList)
 
