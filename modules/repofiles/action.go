@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -111,7 +112,7 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 				continue
 			}
 
-			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
+			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
 			if err = models.CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
 				return err
 			}

@@ -5,7 +5,9 @@
 package schemas
 
 import (
+	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -28,6 +30,7 @@ type Table struct {
 	Comment       string
 }
 
+// NewEmptyTable creates an empty table
 func NewEmptyTable() *Table {
 	return NewTable("", nil)
 }
@@ -44,10 +47,12 @@ func NewTable(name string, t reflect.Type) *Table {
 	}
 }
 
+// Columns returns table's columns
 func (table *Table) Columns() []*Column {
 	return table.columns
 }
 
+// ColumnsSeq returns table's column names according sequence
 func (table *Table) ColumnsSeq() []string {
 	return table.columnsSeq
 }
@@ -61,6 +66,7 @@ func (table *Table) columnsByName(name string) []*Column {
 	return nil
 }
 
+// GetColumn returns column according column name, if column not found, return nil
 func (table *Table) GetColumn(name string) *Column {
 	cols := table.columnsByName(name)
 	if cols != nil {
@@ -70,6 +76,7 @@ func (table *Table) GetColumn(name string) *Column {
 	return nil
 }
 
+// GetColumnIdx returns column according name and idx
 func (table *Table) GetColumnIdx(name string, idx int) *Column {
 	cols := table.columnsByName(name)
 	if cols != nil && idx < len(cols) {
@@ -143,4 +150,46 @@ func (table *Table) AddColumn(col *Column) {
 // AddIndex adds an index or an unique to table
 func (table *Table) AddIndex(index *Index) {
 	table.Indexes[index.Name] = index
+}
+
+// IDOfV get id from one value of struct
+func (table *Table) IDOfV(rv reflect.Value) (PK, error) {
+	v := reflect.Indirect(rv)
+	pk := make([]interface{}, len(table.PrimaryKeys))
+	for i, col := range table.PKColumns() {
+		var err error
+
+		fieldName := col.FieldName
+		for {
+			parts := strings.SplitN(fieldName, ".", 2)
+			if len(parts) == 1 {
+				break
+			}
+
+			v = v.FieldByName(parts[0])
+			if v.Kind() == reflect.Ptr {
+				v = v.Elem()
+			}
+			if v.Kind() != reflect.Struct {
+				return nil, fmt.Errorf("Unsupported read value of column %s from field %s", col.Name, col.FieldName)
+			}
+			fieldName = parts[1]
+		}
+
+		pkField := v.FieldByName(fieldName)
+		switch pkField.Kind() {
+		case reflect.String:
+			pk[i], err = col.ConvertID(pkField.String())
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			pk[i], err = col.ConvertID(strconv.FormatInt(pkField.Int(), 10))
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			// id of uint will be converted to int64
+			pk[i], err = col.ConvertID(strconv.FormatUint(pkField.Uint(), 10))
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+	return PK(pk), nil
 }
