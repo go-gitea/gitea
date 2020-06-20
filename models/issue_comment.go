@@ -129,6 +129,7 @@ type Comment struct {
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *User `xorm:"-"`
+	TeamAssignee     *Team `xorm:"-"`
 	ResolveDoerID    int64
 	ResolveDoer      *User `xorm:"-"`
 	OldTitle         string
@@ -464,6 +465,25 @@ func (c *Comment) LoadAssigneeUser() error {
 				return err
 			}
 			c.Assignee = NewGhostUser()
+		}
+	} else {
+		if err = c.LoadIssue(); err != nil {
+			return err
+		}
+
+		if err = c.Issue.LoadRepo(); err != nil {
+			return err
+		}
+
+		if err = c.Issue.Repo.GetOwner(); err != nil {
+			return err
+		}
+
+		if c.Issue.Repo.Owner.IsOrganization() {
+			c.TeamAssignee, err = GetTeamByID(-c.AssigneeID)
+			if err != nil && !IsErrTeamNotExist(err) {
+				return err
+			}
 		}
 	}
 	return nil

@@ -390,7 +390,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 // RetrieveRepoReviewers find all reviewers of a repository
 func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issuePosterID int64) {
 	var err error
-	ctx.Data["Reviewers"], err = repo.GetReviewers(ctx.User.ID, issuePosterID)
+	ctx.Data["Reviewers"], ctx.Data["TeamReviewers"], err = repo.GetReviewers(ctx.User.ID, issuePosterID)
 	if err != nil {
 		ctx.ServerError("GetReviewers", err)
 		return
@@ -1395,6 +1395,46 @@ func isLegalReviewRequest(reviewer, doer *models.User, isAdd bool, issue *models
 	return nil
 }
 
+func isLegalTeamReviewRequest(reviewer *models.Team, doer *models.User, isAdd bool, issue *models.Issue) error {
+	if doer.IsOrganization() {
+		return fmt.Errorf("Organization can't be doer to add reviewer [user_id: %d, repo_id: %d]", doer.ID, issue.PullRequest.BaseRepo.ID)
+	}
+
+	permDoer, err := models.GetUserRepoPermission(issue.Repo, doer)
+	if err != nil {
+		return err
+	}
+
+	var pemResult bool
+	if isAdd {
+		if issue.Repo.IsPrivate {
+			pemResult = models.HasTeamRepo(reviewer.OrgID, reviewer.ID, issue.RepoID)
+
+			if !pemResult {
+				return fmt.Errorf("Reviewer can't read [team_id: %d, repo_name: %s]", reviewer.ID, issue.Repo.Name)
+			}
+		}
+
+		pemResult = permDoer.CanAccessAny(models.AccessModeWrite, models.UnitTypePullRequests)
+		if !pemResult {
+			pemResult, err = models.IsOfficialReviewer(issue, doer)
+			if err != nil {
+				return err
+			}
+			if !pemResult {
+				return fmt.Errorf("Doer can't choose reviewer [user_id: %d, repo_name: %s, issue_id: %d]", doer.ID, issue.Repo.Name, issue.ID)
+			}
+		}
+	} else {
+		pemResult = permDoer.IsAdmin()
+		if !pemResult {
+			return fmt.Errorf("Doer is not admin [user_id: %d, repo_name: %s]", doer.ID, issue.Repo.Name)
+		}
+	}
+
+	return nil
+}
+
 // updatePullReviewRequest change pull's request reviewers
 func updatePullReviewRequest(ctx *context.Context) {
 	issues := getActionIssues(ctx)
@@ -1412,6 +1452,45 @@ func updatePullReviewRequest(ctx *context.Context) {
 
 	for _, issue := range issues {
 		if issue.IsPull {
+
+			if reviewID < 0 {
+				if err := issue.LoadRepo(); err != nil {
+					ctx.ServerError("issue.LoadRepo", err)
+					return
+				}
+
+				if err := issue.Repo.GetOwner(); err != nil {
+					ctx.ServerError("issue.Repo.GetOwner", err)
+					return
+				}
+
+				if issue.Repo.Owner.IsOrganization() {
+					team, err := models.GetTeamByID(-reviewID)
+					if err != nil {
+						ctx.ServerError("models.GetTeamByID", err)
+						return
+					}
+
+					if team.OrgID != issue.Repo.OwnerID {
+						ctx.Status(403)
+						return
+					}
+
+					err = isLegalTeamReviewRequest(team, ctx.User, event == "add", issue)
+					if err != nil {
+						ctx.ServerError("isLegalTeamReviewRequest", err)
+						return
+					}
+
+					err = issue_service.TeamReviewRequest(issue, ctx.User, team, event == "add")
+					if err != nil {
+						ctx.ServerError("ReviewRequest", err)
+						return
+					}
+
+					continue
+				}
+			}
 
 			reviewer, err := models.GetUserByID(reviewID)
 			if err != nil {

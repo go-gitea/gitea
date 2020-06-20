@@ -8,10 +8,17 @@
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
+							{{if (gt .ReviewerID 0)}}
 							<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
 								<img src="{{.Reviewer.RelAvatarLink}}">
 							</a>
-							<span class="text grey"><a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
+							{{end}}
+							<span class="text grey">
+								{{if (gt .ReviewerID 0)}}
+									<a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
+								{{else}}
+									<span class="ui text">{{$.Issue.Repo.OwnerName}}/{{.ReviewerTeam.Name}}</span>
+								{{end}}
 								{{if eq .Type 1}}
 									{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
 								{{else if eq .Type 2}}
@@ -39,7 +46,7 @@
 
 								{{$canChoose := false}}
 								{{if eq .Type 4}}
-									{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
+									{{if or (and (eq .ReviewerID $.SignedUserID) (gt .ReviewerID 0)) $.Permission.IsAdmin}}
 										{{$canChoose = true}}
 									{{end}}
 								{{else}}
