@@ -1,4 +1,4 @@
-// Copyright (C) 2014 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
+// Copyright (C) 2019 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
@@ -83,8 +83,22 @@ func authorizerTrampoline(handle uintptr, op int, arg1 *C.char, arg2 *C.char, ar
 	return callback(op, C.GoString(arg1), C.GoString(arg2), C.GoString(arg3))
 }
 
-// Use handles to avoid passing Go pointers to C.
+//export preUpdateHookTrampoline
+func preUpdateHookTrampoline(handle uintptr, dbHandle uintptr, op int, db *C.char, table *C.char, oldrowid int64, newrowid int64) {
+	hval := lookupHandleVal(handle)
+	data := SQLitePreUpdateData{
+		Conn:         hval.db,
+		Op:           op,
+		DatabaseName: C.GoString(db),
+		TableName:    C.GoString(table),
+		OldRowID:     oldrowid,
+		NewRowID:     newrowid,
+	}
+	callback := hval.val.(func(SQLitePreUpdateData))
+	callback(data)
+}
 
+// Use handles to avoid passing Go pointers to C.
 type handleVal struct {
 	db  *SQLiteConn
 	val interface{}
@@ -103,7 +117,7 @@ func newHandle(db *SQLiteConn, v interface{}) uintptr {
 	return i
 }
 
-func lookupHandle(handle uintptr) interface{} {
+func lookupHandleVal(handle uintptr) handleVal {
 	handleLock.Lock()
 	defer handleLock.Unlock()
 	r, ok := handleVals[handle]
@@ -114,7 +128,11 @@ func lookupHandle(handle uintptr) interface{} {
 			panic("invalid handle")
 		}
 	}
-	return r.val
+	return r
+}
+
+func lookupHandle(handle uintptr) interface{} {
+	return lookupHandleVal(handle).val
 }
 
 func deleteHandles(db *SQLiteConn) {

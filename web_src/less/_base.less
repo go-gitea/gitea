@@ -1045,7 +1045,7 @@ i.icons .icon:first-child {
 }
 
 i.icon.centerlock {
-    top: 1.45em;
+    top: 1em;
 }
 
 .ui.label {
@@ -1061,7 +1061,6 @@ i.icon.centerlock {
 }
 
 .lines-num {
-    vertical-align: top;
     text-align: right !important;
     color: #999999;
     background: #f5f5f5;
@@ -1069,7 +1068,13 @@ i.icon.centerlock {
     user-select: none;
 
     span {
-        &:before {
+        &.bottom-line {
+            &:after {
+                border-bottom: 1px solid #eaecef;
+            }
+        }
+
+        &:after {
             content: attr(data-line-number);
             line-height: 20px !important;
             padding: 0 10px;
@@ -1082,6 +1087,7 @@ i.icon.centerlock {
 .lines-num,
 .lines-code {
     padding: 0 !important;
+    vertical-align: top;
 
     pre,
     ol,
@@ -1093,7 +1099,7 @@ i.icon.centerlock {
         li {
             display: block;
             width: calc(100% - 1ch);
-            margin-left: 1ch;
+            padding-left: 1ch;
         }
     }
 }
@@ -1141,7 +1147,6 @@ i.icon.centerlock {
     }
 }
 
-.lines-num,
 .lines-code,
 .lines-commit {
     .bottom-line {
@@ -1234,7 +1239,7 @@ i.icon.centerlock {
 
 /* limit width of all direct dropdown menu children */
 /* https://github.com/go-gitea/gitea/pull/10835 */
-.dropdown:not(.selection) > .menu:not(.review-box) > * {
+.dropdown:not(.selection) > .menu:not(.review-box) > *:not(.header) {
     max-width: 300px;
     overflow-x: hidden;
     text-overflow: ellipsis;

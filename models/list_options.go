@@ -38,7 +38,10 @@ func (opts ListOptions) setEnginePagination(e Engine) Engine {
 }
 
 func (opts ListOptions) setDefaultValues() {
-	if opts.PageSize <= 0 || opts.PageSize > setting.API.MaxResponseItems {
+	if opts.PageSize <= 0 {
+		opts.PageSize = setting.API.DefaultPagingNum
+	}
+	if opts.PageSize > setting.API.MaxResponseItems {
 		opts.PageSize = setting.API.MaxResponseItems
 	}
 	if opts.Page <= 0 {
