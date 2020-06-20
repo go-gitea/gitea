@@ -90,7 +90,9 @@
 			<div class="ui bottom attached message {{$class}}">
 				{{if .Verification.Verified }}
 					{{if ne .Verification.SigningUser.ID 0}}
-						<i class="lock icon"></i>
+						<i class="icons">
+							<i class="lock icon"></i>
+						</i>
 						{{if eq .Verification.TrustStatus "trusted"}}
 							<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
 						{{else if eq .Verification.TrustStatus "untrusted"}}
@@ -112,17 +114,21 @@
 						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="cogs icon" title="{{.i18n.Tr "gpg.default_key"}}"></i>{{.Verification.SigningKey.KeyID}}</span>
 					{{end}}
 				{{else if .Verification.Warning}}
-					<i class="unlock icon"></i>
+					<i class="icons">
+						<i class="unlock icon"></i>
+					</i>
 					<span class="ui text">{{.i18n.Tr .Verification.Reason}}</span>
 					<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
 				{{else}}
-				  <i class="unlock icon"></i>
-				  {{.i18n.Tr .Verification.Reason}}
-				  {{if .Verification.SigningKey}}
-				  	{{if ne .Verification.SigningKey.KeyID ""}}
-						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
-				  	{{end}}
-				  {{end}}
+					<i class="icons">
+						<i class="unlock icon"></i>
+					</i>
+					{{.i18n.Tr .Verification.Reason}}
+					{{if .Verification.SigningKey}}
+						{{if ne .Verification.SigningKey.KeyID ""}}
+							<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
+						{{end}}
+					{{end}}
 				{{end}}
 			</div>
 		{{end}}
