@@ -21,10 +21,13 @@ func NewRoot() *Root {
 			graphql.ObjectConfig{
 				Name: "Query",
 				Fields: graphql.Fields{
-					"repositories": &graphql.Field{
-						Type: graphql.NewList(Repository),
+					"repos": &graphql.Field{
+						Type: graphql.NewList(repo),
 						Args: graphql.FieldConfigArgument{
-							"Name": &graphql.ArgumentConfig{
+							"owner": &graphql.ArgumentConfig{
+								Type: graphql.String,
+							},
+							"repo": &graphql.ArgumentConfig{
 								Type: graphql.String,
 							},
 						},

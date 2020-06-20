@@ -90,6 +90,11 @@ type Repository struct {
 	AvatarURL                 string           `json:"avatar_url"`
 }
 
+// GqlRepository represents a repository for a graphql operation
+type GqlRepository struct {
+	RepoInfo *Repository `json:"repo"`
+}
+
 // CreateRepoOption options when creating repository
 // swagger:model
 type CreateRepoOption struct {

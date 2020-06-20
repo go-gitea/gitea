@@ -285,6 +285,13 @@ func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 	return repo.innerAPIFormat(x, mode, false)
 }
 
+// GqlFormat converts a Repository to api.GqlRepository
+func (repo *Repository) GqlFormat(mode AccessMode) *api.GqlRepository {
+	return &api.GqlRepository{
+		RepoInfo: repo.innerAPIFormat(x, mode, false),
+	}
+}
+
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
 func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) string {
 	var prefix string

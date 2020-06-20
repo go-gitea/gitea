@@ -2,21 +2,107 @@ package gql
 
 import "github.com/graphql-go/graphql"
 
-// Repository describes a graphql object containing a repository
-var Repository = graphql.NewObject(
+// repoInfo describes a graphql object containing a repository
+var repo = graphql.NewObject(
 	graphql.ObjectConfig{
-		Name: "Repository",
+		Name: "repo",
 		Fields: graphql.Fields{
-			"ID": &graphql.Field{
+			"repo_info": &graphql.Field{
+				Type: repoInfo,
+			},
+		},
+	},
+)
+
+/*
+// Repository represents a repository
+type Repository struct {
+	Parent        *Repository `json:"parent"`
+	Mirror        bool        `json:"mirror"`
+	Size          int         `json:"size"`
+	HTMLURL       string      `json:"html_url"`
+	SSHURL        string      `json:"ssh_url"`
+	CloneURL      string      `json:"clone_url"`
+	OriginalURL   string      `json:"original_url"`
+	Website       string      `json:"website"`
+	Stars         int         `json:"stars_count"`
+	Forks         int         `json:"forks_count"`
+	Watchers      int         `json:"watchers_count"`
+	OpenIssues    int         `json:"open_issues_count"`
+	OpenPulls     int         `json:"open_pr_counter"`
+	Releases      int         `json:"release_counter"`
+	DefaultBranch string      `json:"default_branch"`
+	Archived      bool        `json:"archived"`
+	// swagger:strfmt date-time
+	Created time.Time `json:"created_at"`
+	// swagger:strfmt date-time
+	Updated                   time.Time        `json:"updated_at"`
+	Permissions               *Permission      `json:"permissions,omitempty"`
+	HasIssues                 bool             `json:"has_issues"`
+	InternalTracker           *InternalTracker `json:"internal_tracker,omitempty"`
+	ExternalTracker           *ExternalTracker `json:"external_tracker,omitempty"`
+	HasWiki                   bool             `json:"has_wiki"`
+	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
+	HasPullRequests           bool             `json:"has_pull_requests"`
+	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
+	AllowMerge                bool             `json:"allow_merge_commits"`
+	AllowRebase               bool             `json:"allow_rebase"`
+	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
+	AllowSquash               bool             `json:"allow_squash_merge"`
+	AvatarURL                 string           `json:"avatar_url"`
+}
+
+// GqlRepository represents a repository for a graphql operation
+type GqlRepository struct {
+	RepoInfo *Repository `json:"repo"`
+}
+*/
+
+// repoInfo describes a graphql object containing a repository
+var repoInfo = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "repo_info",
+		Fields: graphql.Fields{
+			"id": &graphql.Field{
 				Type: graphql.Int,
 			},
-			"Name": &graphql.Field{
+			"owner": &graphql.Field{
+				Type: user,
+			},
+			"name": &graphql.Field{
 				Type: graphql.String,
 			},
-			"FullName": &graphql.Field{
+			"full_name": &graphql.Field{
 				Type: graphql.String,
 			},
-			"Description": &graphql.Field{
+			"description": &graphql.Field{
+				Type: graphql.String,
+			},
+			"empty": &graphql.Field{
+				Type: graphql.Boolean,
+			},
+			"private": &graphql.Field{
+				Type: graphql.Boolean,
+			},
+			"fork": &graphql.Field{
+				Type: graphql.Boolean,
+			},
+			"template": &graphql.Field{
+				Type: graphql.Boolean,
+			},
+		},
+	},
+)
+
+//user describes a user
+var user = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "user",
+		Fields: graphql.Fields{
+			"id": &graphql.Field{
+				Type: graphql.Int,
+			},
+			"user_name": &graphql.Field{
 				Type: graphql.String,
 			},
 		},
