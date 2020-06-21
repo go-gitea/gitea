@@ -1289,10 +1289,10 @@ i.icon.centerlock {
 }
 
 .ui.tabular.menu {
-    min-height: 36px;
+    min-height: 40px;
 
     .item {
-        padding: 0 .75rem;
+        padding: 4px 12px;
         color: rgba(0, 0, 0, .5);
     }
 
@@ -1302,9 +1302,10 @@ i.icon.centerlock {
 
     .item.active {
         color: rgba(0, 0, 0, .9);
+        margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
     }
 }
 
 .ui.secondary.pointing.menu .item {
-    padding: .75rem;
+    padding: 12px;
 }
