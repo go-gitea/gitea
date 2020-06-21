@@ -1,37 +1,37 @@
 {{if .DiffNotAvailable}}
 	<div class="diff-detail-box diff-box ui sticky">
-		<div>
-			<div class="ui right">
-				{{if .PageIsPullFiles}}
-					{{template "repo/diff/whitespace_dropdown" .}}
-				{{else}}
-					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
-				{{end}}
-				{{template "repo/diff/options_dropdown" .}}
-				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
-					{{template "repo/diff/new_review" .}}
-				{{end}}
-			</div>
+		<div class="ui right">
+			{{if .PageIsPullFiles}}
+				{{template "repo/diff/whitespace_dropdown" .}}
+			{{else}}
+				<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
+			{{end}}
+			{{template "repo/diff/options_dropdown" .}}
+			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
+				{{template "repo/diff/new_review" .}}
+			{{end}}
 		</div>
 	</div>
-	<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
+	<div id="diff-detail-container">
+		<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
+	</div>
 {{else}}
-	<div>
-		<div class="diff-detail-box diff-box ui sticky">
-			<i class="fa fa-retweet"></i>
-			{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
-			<div class="ui right">
-				{{if .PageIsPullFiles}}
-					{{template "repo/diff/whitespace_dropdown" .}}
-				{{else}}
-					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
-				{{end}}
-				{{template "repo/diff/options_dropdown" .}}
-				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
-					{{template "repo/diff/new_review" .}}
-				{{end}}
-			</div>
+	<div class="diff-detail-box diff-box ui sticky">
+		<i class="fa fa-retweet"></i>
+		{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
+		<div class="ui right">
+			{{if .PageIsPullFiles}}
+				{{template "repo/diff/whitespace_dropdown" .}}
+			{{else}}
+				<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
+			{{end}}
+			{{template "repo/diff/options_dropdown" .}}
+			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
+				{{template "repo/diff/new_review" .}}
+			{{end}}
 		</div>
+	</div>
+	<div id="diff-detail-container">
 		<ol class="diff-detail-box diff-stats detail-files hide" id="diff-files">
 			{{range .Diff.Files}}
 				<li>
@@ -192,7 +192,7 @@
 																<td class="add-comment-right">
 																	{{if and $resolved (eq $line.GetCommentSide "proposed")}}
 																		<div class="ui top attached header">
-																			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>	
+																			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
 																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
 																				{{svg "octicon-unfold" 16}}
 																				{{$.i18n.Tr "repo.issues.review.show_resolved"}}
@@ -200,7 +200,7 @@
 																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
 																				{{svg "octicon-fold" 16}}
 																				{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
-																			</button>	
+																			</button>
 																		</div>
 																	{{end}}
 																	{{if eq $line.GetCommentSide "proposed"}}

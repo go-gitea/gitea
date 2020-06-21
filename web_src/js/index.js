@@ -1081,6 +1081,10 @@ async function initRepository() {
       const addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
       $item.find('.bar .add').css('width', `${addPercent}%`);
     });
+
+    $('.diff-detail-box.ui.sticky').sticky({
+      context: '#diff-detail-container'
+    });
   }
 
   // Quick start and repository home
@@ -1114,6 +1118,8 @@ async function initRepository() {
       $repoComparePull.find('.pullrequest-form').show();
       autoSimpleMDE.codemirror.refresh();
       $(this).parent().hide();
+
+      $('.diff-detail-box.ui.sticky').sticky('refresh');
     });
   }
 
@@ -1204,7 +1210,7 @@ function initPullRequestReview() {
     return;
   }
 
-  $('.diff-detail-box.ui.sticky').sticky();
+  $('.diff-detail-box.ui.sticky').sticky('refresh');
 
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
@@ -2042,7 +2048,7 @@ function initCodeView() {
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
       $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
-      $('.diff-detail-box.ui.sticky').sticky();
+      $('.diff-detail-box.ui.sticky').sticky('refresh');
     });
   }
   $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
