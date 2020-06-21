@@ -1,37 +1,37 @@
 {{if .DiffNotAvailable}}
-	<div class="diff-detail-box diff-box ui sticky">
-		<div class="ui right">
-			{{if .PageIsPullFiles}}
-				{{template "repo/diff/whitespace_dropdown" .}}
-			{{else}}
-				<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
-			{{end}}
-			{{template "repo/diff/options_dropdown" .}}
-			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
-				{{template "repo/diff/new_review" .}}
-			{{end}}
+	<div class="diff-detail-box diff-box sticky">
+		<div>
+			<div class="ui right">
+				{{if .PageIsPullFiles}}
+					{{template "repo/diff/whitespace_dropdown" .}}
+				{{else}}
+					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
+				{{end}}
+				{{template "repo/diff/options_dropdown" .}}
+				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
+					{{template "repo/diff/new_review" .}}
+				{{end}}
+			</div>
 		</div>
 	</div>
-	<div id="diff-detail-container">
-		<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
-	</div>
+	<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
-	<div class="diff-detail-box diff-box ui sticky">
-		<i class="fa fa-retweet"></i>
-		{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
-		<div class="ui right">
-			{{if .PageIsPullFiles}}
-				{{template "repo/diff/whitespace_dropdown" .}}
-			{{else}}
-				<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
-			{{end}}
-			{{template "repo/diff/options_dropdown" .}}
-			{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
-				{{template "repo/diff/new_review" .}}
-			{{end}}
+	<div>
+		<div class="diff-detail-box diff-box sticky">
+			<i class="fa fa-retweet"></i>
+			{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
+			<div class="ui right">
+				{{if .PageIsPullFiles}}
+					{{template "repo/diff/whitespace_dropdown" .}}
+				{{else}}
+					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
+				{{end}}
+				{{template "repo/diff/options_dropdown" .}}
+				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
+					{{template "repo/diff/new_review" .}}
+				{{end}}
+			</div>
 		</div>
-	</div>
-	<div id="diff-detail-container">
 		<ol class="diff-detail-box diff-stats detail-files hide" id="diff-files">
 			{{range .Diff.Files}}
 				<li>
