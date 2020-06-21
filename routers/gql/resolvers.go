@@ -4,6 +4,7 @@ import (
 	"github.com/graphql-go/graphql"
 
 	"code.gitea.io/gitea/models"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 type Resolver struct {
@@ -40,10 +41,11 @@ func (r *Resolver) RepositoryResolver(p graphql.ResolveParams) (interface{}, err
 			//TODO
 		}
 
-		gqlRepo := api.GqlRepository{
-			RepoInfo: repo.GqlFormat(models.AccessModeRead),
-		}
-		var gqlRepos = []api.GqlRepository{gqlRepo}
+		gqlRepo := repo.GqlFormat(models.AccessModeRead)
+		//gqlRepo := api.GqlRepository{
+		//	RepoInfo: repo.GqlFormat(models.AccessModeRead),
+		//}
+		var gqlRepos = []api.GqlRepository{*gqlRepo}
 		return gqlRepos, nil
 	}
 
