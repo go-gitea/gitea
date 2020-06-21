@@ -6,6 +6,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -101,10 +102,12 @@ func GetAllOrgs(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	users, _, err := models.SearchUsers(&models.SearchUserOptions{
+	listOptions := utils.GetListOptions(ctx)
+
+	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
 		Type:        models.UserTypeOrganization,
 		OrderBy:     models.SearchOrderByAlphabetically,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		Visible:     []api.VisibleType{api.VisibleTypePublic, api.VisibleTypeLimited, api.VisibleTypePrivate},
 	})
 	if err != nil {
@@ -115,5 +118,8 @@ func GetAllOrgs(ctx *context.APIContext) {
 	for i := range users {
 		orgs[i] = convert.ToOrganization(users[i])
 	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
 	ctx.JSON(http.StatusOK, &orgs)
 }
