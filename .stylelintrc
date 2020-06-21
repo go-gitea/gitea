@@ -11,6 +11,7 @@ rules:
   declaration-empty-line-before: null
   indentation: 4
   no-descending-specificity: null
+  no-duplicate-selectors: null
   number-leading-zero: never
   rule-empty-line-before: null
   selector-pseudo-element-colon-notation: null
