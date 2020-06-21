@@ -322,6 +322,8 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.Repo.Repository.NumIssues))
+
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
