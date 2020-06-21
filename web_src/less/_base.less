@@ -895,7 +895,6 @@ footer {
     .ui.menu.new-menu {
         overflow-x: auto !important;
         justify-content: left !important;
-        padding-bottom: 5px;
     }
 
     .ui.menu.new-menu::-webkit-scrollbar {
@@ -1303,10 +1302,13 @@ i.icon.centerlock {
 
 /* reduce padding around tab items to save some space */
 /* repo header */
+.ui.tabular.menu {
+    min-height: 36px;
+}
 .ui.tabular.menu .item {
-    padding: 0 .75rem;
+    padding: 0 10px;
 }
 /* admin page */
 .ui.secondary.pointing.menu .item {
-    padding: .75rem;
+    padding: 10px;
 }
