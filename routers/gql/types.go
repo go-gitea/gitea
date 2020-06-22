@@ -8,13 +8,18 @@ var repo = graphql.NewObject(
 		Name: "repo",
 		Fields: graphql.Fields{
 			"repo_info": &graphql.Field{
-				Type: repoInfo,
+				Type:        repoInfo,
+				Description: "the repository information",
+			},
+			"branches": &graphql.Field{
+				Type: graphql.NewList(branch),
 			},
 		},
 	},
 )
 
 /*
+//TODO add all these
 // Repository represents a repository
 type Repository struct {
 	Parent        *Repository `json:"parent"`
@@ -52,10 +57,9 @@ type Repository struct {
 	AvatarURL                 string           `json:"avatar_url"`
 }
 
-// GqlRepository represents a repository for a graphql operation
-type GqlRepository struct {
-	RepoInfo *Repository `json:"repo"`
-}
+
+
+
 */
 
 // repoInfo describes a graphql object containing a repository
@@ -89,6 +93,31 @@ var repoInfo = graphql.NewObject(
 			},
 			"template": &graphql.Field{
 				Type: graphql.Boolean,
+			},
+		},
+	},
+)
+
+/*
+type Branch struct {
+	Commit                        *PayloadCommit `json:"commit"`
+	Protected                     bool           `json:"protected"`
+	RequiredApprovals             int64          `json:"required_approvals"`
+	EnableStatusCheck             bool           `json:"enable_status_check"`
+	StatusCheckContexts           []string       `json:"status_check_contexts"`
+	UserCanPush                   bool           `json:"user_can_push"`
+	UserCanMerge                  bool           `json:"user_can_merge"`
+	EffectiveBranchProtectionName string         `json:"effective_branch_protection_name"`
+}
+*/
+
+//branch describes a branch
+var branch = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "branch",
+		Fields: graphql.Fields{
+			"name": &graphql.Field{
+				Type: graphql.String,
 			},
 		},
 	},

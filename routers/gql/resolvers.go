@@ -4,6 +4,8 @@ import (
 	"github.com/graphql-go/graphql"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/convert"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -12,42 +14,50 @@ type Resolver struct {
 
 // RepositoryResolver resolves our repository
 func (r *Resolver) RepositoryResolver(p graphql.ResolveParams) (interface{}, error) {
-	//owner, ownerOk := p.Args["name"].(string)
 	owner, ownerOk := p.Args["owner"].(string)
 	repo, repoOk := p.Args["repo"].(string)
-	//if ownerOk && nameOk {
 	if ownerOk && repoOk {
-		//it would be great here if we could call routers/api/v1/repo/repo.go Search function as
-		//that has all the logic. However, you pass a http context type object there and it is ued.
-		//repositories := .GetUsersByName(name)
-		//repositories := []api.Repository{}
-		//s := make([]string, 3)
-		//repositories := make([]api.Repository{}, 1)
-		//results[i] = repo.APIFormat(accessMode)
-		/*
-			repo := api.Repository{
-				ID:          0,
-				Name:        repo,
-				Owner:       &api.User{UserName: owner},
-				FullName:    owner + "/" + repo,
-				Description: "here is a description",
-			}
-			var repos = []api.Repository{repo}
-			return repos, nil
-		*/
-		//ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
 		repo, err := models.GetRepositoryByOwnerAndName(owner, repo)
 		if err != nil {
 			//TODO
 		}
 
 		gqlRepo := repo.GqlFormat(models.AccessModeRead)
-		//gqlRepo := api.GqlRepository{
-		//	RepoInfo: repo.GqlFormat(models.AccessModeRead),
-		//}
+		//TODO how do you only get this when query asked for it?
+		gqlRepo.Branches, err = getBranches(repo)
+		if err != nil {
+			//TODO
+		}
+
 		var gqlRepos = []api.GqlRepository{*gqlRepo}
 		return gqlRepos, nil
 	}
 
 	return nil, nil
+}
+
+func getBranches(repo *models.Repository) ([]*api.Branch, error) {
+	branches, err := repo_module.GetBranches(repo)
+	if err != nil {
+		return nil, err
+	}
+
+	apiBranches := make([]*api.Branch, len(branches))
+	for i := range branches {
+		c, err := branches[i].GetCommit()
+		if err != nil {
+			return nil, err
+		}
+		branchProtection, err := repo.GetBranchProtection(branches[i].Name)
+		if err != nil {
+			return nil, err
+		}
+		//TODO how to get user that is calling the api?
+		//apiBranches[i], err = convert.ToBranch(repo, branches[i], c, branchProtection, ctx.User, ctx.Repo.IsAdmin())
+		apiBranches[i], err = convert.ToBranch(repo, branches[i], c, branchProtection, nil, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return apiBranches, nil
 }
