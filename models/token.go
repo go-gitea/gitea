@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 )
 
 // AccessToken represents a personal access token.
@@ -45,7 +45,7 @@ func NewAccessToken(t *AccessToken) error {
 		return err
 	}
 	t.TokenSalt = salt
-	t.Token = base.EncodeSha1(gouuid.NewV4().String())
+	t.Token = base.EncodeSha1(gouuid.New().String())
 	t.TokenHash = hashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
 	_, err = x.Insert(t)
