@@ -5,11 +5,11 @@
 			{{svg "gitea-lock" 16}}
 			<img class="ui signature avatar image" src="{{.verification.SigningUser.RelAvatarLink}}" />
 		{{else}}
-			{{svg "gitea-lock-cog" 16}}
+			<span title="{{$.root.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16}}</span>
 			<img class="ui signature avatar image" src="{{AvatarLink .verification.SigningEmail}}" />
 		{{end}}
 		</div>
 	{{else}}
-		{{svg "gitea-unlock" 16}}
+		<span title="{{$.root.i18n.Tr .verification.Reason}}">{{svg "gitea-unlock" 16}}</span>
 	{{end}}
 </div>
