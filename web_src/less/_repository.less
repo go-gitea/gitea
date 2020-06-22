@@ -32,8 +32,8 @@
             white-space: nowrap;
         }
 
-        .svg.octicon-repo-forked {
-            margin-top: -1px;
+        .repo-buttons .svg {
+            margin: 0 .42857143em 0 -.21428571em;
         }
 
         .button {
@@ -3046,4 +3046,14 @@ td.blob-excerpt {
 
 .added-code {
     background-color: #99ff99;
+}
+
+.repository .ui.menu.new-menu {
+    background: none !important;
+
+    @media only screen and (max-width: 1200px) {
+        &:after {
+            background: none !important;
+        }
+    }
 }
