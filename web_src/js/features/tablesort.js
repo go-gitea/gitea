@@ -56,7 +56,7 @@ function getArrow(normSort, revSort, isDefault) {
     if (urlSort === normSort) {
       // the table is sorted with this header normal
       return svg('octicon-triangle-down', 16);
-    } if (urlSort === revSort) {
+    } else if (urlSort === revSort) {
       // the table is sorted with this header reverse
       return svg('octicon-triangle-up', 16);
     }
