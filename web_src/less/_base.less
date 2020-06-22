@@ -887,7 +887,7 @@ footer {
     padding-top: 15px !important;
     margin-top: -15px !important;
     margin-bottom: 15px !important;
-    background-color: #fafafa !important;
+    background: #fafafa;
     border-width: 1px !important;
 }
 
@@ -895,7 +895,7 @@ footer {
     .ui.menu.new-menu {
         overflow-x: auto !important;
         justify-content: left !important;
-        padding-bottom: 5px;
+        padding-bottom: 2px;
     }
 
     .ui.menu.new-menu::-webkit-scrollbar {
@@ -1009,19 +1009,6 @@ footer {
 
 .oauth2-authorize-application-box {
     margin-top: 3em !important;
-}
-
-/* Tab color tweaks */
-.ui.tabular.menu .item {
-    color: rgba(0, 0, 0, .5);
-}
-
-.ui.tabular.menu .item:hover {
-    color: rgba(0, 0, 0, .8);
-}
-
-.ui.tabular.menu .item.active {
-    color: rgba(0, 0, 0, .9);
 }
 
 /* multiple radio or checkboxes as inline element */
@@ -1299,4 +1286,24 @@ i.icon.centerlock {
 /* https://github.com/go-gitea/gitea/pull/11486 */
 .ui.sub.header {
     text-transform: none;
+}
+
+.ui.tabular.menu {
+    .item {
+        padding: 11px 12px;
+        color: rgba(0, 0, 0, .5);
+    }
+
+    .item:hover {
+        color: rgba(0, 0, 0, .8);
+    }
+
+    .item.active {
+        color: rgba(0, 0, 0, .9);
+        margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
+    }
+}
+
+.ui.secondary.pointing.menu .item {
+    padding: 12px;
 }
