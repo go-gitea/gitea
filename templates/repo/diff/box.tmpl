@@ -1,5 +1,5 @@
 {{if .DiffNotAvailable}}
-	<div class="diff-detail-box diff-box ui sticky">
+	<div class="diff-detail-box diff-box sticky">
 		<div>
 			<div class="ui right">
 				{{if .PageIsPullFiles}}
@@ -17,7 +17,7 @@
 	<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
 	<div>
-		<div class="diff-detail-box diff-box ui sticky">
+		<div class="diff-detail-box diff-box sticky">
 			<i class="fa fa-retweet"></i>
 			{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			<div class="ui right">
@@ -192,7 +192,7 @@
 																<td class="add-comment-right">
 																	{{if and $resolved (eq $line.GetCommentSide "proposed")}}
 																		<div class="ui top attached header">
-																			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>	
+																			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
 																			<button id="show-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="ui compact right labeled button show-outdated">
 																				{{svg "octicon-unfold" 16}}
 																				{{$.i18n.Tr "repo.issues.review.show_resolved"}}
@@ -200,7 +200,7 @@
 																			<button id="hide-outdated-{{(index $line.Comments 0).ID}}" data-comment="{{(index $line.Comments 0).ID}}" class="hide ui compact right labeled button hide-outdated">
 																				{{svg "octicon-fold" 16}}
 																				{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
-																			</button>	
+																			</button>
 																		</div>
 																	{{end}}
 																	{{if eq $line.GetCommentSide "proposed"}}
