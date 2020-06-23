@@ -16,7 +16,5 @@ function tableSort(normSort, revSort, isDefault) {
   if (!urlSort && isDefault) urlSort = normSort;
 
   url.searchParams.set('sort', urlSort !== normSort ? normSort : revSort);
-  }
-
   window.location.replace(url.href);
 }
