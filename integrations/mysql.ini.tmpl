@@ -78,12 +78,12 @@ PROVIDER        = file
 PROVIDER_CONFIG = integrations/gitea-integration-mysql/data/sessions
 
 [log]
-MODE                 = test,file
+MODE                 = test,file,console
 ROOT_PATH            = mysql-log
 REDIRECT_MACARON_LOG = true
 ROUTER               = ,
 MACARON              = ,
-XORM                 = file
+XORM                 = file,console
 
 [log.test]
 LEVEL                = Info
