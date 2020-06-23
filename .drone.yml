@@ -157,11 +157,7 @@ services:
     - minio server /data
     environment:
       MINIO_ACCESS_KEY: 123456
-<<<<<<< HEAD
       MINIO_SECRET_KEY: 12345678
-=======
-      MINIO_SECRET_KEY: 123456
->>>>>>> Move minio test to amd64 since minio docker don't support arm64
 
 steps:
   - name: fetch-tags
