@@ -1210,8 +1210,6 @@ function initPullRequestReview() {
     return;
   }
 
-  $('.diff-detail-box.ui.sticky').sticky();
-
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
     $(this).closest('.dropdown').find('.menu').toggle('visible');
@@ -2048,7 +2046,6 @@ function initCodeView() {
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
       $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
-      $('.diff-detail-box.ui.sticky').sticky();
     });
   }
   $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
