@@ -1,13 +1,10 @@
 export default function initTableSort() {
-  $('th[data-sortt-asc]').each(function () {
-    // get data
-    const {sorttAsc, sorttDesc, sorttDefault} = this.dataset;
-
-    // add onclick event
-    $(this).on('click', () => {
+  for (const header of document.querySelectorAll('th[data-sortt-asc]') || []) {
+    const {sorttAsc, sorttDesc, sorttDefault} = header.dataset;
+    header.addEventListener('onclick', () => {
       tableSort(sorttAsc, sorttDesc, sorttDefault);
     });
-  });
+  }
 }
 
 function tableSort(normSort, revSort, isDefault) {
@@ -16,13 +13,9 @@ function tableSort(normSort, revSort, isDefault) {
 
   const url = new URL(window.location);
   let urlSort = url.searchParams.get('sort');
-  if (urlSort === null && isDefault) urlSort = normSort;
+  if (!urlSort && isDefault) urlSort = normSort;
 
-
-  if (urlSort !== normSort) {
-    url.searchParams.set('sort', normSort);
-  } else if (revSort !== '') {
-    url.searchParams.set('sort', revSort);
+  url.searchParams.set('sort', urlSort !== normSort ? normSort : revSort);
   }
 
   window.location.replace(url.href);
