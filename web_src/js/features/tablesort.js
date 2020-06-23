@@ -1,7 +1,7 @@
 export default function initTableSort() {
   for (const header of document.querySelectorAll('th[data-sortt-asc]') || []) {
     const {sorttAsc, sorttDesc, sorttDefault} = header.dataset;
-    header.addEventListener('onclick', () => {
+    header.addEventListener('click', () => {
       tableSort(sorttAsc, sorttDesc, sorttDefault);
     });
   }
