@@ -157,7 +157,7 @@ services:
     - minio server /data
     environment:
       MINIO_ACCESS_KEY: 123456
-      MINIO_SECRET_KEY: 123456
+      MINIO_SECRET_KEY: 12345678
 
 steps:
   - name: fetch-tags
