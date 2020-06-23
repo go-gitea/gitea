@@ -56,11 +56,6 @@ func (a *Attachment) APIFormat() *api.Attachment {
 	}
 }
 
-// DownloadURL returns the download url of the attached file
-func (a *Attachment) DownloadURL() string {
-	return fmt.Sprintf("%sattachments/%s", setting.AppURL, a.UUID)
-}
-
 // AttachmentRelativePath returns the relative path
 func AttachmentRelativePath(uuid string) string {
 	return path.Join(uuid[0:1], uuid[1:2], uuid)
@@ -69,6 +64,11 @@ func AttachmentRelativePath(uuid string) string {
 // RelativePath returns the relative path of the attachment
 func (a *Attachment) RelativePath() string {
 	return AttachmentRelativePath(a.UUID)
+}
+
+// DownloadURL returns the download url of the attached file
+func (a *Attachment) DownloadURL() string {
+	return fmt.Sprintf("%sattachments/%s", setting.AppURL, a.UUID)
 }
 
 // LinkedRepository returns the linked repo if any
