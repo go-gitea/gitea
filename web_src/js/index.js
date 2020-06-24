@@ -899,6 +899,7 @@ async function initRepository() {
             dictInvalidFileType: $dropzone.data('invalid-input-type'),
             dictFileTooBig: $dropzone.data('file-too-big'),
             dictRemoveFile: $dropzone.data('remove-file'),
+            timeout: 0,
             init() {
               this.on('success', (file, data) => {
                 filenameDict[file.name] = {
@@ -1203,8 +1204,6 @@ function initPullRequestReview() {
   if ($('.repository.pull.diff').length === 0) {
     return;
   }
-
-  $('.diff-detail-box.ui.sticky').sticky();
 
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
@@ -2042,7 +2041,6 @@ function initCodeView() {
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
       $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
-      $('.diff-detail-box.ui.sticky').sticky();
     });
   }
   $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
@@ -2307,6 +2305,7 @@ $(document).ready(async () => {
       dictInvalidFileType: $dropzone.data('invalid-input-type'),
       dictFileTooBig: $dropzone.data('file-too-big'),
       dictRemoveFile: $dropzone.data('remove-file'),
+      timeout: 0,
       init() {
         this.on('success', (file, data) => {
           filenameDict[file.name] = data.uuid;

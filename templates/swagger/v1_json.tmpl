@@ -8470,36 +8470,36 @@
         }
       }
     },
-    "/settings/allowed_reactions": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "miscellaneous"
-        ],
-        "summary": "Returns string array of allowed reactions",
-        "operationId": "getAllowedReactions",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/StringSlice"
-          }
-        }
-      }
-    },
     "/settings/repository": {
       "get": {
         "produces": [
           "application/json"
         ],
         "tags": [
-          "miscellaneous"
+          "settings"
         ],
         "summary": "Get instance's global settings for repositories",
         "operationId": "getGeneralRepositorySettings",
         "responses": {
           "200": {
             "$ref": "#/responses/GeneralRepoSettings"
+          }
+        }
+      }
+    },
+    "/settings/ui": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global settings for ui",
+        "operationId": "getGeneralUISettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GeneralUISettings"
           }
         }
       }
@@ -12753,6 +12753,20 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "GeneralUISettings": {
+      "description": "GeneralUISettings contains global ui settings exposed by API",
+      "type": "object",
+      "properties": {
+        "allowed_reactions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "AllowedReactions"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "GitBlobResponse": {
       "description": "GitBlobResponse represents a git blob",
       "type": "object",
@@ -14926,6 +14940,12 @@
       "description": "GeneralRepoSettings",
       "schema": {
         "$ref": "#/definitions/GeneralRepoSettings"
+      }
+    },
+    "GeneralUISettings": {
+      "description": "GeneralUISettings",
+      "schema": {
+        "$ref": "#/definitions/GeneralUISettings"
       }
     },
     "GitBlobResponse": {
