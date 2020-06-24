@@ -33,9 +33,15 @@
 			<table class="ui very basic striped table">
 				<thead>
 					<tr>
-						<th>{{.i18n.Tr "admin.users.name"}}</th>
+						<th data-sortt-asc="username" data-sortt-desc="reverseusername">
+							{{.i18n.Tr "admin.users.name"}}
+							{{SortArrow "username" "reverseusername" $.SortType false}}
+						</th>
 						<th>{{.i18n.Tr "admin.users.full_name"}}</th>
-						<th>{{.i18n.Tr "email"}}</th>
+						<th data-sortt-asc="email" data-sortt-desc="reverseemail" data-sortt-default="true">
+							{{.i18n.Tr "email"}}
+							{{SortArrow "email" "reverseemail" $.SortType true}}
+						</th>
 						<th>{{.i18n.Tr "admin.emails.primary"}}</th>
 						<th>{{.i18n.Tr "admin.emails.activated"}}</th>
 					</tr>
