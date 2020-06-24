@@ -62,10 +62,10 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 	switch project.BoardType {
 
 	case BugTriage:
-		items = setting.Repository.ProjectBoardBugTriageType
+		items = setting.Project.ProjectBoardBugTriageType
 
 	case BasicKanban:
-		items = setting.Repository.ProjectBoardBasicKanbanType
+		items = setting.Project.ProjectBoardBasicKanbanType
 
 	case None:
 		fallthrough

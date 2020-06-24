@@ -39,8 +39,6 @@ var (
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
 		EnablePushCreateUser                    bool
 		EnablePushCreateOrg                     bool
-		ProjectBoardBasicKanbanType             []string
-		ProjectBoardBugTriageType               []string
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
 		PrefixArchiveFiles                      bool
@@ -143,8 +141,6 @@ var (
 		DefaultCloseIssuesViaCommitsInAnyBranch: false,
 		EnablePushCreateUser:                    false,
 		EnablePushCreateOrg:                     false,
-		ProjectBoardBasicKanbanType:             []string{"To Do", "In Progress", "Done"},
-		ProjectBoardBugTriageType:               []string{"Needs Triage", "High priority", "Low priority", "Closed"},
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
 		PrefixArchiveFiles:                      true,
