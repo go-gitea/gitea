@@ -1223,6 +1223,17 @@ i.icon.centerlock {
     margin-top: 1rem;
 }
 
+table th[data-sortt-asc],
+table th[data-sortt-desc] {
+    &:hover {
+        background: rgba(0, 0, 0, .1) !important;
+        cursor: pointer !important;
+    }
+    .svg {
+        margin-left: .25rem;
+    }
+}
+
 /* limit width of all direct dropdown menu children */
 /* https://github.com/go-gitea/gitea/pull/10835 */
 .dropdown:not(.selection) > .menu:not(.review-box) > *:not(.header) {
