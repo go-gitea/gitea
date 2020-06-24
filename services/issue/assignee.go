@@ -90,7 +90,10 @@ func TeamReviewRequest(issue *models.Issue, doer *models.User, reviewer *models.
 		if err = comment.LoadIssue(); err != nil {
 			return
 		}
-		err = reviewer.GetMembers(&models.SearchMembersOptions{})
+		if err = reviewer.GetMembers(&models.SearchMembersOptions{}); err != nil {
+			return
+		}
+
 		for _, member := range reviewer.Members {
 			if member.ID == comment.Issue.PosterID {
 				continue
