@@ -284,7 +284,7 @@ export default function gitGraph(canvas, rawGraphList, config) {
           if ((breakIndex = findLineBreak(nextRow)) !== -1) {
             nextRow.splice(breakIndex, 1);
           }
-        }
+        } 
         // if line break found replace all '/' with '|' after breakIndex in previous row
         if (breakIndex !== -1 && colomn === '/' && colomnIndex > breakIndex) {
           currentRow[colomnIndex] = '|';
@@ -372,6 +372,10 @@ export default function gitGraph(canvas, rawGraphList, config) {
           inlineIntersect = false;
         }
 
+        if (colomn === '|' && currentRow[colomnIndex - 1] && currentRow[colomnIndex - 1] === '\\') {
+          flows.splice(colomnIndex, 0, genNewFlow());
+        }        
+
         color = flows[colomnIndex].color;
 
         switch (colomn) {
@@ -387,6 +391,10 @@ export default function gitGraph(canvas, rawGraphList, config) {
             break;
 
           case '|':
+            if (prevColomn
+              && prevColomn === '\\') {
+              x += config.unitSize;
+            }
             drawLineUp(x, y, color);
             break;
 
