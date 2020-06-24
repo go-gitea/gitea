@@ -97,6 +97,12 @@ func IoctlSetRTCTime(fd int, value *RTCTime) error {
 	return err
 }
 
+func IoctlSetRTCWkAlrm(fd int, value *RTCWkAlrm) error {
+	err := ioctl(fd, RTC_WKALM_SET, uintptr(unsafe.Pointer(value)))
+	runtime.KeepAlive(value)
+	return err
+}
+
 func IoctlGetUint32(fd int, req uint) (uint32, error) {
 	var value uint32
 	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
@@ -106,6 +112,12 @@ func IoctlGetUint32(fd int, req uint) (uint32, error) {
 func IoctlGetRTCTime(fd int) (*RTCTime, error) {
 	var value RTCTime
 	err := ioctl(fd, RTC_RD_TIME, uintptr(unsafe.Pointer(&value)))
+	return &value, err
+}
+
+func IoctlGetRTCWkAlrm(fd int) (*RTCWkAlrm, error) {
+	var value RTCWkAlrm
+	err := ioctl(fd, RTC_WKALM_RD, uintptr(unsafe.Pointer(&value)))
 	return &value, err
 }
 

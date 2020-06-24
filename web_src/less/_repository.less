@@ -1,5 +1,4 @@
 .repository {
-
     padding-top: 15px;
 
     .repo-header {
@@ -33,8 +32,8 @@
             white-space: nowrap;
         }
 
-        .svg.octicon-repo-forked {
-            margin-top: -1px;
+        .repo-buttons .svg {
+            margin: 0 .42857143em 0 -.21428571em;
         }
 
         .button {
@@ -86,6 +85,10 @@
         }
 
         .ui.list {
+            &.assignees .icon {
+                line-height: 2em;
+            }
+
             .hide {
                 display: none !important;
             }
@@ -242,6 +245,12 @@
     }
 
     &.file.list {
+        &.blame {
+            .ui.container:not(.flex) {
+                width: 98%;
+            }
+        }
+
         .repo-description {
             display: flex;
             justify-content: space-between;
@@ -643,9 +652,6 @@
                     margin-left: 10px;
                     margin-top: 10px;
                 }
-                .icon-octicon {
-                    padding-left: 2px;
-                }
                 .branch-update.grid {
                     .row {
                         padding-bottom: 1rem;
@@ -657,14 +663,18 @@
             }
 
             .review-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+
+                .review-item-left,
+                .review-item-right {
+                    display: flex;
+                    align-items: center;
+                }
 
                 .avatar,
                 .type-icon {
-                    float: none;
-                    display: inline-block;
-                    text-align: center;
-                    vertical-align: middle;
-
                     .svg {
                         width: 23px;
                         height: 23px;
@@ -676,8 +686,12 @@
                 }
 
                 .type-icon {
-                    float: right;
+                    align-self: flex-start;
                     margin-right: 1em;
+
+                    i {
+                        line-height: 1.8em;
+                    }
                 }
 
                 .divider {
@@ -1161,6 +1175,11 @@
 
                 .segments {
                     box-shadow: none;
+
+                    .show-outdated,
+                    .hide-outdated {
+                        display: block;
+                    }
                 }
             }
         }
@@ -1548,6 +1567,16 @@
         background: #ffffff;
         line-height: 30px;
 
+        &.sticky {
+            position: sticky;
+            top: 0;
+            z-index: 800;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #d4d4d5;
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+
         > div:after {
             clear: both;
             content: "";
@@ -1634,7 +1663,6 @@
                 width: 1%;
                 min-width: 50px;
                 user-select: none;
-                vertical-align: top;
 
                 span.fold {
                     display: block;
@@ -3018,4 +3046,14 @@ td.blob-excerpt {
 
 .added-code {
     background-color: #99ff99;
+}
+
+.repository .ui.menu.new-menu {
+    background: none !important;
+
+    @media only screen and (max-width: 1200px) {
+        &:after {
+            background: none !important;
+        }
+    }
 }

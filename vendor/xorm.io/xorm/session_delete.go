@@ -96,11 +96,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		return 0, err
 	}
 
-	// handle before delete processors
-	for _, closure := range session.beforeClosures {
-		closure(bean)
-	}
-	cleanupProcessorsClosures(&session.beforeClosures)
+	executeBeforeClosures(session, bean)
 
 	if processor, ok := interface{}(bean).(BeforeDeleteProcessor); ok {
 		processor.BeforeDelete()
