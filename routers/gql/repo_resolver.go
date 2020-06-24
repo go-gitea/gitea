@@ -9,28 +9,45 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
+// Resolver is something?
 type Resolver struct {
 }
 
 // RepositoryResolver resolves our repository
 func (r *Resolver) RepositoryResolver(p graphql.ResolveParams) (interface{}, error) {
 	owner, ownerOk := p.Args["owner"].(string)
-	repo, repoOk := p.Args["repo"].(string)
-	if ownerOk && repoOk {
-		repo, err := models.GetRepositoryByOwnerAndName(owner, repo)
+	name, nameOk := p.Args["name"].(string)
+	if ownerOk && nameOk {
+		repo, err := models.GetRepositoryByOwnerAndName(owner, name)
 		if err != nil {
 			//TODO
+		}
+
+		fields, err := getSelectedFields(p)
+		if err != nil {
+			//TODO
+		}
+
+		fieldsSet := make(map[string]struct{}, len(fields))
+		for _, s := range fields {
+			//log.Info(s)
+			fieldsSet[s] = struct{}{}
 		}
 
 		gqlRepo := repo.GqlFormat(models.AccessModeRead)
-		//TODO how do you only get this when query asked for it?
-		gqlRepo.Branches, err = getBranches(repo)
-		if err != nil {
-			//TODO
+
+		_, reqBranches := fieldsSet["branches"]
+		if reqBranches {
+			gqlRepo.Branches, err = getBranches(repo)
+			if err != nil {
+				//TODO
+			}
 		}
 
-		var gqlRepos = []api.GqlRepository{*gqlRepo}
-		return gqlRepos, nil
+		//var gqlRepos = []api.GqlRepository{*gqlRepo}
+		//return gqlRepos, nil
+
+		return *gqlRepo, nil
 	}
 
 	return nil, nil

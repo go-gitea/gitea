@@ -2,17 +2,18 @@ package gql
 
 import "github.com/graphql-go/graphql"
 
-// repoInfo describes a graphql object containing a repository
-var repo = graphql.NewObject(
+// repository describes a graphql object containing a repository
+var repository = graphql.NewObject(
 	graphql.ObjectConfig{
-		Name: "repo",
+		Name: "repository",
 		Fields: graphql.Fields{
-			"repo_info": &graphql.Field{
-				Type:        repoInfo,
-				Description: "the repository information",
+			"general_info": &graphql.Field{
+				Type:        generalInfo,
+				Description: "General information about a repository",
 			},
 			"branches": &graphql.Field{
-				Type: graphql.NewList(branch),
+				Type:        graphql.NewList(branch),
+				Description: "Branches contained within a repostory",
 			},
 		},
 	},
@@ -62,16 +63,19 @@ type Repository struct {
 
 */
 
-// repoInfo describes a graphql object containing a repository
-var repoInfo = graphql.NewObject(
+// generalInfo describes general information about a repository
+var generalInfo = graphql.NewObject(
 	graphql.ObjectConfig{
-		Name: "repo_info",
+		Name:        "general_info",
+		Description: "General Information about a repository",
 		Fields: graphql.Fields{
 			"id": &graphql.Field{
-				Type: graphql.Int,
+				Type:        graphql.Int,
+				Description: "The id of the repository",
 			},
 			"owner": &graphql.Field{
-				Type: user,
+				Type:        user,
+				Description: "Owner of the repository",
 			},
 			"name": &graphql.Field{
 				Type: graphql.String,

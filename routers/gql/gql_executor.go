@@ -58,10 +58,6 @@ func GraphQL(ctx *context.APIContext) {
 	// Execute graphql query
 	result := ExecuteQuery(rBody.Query, schema)
 
-	// render.JSON comes from the chi/render package and handles
-	// marshalling to json, automatically escaping HTML and setting
-	// the Content-Type as application/json.
-
 	ctx.JSON(http.StatusOK, result)
 }
 

@@ -21,14 +21,17 @@ func NewRoot() *Root {
 			graphql.ObjectConfig{
 				Name: "Query",
 				Fields: graphql.Fields{
-					"repos": &graphql.Field{
-						Type: graphql.NewList(repo),
+					"repository": &graphql.Field{
+						Type:        repository,
+						Description: "A repository",
 						Args: graphql.FieldConfigArgument{
 							"owner": &graphql.ArgumentConfig{
-								Type: graphql.String,
+								Type:        graphql.String,
+								Description: "Owner of the repository",
 							},
-							"repo": &graphql.ArgumentConfig{
-								Type: graphql.String,
+							"name": &graphql.ArgumentConfig{
+								Type:        graphql.String,
+								Description: "Name of the repository",
 							},
 						},
 						Resolve: resolver.RepositoryResolver,

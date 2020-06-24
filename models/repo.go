@@ -288,7 +288,7 @@ func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 // GqlFormat converts a Repository to api.GqlRepository
 func (repo *Repository) GqlFormat(mode AccessMode) *api.GqlRepository {
 	return &api.GqlRepository{
-		RepoInfo: repo.innerAPIFormat(x, mode, false),
+		GeneralInfo: repo.innerAPIFormat(x, mode, false),
 	}
 }
 
