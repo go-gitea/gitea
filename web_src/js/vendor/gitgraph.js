@@ -284,7 +284,7 @@ export default function gitGraph(canvas, rawGraphList, config) {
           if ((breakIndex = findLineBreak(nextRow)) !== -1) {
             nextRow.splice(breakIndex, 1);
           }
-        } 
+        }
         // if line break found replace all '/' with '|' after breakIndex in previous row
         if (breakIndex !== -1 && colomn === '/' && colomnIndex > breakIndex) {
           currentRow[colomnIndex] = '|';
