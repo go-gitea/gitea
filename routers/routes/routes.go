@@ -874,16 +874,22 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("", repo.Projects)
 			m.Get("/new", repo.NewProject)
 			m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewRepoProjectPost)
-			m.Get("/:id", repo.ViewProject)
-			m.Post("/:id", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.AddBoardToProjectPost)
-			m.Get("/:id/:action", repo.ChangeProjectStatus)
-			m.Post("/:id/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
-			m.Get("/:id/edit", repo.EditProject)
-			m.Post("/delete", repo.DeleteProject)
-			m.Combo("/:id/:boardID").Put(bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle).
-				Delete(repo.DeleteProjectBoard)
-			m.Post("/:id/:boardID/:index", repo.MoveIssueAcrossBoards)
+			m.Group("/:id", func() {
+				m.Get("", repo.ViewProject)
+				m.Post("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.AddBoardToProjectPost)
+				m.Post("/delete", repo.DeleteProject)           //ToDo: this has to be DELETE
+				m.Get("/:id/:action", repo.ChangeProjectStatus) //ToDo: this has to be POST
 
+				m.Get("/edit", repo.EditProject)
+				m.Post("/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
+
+				m.Group("/:boardID", func() {
+					m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)
+					m.Delete("", repo.DeleteProjectBoard)
+
+					m.Post("/:index", repo.MoveIssueAcrossBoards)
+				})
+			})
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
 		m.Group("/wiki", func() {

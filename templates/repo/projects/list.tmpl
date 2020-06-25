@@ -59,7 +59,7 @@
 					{{else}}
 						<a href="{{$.Link}}/{{.ID}}/close" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-x" 16}} {{$.i18n.Tr "repo.milestones.close"}}</a>
 						{{end}}
-						<a class="delete-button" href="#" data-url="{{$.RepoLink}}/projects/delete" data-id="{{.ID}}">{{svg "octicon-trashcan" 16}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+						<a class="delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan" 16}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 				</div>
 				{{end}}
 				{{if .Description}}
