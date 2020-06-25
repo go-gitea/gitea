@@ -103,7 +103,7 @@ func SaveAddress(m *models.Mirror, addr string) error {
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
-	
+
 	if m.Repo.HasWiki() {
 		wikiPath := m.Repo.WikiPath()
 		wikiRemotePath := repo_module.WikiRemoteURL(addr)
@@ -120,7 +120,6 @@ func SaveAddress(m *models.Mirror, addr string) error {
 	}
 	return nil
 }
-
 
 // gitShortEmptySha Git short empty SHA
 const gitShortEmptySha = "0000000"
