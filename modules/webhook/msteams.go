@@ -558,7 +558,11 @@ func GetMSTeamsPayload(p api.Payloader, event models.HookEventType, meta string)
 	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getMSTeamsIssuesPayload(p.(*api.IssuePayload))
 	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		return getMSTeamsIssueCommentPayload(p.(*api.IssueCommentPayload))
+		pl, ok := p.(*api.IssueCommentPayload)
+		if ok {
+			return getMSTeamsIssueCommentPayload(pl)
+		}
+		return getMSTeamsPullRequestPayload(p.(*api.PullRequestPayload))
 	case models.HookEventPush:
 		return getMSTeamsPushPayload(p.(*api.PushPayload))
 	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
