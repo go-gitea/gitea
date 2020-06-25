@@ -92,8 +92,9 @@ type Repository struct {
 
 // GqlRepository represents a repository for a graphql operation
 type GqlRepository struct {
-	GeneralInfo *Repository `json:"general_info"`
-	Branches    []*Branch   `json:"branches"`
+	GeneralInfo   *Repository `json:"general_info"`
+	Branches      []*Branch   `json:"branches"`
+	Collaborators []*User     `json:"collaborators"`
 }
 
 // CreateRepoOption options when creating repository

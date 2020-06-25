@@ -36,6 +36,7 @@ func (r *Resolver) RepositoryResolver(p graphql.ResolveParams) (interface{}, err
 
 		gqlRepo := repo.GqlFormat(models.AccessModeRead)
 
+		//branches
 		_, reqBranches := fieldsSet["branches"]
 		if reqBranches {
 			gqlRepo.Branches, err = getBranches(repo)
@@ -44,13 +45,38 @@ func (r *Resolver) RepositoryResolver(p graphql.ResolveParams) (interface{}, err
 			}
 		}
 
-		//var gqlRepos = []api.GqlRepository{*gqlRepo}
-		//return gqlRepos, nil
+		//collaborators
+		_, reqBranches = fieldsSet["collaborators"]
+		if reqBranches {
+			gqlRepo.Collaborators, err = getCollaborators(repo)
+			if err != nil {
+				//TODO
+			}
+		}
 
 		return *gqlRepo, nil
 	}
 
 	return nil, nil
+}
+
+func getCollaborators(repo *models.Repository) ([]*api.User, error) {
+	limitOptions := models.ListOptions{
+		Page:     0,
+		PageSize: 50,
+	}
+	collaborators, err := repo.GetCollaborators(limitOptions)
+	if err != nil {
+		//TODO
+		return nil, nil
+	}
+	users := make([]*api.User, len(collaborators))
+	for i, collaborator := range collaborators {
+		users[i] = convert.ToUser(collaborator.User, true, true)
+		//TOOD dunno how to access this info yet
+		//users[i] = convert.ToUser(collaborator.User, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+	}
+	return users, nil
 }
 
 func getBranches(repo *models.Repository) ([]*api.Branch, error) {
