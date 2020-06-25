@@ -13,9 +13,10 @@ import (
 var (
 	// Attachment settings
 	Attachment = struct {
-		StoreType string
-		Path      string
-		Minio     struct {
+		StoreType   string
+		Path        string
+		ServeDirect bool
+		Minio       struct {
 			Endpoint        string
 			AccessKeyID     string
 			SecretAccessKey string
@@ -29,7 +30,8 @@ var (
 		MaxFiles     int
 		Enabled      bool
 	}{
-		StoreType: "local",
+		StoreType:   "local",
+		ServeDirect: false,
 		Minio: struct {
 			Endpoint        string
 			AccessKeyID     string
@@ -49,6 +51,7 @@ var (
 func newAttachmentService() {
 	sec := Cfg.Section("attachment")
 	Attachment.StoreType = sec.Key("STORE_TYPE").MustString("local")
+	Attachment.ServeDirect = sec.Key("SERVE_DIRECT").MustBool(false)
 	switch Attachment.StoreType {
 	case "local":
 		Attachment.Path = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))

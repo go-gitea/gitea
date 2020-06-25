@@ -123,17 +123,19 @@ func GetAttachment(ctx *context.Context) {
 		}
 	}
 
-	//If we have a signed url (S3, object storage), redirect to this directly.
-	u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
+	if setting.Attachment.ServeDirect {
+		//If we have a signed url (S3, object storage), redirect to this directly.
+		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
 
-	if u != nil && err == nil {
-		if err := attach.IncreaseDownloadCount(); err != nil {
-			ctx.ServerError("Update", err)
+		if u != nil && err == nil {
+			if err := attach.IncreaseDownloadCount(); err != nil {
+				ctx.ServerError("Update", err)
+				return
+			}
+
+			ctx.Redirect(u.String())
 			return
 		}
-
-		ctx.Redirect(u.String())
-		return
 	}
 
 	//If we have matched and access to release or issue

@@ -475,6 +475,7 @@ set name for unique queues. Individual queues will default to
 - `MAX_SIZE`: **4**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
 - `STORE_TYPE`: **local**: Storage type for attachments, `local` for local disk or `minio` for s3 compatible object storage service, default is `local`.
+- `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local dcoes nothing.
 - `PATH`: **data/attachments**: Path to store attachments only available when STORE_TYPE is `local`
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when STORE_TYPE is `minio`
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when STORE_TYPE is `minio`
