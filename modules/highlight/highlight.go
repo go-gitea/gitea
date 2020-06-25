@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -21,14 +22,18 @@ import (
 var (
 	// For custom user mapping
 	highlightMapping = map[string]string{}
+
+	once sync.Once
 )
 
 // NewContext loads highlight map
 func NewContext() {
-	keys := setting.Cfg.Section("highlight.mapping").Keys()
-	for i := range keys {
-		highlightMapping[keys[i].Name()] = keys[i].Value()
-	}
+	once.Do(func() {
+		keys := setting.Cfg.Section("highlight.mapping").Keys()
+		for i := range keys {
+			highlightMapping[keys[i].Name()] = keys[i].Value()
+		}
+	})
 }
 
 // Code returns a HTML version of code string with chroma syntax highlighting classes
