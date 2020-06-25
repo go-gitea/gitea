@@ -6,6 +6,7 @@ package storage
 
 import (
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 )
@@ -63,4 +64,9 @@ func (l *LocalStorage) Save(path string, r io.Reader) (int64, error) {
 func (l *LocalStorage) Delete(path string) error {
 	p := filepath.Join(l.dir, path)
 	return os.Remove(p)
+}
+
+// URL gets the redirect URL to a file
+func (l *LocalStorage) URL(path, name string) (*url.URL, error) {
+	return nil, ErrUrlNotSupported
 }

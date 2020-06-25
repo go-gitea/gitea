@@ -5,10 +5,16 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"net/url"
 
 	"code.gitea.io/gitea/modules/setting"
+)
+
+var (
+	ErrUrlNotSupported = errors.New("url method not supported")
 )
 
 // ObjectStorage represents an object storage to handle a bucket and files
@@ -16,6 +22,7 @@ type ObjectStorage interface {
 	Save(path string, r io.Reader) (int64, error)
 	Open(path string) (io.ReadCloser, error)
 	Delete(path string) error
+	URL(path, name string) (*url.URL, error)
 }
 
 // Copy copys a file from source ObjectStorage to dest ObjectStorage

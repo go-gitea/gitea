@@ -5,15 +5,17 @@
 package storage
 
 import (
+	"github.com/minio/minio-go"
 	"io"
+	"net/url"
 	"path"
 	"strings"
-
-	"github.com/minio/minio-go"
+	"time"
 )
 
 var (
-	_ ObjectStorage = &MinioStorage{}
+	_            ObjectStorage = &MinioStorage{}
+	quoteEscaper               = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 )
 
 // MinioStorage returns a minio bucket storage
@@ -67,4 +69,12 @@ func (m *MinioStorage) Save(path string, r io.Reader) (int64, error) {
 // Delete delete a file
 func (m *MinioStorage) Delete(path string) error {
 	return m.client.RemoveObject(m.bucket, m.buildMinioPath(path))
+}
+
+// URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
+func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
+	reqParams := make(url.Values)
+	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
+	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
+	return m.client.PresignedGetObject(m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)
 }
