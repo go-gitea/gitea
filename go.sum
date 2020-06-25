@@ -673,6 +673,8 @@ github.com/yohcop/openid-go v1.0.0/go.mod h1:/408xiwkeItSPJZSTPF7+VtZxPkPrRRpRNK
 github.com/yuin/goldmark v1.1.7/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.25 h1:isv+Q6HQAmmL2Ofcmg8QauBmDPlUUnSoNhEcC940Rds=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+github.com/yuin/goldmark v1.1.32 h1:5tjfNdR2ki3yYQ842+eX2sQHeiwpKJ0RnHO4IYOc4V8=
+github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60 h1:gZucqLjL1eDzVWrXj4uiWeMbAopJlBR2mKQAsTGdPwo=
 github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60/go.mod h1:i9VhcIHN2PxXMbQrKqXNueok6QNONoPjNMoj9MygVL0=
 github.com/ziutek/mymysql v1.5.4 h1:GB0qdRGsTwQSBVYuVShFBKaXSnSnYYC2d9knnE1LHFs=
