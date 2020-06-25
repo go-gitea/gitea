@@ -106,7 +106,7 @@ func SaveAddress(m *models.Mirror, addr string) error {
 	
 	if m.Repo.HasWiki() {
 		wikiPath := m.Repo.WikiPath()
-		wikiRemotePath := repo_module.wikiRemoteURL(addr)
+		wikiRemotePath := repo_module.WikiRemoteURL(addr)
 		// Remove old origin of wiki
 		_, err := git.NewCommand("remote", "rm", "origin").RunInDir(wikiPath)
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
