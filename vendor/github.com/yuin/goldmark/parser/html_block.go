@@ -93,7 +93,7 @@ var htmlBlockType5Close = []byte{']', ']', '>'}
 
 var htmlBlockType6Regexp = regexp.MustCompile(`^[ ]{0,3}</?([a-zA-Z0-9]+)(?:\s.*|>.*|/>.*|)\n?$`)
 
-var htmlBlockType7Regexp = regexp.MustCompile(`^[ ]{0,3}<(/)?([a-zA-Z0-9]+)(` + attributePattern + `*)(:?>|/>)\s*\n?$`)
+var htmlBlockType7Regexp = regexp.MustCompile(`^[ ]{0,3}<(/)?([a-zA-Z0-9\-]+)(` + attributePattern + `*)(:?>|/>)\s*\n?$`)
 
 type htmlBlockParser struct {
 }
