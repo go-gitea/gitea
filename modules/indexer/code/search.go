@@ -6,8 +6,6 @@ package code
 
 import (
 	"bytes"
-	"html"
-	gotemplate "html/template"
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
@@ -24,7 +22,7 @@ type Result struct {
 	Language       string
 	Color          string
 	LineNumbers    []int
-	FormattedLines gotemplate.HTML
+	FormattedLines string
 }
 
 func indices(content string, selectionStartIndex, selectionEndIndex int) (int, int) {
@@ -79,19 +77,13 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 			openActiveIndex := util.Max(result.StartIndex-index, 0)
 			closeActiveIndex := util.Min(result.EndIndex-index, len(line))
 			err = writeStrings(&formattedLinesBuffer,
-				`<li>`,
-				html.EscapeString(line[:openActiveIndex]),
-				`<span class='active'>`,
-				html.EscapeString(line[openActiveIndex:closeActiveIndex]),
-				`</span>`,
-				html.EscapeString(line[closeActiveIndex:]),
-				`</li>`,
+				line[:openActiveIndex],
+				line[openActiveIndex:closeActiveIndex],
+				line[closeActiveIndex:],
 			)
 		} else {
 			err = writeStrings(&formattedLinesBuffer,
-				`<li>`,
-				html.EscapeString(line),
-				`</li>`,
+				line,
 			)
 		}
 		if err != nil {
@@ -109,7 +101,7 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		Language:       result.Language,
 		Color:          result.Color,
 		LineNumbers:    lineNumbers,
-		FormattedLines: gotemplate.HTML(highlight.Code(result.Filename, formattedLinesBuffer.String())),
+		FormattedLines: highlight.Code(result.Filename, formattedLinesBuffer.String()),
 	}, nil
 }
 
