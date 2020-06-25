@@ -34,7 +34,7 @@ const (
 type ProjectBoard struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Title   string
-	Default bool //if true it collects issues witch are not signed to a specific board jet
+	Default bool `xorm:"NOT NULL DEFAULT false"` //if true it collects issues witch are not signed to a specific board jet
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
