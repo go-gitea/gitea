@@ -16,12 +16,18 @@
 			<table class="ui very basic striped table">
 				<thead>
 					<tr>
-						<th>ID</th>
-						<th>{{.i18n.Tr "admin.orgs.name"}}</th>
+						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
+						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically" data-sortt-default="true">
+							{{.i18n.Tr "admin.orgs.name"}}
+							{{SortArrow "alphabetically" "reversealphabetically" $.SortType true}}
+						</th>
 						<th>{{.i18n.Tr "admin.orgs.teams"}}</th>
 						<th>{{.i18n.Tr "admin.orgs.members"}}</th>
 						<th>{{.i18n.Tr "admin.users.repos"}}</th>
-						<th>{{.i18n.Tr "admin.users.created"}}</th>
+						<th data-sortt-asc="recentupdate" data-sortt-desc="leastupdate">
+							{{.i18n.Tr "admin.users.created"}}
+							{{SortArrow "recentupdate" "leastupdate" $.SortType false}}
+						</th>
 						<th>{{.i18n.Tr "admin.users.edit"}}</th>
 					</tr>
 				</thead>

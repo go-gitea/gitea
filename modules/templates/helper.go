@@ -298,8 +298,30 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg": func(icon string, size int) template.HTML {
-			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
+		"svg": SVG,
+		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
+			// if needed
+			if len(normSort) == 0 || len(urlSort) == 0 {
+				return ""
+			}
+
+			if len(urlSort) == 0 && isDefault {
+				// if sort is sorted as default add arrow tho this table header
+				if isDefault {
+					return SVG("octicon-triangle-down", 16)
+				}
+			} else {
+				// if sort arg is in url test if it correlates with column header sort arguments
+				if urlSort == normSort {
+					// the table is sorted with this header normal
+					return SVG("octicon-triangle-down", 16)
+				} else if urlSort == revSort {
+					// the table is sorted with this header reverse
+					return SVG("octicon-triangle-up", 16)
+				}
+			}
+			// the table is NOT sorted with this header
+			return ""
 		},
 	}}
 }
@@ -408,6 +430,11 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			return float32(n) * 100 / float32(sum)
 		},
 	}}
+}
+
+// SVG render icons
+func SVG(icon string, size int) template.HTML {
+	return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
 }
 
 // Safe render raw as HTML
