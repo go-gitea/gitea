@@ -2010,7 +2010,7 @@ function initCodeView() {
       }
       m = window.location.hash.match(/^#(L|n)(\d+)$/);
       if (m) {
-        $first = $list.filter(`.L${m[2]}`);
+        $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
         $('html, body').scrollTop($first.offset().top - 200);
       }
