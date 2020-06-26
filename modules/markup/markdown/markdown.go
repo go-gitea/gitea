@@ -52,7 +52,6 @@ func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown
 				extension.DefinitionList,
 				common.FootnoteExtension,
 				highlighting.NewHighlighting(
-					highlighting.WithStyle("gitea"),
 					highlighting.WithFormatOptions(
 						chromahtml.WithClasses(true),
 						chromahtml.PreventSurroundingPre(true),
