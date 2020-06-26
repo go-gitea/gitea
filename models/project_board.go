@@ -20,14 +20,14 @@ type (
 )
 
 const (
-	// None is a project board type that has no predefined columns
-	None ProjectBoardType = iota
+	// ProjectBoardTypeNone is a project board type that has no predefined columns
+	ProjectBoardTypeNone ProjectBoardType = iota
 
-	// BasicKanban is a project board type that has basic predefined columns
-	BasicKanban
+	// ProjectBoardTypeBasicKanban is a project board type that has basic predefined columns
+	ProjectBoardTypeBasicKanban
 
-	// BugTriage is a project board type that has predefined columns suited to hunting down bugs
-	BugTriage
+	// ProjectBoardTypeBugTriage is a project board type that has predefined columns suited to hunting down bugs
+	ProjectBoardTypeBugTriage
 )
 
 // ProjectBoard is used to represent boards on a project
@@ -48,7 +48,7 @@ type ProjectBoard struct {
 // IsProjectBoardTypeValid checks if the project board type is valid
 func IsProjectBoardTypeValid(p ProjectBoardType) bool {
 	switch p {
-	case None, BasicKanban, BugTriage:
+	case ProjectBoardTypeNone, ProjectBoardTypeBasicKanban, ProjectBoardTypeBugTriage:
 		return true
 	default:
 		return false
@@ -61,13 +61,13 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 
 	switch project.BoardType {
 
-	case BugTriage:
+	case ProjectBoardTypeBugTriage:
 		items = setting.Project.ProjectBoardBugTriageType
 
-	case BasicKanban:
+	case ProjectBoardTypeBasicKanban:
 		items = setting.Project.ProjectBoardBasicKanbanType
 
-	case None:
+	case ProjectBoardTypeNone:
 		fallthrough
 	default:
 		return nil

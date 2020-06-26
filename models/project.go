@@ -55,9 +55,9 @@ type Project struct {
 // GetProjectsConfig retrieves the types of configurations projects could have
 func GetProjectsConfig() []ProjectsConfig {
 	return []ProjectsConfig{
-		{None, "repo.projects.type.none"},
-		{BasicKanban, "repo.projects.type.basic_kanban"},
-		{BugTriage, "repo.projects.type.bug_triage"},
+		{ProjectBoardTypeNone, "repo.projects.type.none"},
+		{ProjectBoardTypeBasicKanban, "repo.projects.type.basic_kanban"},
+		{ProjectBoardTypeBugTriage, "repo.projects.type.bug_triage"},
 	}
 }
 
@@ -122,7 +122,7 @@ func getProjects(e Engine, opts ProjectSearchOptions) ([]*Project, error) {
 // NewProject creates a new Project
 func NewProject(p *Project) error {
 	if !IsProjectBoardTypeValid(p.BoardType) {
-		p.BoardType = None
+		p.BoardType = ProjectBoardTypeNone
 	}
 
 	if !IsProjectTypeValid(p.Type) {
