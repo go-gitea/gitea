@@ -66,7 +66,7 @@ func ReplaceSanitizer() {
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("img")
 
 	// Allow icons, checkboxes, emojis, and chroma syntax on span
-	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(ui checkbox)|(ui checked checkbox)|(emoji))$|^((c|g|i|k|m|n|o|s|u|v|w)[a-z0-9]{0,2})$`)).OnElements("span")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(ui checkbox)|(ui checked checkbox)|(emoji))$|^([a-z][a-z0-9]{0,2})$`)).OnElements("span")
 
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",
