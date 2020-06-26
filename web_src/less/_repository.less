@@ -14,13 +14,24 @@
             font-weight: 400;
             font-size: 1.5rem;
 
-            svg {
-                position: relative;
-                top: 5px;
+            .label {
+                vertical-align: middle;
             }
 
-            svg.octicon-lock {
-                margin-left: 5px;
+            &.repo-title .repo-header-icon {
+                display: inline-block;
+                position: relative;
+
+                .avatar {
+                    position: absolute;
+                    right: 0;
+                    bottom: 0;
+                    width: 16px;
+                    height: 16px;
+                    color: #fafafa;
+                    box-shadow: 0 0 0 2px;
+                    margin: 0;
+                }
             }
         }
 
