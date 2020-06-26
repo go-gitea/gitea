@@ -253,7 +253,7 @@ swagger-validate:
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/kisielk/errcheck; \
+		GO111MODULE=off $(GO) get -u github.com/kisielk/errcheck; \
 	fi
 	errcheck $(GO_PACKAGES)
 
@@ -264,14 +264,14 @@ revive:
 .PHONY: misspell-check
 misspell-check:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
+		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
 	misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
 
 .PHONY: misspell
 misspell:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
+		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
 	misspell -w -i unknwon $(GO_SOURCES_OWN)
 
@@ -529,7 +529,7 @@ $(DIST_DIRS):
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
+		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -539,7 +539,7 @@ endif
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
+		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -549,7 +549,7 @@ endif
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
+		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
