@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	ErrUrlNotSupported = errors.New("url method not supported")
+	// ErrURLNotSupported represents url is not supported
+	ErrURLNotSupported = errors.New("url method not supported")
 )
 
 // ObjectStorage represents an object storage to handle a bucket and files
