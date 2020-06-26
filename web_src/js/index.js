@@ -6,15 +6,16 @@ import './publicpath.js';
 import Vue from 'vue';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
-import {svg} from './utils.js';
 
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initServiceWorker from './features/serviceworker.js';
+import initMarkdownAnchors from './markdown/anchors.js';
 import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
+import initTableSort from './features/tablesort.js';
 import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
@@ -899,6 +900,7 @@ async function initRepository() {
             dictInvalidFileType: $dropzone.data('invalid-input-type'),
             dictFileTooBig: $dropzone.data('file-too-big'),
             dictRemoveFile: $dropzone.data('remove-file'),
+            timeout: 0,
             init() {
               this.on('success', (file, data) => {
                 filenameDict[file.name] = {
@@ -2304,6 +2306,7 @@ $(document).ready(async () => {
       dictInvalidFileType: $dropzone.data('invalid-input-type'),
       dictFileTooBig: $dropzone.data('file-too-big'),
       dictRemoveFile: $dropzone.data('remove-file'),
+      timeout: 0,
       init() {
         this.on('success', (file, data) => {
           filenameDict[file.name] = data.uuid;
@@ -2354,15 +2357,6 @@ $(document).ready(async () => {
       _csrf: csrf
     }).done(() => {
       window.location.href = $this.data('done-url');
-    });
-  });
-
-  // Set anchor.
-  $('.markdown').each(function () {
-    $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
-      let node = $(this);
-      node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
     });
   });
 
@@ -2423,6 +2417,7 @@ $(document).ready(async () => {
   searchTeams();
   searchRepositories();
 
+  initMarkdownAnchors();
   initCommentForm();
   initInstall();
   initRepository();
@@ -2448,6 +2443,7 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups();
+  initTableSort();
   initNotificationsTable();
   initNotificationCount();
 

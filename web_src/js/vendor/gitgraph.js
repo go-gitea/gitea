@@ -372,6 +372,10 @@ export default function gitGraph(canvas, rawGraphList, config) {
           inlineIntersect = false;
         }
 
+        if (colomn === '|' && currentRow[colomnIndex - 1] && currentRow[colomnIndex - 1] === '\\') {
+          flows.splice(colomnIndex, 0, genNewFlow());
+        }
+
         color = flows[colomnIndex].color;
 
         switch (colomn) {
@@ -387,6 +391,9 @@ export default function gitGraph(canvas, rawGraphList, config) {
             break;
 
           case '|':
+            if (prevColomn && prevColomn === '\\') {
+              x += config.unitSize;
+            }
             drawLineUp(x, y, color);
             break;
 
