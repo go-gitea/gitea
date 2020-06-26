@@ -124,9 +124,9 @@ extern "C" {
 ** [sqlite3_libversion_number()], [sqlite3_sourceid()],
 ** [sqlite_version()] and [sqlite_source_id()].
 */
-#define SQLITE_VERSION        "3.29.0"
-#define SQLITE_VERSION_NUMBER 3029000
-#define SQLITE_SOURCE_ID      "2019-07-10 17:32:03 fc82b73eaac8b36950e527f12c4b5dc1e147e6f4ad2217ae43ad82882a88bfa6"
+#define SQLITE_VERSION        "3.30.1"
+#define SQLITE_VERSION_NUMBER 3030001
+#define SQLITE_SOURCE_ID      "2019-10-10 20:19:45 18db032d058f1436ce3dea84081f4ee5a0f2259ad97301d43c426bc7f3df1b0b"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -2094,6 +2094,17 @@ struct sqlite3_mem_methods {
 ** following this call.  The second parameter may be a NULL pointer, in
 ** which case the trigger setting is not reported back. </dd>
 **
+** [[SQLITE_DBCONFIG_ENABLE_VIEW]]
+** <dt>SQLITE_DBCONFIG_ENABLE_VIEW</dt>
+** <dd> ^This option is used to enable or disable [CREATE VIEW | views].
+** There should be two additional arguments.
+** The first argument is an integer which is 0 to disable views,
+** positive to enable views or negative to leave the setting unchanged.
+** The second parameter is a pointer to an integer into which
+** is written 0 or 1 to indicate whether views are disabled or enabled
+** following this call.  The second parameter may be a NULL pointer, in
+** which case the view setting is not reported back. </dd>
+**
 ** [[SQLITE_DBCONFIG_ENABLE_FTS3_TOKENIZER]]
 ** <dt>SQLITE_DBCONFIG_ENABLE_FTS3_TOKENIZER</dt>
 ** <dd> ^This option is used to enable or disable the
@@ -2266,7 +2277,8 @@ struct sqlite3_mem_methods {
 #define SQLITE_DBCONFIG_LEGACY_ALTER_TABLE    1012 /* int int* */
 #define SQLITE_DBCONFIG_DQS_DML               1013 /* int int* */
 #define SQLITE_DBCONFIG_DQS_DDL               1014 /* int int* */
-#define SQLITE_DBCONFIG_MAX                   1014 /* Largest DBCONFIG */
+#define SQLITE_DBCONFIG_ENABLE_VIEW           1015 /* int int* */
+#define SQLITE_DBCONFIG_MAX                   1015 /* Largest DBCONFIG */
 
 /*
 ** CAPI3REF: Enable Or Disable Extended Result Codes
@@ -3815,7 +3827,7 @@ SQLITE_API int sqlite3_limit(sqlite3*, int id, int newVal);
 ** ^The specific value of WHERE-clause [parameter] might influence the 
 ** choice of query plan if the parameter is the left-hand side of a [LIKE]
 ** or [GLOB] operator or if the parameter is compared to an indexed column
-** and the [SQLITE_ENABLE_STAT3] compile-time option is enabled.
+** and the [SQLITE_ENABLE_STAT4] compile-time option is enabled.
 ** </li>
 ** </ol>
 **
@@ -4850,6 +4862,12 @@ SQLITE_API int sqlite3_reset(sqlite3_stmt *pStmt);
 ** perform additional optimizations on deterministic functions, so use
 ** of the [SQLITE_DETERMINISTIC] flag is recommended where possible.
 **
+** ^The fourth parameter may also optionally include the [SQLITE_DIRECTONLY]
+** flag, which if present prevents the function from being invoked from
+** within VIEWs or TRIGGERs.  For security reasons, the [SQLITE_DIRECTONLY]
+** flag is recommended for any application-defined SQL function that has
+** side-effects.
+**
 ** ^(The fifth parameter is an arbitrary pointer.  The implementation of the
 ** function can gain access to this pointer using [sqlite3_user_data()].)^
 **
@@ -4966,8 +4984,30 @@ SQLITE_API int sqlite3_create_window_function(
 ** [SQLITE_UTF8 | preferred text encoding] as the fourth argument
 ** to [sqlite3_create_function()], [sqlite3_create_function16()], or
 ** [sqlite3_create_function_v2()].
+**
+** The SQLITE_DETERMINISTIC flag means that the new function will always
+** maps the same inputs into the same output.  The abs() function is
+** deterministic, for example, but randomblob() is not.
+**
+** The SQLITE_DIRECTONLY flag means that the function may only be invoked
+** from top-level SQL, and cannot be used in VIEWs or TRIGGERs.  This is
+** a security feature which is recommended for all 
+** [application-defined SQL functions] that have side-effects.  This flag 
+** prevents an attacker from adding triggers and views to a schema then 
+** tricking a high-privilege application into causing unintended side-effects
+** while performing ordinary queries.
+**
+** The SQLITE_SUBTYPE flag indicates to SQLite that a function may call
+** [sqlite3_value_subtype()] to inspect the sub-types of its arguments.
+** Specifying this flag makes no difference for scalar or aggregate user
+** functions. However, if it is not specified for a user-defined window
+** function, then any sub-types belonging to arguments passed to the window
+** function may be discarded before the window function is called (i.e.
+** sqlite3_value_subtype() will always return 0).
 */
-#define SQLITE_DETERMINISTIC    0x800
+#define SQLITE_DETERMINISTIC    0x000000800
+#define SQLITE_DIRECTONLY       0x000080000
+#define SQLITE_SUBTYPE          0x000100000
 
 /*
 ** CAPI3REF: Deprecated Functions
@@ -6613,6 +6653,12 @@ struct sqlite3_index_info {
 ** ^The sqlite3_create_module()
 ** interface is equivalent to sqlite3_create_module_v2() with a NULL
 ** destructor.
+**
+** ^If the third parameter (the pointer to the sqlite3_module object) is
+** NULL then no new module is create and any existing modules with the
+** same name are dropped.
+**
+** See also: [sqlite3_drop_modules()]
 */
 SQLITE_API int sqlite3_create_module(
   sqlite3 *db,               /* SQLite connection to register module with */
@@ -6626,6 +6672,23 @@ SQLITE_API int sqlite3_create_module_v2(
   const sqlite3_module *p,   /* Methods for the module */
   void *pClientData,         /* Client data for xCreate/xConnect */
   void(*xDestroy)(void*)     /* Module destructor function */
+);
+
+/*
+** CAPI3REF: Remove Unnecessary Virtual Table Implementations
+** METHOD: sqlite3
+**
+** ^The sqlite3_drop_modules(D,L) interface removes all virtual
+** table modules from database connection D except those named on list L.
+** The L parameter must be either NULL or a pointer to an array of pointers
+** to strings where the array is terminated by a single NULL pointer.
+** ^If the L parameter is NULL, then all virtual table modules are removed.
+**
+** See also: [sqlite3_create_module()]
+*/
+SQLITE_API int sqlite3_drop_modules(
+  sqlite3 *db,                /* Remove modules from this connection */
+  const char **azKeep         /* Except, do not remove the ones named here */
 );
 
 /*
@@ -7336,7 +7399,7 @@ SQLITE_API int sqlite3_test_control(int op, ...);
 #define SQLITE_TESTCTRL_FIRST                    5
 #define SQLITE_TESTCTRL_PRNG_SAVE                5
 #define SQLITE_TESTCTRL_PRNG_RESTORE             6
-#define SQLITE_TESTCTRL_PRNG_RESET               7
+#define SQLITE_TESTCTRL_PRNG_RESET               7  /* NOT USED */
 #define SQLITE_TESTCTRL_BITVEC_TEST              8
 #define SQLITE_TESTCTRL_FAULT_INSTALL            9
 #define SQLITE_TESTCTRL_BENIGN_MALLOC_HOOKS     10
@@ -7359,7 +7422,9 @@ SQLITE_API int sqlite3_test_control(int op, ...);
 #define SQLITE_TESTCTRL_IMPOSTER                25
 #define SQLITE_TESTCTRL_PARSER_COVERAGE         26
 #define SQLITE_TESTCTRL_RESULT_INTREAL          27
-#define SQLITE_TESTCTRL_LAST                    27  /* Largest TESTCTRL */
+#define SQLITE_TESTCTRL_PRNG_SEED               28
+#define SQLITE_TESTCTRL_EXTRA_SCHEMA_CHECKS     29
+#define SQLITE_TESTCTRL_LAST                    29  /* Largest TESTCTRL */
 
 /*
 ** CAPI3REF: SQL Keyword Checking

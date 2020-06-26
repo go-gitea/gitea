@@ -19,7 +19,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
-	"gopkg.in/testfixtures.v2"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 )
@@ -101,7 +100,7 @@ func CreateTestEngine(fixturesDir string) error {
 		x.ShowSQL(true)
 	}
 
-	return InitFixtures(&testfixtures.SQLite{}, fixturesDir)
+	return InitFixtures(fixturesDir)
 }
 
 func removeAllWithRetry(dir string) error {

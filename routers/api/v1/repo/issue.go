@@ -220,7 +220,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -322,6 +322,8 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.Repo.Repository.NumIssues))
+
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 

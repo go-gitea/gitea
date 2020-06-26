@@ -65,7 +65,7 @@ export default function gitGraph(canvas, rawGraphList, config) {
 
     for (i = 0; i < l; i++) {
       midStr = rawGraphList[i].replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
-
+      midStr = midStr.replace(/(--)|(-\.)/g,'-')
       maxWidth = Math.max(midStr.replace(/(_|\s)/g, '').length, maxWidth);
 
       row = midStr.split('');
@@ -343,11 +343,6 @@ export default function gitGraph(canvas, rawGraphList, config) {
         return (val !== ' ' && val !== '_');
       }).length;
 
-      // do some clean up
-      if (flows.length > condenseCurrentLength) {
-        flows.splice(condenseCurrentLength, flows.length - condenseCurrentLength);
-      }
-
       colomnIndex = 0;
 
       // a little inline analysis and draw process
@@ -362,7 +357,7 @@ export default function gitGraph(canvas, rawGraphList, config) {
           continue;
         }
 
-        // inline interset
+        // inline intersect
         if ((colomn === '_' || colomn === '/')
           && currentRow[colomnIndex - 1] === '|'
           && currentRow[colomnIndex - 2] === '_') {
@@ -377,9 +372,14 @@ export default function gitGraph(canvas, rawGraphList, config) {
           inlineIntersect = false;
         }
 
+        if (colomn === '|' && currentRow[colomnIndex - 1] && currentRow[colomnIndex - 1] === '\\') {
+          flows.splice(colomnIndex, 0, genNewFlow());
+        }
+
         color = flows[colomnIndex].color;
 
         switch (colomn) {
+          case '-':
           case '_':
             drawLineRight(x, y, color);
 
@@ -391,6 +391,9 @@ export default function gitGraph(canvas, rawGraphList, config) {
             break;
 
           case '|':
+            if (prevColomn && prevColomn === '\\') {
+              x += config.unitSize;
+            }
             drawLineUp(x, y, color);
             break;
 
@@ -415,6 +418,11 @@ export default function gitGraph(canvas, rawGraphList, config) {
       }
 
       y -= config.unitSize;
+    }
+
+    // do some clean up
+    if (flows.length > condenseCurrentLength) {
+      flows.splice(condenseCurrentLength, flows.length - condenseCurrentLength);
     }
   };
 
