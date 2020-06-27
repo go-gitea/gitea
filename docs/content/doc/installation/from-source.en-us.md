@@ -98,8 +98,10 @@ Depending on requirements, the following build tags can be included.
   be used to authenticate local users or extend authentication to methods
   available to PAM.
 
-Bundling assets into the binary using the `bindata` build tag can make
-development and testing easier, but is not ideal for a production deployment.
+Bundling assets into the binary using the `bindata` build tag is recommended for
+production deployments. It is possible to serve the static assets directly via a reverse proxy,
+but in most cases it is not necessary, and assets should still be bundled in the binary.
+You may want to exclude bindata while developing/testing Gitea.
 To include assets, add the `bindata` tag:
 
 ```bash

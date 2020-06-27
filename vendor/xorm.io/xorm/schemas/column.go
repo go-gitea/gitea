@@ -5,8 +5,10 @@
 package schemas
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -114,4 +116,18 @@ func (col *Column) ValueOfV(dataStruct *reflect.Value) (*reflect.Value, error) {
 	}
 
 	return &fieldValue, nil
+}
+
+// ConvertID converts id content to suitable type according column type
+func (col *Column) ConvertID(sid string) (interface{}, error) {
+	if col.SQLType.IsNumeric() {
+		n, err := strconv.ParseInt(sid, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	} else if col.SQLType.IsText() {
+		return sid, nil
+	}
+	return nil, errors.New("not supported")
 }
