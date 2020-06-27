@@ -2365,20 +2365,24 @@ func DoctorUserStarNum() (err error) {
 	for start := 0; ; start += batchSize {
 		users := make([]User, 0, batchSize)
 		if err = sess.Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
-			return err
+			return
 		}
 		if len(users) == 0 {
 			break
 		}
 
 		for _, user := range users {
-			if _, err = x.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
-				return err
+			if _, err = sess.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+				return
 			}
+		}
+
+		if err = sess.Commit(); err != nil {
+			return
 		}
 	}
 
 	log.Debug("recalculate Stars number for all user finished")
 
-	return sess.Commit()
+	return
 }

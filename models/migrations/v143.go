@@ -14,12 +14,8 @@ func recalculateStars(x *xorm.Engine) (err error) {
 	// because of issue https://github.com/go-gitea/gitea/issues/11949,
 	// recalculate Stars number for all users to fully fix it.
 
-	// UserType defines the user type
-	type UserType int
-
 	type User struct {
-		ID   int64 `xorm:"pk autoincr"`
-		Type UserType
+		ID int64 `xorm:"pk autoincr"`
 	}
 
 	const batchSize = 100
@@ -29,20 +25,24 @@ func recalculateStars(x *xorm.Engine) (err error) {
 	for start := 0; ; start += batchSize {
 		users := make([]User, 0, batchSize)
 		if err = sess.Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
-			return err
+			return
 		}
 		if len(users) == 0 {
 			break
 		}
 
 		for _, user := range users {
-			if _, err = x.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
-				return err
+			if _, err = sess.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+				return
 			}
+		}
+
+		if err = sess.Commit(); err != nil {
+			return
 		}
 	}
 
 	log.Debug("recalculate Stars number for all user finished")
 
-	return sess.Commit()
+	return
 }
