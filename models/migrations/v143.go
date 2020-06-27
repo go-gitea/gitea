@@ -6,12 +6,21 @@ package migrations
 
 import (
 	"code.gitea.io/gitea/modules/log"
+
 	"xorm.io/xorm"
 )
 
 func recalculateStars(x *xorm.Engine) (err error) {
 	// because of issue https://github.com/go-gitea/gitea/issues/11949,
 	// recalculate Stars number for all users to fully fix it.
+
+	// UserType defines the user type
+	type UserType int
+
+	type User struct {
+		ID   int64 `xorm:"pk autoincr"`
+		Type UserType
+	}
 
 	const batchSize = 100
 	sess := x.NewSession()
