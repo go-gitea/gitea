@@ -288,9 +288,6 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	listOptions := utils.GetListOptions(ctx)
-	if ctx.QueryInt("limit") == 0 {
-		listOptions.PageSize = setting.UI.IssuePagingNum
-	}
 
 	var isPull util.OptionalBool
 	switch ctx.Query("type") {
