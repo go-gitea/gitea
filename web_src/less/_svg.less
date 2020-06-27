@@ -6,4 +6,12 @@
     .middle & {
         vertical-align: middle;
     }
+
+    // https://github.com/go-gitea/gitea/pull/11771
+    // https://github.com/go-gitea/gitea/pull/11801
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=608812
+    &.octicon-internal-repo {
+        // via https://bugzilla.mozilla.org/show_bug.cgi?id=1165282#c3
+        shape-rendering: crispEdges;
+    }
 }

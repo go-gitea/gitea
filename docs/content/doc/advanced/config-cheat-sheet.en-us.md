@@ -23,7 +23,7 @@ or any corresponding location. When installing from a distribution, this will
 typically be found at `/etc/gitea/conf/app.ini`.
 
 The defaults provided here are best-effort (not built automatically). They are
-accurately recorded in [app.ini.sample](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
 (s/master/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
@@ -46,7 +46,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    an absolute path.
 - `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
-- `ANSI_CHARSET`: **\<empty\>**: The default charset for an unrecognized charset.
+- `DETECTED_CHARSETS_ORDER`: **UTF-8, UTF-16BE, UTF-16LE, UTF-32BE, UTF-32LE, ISO-8859, windows-1252, ISO-8859, windows-1250, ISO-8859, ISO-8859, ISO-8859, windows-1253, ISO-8859, windows-1255, ISO-8859, windows-1251, windows-1256, KOI8-R, ISO-8859, windows-1254, Shift_JIS, GB18030, EUC-JP, EUC-KR, Big5, ISO-2022, ISO-2022, ISO-2022, IBM424_rtl, IBM424_ltr, IBM420_rtl, IBM420_ltr**: Tie-break order of detected charsets - if the detected charsets have equal confidence, charsets earlier in the list will be chosen in preference to those later. Adding `defaults` will place the unnamed charsets at that point.
+- `ANSI_CHARSET`: **\<empty\>**: Default ANSI charset to override non-UTF-8 charsets to.
 - `FORCE_PRIVATE`: **false**: Force every new repository to be private.
 - `DEFAULT_PRIVATE`: **last**: Default private when creating a new repository.
    \[last, private, public\]
@@ -69,6 +70,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
+- `DISABLE_MIRRORS`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
+- `DEFAULT_BRANCH`: **master**: Default branch name of all repositories.
 
 ### Repository - Pull Request (`repository.pull-request`)
 
@@ -242,7 +245,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
      - `require`: Enable TLS without any verifications.
      - `verify-ca`: Enable TLS with verification of the database server certificate against its root certificate.
      - `verify-full`: Enable TLS and verify the database server name matches the given certificate in either the `Common Name` or `Subject Alternative Name` fields.
-- `CHARSET`: **utf8**: For MySQL only, either "utf8" or "utf8mb4", default is "utf8". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
+- `CHARSET`: **utf8mb4**: For MySQL only, either "utf8" or "utf8mb4". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
@@ -467,7 +470,7 @@ set name for unique queues. Individual queues will default to
 
 - `ENABLED`: **true**: Enable this to allow uploading attachments.
 - `PATH`: **data/attachments**: Path to store attachments.
-- `ALLOWED_TYPES`: **see app.ini.sample**: Allowed MIME types, e.g. `image/jpeg|image/png`.
+- `ALLOWED_TYPES`: **see app.example.ini**: Allowed MIME types, e.g. `image/jpeg|image/png`.
    Use `*/*` for all types.
 - `MAX_SIZE`: **4**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
@@ -609,33 +612,8 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ## i18n (`i18n`)
 
-- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR**: List of locales shown in language selector
-- `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어**: Visible names corresponding to the locales
-
-### i18n - Datepicker Language (`i18n.datelang`)
-Maps locales to the languages used by the datepicker plugin
-
-- `en-US`: **en**
-- `zh-CN`: **zh**
-- `zh-HK`: **zh-HK**
-- `zh-TW`: **zh-TW**
-- `de-DE`: **de**
-- `fr-FR`: **fr**
-- `nl-NL`: **nl**
-- `lv-LV`: **lv**
-- `ru-RU`: **ru**
-- `ja-JP`: **ja**
-- `es-ES`: **es**
-- `pt-BR`: **pt-BR**
-- `pl-PL`: **pl**
-- `bg-BG`: **bg**
-- `it-IT`: **it**
-- `fi-FI`: **fi**
-- `tr-TR`: **tr**
-- `cs-CZ`: **cs-CZ**
-- `sr-SP`: **sr**
-- `sv-SE`: **sv**
-- `ko-KR`: **ko**
+- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pt-PT,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR**: List of locales shown in language selector
+- `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,Português de Portugal,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어**: Visible names corresponding to the locales
 
 ## U2F (`U2F`)
 - `APP_ID`: **`ROOT_URL`**: Declares the facet of the application. Requires HTTPS.

@@ -66,7 +66,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	defer baseGitRepo.Close()
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
-		pr.BaseBranch, pr.GetGitRefName())
+		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,16 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	if pr.Status == models.PullRequestStatusChecking {
 		pr.Status = models.PullRequestStatusMergeable
 	}
-	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "base_branch"); err != nil {
+
+	// Update Commit Divergence
+	divergence, err := GetDiverging(pr)
+	if err != nil {
+		return err
+	}
+	pr.CommitsAhead = divergence.Ahead
+	pr.CommitsBehind = divergence.Behind
+
+	if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "base_branch", "commits_ahead", "commits_behind"); err != nil {
 		return err
 	}
 
@@ -443,6 +452,16 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
 		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
+		if git.IsErrPushOutOfDate(err) {
+			// This should not happen as we're using force!
+			log.Error("Unable to push PR head for %s#%d (%-v:%s) due to ErrPushOfDate: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, headFile, err)
+			return err
+		} else if git.IsErrPushRejected(err) {
+			rejectErr := err.(*git.ErrPushRejected)
+			log.Info("Unable to push PR head for %s#%d (%-v:%s) due to rejection:\nStdout: %s\nStderr: %s\nError: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, headFile, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
+			return err
+		}
+		log.Error("Unable to push PR head for %s#%d (%-v:%s) due to Error: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, headFile, err)
 		return fmt.Errorf("Push: %s:%s %s:%s %v", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), headFile, err)
 	}
 

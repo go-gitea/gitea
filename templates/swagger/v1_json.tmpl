@@ -42,7 +42,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -76,7 +76,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -481,7 +481,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -664,7 +664,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -821,7 +821,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -1004,7 +1004,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -1187,7 +1187,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -1292,7 +1292,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -1431,7 +1431,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -1509,7 +1509,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -1596,7 +1596,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -1819,7 +1819,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -2404,7 +2404,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -2590,7 +2590,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -2998,7 +2998,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -3311,7 +3311,7 @@
           },
           {
             "type": "integer",
-            "description": "number of items per page; default is 1000 or what is set in app.ini as DEFAULT_GIT_TREES_PER_PAGE",
+            "description": "number of items per page",
             "name": "per_page",
             "in": "query"
           }
@@ -3359,7 +3359,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -3776,6 +3776,11 @@
             "required": true
           },
           {
+            "enum": [
+              "closed",
+              "open",
+              "all"
+            ],
             "type": "string",
             "description": "whether issue is open or closed",
             "name": "state",
@@ -3794,6 +3799,10 @@
             "in": "query"
           },
           {
+            "enum": [
+              "issues",
+              "pulls"
+            ],
             "type": "string",
             "description": "filter by type (issues / pulls) if set",
             "name": "type",
@@ -3813,7 +3822,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -3922,7 +3931,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -4914,7 +4923,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -5239,7 +5248,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -5474,7 +5483,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -5695,7 +5704,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -5864,7 +5873,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -6049,6 +6058,42 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/languages": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get languages and number of bytes of code written",
+        "operationId": "repoGetLanguages",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/LanguageStatistics"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/milestones": {
       "get": {
         "produces": [
@@ -6088,7 +6133,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -6359,7 +6404,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -6488,7 +6533,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -6640,11 +6685,102 @@
           "403": {
             "$ref": "#/responses/forbidden"
           },
+          "409": {
+            "$ref": "#/responses/error"
+          },
           "412": {
             "$ref": "#/responses/error"
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}.diff": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a pull request diff",
+        "operationId": "repoDownloadPullDiff",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request to get",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/string"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}.patch": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a pull request patch file",
+        "operationId": "repoDownloadPullPatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request to get",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/string"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6786,7 +6922,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -7142,7 +7278,7 @@
           },
           {
             "type": "integer",
-            "description": "items count every page wants to load",
+            "description": "page size of results, deprecated - use limit",
             "name": "per_page",
             "in": "query"
           },
@@ -7154,7 +7290,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -7657,7 +7793,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -7735,7 +7871,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -7831,7 +7967,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -8030,7 +8166,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -8128,7 +8264,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -8343,6 +8479,40 @@
         }
       }
     },
+    "/settings/repository": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global settings for repositories",
+        "operationId": "getGeneralRepositorySettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GeneralRepoSettings"
+          }
+        }
+      }
+    },
+    "/settings/ui": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get instance's global settings for ui",
+        "operationId": "getGeneralUISettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/GeneralUISettings"
+          }
+        }
+      }
+    },
     "/signing-key.gpg": {
       "get": {
         "produces": [
@@ -8473,7 +8643,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -8619,7 +8789,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -8744,7 +8914,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -8795,7 +8965,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9004,7 +9174,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9035,7 +9205,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9134,7 +9304,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9265,7 +9435,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9387,7 +9557,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9418,7 +9588,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9483,7 +9653,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9606,7 +9776,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9637,7 +9807,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9668,7 +9838,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9745,7 +9915,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9859,7 +10029,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9897,7 +10067,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9935,7 +10105,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -10008,7 +10178,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -10046,7 +10216,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -10084,7 +10254,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -10122,7 +10292,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -10160,7 +10330,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -10198,7 +10368,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results, maximum page size is 50",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -11240,6 +11410,14 @@
           "format": "date-time",
           "x-go-name": "Deadline"
         },
+        "state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-name": "State"
+        },
         "title": {
           "type": "string",
           "x-go-name": "Title"
@@ -12046,6 +12224,10 @@
           },
           "x-go-name": "Assignees"
         },
+        "base": {
+          "type": "string",
+          "x-go-name": "Base"
+        },
         "body": {
           "type": "string",
           "x-go-name": "Body"
@@ -12561,6 +12743,35 @@
         "verified": {
           "type": "boolean",
           "x-go-name": "Verified"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GeneralRepoSettings": {
+      "description": "GeneralRepoSettings contains global repository settings exposed by API",
+      "type": "object",
+      "properties": {
+        "http_git_disabled": {
+          "type": "boolean",
+          "x-go-name": "HTTPGitDisabled"
+        },
+        "mirrors_disabled": {
+          "type": "boolean",
+          "x-go-name": "MirrorsDisabled"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GeneralUISettings": {
+      "description": "GeneralUISettings contains global ui settings exposed by API",
+      "type": "object",
+      "properties": {
+        "allowed_reactions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "AllowedReactions"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13951,6 +14162,10 @@
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
+        "internal": {
+          "type": "boolean",
+          "x-go-name": "Internal"
+        },
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
@@ -14730,6 +14945,18 @@
         }
       }
     },
+    "GeneralRepoSettings": {
+      "description": "GeneralRepoSettings",
+      "schema": {
+        "$ref": "#/definitions/GeneralRepoSettings"
+      }
+    },
+    "GeneralUISettings": {
+      "description": "GeneralUISettings",
+      "schema": {
+        "$ref": "#/definitions/GeneralUISettings"
+      }
+    },
     "GitBlobResponse": {
       "description": "GitBlobResponse",
       "schema": {
@@ -14805,6 +15032,16 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Label"
+        }
+      }
+    },
+    "LanguageStatistics": {
+      "description": "LanguageStatistics",
+      "schema": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer",
+          "format": "int64"
         }
       }
     },
@@ -15042,6 +15279,15 @@
         }
       }
     },
+    "StringSlice": {
+      "description": "StringSlice",
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
     "Tag": {
       "description": "Tag",
       "schema": {
@@ -15182,6 +15428,12 @@
     },
     "redirect": {
       "description": "APIRedirect is a redirect response"
+    },
+    "string": {
+      "description": "APIString is a string response",
+      "schema": {
+        "type": "string"
+      }
     },
     "validationError": {
       "description": "APIValidationError is error format response related to input validation",
