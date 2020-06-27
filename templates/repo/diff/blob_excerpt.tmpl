@@ -25,7 +25,6 @@
   </tr>
   {{end}}
 {{else}}
-<p>what the fuck</p>
   {{range $k, $line := $.section.Lines}}
   <tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
     {{if eq .GetType 4}}
