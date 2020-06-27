@@ -2371,6 +2371,10 @@ func DoctorUserStarNum() (err error) {
 			break
 		}
 
+		if err = sess.Begin(); err != nil {
+			return
+		}
+
 		for _, user := range users {
 			if _, err = sess.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
 				return
