@@ -41,7 +41,7 @@ func Code(fileName, code string) string {
 	NewContext()
 	// don't highlight over 25kb
 	if len(code) > 25000 {
-		return plainText(string(code), numLines)
+		return code
 	}
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
