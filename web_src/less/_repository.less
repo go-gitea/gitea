@@ -14,13 +14,24 @@
             font-weight: 400;
             font-size: 1.5rem;
 
-            svg {
-                position: relative;
-                top: 5px;
+            .label {
+                vertical-align: middle;
             }
 
-            svg.octicon-lock {
-                margin-left: 5px;
+            &.repo-title .repo-header-icon {
+                display: inline-block;
+                position: relative;
+
+                .avatar {
+                    position: absolute;
+                    right: 0;
+                    bottom: 0;
+                    width: 16px;
+                    height: 16px;
+                    color: #fafafa;
+                    box-shadow: 0 0 0 2px;
+                    margin: 0;
+                }
             }
         }
 
@@ -245,12 +256,6 @@
     }
 
     &.file.list {
-        &.blame {
-            .ui.container:not(.flex) {
-                width: 98%;
-            }
-        }
-
         .repo-description {
             display: flex;
             justify-content: space-between;
@@ -1570,6 +1575,16 @@
         padding: 7px 0;
         background: #ffffff;
         line-height: 30px;
+
+        &.sticky {
+            position: sticky;
+            top: 0;
+            z-index: 800;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #d4d4d5;
+            padding-left: 5px;
+            padding-right: 5px;
+        }
 
         > div:after {
             clear: both;
@@ -3040,4 +3055,14 @@ td.blob-excerpt {
 
 .added-code {
     background-color: #99ff99;
+}
+
+.repository .ui.menu.new-menu {
+    background: none !important;
+
+    @media only screen and (max-width: 1200px) {
+        &:after {
+            background: none !important;
+        }
+    }
 }

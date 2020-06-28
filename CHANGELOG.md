@@ -4,6 +4,20 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.12.1](https://github.com/go-gitea/gitea/releases/tag/v1.12.1) - 2020-06-21
+
+* BUGFIXES
+  * Handle multiple merges in gitgraph.js (#11996) (#12000)
+  * Add serviceworker.js to KnownPublicEntries (#11992) (#11994)
+  * For language detection do not try to analyze big files by content (#11971) (#11975)
+* ENHANCEMENTS
+  * Fix scrollable header on dropdowns (#11893) (#11965)
+
+## [1.11.8](https://github.com/go-gitea/gitea/releases/tag/v1.11.8) - 2020-06-21
+
+* BUGFIXES
+  * Really fix __webpack_public_path__ for 1.11 (#11961)
+
 ## [1.12.0](https://github.com/go-gitea/gitea/releases/tag/v1.12.0) - 2020-06-17
 
 * BREAKING
