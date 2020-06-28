@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -213,6 +214,122 @@ func (protectBranch *ProtectedBranch) GetProtectedFilePatterns() []glob.Glob {
 		}
 	}
 	return extarr
+}
+
+// MergeBlockedByProtectedFiles returns true if merge is blocked by protected files change
+func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(pr *PullRequest) bool {
+	glob := protectBranch.GetProtectedFilePatterns()
+	if len(glob) == 0 {
+		return false
+	}
+
+	var err error
+
+	if err = pr.LoadBaseRepo(); err != nil {
+		log.Error("pr.loadBaseRepo: %v", err)
+		return true
+	}
+
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		log.Error("git.OpenRepository: %v", err)
+		return true
+	}
+
+	headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+	if err != nil {
+		log.Error("git.GetRefCommitID: %v", err)
+		return true
+	}
+
+	result, _, err := checkFileProtection(false, pr.MergeBase, headCommitID, glob, gitRepo)
+	if err != nil {
+		log.Error("checkFileProtection: %v", err)
+		return true
+	}
+
+	return result
+}
+
+// GetPrChangedProtectedFiles returns protected files changed by pr
+func (protectBranch *ProtectedBranch) GetPrChangedProtectedFiles(pr *PullRequest) (changs []string, err error) {
+	glob := protectBranch.GetProtectedFilePatterns()
+	if len(glob) == 0 {
+		return nil, nil
+	}
+
+	if err = pr.LoadBaseRepo(); err != nil {
+		return nil, err
+	}
+
+	var (
+		gitRepo      *git.Repository
+		headCommitID string
+	)
+
+	gitRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+
+	headCommitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
+	if err != nil {
+		return nil, err
+	}
+
+	_, changs, err = checkFileProtection(true, pr.MergeBase, headCommitID, glob, gitRepo)
+	return
+}
+
+// IsProtectedFile return if path is protected
+func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path string) (r bool) {
+	if len(patterns) == 0 {
+		patterns = protectBranch.GetProtectedFilePatterns()
+		if len(patterns) == 0 {
+			return false
+		}
+	}
+
+	lpath := strings.ToLower(strings.TrimSpace(path))
+
+	for _, pat := range patterns {
+		if pat.Match(lpath) {
+			r = true
+			break
+		}
+	}
+
+	return
+}
+
+func checkFileProtection(needFullResult bool, oldCommitID, newCommitID string, patterns []glob.Glob, repo *git.Repository) (result bool, changedFiles []string, err error) {
+	stdout, err := git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).RunInDir(repo.Path)
+	if err != nil {
+		return false, nil, err
+	}
+
+	if needFullResult {
+		changedFiles = make([]string, 0, 5)
+	}
+
+	for _, path := range strings.Split(stdout, "\n") {
+		lpath := strings.ToLower(strings.TrimSpace(path))
+		for _, pat := range patterns {
+			if pat.Match(lpath) {
+				result = true
+				if needFullResult {
+					changedFiles = append(changedFiles, path)
+				}
+				break
+			}
+		}
+
+		if result && !needFullResult {
+			break
+		}
+	}
+
+	return
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID

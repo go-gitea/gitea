@@ -271,7 +271,12 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 				}
 			}
 
-			// Detect Protected file pattern
+			var (
+				changedProtectedfiles bool
+				protectedFilePath     string
+			)
+
+			// Check Protected file pattern
 			globs := protectBranch.GetProtectedFilePatterns()
 			if len(globs) > 0 {
 				err := checkFileProtection(oldCommitID, newCommitID, globs, gitRepo, env)
@@ -283,20 +288,17 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 						})
 						return
 					}
-					protectedFilePath := err.(models.ErrFilePathProtected).Path
-					log.Warn("Forbidden: Branch: %s in %-v is protected from changing file %s", branchName, repo, protectedFilePath)
-					ctx.JSON(http.StatusForbidden, map[string]interface{}{
-						"err": fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedFilePath),
-					})
-					return
+
+					changedProtectedfiles = true
+					protectedFilePath = err.(models.ErrFilePathProtected).Path
 				}
 			}
 
 			canPush := false
 			if opts.IsDeployKey {
-				canPush = protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
+				canPush = protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys) && !changedProtectedfiles
 			} else {
-				canPush = protectBranch.CanUserPush(opts.UserID)
+				canPush = protectBranch.CanUserPush(opts.UserID) && !changedProtectedfiles
 			}
 			if !canPush && opts.ProtectedBranchID > 0 {
 				// Merge (from UI or API)
@@ -356,6 +358,14 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					}
 				}
 			} else if !canPush {
+				if changedProtectedfiles {
+					log.Warn("Forbidden: Branch: %s in %-v is protected from changing file %s", branchName, repo, protectedFilePath)
+					ctx.JSON(http.StatusForbidden, map[string]interface{}{
+						"err": fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedFilePath),
+					})
+					return
+				}
+
 				log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v", opts.UserID, branchName, repo)
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
 					"err": fmt.Sprintf("Not allowed to push to protected branch %s", branchName),

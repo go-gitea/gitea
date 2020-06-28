@@ -591,5 +591,11 @@ func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
 		}
 	}
 
+	if pr.ProtectedBranch.MergeBlockedByProtectedFiles(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: "Changed protected files",
+		}
+	}
+
 	return nil
 }
