@@ -5,9 +5,11 @@
 		<div class="ui three column stackable grid">
 			<div class="column">
 				<h3>{{.Milestone.Name}}</h3>
+				<div class="content">
+					{{.Milestone.RenderedContent|Str2html}}
+				</div>
 			</div>
 			<div class="column center aligned">
-
 			</div>
 			{{if not .Repository.IsArchived}}
 				<div class="column right aligned">

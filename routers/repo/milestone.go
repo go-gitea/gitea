@@ -257,6 +257,8 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		return
 	}
 
+	milestone.RenderedContent = string(markdown.Render([]byte(milestone.Content), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
+
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 

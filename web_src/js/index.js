@@ -6,13 +6,13 @@ import './publicpath.js';
 import Vue from 'vue';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
-import {svg} from './utils.js';
 
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initServiceWorker from './features/serviceworker.js';
+import initMarkdownAnchors from './markdown/anchors.js';
 import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
@@ -2347,15 +2347,6 @@ $(document).ready(async () => {
     });
   });
 
-  // Set anchor.
-  $('.markdown').each(function () {
-    $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
-      let node = $(this);
-      node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
-    });
-  });
-
   $('.issue-checkbox').on('click', () => {
     const numChecked = $('.issue-checkbox').children('input:checked').length;
     if (numChecked > 0) {
@@ -2413,6 +2404,7 @@ $(document).ready(async () => {
   searchTeams();
   searchRepositories();
 
+  initMarkdownAnchors();
   initCommentForm();
   initInstall();
   initRepository();
