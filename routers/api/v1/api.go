@@ -505,7 +505,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}
 
 	m.Group("/", func() {
-		m.Post("/graphql", gql.GraphQL)
+		m.Post("/graphql", reqToken(), gql.GraphQL)
 	}, securityHeaders(), context.APIContexter(), sudo())
 
 	m.Group("/v1", func() {

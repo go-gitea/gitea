@@ -15,6 +15,10 @@ var repository = graphql.NewObject(
 				Type:        graphql.NewList(branch),
 				Description: "Branches contained within a repostory",
 			},
+			"collaborators": &graphql.Field{
+				Type:        graphql.NewList(user),
+				Description: "The repository's collaborators",
+			},
 		},
 	},
 )
@@ -133,10 +137,40 @@ var user = graphql.NewObject(
 		Name: "user",
 		Fields: graphql.Fields{
 			"id": &graphql.Field{
-				Type: graphql.Int,
+				Type:        graphql.Int,
+				Description: "the user's id",
 			},
 			"user_name": &graphql.Field{
-				Type: graphql.String,
+				Type:        graphql.String,
+				Description: "the user's username",
+			},
+			"full_name": &graphql.Field{
+				Type:        graphql.String,
+				Description: "the user's full name",
+			},
+			"email": &graphql.Field{
+				Type:        graphql.String,
+				Description: "the user's email",
+			},
+			"avatar_url": &graphql.Field{
+				Type:        graphql.String,
+				Description: "URL to the user's avatar",
+			},
+			"language": &graphql.Field{
+				Type:        graphql.String,
+				Description: "User locale",
+			},
+			"is_admin": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "Is the user an administrator",
+			},
+			"last_login": &graphql.Field{
+				Type:        graphql.DateTime,
+				Description: "the user's last login",
+			},
+			"created": &graphql.Field{
+				Type:        graphql.DateTime,
+				Description: "datetime user created",
 			},
 		},
 	},

@@ -128,11 +128,6 @@ func runWeb(ctx *cli.Context) error {
 		fmt.Println("Error creating graphql schema: ", err)
 	}
 	gql.Init(schema)
-	// Create a server struct that holds a pointer to our database as well
-	// as the address of our graphql schema
-	//s := server.Server{
-	//	GqlSchema: &schema,
-	//}
 
 	// Set up Macaron
 	m := routes.NewMacaron()
