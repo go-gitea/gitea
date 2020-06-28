@@ -39,6 +39,10 @@ func NewContext() {
 // Code returns a HTML version of code string with chroma syntax highlighting classes
 func Code(fileName, code string) string {
 	NewContext()
+	// don't highlight over 25kb
+	if len(code) > 25000 {
+		return plainText(string(code), numLines)
+	}
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),
@@ -80,8 +84,10 @@ func Code(fileName, code string) string {
 // File returns map with line lumbers and HTML version of code with chroma syntax highlighting classes
 func File(numLines int, fileName string, code []byte) map[int]string {
 	NewContext()
-	m := make(map[int]string, numLines)
-
+	// don't highlight over 25kb
+	if len(code) > 25000 {
+		return plainText(string(code), numLines)
+	}
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),
@@ -120,6 +126,7 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 	}
 
 	htmlw.Flush()
+	m := make(map[int]string, numLines)
 	for k, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
 		line := k + 1
 		m[line] = string(v)
