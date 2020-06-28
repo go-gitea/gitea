@@ -65,8 +65,6 @@ type PullRequest struct {
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 
 	isHeadRepoLoaded bool `xorm:"-"`
-
-	ProtectedFiles []string `xorm:"TEXT JSON"`
 }
 
 // MustHeadUserName returns the HeadRepo's username if failed return blank
