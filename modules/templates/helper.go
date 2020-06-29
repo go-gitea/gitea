@@ -170,7 +170,7 @@ func NewFuncMap() []template.FuncMap {
 				ok    bool
 			)
 			if ec != nil {
-				if value, ok = ec.(*editorconfig.Editorconfig); !ok {
+				if value, ok = ec.(*editorconfig.Editorconfig); !ok || value == nil {
 					return "tab-size-8"
 				}
 				def, err := value.GetDefinitionForFilename(filename)
