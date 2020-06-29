@@ -18,7 +18,25 @@ export function initNotificationsTable() {
   });
 }
 
-export function initNotificationCount() {
+async function receiveUpdateCount(event) {
+  try {
+    const data = JSON.parse(event.data);
+
+    const notificationCount = $('.notification_count');
+    if (data.Count === 0) {
+      notificationCount.addClass('hidden');
+    } else {
+      notificationCount.removeClass('hidden');
+    }
+
+    notificationCount.text(`${data.Count}`);
+    await updateNotificationTable();
+  } catch (error) {
+    console.error(error, event);
+  }
+}
+
+export async function initNotificationCount() {
   const notificationCount = $('.notification_count');
 
   if (!notificationCount.length) {
@@ -27,35 +45,108 @@ export function initNotificationCount() {
 
   if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource) {
     // Try to connect to the event source first
-    const source = new EventSource(`${AppSubUrl}/user/events`);
-    source.addEventListener('notification-count', async (e) => {
-      try {
-        const data = JSON.parse(e.data);
 
-        const notificationCount = $('.notification_count');
-        if (data.Count === 0) {
-          notificationCount.addClass('hidden');
-        } else {
-          notificationCount.removeClass('hidden');
+    if (window.SharedWorker && NotificationSettings.UseSharedWorker) {
+      // const {default: Worker} = await import(/* webpackChunkName: "eventsource" */'./eventsource.sharedworker.js');
+      // const worker = Worker('notification');
+      const worker = new SharedWorker('js/eventsource.sharedworker.js', 'notification-worker');
+      // worker.port.addEventListener('message', (event) => {
+      //   console.log(event.data);
+      // }, false);
+      // worker.port.start();
+      worker.addEventListener('error', (event) => {
+        console.error(event);
+      }, false);
+      worker.port.onmessageeerror = (event) => {
+        console.error(event);
+      };
+      worker.port.postMessage({
+        type: 'start',
+        url: `${window.location.protocol}//${window.location.host}${AppSubUrl}/user/events`,
+      });
+      worker.port.addEventListener('message', (e) => {
+        if (!e.data || !e.data.type) {
+          console.error(e);
+          return;
         }
+        switch (event.data.type) {
+          case 'notification-count':
+            receiveUpdateCount(e.data);
+            return;
+          case 'error':
+            console.error(e.data);
+            return;
+          case 'logout': {
+            if (e.data !== 'here') {
+              return;
+            }
+            worker.port.postMessage({
+              type: 'close',
+            });
+            worker.port.close();
+            window.location.href = AppSubUrl;
+            return;
+          }
+          default:
+            return;
+        }
+      }, false);
+      worker.port.addEventListener('error', (e) => {
+        console.error(e);
+      }, false);
+      worker.port.start();
+      window.addEventListener('beforeunload', () => {
+        worker.port.postMessage({
+          type: 'close',
+        });
+        worker.port.close();
+      }, false);
 
-        notificationCount.text(`${data.Count}`);
-        await updateNotificationTable();
-      } catch (error) {
-        console.error(error);
-      }
-    });
-    source.addEventListener('logout', async (e) => {
-      if (e.data !== 'here') {
-        return;
-      }
-      source.close();
-      window.location.href = AppSubUrl;
-    });
-    window.addEventListener('beforeunload', () => {
-      source.close();
-    });
-    return;
+      return;
+    }
+
+    if (window.Worker && NotificationSettings.UseWorker) {
+      const {default: Worker} = await import(/* webpackChunkName: "eventsource" */'./eventsource.worker.js');
+      const worker = new Worker();
+      worker.postMessage({
+        type: 'start',
+        url: `${window.location.protocol}//${window.location.host}${AppSubUrl}/user/events`,
+      });
+      worker.addEventListener('nofication-count', receiveUpdateCount, false);
+      worker.addEventListener('logout', (e) => {
+        if (e.data !== 'here') {
+          return;
+        }
+        worker.postMessage({
+          type: 'close',
+        });
+        worker.terminate();
+        window.location.href = AppSubUrl;
+      }, false);
+      window.addEventListener('beforeunload', () => {
+        worker.postMessage({
+          type: 'close',
+        });
+        worker.terminate();
+      }, false);
+      return;
+    }
+
+    if (window.EventSource && NotificationSettings.UsePlainEventSource) {
+      const eventSource = new EventSource(`${AppSubUrl}/user/events`);
+      eventSource.addEventListener('notification-count', receiveUpdateCount, false);
+      eventSource.addEventListener('logout', (e) => {
+        if (e.data !== 'here') {
+          return;
+        }
+        eventSource.close();
+        window.location.href = AppSubUrl;
+      }, false);
+      window.addEventListener('beforeunload', () => {
+        eventSource.close();
+      }, false);
+      return;
+    }
   }
 
   if (NotificationSettings.MinTimeout <= 0) {

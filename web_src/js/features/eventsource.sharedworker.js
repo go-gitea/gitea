@@ -1,0 +1,151 @@
+self.name = 'eventsource.sharedworker.js';
+
+const sourcesByUrl = {};
+const sourcesByPort = {};
+
+class Source {
+  constructor(url) {
+    this.url = url;
+    this.eventSource = new EventSource(url);
+    this.listening = {};
+    this.clients = [];
+    this.listen('open');
+    this.listen('logout');
+    this.listen('notification-count');
+    this.listen('error');
+  }
+
+  register(port) {
+    const portIdx = this.clients.indexOf(port);
+    if (portIdx > -1) {
+      return;
+    }
+    this.clients.push(port);
+    port.postMessage({
+      type: 'status',
+      message: `registered to ${this.url}`,
+    });
+  }
+
+  deregister(port) {
+    const portIdx = this.clients.indexOf(port);
+    if (portIdx < 0) {
+      return this.clients.length;
+    }
+    this.clients.splice(portIdx, 1);
+    return this.clients.length;
+  }
+
+  close() {
+    if (!this.eventSource) {
+      return;
+    }
+    this.eventSource.close();
+    this.eventSource = null;
+  }
+
+  listen(eventType) {
+    if (this.listening[eventType]) return;
+    this.listening[eventType] = true;
+    const self = this;
+    this.eventSource.addEventListener(eventType, (event) => {
+      self.notifyClients({
+        type: eventType,
+        data: event.data
+      }, false);
+    });
+  }
+
+  notifyClients(event) {
+    const len = this.clients.length;
+    for (let i = 0; i < len; i++) {
+      const port = this.clients[i];
+      port.postMessage(event);
+    }
+  }
+
+  status(port) {
+    port.postMessage({
+      type: 'status',
+      message: `url: ${this.url} readyState: ${this.eventSource.readyState}`,
+    });
+  }
+}
+
+self.onconnect = (e) => {
+  e.ports.forEach((port) => {
+    port.addEventListener('message', (event) => {
+      switch (event.data.type) {
+        case 'start': {
+          const url = event.data.url;
+          if (sourcesByUrl[url]) {
+            // we have a Source registered to this url
+            const source = sourcesByUrl[url];
+            source.register(port);
+            sourcesByPort[port] = source;
+            return;
+          }
+          let source = sourcesByPort[port];
+          if (source) {
+            if (source.eventSource && source.url === url) {
+              // We have a valid source for this port...
+              return;
+            }
+            // How this has happened I don't understand...
+            // deregister from that source
+            const count = source.deregister(port);
+            // Clean-up
+            if (count === 0) {
+              source.close();
+              sourcesByUrl[source.url] = null;
+            }
+          }
+          // Create a new Source
+          source = new Source(url);
+          source.register(port);
+          sourcesByUrl[url] = source;
+          sourcesByPort[port] = source;
+          return;
+        }
+        case 'listen': {
+          const source = sourcesByPort[port];
+          source.listen(event.data.eventType);
+        }
+          return;
+        case 'close': {
+          const source = sourcesByPort[port];
+          if (!source) {
+            return;
+          }
+          const count = source.deregister(port);
+          if (count === 0) {
+            source.close();
+            sourcesByUrl[source.url] = null;
+            sourcesByPort[port] = null;
+          }
+          return;
+        }
+        case 'status': {
+          const source = sourcesByPort[port];
+          if (!source) {
+            port.postMessage({
+              type: 'status',
+              message: 'not connected',
+            });
+            return;
+          }
+          source.status(port);
+          return;
+        }
+        default:
+          // just send it back
+          port.postMessage({
+            type: 'error',
+            message: `received but don't know how to handle: ${event.data}`,
+          });
+          return;
+      }
+    });
+    port.start();
+  });
+};

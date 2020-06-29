@@ -185,6 +185,9 @@ var (
 			TimeoutStep           time.Duration
 			MaxTimeout            time.Duration
 			EventSourceUpdateTime time.Duration
+			UseSharedWorker       bool
+			UseWorker             bool
+			UsePlainEventSource   bool
 		} `ini:"ui.notification"`
 
 		Admin struct {
@@ -220,11 +223,17 @@ var (
 			TimeoutStep           time.Duration
 			MaxTimeout            time.Duration
 			EventSourceUpdateTime time.Duration
+			UseSharedWorker       bool
+			UseWorker             bool
+			UsePlainEventSource   bool
 		}{
 			MinTimeout:            10 * time.Second,
 			TimeoutStep:           10 * time.Second,
 			MaxTimeout:            60 * time.Second,
 			EventSourceUpdateTime: 10 * time.Second,
+			UseSharedWorker:       true,
+			UseWorker:             false,
+			UsePlainEventSource:   false,
 		},
 		Admin: struct {
 			UserPagingNum   int
