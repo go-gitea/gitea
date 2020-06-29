@@ -50,7 +50,10 @@ module.exports = {
     serviceworker: [
       resolve(__dirname, 'web_src/js/serviceworker.js'),
     ],
-    icons: glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
+    icons: [
+      ...glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
+      ...glob('assets/svg/*.svg'),
+    ],
     ...themes,
   },
   devtool: false,
