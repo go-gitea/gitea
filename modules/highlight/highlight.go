@@ -19,6 +19,9 @@ import (
 	"github.com/alecthomas/chroma/styles"
 )
 
+// don't index files larger than this many bytes for performance purposes
+const sizeLimit = 25000
+
 var (
 	// For custom user mapping
 	highlightMapping = map[string]string{}
@@ -39,8 +42,8 @@ func NewContext() {
 // Code returns a HTML version of code string with chroma syntax highlighting classes
 func Code(fileName, code string) string {
 	NewContext()
-	// don't highlight over 25kb
-	if len(code) > 25000 {
+
+	if len(code) > sizeLimit {
 		return code
 	}
 	formatter := html.New(html.WithClasses(true),
@@ -84,8 +87,8 @@ func Code(fileName, code string) string {
 // File returns map with line lumbers and HTML version of code with chroma syntax highlighting classes
 func File(numLines int, fileName string, code []byte) map[int]string {
 	NewContext()
-	// don't highlight over 25kb
-	if len(code) > 25000 {
+
+	if len(code) > sizeLimit {
 		return plainText(string(code), numLines)
 	}
 	formatter := html.New(html.WithClasses(true),
