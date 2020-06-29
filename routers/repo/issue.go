@@ -1097,6 +1097,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 			ctx.Data["ChangedProtectedFiles"] = changedProtectedFiles
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(changedProtectedFiles) != 0
+			ctx.Data["ChangedProtectedFilesNum"] = len(changedProtectedFiles)
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.User != nil {
