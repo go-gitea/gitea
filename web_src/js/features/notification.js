@@ -50,7 +50,7 @@ export async function initNotificationCount() {
       const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
       worker.addEventListener('error', (event) => {
         console.error(event);
-      }, false);
+      });
       worker.port.onmessageerror = () => {
         console.error('Unable to deserialize message');
       };
@@ -82,17 +82,17 @@ export async function initNotificationCount() {
         } else {
           return;
         }
-      }, false);
+      });
       worker.port.addEventListener('error', (e) => {
         console.error(e);
-      }, false);
+      });
       worker.port.start();
       window.addEventListener('beforeunload', () => {
         worker.port.postMessage({
           type: 'close',
         });
         worker.port.close();
-      }, false);
+      });
 
       return;
     }
