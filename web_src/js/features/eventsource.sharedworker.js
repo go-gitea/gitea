@@ -105,8 +105,8 @@ self.onconnect = (e) => {
         case 'listen': {
           const source = sourcesByPort[port];
           source.listen(event.data.eventType);
-        }
           return;
+        }
         case 'close': {
           const source = sourcesByPort[port];
           if (!source) {
