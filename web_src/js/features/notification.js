@@ -112,7 +112,7 @@ export async function initNotificationCount() {
         type: 'start',
         url: `${window.location.protocol}//${window.location.host}${AppSubUrl}/user/events`,
       });
-      worker.addEventListener('nofication-count', receiveUpdateCount, false);
+      worker.addEventListener('notification-count', receiveUpdateCount, false);
       worker.addEventListener('logout', (e) => {
         if (e.data !== 'here') {
           return;
