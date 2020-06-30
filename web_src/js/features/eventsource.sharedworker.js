@@ -74,7 +74,7 @@ self.onconnect = (e) => {
       if (event.data.type === 'start') {
         const url = event.data.url;
         if (sourcesByUrl[url]) {
-            // we have a Source registered to this url
+          // we have a Source registered to this url
           const source = sourcesByUrl[url];
           source.register(port);
           sourcesByPort[port] = source;
@@ -83,6 +83,7 @@ self.onconnect = (e) => {
         let source = sourcesByPort[port];
         if (source) {
           if (source.eventSource && source.url === url) return;
+
           // How this has happened I don't understand...
           // deregister from that source
           const count = source.deregister(port);
@@ -126,7 +127,7 @@ self.onconnect = (e) => {
         source.status(port);
         return;
       } else {
-          // just send it back
+        // just send it back
         port.postMessage({
           type: 'error',
           message: `received but don't know how to handle: ${event.data}`,

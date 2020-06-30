@@ -44,8 +44,7 @@ export async function initNotificationCount() {
   }
 
   if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource) {
-    // Try to connect to the event source first
-
+    // Try to connect to the event source via the shared worker first
     if (window.SharedWorker) {
       const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
       worker.addEventListener('error', (event) => {
