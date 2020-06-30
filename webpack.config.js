@@ -113,6 +113,20 @@ module.exports = {
         loader: 'vue-loader',
       },
       {
+        test: /\.worker\.js$/,
+        exclude: /monaco/,
+        use: [
+          {
+            loader: 'worker-loader',
+            options: {
+              name: '[name].js',
+              inline: true,
+              fallback: false,
+            },
+          },
+        ],
+      },
+      {
         test: /\.js$/,
         exclude: /node_modules/,
         use: [
