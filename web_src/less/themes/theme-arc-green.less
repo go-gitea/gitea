@@ -1,68 +1,389 @@
-.hljs {
+/* Background */
+
+.chroma {
+    background-color: #2a2e3a;
+}
+/* LineTableTD */
+
+.chroma .lntd {
+    vertical-align: top;
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+/* LineTable */
+
+.chroma .lntable {
+    border-spacing: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    width: auto;
+    overflow: auto;
     display: block;
-    overflow-x: auto;
-    padding: .5em;
-    color: #bababa;
 }
+/* LineHighlight */
 
-.hljs-strong,
-.hljs-emphasis {
-    color: #a8a8a2;
+.chroma .hl {
+    display: block;
+    width: 100%;
+    background-color: #3f424d;
 }
+/* LineNumbersTable */
 
-.hljs-bullet,
-.hljs-quote,
-.hljs-link,
-.hljs-number,
-.hljs-regexp,
-.hljs-literal {
-    color: #6896ba;
+.chroma .lnt {
+    margin-right: .4em;
+    padding: 0 .4em;
+    color: #7f7f7f;
 }
+/* LineNumbers */
 
-.hljs-code,
-.hljs-selector-class {
-    color: #a6e22e;
+.chroma .ln {
+    margin-right: .4em;
+    padding: 0 .4em;
+    color: #7f7f7f;
 }
+/* Keyword */
 
-.hljs-emphasis {
-    font-style: italic;
+.chroma .k {
+    color: #9daccc;
+    font-weight: bold;
 }
+/* KeywordConstant */
 
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-section,
-.hljs-attribute,
-.hljs-name,
-.hljs-variable {
-    color: #cb7832;
+.chroma .kc {
+    color: #9daccc;
+    font-weight: bold;
 }
+/* KeywordDeclaration */
 
-.hljs-params {
-    color: #b9b9b9;
+.chroma .kd {
+    color: #9daccc;
+    font-weight: bold;
 }
+/* KeywordNamespace */
 
-.hljs-string {
-    color: #6a8759;
+.chroma .kn {
+    color: #9daccc;
+    font-weight: bold;
 }
+/* KeywordPseudo */
 
-.hljs-subst,
-.hljs-type,
-.hljs-built_in,
-.hljs-builtin-name,
-.hljs-symbol,
-.hljs-selector-id,
-.hljs-selector-attr,
-.hljs-selector-pseudo,
-.hljs-template-tag,
-.hljs-template-variable,
-.hljs-addition {
+.chroma .kp {
+    color: #9daccc;
+    font-weight: bold;
+}
+/* KeywordReserved */
+
+.chroma .kr {
+    color: #9daccc;
+    font-weight: bold;
+}
+/* KeywordType */
+
+.chroma .kt {
+    color: #9daccc;
+    font-weight: bold;
+}
+/* NameAttribute */
+
+.chroma .na {
+    color: #8ff;
+}
+/* NameBuiltin */
+
+.chroma .nb {
     color: #e0c46c;
 }
+/* NameBuiltinPseudo */
 
-.hljs-comment,
-.hljs-deletion,
-.hljs-meta {
+.chroma .bp {
+    color: #999999;
+}
+/* NameClass */
+
+.chroma .nc {
+    color: #445588;
+}
+/* NameConstant */
+
+.chroma .no {
+    color: #8ff;
+}
+/* NameDecorator */
+
+.chroma .nd {
+    color: #3c5d5d;
+}
+/* NameEntity */
+
+.chroma .ni {
+    color: #f8f;
+}
+/* NameException */
+
+.chroma .ne {
+    color: #f88;
+}
+/* NameFunction */
+
+.chroma .nf {
+    color: #986c88;
+}
+/* NameLabel */
+
+.chroma .nl {
+    color: #f88;
+}
+/* NameNamespace */
+
+.chroma .nn {
+    color: #555555;
+}
+/* NameOther */
+
+.chroma .nx {
+    color: #9daccc;
+}
+/* NameTag */
+
+.chroma .nt {
+    color: #88f;
+}
+/* NameVariable */
+
+.chroma .nv {
+    color: #cb7832;
+}
+/* NameVariableClass */
+
+.chroma .vc {
+    color: #cb7832;
+}
+/* NameVariableGlobal */
+
+.chroma .vg {
+    color: #cb7832;
+}
+/* NameVariableInstance */
+
+.chroma .vi {
+    color: #cb7832;
+}
+/* LiteralString */
+
+.chroma .s {
+    color: #8ab398;
+}
+/* LiteralStringAffix */
+
+.chroma .sa {
+    color: #8ab398;
+}
+/* LiteralStringBacktick */
+
+.chroma .sb {
+    color: #8ab398;
+}
+/* LiteralStringChar */
+
+.chroma .sc {
+    color: #8ab398;
+}
+/* LiteralStringDelimiter */
+
+.chroma .dl {
+    color: #8ab398;
+}
+/* LiteralStringDoc */
+
+.chroma .sd {
+    color: #8ab398;
+}
+/* LiteralStringDouble */
+
+.chroma .s2 {
+    color: #8ab398;
+}
+/* LiteralStringEscape */
+
+.chroma .se {
+    color: #8ab398;
+}
+/* LiteralStringHeredoc */
+
+.chroma .sh {
+    color: #8ab398;
+}
+/* LiteralStringInterpol */
+
+.chroma .si {
+    color: #8ab398;
+}
+/* LiteralStringOther */
+
+.chroma .sx {
+    color: #8ab398;
+}
+/* LiteralStringRegex */
+
+.chroma .sr {
+    color: #6896ba;
+}
+/* LiteralStringSingle */
+
+.chroma .s1 {
+    color: #8ab398;
+}
+/* LiteralStringSymbol */
+
+.chroma .ss {
+    color: #6896ba;
+}
+/* LiteralNumber */
+
+.chroma .m {
+    color: #6896ba;
+}
+/* LiteralNumberBin */
+
+.chroma .mb {
+    color: #6896ba;
+}
+/* LiteralNumberFloat */
+
+.chroma .mf {
+    color: #6896ba;
+}
+/* LiteralNumberHex */
+
+.chroma .mh {
+    color: #6896ba;
+}
+/* LiteralNumberInteger */
+
+.chroma .mi {
+    color: #6896ba;
+}
+/* LiteralNumberIntegerLong */
+
+.chroma .il {
+    color: #6896ba;
+}
+/* LiteralNumberOct */
+
+.chroma .mo {
+    color: #6896ba;
+}
+/* Operator */
+
+.chroma .o {
+    color: #9daccc;
+}
+/* OperatorWord */
+
+.chroma .ow {
+    color: #9daccc;
+}
+/* Comment */
+
+.chroma .c {
     color: #7f7f7f;
+}
+/* CommentHashbang */
+
+.chroma .ch {
+    color: #7f7f7f;
+}
+/* CommentMultiline */
+
+.chroma .cm {
+    color: #7f7f7f;
+}
+/* CommentSingle */
+
+.chroma .c1 {
+    color: #7f7f7f;
+}
+/* CommentSpecial */
+
+.chroma .cs {
+    color: #7f7f7f;
+    font-style: italic;
+}
+/* CommentPreproc */
+
+.chroma .cp {
+    color: #7f7f7f;
+}
+/* CommentPreprocFile */
+
+.chroma .cpf {
+    color: #7f7f7f;
+}
+/* GenericDeleted */
+
+.chroma .gd {
+    color: #9e9e9e;
+    background-color: #ffdddd;
+}
+/* GenericEmph */
+
+.chroma .ge {
+    color: #9e9e9e;
+    font-style: italic;
+}
+/* GenericError */
+
+.chroma .gr {
+    color: #aa0000;
+}
+/* GenericHeading */
+
+.chroma .gh {
+    color: #999999;
+}
+/* GenericInserted */
+
+.chroma .gi {
+    color: #9e9e9e;
+    background-color: #ddffdd;
+}
+/* GenericOutput */
+
+.chroma .go {
+    color: #888888;
+}
+/* GenericPrompt */
+
+.chroma .gp {
+    color: #555555;
+}
+/* GenericStrong */
+
+.chroma .gs {
+    color: #a8a8a2;
+    font-weight: bold;
+}
+/* GenericSubheading */
+
+.chroma .gu {
+    color: #888;
+}
+/* GenericTraceback */
+
+.chroma .gt {
+    color: #aa0000;
+}
+/* GenericUnderline */
+
+.chroma .gl {
+    text-decoration: underline;
+}
+/* TextWhitespace */
+
+.chroma .w {
+    color: #bbbbbb;
 }
 
 .repository .ui.segment.sub-menu .list .item {
@@ -542,13 +863,6 @@ a.ui.basic.green.label:hover {
     }
 }
 
-.hljs,
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-subst {
-    color: #9daccc;
-}
-
 .markdown:not(code) .highlight pre,
 .markdown:not(code) pre {
     background-color: #2a2e3a;
@@ -762,21 +1076,19 @@ a.ui.basic.green.label:hover {
     background-color: #3a523a;
 }
 
-.hljs-title,
-.hljs-section,
-.hljs-selector-id {
-    color: #986c88;
-}
-
-.hljs-string,
-.hljs-doctag {
-    color: #8ab398;
-}
-
 .tag-code,
 .tag-code td {
     background: #242637 !important;
+
+}
+.tag-code td.lines-num {
+    background-color: #242637 !important;
     border-color: transparent !important;
+}
+
+.tag-code td.lines-type-marker,
+td.blob-hunk {
+    color: #dbdbdb !important;
 }
 
 .ui.vertical.menu .active.item {
@@ -1047,22 +1359,8 @@ input {
     box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
 }
 
-.hljs-tag,
-.hljs-name,
-.hljs-attribute {
-    color: #ef5e77;
-}
-
 .user.profile .ui.card .extra.content ul li:not(:last-child) {
     border-bottom: 1px solid #4c505c;
-}
-
-.hljs-number,
-.hljs-literal,
-.hljs-variable,
-.hljs-template-variable,
-.hljs-tag .hljs-attr {
-    color: #bd84bf;
 }
 
 .ui.form .dropzone {
@@ -1138,20 +1436,12 @@ input {
     border-color: #2d2d2d !important;
 }
 
-.lines-num pre,
-.lines-code pre,
-.lines-num ol,
-.lines-code ol,
-.lines-num .hljs,
-.lines-code .hljs {
-    background-color: #2a2e3a !important;
-}
 td.blob-excerpt {
     background-color: rgba(0, 0, 0, .15);
 }
 
-.code-view .lines-code .active {
-    background: #534d1b;
+.code-view .lines-code.active {
+    background: #534d1b !important;
 }
 
 a.ui.label:hover,
@@ -1256,7 +1546,8 @@ a.ui.labels .label:hover {
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(4),
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(5),
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(6),
-.repository .diff-file-box .code-diff-split tbody tr td.add-code {
+.repository .diff-file-box .code-diff-split tbody tr td.add-code,
+.repository .diff-file-box .code-diff-split tbody tr td.lines-num-new.add-code {
     background-color: #283e2d !important;
     border-color: #314a37 !important;
 }
