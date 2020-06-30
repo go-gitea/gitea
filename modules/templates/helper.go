@@ -288,9 +288,6 @@ func NewFuncMap() []template.FuncMap {
 				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
 				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
-				"UseSharedWorker":       setting.UI.Notification.UseSharedWorker,
-				"UseWorker":             setting.UI.Notification.UseWorker,
-				"UsePlainEventSource":   setting.UI.Notification.UsePlainEventSource,
 			}
 		},
 		"contain": func(s []int64, id int64) bool {

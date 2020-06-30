@@ -46,14 +46,8 @@ export async function initNotificationCount() {
   if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource) {
     // Try to connect to the event source first
 
-    if (window.SharedWorker && NotificationSettings.UseSharedWorker) {
-      // const {default: Worker} = await import(/* webpackChunkName: "eventsource" */'./eventsource.sharedworker.js');
-      // const worker = Worker('notification');
+    if (window.SharedWorker) {
       const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
-      // worker.port.addEventListener('message', (event) => {
-      //   console.log(event.data);
-      // }, false);
-      // worker.port.start();
       worker.addEventListener('error', (event) => {
         console.error(event);
       }, false);
@@ -102,49 +96,6 @@ export async function initNotificationCount() {
         worker.port.close();
       }, false);
 
-      return;
-    }
-
-    if (window.Worker && NotificationSettings.UseWorker) {
-      const {default: Worker} = await import(/* webpackChunkName: "eventsource" */'./eventsource.worker.js');
-      const worker = new Worker();
-      worker.postMessage({
-        type: 'start',
-        url: `${window.location.protocol}//${window.location.host}${AppSubUrl}/user/events`,
-      });
-      worker.addEventListener('notification-count', receiveUpdateCount, false);
-      worker.addEventListener('logout', (e) => {
-        if (e.data !== 'here') {
-          return;
-        }
-        worker.postMessage({
-          type: 'close',
-        });
-        worker.terminate();
-        window.location.href = AppSubUrl;
-      }, false);
-      window.addEventListener('beforeunload', () => {
-        worker.postMessage({
-          type: 'close',
-        });
-        worker.terminate();
-      }, false);
-      return;
-    }
-
-    if (window.EventSource && NotificationSettings.UsePlainEventSource) {
-      const eventSource = new EventSource(`${AppSubUrl}/user/events`);
-      eventSource.addEventListener('notification-count', receiveUpdateCount, false);
-      eventSource.addEventListener('logout', (e) => {
-        if (e.data !== 'here') {
-          return;
-        }
-        eventSource.close();
-        window.location.href = AppSubUrl;
-      }, false);
-      window.addEventListener('beforeunload', () => {
-        eventSource.close();
-      }, false);
       return;
     }
   }
