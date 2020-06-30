@@ -49,7 +49,7 @@ class Source {
       self.notifyClients({
         type: eventType,
         data: event.data
-      }, false);
+      });
     });
   }
 
