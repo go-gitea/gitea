@@ -20,7 +20,7 @@ import (
 )
 
 // don't index files larger than this many bytes for performance purposes
-const sizeLimit = 25000
+const sizeLimit = 1000000
 
 var (
 	// For custom user mapping
