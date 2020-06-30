@@ -49,7 +49,7 @@ export async function initNotificationCount() {
     if (window.SharedWorker && NotificationSettings.UseSharedWorker) {
       // const {default: Worker} = await import(/* webpackChunkName: "eventsource" */'./eventsource.sharedworker.js');
       // const worker = Worker('notification');
-      const worker = new SharedWorker('js/eventsource.sharedworker.js', 'notification-worker');
+      const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
       // worker.port.addEventListener('message', (event) => {
       //   console.log(event.data);
       // }, false);
