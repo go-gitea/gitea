@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -164,7 +163,7 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 // escape a line's content or return <br> needed for copy/paste purposes
 func getLineContent(content string) string {
 	if len(content) > 0 {
-		return html.EscapeString(content)
+		return content
 	}
 	return "\n"
 }
@@ -182,21 +181,21 @@ var (
 	codeTagSuffix     = []byte(`</span>`)
 )
 
-func diffToHTML(diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
+func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
 
 	for i := range diffs {
 		switch {
 		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
 			buf.Write(addedCodePrefix)
-			buf.WriteString(highlight.Code("", diffs[i].Text))
+			buf.WriteString(highlight.Code(fileName, diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
 			buf.Write(removedCodePrefix)
-			buf.WriteString(highlight.Code("", diffs[i].Text))
+			buf.WriteString(highlight.Code(fileName, diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffEqual:
-			buf.WriteString(getLineContent(diffs[i].Text))
+			buf.WriteString(highlight.Code(fileName, getLineContent(diffs[i].Text)))
 		}
 	}
 	return template.HTML(buf.Bytes())
@@ -290,8 +289,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 
 	diffRecord := diffMatchPatch.DiffMain(diff1[1:], diff2[1:], true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
-
-	return diffToHTML(diffRecord, diffLine.Type)
+	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
 }
 
 // DiffFile represents a file diff.
