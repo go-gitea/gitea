@@ -63,3 +63,42 @@
   base_branch: branch1
   merge_base: 1234567890abcdef
   has_merged: false
+
+-
+  id: 6
+  type: 0
+  status: 0
+  issue_id: 12
+  index: 1
+  head_repo_id: 49
+  base_repo_id: 49
+  head_branch: open_pr
+  base_branch: master
+  merge_base: 0a2d4136a3bddf08e911a3ec15084ba40854e0a9
+  has_merged: false
+
+-
+  id: 7
+  type: 0
+  status: 3
+  issue_id: 13
+  index: 2
+  head_repo_id: 49
+  base_repo_id: 49
+  head_branch: merged_pr
+  base_branch: master
+  merge_base: 0a2d4136a3bddf08e911a3ec15084ba40854e0a9
+  has_merged: true
+
+-
+  id: 8
+  type: 0
+  status: 0
+  issue_id: 14
+  index: 3
+  head_repo_id: 49
+  base_repo_id: 49
+  head_branch: closed_pr
+  base_branch: master
+  merge_base: 0a2d4136a3bddf08e911a3ec15084ba40854e0a9
+  has_merged: false

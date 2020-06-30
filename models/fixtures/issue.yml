@@ -135,3 +135,39 @@
   is_pull: true
   created_unix: 1579194806
   updated_unix: 1579194806
+
+-
+  id: 12
+  repo_id: 49
+  index: 1
+  poster_id: 1
+  name: open_pr
+  content: PR that stays open
+  is_closed: false
+  is_pull: true
+  created_unix: 1593455366
+  updated_unix: 1593455423
+
+-
+  id: 13
+  repo_id: 49
+  index: 2
+  poster_id: 1
+  name: merged_pr
+  content: PR that gets merged
+  is_closed: true
+  is_pull: true
+  created_unix: 1593455608
+  updated_unix: 1593455740
+
+-
+  id: 14
+  repo_id: 49
+  index: 3
+  poster_id: 1
+  name: closed_pr
+  content: PR that gest closed without merging
+  is_closed: true
+  is_pull: true
+  created_unix: 1593455962
+  updated_unix: 1593456141

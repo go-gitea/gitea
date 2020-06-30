@@ -674,3 +674,17 @@
   num_pulls: 1
   is_mirror: false
   status: 0
+
+-
+  id: 49
+  owner_id: 2
+  owner_name: user2
+  lower_name: pr_repo
+  name: pr_repo
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_pulls: 3
+  is_mirror: false
+  status: 0
