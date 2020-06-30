@@ -73,7 +73,6 @@ module.exports = {
         sourceMap: true,
         extractComments: false,
         terserOptions: {
-          keep_fnames: /^(HTML|SVG)/, // https://github.com/fgnass/domino/issues/144
           output: {
             comments: false,
           },
