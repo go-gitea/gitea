@@ -16,10 +16,7 @@ class Source {
   }
 
   register(port) {
-    const portIdx = this.clients.indexOf(port);
-    if (portIdx > -1) {
-      return;
-    }
+    if (!this.clients.includes(port)) return;
     this.clients.push(port);
     port.postMessage({
       type: 'status',
