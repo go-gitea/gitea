@@ -56,7 +56,7 @@ export async function initNotificationCount() {
       };
       worker.port.postMessage({
         type: 'start',
-        url: `${window.location.protocol}//${window.location.host}${AppSubUrl}/user/events`,
+        url: `${window.location.origin}${AppSubUrl}/user/events`,
       });
       worker.port.addEventListener('message', (e) => {
         if (!e.data || !e.data.type) {
