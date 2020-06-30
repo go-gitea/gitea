@@ -63,26 +63,24 @@ export async function initNotificationCount() {
           console.error(e);
           return;
         }
-        switch (event.data.type) {
-          case 'notification-count':
-            receiveUpdateCount(e.data);
-            return;
-          case 'error':
-            console.error(e.data);
-            return;
-          case 'logout': {
-            if (e.data !== 'here') {
-              return;
-            }
-            worker.port.postMessage({
-              type: 'close',
-            });
-            worker.port.close();
-            window.location.href = AppSubUrl;
+        if (event.data.type === 'notification-count') {
+          receiveUpdateCount(e.data);
+          return;
+        } else if (event.data.type === 'error') {
+          console.error(e.data);
+          return;
+        } else if (event.data.type === 'logout') {
+          if (e.data !== 'here') {
             return;
           }
-          default:
-            return;
+          worker.port.postMessage({
+            type: 'close',
+          });
+          worker.port.close();
+          window.location.href = AppSubUrl;
+          return;
+        } else {
+          return;
         }
       }, false);
       worker.port.addEventListener('error', (e) => {
