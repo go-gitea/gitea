@@ -1670,7 +1670,6 @@
             .lines-num {
                 text-align: right;
                 color: #a6a6a6;
-                background: #fafafa;
                 width: 1%;
                 min-width: 50px;
                 user-select: none;
@@ -1679,10 +1678,6 @@
                     display: block;
                     text-align: center;
                 }
-            }
-
-            .lines-num-old {
-                border-right: 1px solid #dddddd;
             }
         }
 
@@ -1695,9 +1690,6 @@
             }
 
             .lines-num {
-                border-color: #d4d4d5;
-                border-right-width: 1px;
-                border-right-style: solid;
                 padding: 0 5px !important;
             }
 
@@ -1734,14 +1726,19 @@
 
         .code-diff-unified tbody tr {
             &.del-code td {
-                background-color: #ffe0e0 !important;
+                background-color: #ffeef0 !important;
                 border-color: #f1c0c0 !important;
             }
 
             &.add-code td {
-                background-color: #d6fcd6 !important;
-                border-color: #c1e9c1 !important;
+                background-color: #e6ffed;
             }
+
+            &.add-code td.lines-num {
+                background-color: #cdffd8;
+                border-color: #bef5cb;
+            }
+
         }
 
         .code-diff-split {
@@ -1760,28 +1757,35 @@
                 &.del-code td:nth-child(4),
                 &.del-code td:nth-child(5),
                 &.del-code td:nth-child(6) {
-                    background-color: #fafafa;
+                    background-color: #fafbfc;
+                    border-right-color: #eaecef;
                 }
 
-                &.del-code td:nth-child(1),
-                &.del-code td:nth-child(2),
-                &.del-code td:nth-child(3),
-                td.del-code {
-                    background-color: #ffe0e0 !important;
-                    border-color: #f1c0c0 !important;
+                &.del-code {
+                    background-color: #ffeef0;
                 }
 
-                &.add-code td:nth-child(4),
-                &.add-code td:nth-child(5),
-                &.add-code td:nth-child(6),
-                td.add-code {
-                    background-color: #d6fcd6 !important;
-                    border-color: #c1e9c1 !important;
+                &.del-code td.add-code {
+                    background-color: #e6ffed;
+                }
+                &.del-code td.lines-num-new.add-code {
+                    background-color: #cdffd8;
+                    border-color: #bef5cb;
+                }
+
+                &.add-code {
+                    background-color: #e6ffed;
+                    border-color: #bef5cb;
+                }
+
+                &.add-code td.lines-num-new {
+                    background-color: #cdffd8;
                 }
 
                 td:nth-child(4) {
                     border-left-width: 1px;
                     border-left-style: solid;
+                    border-left-color: #f6f8fa;
                 }
             }
         }
@@ -2995,14 +2999,17 @@ tbody.commit-list {
 
 .tag-code,
 .tag-code td {
-    background-color: #f0f0f0 !important;
-    border-color: #d3cfcf !important;
+    background-color: #e6f1f6;
+    border-color: #f1f8ff !important;
     padding-top: 8px;
     padding-bottom: 8px;
+    vertical-align: middle;
+    color: rgba(27, 31, 35, .7);
 }
 
-td.blob-excerpt {
-    background-color: #fafafa;
+.tag-code td.lines-num {
+    background-color: #f6e6eb !important;
+    border-color: #dbedff;
 }
 
 .issue-keyword {
@@ -3052,11 +3059,11 @@ td.blob-excerpt {
 }
 
 .removed-code {
-    background-color: #ff9999;
+    background-color: #fdb8c0;
 }
 
 .added-code {
-    background-color: #99ff99;
+    background-color: #acf2bd;
 }
 
 .repository .ui.menu.new-menu {

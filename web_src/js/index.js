@@ -16,7 +16,6 @@ import initMarkdownAnchors from './markdown/anchors.js';
 import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
-import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {createCodeEditor} from './features/codeeditor.js';
@@ -46,9 +45,6 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      $('pre code', $previewPanel[0]).each(function () {
-        highlight(this);
-      });
     });
   });
 
@@ -78,9 +74,6 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        $('pre code', $previewPanel[0]).each(function () {
-          highlight(this);
-        });
       });
     });
   }
@@ -986,9 +979,6 @@ async function initRepository() {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
-              $('pre code', $renderContent[0]).each(function () {
-                highlight(this);
-              });
             }
             const $content = $segment.parent();
             if (!$content.find('.ui.small.images').length) {
@@ -1345,9 +1335,6 @@ function initWikiForm() {
               wiki: true
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-              $(preview).find('pre code').each((_, e) => {
-                highlight(e);
-              });
             });
           };
           if (!simplemde.isSideBySideActive()) {
@@ -2003,27 +1990,27 @@ function searchRepositories() {
 }
 
 function initCodeView() {
-  if ($('.code-view .linenums').length > 0) {
+  if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
-      const $list = $select.parent().siblings('.lines-code').find('ol.linenums > li');
+      const $list = $('.code-view td.lines-code');
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-      const $list = $('.code-view ol.linenums > li');
+      const $list = $('.code-view td.lines-code');
       let $first;
       if (m) {
-        $first = $list.filter(`.${m[1]}`);
-        selectRange($list, $first, $list.filter(`.${m[2]}`));
+        $first = $list.filter(`[rel=${m[1]}]`);
+        selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
       m = window.location.hash.match(/^#(L|n)(\d+)$/);
       if (m) {
-        $first = $list.filter(`.L${m[2]}`);
+        $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
         $('html, body').scrollTop($first.offset().top - 200);
       }
@@ -2485,7 +2472,6 @@ $(document).ready(async () => {
 
   // parallel init of async loaded features
   await Promise.all([
-    highlight(document.querySelectorAll('pre code')),
     attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
@@ -2524,7 +2510,7 @@ function selectRange($list, $select, $from) {
       }
       const classes = [];
       for (let i = a; i <= b; i++) {
-        classes.push(`.L${i}`);
+        classes.push(`[rel=L${i}]`);
       }
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
