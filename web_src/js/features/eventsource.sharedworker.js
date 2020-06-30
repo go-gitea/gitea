@@ -57,10 +57,8 @@ class Source {
   }
 
   notifyClients(event) {
-    const len = this.clients.length;
-    for (let i = 0; i < len; i++) {
-      const port = this.clients[i];
-      port.postMessage(event);
+    for (const client of this.clients) {
+      client.postMessage(event);
     }
   }
 
