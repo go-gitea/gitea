@@ -521,11 +521,6 @@ a:hover {
     color: #ffffff;
 }
 
-.repository.view.issue .comment-list .comment .content > .bottom.segment a {
-    border: solid 1px #353945;
-    background-color: #353945;
-}
-
 .ui.attached.header {
     background: #404552;
     border: 1px solid #404552;
@@ -953,21 +948,6 @@ a.ui.basic.green.label:hover {
     border: 1px solid #404552;
 }
 
-.repository.view.issue .comment-list .comment .content > .bottom.segment {
-    background: #353945;
-}
-
-.repository.view.issue .comment-list .comment .content .header {
-    color: #dbdbdb;
-    background-color: #404552;
-    border-bottom: 1px solid #353944;
-}
-
-.repository.view.issue .comment-list .comment .content .merge-section {
-    background-color: #404552;
-    border-top: 1px solid #353944;
-}
-
 .repository.view.issue .comment-list .event > .svg.issue-symbol {
     background: #3b4954;
 }
@@ -989,16 +969,39 @@ a.ui.basic.green.label:hover {
     color: #fff !important;
 }
 
-.repository.view.issue .comment-list .comment .content .header:after {
-    border-right-color: #404552;
+.repository.view.issue .comment-list .comment .content {
+    > .bottom.segment {
+        background: #353945;
+        a {
+            border: solid 1px #353945;
+            background-color: #353945;
+        }
+    }
+
+    .header {
+        color: #dbdbdb;
+        background-color: #404552;
+        border-bottom: 1px solid #353944;
+    }
+
+    .merge-section {
+        background-color: #404552;
+        border-top: 1px solid #353944;
+    }
+
+    .header:after,
+    > .merge-section.no-header:after {
+        border-right-color: #404552;
+    }
+
+    .header:before,
+    > .merge-section.no-header:before {
+        border-right-color: #404552;
+    }
 }
 
 .repository.new.issue .comment.form .content:after {
     border-right-color: #353945;
-}
-
-.repository.view.issue .comment-list .comment .content .header:before {
-    border-right-color: #404552;
 }
 
 .repository.new.issue .comment.form .content:before {
