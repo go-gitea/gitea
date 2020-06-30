@@ -73,7 +73,7 @@ class Source {
 }
 
 self.onconnect = (e) => {
-  e.ports.forEach((port) => {
+  for (const port of e.ports) {
     port.addEventListener('message', (event) => {
       switch (event.data.type) {
         case 'start': {
@@ -147,5 +147,5 @@ self.onconnect = (e) => {
       }
     });
     port.start();
-  });
+  }
 };

@@ -51,8 +51,8 @@ export async function initNotificationCount() {
       worker.addEventListener('error', (event) => {
         console.error(event);
       }, false);
-      worker.port.onmessageeerror = (event) => {
-        console.error(event);
+      worker.port.onmessageeerror = () => {
+        console.error('Unable to deserialize message');
       };
       worker.port.postMessage({
         type: 'start',
