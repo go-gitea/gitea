@@ -150,7 +150,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MIN_TIMEOUT`: **10s**: These options control how often notification endpoint is polled to update the notification count. On page load the notification count will be checked after `MIN_TIMEOUT`. The timeout will increase to `MAX_TIMEOUT` by `TIMEOUT_STEP` if the notification count is unchanged. Set MIN_TIMEOUT to 0 to turn off.
 - `MAX_TIMEOUT`: **60s**.
 - `TIMEOUT_STEP`: **10s**.
-- `EVENT_SOURCE_UPDATE_TIME`: **10s**: This setting determines how often the database is queried to update notification counts. If the browser client supports `EventSource`, it will be used in preference to polling notification endpoint.
+- `EVENT_SOURCE_UPDATE_TIME`: **10s**: This setting determines how often the database is queried to update notification counts. If the browser client supports `EventSource`, it will be used in preference to polling notification endpoint. Set to **-1** to disable the `EventSource`.
 - `USE_SHARED_WORKER`: **true**: If the client supports `SharedWorker` and the `EVENT_SOURCE_UPDATE_TIME` is greater than `0`. Use a `SharedWorker` `EventSource` in preference to polling.
 - `USE_WORKER`: **false**: If the client supports `Worker` and the `EVENT_SOURCE_UPDATE_TIME` is greater than `0`. Use a `Worker` `EventSource` in preference to polling. (Disabled by default due to limited browser connections under HTTP/1.1.)
 - `USE_PLAIN_EVENT_SOURCE`: **false**: If the client supports `EventSource` and the `EVENT_SOURCE_UPDATE_TIME` is greater than `0`. Use a `EventSource` in preference to polling. (Disabled by default due to limited browser connections under HTTP/1.1.)
