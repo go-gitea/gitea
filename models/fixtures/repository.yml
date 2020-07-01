@@ -686,5 +686,6 @@
   num_forks: 0
   num_issues: 0
   num_pulls: 3
+  num_closed_pulls: 2
   is_mirror: false
   status: 0
