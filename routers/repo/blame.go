@@ -141,7 +141,13 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
 
-	blameReader, err := git.CreateBlameReader(models.RepoPath(userName, repoName), commitID, fileName)
+	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
+	if err != nil {
+		ctx.NotFound("GetBlobLineCount", err)
+		return
+	}
+
+	blameReader, err := git.CreateBlameReader(ctx.Req.Context(), models.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
