@@ -3006,8 +3006,8 @@ tbody.commit-list {
 .board-column {
     background-color: rgba(0, 0, 0, .05) !important;
     border: 1px solid rgba(34, 36, 38, .15) !important;
-    margin: 0 .5em !important;
-    padding: 5px !important;
+    margin: 0 .5rem !important;
+    padding: .5rem !important;
     width: 320px;
     height: 60vh;
     overflow-y: scroll;
@@ -3023,6 +3023,7 @@ tbody.commit-list {
 }
 
 .board-label {
+    background: none !important;
     line-height: 1.25 !important;
 }
 
@@ -3031,7 +3032,7 @@ tbody.commit-list {
     display: flex;
     flex-direction: column;
     margin: 0 !important;
-    padding: 5px;
+    padding: 0 !important;
 
     .card .meta > a.milestone {
         color: #999999;
@@ -3052,8 +3053,8 @@ tbody.commit-list {
 
 .board-card {
     margin: 3px !important;
-    width: 100%;
-    background-color: white;
+    width: auto !important;
+    background-color: #fff;
     border-radius: 5px;
     cursor: pointer;
 }
@@ -3136,4 +3137,14 @@ td.blob-excerpt {
             background: none !important;
         }
     }
+}
+
+.select-project .item {
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+}
+
+.select-project .item .svg {
+    margin-right: .5rem;
 }

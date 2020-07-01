@@ -210,7 +210,7 @@
 						{{.i18n.Tr "repo.issues.new.open_projects"}}
 					</div>
 					{{range .OpenProjects}}
-						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?project={{.ID}}"> {{.Title}}</div>
+						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">{{svg "octicon-project" 16}} {{.Title}}</div>
 					{{end}}
 				{{end}}
 				{{if .ClosedProjects}}
@@ -220,7 +220,7 @@
 						{{.i18n.Tr "repo.issues.new.closed_projects"}}
 					</div>
 					{{range .ClosedProjects}}
-						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?project={{.ID}}"> {{.Title}}</a>
+						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">{{svg "octicon-project" 16}} {{.Title}}</a>
 					{{end}}
 				{{end}}
 			</div>
@@ -229,7 +229,7 @@
 			<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_projects"}}</span>
 			<div class="selected">
 				{{if .Issue.ProjectID}}
-					<a class="item" href="{{.RepoLink}}/issues?project={{.Issue.ProjectID}}"> {{.Issue.Project.Title}}</a>
+					<a class="item" href="{{.RepoLink}}/projects/{{.Issue.ProjectID}}">{{svg "octicon-project" 16}} {{.Issue.Project.Title}}</a>
 				{{end}}
 			</div>
 		</div>
