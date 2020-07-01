@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -40,6 +41,15 @@ type namedBlob struct {
 	name      string
 	isSymlink bool
 	blob      *git.Blob
+}
+
+func linesBytesCount(s []byte) int {
+	nl := []byte{'\n'}
+	n := bytes.Count(s, nl)
+	if len(s) > 0 && !bytes.HasSuffix(s, nl) {
+		n++
+	}
+	return n
 }
 
 // FIXME: There has to be a more efficient way of doing this
@@ -359,7 +369,6 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
 	ctx.Data["IsViewFile"] = true
-
 	blob := entry.Blob()
 	dataRc, err := blob.DataAsync()
 	if err != nil {
@@ -374,7 +383,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
-	ctx.Data["HighlightClass"] = highlight.FileNameToHighlightClass(blob.Name())
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
 
 	buf := make([]byte, 1024)
@@ -453,7 +461,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = charset.ToUTF8WithFallback(append(buf, d...))
-
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 		if markupType := markup.Type(blob.Name()); markupType != "" {
@@ -466,42 +473,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`, -1,
 			)
 		} else {
-			// Building code view blocks with line number on server side.
-			var fileContent string
-			if content, err := charset.ToUTF8WithErr(buf); err != nil {
-				log.Error("ToUTF8WithErr: %v", err)
-				fileContent = string(buf)
-			} else {
-				fileContent = content
-			}
-
-			var output bytes.Buffer
-			lines := strings.Split(fileContent, "\n")
-			ctx.Data["NumLines"] = len(lines)
-			if len(lines) == 1 && lines[0] == "" {
-				// If the file is completely empty, we show zero lines at the line counter
-				ctx.Data["NumLines"] = 0
-			}
+			buf = charset.ToUTF8WithFallback(buf)
+			lineNums := linesBytesCount(buf)
+			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
 			ctx.Data["NumLinesSet"] = true
-
-			//Remove blank line at the end of file
-			if len(lines) > 0 && lines[len(lines)-1] == "" {
-				lines = lines[:len(lines)-1]
-			}
-			for index, line := range lines {
-				line = gotemplate.HTMLEscapeString(line)
-				if index != len(lines)-1 {
-					line += "\n"
-				}
-				output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line))
-			}
-			ctx.Data["FileContent"] = gotemplate.HTML(output.String())
-
-			output.Reset()
-			for i := 0; i < len(lines); i++ {
-				output.WriteString(fmt.Sprintf(`<span id="L%[1]d" data-line-number="%[1]d"></span>`, i+1))
-			}
-			ctx.Data["LineNums"] = gotemplate.HTML(output.String())
+			ctx.Data["FileContent"] = highlight.File(lineNums, blob.Name(), buf)
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
@@ -645,7 +621,6 @@ func renderCode(ctx *context.Context) {
 		title += ": " + ctx.Repo.Repository.Description
 	}
 	ctx.Data["Title"] = title
-	ctx.Data["RequireHighlightJS"] = true
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
