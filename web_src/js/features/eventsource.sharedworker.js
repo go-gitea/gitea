@@ -93,7 +93,7 @@ self.onconnect = (e) => {
             sourcesByUrl[source.url] = null;
           }
         }
-          // Create a new Source
+        // Create a new Source
         source = new Source(url);
         source.register(port);
         sourcesByUrl[url] = source;
