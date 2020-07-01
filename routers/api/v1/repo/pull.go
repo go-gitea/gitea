@@ -902,13 +902,17 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 
 	var prInfo *git.CompareInfo
-	headGitRepo, err := git.OpenRepository(models.RepoPath(pr.HeadRepo.OwnerName, pr.HeadRepo.Name))
+	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return
 	}
-	defer headGitRepo.Close()
-	prInfo, err = headGitRepo.GetCompareInfo(models.RepoPath(pr.BaseRepo.OwnerName, pr.BaseRepo.Name), pr.BaseBranch, pr.HeadBranch)
+	defer baseGitRepo.Close()
+	if pr.HasMerged {
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName())
+	} else {
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+	}
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return
