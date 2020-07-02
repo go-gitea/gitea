@@ -164,9 +164,16 @@ func NewFuncMap() []template.FuncMap {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
 			return strings.HasPrefix(mimeType, "image/")
 		},
-		"TabSizeClass": func(ec *editorconfig.Editorconfig, filename string) string {
+		"TabSizeClass": func(ec interface{}, filename string) string {
+			var (
+				value *editorconfig.Editorconfig
+				ok    bool
+			)
 			if ec != nil {
-				def, err := ec.GetDefinitionForFilename(filename)
+				if value, ok = ec.(*editorconfig.Editorconfig); !ok || value == nil {
+					return "tab-size-8"
+				}
+				def, err := value.GetDefinitionForFilename(filename)
 				if err != nil {
 					log.Error("tab size class: getting definition for filename: %v", err)
 					return "tab-size-8"
