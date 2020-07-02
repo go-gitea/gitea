@@ -875,12 +875,6 @@ footer {
     }
 }
 
-/* Overrides some styles of the Highlight.js plugin */
-.hljs {
-    background: inherit !important;
-    padding: 0 !important;
-}
-
 .ui.menu.new-menu {
     justify-content: center !important;
     padding-top: 15px !important;
@@ -1047,9 +1041,10 @@ i.icon.centerlock {
 }
 
 .lines-num {
+    padding-left: 10px;
+    padding-right: 10px;
     text-align: right !important;
-    color: #999999;
-    background: #f5f5f5;
+    color: rgba(27, 31, 35, .3);
     width: 1%;
     user-select: none;
 
@@ -1070,15 +1065,19 @@ i.icon.centerlock {
     }
 }
 
+.lines-type-marker {
+    vertical-align: top;
+}
+
 .lines-num,
 .lines-code {
-    padding: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
     vertical-align: top;
 
     pre,
-    ol,
-    .hljs {
-        background-color: white;
+    ol {
+        background-color: inherit;
         margin: 0;
         padding: 0 !important;
 
@@ -1088,6 +1087,15 @@ i.icon.centerlock {
             padding-left: 1ch;
         }
     }
+}
+
+.blame .lines-num {
+    padding: 0 !important;
+    background-color: #f5f5f5;
+}
+
+.blame .lines-code {
+    padding: 0 !important;
 }
 
 .lines-commit {
@@ -1139,7 +1147,6 @@ i.icon.centerlock {
         border-bottom: 1px solid #eaecef;
     }
 }
-
 .code-view {
     overflow: auto;
     overflow-x: auto;
@@ -1161,9 +1168,10 @@ i.icon.centerlock {
         width: 100%;
     }
 
-    .lines-code .active {
-        background: #fff6af;
+    .lines-code.active {
+        background: #fffbdd !important;
     }
+
 }
 
 .octicon-tiny {
