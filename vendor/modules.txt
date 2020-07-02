@@ -317,9 +317,6 @@ github.com/go-git/go-git/v5/utils/merkletrie/filesystem
 github.com/go-git/go-git/v5/utils/merkletrie/index
 github.com/go-git/go-git/v5/utils/merkletrie/internal/frame
 github.com/go-git/go-git/v5/utils/merkletrie/noder
-# github.com/go-ini/ini v1.57.0
-## explicit
-github.com/go-ini/ini
 # github.com/go-openapi/analysis v0.19.5
 github.com/go-openapi/analysis
 github.com/go-openapi/analysis/internal
@@ -460,6 +457,8 @@ github.com/jbenet/go-context/io
 github.com/jessevdk/go-flags
 # github.com/jmhodges/levigo v1.0.0
 ## explicit
+# github.com/json-iterator/go v1.1.9
+github.com/json-iterator/go
 # github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 ## explicit
 github.com/kballard/go-shellquote
@@ -489,6 +488,8 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/klauspost/cpuid v1.2.3
+github.com/klauspost/cpuid
 # github.com/klauspost/pgzip v1.2.1
 github.com/klauspost/pgzip
 # github.com/kr/pretty v0.1.0
@@ -568,19 +569,28 @@ github.com/mholt/archiver/v3
 # github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912
 ## explicit
 github.com/microcosm-cc/bluemonday
-# github.com/minio/minio-go v6.0.14+incompatible
+# github.com/minio/md5-simd v1.1.0
+github.com/minio/md5-simd
+# github.com/minio/minio-go/v6 v6.0.57
 ## explicit
-github.com/minio/minio-go
-github.com/minio/minio-go/pkg/credentials
-github.com/minio/minio-go/pkg/encrypt
-github.com/minio/minio-go/pkg/s3signer
-github.com/minio/minio-go/pkg/s3utils
-github.com/minio/minio-go/pkg/set
+github.com/minio/minio-go/v6
+github.com/minio/minio-go/v6/pkg/credentials
+github.com/minio/minio-go/v6/pkg/encrypt
+github.com/minio/minio-go/v6/pkg/s3utils
+github.com/minio/minio-go/v6/pkg/set
+github.com/minio/minio-go/v6/pkg/signer
+github.com/minio/minio-go/v6/pkg/tags
+# github.com/minio/sha256-simd v0.1.1
+github.com/minio/sha256-simd
 # github.com/mitchellh/go-homedir v1.1.0
 ## explicit
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
+# github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
+github.com/modern-go/concurrent
+# github.com/modern-go/reflect2 v1.0.1
+github.com/modern-go/reflect2
 # github.com/mrjones/oauth v0.0.0-20180629183705-f4e24b6d100c
 github.com/mrjones/oauth
 # github.com/mschoch/smat v0.2.0
