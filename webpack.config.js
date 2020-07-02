@@ -25,6 +25,8 @@ const isProduction = process.env.NODE_ENV !== 'development';
 const filterCssImport = (parsedImport, cssFile) => {
   const url = parsedImport && parsedImport.url ? parsedImport.url : parsedImport;
   const importedFile = url.replace(/[?#].+/, '').toLowerCase();
+  if (/vendor\/assets/.test(url)) return false; // font imports
+  if (/web_src[/\\]less/.test(cssFile)) return true; // relative imports
   if (cssFile.includes('monaco')) return true;
   if (cssFile.includes('fomantic')) {
     if (/brand-icons/.test(importedFile)) return false;
@@ -73,7 +75,6 @@ module.exports = {
         sourceMap: true,
         extractComments: false,
         terserOptions: {
-          keep_fnames: /^(HTML|SVG)/, // https://github.com/fgnass/domino/issues/144
           output: {
             comments: false,
           },
