@@ -22,11 +22,11 @@ async function receiveUpdateCount(event) {
   try {
     const data = JSON.parse(event.data);
 
-    const notificationCount = $('.notification_count');
-    if (data.Count === 0) {
-      notificationCount.addClass('hidden');
+    const notificationCount = document.querySelector('.notification_count');
+    if (data.Count > 0) {
+      notificationCount.classList.remove('hidden');
     } else {
-      notificationCount.removeClass('hidden');
+      notificationCount.classList.add('hidden');
     }
 
     notificationCount.text(`${data.Count}`);
