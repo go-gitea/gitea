@@ -211,7 +211,7 @@ MIN_TIMEOUT = 10s
 MAX_TIMEOUT = 60s
 TIMEOUT_STEP = 10s
 ; This setting determines how often the db is queried to get the latest notification counts.
-; If the browser client supports EventSource, it will be used in preference to polling notification.
+; If the browser client supports EventSource and SharedWorker, a SharedWorker will be used in preference to polling notification. Set to -1 to disable the EventSource
 EVENT_SOURCE_UPDATE_TIME = 10s
 
 [markdown]

@@ -2455,7 +2455,6 @@ $(document).ready(async () => {
   initTemplateSearch();
   initContextPopups();
   initNotificationsTable();
-  initNotificationCount();
   initTribute();
 
   // Repo clone url.
@@ -2502,6 +2501,7 @@ $(document).ready(async () => {
     initClipboard(),
     initUserHeatmap(),
     initServiceWorker(),
+    initNotificationCount(),
   ]);
 });
 
