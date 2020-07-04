@@ -87,7 +87,7 @@ self.onconnect = (e) => {
           // How this has happened I don't understand...
           // deregister from that source
           const count = source.deregister(port);
-            // Clean-up
+          // Clean-up
           if (count === 0) {
             source.close();
             sourcesByUrl[source.url] = null;
@@ -98,11 +98,9 @@ self.onconnect = (e) => {
         source.register(port);
         sourcesByUrl[url] = source;
         sourcesByPort[port] = source;
-        return;
       } else if (event.data.type === 'listen') {
         const source = sourcesByPort[port];
         source.listen(event.data.eventType);
-        return;
       } else if (event.data.type === 'close') {
         const source = sourcesByPort[port];
 
@@ -114,7 +112,6 @@ self.onconnect = (e) => {
           sourcesByUrl[source.url] = null;
           sourcesByPort[port] = null;
         }
-        return;
       } else if (event.data.type === 'status') {
         const source = sourcesByPort[port];
         if (!source) {
@@ -125,14 +122,12 @@ self.onconnect = (e) => {
           return;
         }
         source.status(port);
-        return;
       } else {
         // just send it back
         port.postMessage({
           type: 'error',
           message: `received but don't know how to handle: ${event.data}`,
         });
-        return;
       }
     });
     port.start();
