@@ -57,19 +57,17 @@ export async function initNotificationCount() {
         type: 'start',
         url: `${window.location.origin}${AppSubUrl}/user/events`,
       });
-      worker.port.addEventListener('message', (e) => {
-        if (!e.data || !e.data.type) {
-          console.error(e);
+      worker.port.addEventListener('message', (event) => {
+        if (!event.data || !event.data.type) {
+          console.error(event);
           return;
         }
         if (event.data.type === 'notification-count') {
-          receiveUpdateCount(e.data);
-          return;
+          receiveUpdateCount(event.data);
         } else if (event.data.type === 'error') {
-          console.error(e.data);
-          return;
+          console.error(event.data);
         } else if (event.data.type === 'logout') {
-          if (e.data !== 'here') {
+          if (event.data !== 'here') {
             return;
           }
           worker.port.postMessage({
@@ -77,9 +75,6 @@ export async function initNotificationCount() {
           });
           worker.port.close();
           window.location.href = AppSubUrl;
-          return;
-        } else {
-          return;
         }
       });
       worker.port.addEventListener('error', (e) => {
