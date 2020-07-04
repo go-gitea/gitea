@@ -72,6 +72,20 @@ func GetCommitGraph(r *git.Repository, page int) (GraphItems, error) {
 				commitsToSkip--
 			}
 		}
+		// Skip initial non-commit lines
+		for scanner.Scan() {
+			if bytes.IndexByte(scanner.Bytes(), '*') >= 0 {
+				line := scanner.Text()
+				graphItem, err := graphItemFromString(line, r)
+				if err != nil {
+					cancel()
+					return err
+				}
+				commitGraph = append(commitGraph, graphItem)
+				break
+			}
+		}
+
 		for scanner.Scan() {
 			line := scanner.Text()
 			graphItem, err := graphItemFromString(line, r)
