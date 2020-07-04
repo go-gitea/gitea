@@ -25,7 +25,7 @@ globals:
   Tribute: false
 
 overrides:
-  - files: ["web_src/**/*.worker.js", "web_src/js/serviceworker.js"]
+  - files: ["web_src/**/*worker.js"]
     env:
       worker: true
     rules:

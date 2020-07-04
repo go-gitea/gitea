@@ -289,8 +289,8 @@ func NewFuncMap() []template.FuncMap {
 				return ""
 			}
 		},
-		"NotificationSettings": func() map[string]int {
-			return map[string]int{
+		"NotificationSettings": func() map[string]interface{} {
+			return map[string]interface{}{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
 				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),

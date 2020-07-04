@@ -38,6 +38,9 @@ module.exports = {
     serviceworker: [
       resolve(__dirname, 'web_src/js/serviceworker.js'),
     ],
+    'eventsource.sharedworker': [
+      resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
+    ],
     icons: glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
     ...themes,
   },
