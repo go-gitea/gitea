@@ -6,6 +6,7 @@ package gitgraph
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -64,9 +65,9 @@ func GetCommitGraph(r *git.Repository, page int) (GraphItems, error) {
 		_ = stdoutWriter.Close()
 		defer stdoutReader.Close()
 		for commitsToSkip > 0 && scanner.Scan() {
-			line := scanner.Text()
-			dataIdx := strings.Index(line, "DATA:")
-			starIdx := strings.Index(line, "*")
+			line := scanner.Bytes()
+			dataIdx := bytes.Index(line, []byte("DATA:"))
+			starIdx := bytes.IndexByte(line, '*')
 			if starIdx >= 0 && starIdx < dataIdx {
 				commitsToSkip--
 			}
