@@ -2438,7 +2438,6 @@ $(document).ready(async () => {
   initContextPopups();
   initTableSort();
   initNotificationsTable();
-  initNotificationCount();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2484,6 +2483,7 @@ $(document).ready(async () => {
     initUserHeatmap(),
     initProject(),
     initServiceWorker(),
+    initNotificationCount(),
   ]);
 });
 
