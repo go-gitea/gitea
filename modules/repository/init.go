@@ -214,6 +214,13 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 	repo.DefaultBranch = "master"
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
+		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			return fmt.Errorf("openRepository: %v", err)
+		}
+		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+			return fmt.Errorf("setDefaultBranch: %v", err)
+		}
 	}
 
 	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
