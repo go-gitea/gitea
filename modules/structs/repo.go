@@ -88,6 +88,7 @@ type Repository struct {
 	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
 	AllowSquash               bool             `json:"allow_squash_merge"`
 	AvatarURL                 string           `json:"avatar_url"`
+	Internal                  bool             `json:"internal"`
 }
 
 // GqlRepository represents a repository for a graphql operation

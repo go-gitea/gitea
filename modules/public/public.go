@@ -30,12 +30,12 @@ type Options struct {
 	Prefix       string
 }
 
-// List of known entries inside the `public` directory
-var knownEntries = []string{
+// KnownPublicEntries list all direct children in the `public` directory
+var KnownPublicEntries = []string{
 	"css",
-	"fomantic",
 	"img",
 	"js",
+	"serviceworker.js",
 	"vendor",
 }
 
@@ -114,7 +114,7 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 			if len(parts) < 2 {
 				return false
 			}
-			for _, entry := range knownEntries {
+			for _, entry := range KnownPublicEntries {
 				if entry == parts[1] {
 					ctx.Resp.WriteHeader(404)
 					return true

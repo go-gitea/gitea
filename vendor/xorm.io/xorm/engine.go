@@ -12,11 +12,13 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"xorm.io/xorm/caches"
+	"xorm.io/xorm/contexts"
 	"xorm.io/xorm/core"
 	"xorm.io/xorm/dialects"
 	"xorm.io/xorm/internal/utils"
@@ -42,16 +44,79 @@ type Engine struct {
 
 	TZLocation *time.Location // The timezone of the application
 	DatabaseTZ *time.Location // The timezone of the database
+
+	logSessionID bool // create session id
 }
 
+// NewEngine new a db manager according to the parameter. Currently support four
+// drivers
+func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
+	dialect, err := dialects.OpenDialect(driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := core.Open(driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	cacherMgr := caches.NewManager()
+	mapper := names.NewCacheMapper(new(names.SnakeMapper))
+	tagParser := tags.NewParser("xorm", dialect, mapper, mapper, cacherMgr)
+
+	engine := &Engine{
+		dialect:        dialect,
+		TZLocation:     time.Local,
+		defaultContext: context.Background(),
+		cacherMgr:      cacherMgr,
+		tagParser:      tagParser,
+		driverName:     driverName,
+		dataSourceName: dataSourceName,
+		db:             db,
+		logSessionID:   false,
+	}
+
+	if dialect.URI().DBType == schemas.SQLITE {
+		engine.DatabaseTZ = time.UTC
+	} else {
+		engine.DatabaseTZ = time.Local
+	}
+
+	logger := log.NewSimpleLogger(os.Stdout)
+	logger.SetLevel(log.LOG_INFO)
+	engine.SetLogger(log.NewLoggerAdapter(logger))
+
+	runtime.SetFinalizer(engine, func(engine *Engine) {
+		engine.Close()
+	})
+
+	return engine, nil
+}
+
+// NewEngineWithParams new a db manager with params. The params will be passed to dialects.
+func NewEngineWithParams(driverName string, dataSourceName string, params map[string]string) (*Engine, error) {
+	engine, err := NewEngine(driverName, dataSourceName)
+	engine.dialect.SetParams(params)
+	return engine, err
+}
+
+// EnableSessionID if enable session id
+func (engine *Engine) EnableSessionID(enable bool) {
+	engine.logSessionID = enable
+}
+
+// SetCacher sets cacher for the table
 func (engine *Engine) SetCacher(tableName string, cacher caches.Cacher) {
 	engine.cacherMgr.SetCacher(tableName, cacher)
 }
 
+// GetCacher returns the cachher of the special table
 func (engine *Engine) GetCacher(tableName string) caches.Cacher {
 	return engine.cacherMgr.GetCacher(tableName)
 }
 
+// SetQuotePolicy sets the special quote policy
 func (engine *Engine) SetQuotePolicy(quotePolicy dialects.QuotePolicy) {
 	engine.dialect.SetQuotePolicy(quotePolicy)
 }
@@ -222,9 +287,7 @@ func (engine *Engine) Dialect() dialects.Dialect {
 
 // NewSession New a session
 func (engine *Engine) NewSession() *Session {
-	session := &Session{engine: engine}
-	session.Init()
-	return session
+	return newSession(engine)
 }
 
 // Close the engine
@@ -753,79 +816,9 @@ func (engine *Engine) IsTableExist(beanOrTableName interface{}) (bool, error) {
 	return session.IsTableExist(beanOrTableName)
 }
 
-// IDOf get id from one struct
-func (engine *Engine) IDOf(bean interface{}) (schemas.PK, error) {
-	return engine.IDOfV(reflect.ValueOf(bean))
-}
-
 // TableName returns table name with schema prefix if has
 func (engine *Engine) TableName(bean interface{}, includeSchema ...bool) string {
 	return dialects.FullTableName(engine.dialect, engine.GetTableMapper(), bean, includeSchema...)
-}
-
-// IDOfV get id from one value of struct
-func (engine *Engine) IDOfV(rv reflect.Value) (schemas.PK, error) {
-	return engine.idOfV(rv)
-}
-
-func (engine *Engine) idOfV(rv reflect.Value) (schemas.PK, error) {
-	v := reflect.Indirect(rv)
-	table, err := engine.tagParser.ParseWithCache(v)
-	if err != nil {
-		return nil, err
-	}
-
-	pk := make([]interface{}, len(table.PrimaryKeys))
-	for i, col := range table.PKColumns() {
-		var err error
-
-		fieldName := col.FieldName
-		for {
-			parts := strings.SplitN(fieldName, ".", 2)
-			if len(parts) == 1 {
-				break
-			}
-
-			v = v.FieldByName(parts[0])
-			if v.Kind() == reflect.Ptr {
-				v = v.Elem()
-			}
-			if v.Kind() != reflect.Struct {
-				return nil, ErrUnSupportedType
-			}
-			fieldName = parts[1]
-		}
-
-		pkField := v.FieldByName(fieldName)
-		switch pkField.Kind() {
-		case reflect.String:
-			pk[i], err = engine.idTypeAssertion(col, pkField.String())
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			pk[i], err = engine.idTypeAssertion(col, strconv.FormatInt(pkField.Int(), 10))
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			// id of uint will be converted to int64
-			pk[i], err = engine.idTypeAssertion(col, strconv.FormatUint(pkField.Uint(), 10))
-		}
-
-		if err != nil {
-			return nil, err
-		}
-	}
-	return schemas.PK(pk), nil
-}
-
-func (engine *Engine) idTypeAssertion(col *schemas.Column, sid string) (interface{}, error) {
-	if col.SQLType.IsNumeric() {
-		n, err := strconv.ParseInt(sid, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		return n, nil
-	} else if col.SQLType.IsText() {
-		return sid, nil
-	} else {
-		return nil, errors.New("not supported")
-	}
 }
 
 // CreateIndexes create indexes
@@ -1225,6 +1218,10 @@ func (engine *Engine) SetSchema(schema string) {
 	engine.dialect.URI().SetSchema(schema)
 }
 
+func (engine *Engine) AddHook(hook contexts.Hook) {
+	engine.db.AddHook(hook)
+}
+
 // Unscoped always disable struct tag "deleted"
 func (engine *Engine) Unscoped() *Session {
 	session := engine.NewSession()
@@ -1236,7 +1233,7 @@ func (engine *Engine) tbNameWithSchema(v string) string {
 	return dialects.TableNameWithSchema(engine.dialect, v)
 }
 
-// Context creates a session with the context
+// ContextHook creates a session with the context
 func (engine *Engine) Context(ctx context.Context) *Session {
 	session := engine.NewSession()
 	session.isAutoClose = true

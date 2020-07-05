@@ -1,5 +1,4 @@
 .repository {
-
     padding-top: 15px;
 
     .repo-header {
@@ -15,13 +14,24 @@
             font-weight: 400;
             font-size: 1.5rem;
 
-            svg {
-                position: relative;
-                top: 5px;
+            .label {
+                vertical-align: middle;
             }
 
-            svg.octicon-lock {
-                margin-left: 5px;
+            &.repo-title .repo-header-icon {
+                display: inline-block;
+                position: relative;
+
+                .avatar {
+                    position: absolute;
+                    right: 0;
+                    bottom: 0;
+                    width: 16px;
+                    height: 16px;
+                    color: #fafafa;
+                    box-shadow: 0 0 0 2px;
+                    margin: 0;
+                }
             }
         }
 
@@ -33,8 +43,8 @@
             white-space: nowrap;
         }
 
-        .svg.octicon-repo-forked {
-            margin-top: -1px;
+        .repo-buttons .svg {
+            margin: 0 .42857143em 0 -.21428571em;
         }
 
         .button {
@@ -86,6 +96,10 @@
         }
 
         .ui.list {
+            &.assignees .icon {
+                line-height: 2em;
+            }
+
             .hide {
                 display: none !important;
             }
@@ -318,7 +332,7 @@
                     margin-right: 5px;
                     color: #777777;
 
-                    &.octicon-mail-reply {
+                    &.octicon-reply {
                         margin-right: 10px;
                     }
 
@@ -643,9 +657,6 @@
                     margin-left: 10px;
                     margin-top: 10px;
                 }
-                .icon-octicon {
-                    padding-left: 2px;
-                }
                 .branch-update.grid {
                     .row {
                         padding-bottom: 1rem;
@@ -657,14 +668,18 @@
             }
 
             .review-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+
+                .review-item-left,
+                .review-item-right {
+                    display: flex;
+                    align-items: center;
+                }
 
                 .avatar,
                 .type-icon {
-                    float: none;
-                    display: inline-block;
-                    text-align: center;
-                    vertical-align: middle;
-
                     .svg {
                         width: 23px;
                         height: 23px;
@@ -676,8 +691,12 @@
                 }
 
                 .type-icon {
-                    float: right;
+                    align-self: flex-start;
                     margin-right: 1em;
+
+                    i {
+                        line-height: 1.8em;
+                    }
                 }
 
                 .divider {
@@ -751,6 +770,13 @@
                     }
                 }
 
+                .avatar.image,
+                .avatar.image img {
+                    width: 20px;
+                    height: 20px;
+                    margin-right: .15em;
+                }
+
                 &:first-child:not(.commit) {
                     padding-top: 0 !important;
                 }
@@ -762,7 +788,8 @@
                 .badge.badge-commit {
                     border-color: transparent;
                     background: radial-gradient(white 60%, transparent 60%) no-repeat;
-                    height: 0 !important;
+                    height: 10px;
+                    margin-top: 11px;
                 }
 
                 .badge {
@@ -774,9 +801,9 @@
                     display: flex;
                     float: left;
                     margin-left: -32px;
-                    margin-top: -1px;
                     margin-right: 8px;
                     color: #444;
+                    align-items: center;
 
                     .svg {
                         width: 28px;
@@ -804,7 +831,8 @@
                 }
 
                 &.event > .text {
-                    line-height: 30px;
+                    line-height: 32px;
+                    vertical-align: middle;
                 }
 
                 &.commits-list {
@@ -812,8 +840,10 @@
                     padding-top: 0;
 
                     .singular-commit {
+                        line-height: 30px;
+
                         &:not(:last-child) {
-                            padding-bottom: 3px;
+                            padding-bottom: 2px;
                         }
 
                         .shabox {
@@ -986,8 +1016,17 @@
                     > .merge-section {
                         background-color: #f7f7f7;
 
-                        .item + .item {
-                            padding-top: .5rem;
+                        .item {
+                            padding: .25rem 0;
+                        }
+
+                        .item-section {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            padding: 0;
+                            margin-top: -.25rem;
+                            margin-bottom: -.25rem;
                         }
 
                         .divider {
@@ -1138,17 +1177,16 @@
                 .detail {
                     font-size: .9rem;
                     margin-top: 5px;
-                    margin-left: 35px;
-
-                    .svg {
-                        &.octicon-git-commit {
-                            margin-top: 2px;
-                        }
-                    }
+                    margin-left: 8px;
                 }
 
                 .segments {
                     box-shadow: none;
+
+                    .show-outdated,
+                    .hide-outdated {
+                        display: block;
+                    }
                 }
             }
         }
@@ -1306,10 +1344,6 @@
         textarea {
             height: 200px;
         }
-
-        #deadline {
-            width: 150px;
-        }
     }
 
     &.compare.pull {
@@ -1427,7 +1461,8 @@
     }
 
     #commits-table td.sha .sha.label,
-    #repo-files-table .sha.label {
+    #repo-files-table .sha.label,
+    .timeline-item.commits-list .singular-commit .sha.label {
         border: 1px solid #bbbbbb;
 
         .ui.signature.avatar {
@@ -1451,8 +1486,12 @@
                 margin-right: 0;
             }
 
+            .svg {
+                margin: 0 .25em 0 0;
+            }
+
             > div {
-                display: inline-flex;
+                display: flex;
                 align-items: center;
             }
         }
@@ -1539,6 +1578,16 @@
         background: #ffffff;
         line-height: 30px;
 
+        &.sticky {
+            position: sticky;
+            top: 0;
+            z-index: 800;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #d4d4d5;
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+
         > div:after {
             clear: both;
             content: "";
@@ -1621,20 +1670,14 @@
             .lines-num {
                 text-align: right;
                 color: #a6a6a6;
-                background: #fafafa;
                 width: 1%;
                 min-width: 50px;
                 user-select: none;
-                vertical-align: top;
 
                 span.fold {
                     display: block;
                     text-align: center;
                 }
-            }
-
-            .lines-num-old {
-                border-right: 1px solid #dddddd;
             }
         }
 
@@ -1647,9 +1690,6 @@
             }
 
             .lines-num {
-                border-color: #d4d4d5;
-                border-right-width: 1px;
-                border-right-style: solid;
                 padding: 0 5px !important;
             }
 
@@ -1686,14 +1726,19 @@
 
         .code-diff-unified tbody tr {
             &.del-code td {
-                background-color: #ffe0e0 !important;
+                background-color: #ffeef0 !important;
                 border-color: #f1c0c0 !important;
             }
 
             &.add-code td {
-                background-color: #d6fcd6 !important;
-                border-color: #c1e9c1 !important;
+                background-color: #e6ffed;
             }
+
+            &.add-code td.lines-num {
+                background-color: #cdffd8;
+                border-color: #bef5cb;
+            }
+
         }
 
         .code-diff-split {
@@ -1712,28 +1757,35 @@
                 &.del-code td:nth-child(4),
                 &.del-code td:nth-child(5),
                 &.del-code td:nth-child(6) {
-                    background-color: #fafafa;
+                    background-color: #fafbfc;
+                    border-right-color: #eaecef;
                 }
 
-                &.del-code td:nth-child(1),
-                &.del-code td:nth-child(2),
-                &.del-code td:nth-child(3),
-                td.del-code {
-                    background-color: #ffe0e0 !important;
-                    border-color: #f1c0c0 !important;
+                &.del-code {
+                    background-color: #ffeef0;
                 }
 
-                &.add-code td:nth-child(4),
-                &.add-code td:nth-child(5),
-                &.add-code td:nth-child(6),
-                td.add-code {
-                    background-color: #d6fcd6 !important;
-                    border-color: #c1e9c1 !important;
+                &.del-code td.add-code {
+                    background-color: #e6ffed;
+                }
+                &.del-code td.lines-num-new.add-code {
+                    background-color: #cdffd8;
+                    border-color: #bef5cb;
+                }
+
+                &.add-code {
+                    background-color: #e6ffed;
+                    border-color: #bef5cb;
+                }
+
+                &.add-code td.lines-num-new {
+                    background-color: #cdffd8;
                 }
 
                 td:nth-child(4) {
                     border-left-width: 1px;
                     border-left-style: solid;
+                    border-left-color: #f6f8fa;
                 }
             }
         }
@@ -2375,6 +2427,24 @@
             }
         }
     }
+
+    &.diff .committed-by {
+        padding-top: .5rem;
+
+        .ui.avatar {
+            width: 20px;
+            height: 20px;
+        }
+
+        span {
+            margin-right: .25rem;
+
+            svg {
+                vertical-align: text-bottom;
+                margin-right: 2px;
+            }
+        }
+    }
 }
 
 // End of .repository
@@ -2726,7 +2796,10 @@
 }
 
 #transfer-repo-modal,
-#delete-repo-modal {
+#delete-repo-modal,
+#delete-wiki-modal,
+#convert-fork-repo-modal,
+#convert-mirror-repo-modal {
     .ui.message {
         width: 100% !important;
     }
@@ -2929,14 +3002,17 @@ tbody.commit-list {
 
 .tag-code,
 .tag-code td {
-    background-color: #f0f0f0 !important;
-    border-color: #d3cfcf !important;
+    background-color: #e6f1f6;
+    border-color: #f1f8ff !important;
     padding-top: 8px;
     padding-bottom: 8px;
+    vertical-align: middle;
+    color: rgba(27, 31, 35, .7);
 }
 
-td.blob-excerpt {
-    background-color: #fafafa;
+.tag-code td.lines-num {
+    background-color: #f6e6eb !important;
+    border-color: #dbedff;
 }
 
 .issue-keyword {
@@ -2986,9 +3062,27 @@ td.blob-excerpt {
 }
 
 .removed-code {
-    background-color: #ff9999;
+    background-color: #fdb8c0;
 }
 
 .added-code {
-    background-color: #99ff99;
+    background-color: #acf2bd;
+}
+
+.repository .ui.menu.new-menu {
+    background: none !important;
+
+    @media only screen and (max-width: 1200px) {
+        &:after {
+            background: none !important;
+        }
+    }
+}
+
+#git-graph-container {
+    display: none;
+}
+
+#git-graph-container.in {
+    display: block;
 }

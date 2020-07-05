@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
-	"math"
 
 	"code.gitea.io/gitea/modules/analyze"
 
@@ -18,10 +17,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-const fileSizeLimit int64 = 16 * 1024 * 1024
+const fileSizeLimit int64 = 16 * 1024 // 16 KiB
+const bigFileSize int64 = 1024 * 1024 // 1 MiB
 
 // GetLanguageStats calculates language stats for git repository at specified commit
-func (repo *Repository) GetLanguageStats(commitID string) (map[string]float32, error) {
+func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
 	r, err := git.PlainOpen(repo.Path)
 	if err != nil {
 		return nil, err
@@ -43,15 +43,17 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]float32, e
 	}
 
 	sizes := make(map[string]int64)
-	var total int64
 	err = tree.Files().ForEach(func(f *object.File) error {
-		if enry.IsVendor(f.Name) || enry.IsDotFile(f.Name) ||
+		if f.Size == 0 || enry.IsVendor(f.Name) || enry.IsDotFile(f.Name) ||
 			enry.IsDocumentation(f.Name) || enry.IsConfiguration(f.Name) {
 			return nil
 		}
 
-		// If content can not be read just do detection by filename
-		content, _ := readFile(f, fileSizeLimit)
+		// If content can not be read or file is too big just do detection by filename
+		var content []byte
+		if f.Size <= bigFileSize {
+			content, _ = readFile(f, fileSizeLimit)
+		}
 		if enry.IsGenerated(f.Name, content) {
 			return nil
 		}
@@ -63,8 +65,13 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]float32, e
 			return nil
 		}
 
+		// group languages, such as Pug -> HTML; SCSS -> CSS
+		group := enry.GetLanguageGroup(language)
+		if group != "" {
+			language = group
+		}
+
 		sizes[language] += f.Size
-		total += f.Size
 
 		return nil
 	})
@@ -72,21 +79,17 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]float32, e
 		return nil, err
 	}
 
-	stats := make(map[string]float32)
-	var otherPerc float32 = 100
-	for language, size := range sizes {
-		perc := float32(math.Round(float64(size)/float64(total)*1000) / 10)
-		if perc <= 0.1 {
-			continue
+	// filter special languages unless they are the only language
+	if len(sizes) > 1 {
+		for language := range sizes {
+			langtype := enry.GetLanguageType(language)
+			if langtype != enry.Programming && langtype != enry.Markup {
+				delete(sizes, language)
+			}
 		}
-		otherPerc -= perc
-		stats[language] = perc
 	}
-	otherPerc = float32(math.Round(float64(otherPerc)*10) / 10)
-	if otherPerc > 0 {
-		stats["other"] = otherPerc
-	}
-	return stats, nil
+
+	return sizes, nil
 }
 
 func readFile(f *object.File, limit int64) ([]byte, error) {

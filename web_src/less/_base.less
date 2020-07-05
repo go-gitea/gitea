@@ -134,7 +134,6 @@
 body {
     background-color: #ffffff;
     overflow-y: auto;
-    -webkit-font-smoothing: antialiased;
     display: flex;
     flex-direction: column;
 }
@@ -876,18 +875,12 @@ footer {
     }
 }
 
-/* Overrides some styles of the Highlight.js plugin */
-.hljs {
-    background: inherit !important;
-    padding: 0 !important;
-}
-
 .ui.menu.new-menu {
     justify-content: center !important;
     padding-top: 15px !important;
     margin-top: -15px !important;
     margin-bottom: 15px !important;
-    background-color: #fafafa !important;
+    background: #fafafa;
     border-width: 1px !important;
 }
 
@@ -895,7 +888,7 @@ footer {
     .ui.menu.new-menu {
         overflow-x: auto !important;
         justify-content: left !important;
-        padding-bottom: 5px;
+        padding-bottom: 2px;
     }
 
     .ui.menu.new-menu::-webkit-scrollbar {
@@ -1011,19 +1004,6 @@ footer {
     margin-top: 3em !important;
 }
 
-/* Tab color tweaks */
-.ui.tabular.menu .item {
-    color: rgba(0, 0, 0, .5);
-}
-
-.ui.tabular.menu .item:hover {
-    color: rgba(0, 0, 0, .8);
-}
-
-.ui.tabular.menu .item.active {
-    color: rgba(0, 0, 0, .9);
-}
-
 /* multiple radio or checkboxes as inline element */
 .inline-grouped-list {
     display: inline-block;
@@ -1045,7 +1025,7 @@ i.icons .icon:first-child {
 }
 
 i.icon.centerlock {
-    top: 1.45em;
+    top: 1em;
 }
 
 .ui.label {
@@ -1061,15 +1041,21 @@ i.icon.centerlock {
 }
 
 .lines-num {
-    vertical-align: top;
+    padding-left: 10px;
+    padding-right: 10px;
     text-align: right !important;
-    color: #999999;
-    background: #f5f5f5;
+    color: rgba(27, 31, 35, .3);
     width: 1%;
     user-select: none;
 
     span {
-        &:before {
+        &.bottom-line {
+            &:after {
+                border-bottom: 1px solid #eaecef;
+            }
+        }
+
+        &:after {
             content: attr(data-line-number);
             line-height: 20px !important;
             padding: 0 10px;
@@ -1079,23 +1065,37 @@ i.icon.centerlock {
     }
 }
 
+.lines-type-marker {
+    vertical-align: top;
+}
+
 .lines-num,
 .lines-code {
-    padding: 0 !important;
+    padding-top: 0;
+    padding-bottom: 0;
+    vertical-align: top;
 
     pre,
-    ol,
-    .hljs {
-        background-color: white;
+    ol {
+        background-color: inherit;
         margin: 0;
         padding: 0 !important;
 
         li {
             display: block;
             width: calc(100% - 1ch);
-            margin-left: 1ch;
+            padding-left: 1ch;
         }
     }
+}
+
+.blame .lines-num {
+    padding: 0 !important;
+    background-color: #f5f5f5;
+}
+
+.blame .lines-code {
+    padding: 0 !important;
 }
 
 .lines-commit {
@@ -1141,14 +1141,12 @@ i.icon.centerlock {
     }
 }
 
-.lines-num,
 .lines-code,
 .lines-commit {
     .bottom-line {
         border-bottom: 1px solid #eaecef;
     }
 }
-
 .code-view {
     overflow: auto;
     overflow-x: auto;
@@ -1170,9 +1168,10 @@ i.icon.centerlock {
         width: 100%;
     }
 
-    .lines-code .active {
-        background: #fff6af;
+    .lines-code.active {
+        background: #fffbdd !important;
     }
+
 }
 
 .octicon-tiny {
@@ -1232,9 +1231,20 @@ i.icon.centerlock {
     margin-top: 1rem;
 }
 
+table th[data-sortt-asc],
+table th[data-sortt-desc] {
+    &:hover {
+        background: rgba(0, 0, 0, .1) !important;
+        cursor: pointer !important;
+    }
+    .svg {
+        margin-left: .25rem;
+    }
+}
+
 /* limit width of all direct dropdown menu children */
 /* https://github.com/go-gitea/gitea/pull/10835 */
-.dropdown:not(.selection) > .menu:not(.review-box) > * {
+.dropdown:not(.selection) > .menu:not(.review-box) > *:not(.header) {
     max-width: 300px;
     overflow-x: hidden;
     text-overflow: ellipsis;
@@ -1294,4 +1304,28 @@ i.icon.centerlock {
 /* https://github.com/go-gitea/gitea/pull/11486 */
 .ui.sub.header {
     text-transform: none;
+}
+
+.ui.tabular.menu {
+    .item {
+        padding: 11px 12px;
+        color: rgba(0, 0, 0, .5);
+    }
+
+    .item:hover {
+        color: rgba(0, 0, 0, .8);
+    }
+
+    .item.active {
+        color: rgba(0, 0, 0, .9);
+        margin-top: 1px; /* offset fomantic's margin-bottom: -1px */
+    }
+}
+
+.ui.secondary.pointing.menu .item {
+    padding: 12px;
+}
+
+.ui.header > .ui.label.compact {
+    margin-top: inherit;
 }

@@ -1,4 +1,3 @@
-/* globals wipPrefixes */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
@@ -7,17 +6,16 @@ import './publicpath.js';
 import Vue from 'vue';
 import 'jquery.are-you-sure';
 import './vendor/semanticdropdown.js';
-import {svg} from './utils.js';
 
 import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
-import initDateTimePicker from './features/datetimepicker.js';
 import initServiceWorker from './features/serviceworker.js';
+import initMarkdownAnchors from './markdown/anchors.js';
 import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
-import highlight from './features/highlight.js';
+import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {createCodeEditor} from './features/codeeditor.js';
@@ -47,9 +45,6 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      $('pre code', $previewPanel[0]).each(function () {
-        highlight(this);
-      });
     });
   });
 
@@ -79,9 +74,6 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        $('pre code', $previewPanel[0]).each(function () {
-          highlight(this);
-        });
       });
     });
   }
@@ -756,18 +748,6 @@ async function initRepository() {
 
   // Milestones
   if ($('.repository.new.milestone').length > 0) {
-    const $datepicker = $('.milestone.datepicker');
-
-    await initDateTimePicker($datepicker.data('lang'));
-
-    $datepicker.datetimepicker({
-      inline: true,
-      timepicker: false,
-      startDate: $datepicker.data('start-date'),
-      onSelectDate(date) {
-        $('#deadline').val(date.toISOString().substring(0, 10));
-      },
-    });
     $('#clear-date').on('click', () => {
       $('#deadline').val('');
       return false;
@@ -913,6 +893,7 @@ async function initRepository() {
             dictInvalidFileType: $dropzone.data('invalid-input-type'),
             dictFileTooBig: $dropzone.data('file-too-big'),
             dictRemoveFile: $dropzone.data('remove-file'),
+            timeout: 0,
             init() {
               this.on('success', (file, data) => {
                 filenameDict[file.name] = {
@@ -998,9 +979,6 @@ async function initRepository() {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
-              $('pre code', $renderContent[0]).each(function () {
-                highlight(this);
-              });
             }
             const $content = $segment.parent();
             if (!$content.find('.ui.small.images').length) {
@@ -1200,14 +1178,23 @@ function initPullRequestReview() {
     $(this).hide();
     const form = $(this).parent().find('.comment-form');
     form.removeClass('hide');
+    const $textarea = form.find('textarea');
+    let $simplemde;
+    if ($textarea.data('simplemde')) {
+      $simplemde = $textarea.data('simplemde');
+    } else {
+      attachTribute($textarea.get(), {mentions: true, emoji: true});
+      $simplemde = setCommentSimpleMDE($textarea);
+      $textarea.data('simplemde', $simplemde);
+    }
+    $textarea.focus();
+    $simplemde.codemirror.focus();
     assingMenuAttributes(form.find('.menu'));
   });
   // The following part is only for diff views
   if ($('.repository.pull.diff').length === 0) {
     return;
   }
-
-  $('.diff-detail-box.ui.sticky').sticky();
 
   $('.btn-review').on('click', function (e) {
     e.preventDefault();
@@ -1229,25 +1216,41 @@ function initPullRequestReview() {
       $(this).closest('tr').removeClass('focus-lines-new focus-lines-old');
     });
   $('.add-code-comment').on('click', function (e) {
-    // https://github.com/go-gitea/gitea/issues/4745
-    if ($(e.target).hasClass('btn-add-single')) {
-      return;
-    }
+    if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
+
     const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
     const side = $(this).data('side');
     const idx = $(this).data('idx');
     const path = $(this).data('path');
     const form = $('#pull_review_add_comment').html();
     const tr = $(this).closest('tr');
+
+    const oldLineNum = tr.find('.lines-num-old').data('line-num');
+    const newLineNum = tr.find('.lines-num-new').data('line-num');
+    const addCommentKey = `${oldLineNum}|${newLineNum}`;
+    if (document.querySelector(`[data-add-comment-key="${addCommentKey}"]`)) return; // don't add same comment box twice
+
     let ntr = tr.next();
     if (!ntr.hasClass('add-comment')) {
-      ntr = $(`<tr class="add-comment">${
-        isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>' :
-          '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right" colspan="2"></td>'
-      }</tr>`);
+      ntr = $(`
+        <tr class="add-comment" data-add-comment-key="${addCommentKey}">
+          ${isSplit ? `
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-left"></td>
+            <td class="lines-num"></td>
+            <td class="lines-type-marker"></td>
+            <td class="add-comment-right"></td>
+          ` : `
+            <td class="lines-num"></td>
+            <td class="lines-num"></td>
+            <td class="add-comment-left add-comment-right" colspan="2"></td>
+          `}
+        </tr>`);
       tr.after(ntr);
     }
+
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0) {
@@ -1259,7 +1262,12 @@ function initPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
     }
-    commentCloud.find('textarea').focus();
+    const $textarea = commentCloud.find('textarea');
+    attachTribute($textarea.get(), {mentions: true, emoji: true});
+
+    const $simplemde = setCommentSimpleMDE($textarea);
+    $textarea.focus();
+    $simplemde.codemirror.focus();
   });
 }
 
@@ -1327,9 +1335,6 @@ function initWikiForm() {
               wiki: true
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-              $(preview).find('pre code').each((_, e) => {
-                highlight(e);
-              });
             });
           };
           if (!simplemde.isSideBySideActive()) {
@@ -1862,7 +1867,8 @@ function initAdmin() {
 
     // Attach view detail modals
     $('.view-detail').on('click', function () {
-      $detailModal.find('.content pre').text($(this).data('content'));
+      $detailModal.find('.content pre').text($(this).parents('tr').find('.notice-description').text());
+      $detailModal.find('.sub.header').text($(this).parents('tr').find('.notice-created-time').text());
       $detailModal.modal('show');
       return false;
     });
@@ -1984,27 +1990,27 @@ function searchRepositories() {
 }
 
 function initCodeView() {
-  if ($('.code-view .linenums').length > 0) {
+  if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
-      const $list = $select.parent().siblings('.lines-code').find('ol.linenums > li');
+      const $list = $('.code-view td.lines-code');
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-      const $list = $('.code-view ol.linenums > li');
+      const $list = $('.code-view td.lines-code');
       let $first;
       if (m) {
-        $first = $list.filter(`.${m[1]}`);
-        selectRange($list, $first, $list.filter(`.${m[2]}`));
+        $first = $list.filter(`[rel=${m[1]}]`);
+        selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
       m = window.location.hash.match(/^#(L|n)(\d+)$/);
       if (m) {
-        $first = $list.filter(`.L${m[2]}`);
+        $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
         $('html, body').scrollTop($first.offset().top - 200);
       }
@@ -2018,12 +2024,11 @@ function initCodeView() {
     box.dataset.folded = String(folded);
   });
   function insertBlobExcerpt(e) {
-    const $blob = $(e.target);
+    const $blob = $(e.currentTarget);
     const $row = $blob.parent().parent();
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
       $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
-      $('.diff-detail-box.ui.sticky').sticky();
     });
   }
   $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
@@ -2161,8 +2166,9 @@ function initWipTitle() {
     $issueTitle.focus();
     const value = $issueTitle.val().trim().toUpperCase();
 
-    for (const i in wipPrefixes) {
-      if (value.startsWith(wipPrefixes[i].toUpperCase())) {
+    const wipPrefixes = $('.title_wip_desc').data('wip-prefixes');
+    for (const prefix of wipPrefixes) {
+      if (value.startsWith(prefix.toUpperCase())) {
         return;
       }
     }
@@ -2287,6 +2293,7 @@ $(document).ready(async () => {
       dictInvalidFileType: $dropzone.data('invalid-input-type'),
       dictFileTooBig: $dropzone.data('file-too-big'),
       dictRemoveFile: $dropzone.data('remove-file'),
+      timeout: 0,
       init() {
         this.on('success', (file, data) => {
           filenameDict[file.name] = data.uuid;
@@ -2337,15 +2344,6 @@ $(document).ready(async () => {
       _csrf: csrf
     }).done(() => {
       window.location.href = $this.data('done-url');
-    });
-  });
-
-  // Set anchor.
-  $('.markdown').each(function () {
-    $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
-      let node = $(this);
-      node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}">${svg('octicon-link', 16)}</a>`);
     });
   });
 
@@ -2406,6 +2404,7 @@ $(document).ready(async () => {
   searchTeams();
   searchRepositories();
 
+  initMarkdownAnchors();
   initCommentForm();
   initInstall();
   initRepository();
@@ -2431,8 +2430,8 @@ $(document).ready(async () => {
   initRepoStatusChecker();
   initTemplateSearch();
   initContextPopups();
+  initTableSort();
   initNotificationsTable();
-  initNotificationCount();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2455,10 +2454,9 @@ $(document).ready(async () => {
     'div.repository.settings.collaboration': initRepositoryCollaboration
   };
 
-  let selector;
-  for (selector in routes) {
+  for (const [selector, fn] of Object.entries(routes)) {
     if ($(selector).length > 0) {
-      routes[selector]();
+      fn();
       break;
     }
   }
@@ -2473,12 +2471,12 @@ $(document).ready(async () => {
 
   // parallel init of async loaded features
   await Promise.all([
-    highlight(document.querySelectorAll('pre code')),
     attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
     initServiceWorker(),
+    initNotificationCount(),
   ]);
 });
 
@@ -2512,7 +2510,7 @@ function selectRange($list, $select, $from) {
       }
       const classes = [];
       for (let i = a; i <= b; i++) {
-        classes.push(`.L${i}`);
+        classes.push(`[rel=L${i}]`);
       }
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
@@ -2955,12 +2953,14 @@ function initVueComponents() {
       repoClass(repo) {
         if (repo.fork) {
           return 'octicon-repo-forked';
-        } if (repo.mirror) {
+        } else if (repo.mirror) {
           return 'octicon-repo-clone';
-        } if (repo.template) {
+        } else if (repo.template) {
           return `octicon-repo-template${repo.private ? '-private' : ''}`;
-        } if (repo.private) {
+        } else if (repo.private) {
           return 'octicon-lock';
+        } else if (repo.internal) {
+          return 'octicon-internal-repo';
         }
         return 'octicon-repo';
       }

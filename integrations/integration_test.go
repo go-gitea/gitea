@@ -22,6 +22,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -35,7 +36,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
-	"gopkg.in/testfixtures.v2"
 )
 
 var mac *macaron.Macaron
@@ -66,22 +66,28 @@ func TestMain(m *testing.M) {
 	mac = routes.NewMacaron()
 	routes.RegisterRoutes(mac)
 
-	var helper testfixtures.Helper
-	if setting.Database.UseMySQL {
-		helper = &testfixtures.MySQL{}
-	} else if setting.Database.UsePostgreSQL {
-		helper = &testfixtures.PostgreSQL{}
-	} else if setting.Database.UseSQLite3 {
-		helper = &testfixtures.SQLite{}
-	} else if setting.Database.UseMSSQL {
-		helper = &testfixtures.SQLServer{}
-	} else {
-		fmt.Println("Unsupported RDBMS for integration tests")
-		os.Exit(1)
+	// integration test settings...
+	if setting.Cfg != nil {
+		testingCfg := setting.Cfg.Section("integration-tests")
+		slowTest = testingCfg.Key("SLOW_TEST").MustDuration(slowTest)
+		slowFlush = testingCfg.Key("SLOW_FLUSH").MustDuration(slowFlush)
+	}
+
+	if os.Getenv("GITEA_SLOW_TEST_TIME") != "" {
+		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_TEST_TIME"))
+		if err == nil {
+			slowTest = duration
+		}
+	}
+
+	if os.Getenv("GITEA_SLOW_FLUSH_TIME") != "" {
+		duration, err := time.ParseDuration(os.Getenv("GITEA_SLOW_FLUSH_TIME"))
+		if err == nil {
+			slowFlush = duration
+		}
 	}
 
 	err := models.InitFixtures(
-		helper,
 		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
 	)
 	if err != nil {

@@ -13,15 +13,27 @@
 			<table class="ui very basic striped table">
 				<thead>
 					<tr>
-						<th>ID</th>
+						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
 						<th>{{.i18n.Tr "admin.repos.owner"}}</th>
-						<th>{{.i18n.Tr "admin.repos.name"}}</th>
+						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+							{{.i18n.Tr "admin.repos.name"}}
+							{{SortArrow "alphabetically" "reversealphabetically" $.SortType false}}
+						</th>
 						<th>{{.i18n.Tr "admin.repos.private"}}</th>
 						<th>{{.i18n.Tr "admin.repos.watches"}}</th>
-						<th>{{.i18n.Tr "admin.repos.stars"}}</th>
-						<th>{{.i18n.Tr "admin.repos.forks"}}</th>
+						<th  data-sortt-asc="moststars" data-sortt-desc="feweststars">
+							{{.i18n.Tr "admin.repos.stars"}}
+							{{SortArrow "moststars" "feweststars" $.SortType false}}
+						</th>
+						<th  data-sortt-asc="mostforks" data-sortt-desc="fewestforks">
+							{{.i18n.Tr "admin.repos.forks"}}
+							{{SortArrow "mostforks" "fewestforks" $.SortType false}}
+						</th>
 						<th>{{.i18n.Tr "admin.repos.issues"}}</th>
-						<th>{{.i18n.Tr "admin.repos.size"}}</th>
+						<th  data-sortt-asc="size" data-sortt-desc="reversesize">
+							{{.i18n.Tr "admin.repos.size"}}
+							{{SortArrow "size" "reversesize" $.SortType false}}
+						</th>
 						<th>{{.i18n.Tr "admin.users.created"}}</th>
 						<th>{{.i18n.Tr "admin.notices.op"}}</th>
 					</tr>
