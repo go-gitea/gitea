@@ -14,9 +14,9 @@
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.dashboard.operations"}}
 		</h4>
-		<div class="ui attached table segment">
-			<form method="post" action="{{AppSubUrl}}/admin">
-				{{.CsrfTokenHtml}}
+		<form method="post" action="{{AppSubUrl}}/admin">
+			{{.CsrfTokenHtml}}
+			<div class="ui attached table segment">
 				<table class="ui very basic table">
 					<tbody>
 						<tr>
@@ -62,8 +62,8 @@
 						</tr>
 					</tbody>
 				</table>
-			</form>
-		</div>
+			</div>
+		</form>
 
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.dashboard.system_status"}}
