@@ -1396,10 +1396,10 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 	repo.LowerName = strings.ToLower(repo.Name)
 
 	if utf8.RuneCountInString(repo.Description) > 255 {
-		repo.Description = string([]rune(repo.Description))[:255]
+		repo.Description = string([]rune(repo.Description)[:255])
 	}
 	if utf8.RuneCountInString(repo.Website) > 255 {
-		repo.Website = string([]rune(repo.Website))[:255]
+		repo.Website = string([]rune(repo.Website)[:255])
 	}
 
 	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
