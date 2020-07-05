@@ -29,7 +29,7 @@ async function receiveUpdateCount(event) {
       notificationCount.classList.add('hidden');
     }
 
-    notificationCount.text(`${data.Count}`);
+    notificationCount.textContent = `${data.Count}`;
     await updateNotificationTable();
   } catch (error) {
     console.error(error, event);
