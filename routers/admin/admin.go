@@ -153,8 +153,11 @@ func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
 			ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
 		}
 	}
-
-	ctx.Redirect(setting.AppSubURL + "/admin")
+	if form.From == "monitor" {
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor")
+	} else {
+		ctx.Redirect(setting.AppSubURL + "/admin")
+	}
 }
 
 // SendTestMail send test mail to confirm mail service is OK
@@ -331,7 +334,7 @@ func MonitorCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	process.GetManager().Cancel(pid)
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/admin/monitor",
+		"redirect": setting.AppSubURL + "/admin/monitor",
 	})
 }
 
