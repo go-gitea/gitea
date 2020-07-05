@@ -1,8 +1,11 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package gql
 
 import "github.com/graphql-go/graphql"
 
-// repository describes a graphql object containing a repository
 var repository = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "repository",
@@ -14,10 +17,12 @@ var repository = graphql.NewObject(
 			"branches": &graphql.Field{
 				Type:        graphql.NewList(branch),
 				Description: "Branches contained within a repostory",
+				Resolve: BranchesResolver,
 			},
 			"collaborators": &graphql.Field{
 				Type:        graphql.NewList(user),
 				Description: "The repository's collaborators",
+				Resolve: CollaboratorsResolver,
 			},
 		},
 	},
@@ -83,21 +88,27 @@ var generalInfo = graphql.NewObject(
 			},
 			"name": &graphql.Field{
 				Type: graphql.String,
+				Description: "Name of the repository",
 			},
 			"full_name": &graphql.Field{
 				Type: graphql.String,
+				Description: "Full name of the repository",
 			},
 			"description": &graphql.Field{
 				Type: graphql.String,
+				Description: "Description of the repository",
 			},
 			"empty": &graphql.Field{
 				Type: graphql.Boolean,
+				Description: "Whether the repository is empty or not.",
 			},
 			"private": &graphql.Field{
 				Type: graphql.Boolean,
+				Description: "Whether the repository is private or not",
 			},
 			"fork": &graphql.Field{
 				Type: graphql.Boolean,
+				Description: "Whether the repository is a fork or not",
 			},
 			"template": &graphql.Field{
 				Type: graphql.Boolean,

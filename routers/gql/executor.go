@@ -5,12 +5,13 @@
 package gql
 
 import (
+	"code.gitea.io/gitea/modules/log"
+	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/context"
+	giteaCtx "code.gitea.io/gitea/modules/context"
 	"github.com/graphql-go/graphql"
 )
 
@@ -27,21 +28,14 @@ func Init(cfg graphql.Schema) {
 	schema = cfg
 }
 
-// GraphQL returns an http.HandlerFunc for our /graphql endpoint
-//func (s *Server) GraphQL() http.HandlerFunc {
-//	return func(w http.ResponseWriter, r *http.Request) {
-//	}
-//}
-
-// GraphQL I don't really know what it does
-func GraphQL(ctx *context.APIContext) {
+// GraphQL entry point to executing graphql query
+func GraphQL(ctx *giteaCtx.APIContext) {
 
 	// Check to ensure query was provided in the request body
 	if ctx.Req.Body() == nil {
 		ctx.Error(http.StatusBadRequest, "", "Must provide graphql query in request body")
 		return
 	}
-
 	var rBody reqBody
 	bodyString, err := ctx.Req.Body().String()
 	if err != nil {
@@ -56,21 +50,22 @@ func GraphQL(ctx *context.APIContext) {
 	}
 
 	// Execute graphql query
-	result := ExecuteQuery(rBody.Query, schema)
+	result := ExecuteQuery(rBody.Query, schema, ctx)
 
 	ctx.JSON(http.StatusOK, result)
 }
 
 // ExecuteQuery runs our graphql queries
-func ExecuteQuery(query string, schema graphql.Schema) *graphql.Result {
+func ExecuteQuery(query string, schema graphql.Schema, ctx *giteaCtx.APIContext) *graphql.Result {
 	result := graphql.Do(graphql.Params{
 		Schema:        schema,
 		RequestString: query,
+		Context: context.WithValue(context.Background(), "giteaApiContext", *ctx),
+		RootObject: make(map[string]interface{}),
 	})
 
-	// Error check
 	if len(result.Errors) > 0 {
-		fmt.Printf("Unexpected errors inside ExecuteQuery: %v", result.Errors)
+		log.Error("Unexpected errors inside ExecuteQuery: %v", result.Errors)
 	}
 
 	return result

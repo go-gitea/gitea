@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package gql
 
 import (
@@ -11,11 +15,6 @@ type Root struct {
 
 // NewRoot returns base query type. This is where we add all the base queries
 func NewRoot() *Root {
-	// Create a resolver holding our databse. Resolver can be found in resolvers.go
-	resolver := Resolver{}
-
-	// Create a new Root that describes our base query set up. In this
-	// example we have a user query that takes one argument called name
 	root := Root{
 		Query: graphql.NewObject(
 			graphql.ObjectConfig{
@@ -34,7 +33,7 @@ func NewRoot() *Root {
 								Description: "Name of the repository",
 							},
 						},
-						Resolve: resolver.RepositoryResolver,
+						Resolve: RepositoryResolver,
 					},
 				},
 			},

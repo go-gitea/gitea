@@ -75,6 +75,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/gql"
 
 	"gitea.com/macaron/binding"
@@ -171,6 +172,11 @@ func repoAssignment() macaron.Handler {
 	}
 }
 
+// ReqToken requires auth token to be present
+func ReqToken() macaron.Handler {
+	return reqToken()
+}
+
 // Contexter middleware already checks token for user sign in process.
 func reqToken() macaron.Handler {
 	return func(ctx *context.APIContext) {
@@ -251,9 +257,9 @@ func reqRepoReader(unitType models.UnitType) macaron.Handler {
 
 // reqAnyRepoReader user should have any permission to read repository or permissions of site admin
 func reqAnyRepoReader() macaron.Handler {
-	return func(ctx *context.Context) {
-		if !ctx.IsUserRepoReaderAny() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden)
+	return func(ctx *context.APIContext) {
+		if !utils.IsAnyRepoReader(ctx) {
+			ctx.Error(http.StatusForbidden, "", "Must have permission to read repository")
 			return
 		}
 	}
@@ -504,8 +510,17 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/swagger", misc.Swagger) // Render V1 by default
 	}
 
+	//TODO this might be a bread crumb of a way to do this:
+	//https://github.com/graphql-go/graphql/pull/110
+	//https://github.com/graphql-go/graphql/pull/227/files
+	//some fields require admin, some just require token, some don't require auth at all :(
+	/*
 	m.Group("/", func() {
 		m.Post("/graphql", reqToken(), gql.GraphQL)
+	}, securityHeaders(), context.APIContexter(), sudo())
+	*/
+	m.Group("/", func() {
+		m.Post("/graphql", gql.GraphQL)
 	}, securityHeaders(), context.APIContexter(), sudo())
 
 	m.Group("/v1", func() {
