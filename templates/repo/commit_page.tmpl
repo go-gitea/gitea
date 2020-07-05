@@ -90,7 +90,7 @@
 			<div class="ui bottom attached message {{$class}}">
 				{{if .Verification.Verified }}
 					{{if ne .Verification.SigningUser.ID 0}}
-						<i class="lock icon"></i>
+						{{svg "gitea-lock" 16}}
 						{{if eq .Verification.TrustStatus "trusted"}}
 							<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
 						{{else if eq .Verification.TrustStatus "untrusted"}}
@@ -102,17 +102,14 @@
 						<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.Name}}</strong> <{{.Verification.SigningEmail}}></a>
 						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
 					{{else}}
-						<i class="icons" title="{{.i18n.Tr "gpg.default_key"}}">
-							<i class="lock icon"></i>
-							<i class="tiny inverted cog icon centerlock"></i>
-						</i>
+						<span title="{{.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16}}</span>
 						<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
 						<img class="ui avatar image" src="{{AvatarLink .Verification.SigningEmail}}" />
 						<strong>{{.Verification.SigningUser.Name}}</strong> <{{.Verification.SigningEmail}}>
 						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="cogs icon" title="{{.i18n.Tr "gpg.default_key"}}"></i>{{.Verification.SigningKey.KeyID}}</span>
 					{{end}}
 				{{else if .Verification.Warning}}
-					<i class="unlock icon"></i>
+					{{svg "gitea-unlock" 16}}
 					<span class="ui text">{{.i18n.Tr .Verification.Reason}}</span>
 					<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
 				{{else}}
