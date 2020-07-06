@@ -896,10 +896,6 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	if err := pr.LoadHeadRepo(); err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
 
 	var prInfo *git.CompareInfo
 	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
