@@ -137,6 +137,7 @@ var branch = graphql.NewObject(
 		Fields: graphql.Fields{
 			"name": &graphql.Field{
 				Type: graphql.String,
+				Description: "name of the branch",
 			},
 		},
 	},
@@ -151,7 +152,7 @@ var user = graphql.NewObject(
 				Type:        graphql.Int,
 				Description: "the user's id",
 			},
-			"user_name": &graphql.Field{
+			"username": &graphql.Field{
 				Type:        graphql.String,
 				Description: "the user's username",
 			},
