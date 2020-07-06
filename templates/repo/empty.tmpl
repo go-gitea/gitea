@@ -49,7 +49,7 @@
 								<div class="markdown">
 									<pre><code>touch README.md
 git init
-{{if ne .Repository.DefaultBranch "master"}}git branch -m master {{.Repository.DefaultBranch}}{{end}}
+{{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
 git add README.md
 git commit -m "first commit"
 git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
