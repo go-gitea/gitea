@@ -248,9 +248,9 @@ func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
 
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType models.UnitType) macaron.Handler {
-	return func(ctx *context.Context) {
-		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(http.StatusForbidden)
+	return func(ctx *context.APIContext) {
+		if !utils.IsRepoReader(ctx, unitType) {
+			ctx.Error(http.StatusForbidden, "", "Must have read permission or be a repo or site admin")
 			return
 		}
 	}

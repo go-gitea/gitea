@@ -16,7 +16,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// RepositoryResolver resolves the repository
+// RepositoryResolver resolves a repository
 func RepositoryResolver(p graphql.ResolveParams) (interface{}, error) {
 	ctx := p.Context.Value("giteaApiContext").(giteaCtx.APIContext)
 	err := authorizeRepository(ctx)
@@ -49,6 +49,7 @@ func authorizeRepository(ctx giteaCtx.APIContext) error {
 	return nil
 }
 
+// CollaboratorsResolver resolves collaborators list for a repository
 func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 	ctx := p.Context.Value("giteaApiContext").(giteaCtx.APIContext)
 	err := authorizeCollaborators(ctx)
@@ -75,10 +76,16 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 }
 
 func authorizeCollaborators(ctx giteaCtx.APIContext) error {
-	//TODO
+	if false == ctx.Data["IsApiToken"] {
+		return errors.New("Api token missing")
+	}
+	if !utils.IsAnyRepoReader(&ctx) {
+		return errors.New("Must have permission to read repository")
+	}
 	return nil
 }
 
+// BranchesResolver resovles the branches of a repository
 func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
 	ctx := p.Context.Value("giteaApiContext").(giteaCtx.APIContext)
 	err := authorizeBranches(ctx)
@@ -113,6 +120,8 @@ func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
 }
 
 func authorizeBranches(ctx giteaCtx.APIContext) error {
-	//TODO
+	if !utils.IsRepoReader(&ctx, models.UnitTypeCode) {
+		return errors.New("Must have read permission or be a repo or site admin")
+	}
 	return nil
 }
