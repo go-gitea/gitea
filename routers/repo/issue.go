@@ -392,7 +392,7 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 
 	var err error
 
-	ctx.Data["OpenProjects"], err = models.GetProjects(models.ProjectSearchOptions{
+	ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
@@ -403,7 +403,7 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 		return
 	}
 
-	ctx.Data["ClosedProjects"], err = models.GetProjects(models.ProjectSearchOptions{
+	ctx.Data["ClosedProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,

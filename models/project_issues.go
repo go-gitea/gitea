@@ -10,8 +10,8 @@ import (
 	"xorm.io/xorm"
 )
 
-// ProjectIssues saves relation from issue to a project
-type ProjectIssues struct {
+// ProjectIssue saves relation from issue to a project
+type ProjectIssue struct {
 	ID        int64 `xorm:"pk autoincr"`
 	IssueID   int64 `xorm:"INDEX"`
 	ProjectID int64 `xorm:"INDEX"`
@@ -21,7 +21,7 @@ type ProjectIssues struct {
 }
 
 func deleteProjectIssuesByProjectID(e Engine, projectID int64) error {
-	_, err := e.Where("project_id=?", projectID).Delete(&ProjectIssues{})
+	_, err := e.Where("project_id=?", projectID).Delete(&ProjectIssue{})
 	return err
 }
 
@@ -40,8 +40,8 @@ func (i *Issue) loadProject(e Engine) (err error) {
 	if i.Project == nil {
 		var p Project
 		if _, err = e.Table("project").
-			Join("INNER", "project_issues", "project.id=project_issues.project_id").
-			Where("project_issues.issue_id = ?", i.ID).
+			Join("INNER", "project_issue", "project.id=project_issue.project_id").
+			Where("project_issue.issue_id = ?", i.ID).
 			Get(&p); err != nil {
 			return err
 		}
@@ -56,7 +56,7 @@ func (i *Issue) ProjectID() int64 {
 }
 
 func (i *Issue) projectID(e Engine) int64 {
-	var ip ProjectIssues
+	var ip ProjectIssue
 	has, err := e.Where("issue_id=?", i.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
@@ -70,7 +70,7 @@ func (i *Issue) ProjectBoardID() int64 {
 }
 
 func (i *Issue) projectBoardID(e Engine) int64 {
-	var ip ProjectIssues
+	var ip ProjectIssue
 	has, err := e.Where("issue_id=?", i.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
@@ -87,7 +87,7 @@ func (i *Issue) projectBoardID(e Engine) int64 {
 
 // NumIssues return counter of all issues assigned to a project
 func (p *Project) NumIssues() int {
-	c, err := x.Table("project_issues").
+	c, err := x.Table("project_issue").
 		Where("project_id=?", p.ID).
 		GroupBy("issue_id").Count("issue_id")
 	if err != nil {
@@ -98,9 +98,9 @@ func (p *Project) NumIssues() int {
 
 // NumClosedIssues return counter of closed issues assigned to a project
 func (p *Project) NumClosedIssues() int {
-	c, err := x.Table("project_issues").
-		Join("INNER", "issue", "project_issues.issue_id=issue.id").
-		Where("project_issues.project_id=? AND issue.is_closed=?", p.ID, true).Count("issue.id")
+	c, err := x.Table("project_issue").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).Count("issue.id")
 	if err != nil {
 		return 0
 	}
@@ -109,9 +109,9 @@ func (p *Project) NumClosedIssues() int {
 
 // NumOpenIssues return counter of open issues assigned to a project
 func (p *Project) NumOpenIssues() int {
-	c, err := x.Table("project_issues").
-		Join("INNER", "issue", "project_issues.issue_id=issue.id").
-		Where("project_issues.project_id=? AND issue.is_closed=?", p.ID, false).Count("issue.id")
+	c, err := x.Table("project_issue").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).Count("issue.id")
 	if err != nil {
 		return 0
 	}
@@ -138,7 +138,7 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 
 	oldProjectID := issue.projectID(e)
 
-	if _, err := e.Where("project_issues.issue_id=?", issue.ID).Delete(&ProjectIssues{}); err != nil {
+	if _, err := e.Where("project_issue.issue_id=?", issue.ID).Delete(&ProjectIssue{}); err != nil {
 		return err
 	}
 
@@ -159,7 +159,7 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 		}
 	}
 
-	_, err := e.Insert(&ProjectIssues{
+	_, err := e.Insert(&ProjectIssue{
 		IssueID:   issue.ID,
 		ProjectID: newProjectID,
 	})
@@ -182,7 +182,7 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 		return err
 	}
 
-	var pis ProjectIssues
+	var pis ProjectIssue
 	has, err := sess.Where("issue_id=?", issue.ID).Get(&pis)
 	if err != nil {
 		return err
@@ -201,6 +201,6 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 }
 
 func (pb *ProjectBoard) removeIssues(e Engine) error {
-	_, err := e.Exec("UPDATE `project_issues` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
+	_, err := e.Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
 	return err
 }

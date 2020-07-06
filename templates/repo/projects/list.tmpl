@@ -44,7 +44,7 @@
 				<div class="meta">
 					{{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.Lang }}
 					{{if .IsClosed }}
-					{{svg "octicon-clock" 16}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+						{{svg "octicon-clock" 16}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
 					{{end}}
 					<span class="issue-stats">
 						{{svg "octicon-issue-opened" 16}} {{$.i18n.Tr "repo.issues.open_tab" .NumOpenIssues}}
@@ -55,11 +55,11 @@
 				<div class="ui right operate">
 					<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-pencil" 16}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 					{{if .IsClosed}}
-					<a href="{{$.Link}}/{{.ID}}/open" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-check" 16}} {{$.i18n.Tr "repo.milestones.open"}}</a>
+						<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 16}} {{$.i18n.Tr "repo.projects.open"}}</a>
 					{{else}}
-						<a href="{{$.Link}}/{{.ID}}/close" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-x" 16}} {{$.i18n.Tr "repo.milestones.close"}}</a>
-						{{end}}
-						<a class="delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan" 16}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+						<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 16}} {{$.i18n.Tr "repo.projects.close"}}</a>
+					{{end}}
+					<a class="delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.ID}}/delete" data-id="{{.ID}}">{{svg "octicon-trashcan" 16}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 				</div>
 				{{end}}
 				{{if .Description}}

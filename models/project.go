@@ -6,10 +6,12 @@ package models
 
 import (
 	"errors"
+	"fmt"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"xorm.io/builder"
 )
 
 type (
@@ -81,42 +83,49 @@ type ProjectSearchOptions struct {
 }
 
 // GetProjects returns a list of all projects that have been created in the repository
-func GetProjects(opts ProjectSearchOptions) ([]*Project, error) {
+func GetProjects(opts ProjectSearchOptions) ([]*Project, int64, error) {
 	return getProjects(x, opts)
 }
 
-func getProjects(e Engine, opts ProjectSearchOptions) ([]*Project, error) {
+func getProjects(e Engine, opts ProjectSearchOptions) ([]*Project, int64, error) {
 
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
-	sess := e.Where("repo_id = ?", opts.RepoID)
+	var cond builder.Cond = builder.Eq{"repo_id": opts.RepoID}
 	switch opts.IsClosed {
 	case util.OptionalBoolTrue:
-		sess = sess.Where("is_closed = ?", true)
+		cond = cond.And(builder.Eq{"is_closed": true})
 	case util.OptionalBoolFalse:
-		sess = sess.Where("is_closed = ?", false)
+		cond = cond.And(builder.Eq{"is_closed": false})
 	}
 
 	if opts.Type > 0 {
-		sess = sess.Where("type = ?", opts.Type)
+		cond = cond.And(builder.Eq{"type": opts.Type})
 	}
 
+	count, err := e.Where(cond).Count(new(Project))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	e = e.Where(cond)
+
 	if opts.Page > 0 {
-		sess = sess.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
+		e = e.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
 	}
 
 	switch opts.SortType {
 	case "oldest":
-		sess.Desc("created_unix")
+		e.Desc("created_unix")
 	case "recentupdate":
-		sess.Desc("updated_unix")
+		e.Desc("updated_unix")
 	case "leastupdate":
-		sess.Asc("updated_unix")
+		e.Asc("updated_unix")
 	default:
-		sess.Asc("created_unix")
+		e.Asc("created_unix")
 	}
 
-	return projects, sess.Find(&projects)
+	return projects, count, e.Find(&projects)
 }
 
 // NewProject creates a new Project
@@ -193,39 +202,76 @@ func countRepoClosedProjects(e Engine, repoID int64) (int64, error) {
 		Count(new(Project))
 }
 
-// ChangeProjectStatus toggle a project between opened and closed
-func ChangeProjectStatus(p *Project, isClosed bool) error {
+func updateRepositoryProjectCount(e Engine, repoID int64) error {
+	numProjects, err := countRepoProjects(e, repoID)
+	if err != nil {
+		return err
+	}
 
+	numClosedProjects, err := countRepoClosedProjects(e, repoID)
+	if err != nil {
+		return err
+	}
+
+	_, err = e.ID(repoID).Cols("num_projects, num_closed_projects").Update(&Repository{
+		NumProjects:       int(numProjects),
+		NumClosedProjects: int(numClosedProjects),
+	})
+
+	return err
+}
+
+// ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
+func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	p.IsClosed = isClosed
-	p.ClosedDateUnix = timeutil.TimeStampNow()
-	if _, err := sess.ID(p.ID).Cols("is_closed", "closed_date_unix").Update(p); err != nil {
-		return err
-	}
+	p := new(Project)
 
-	numProjects, err := countRepoProjects(sess, p.RepoID)
+	has, err := sess.ID(projectID).Where("repo_id = ?", repoID).Get(p)
 	if err != nil {
 		return err
+	} else if !has {
+		return ErrProjectNotExist{ID: projectID, RepoID: repoID}
 	}
 
-	numClosedProjects, err := countRepoClosedProjects(sess, p.RepoID)
-	if err != nil {
-		return err
-	}
-
-	if _, err = sess.ID(p.RepoID).Cols("num_projects, num_closed_projects").Update(&Repository{
-		NumProjects:       int(numProjects),
-		NumClosedProjects: int(numClosedProjects),
-	}); err != nil {
+	if err := changeProjectStatus(sess, p, isClosed); err != nil {
 		return err
 	}
 
 	return sess.Commit()
+}
+
+// ChangeProjectStatus toggle a project between opened and closed
+func ChangeProjectStatus(p *Project, isClosed bool) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := changeProjectStatus(sess, p, isClosed); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func changeProjectStatus(e Engine, p *Project, isClosed bool) error {
+	p.IsClosed = isClosed
+	p.ClosedDateUnix = timeutil.TimeStampNow()
+	count, err := e.ID(p.ID).Where("repo_id = ? AND is_closed = ?", p.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(p)
+	if err != nil {
+		return err
+	}
+	if count < 1 {
+		return nil
+	}
+
+	return updateRepositoryProjectCount(e, p.RepoID)
 }
 
 // DeleteProjectByID deletes a project from a repository.
@@ -278,10 +324,6 @@ func deleteProjectByID(e Engine, id int64) error {
 		NumProjects:       int(numProjects),
 		NumClosedProjects: int(numClosedProjects),
 	}); err != nil {
-		return err
-	}
-
-	if _, err = e.Exec("UPDATE `issue` SET project_id = 0 WHERE project_id = ?", p.ID); err != nil {
 		return err
 	}
 

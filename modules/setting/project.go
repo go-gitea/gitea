@@ -4,9 +4,7 @@
 
 package setting
 
-import (
-	"strings"
-)
+import "code.gitea.io/gitea/modules/log"
 
 // Project settings
 var (
@@ -20,7 +18,7 @@ var (
 )
 
 func newProject() {
-	sec := Cfg.Section("project")
-	Project.ProjectBoardBasicKanbanType = strings.Split(sec.Key("PROJECT_BOARD_BASIC_KANBAN_TYPE").MustString("To Do,In Progress,Done"), ",")
-	Project.ProjectBoardBugTriageType = strings.Split(sec.Key("PROJECT_BOARD_BUG_TRIAGE_TYPE").MustString("Needs Triage,High priority,Low priority,Closed"), ",")
+	if err := Cfg.Section("project").MapTo(&Project); err != nil {
+		log.Fatal("Failed to map Project settings: %v", err)
+	}
 }

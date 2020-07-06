@@ -1637,7 +1637,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	projects, err := getProjects(sess, ProjectSearchOptions{
+	projects, _, err := getProjects(sess, ProjectSearchOptions{
 		RepoID: repoID,
 	})
 	if err != nil {

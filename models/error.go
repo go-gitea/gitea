@@ -1595,7 +1595,8 @@ func (err ErrLabelNotExist) Error() string {
 
 // ErrProjectNotExist represents a "ProjectNotExist" kind of error.
 type ErrProjectNotExist struct {
-	ID int64
+	ID     int64
+	RepoID int64
 }
 
 // IsErrProjectNotExist checks if an error is a ErrProjectNotExist

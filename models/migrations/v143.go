@@ -57,15 +57,15 @@ func addProjectsInfo(x *xorm.Engine) error {
 		return err
 	}
 
-	// ProjectIssues saves relation from issue to a project
-	type ProjectIssues struct {
+	// ProjectIssue saves relation from issue to a project
+	type ProjectIssue struct {
 		ID             int64 `xorm:"pk autoincr"`
 		IssueID        int64 `xorm:"INDEX"`
 		ProjectID      int64 `xorm:"INDEX"`
 		ProjectBoardID int64 `xorm:"INDEX"`
 	}
 
-	if err := x.Sync2(new(ProjectIssues)); err != nil {
+	if err := x.Sync2(new(ProjectIssue)); err != nil {
 		return err
 	}
 

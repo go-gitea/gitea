@@ -870,18 +870,17 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoRef())
 
 		m.Group("/projects", func() {
-
 			m.Get("", repo.Projects)
 			m.Get("/new", repo.NewProject)
 			m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewRepoProjectPost)
 			m.Group("/:id", func() {
 				m.Get("", repo.ViewProject)
 				m.Post("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.AddBoardToProjectPost)
-				m.Post("/delete", repo.DeleteProject)           //ToDo: this has to be DELETE
-				m.Get("/:id/:action", repo.ChangeProjectStatus) //ToDo: this has to be POST
+				m.Post("/delete", repo.DeleteProject)
 
 				m.Get("/edit", repo.EditProject)
 				m.Post("/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
+				m.Post("/^:action(open|close)$", repo.ChangeProjectStatus)
 
 				m.Group("/:boardID", func() {
 					m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)

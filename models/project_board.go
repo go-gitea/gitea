@@ -34,7 +34,7 @@ const (
 type ProjectBoard struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Title   string
-	Default bool `xorm:"NOT NULL DEFAULT false"` //if true it collects issues witch are not signed to a specific board jet
+	Default bool `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
@@ -134,7 +134,7 @@ func deleteProjectBoardByID(e Engine, boardID int64) error {
 }
 
 func deleteProjectBoardByProjectID(e Engine, projectID int64) error {
-	_, err := e.Where("project_id=?", projectID).Delete(&ProjectIssues{})
+	_, err := e.Where("project_id=?", projectID).Delete(&ProjectBoard{})
 	return err
 }
 
@@ -188,7 +188,7 @@ func GetUncategorizedBoard(projectID int64) (*ProjectBoard, error) {
 }
 
 // LoadIssues load issues assigned to this board
-func (b ProjectBoard) LoadIssues() (IssueList, error) {
+func (b *ProjectBoard) LoadIssues() (IssueList, error) {
 	var boardID int64
 	if !b.Default {
 		boardID = b.ID

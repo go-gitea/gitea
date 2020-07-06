@@ -1155,15 +1155,15 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if opts.ProjectID > 0 {
-		sess.Join("INNER", "project_issues", "issue.id = project_issues.issue_id").
-			And("project_issues.project_id=?", opts.ProjectID)
+		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
+			And("project_issue.project_id=?", opts.ProjectID)
 	}
 
 	if opts.ProjectBoardID != 0 {
 		if opts.ProjectBoardID > 0 {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issues").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
 		} else {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issues").Where(builder.Eq{"project_board_id": 0}))
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
 		}
 	}
 
@@ -1974,7 +1974,7 @@ func deleteIssuesByRepoID(sess Engine, repoID int64) (attachmentPaths []string, 
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&ProjectIssues{}); err != nil {
+		Delete(&ProjectIssue{}); err != nil {
 		return
 	}
 

@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -25,7 +26,6 @@ const (
 
 // MustEnableProjects check if projects are enabled in settings
 func MustEnableProjects(ctx *context.Context) {
-
 	if models.UnitTypeProjects.UnitGlobalDisabled() {
 		ctx.NotFound("EnableKanbanBoard", nil)
 		return
@@ -43,9 +43,9 @@ func MustEnableProjects(ctx *context.Context) {
 func Projects(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.project_board")
 
-	sortType := ctx.Query("sort")
+	sortType := ctx.QueryTrim("sort")
 
-	isShowClosed := ctx.Query("state") == "closed"
+	isShowClosed := strings.ToLower(ctx.QueryTrim("state")) == "closed"
 	repo := ctx.Repo.Repository
 	page := ctx.QueryInt("page")
 	if page <= 1 {
@@ -62,7 +62,7 @@ func Projects(ctx *context.Context) {
 		total = repo.NumClosedProjects
 	}
 
-	projects, err := models.GetProjects(models.ProjectSearchOptions{
+	projects, count, err := models.GetProjects(models.ProjectSearchOptions{
 		RepoID:   repo.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
@@ -86,7 +86,12 @@ func Projects(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	numPages := 0
+	if count > 0 {
+		numPages = int((int(count) - 1) / setting.UI.IssuePagingNum)
+	}
+
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, numPages)
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
@@ -132,43 +137,27 @@ func NewRepoProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 }
 
 // ChangeProjectStatus updates the status of a project between "open" and "close"
-// nolint: dupl
 func ChangeProjectStatus(ctx *context.Context) {
-	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
-	if err != nil {
-		if models.IsErrProjectNotExist(err) {
-			ctx.NotFound("", err)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
-		return
-	}
-	if p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("", nil)
-		return
-	}
-
+	toClose := false
 	switch ctx.Params(":action") {
 	case "open":
-		if p.IsClosed {
-			if err = models.ChangeProjectStatus(p, false); err != nil {
-				ctx.ServerError("ChangeProjectStatus", err)
-				return
-			}
-		}
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=open")
+		toClose = false
 	case "close":
-		if !p.IsClosed {
-			if err = models.ChangeProjectStatus(p, true); err != nil {
-				ctx.ServerError("ChangeProjectStatus", err)
-				return
-			}
-		}
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=closed")
-
+		toClose = true
 	default:
 		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
 	}
+	id := ctx.ParamsInt64(":id")
+
+	if err := models.ChangeProjectStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
+		if models.IsErrProjectNotExist(err) {
+			ctx.NotFound("", err)
+		} else {
+			ctx.ServerError("ChangeProjectStatusByIDAndRepoID", err)
+		}
+		return
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=" + ctx.Params(":action"))
 }
 
 // DeleteProject delete a project

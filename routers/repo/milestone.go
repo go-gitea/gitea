@@ -196,39 +196,27 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 }
 
 // ChangeMilestoneStatus response for change a milestone's status
-// nolint: dupl
 func ChangeMilestoneStatus(ctx *context.Context) {
-	m, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
-	if err != nil {
-		if models.IsErrMilestoneNotExist(err) {
-			ctx.NotFound("", err)
-		} else {
-			ctx.ServerError("GetMilestoneByRepoID", err)
-		}
-		return
-	}
-
+	toClose := false
 	switch ctx.Params(":action") {
 	case "open":
-		if m.IsClosed {
-			if err = models.ChangeMilestoneStatus(m, false); err != nil {
-				ctx.ServerError("ChangeMilestoneStatus", err)
-				return
-			}
-		}
-		ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=open")
+		toClose = false
 	case "close":
-		if !m.IsClosed {
-			m.ClosedDateUnix = timeutil.TimeStampNow()
-			if err = models.ChangeMilestoneStatus(m, true); err != nil {
-				ctx.ServerError("ChangeMilestoneStatus", err)
-				return
-			}
-		}
-		ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=closed")
+		toClose = true
 	default:
 		ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
 	}
+	id := ctx.ParamsInt64(":id")
+
+	if err := models.ChangeMilestoneStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
+		if models.IsErrMilestoneNotExist(err) {
+			ctx.NotFound("", err)
+		} else {
+			ctx.ServerError("ChangeMilestoneStatusByIDAndRepoID", err)
+		}
+		return
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=" + ctx.Params(":action"))
 }
 
 // DeleteMilestone delete a milestone

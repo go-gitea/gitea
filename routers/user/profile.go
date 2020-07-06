@@ -212,8 +212,7 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	case "projects":
-
-		ctx.Data["OpenProjects"], err = models.GetProjects(models.ProjectSearchOptions{
+		ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
 			Type:     models.ProjectTypeIndividual,
@@ -222,7 +221,6 @@ func Profile(ctx *context.Context) {
 			ctx.ServerError("GetProjects", err)
 			return
 		}
-
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
 			ListOptions: models.ListOptions{

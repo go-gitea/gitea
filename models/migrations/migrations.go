@@ -219,7 +219,7 @@ var migrations = []Migration{
 	// v142 -> v143
 	NewMigration("Ensure Repository.IsArchived is not null", setIsArchivedToFalse),
 	// v143 -> v144
-	NewMigration("add projects info to repository table", addProjectsInfo),
+	NewMigration("Add projects info to repository table", addProjectsInfo),
 }
 
 // GetCurrentDBVersion returns the current db version

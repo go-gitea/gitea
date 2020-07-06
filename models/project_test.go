@@ -13,7 +13,6 @@ import (
 )
 
 func TestIsProjectTypeValid(t *testing.T) {
-
 	const UnknownType ProjectType = 15
 
 	var cases = []struct {
@@ -32,16 +31,15 @@ func TestIsProjectTypeValid(t *testing.T) {
 }
 
 func TestGetProjects(t *testing.T) {
-
 	assert.NoError(t, PrepareTestDatabase())
 
-	projects, err := GetProjects(ProjectSearchOptions{RepoID: 1})
+	projects, _, err := GetProjects(ProjectSearchOptions{RepoID: 1})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
 	assert.Len(t, projects, 1)
 
-	projects, err = GetProjects(ProjectSearchOptions{RepoID: 3})
+	projects, _, err = GetProjects(ProjectSearchOptions{RepoID: 3})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
@@ -49,7 +47,6 @@ func TestGetProjects(t *testing.T) {
 }
 
 func TestProject(t *testing.T) {
-
 	assert.NoError(t, PrepareTestDatabase())
 
 	project := &Project{
@@ -82,5 +79,4 @@ func TestProject(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.True(t, projectFromDB.IsClosed)
-
 }
