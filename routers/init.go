@@ -36,7 +36,6 @@ import (
 
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
-	unknwoni18n "github.com/unknwon/i18n"
 )
 
 func checkRunMode() {
@@ -123,8 +122,6 @@ func GlobalInit(ctx context.Context) {
 
 	// Setup i18n
 	InitLocales()
-
-	log.Info("%s", unknwoni18n.Tr("en-US", "admin.dashboard.delete_repo_archives"))
 
 	NewServices()
 
