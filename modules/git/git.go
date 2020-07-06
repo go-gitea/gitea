@@ -119,6 +119,9 @@ func Init(ctx context.Context) error {
 	if err := checkAndSetConfig("core.quotePath", "false", true); err != nil {
 		return err
 	}
+	if err := checkAndSetConfig("receive.advertisePushOptions", "true", true); err != nil {
+		return err
+	}
 
 	if version.Compare(gitVersion, "2.18", ">=") {
 		if err := checkAndSetConfig("core.commitGraph", "true", true); err != nil {
