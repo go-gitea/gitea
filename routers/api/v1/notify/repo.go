@@ -69,12 +69,11 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	//   required: false
 	// - name: status-types
 	//   in: query
-	//   description: "Show notifications with the provided status types. Options are: unread, read and/or pinned"
+	//   description: "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread & pinned"
 	//   type: array
 	//   collectionFormat: multi
 	//   items:
 	//     type: string
-	//   default: unread, pinned
 	//   required: false
 	// - name: since
 	//   in: query
@@ -158,17 +157,16 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	//   required: false
 	// - name: status-types
 	//   in: query
-	//   description: "Mark notifications with the provided status types. Options are: unread, read and/or pinned"
+	//   description: "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread."
 	//   type: array
 	//   collectionFormat: multi
 	//   items:
 	//     type: string
-	//   default: unread
 	//   required: false
 	// - name: to-status
 	//   in: query
-	//   description: Status to mark notifications as
-	//   default: read
+	//   description: Status to mark notifications as. Defaults to read.
+	//   type: string
 	//   required: false
 	// - name: last_read_at
 	//   in: query

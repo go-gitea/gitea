@@ -465,8 +465,7 @@
               "type": "string"
             },
             "collectionFormat": "multi",
-            "default": "unread, pinned",
-            "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned",
+            "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned.",
             "name": "status-types",
             "in": "query"
           },
@@ -535,14 +534,13 @@
               "type": "string"
             },
             "collectionFormat": "multi",
-            "default": "unread",
-            "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned",
+            "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread.",
             "name": "status-types",
             "in": "query"
           },
           {
-            "default": "read",
-            "description": "Status to mark notifications as",
+            "type": "string",
+            "description": "Status to mark notifications as, Defaults to read.",
             "name": "to-status",
             "in": "query"
           }
@@ -623,6 +621,7 @@
             "required": true
           },
           {
+            "type": "string",
             "default": "read",
             "description": "Status to mark notifications as",
             "name": "to-status",
@@ -6428,8 +6427,7 @@
               "type": "string"
             },
             "collectionFormat": "multi",
-            "default": "unread, pinned",
-            "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned",
+            "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned",
             "name": "status-types",
             "in": "query"
           },
@@ -6505,14 +6503,13 @@
               "type": "string"
             },
             "collectionFormat": "multi",
-            "default": "unread",
-            "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned",
+            "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread.",
             "name": "status-types",
             "in": "query"
           },
           {
-            "default": "read",
-            "description": "Status to mark notifications as",
+            "type": "string",
+            "description": "Status to mark notifications as. Defaults to read.",
             "name": "to-status",
             "in": "query"
           },

@@ -65,6 +65,7 @@ func ReadThread(ctx *context.APIContext) {
 	// - name: to-status
 	//   in: query
 	//   description: Status to mark notifications as
+	//   type: string
 	//   default: read
 	//   required: false
 	// responses:
