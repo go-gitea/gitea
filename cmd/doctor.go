@@ -622,5 +622,5 @@ func runDoctorEnablePushOptions(ctx *cli.Context) ([]string, error) {
 	if !ctx.Bool("fix") {
 		prefix = "DRY RUN: "
 	}
-	return []string{fmt.Sprintf("%sEnabled push options for %d respositories.", prefix, numRepos)}, err
+	return []string{fmt.Sprintf("%sEnabled push options for %d repositories.", prefix, numRepos)}, err
 }
