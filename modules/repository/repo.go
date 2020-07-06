@@ -27,9 +27,9 @@ import (
 */
 var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
 
-// wikiRemoteURL returns accessible repository URL for wiki if exists.
+// WikiRemoteURL returns accessible repository URL for wiki if exists.
 // Otherwise, it returns an empty string.
-func wikiRemoteURL(remote string) string {
+func WikiRemoteURL(remote string) string {
 	remote = strings.TrimSuffix(remote, ".git")
 	for _, suffix := range commonWikiURLSuffixes {
 		wikiURL := remote + suffix
@@ -71,7 +71,7 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 
 	if opts.Wiki {
 		wikiPath := models.WikiPath(u.Name, opts.RepoName)
-		wikiRemotePath := wikiRemoteURL(opts.CloneAddr)
+		wikiRemotePath := WikiRemoteURL(opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := os.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
