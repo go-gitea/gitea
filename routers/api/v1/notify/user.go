@@ -31,7 +31,7 @@ func ListNotifications(ctx *context.APIContext) {
 	//   required: false
 	// - name: status-types
 	//   in: query
-	//   description: Show notifications with the provided status types. Options are: unread, read and/or pinned
+	//   description: "Show notifications with the provided status types. Options are: unread, read and/or pinned"
 	//   type: array
 	//   collectionFormat: multi
 	//   items:
@@ -114,7 +114,7 @@ func ReadNotifications(ctx *context.APIContext) {
 	//   required: false
 	// - name: status-types
 	//   in: query
-	//   description: Mark notifications with the provided status types. Options are: unread, read and/or pinned
+	//   description: "Mark notifications with the provided status types. Options are: unread, read and/or pinned"
 	//   type: array
 	//   collectionFormat: multi
 	//   items:
