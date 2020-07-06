@@ -207,7 +207,12 @@ func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]*userAcces
 	// Delete old accesses and insert new ones for repository.
 	if _, err = e.Delete(&Access{RepoID: repo.ID}); err != nil {
 		return fmt.Errorf("delete old accesses: %v", err)
-	} else if _, err = e.Insert(newAccesses); err != nil {
+	}
+	if len(newAccesses) == 0 {
+		return nil
+	}
+
+	if _, err = e.Insert(newAccesses); err != nil {
 		return fmt.Errorf("insert new accesses: %v", err)
 	}
 	return nil
@@ -215,7 +220,7 @@ func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]*userAcces
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
 func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[int64]*userAccess) error {
-	collaborators, err := repo.getCollaborators(e)
+	collaborators, err := repo.getCollaborators(e, ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborations: %v", err)
 	}

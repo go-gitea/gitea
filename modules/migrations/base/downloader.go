@@ -23,6 +23,7 @@ type Downloader interface {
 	GetIssues(page, perPage int) ([]*Issue, bool, error)
 	GetComments(issueNumber int64) ([]*Comment, error)
 	GetPullRequests(page, perPage int) ([]*PullRequest, error)
+	GetReviews(pullRequestNumber int64) ([]*Review, error)
 }
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader
@@ -180,6 +181,22 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, er
 	for ; times > 0; times-- {
 		if prs, err = d.Downloader.GetPullRequests(page, perPage); err == nil {
 			return prs, nil
+		}
+		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+	}
+	return nil, err
+}
+
+// GetReviews returns pull requests reviews
+func (d *RetryDownloader) GetReviews(pullRequestNumber int64) ([]*Review, error) {
+	var (
+		times   = d.RetryTimes
+		reviews []*Review
+		err     error
+	)
+	for ; times > 0; times-- {
+		if reviews, err = d.Downloader.GetReviews(pullRequestNumber); err == nil {
+			return reviews, nil
 		}
 		time.Sleep(time.Second * time.Duration(d.RetryDelay))
 	}

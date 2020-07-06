@@ -81,9 +81,15 @@ func TestAPINotification(t *testing.T) {
 	assert.EqualValues(t, thread5.Issue.APIURL(), apiN.Subject.URL)
 	assert.EqualValues(t, thread5.Repository.HTMLURL(), apiN.Repository.HTMLURL)
 
+	new := struct {
+		New int64 `json:"new"`
+	}{}
+
 	// -- check notifications --
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/new?token=%s", token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &new)
+	assert.True(t, new.New > 0)
 
 	// -- mark notifications as read --
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?token=%s", token))
@@ -110,5 +116,7 @@ func TestAPINotification(t *testing.T) {
 
 	// -- check notifications --
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/new?token=%s", token))
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &new)
+	assert.True(t, new.New == 0)
 }

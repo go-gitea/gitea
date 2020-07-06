@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"strconv"
@@ -16,9 +17,11 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-// GetSingleCommit get a commit via
+// GetSingleCommit get a commit via sha
 func GetSingleCommit(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha} repository repoGetSingleCommit
 	// ---
@@ -38,22 +41,33 @@ func GetSingleCommit(ctx *context.APIContext) {
 	//   required: true
 	// - name: sha
 	//   in: path
-	//   description: the commit hash
+	//   description: a git ref or commit sha
 	//   type: string
 	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Commit"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	sha := ctx.Params(":sha")
+	if (validation.GitRefNamePatternInvalid.MatchString(sha) || !validation.CheckGitRefAdditionalRulesValid(sha)) && !git.SHAPattern.MatchString(sha) {
+		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
+		return
+	}
+	getCommit(ctx, sha)
+}
+
+func getCommit(ctx *context.APIContext, identifier string) {
 	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return
 	}
 	defer gitRepo.Close()
-	commit, err := gitRepo.GetCommit(ctx.Params(":sha"))
+	commit, err := gitRepo.GetCommit(identifier)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
 		return
@@ -64,7 +78,6 @@ func GetSingleCommit(ctx *context.APIContext) {
 		ctx.ServerError("toCommit", err)
 		return
 	}
-
 	ctx.JSON(http.StatusOK, json)
 }
 
@@ -92,7 +105,11 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   type: string
 	// - name: page
 	//   in: query
-	//   description: page number of requested commits
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -117,9 +134,13 @@ func GetAllCommits(ctx *context.APIContext) {
 	}
 	defer gitRepo.Close()
 
-	page := ctx.QueryInt("page")
-	if page <= 0 {
-		page = 1
+	listOptions := utils.GetListOptions(ctx)
+	if listOptions.Page <= 0 {
+		listOptions.Page = 1
+	}
+
+	if listOptions.PageSize > git.CommitsRangeSize {
+		listOptions.PageSize = git.CommitsRangeSize
 	}
 
 	sha := ctx.Query("sha")
@@ -154,10 +175,10 @@ func GetAllCommits(ctx *context.APIContext) {
 		return
 	}
 
-	pageCount := int(math.Ceil(float64(commitsCountTotal) / float64(git.CommitsRangeSize)))
+	pageCount := int(math.Ceil(float64(commitsCountTotal) / float64(listOptions.PageSize)))
 
 	// Query commits
-	commits, err := baseCommit.CommitsByRange(page)
+	commits, err := baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize)
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return
@@ -181,13 +202,15 @@ func GetAllCommits(ctx *context.APIContext) {
 		i++
 	}
 
-	ctx.SetLinkHeader(int(commitsCountTotal), git.CommitsRangeSize)
-
-	ctx.Header().Set("X-Page", strconv.Itoa(page))
-	ctx.Header().Set("X-PerPage", strconv.Itoa(git.CommitsRangeSize))
+	// kept for backwards compatibility
+	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
+	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
 	ctx.Header().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
-	ctx.Header().Set("X-HasMore", strconv.FormatBool(page < pageCount))
+	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
+
+	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", commitsCountTotal))
 
 	ctx.JSON(http.StatusOK, &apiCommits)
 }

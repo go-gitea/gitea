@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -118,7 +119,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	// Team.
 	if ctx.Org.IsMember {
 		if ctx.Org.IsOwner {
-			if err := org.GetTeams(); err != nil {
+			if err := org.GetTeams(&models.SearchTeamOptions{}); err != nil {
 				ctx.ServerError("GetTeams", err)
 				return
 			}

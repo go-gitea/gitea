@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package main
 
 /*
@@ -28,12 +32,11 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
 	context2 "github.com/gorilla/context"
 	"github.com/unknwon/com"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/config"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/testfixtures.v2"
 	"xorm.io/xorm"
 )
 
@@ -92,14 +95,12 @@ func runPR() {
 	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
-	var helper testfixtures.Helper = &testfixtures.SQLite{}
 	models.NewEngine(context.Background(), func(_ *xorm.Engine) error {
 		return nil
 	})
 	models.HasEngine = true
 	//x.ShowSQL(true)
 	err = models.InitFixtures(
-		helper,
 		path.Join(curDir, "models/fixtures/"),
 	)
 	if err != nil {
@@ -247,9 +248,10 @@ func main() {
 			log.Fatalf("Failed to duplicate this code file in PR : %v", err)
 		}
 	}
-	time.Sleep(5 * time.Second)
+	//Force build of js, css, bin, ...
+	runCmd("make", "build")
 	//Start with integration test
-	runCmd("go", "run", "-tags", "sqlite sqlite_unlock_notify", codeFilePath, "-run")
+	runCmd("go", "run", "-mod", "vendor", "-tags", "sqlite sqlite_unlock_notify", codeFilePath, "-run")
 }
 func runCmd(cmd ...string) {
 	log.Printf("Executing : %s ...\n", cmd)

@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // GetTreeEntryByPath get the tree entries according the sub dir

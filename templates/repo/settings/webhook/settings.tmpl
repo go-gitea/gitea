@@ -23,6 +23,10 @@
 	</div>
 
 	<div class="events fields ui grid" {{if not .Webhook.ChooseEvents}}style="display:none"{{end}}>
+		<!-- Repository Events -->
+		<div class="fourteen wide column">
+			<label>{{.i18n.Tr "repo.settings.event_header_repository"}}</label>
+		</div>
 		<!-- Create -->
 		<div class="seven wide column">
 			<div class="field">
@@ -63,36 +67,6 @@
 				</div>
 			</div>
 		</div>
-		<!-- Issues -->
-		<div class="seven wide column">
-			<div class="field">
-				<div class="ui checkbox">
-					<input class="hidden" name="issues" type="checkbox" tabindex="0" {{if .Webhook.Issues}}checked{{end}}>
-					<label>{{.i18n.Tr "repo.settings.event_issues"}}</label>
-					<span class="help">{{.i18n.Tr "repo.settings.event_issues_desc"}}</span>
-				</div>
-			</div>
-		</div>
-		<!-- Issue Comment -->
-		<div class="seven wide column">
-			<div class="field">
-				<div class="ui checkbox">
-					<input class="hidden" name="issue_comment" type="checkbox" tabindex="0" {{if .Webhook.IssueComment}}checked{{end}}>
-					<label>{{.i18n.Tr "repo.settings.event_issue_comment"}}</label>
-					<span class="help">{{.i18n.Tr "repo.settings.event_issue_comment_desc"}}</span>
-				</div>
-			</div>
-		</div>
-		<!-- Pull Request -->
-		<div class="seven wide column">
-			<div class="field">
-				<div class="ui checkbox">
-					<input class="hidden" name="pull_request" type="checkbox" tabindex="0" {{if .Webhook.PullRequest}}checked{{end}}>
-					<label>{{.i18n.Tr "repo.settings.event_pull_request"}}</label>
-					<span class="help">{{.i18n.Tr "repo.settings.event_pull_request_desc"}}</span>
-				</div>
-			</div>
-		</div>
 		<!-- Repository -->
 		<div class="seven wide column">
 			<div class="field">
@@ -110,6 +84,136 @@
 					<input class="hidden" name="release" type="checkbox" tabindex="0" {{if .Webhook.Release}}checked{{end}}>
 					<label>{{.i18n.Tr "repo.settings.event_release"}}</label>
 					<span class="help">{{.i18n.Tr "repo.settings.event_release_desc"}}</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Issue Events -->
+		<div class="fourteen wide column">
+			<label>{{.i18n.Tr "repo.settings.event_header_issue"}}</label>
+		</div>
+		<!-- Issues -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="issues" type="checkbox" tabindex="0" {{if .Webhook.Issues}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_issues"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_issues_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Issue Assign -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="issue_assign" type="checkbox" tabindex="0" {{if .Webhook.IssueAssign}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_issue_assign"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_issue_assign_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Issue Label -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="issue_label" type="checkbox" tabindex="0" {{if .Webhook.IssueLabel}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_issue_label"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_issue_label_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Issue Milestone -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="issue_milestone" type="checkbox" tabindex="0" {{if .Webhook.IssueMilestone}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_issue_milestone"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_issue_milestone_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Issue Comment -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="issue_comment" type="checkbox" tabindex="0" {{if .Webhook.IssueComment}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_issue_comment"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_issue_comment_desc"}}</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Pull Request Events -->
+		<div class="fourteen wide column">
+			<label>{{.i18n.Tr "repo.settings.event_header_pull_request"}}</label>
+		</div>
+		<!-- Pull Request -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="pull_request" type="checkbox" tabindex="0" {{if .Webhook.PullRequest}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_pull_request"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_pull_request_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Pull Request Assign -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="pull_request_assign" type="checkbox" tabindex="0" {{if .Webhook.PullRequestAssign}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_pull_request_assign"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_pull_request_assign_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Pull Request Label -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="pull_request_label" type="checkbox" tabindex="0" {{if .Webhook.PullRequestLabel}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_pull_request_label"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_pull_request_label_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Pull Request Milestone -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="pull_request_milestone" type="checkbox" tabindex="0" {{if .Webhook.PullRequestMilestone}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_pull_request_milestone"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_pull_request_milestone_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Pull Request Comment -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="pull_request_comment" type="checkbox" tabindex="0" {{if .Webhook.PullRequestComment}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_pull_request_comment"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_pull_request_comment_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Pull Request Review -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="pull_request_review" type="checkbox" tabindex="0" {{if .Webhook.PullRequestReview}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_pull_request_review"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_pull_request_review_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Pull Request Sync -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="pull_request_sync" type="checkbox" tabindex="0" {{if .Webhook.PullRequestSync}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_pull_request_sync"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_pull_request_sync_desc"}}</span>
 				</div>
 			</div>
 		</div>

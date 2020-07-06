@@ -27,7 +27,7 @@ type tableParagraphTransformer struct {
 var defaultTableParagraphTransformer = &tableParagraphTransformer{}
 
 // NewTableParagraphTransformer returns  a new ParagraphTransformer
-// that can transform pargraphs into tables.
+// that can transform paragraphs into tables.
 func NewTableParagraphTransformer() parser.ParagraphTransformer {
 	return defaultTableParagraphTransformer
 }

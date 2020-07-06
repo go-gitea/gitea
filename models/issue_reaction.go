@@ -30,6 +30,7 @@ type Reaction struct {
 
 // FindReactionsOptions describes the conditions to Find reactions
 type FindReactionsOptions struct {
+	ListOptions
 	IssueID   int64
 	CommentID int64
 	UserID    int64
@@ -71,20 +72,28 @@ func FindCommentReactions(comment *Comment) (ReactionList, error) {
 }
 
 // FindIssueReactions returns a ReactionList of all reactions from an issue
-func FindIssueReactions(issue *Issue) (ReactionList, error) {
+func FindIssueReactions(issue *Issue, listOptions ListOptions) (ReactionList, error) {
 	return findReactions(x, FindReactionsOptions{
-		IssueID:   issue.ID,
-		CommentID: -1,
+		ListOptions: listOptions,
+		IssueID:     issue.ID,
+		CommentID:   -1,
 	})
 }
 
 func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
-	reactions := make([]*Reaction, 0, 10)
-	sess := e.Where(opts.toConds())
-	return reactions, sess.
+	e = e.
+		Where(opts.toConds()).
 		In("reaction.`type`", setting.UI.Reactions).
-		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id").
-		Find(&reactions)
+		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
+	if opts.Page != 0 {
+		e = opts.setEnginePagination(e)
+
+		reactions := make([]*Reaction, 0, opts.PageSize)
+		return reactions, e.Find(&reactions)
+	}
+
+	reactions := make([]*Reaction, 0, 10)
+	return reactions, e.Find(&reactions)
 }
 
 func createReaction(e *xorm.Session, opts *ReactionOptions) (*Reaction, error) {

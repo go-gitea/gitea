@@ -74,6 +74,12 @@ type RunnableWithShutdownFns func(atShutdown, atTerminate func(context.Context, 
 func (g *Manager) RunWithShutdownFns(run RunnableWithShutdownFns) {
 	g.runningServerWaitGroup.Add(1)
 	defer g.runningServerWaitGroup.Done()
+	defer func() {
+		if err := recover(); err != nil {
+			log.Critical("PANIC during RunWithShutdownFns: %v\nStacktrace: %s", err, log.Stack(2))
+			g.doShutdown()
+		}
+	}()
 	run(func(ctx context.Context, atShutdown func()) {
 		go func() {
 			select {
@@ -103,6 +109,12 @@ type RunnableWithShutdownChan func(atShutdown <-chan struct{}, atTerminate Callb
 func (g *Manager) RunWithShutdownChan(run RunnableWithShutdownChan) {
 	g.runningServerWaitGroup.Add(1)
 	defer g.runningServerWaitGroup.Done()
+	defer func() {
+		if err := recover(); err != nil {
+			log.Critical("PANIC during RunWithShutdownChan: %v\nStacktrace: %s", err, log.Stack(2))
+			g.doShutdown()
+		}
+	}()
 	run(g.IsShutdown(), func(ctx context.Context, atTerminate func()) {
 		g.RunAtTerminate(ctx, atTerminate)
 	})
@@ -114,6 +126,12 @@ func (g *Manager) RunWithShutdownChan(run RunnableWithShutdownChan) {
 func (g *Manager) RunWithShutdownContext(run func(context.Context)) {
 	g.runningServerWaitGroup.Add(1)
 	defer g.runningServerWaitGroup.Done()
+	defer func() {
+		if err := recover(); err != nil {
+			log.Critical("PANIC during RunWithShutdownContext: %v\nStacktrace: %s", err, log.Stack(2))
+			g.doShutdown()
+		}
+	}()
 	run(g.ShutdownContext())
 }
 
@@ -121,18 +139,28 @@ func (g *Manager) RunWithShutdownContext(run func(context.Context)) {
 func (g *Manager) RunAtTerminate(ctx context.Context, terminate func()) {
 	g.terminateWaitGroup.Add(1)
 	go func() {
+		defer g.terminateWaitGroup.Done()
+		defer func() {
+			if err := recover(); err != nil {
+				log.Critical("PANIC during RunAtTerminate: %v\nStacktrace: %s", err, log.Stack(2))
+			}
+		}()
 		select {
 		case <-g.IsTerminate():
 			terminate()
 		case <-ctx.Done():
 		}
-		g.terminateWaitGroup.Done()
 	}()
 }
 
 // RunAtShutdown creates a go-routine to run the provided function at shutdown
 func (g *Manager) RunAtShutdown(ctx context.Context, shutdown func()) {
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Critical("PANIC during RunAtShutdown: %v\nStacktrace: %s", err, log.Stack(2))
+			}
+		}()
 		select {
 		case <-g.IsShutdown():
 			shutdown()
@@ -144,6 +172,11 @@ func (g *Manager) RunAtShutdown(ctx context.Context, shutdown func()) {
 // RunAtHammer creates a go-routine to run the provided function at shutdown
 func (g *Manager) RunAtHammer(ctx context.Context, hammer func()) {
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Critical("PANIC during RunAtHammer: %v\nStacktrace: %s", err, log.Stack(2))
+			}
+		}()
 		select {
 		case <-g.IsHammer():
 			hammer()

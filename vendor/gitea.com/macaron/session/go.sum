@@ -8,8 +8,8 @@ github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668 h1:U/lr3Dgy4WK
 github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668/go.mod h1:H0wQNHz2YrLsuXOZozoeDmnHXkNCRmMW0gwFWDfEZDA=
 github.com/couchbase/gomemcached v0.0.0-20190515232915-c4b4ca0eb21d h1:XMf4E1U+b9E3ElF0mjvfXZdflBRZz4gLp16nQ/QSHQM=
 github.com/couchbase/gomemcached v0.0.0-20190515232915-c4b4ca0eb21d/go.mod h1:srVSlQLB8iXBVXHgnqemxUXqN6FCvClgCMPCsjBDR7c=
-github.com/couchbase/goutils v0.0.0-20190315194238-f9d42b11473b h1:bZ9rKU2/V8sY+NulSfxDOnXTWcs1rySqdF1sVepihvo=
-github.com/couchbase/goutils v0.0.0-20190315194238-f9d42b11473b/go.mod h1:BQwMFlJzDjFDG3DJUdU0KORxn88UlsOULuxLExMh3Hs=
+github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85 h1:0WMIDtuXCKEm4wtAJgAAXa/qtM5O9MariLwgHaRlYmk=
+github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85/go.mod h1:BQwMFlJzDjFDG3DJUdU0KORxn88UlsOULuxLExMh3Hs=
 github.com/couchbaselabs/go-couchbase v0.0.0-20190708161019-23e7ca2ce2b7 h1:1XjEY/gnjQ+AfXef2U6dxCquhiRzkEpxZuWqs+QxTL8=
 github.com/couchbaselabs/go-couchbase v0.0.0-20190708161019-23e7ca2ce2b7/go.mod h1:mby/05p8HE5yHEAKiIH/555NoblMs7PtW6NrYshDruc=
 github.com/cupcake/rdb v0.0.0-20161107195141-43ba34106c76 h1:Lgdd/Qp96Qj8jqLpq2cI1I1X7BJnu06efS+XkhRoLUQ=

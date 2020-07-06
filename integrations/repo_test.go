@@ -7,8 +7,10 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 
@@ -29,12 +31,72 @@ func TestViewRepo(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestViewRepo2(t *testing.T) {
+func testViewRepo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user3/repo3")
 	session := loginUser(t, "user2")
-	session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	files := htmlDoc.doc.Find("#repo-files-table  > TBODY > TR")
+
+	type file struct {
+		fileName   string
+		commitID   string
+		commitMsg  string
+		commitTime string
+	}
+
+	var items []file
+
+	files.Each(func(i int, s *goquery.Selection) {
+		tds := s.Find("td")
+		var f file
+		tds.Each(func(i int, s *goquery.Selection) {
+			if i == 0 {
+				f.fileName = strings.TrimSpace(s.Text())
+			} else if i == 1 {
+				a := s.Find("a")
+				f.commitMsg = strings.TrimSpace(a.Text())
+				l, _ := a.Attr("href")
+				f.commitID = path.Base(l)
+			}
+		})
+
+		f.commitTime, _ = s.Find("span.time-since").Attr("title")
+		items = append(items, f)
+	})
+
+	commitT := time.Date(2017, time.June, 14, 13, 54, 21, 0, time.UTC).In(time.Local).Format(time.RFC1123)
+	assert.EqualValues(t, []file{
+		{
+			fileName:   "doc",
+			commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
+			commitMsg:  "init project",
+			commitTime: commitT,
+		},
+		{
+			fileName:   "README.md",
+			commitID:   "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6",
+			commitMsg:  "init project",
+			commitTime: commitT,
+		},
+	}, items)
+}
+
+func TestViewRepo2(t *testing.T) {
+	// no last commit cache
+	testViewRepo(t)
+
+	// enable last commit cache for all repositories
+	oldCommitsCount := setting.CacheService.LastCommit.CommitsCount
+	setting.CacheService.LastCommit.CommitsCount = 0
+	// first view will not hit the cache
+	testViewRepo(t)
+	// second view will hit the cache
+	testViewRepo(t)
+	setting.CacheService.LastCommit.CommitsCount = oldCommitsCount
 }
 
 func TestViewRepo3(t *testing.T) {
@@ -88,16 +150,16 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name > SPAN")
 	items := files.Map(func(i int, s *goquery.Selection) string {
-		cls, _ := s.Find("SPAN").Attr("class")
+		cls, _ := s.Find("SVG").Attr("class")
 		file := strings.Trim(s.Find("A").Text(), " \t\n")
 		return fmt.Sprintf("%s: %s", file, cls)
 	})
 	assert.Equal(t, len(items), 5)
-	assert.Equal(t, items[0], "a: octicon octicon-file-directory")
-	assert.Equal(t, items[1], "link_b: octicon octicon-file-symlink-directory")
-	assert.Equal(t, items[2], "link_d: octicon octicon-file-symlink-file")
-	assert.Equal(t, items[3], "link_hi: octicon octicon-file-symlink-file")
-	assert.Equal(t, items[4], "link_link: octicon octicon-file-symlink-file")
+	assert.Equal(t, items[0], "a: svg octicon-file-directory")
+	assert.Equal(t, items[1], "link_b: svg octicon-file-symlink-directory")
+	assert.Equal(t, items[2], "link_d: svg octicon-file-symlink-file")
+	assert.Equal(t, items[3], "link_hi: svg octicon-file-symlink-file")
+	assert.Equal(t, items[4], "link_link: svg octicon-file-symlink-file")
 }
 
 // TestViewAsRepoAdmin tests PR #2167

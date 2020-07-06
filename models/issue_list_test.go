@@ -34,7 +34,6 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 	setting.Service.EnableTimetracking = true
 	issueList := IssueList{
 		AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
-		AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue),
 		AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue),
 	}
 

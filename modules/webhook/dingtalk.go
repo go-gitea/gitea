@@ -181,7 +181,7 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event models.HookEventType) (*DingtalkPayload, error) {
 	var text, title string
 	switch p.Action {
-	case api.HookIssueSynchronized:
+	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
 			return nil, err
@@ -261,15 +261,20 @@ func GetDingtalkPayload(p api.Payloader, event models.HookEventType, meta string
 		return getDingtalkDeletePayload(p.(*api.DeletePayload))
 	case models.HookEventFork:
 		return getDingtalkForkPayload(p.(*api.ForkPayload))
-	case models.HookEventIssues:
+	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getDingtalkIssuesPayload(p.(*api.IssuePayload))
-	case models.HookEventIssueComment:
-		return getDingtalkIssueCommentPayload(p.(*api.IssueCommentPayload))
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
+		pl, ok := p.(*api.IssueCommentPayload)
+		if ok {
+			return getDingtalkIssueCommentPayload(pl)
+		}
+		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
 	case models.HookEventPush:
 		return getDingtalkPushPayload(p.(*api.PushPayload))
-	case models.HookEventPullRequest:
+	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
+		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestApproved, models.HookEventPullRequestRejected, models.HookEventPullRequestComment:
+	case models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewComment:
 		return getDingtalkPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case models.HookEventRepository:
 		return getDingtalkRepositoryPayload(p.(*api.RepositoryPayload))

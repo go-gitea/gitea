@@ -11,10 +11,11 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func listGPGKeys(ctx *context.APIContext, uid int64) {
-	keys, err := models.ListGPGKeys(uid)
+func listGPGKeys(ctx *context.APIContext, uid int64, listOptions models.ListOptions) {
+	keys, err := models.ListGPGKeys(uid, listOptions)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListGPGKeys", err)
 		return
@@ -41,6 +42,14 @@ func ListGPGKeys(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
@@ -49,7 +58,7 @@ func ListGPGKeys(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listGPGKeys(ctx, user.ID)
+	listGPGKeys(ctx, user.ID, utils.GetListOptions(ctx))
 }
 
 //ListMyGPGKeys get the GPG key list of the authenticated user
@@ -57,13 +66,22 @@ func ListMyGPGKeys(ctx *context.APIContext) {
 	// swagger:operation GET /user/gpg_keys user userCurrentListGPGKeys
 	// ---
 	// summary: List the authenticated user's GPG keys
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
 
-	listGPGKeys(ctx, ctx.User.ID)
+	listGPGKeys(ctx, ctx.User.ID, utils.GetListOptions(ctx))
 }
 
 //GetGPGKey get the GPG key based on a id
@@ -126,6 +144,8 @@ func CreateGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/GPGKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -151,6 +171,8 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	if err := models.DeleteGPGKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrGPGKeyAccessDenied(err) {
@@ -168,9 +190,13 @@ func DeleteGPGKey(ctx *context.APIContext) {
 func HandleAddGPGKeyError(ctx *context.APIContext, err error) {
 	switch {
 	case models.IsErrGPGKeyAccessDenied(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "You do not have access to this GPG key")
+		ctx.Error(http.StatusUnprocessableEntity, "GPGKeyAccessDenied", "You do not have access to this GPG key")
 	case models.IsErrGPGKeyIDAlreadyUsed(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "A key with the same id already exists")
+		ctx.Error(http.StatusUnprocessableEntity, "GPGKeyIDAlreadyUsed", "A key with the same id already exists")
+	case models.IsErrGPGKeyParsing(err):
+		ctx.Error(http.StatusUnprocessableEntity, "GPGKeyParsing", err)
+	case models.IsErrGPGNoEmailFound(err):
+		ctx.Error(http.StatusNotFound, "GPGNoEmailFound", err)
 	default:
 		ctx.Error(http.StatusInternalServerError, "AddGPGKey", err)
 	}

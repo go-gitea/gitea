@@ -32,9 +32,11 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 16,
 			commitRepoActionOptions: CommitRepoActionOptions{
-				RefFullName: "refName",
-				OldCommitID: "oldCommitID",
-				NewCommitID: "newCommitID",
+				PushUpdateOptions: PushUpdateOptions{
+					RefFullName: "refName",
+					OldCommitID: "oldCommitID",
+					NewCommitID: "newCommitID",
+				},
 				Commits: &repository.PushCommits{
 					Commits: []*repository.PushCommit{
 						{
@@ -66,10 +68,12 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 1,
 			commitRepoActionOptions: CommitRepoActionOptions{
-				RefFullName: git.TagPrefix + "v1.1",
-				OldCommitID: git.EmptySHA,
-				NewCommitID: "newCommitID",
-				Commits:     &repository.PushCommits{},
+				PushUpdateOptions: PushUpdateOptions{
+					RefFullName: git.TagPrefix + "v1.1",
+					OldCommitID: git.EmptySHA,
+					NewCommitID: "newCommitID",
+				},
+				Commits: &repository.PushCommits{},
 			},
 			action: models.Action{
 				OpType:  models.ActionPushTag,
@@ -80,10 +84,12 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 1,
 			commitRepoActionOptions: CommitRepoActionOptions{
-				RefFullName: git.TagPrefix + "v1.1",
-				OldCommitID: "oldCommitID",
-				NewCommitID: git.EmptySHA,
-				Commits:     &repository.PushCommits{},
+				PushUpdateOptions: PushUpdateOptions{
+					RefFullName: git.TagPrefix + "v1.1",
+					OldCommitID: "oldCommitID",
+					NewCommitID: git.EmptySHA,
+				},
+				Commits: &repository.PushCommits{},
 			},
 			action: models.Action{
 				OpType:  models.ActionDeleteTag,
@@ -94,10 +100,12 @@ func TestCommitRepoAction(t *testing.T) {
 			userID:       2,
 			repositoryID: 1,
 			commitRepoActionOptions: CommitRepoActionOptions{
-				RefFullName: git.BranchPrefix + "feature/1",
-				OldCommitID: "oldCommitID",
-				NewCommitID: git.EmptySHA,
-				Commits:     &repository.PushCommits{},
+				PushUpdateOptions: PushUpdateOptions{
+					RefFullName: git.BranchPrefix + "feature/1",
+					OldCommitID: "oldCommitID",
+					NewCommitID: git.EmptySHA,
+				},
+				Commits: &repository.PushCommits{},
 			},
 			action: models.Action{
 				OpType:  models.ActionDeleteBranch,

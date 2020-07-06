@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -24,8 +25,10 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["PageIsAdminOrganizations"] = true
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
-		PageSize: setting.UI.Admin.OrgPagingNum,
-		Visible:  []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+		Type: models.UserTypeOrganization,
+		ListOptions: models.ListOptions{
+			PageSize: setting.UI.Admin.OrgPagingNum,
+		},
+		Visible: []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplOrgs)
 }

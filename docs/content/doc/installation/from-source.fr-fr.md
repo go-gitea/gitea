@@ -76,4 +76,4 @@ Après avoir suivi toutes les étapes, vous devriez avoir le binaire `gitea` dan
 
 ## Il manque quelque chose ?
 
-Est-ce que nous avons oublié quelque chose sur cette page ? N'hésitez pas à nous contacter sur notre [serveur Discord](https://discord.gg/NsatcWJ), vous obtiendrez des réponses à toute vos questions assez rapidement.
+Est-ce que nous avons oublié quelque chose sur cette page ? N'hésitez pas à nous contacter sur notre [serveur Discord](https://discord.gg/Gitea), vous obtiendrez des réponses à toute vos questions assez rapidement.

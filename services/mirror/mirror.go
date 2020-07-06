@@ -100,7 +100,25 @@ func SaveAddress(m *models.Mirror, addr string) error {
 	}
 
 	_, err = git.NewCommand("remote", "add", "origin", "--mirror=fetch", addr).RunInDir(repoPath)
-	return err
+	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+		return err
+	}
+
+	if m.Repo.HasWiki() {
+		wikiPath := m.Repo.WikiPath()
+		wikiRemotePath := repo_module.WikiRemoteURL(addr)
+		// Remove old origin of wiki
+		_, err := git.NewCommand("remote", "rm", "origin").RunInDir(wikiPath)
+		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+			return err
+		}
+
+		_, err = git.NewCommand("remote", "add", "origin", "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
+		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+			return err
+		}
+	}
+	return nil
 }
 
 // gitShortEmptySha Git short empty SHA
@@ -296,7 +314,7 @@ func Password(m *models.Mirror) string {
 }
 
 // Update checks and updates mirror repositories.
-func Update(ctx context.Context) {
+func Update(ctx context.Context) error {
 	log.Trace("Doing: Update")
 	if err := models.MirrorsIterate(func(idx int, bean interface{}) error {
 		m := bean.(*models.Mirror)
@@ -306,14 +324,17 @@ func Update(ctx context.Context) {
 		}
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("Aborted due to shutdown")
+			return fmt.Errorf("Aborted")
 		default:
 			mirrorQueue.Add(m.RepoID)
 			return nil
 		}
 	}); err != nil {
-		log.Error("Update: %v", err)
+		log.Trace("Update: %v", err)
+		return err
 	}
+	log.Trace("Finished: Update")
+	return nil
 }
 
 // SyncMirrors checks and syncs mirrors.
@@ -333,6 +354,14 @@ func SyncMirrors(ctx context.Context) {
 
 func syncMirror(repoID string) {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+		// There was a panic whilst syncMirrors...
+		log.Error("PANIC whilst syncMirrors[%s] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
+	}()
 	mirrorQueue.Remove(repoID)
 
 	m, err := models.GetMirrorByRepoID(com.StrTo(repoID).MustInt64())

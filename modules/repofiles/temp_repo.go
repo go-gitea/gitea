@@ -242,10 +242,21 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, branch string) error {
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
-
-	if stdout, err := git.NewCommand("push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)).RunInDirWithEnv(t.basePath, env); err != nil {
-		log.Error("Unable to push back to repo from temporary repo: %s (%s)\nStdout: %s\nError: %v",
-			t.repo.FullName(), t.basePath, stdout, err)
+	if err := git.Push(t.basePath, git.PushOptions{
+		Remote: t.repo.RepoPath(),
+		Branch: strings.TrimSpace(commitHash) + ":refs/heads/" + strings.TrimSpace(branch),
+		Env:    env,
+	}); err != nil {
+		if git.IsErrPushOutOfDate(err) {
+			return err
+		} else if git.IsErrPushRejected(err) {
+			rejectErr := err.(*git.ErrPushRejected)
+			log.Info("Unable to push back to repo from temporary repo due to rejection: %s (%s)\nStdout: %s\nStderr: %s\nError: %v",
+				t.repo.FullName(), t.basePath, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
+			return err
+		}
+		log.Error("Unable to push back to repo from temporary repo: %s (%s)\nError: %v",
+			t.repo.FullName(), t.basePath, err)
 		return fmt.Errorf("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
 			t.repo.FullName(), t.basePath, err)
 	}
@@ -286,6 +297,11 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			t.repo.FullName(), t.basePath, err, stderr)
 		return nil, fmt.Errorf("Unable to run diff-index pipeline in temporary repo %s. Error: %v\nStderr: %s",
 			t.repo.FullName(), err, stderr)
+	}
+
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.basePath, "--cached", "HEAD")
+	if err != nil {
+		return nil, err
 	}
 
 	return diff, nil

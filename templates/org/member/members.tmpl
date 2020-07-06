@@ -22,10 +22,10 @@
 							{{ $isPublic := index $.MembersIsPublicMember .ID}}
 							{{if $isPublic}}
 								<strong>{{$.i18n.Tr "org.members.public"}}</strong>
-								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a href="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{$.i18n.Tr "org.members.public_helper"}}</a>){{end}}
+								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a class="link-action" href data-url="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{$.i18n.Tr "org.members.public_helper"}}</a>){{end}}
 							{{else}}
 								<strong>{{$.i18n.Tr "org.members.private"}}</strong>
-								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a href="{{$.OrgLink}}/members/action/public?uid={{.ID}}">{{$.i18n.Tr "org.members.private_helper"}}</a>){{end}}
+								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a class="link-action" href data-url="{{$.OrgLink}}/members/action/public?uid={{.ID}}">{{$.i18n.Tr "org.members.private_helper"}}</a>){{end}}
 							{{end}}
 						</div>
 					</div>
@@ -34,7 +34,7 @@
 							{{$.i18n.Tr "org.members.member_role"}}
 						</div>
 						<div class="meta">
-							<strong>{{if index $.MembersIsUserOrgOwner .ID}}<span class="octicon octicon-shield"></span> {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
+							<strong>{{if index $.MembersIsUserOrgOwner .ID}}{{svg "octicon-shield-lock" 16}} {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
 						</div>
 					</div>
 					<div class="ui one wide column center">
@@ -42,15 +42,27 @@
 							2FA
 						</div>
 						<div class="meta">
-							<strong><span class="octicon {{if index $.MembersTwoFaStatus .ID}}octicon-check text green{{else}}octicon-x{{end}}"></span></strong>
+							<strong>
+								{{if index $.MembersTwoFaStatus .ID}}
+									<span class="text green">{{svg "octicon-check" 16}}</span>
+								{{else}}
+									{{svg "octicon-x" 16}}
+								{{end}}
+							</strong>
 						</div>
 					</div>
 					<div class="ui four wide column">
 						<div class="text right">
 							{{if eq $.SignedUser.ID .ID}}
-								<a class="ui red small button" href="{{$.OrgLink}}/members/action/leave?uid={{.ID}}">{{$.i18n.Tr "org.members.leave"}}</a>
+								<form method="post" action="{{$.OrgLink}}/members/action/leave">
+									{{$.CsrfTokenHtml}}
+									<button type="submit" class="ui red small button" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.leave"}}</button>
+								</form>
 							{{else if $.IsOrganizationOwner}}
-								<a class="ui red small button" href="{{$.OrgLink}}/members/action/remove?uid={{.ID}}">{{$.i18n.Tr "org.members.remove"}}</a>
+								<form method="post" action="{{$.OrgLink}}/members/action/remove">
+									{{$.CsrfTokenHtml}}
+									<button type="submit" class="ui red small button" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.remove"}}</button>
+								</form>
 							{{end}}
 						</div>
 					</div>

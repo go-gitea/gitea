@@ -78,3 +78,8 @@ func (g *PlainGitDownloader) GetComments(issueNumber int64) ([]*base.Comment, er
 func (g *PlainGitDownloader) GetPullRequests(start, limit int) ([]*base.PullRequest, error) {
 	return nil, ErrNotSupported
 }
+
+// GetReviews returns reviews according issue number
+func (g *PlainGitDownloader) GetReviews(issueNumber int64) ([]*base.Review, error) {
+	return nil, ErrNotSupported
+}

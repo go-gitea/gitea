@@ -660,13 +660,13 @@ func RenderAttributes(w util.BufWriter, node ast.Node, filter util.BytesFilter) 
 	}
 }
 
-// A Writer interface wirtes textual contents to a writer.
+// A Writer interface writes textual contents to a writer.
 type Writer interface {
 	// Write writes the given source to writer with resolving references and unescaping
 	// backslash escaped characters.
 	Write(writer util.BufWriter, source []byte)
 
-	// RawWrite wirtes the given source to writer without resolving references and
+	// RawWrite writes the given source to writer without resolving references and
 	// unescaping backslash escaped characters.
 	RawWrite(writer util.BufWriter, source []byte)
 }

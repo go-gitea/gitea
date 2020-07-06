@@ -7,6 +7,8 @@ package util
 import (
 	"net/url"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // urlSafeError wraps an error whose message may contain a sensitive URL
@@ -36,6 +38,7 @@ func SanitizeMessage(message, unsanitizedURL string) string {
 func SanitizeURLCredentials(unsanitizedURL string, usePlaceholder bool) string {
 	u, err := url.Parse(unsanitizedURL)
 	if err != nil {
+		log.Error("parse url %s failed: %v", unsanitizedURL, err)
 		// don't log the error, since it might contain unsanitized URL.
 		return "(unparsable url)"
 	}

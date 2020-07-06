@@ -93,15 +93,9 @@ func SlackLinkFormatter(url string, text string) string {
 
 // SlackLinkToRef slack-formatter link to a repo ref
 func SlackLinkToRef(repoURL, ref string) string {
+	url := git.RefURL(repoURL, ref)
 	refName := git.RefEndName(ref)
-	switch {
-	case strings.HasPrefix(ref, git.BranchPrefix):
-		return SlackLinkFormatter(repoURL+"/src/branch/"+refName, refName)
-	case strings.HasPrefix(ref, git.TagPrefix):
-		return SlackLinkFormatter(repoURL+"/src/tag/"+refName, refName)
-	default:
-		return SlackLinkFormatter(repoURL+"/src/commit/"+refName, refName)
-	}
+	return SlackLinkFormatter(url, refName)
 }
 
 func getSlackCreatePayload(p *api.CreatePayload, slack *SlackMeta) (*SlackPayload, error) {
@@ -271,7 +265,7 @@ func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackM
 	var text string
 
 	switch p.Action {
-	case api.HookIssueSynchronized:
+	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
 			return nil, err
@@ -324,15 +318,20 @@ func GetSlackPayload(p api.Payloader, event models.HookEventType, meta string) (
 		return getSlackDeletePayload(p.(*api.DeletePayload), slack)
 	case models.HookEventFork:
 		return getSlackForkPayload(p.(*api.ForkPayload), slack)
-	case models.HookEventIssues:
+	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getSlackIssuesPayload(p.(*api.IssuePayload), slack)
-	case models.HookEventIssueComment:
-		return getSlackIssueCommentPayload(p.(*api.IssueCommentPayload), slack)
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
+		pl, ok := p.(*api.IssueCommentPayload)
+		if ok {
+			return getSlackIssueCommentPayload(pl, slack)
+		}
+		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
 	case models.HookEventPush:
 		return getSlackPushPayload(p.(*api.PushPayload), slack)
-	case models.HookEventPullRequest:
+	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
+		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
-	case models.HookEventPullRequestRejected, models.HookEventPullRequestApproved, models.HookEventPullRequestComment:
+	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
 		return getSlackPullRequestApprovalPayload(p.(*api.PullRequestPayload), slack, event)
 	case models.HookEventRepository:
 		return getSlackRepositoryPayload(p.(*api.RepositoryPayload), slack)

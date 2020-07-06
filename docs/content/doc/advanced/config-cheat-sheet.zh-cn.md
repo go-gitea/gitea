@@ -15,7 +15,7 @@ menu:
 
 # 配置说明
 
-这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。所有默认值可以通过 [app.ini.sample](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample) 查看到。如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
+这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
 
 ## Overall (`DEFAULT`)
 
@@ -81,7 +81,7 @@ menu:
 - `USER`: 数据库用户名。
 - `PASSWD`: 数据库用户密码。
 - `SSL_MODE`: MySQL 或 PostgreSQL数据库是否启用SSL模式。
-- `CHARSET`: **utf8**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
+- `CHARSET`: **utf8mb4**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
 - `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 - `MAX_IDLE_CONNS` **0**: 最大空闲数据库连接
@@ -89,7 +89,9 @@ menu:
 
 ## Indexer (`indexer`)
 
-- `ISSUE_INDEXER_TYPE`: **bleve**: 工单索引类型，当前支持 `bleve` 或 `db`，当为 `db` 时其它工单索引项可不用设置。
+- `ISSUE_INDEXER_TYPE`: **bleve**: 工单索引类型，当前支持 `bleve`, `db` 和 `elasticsearch`，当为 `db` 时其它工单索引项可不用设置。
+- `ISSUE_INDEXER_CONN_STR`: ****: 工单索引连接字符串，仅当 ISSUE_INDEXER_TYPE 为 `elasticsearch` 时有效。例如: http://elastic:changeme@localhost:9200
+- `ISSUE_INDEXER_NAME`: **gitea_issues**: 工单索引名称，仅当 ISSUE_INDEXER_TYPE 为 `elasticsearch` 时有效。
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: 工单索引文件存放路径，当索引类型为 `bleve` 时有效。
 - `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: 工单索引队列类型，当前支持 `channel`， `levelqueue` 或 `redis`。
 - `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: 当 `ISSUE_INDEXER_QUEUE_TYPE` 为 `levelqueue` 时，保存索引队列的磁盘路径。
@@ -148,12 +150,19 @@ menu:
 
 ## Cache (`cache`)
 
+- `ENABLED`: **true**: 是否启用。
 - `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
 - `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 - `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+
+## Cache - LastCommitCache settings (`cache.last_commit`)
+
+- `ENABLED`: **true**: 是否启用。
+- `ITEM_TTL`: **8760h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+- `COMMITS_COUNT`: **1000**: 仅当仓库的提交数大于时才启用缓存。
 
 ## Session (`session`)
 
@@ -216,7 +225,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 - `RUN_AT_START`: 是否启动时自动运行仓库统计。
 - `SCHEDULE`: 仓库统计时的Cron 语法，比如：`@every 24h`.
 
-### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
+### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
 - `SCHEDULE`: **@every 24h** : 每次同步的间隔时间。此任务总是在启动时自动进行。
 

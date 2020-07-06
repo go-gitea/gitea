@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/emoji"
 	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -117,13 +118,13 @@ func TestRender_links(t *testing.T) {
 		`<p><a href="http://www.example.com/wpstyle/?p=364" rel="nofollow">http://www.example.com/wpstyle/?p=364</a></p>`)
 	test(
 		"https://www.example.com/foo/?bar=baz&inga=42&quux",
-		`<p><a href="https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`)
+		`<p><a href="https://www.example.com/foo/?bar=baz&inga=42&quux=" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`)
 	test(
 		"http://142.42.1.1/",
 		`<p><a href="http://142.42.1.1/" rel="nofollow">http://142.42.1.1/</a></p>`)
 	test(
 		"https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd",
-		`<p><a href="https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd" rel="nofollow">https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd</a></p>`)
+		`<p><a href="https://github.com/go-gitea/gitea/?p=aaa%2Fbbb.html#ccc-ddd" rel="nofollow">https://github.com/go-gitea/gitea/?p=aaa/bbb.html#ccc-ddd</a></p>`)
 	test(
 		"https://en.wikipedia.org/wiki/URL_(disambiguation)",
 		`<p><a href="https://en.wikipedia.org/wiki/URL_(disambiguation)" rel="nofollow">https://en.wikipedia.org/wiki/URL_(disambiguation)</a></p>`)
@@ -141,7 +142,7 @@ func TestRender_links(t *testing.T) {
 		`<p><a href="ftp://gitea.com/file.txt" rel="nofollow">ftp://gitea.com/file.txt</a></p>`)
 	test(
 		"magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download",
-		`<p><a href="magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
+		`<p><a href="magnet:?dn=download&xt=urn%3Abtih%3A5dee65101db281ac9c46344cd6b175cdcadabcde" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
 
 	// Test that should *not* be turned into URL
 	test(
@@ -207,7 +208,7 @@ func TestRender_email(t *testing.T) {
 	// Test that should *not* be turned into email links
 	test(
 		"\"info@gitea.com\"",
-		`<p>“info@gitea.com”</p>`)
+		`<p>&#34;info@gitea.com&#34;</p>`)
 	test(
 		"/home/gitea/mailstore/info@gitea/com",
 		`<p>/home/gitea/mailstore/info@gitea/com</p>`)
@@ -226,6 +227,52 @@ func TestRender_email(t *testing.T) {
 	test(
 		"email@domain..com",
 		`<p>email@domain..com</p>`)
+}
+
+func TestRender_emoji(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+	setting.StaticURLPrefix = AppURL
+
+	test := func(input, expected string) {
+		expected = strings.Replace(expected, "&", "&amp;", -1)
+		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+	}
+
+	// Make sure we can successfully match every emoji in our dataset with regex
+	for i := range emoji.GemojiData {
+		test(
+			emoji.GemojiData[i].Emoji,
+			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
+	}
+	for i := range emoji.GemojiData {
+		test(
+			":"+emoji.GemojiData[i].Aliases[0]+":",
+			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
+	}
+
+	//Text that should be turned into or recognized as emoji
+	test(
+		":gitea:",
+		`<p><span class="emoji" aria-label="gitea"><img src="`+setting.StaticURLPrefix+`/img/emoji/gitea.png"/></span></p>`)
+
+	test(
+		"Some text with 😄 in the middle",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+	test(
+		"Some text with :smile: in the middle",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+	test(
+		"Some text with 😄😄 2 emoji next to each other",
+		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
+	// should match nothing
+	test(
+		"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+		`<p>2001:0db8:85a3:0000:0000:8a2e:0370:7334</p>`)
+	test(
+		":not exist:",
+		`<p>:not exist:</p>`)
 }
 
 func TestRender_ShortLinks(t *testing.T) {
@@ -267,8 +314,8 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="`+imgurlWiki+`" rel="nofollow"><img src="`+imgurlWiki+`" title="Link.jpg" alt="Link.jpg"/></a></p>`)
 	test(
 		"[["+favicon+"]]",
-		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico"/></a></p>`,
-		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico"/></a></p>`)
+		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico" alt="`+favicon+`"/></a></p>`,
+		`<p><a href="`+favicon+`" rel="nofollow"><img src="`+favicon+`" title="favicon.ico" alt="`+favicon+`"/></a></p>`)
 	test(
 		"[[Name|Link]]",
 		`<p><a href="`+url+`" rel="nofollow">Name</a></p>`,
@@ -311,16 +358,16 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="`+urlWiki+`" rel="nofollow">Link</a> <a href="`+otherURLWiki+`" rel="nofollow">Other Link</a> <a href="`+encodedURLWiki+`" rel="nofollow">Link?</a></p>`)
 	test(
 		"[[Link #.jpg]]",
-		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`"/></a></p>`,
-		`<p><a href="`+encodedImgurlWiki+`" rel="nofollow"><img src="`+encodedImgurlWiki+`"/></a></p>`)
+		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" title="Link #.jpg" alt="Link #.jpg"/></a></p>`,
+		`<p><a href="`+encodedImgurlWiki+`" rel="nofollow"><img src="`+encodedImgurlWiki+`" title="Link #.jpg" alt="Link #.jpg"/></a></p>`)
 	test(
 		"[[Name|Link #.jpg|alt=\"AltName\"|title='Title']]",
 		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" title="Title" alt="AltName"/></a></p>`,
 		`<p><a href="`+encodedImgurlWiki+`" rel="nofollow"><img src="`+encodedImgurlWiki+`" title="Title" alt="AltName"/></a></p>`)
 	test(
 		"[[some/path/Link #.jpg]]",
-		`<p><a href="`+notencodedImgurl+`" rel="nofollow"><img src="`+notencodedImgurl+`"/></a></p>`,
-		`<p><a href="`+notencodedImgurlWiki+`" rel="nofollow"><img src="`+notencodedImgurlWiki+`"/></a></p>`)
+		`<p><a href="`+notencodedImgurl+`" rel="nofollow"><img src="`+notencodedImgurl+`" title="Link #.jpg" alt="some/path/Link #.jpg"/></a></p>`,
+		`<p><a href="`+notencodedImgurlWiki+`" rel="nofollow"><img src="`+notencodedImgurlWiki+`" title="Link #.jpg" alt="some/path/Link #.jpg"/></a></p>`)
 	test(
 		"<p><a href=\"https://example.org\">[[foobar]]</a></p>",
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`,

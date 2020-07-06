@@ -34,7 +34,7 @@ func UpdatePublicKeyInRepo(keyID, repoID int64) error {
 // and returns public key found.
 func AuthorizedPublicKeyByContent(content string) (string, error) {
 	// Ask for running deliver hook and test pull request tasks.
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/authorized_keys")
+	reqURL := setting.LocalURL + "api/internal/ssh/authorized_keys"
 	req := newInternalRequest(reqURL, "POST")
 	req.Param("content", content)
 	resp, err := req.Response()

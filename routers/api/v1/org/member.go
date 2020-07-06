@@ -14,14 +14,17 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
 	var members []*models.User
-	members, _, err := models.FindOrgMembers(models.FindOrgMembersOpts{
-		OrgID:      ctx.Org.Organization.ID,
-		PublicOnly: publicOnly,
+
+	members, _, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
+		OrgID:       ctx.Org.Organization.ID,
+		PublicOnly:  publicOnly,
+		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
@@ -32,6 +35,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 	for i, member := range members {
 		apiMembers[i] = convert.ToUser(member, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
+
 	ctx.JSON(http.StatusOK, apiMembers)
 }
 
@@ -48,6 +52,14 @@ func ListMembers(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
@@ -59,7 +71,7 @@ func ListMembers(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
 		}
-		publicOnly = !isMember
+		publicOnly = !isMember && !ctx.User.IsAdmin
 	}
 	listMembers(ctx, publicOnly)
 }
@@ -75,6 +87,14 @@ func ListPublicMembers(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
@@ -117,7 +137,7 @@ func IsMember(ctx *context.APIContext) {
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
-		} else if userIsMember {
+		} else if userIsMember || ctx.User.IsAdmin {
 			userToCheckIsMember, err := ctx.Org.Organization.IsOrgMember(userToCheck.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)

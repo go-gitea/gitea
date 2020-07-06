@@ -12,7 +12,7 @@ import (
 
 // SignMerge determines if we should sign a PR merge commit to the base repository
 func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit string) (bool, string, error) {
-	if err := pr.GetBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
 		return false, "", err
 	}
@@ -34,7 +34,7 @@ func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit st
 		case always:
 			break
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID)
+			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {
 				return false, "", err
 			}
@@ -43,7 +43,7 @@ func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit st
 			}
 		case twofa:
 			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil {
+			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
 				return false, "", err
 			}
 			if twofaModel == nil {

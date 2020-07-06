@@ -73,12 +73,29 @@
 
     .dashboard-navbar {
         width: 100vw;
-        padding: 0 0.5rem;
+        padding: 0 .5rem;
     }
 }
 
 &.feeds {
     .news {
+
+        li {
+            display: flex;
+            align-items: baseline;
+            margin-top: .5rem;
+            margin-bottom: .5rem;
+
+            img {
+                align-self: flex-start;
+            }
+        }
+        li > * + * {
+            margin-left: .35rem;
+        }
+
+        line-height: 1.2;
+
         > .ui.grid {
             margin-left: auto;
             margin-right: auto;
@@ -97,17 +114,13 @@
         }
 
         .push.news .content ul {
+            line-height: 18px;
             font-size: 13px;
             list-style: none;
             padding-left: 10px;
 
-            img {
-                margin-bottom: -2px;
-            }
-
             .text.truncate {
                 width: 80%;
-                margin-bottom: -5px;
             }
         }
 
@@ -118,7 +131,7 @@
         code {
             padding: 1px;
             font-size: 85%;
-            background-color: rgba(0, 0, 0, 0.04);
+            background-color: rgba(0, 0, 0, .04);
             border-radius: 3px;
             word-break: break-all;
         }
@@ -155,7 +168,7 @@
                     padding: 6px 1.2em;
                     display: block;
 
-                    .octicon {
+                    .svg {
                         color: #888888;
 
                         &.rear {
@@ -168,6 +181,11 @@
                     }
                 }
             }
+        }
+
+        #privateFilterCheckbox .svg {
+            color: #888888;
+            margin-right: .25rem;
         }
 
         .repo-owner-name-list {

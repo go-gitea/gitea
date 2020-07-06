@@ -12,11 +12,13 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
@@ -72,6 +74,7 @@ var (
 		"git-receive-pack":   models.AccessModeWrite,
 		lfsAuthenticateVerb:  models.AccessModeNone,
 	}
+	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
 func fail(userMessage, logMessage string, args ...interface{}) {
@@ -147,6 +150,10 @@ func runServ(c *cli.Context) error {
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
+	if alphaDashDotPattern.MatchString(reponame) {
+		fail("Invalid repo name", "Invalid repo name: %s", reponame)
+	}
+
 	if setting.EnablePprof || c.Bool("enable-pprof") {
 		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
 			fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
@@ -207,12 +214,14 @@ func runServ(c *cli.Context) error {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
 		now := time.Now()
-		claims := jwt.MapClaims{
-			"repo": results.RepoID,
-			"op":   lfsVerb,
-			"exp":  now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
-			"nbf":  now.Unix(),
-			"user": results.UserID,
+		claims := lfs.Claims{
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
+				NotBefore: now.Unix(),
+			},
+			RepoID: results.RepoID,
+			Op:     lfsVerb,
+			UserID: results.UserID,
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
