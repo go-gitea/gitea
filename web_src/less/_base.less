@@ -1,48 +1,3 @@
-/* roboto-regular - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
-@font-face {
-    font-family: 'Roboto';
-    font-style: normal;
-    font-weight: 400;
-    src:
-        local('Roboto'),
-        local('Roboto-Regular'),
-        /* Chrome 26+, Opera 23+, Firefox 39+ */
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-regular.woff2') format('woff2');
-}
-
-/* roboto-italic - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
-@font-face {
-    font-family: 'Roboto';
-    font-style: italic;
-    font-weight: 400;
-    src:
-        local('Roboto Italic'),
-        local('Roboto-Italic'),
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-italic.woff2') format('woff2');
-}
-
-/* roboto-700 - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
-@font-face {
-    font-family: 'Roboto';
-    font-style: normal;
-    font-weight: 700;
-    src:
-        local('Roboto Bold'),
-        local('Roboto-Bold'),
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700.woff2') format('woff2');
-}
-
-/* roboto-700italic - latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext */
-@font-face {
-    font-family: 'Roboto';
-    font-style: italic;
-    font-weight: 700;
-    src:
-        local('Roboto Bold Italic'),
-        local('Roboto-BoldItalic'),
-        url('../vendor/assets/roboto-fonts/roboto-v20-latin-ext_cyrillic-ext_latin_greek_vietnamese_cyrillic_greek-ext-700italic.woff2') format('woff2');
-}
-
 @font-face {
     font-family: 'Yu Gothic';
     src: local('Yu Gothic Medium');
@@ -60,19 +15,19 @@
     src:
         local('Noto Color Emoji'),
         local('Noto-Color-Emoji'),
-        url('../vendor/assets/noto-color-emoji/NotoColorEmoji.ttf') format('truetype');
+        url('../fonts/noto-color-emoji/NotoColorEmoji.ttf') format('truetype');
 }
 
-@default-fonts: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+@default-fonts: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji" sans-serif;
 @monospaced-fonts: 'SF Mono', Consolas, Menlo, 'Liberation Mono', Monaco, 'Lucida Console';
 
 .override-fonts(@fonts) {
     textarea {
-        font-family: @fonts, sans-serif;
+        font-family: @fonts;
     }
 
     .markdown:not(code) {
-        font-family: @fonts, sans-serif;
+        font-family: @fonts;
     }
 
     /* We're going to just override the semantic fonts here */
@@ -81,12 +36,7 @@
     h3,
     h4,
     h5 {
-        font-family: Roboto, @fonts, sans-serif;
-    }
-
-    .home .hero h1,
-    .home .hero h2 {
-        font-family: 'PT Sans Narrow', Roboto, @fonts, sans-serif;
+        font-family: @fonts;
     }
 
     .ui.accordion .title:not(.ui),
@@ -125,7 +75,7 @@
     .ui.steps .step .title,
     .ui.text.container,
     .ui.language > .menu > .item& {
-        font-family: Roboto, @fonts, sans-serif;
+        font-family: @fonts;
     }
 }
 
