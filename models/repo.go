@@ -209,19 +209,9 @@ func (repo *Repository) SanitizedOriginalURL() string {
 
 // ColorFormat returns a colored string to represent this repo
 func (repo *Repository) ColorFormat(s fmt.State) {
-	var ownerName interface{}
-
-	if repo.OwnerName != "" {
-		ownerName = repo.OwnerName
-	} else if repo.Owner != nil {
-		ownerName = repo.Owner.Name
-	} else {
-		ownerName = log.NewColoredIDValue(strconv.FormatInt(repo.OwnerID, 10))
-	}
-
 	log.ColorFprintf(s, "%d:%s/%s",
 		log.NewColoredIDValue(repo.ID),
-		ownerName,
+		repo.OwnerName,
 		repo.Name)
 }
 

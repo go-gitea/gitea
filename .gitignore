@@ -79,8 +79,8 @@ coverage.all
 /public/serviceworker.js
 /public/css
 /public/fonts
-/public/fomantic
 /public/img/svg
+/web_src/fomantic/build
 /VERSION
 
 # Snapcraft

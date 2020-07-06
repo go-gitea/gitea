@@ -9,14 +9,12 @@ import (
 	"fmt"
 	"html"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -576,7 +574,6 @@ func CompareDiff(ctx *context.Context) {
 
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
@@ -657,7 +654,6 @@ func ExcerptBlob(ctx *context.Context) {
 	}
 	ctx.Data["section"] = section
 	ctx.Data["fileName"] = filePath
-	ctx.Data["highlightClass"] = highlight.FileNameToHighlightClass(filepath.Base(filePath))
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
 	ctx.HTML(200, tplBlobExcerpt)
