@@ -121,11 +121,17 @@ var checklist = []check{
 		f:         runDoctorPRMergeBase,
 	},
 	{
-		title:     "Enable push options",
+		title:     "Recalculate Stars number for all user",
+		name:      "recalculate_stars_number",
+		isDefault: false,
+		f:         runDoctorUserStarNum,
+	},
+  {
+  	title:     "Enable push options",
 		name:      "enable-push-options",
 		isDefault: false,
 		f:         runDoctorEnablePushOptions,
-	},
+  }
 	// more checks please append here
 }
 
@@ -498,6 +504,10 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 	}
 
 	return results, err
+}
+
+func runDoctorUserStarNum(ctx *cli.Context) ([]string, error) {
+	return nil, models.DoctorUserStarNum()
 }
 
 func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
