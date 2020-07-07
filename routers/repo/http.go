@@ -565,11 +565,7 @@ func serviceRPC(h serviceHandler, service string) {
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
-	if service == "receive-pack" {
-		cmd.Env = append(os.Environ(), h.environ...)
-	} else {
-		cmd.Env = h.environ
-	}
+	cmd.Env = append(os.Environ(), h.environ...)
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
@@ -623,6 +619,7 @@ func getInfoRefs(h serviceHandler) {
 		if protocol := h.r.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
 			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 		}
+		h.environ = append(os.Environ(), h.environ...)
 
 		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
 		if err != nil {
