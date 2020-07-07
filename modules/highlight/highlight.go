@@ -43,6 +43,11 @@ func NewContext() {
 func Code(fileName, code string) string {
 	NewContext()
 
+	// don't process empty lines
+	if code == "\n" {
+		return code
+	}
+
 	if len(code) > sizeLimit {
 		return code
 	}
