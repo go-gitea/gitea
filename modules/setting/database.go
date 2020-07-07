@@ -51,7 +51,7 @@ var (
 	}
 )
 
-// GetDBTypeByName returns the dataase type as it defined on XORM according the given name
+// GetDBTypeByName returns the database type as it defined on XORM according the given name
 func GetDBTypeByName(name string) string {
 	return dbTypes[name]
 }
