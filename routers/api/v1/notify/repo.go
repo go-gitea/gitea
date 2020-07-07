@@ -207,9 +207,6 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	for _, t := range nl {
-		log.Error("found thread: %d %d", t.ID, t.Status)
-	}
 
 	targetStatus := statusStringToNotificationStatus(ctx.Query("to-status"))
 	if targetStatus == 0 {
