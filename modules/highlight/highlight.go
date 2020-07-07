@@ -81,7 +81,9 @@ func Code(fileName, code string) string {
 	}
 
 	htmlw.Flush()
-	return htmlbuf.String()
+	// Strip any newline that chroma might have added since this may be one of multiple
+	// highlights on what should display as a single line of code
+	return strings.TrimSuffix(htmlbuf.String(), "\n")
 }
 
 // File returns map with line lumbers and HTML version of code with chroma syntax highlighting classes
