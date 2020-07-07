@@ -624,7 +624,7 @@ func getInfoRefs(h serviceHandler) {
 			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 		}
 
-		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirWithEnvBytes(h.dir, h.environ)
+		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
