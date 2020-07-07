@@ -483,6 +483,9 @@ var routes = []route{
 	{regexp.MustCompile(`(.*?)/objects/pack/pack-[0-9a-f]{40}\.idx$`), "GET", getIdxFile},
 }
 
+// one or more key=value pairs separated by colons
+var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
+
 func getGitConfig(option, dir string) string {
 	out, err := git.NewCommand("config", option).RunInDir(dir)
 	if err != nil {
@@ -553,6 +556,10 @@ func serviceRPC(h serviceHandler, service string) {
 	// set this for allow pre-receive and post-receive execute
 	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
 
+	if protocol := h.r.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
+		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
+	}
+
 	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
 	defer cancel()
 	var stderr bytes.Buffer
@@ -560,6 +567,8 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Dir = h.dir
 	if service == "receive-pack" {
 		cmd.Env = append(os.Environ(), h.environ...)
+	} else {
+		cmd.Env = h.environ
 	}
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
@@ -610,7 +619,12 @@ func getInfoRefs(h serviceHandler) {
 	h.setHeaderNoCache()
 	if hasAccess(getServiceType(h.r), h, false) {
 		service := getServiceType(h.r)
-		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(h.dir)
+
+		if protocol := h.r.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
+			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
+		}
+
+		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirWithEnvBytes(h.dir, h.environ)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

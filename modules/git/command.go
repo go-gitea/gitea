@@ -227,6 +227,12 @@ func (c *Command) RunInDirWithEnv(dir string, env []string) (string, error) {
 	return string(stdout), nil
 }
 
+// RunInDirWithEnvBytes executes the command in given directory
+// and returns stdout in []byte and error (combined with stderr).
+func (c *Command) RunInDirWithEnvBytes(dir string, env []string) ([]byte, error) {
+	return c.RunInDirTimeoutEnv(env, -1, dir)
+}
+
 // RunTimeout executes the command in default working directory with given timeout,
 // and returns stdout in string and error (combined with stderr).
 func (c *Command) RunTimeout(timeout time.Duration) (string, error) {
