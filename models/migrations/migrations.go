@@ -219,6 +219,8 @@ var migrations = []Migration{
 	// v142 -> v143
 	NewMigration("Ensure Repository.IsArchived is not null", setIsArchivedToFalse),
 	// v143 -> v144
+	NewMigration("recalculate Stars number for all user", recalculateStars),
+	// v144 -> v145
 	NewMigration("Add projects info to repository table", addProjectsInfo),
 }
 

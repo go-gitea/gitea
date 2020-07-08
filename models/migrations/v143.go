@@ -5,81 +5,48 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/xorm"
 )
 
-func addProjectsInfo(x *xorm.Engine) error {
+func recalculateStars(x *xorm.Engine) (err error) {
+	// because of issue https://github.com/go-gitea/gitea/issues/11949,
+	// recalculate Stars number for all users to fully fix it.
 
-	// Create new tables
-	type (
-		ProjectType      uint8
-		ProjectBoardType uint8
-	)
-
-	type Project struct {
-		ID          int64  `xorm:"pk autoincr"`
-		Title       string `xorm:"INDEX NOT NULL"`
-		Description string `xorm:"TEXT"`
-		RepoID      int64  `xorm:"INDEX"`
-		CreatorID   int64  `xorm:"NOT NULL"`
-		IsClosed    bool   `xorm:"INDEX"`
-
-		BoardType ProjectBoardType
-		Type      ProjectType
-
-		ClosedDateUnix timeutil.TimeStamp
-		CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
+	type User struct {
+		ID int64 `xorm:"pk autoincr"`
 	}
 
-	if err := x.Sync2(new(Project)); err != nil {
-		return err
+	const batchSize = 100
+	sess := x.NewSession()
+	defer sess.Close()
+
+	for start := 0; ; start += batchSize {
+		users := make([]User, 0, batchSize)
+		if err = sess.Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
+			return
+		}
+		if len(users) == 0 {
+			break
+		}
+
+		if err = sess.Begin(); err != nil {
+			return
+		}
+
+		for _, user := range users {
+			if _, err = sess.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+				return
+			}
+		}
+
+		if err = sess.Commit(); err != nil {
+			return
+		}
 	}
 
-	type Comment struct {
-		OldProjectID int64
-		ProjectID    int64
-	}
+	log.Debug("recalculate Stars number for all user finished")
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return err
-	}
-
-	type Repository struct {
-		ID                int64
-		NumProjects       int `xorm:"NOT NULL DEFAULT 0"`
-		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
-	}
-
-	if err := x.Sync2(new(Repository)); err != nil {
-		return err
-	}
-
-	// ProjectIssue saves relation from issue to a project
-	type ProjectIssue struct {
-		ID             int64 `xorm:"pk autoincr"`
-		IssueID        int64 `xorm:"INDEX"`
-		ProjectID      int64 `xorm:"INDEX"`
-		ProjectBoardID int64 `xorm:"INDEX"`
-	}
-
-	if err := x.Sync2(new(ProjectIssue)); err != nil {
-		return err
-	}
-
-	type ProjectBoard struct {
-		ID      int64 `xorm:"pk autoincr"`
-		Title   string
-		Default bool `xorm:"NOT NULL DEFAULT false"`
-
-		ProjectID int64 `xorm:"INDEX NOT NULL"`
-		CreatorID int64 `xorm:"NOT NULL"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-
-	return x.Sync2(new(ProjectBoard))
+	return
 }
