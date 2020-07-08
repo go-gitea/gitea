@@ -22,6 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
@@ -110,7 +112,9 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
-	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
+	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
+	// so everyone would get the same empty heatmap
+	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate
 	ctx.Data["HeatmapUser"] = ctxUser.Name
 
 	var err error
@@ -223,7 +227,7 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	counts, err := models.CountMilestones(userRepoCond, isShowClosed)
+	counts, err := models.CountMilestonesByRepoCond(userRepoCond, isShowClosed)
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
@@ -266,7 +270,7 @@ func Milestones(ctx *context.Context) {
 		i++
 	}
 
-	milestoneStats, err := models.GetMilestonesStats(repoCond)
+	milestoneStats, err := models.GetMilestonesStatsByRepoCond(repoCond)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
@@ -276,7 +280,7 @@ func Milestones(ctx *context.Context) {
 	if len(repoIDs) == 0 {
 		totalMilestoneStats = milestoneStats
 	} else {
-		totalMilestoneStats, err = models.GetMilestonesStats(userRepoCond)
+		totalMilestoneStats, err = models.GetMilestonesStatsByRepoCond(userRepoCond)
 		if err != nil {
 			ctx.ServerError("GetMilestoneStats", err)
 			return
@@ -553,7 +557,7 @@ func Issues(ctx *context.Context) {
 		issue.Repo = showReposMap[issue.RepoID]
 
 		if isPullList {
-			commitStatus[issue.PullRequest.ID], _ = issue.PullRequest.GetLastCommitStatus()
+			commitStatus[issue.PullRequest.ID], _ = pull_service.GetLastCommitStatus(issue.PullRequest)
 		}
 	}
 
@@ -623,6 +627,9 @@ func Issues(ctx *context.Context) {
 		totalIssues = int(allIssueStats.ClosedCount)
 	}
 
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
+		issue_service.GetRefEndNamesAndURLs(issues, ctx.Query("RepoLink"))
+
 	ctx.Data["Issues"] = issues
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
 		counts, ok := approvalCounts[issueID]
@@ -632,6 +639,8 @@ func Issues(ctx *context.Context) {
 		reviewTyp := models.ReviewTypeApprove
 		if typ == "reject" {
 			reviewTyp = models.ReviewTypeReject
+		} else if typ == "waiting" {
+			reviewTyp = models.ReviewTypeRequest
 		}
 		for _, count := range counts {
 			if count.Type == reviewTyp {

@@ -13,6 +13,7 @@
 [![Become a backer/sponsor of gitea](https://opencollective.com/gitea/tiers/backers/badge.svg?label=backers&color=brightgreen)](https://opencollective.com/gitea)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
+[![TODOs](https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea)](https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea)
 
 ## Purpose
 
@@ -40,7 +41,7 @@ or if sqlite support is required:
 The `build` target is split into two sub-targets:
 
 - `make backend` which requires [Go 1.12](https://golang.org/dl/) or greater.
-- `make frontend` which requires [Node.js 10](https://nodejs.org/en/download/) or greater.
+- `make frontend` which requires [Node.js 10.13](https://nodejs.org/en/download/) or greater.
 
 If pre-built frontend files are present it is possible to only build the backend:
 

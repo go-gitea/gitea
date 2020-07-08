@@ -98,8 +98,10 @@ Depending on requirements, the following build tags can be included.
   be used to authenticate local users or extend authentication to methods
   available to PAM.
 
-Bundling assets into the binary using the `bindata` build tag can make
-development and testing easier, but is not ideal for a production deployment.
+Bundling assets into the binary using the `bindata` build tag is recommended for
+production deployments. It is possible to serve the static assets directly via a reverse proxy,
+but in most cases it is not necessary, and assets should still be bundled in the binary.
+You may want to exclude bindata while developing/testing Gitea.
 To include assets, add the `bindata` tag:
 
 ```bash
@@ -157,3 +159,23 @@ Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable a
 with the appropriate `TAGS` as above.
 
 Running `gitea help` will allow you to review what the computed settings will be for your `gitea`.
+
+## Cross Build
+
+The `go` compiler toolchain supports cross-compiling to different architecture targets that are supported by the toolchain. See [`GOOS` and `GOARCH` environment variable](https://golang.org/doc/install/source#environment) for the list of supported targets. Cross compilation is helpful if you want to build Gitea for less-powerful systems (such as Raspberry Pi).
+
+To cross build Gitea with build tags (`TAGS`), you also need a C cross compiler which targets the same architecture as selected by the `GOOS` and `GOARCH` variables. For example, to cross build for Linux ARM64 (`GOOS=linux` and `GOARCH=arm64`), you need the `aarch64-unknown-linux-gnu-gcc` cross compiler. This is required because Gitea build tags uses `cgo`'s foreign-function interface (FFI).
+
+Cross-build Gitea for Linux ARM64, without any tags:
+
+```
+GOOS=linux GOARCH=arm64 make build
+```
+
+Cross-build Gitea for Linux ARM64, with recommended build tags:
+
+```
+CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sqlite_unlock_notify" make build
+```
+
+Replace `CC`, `GOOS`, and `GOARCH` as appropriate for your architecture target.

@@ -246,7 +246,7 @@ func UpdateLabel(l *Label) error {
 	if !LabelColorPattern.MatchString(l.Color) {
 		return fmt.Errorf("bad color code: %s", l.Color)
 	}
-	return updateLabel(x, l)
+	return updateLabelCols(x, l, "name", "description", "color")
 }
 
 // DeleteLabel delete a label
@@ -295,10 +295,8 @@ func getLabelByID(e Engine, labelID int64) (*Label, error) {
 		return nil, ErrLabelNotExist{labelID}
 	}
 
-	l := &Label{
-		ID: labelID,
-	}
-	has, err := e.Get(l)
+	l := &Label{}
+	has, err := e.ID(labelID).Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -587,7 +585,7 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 	return getLabelsByIssueID(x, issueID)
 }
 
-func updateLabel(e Engine, l *Label) error {
+func updateLabelCols(e Engine, l *Label, cols ...string) error {
 	_, err := e.ID(l.ID).
 		SetExpr("num_issues",
 			builder.Select("count(*)").From("issue_label").
@@ -601,7 +599,7 @@ func updateLabel(e Engine, l *Label) error {
 					"issue.is_closed":      true,
 				}),
 		).
-		AllCols().Update(l)
+		Cols(cols...).Update(l)
 	return err
 }
 
@@ -653,7 +651,7 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return err
 	}
 
-	return updateLabel(e, label)
+	return updateLabelCols(e, label, "num_issues", "num_closed_issue")
 }
 
 // NewIssueLabel creates a new issue-label relation.
@@ -729,7 +727,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return err
 	}
 
-	return updateLabel(e, label)
+	return updateLabelCols(e, label, "num_issues", "num_closed_issue")
 }
 
 // DeleteIssueLabel deletes issue-label relation.

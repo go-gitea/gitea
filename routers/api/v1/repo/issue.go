@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -196,6 +198,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: whether issue is open or closed
 	//   type: string
+	//   enum: [closed, open, all]
 	// - name: labels
 	//   in: query
 	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
@@ -208,13 +211,18 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter by type (issues / pulls) if set
 	//   type: string
+	//   enum: [issues, pulls]
+	// - name: milestones
+	//   in: query
+	//   description: comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of this milestones. Non existent milestones are discarded
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -251,10 +259,37 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
-	listOptions := utils.GetListOptions(ctx)
-	if ctx.QueryInt("limit") == 0 {
-		listOptions.PageSize = setting.UI.IssuePagingNum
+	var mileIDs []int64
+	if part := strings.Split(ctx.Query("milestones"), ","); len(part) > 0 {
+		for i := range part {
+			// uses names and fall back to ids
+			// non existent milestones are discarded
+			mile, err := models.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			if err == nil {
+				mileIDs = append(mileIDs, mile.ID)
+				continue
+			}
+			if !models.IsErrMilestoneNotExist(err) {
+				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoIDANDName", err)
+				return
+			}
+			id, err := strconv.ParseInt(part[i], 10, 64)
+			if err != nil {
+				continue
+			}
+			mile, err = models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, id)
+			if err == nil {
+				mileIDs = append(mileIDs, mile.ID)
+				continue
+			}
+			if models.IsErrMilestoneNotExist(err) {
+				continue
+			}
+			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
+		}
 	}
+
+	listOptions := utils.GetListOptions(ctx)
 
 	var isPull util.OptionalBool
 	switch ctx.Query("type") {
@@ -270,12 +305,13 @@ func ListIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
-			ListOptions: listOptions,
-			RepoIDs:     []int64{ctx.Repo.Repository.ID},
-			IsClosed:    isClosed,
-			IssueIDs:    issueIDs,
-			LabelIDs:    labelIDs,
-			IsPull:      isPull,
+			ListOptions:  listOptions,
+			RepoIDs:      []int64{ctx.Repo.Repository.ID},
+			IsClosed:     isClosed,
+			IssueIDs:     issueIDs,
+			LabelIDs:     labelIDs,
+			MilestoneIDs: mileIDs,
+			IsPull:       isPull,
 		})
 	}
 
@@ -285,6 +321,8 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.Repo.Repository.NumIssues))
+
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
@@ -508,6 +546,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if len(form.Title) > 0 {
 		issue.Title = form.Title
 	}
@@ -562,20 +601,25 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			return
 		}
 	}
-
-	if err = models.UpdateIssueByAPI(issue); err != nil {
+	if form.State != nil {
+		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+	}
+	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
+	if err != nil {
+		if models.IsErrDependenciesLeft(err) {
+			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueByAPI", err)
 		return
 	}
-	if form.State != nil {
-		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
-			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "ChangeStatus", err)
-			return
-		}
+
+	if titleChanged {
+		notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
+	}
+
+	if statusChangeComment != nil {
+		notification.NotifyIssueChangeStatus(ctx.User, issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database to assign some automatic values
@@ -648,7 +692,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	var deadline time.Time
 	if form.Deadline != nil && !form.Deadline.IsZero() {
 		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-			23, 59, 59, 0, form.Deadline.Location())
+			23, 59, 59, 0, time.Local)
 		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 	}
 

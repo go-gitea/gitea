@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 	"xorm.io/xorm"
 )
 
@@ -54,6 +56,11 @@ func initMigrationTest(t *testing.T) func() {
 	}
 
 	setting.NewContext()
+
+	assert.True(t, len(setting.RepoRootPath) != 0)
+	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
+	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+
 	setting.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)

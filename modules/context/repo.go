@@ -439,7 +439,7 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 		}
 
-		count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+		ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 			IncludeDrafts: false,
 			IncludeTags:   true,
 		})
@@ -447,7 +447,6 @@ func RepoAssignment() macaron.Handler {
 			ctx.ServerError("GetReleaseCountByRepoID", err)
 			return
 		}
-		ctx.Repo.Repository.NumReleases = int(count)
 
 		ctx.Data["Title"] = owner.Name + "/" + repo.Name
 		ctx.Data["Repository"] = repo
@@ -548,23 +547,27 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
 
 		// People who have push access or have forked repository can propose a new pull request.
-		if ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID)) {
-			// Pull request is allowed if this is a fork repository
-			// and base repository accepts pull requests.
-			if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
-				ctx.Data["BaseRepo"] = repo.BaseRepo
-				ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
-				ctx.Repo.PullRequest.Allowed = true
-				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
-			} else if repo.AllowsPulls() {
-				// Or, this is repository accepts pull requests between branches.
-				ctx.Data["BaseRepo"] = repo
-				ctx.Repo.PullRequest.BaseRepo = repo
-				ctx.Repo.PullRequest.Allowed = true
-				ctx.Repo.PullRequest.SameRepo = true
-				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
-			}
+		canPush := ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
+		canCompare := false
+
+		// Pull request is allowed if this is a fork repository
+		// and base repository accepts pull requests.
+		if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls() {
+			canCompare = true
+			ctx.Data["BaseRepo"] = repo.BaseRepo
+			ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
+			ctx.Repo.PullRequest.Allowed = canPush
+			ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
+		} else if repo.AllowsPulls() {
+			// Or, this is repository accepts pull requests between branches.
+			canCompare = true
+			ctx.Data["BaseRepo"] = repo
+			ctx.Repo.PullRequest.BaseRepo = repo
+			ctx.Repo.PullRequest.Allowed = canPush
+			ctx.Repo.PullRequest.SameRepo = true
+			ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
 		}
+		ctx.Data["CanCompareOrPull"] = canCompare
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 		if ctx.Query("go-get") == "1" {

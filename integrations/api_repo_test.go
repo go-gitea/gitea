@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -57,6 +58,12 @@ func TestAPISearchRepo(t *testing.T) {
 	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 20}).(*models.User)
 	orgUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
 
+	oldAPIDefaultNum := setting.API.DefaultPagingNum
+	defer func() {
+		setting.API.DefaultPagingNum = oldAPIDefaultNum
+	}()
+	setting.API.DefaultPagingNum = 10
+
 	// Map of expected results, where key is user for login
 	type expectedResults map[*models.User]struct {
 		count           int
@@ -79,7 +86,7 @@ func TestAPISearchRepo(t *testing.T) {
 			user:  {count: 10},
 			user2: {count: 10}},
 		},
-		{name: "RepositoriesDefaultMax10", requestURL: "/api/v1/repos/search?default&private=false", expectedResults: expectedResults{
+		{name: "RepositoriesDefault", requestURL: "/api/v1/repos/search?default&private=false", expectedResults: expectedResults{
 			nil:   {count: 10},
 			user:  {count: 10},
 			user2: {count: 10}},
@@ -209,13 +216,31 @@ func getRepo(t *testing.T, repoID int64) *models.Repository {
 func TestAPIViewRepo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
+	var repo api.Repository
+
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
-
-	var repo api.Repository
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, 1, repo.ID)
 	assert.EqualValues(t, "repo1", repo.Name)
+	assert.EqualValues(t, 1, repo.Releases)
+	assert.EqualValues(t, 1, repo.OpenIssues)
+	assert.EqualValues(t, 3, repo.OpenPulls)
+
+	req = NewRequest(t, "GET", "/api/v1/repos/user12/repo10")
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &repo)
+	assert.EqualValues(t, 10, repo.ID)
+	assert.EqualValues(t, "repo10", repo.Name)
+	assert.EqualValues(t, 1, repo.OpenPulls)
+	assert.EqualValues(t, 1, repo.Forks)
+
+	req = NewRequest(t, "GET", "/api/v1/repos/user5/repo4")
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &repo)
+	assert.EqualValues(t, 4, repo.ID)
+	assert.EqualValues(t, "repo4", repo.Name)
+	assert.EqualValues(t, 1, repo.Stars)
 }
 
 func TestAPIOrgRepos(t *testing.T) {

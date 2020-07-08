@@ -33,6 +33,17 @@ func TestAPIListIssues(t *testing.T) {
 	for _, apiIssue := range apiIssues {
 		models.AssertExistsAndLoadBean(t, &models.Issue{ID: apiIssue.ID, RepoID: repo.ID})
 	}
+
+	// test milestone filter
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues?state=all&type=all&milestones=ignore,milestone1,3,4&token=%s",
+		owner.Name, repo.Name, token)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	if assert.Len(t, apiIssues, 2) {
+		assert.EqualValues(t, 3, apiIssues[0].Milestone.ID)
+		assert.EqualValues(t, 1, apiIssues[1].Milestone.ID)
+	}
+
 }
 
 func TestAPICreateIssue(t *testing.T) {

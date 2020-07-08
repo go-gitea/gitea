@@ -202,8 +202,24 @@ var migrations = []Migration{
 	NewMigration("Add EmailHash Table", addEmailHashTable),
 	// v134 -> v135
 	NewMigration("Refix merge base for merged pull requests", refixMergeBase),
-	// v135 -> 136
+	// v135 -> v136
 	NewMigration("Add OrgID column to Labels table", addOrgIDLabelColumn),
+	// v136 -> v137
+	NewMigration("Add CommitsAhead and CommitsBehind Column to PullRequest Table", addCommitDivergenceToPulls),
+	// v137 -> v138
+	NewMigration("Add Branch Protection Block Outdated Branch", addBlockOnOutdatedBranch),
+	// v138 -> v139
+	NewMigration("Add ResolveDoerID to Comment table", addResolveDoerIDCommentColumn),
+	// v139 -> v140
+	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
+	// v140 -> v141
+	NewMigration("Save detected language file size to database instead of percent", fixLanguageStatsToSaveSize),
+	// v141 -> v142
+	NewMigration("Add KeepActivityPrivate to User table", addKeepActivityPrivateUserColumn),
+	// v142 -> v143
+	NewMigration("Ensure Repository.IsArchived is not null", setIsArchivedToFalse),
+	// v143 -> v144
+	NewMigration("recalculate Stars number for all user", recalculateStars),
 }
 
 // GetCurrentDBVersion returns the current db version

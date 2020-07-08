@@ -5,12 +5,12 @@
 package oauth2
 
 import (
-	"math"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	uuid "github.com/google/uuid"
 	"github.com/lafriks/xormstore"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -26,7 +26,6 @@ import (
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
 	"github.com/markbates/goth/providers/yandex"
-	"github.com/satori/go.uuid"
 	"xorm.io/xorm"
 )
 
@@ -58,11 +57,11 @@ func Init(x *xorm.Engine) error {
 	// when using OpenID Connect , since this can contain a large amount of extra information in the id_token
 
 	// Note, when using the FilesystemStore only the session.ID is written to a browser cookie, so this is explicit for the storage on disk
-	store.MaxLength(math.MaxInt16)
+	store.MaxLength(setting.OAuth2.MaxTokenLength)
 	gothic.Store = store
 
 	gothic.SetState = func(req *http.Request) string {
-		return uuid.NewV4().String()
+		return uuid.New().String()
 	}
 
 	gothic.GetProviderName = func(req *http.Request) (string, error) {

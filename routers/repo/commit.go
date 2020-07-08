@@ -212,8 +212,25 @@ func Diff(ctx *context.Context) {
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.Params(":sha")
+	var (
+		gitRepo  *git.Repository
+		err      error
+		repoPath string
+	)
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(commitID)
+	if ctx.Data["PageIsWiki"] != nil {
+		gitRepo, err = git.OpenRepository(ctx.Repo.Repository.WikiPath())
+		if err != nil {
+			ctx.ServerError("Repo.GitRepo.GetCommit", err)
+			return
+		}
+		repoPath = ctx.Repo.Repository.WikiPath()
+	} else {
+		gitRepo = ctx.Repo.GitRepo
+		repoPath = models.RepoPath(userName, repoName)
+	}
+
+	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("Repo.GitRepo.GetCommit", err)
@@ -233,7 +250,7 @@ func Diff(ctx *context.Context) {
 
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
 
-	diff, err := gitdiff.GetDiffCommit(models.RepoPath(userName, repoName),
+	diff, err := gitdiff.GetDiffCommit(repoPath,
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {
@@ -258,7 +275,7 @@ func Diff(ctx *context.Context) {
 
 	var parentCommit *git.Commit
 	if commit.ParentCount() > 0 {
-		parentCommit, err = ctx.Repo.GitRepo.GetCommit(parents[0])
+		parentCommit, err = gitRepo.GetCommit(parents[0])
 		if err != nil {
 			ctx.NotFound("GetParentCommit", err)
 			return
@@ -274,7 +291,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Author"] = models.ValidateCommitWithEmail(commit)
 	ctx.Data["Diff"] = diff
 	ctx.Data["Parents"] = parents
-	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
+	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
 		ctx.ServerError("CalculateTrustStatus", err)
@@ -292,14 +309,27 @@ func Diff(ctx *context.Context) {
 	ctx.Data["BranchName"], err = commit.GetBranchName()
 	if err != nil {
 		ctx.ServerError("commit.GetBranchName", err)
+		return
+	}
+
+	ctx.Data["TagName"], err = commit.GetTagName()
+	if err != nil {
+		ctx.ServerError("commit.GetTagName", err)
+		return
 	}
 	ctx.HTML(200, tplCommitPage)
 }
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
 func RawDiff(ctx *context.Context) {
+	var repoPath string
+	if ctx.Data["PageIsWiki"] != nil {
+		repoPath = ctx.Repo.Repository.WikiPath()
+	} else {
+		repoPath = models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	}
 	if err := git.GetRawDiff(
-		models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
+		repoPath,
 		ctx.Params(":sha"),
 		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,

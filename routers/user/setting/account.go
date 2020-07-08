@@ -149,6 +149,7 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 			return
 		}
 		log.Trace("Email notifications preference made %s: %s", preference, ctx.User.Name)
+		ctx.Flash.Success(ctx.Tr("settings.email_preference_set_success"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}

@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -47,6 +46,7 @@ type ProtectedBranch struct {
 	ApprovalsWhitelistTeamIDs []int64  `xorm:"JSON TEXT"`
 	RequiredApprovals         int64    `xorm:"NOT NULL DEFAULT 0"`
 	BlockOnRejectedReviews    bool     `xorm:"NOT NULL DEFAULT false"`
+	BlockOnOutdatedBranch     bool     `xorm:"NOT NULL DEFAULT false"`
 	DismissStaleApprovals     bool     `xorm:"NOT NULL DEFAULT false"`
 	RequireSignedCommits      bool     `xorm:"NOT NULL DEFAULT false"`
 	ProtectedFilePatterns     string   `xorm:"TEXT"`
@@ -177,12 +177,13 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 }
 
 // MergeBlockedByRejectedReview returns true if merge is blocked by rejected reviews
+// An official ReviewRequest should also block Merge like Reject
 func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullRequest) bool {
 	if !protectBranch.BlockOnRejectedReviews {
 		return false
 	}
 	rejectExist, err := x.Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeReject).
+		And("type in ( ?, ?)", ReviewTypeReject, ReviewTypeRequest).
 		And("official = ?", true).
 		Exist(new(Review))
 	if err != nil {
@@ -191,6 +192,11 @@ func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullReque
 	}
 
 	return rejectExist
+}
+
+// MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
+func (protectBranch *ProtectedBranch) MergeBlockedByOutdatedBranch(pr *PullRequest) bool {
+	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
 }
 
 // GetProtectedFilePatterns parses a semicolon separated list of protected file patterns and returns a glob.Glob slice
@@ -234,8 +240,8 @@ func getProtectedBranchBy(e Engine, repoID int64, branchName string) (*Protected
 
 // GetProtectedBranchByID getting protected branch by ID
 func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{ID: id}
-	has, err := x.Get(rel)
+	rel := &ProtectedBranch{}
+	has, err := x.ID(id).Get(rel)
 	if err != nil {
 		return nil, err
 	}
@@ -503,9 +509,9 @@ func (repo *Repository) GetDeletedBranches() ([]*DeletedBranch, error) {
 }
 
 // GetDeletedBranchByID get a deleted branch by its ID
-func (repo *Repository) GetDeletedBranchByID(ID int64) (*DeletedBranch, error) {
-	deletedBranch := &DeletedBranch{ID: ID}
-	has, err := x.Get(deletedBranch)
+func (repo *Repository) GetDeletedBranchByID(id int64) (*DeletedBranch, error) {
+	deletedBranch := &DeletedBranch{}
+	has, err := x.ID(id).Get(deletedBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -554,11 +560,11 @@ func RemoveDeletedBranch(repoID int64, branch string) error {
 }
 
 // RemoveOldDeletedBranches removes old deleted branches
-func RemoveOldDeletedBranches(ctx context.Context) {
+func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 	// Nothing to do for shutdown or terminate
 	log.Trace("Doing: DeletedBranchesCleanup")
 
-	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)
+	deleteBefore := time.Now().Add(-olderThan)
 	_, err := x.Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
 	if err != nil {
 		log.Error("DeletedBranchesCleanup: %v", err)

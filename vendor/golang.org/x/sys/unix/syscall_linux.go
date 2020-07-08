@@ -97,6 +97,12 @@ func IoctlSetRTCTime(fd int, value *RTCTime) error {
 	return err
 }
 
+func IoctlSetRTCWkAlrm(fd int, value *RTCWkAlrm) error {
+	err := ioctl(fd, RTC_WKALM_SET, uintptr(unsafe.Pointer(value)))
+	runtime.KeepAlive(value)
+	return err
+}
+
 func IoctlGetUint32(fd int, req uint) (uint32, error) {
 	var value uint32
 	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
@@ -106,6 +112,12 @@ func IoctlGetUint32(fd int, req uint) (uint32, error) {
 func IoctlGetRTCTime(fd int) (*RTCTime, error) {
 	var value RTCTime
 	err := ioctl(fd, RTC_RD_TIME, uintptr(unsafe.Pointer(&value)))
+	return &value, err
+}
+
+func IoctlGetRTCWkAlrm(fd int) (*RTCWkAlrm, error) {
+	var value RTCWkAlrm
+	err := ioctl(fd, RTC_WKALM_RD, uintptr(unsafe.Pointer(&value)))
 	return &value, err
 }
 
@@ -839,6 +851,40 @@ func (sa *SockaddrTIPC) sockaddr() (unsafe.Pointer, _Socklen, error) {
 	return unsafe.Pointer(&sa.raw), SizeofSockaddrTIPC, nil
 }
 
+// SockaddrL2TPIP implements the Sockaddr interface for IPPROTO_L2TP/AF_INET sockets.
+type SockaddrL2TPIP struct {
+	Addr   [4]byte
+	ConnId uint32
+	raw    RawSockaddrL2TPIP
+}
+
+func (sa *SockaddrL2TPIP) sockaddr() (unsafe.Pointer, _Socklen, error) {
+	sa.raw.Family = AF_INET
+	sa.raw.Conn_id = sa.ConnId
+	for i := 0; i < len(sa.Addr); i++ {
+		sa.raw.Addr[i] = sa.Addr[i]
+	}
+	return unsafe.Pointer(&sa.raw), SizeofSockaddrL2TPIP, nil
+}
+
+// SockaddrL2TPIP6 implements the Sockaddr interface for IPPROTO_L2TP/AF_INET6 sockets.
+type SockaddrL2TPIP6 struct {
+	Addr   [16]byte
+	ZoneId uint32
+	ConnId uint32
+	raw    RawSockaddrL2TPIP6
+}
+
+func (sa *SockaddrL2TPIP6) sockaddr() (unsafe.Pointer, _Socklen, error) {
+	sa.raw.Family = AF_INET6
+	sa.raw.Conn_id = sa.ConnId
+	sa.raw.Scope_id = sa.ZoneId
+	for i := 0; i < len(sa.Addr); i++ {
+		sa.raw.Addr[i] = sa.Addr[i]
+	}
+	return unsafe.Pointer(&sa.raw), SizeofSockaddrL2TPIP6, nil
+}
+
 func anyToSockaddr(fd int, rsa *RawSockaddrAny) (Sockaddr, error) {
 	switch rsa.Addr.Family {
 	case AF_NETLINK:
@@ -889,25 +935,58 @@ func anyToSockaddr(fd int, rsa *RawSockaddrAny) (Sockaddr, error) {
 		return sa, nil
 
 	case AF_INET:
-		pp := (*RawSockaddrInet4)(unsafe.Pointer(rsa))
-		sa := new(SockaddrInet4)
-		p := (*[2]byte)(unsafe.Pointer(&pp.Port))
-		sa.Port = int(p[0])<<8 + int(p[1])
-		for i := 0; i < len(sa.Addr); i++ {
-			sa.Addr[i] = pp.Addr[i]
+		proto, err := GetsockoptInt(fd, SOL_SOCKET, SO_PROTOCOL)
+		if err != nil {
+			return nil, err
 		}
-		return sa, nil
+
+		switch proto {
+		case IPPROTO_L2TP:
+			pp := (*RawSockaddrL2TPIP)(unsafe.Pointer(rsa))
+			sa := new(SockaddrL2TPIP)
+			sa.ConnId = pp.Conn_id
+			for i := 0; i < len(sa.Addr); i++ {
+				sa.Addr[i] = pp.Addr[i]
+			}
+			return sa, nil
+		default:
+			pp := (*RawSockaddrInet4)(unsafe.Pointer(rsa))
+			sa := new(SockaddrInet4)
+			p := (*[2]byte)(unsafe.Pointer(&pp.Port))
+			sa.Port = int(p[0])<<8 + int(p[1])
+			for i := 0; i < len(sa.Addr); i++ {
+				sa.Addr[i] = pp.Addr[i]
+			}
+			return sa, nil
+		}
 
 	case AF_INET6:
-		pp := (*RawSockaddrInet6)(unsafe.Pointer(rsa))
-		sa := new(SockaddrInet6)
-		p := (*[2]byte)(unsafe.Pointer(&pp.Port))
-		sa.Port = int(p[0])<<8 + int(p[1])
-		sa.ZoneId = pp.Scope_id
-		for i := 0; i < len(sa.Addr); i++ {
-			sa.Addr[i] = pp.Addr[i]
+		proto, err := GetsockoptInt(fd, SOL_SOCKET, SO_PROTOCOL)
+		if err != nil {
+			return nil, err
 		}
-		return sa, nil
+
+		switch proto {
+		case IPPROTO_L2TP:
+			pp := (*RawSockaddrL2TPIP6)(unsafe.Pointer(rsa))
+			sa := new(SockaddrL2TPIP6)
+			sa.ConnId = pp.Conn_id
+			sa.ZoneId = pp.Scope_id
+			for i := 0; i < len(sa.Addr); i++ {
+				sa.Addr[i] = pp.Addr[i]
+			}
+			return sa, nil
+		default:
+			pp := (*RawSockaddrInet6)(unsafe.Pointer(rsa))
+			sa := new(SockaddrInet6)
+			p := (*[2]byte)(unsafe.Pointer(&pp.Port))
+			sa.Port = int(p[0])<<8 + int(p[1])
+			sa.ZoneId = pp.Scope_id
+			for i := 0; i < len(sa.Addr); i++ {
+				sa.Addr[i] = pp.Addr[i]
+			}
+			return sa, nil
+		}
 
 	case AF_VSOCK:
 		pp := (*RawSockaddrVM)(unsafe.Pointer(rsa))
@@ -1566,6 +1645,15 @@ func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 //sys	CopyFileRange(rfd int, roff *int64, wfd int, woff *int64, len int, flags int) (n int, err error)
 //sys	DeleteModule(name string, flags int) (err error)
 //sys	Dup(oldfd int) (fd int, err error)
+
+func Dup2(oldfd, newfd int) error {
+	// Android O and newer blocks dup2; riscv and arm64 don't implement dup2.
+	if runtime.GOOS == "android" || runtime.GOARCH == "riscv64" || runtime.GOARCH == "arm64" {
+		return Dup3(oldfd, newfd, 0)
+	}
+	return dup2(oldfd, newfd)
+}
+
 //sys	Dup3(oldfd int, newfd int, flags int) (err error)
 //sysnb	EpollCreate1(flag int) (fd int, err error)
 //sysnb	EpollCtl(epfd int, op int, fd int, event *EpollEvent) (err error)
@@ -1690,6 +1778,9 @@ func Signalfd(fd int, sigmask *Sigset_t, flags int) (newfd int, err error) {
 //sys	Syncfs(fd int) (err error)
 //sysnb	Sysinfo(info *Sysinfo_t) (err error)
 //sys	Tee(rfd int, wfd int, len int, flags int) (n int64, err error)
+//sysnb TimerfdCreate(clockid int, flags int) (fd int, err error)
+//sysnb TimerfdGettime(fd int, currValue *ItimerSpec) (err error)
+//sysnb TimerfdSettime(fd int, flags int, newValue *ItimerSpec, oldValue *ItimerSpec) (err error)
 //sysnb	Tgkill(tgid int, tid int, sig syscall.Signal) (err error)
 //sysnb	Times(tms *Tms) (ticks uintptr, err error)
 //sysnb	Umask(mask int) (oldmask int)
@@ -2111,7 +2202,6 @@ func Klogset(typ int, arg int) (err error) {
 // TimerGetoverrun
 // TimerGettime
 // TimerSettime
-// Timerfd
 // Tkill (obsolete)
 // Tuxcall
 // Umount2

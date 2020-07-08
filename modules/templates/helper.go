@@ -25,6 +25,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
@@ -139,6 +140,9 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderEmoji":                    RenderEmoji,
+		"RenderEmojiPlain":               emoji.ReplaceAliases,
+		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
 		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
@@ -160,9 +164,16 @@ func NewFuncMap() []template.FuncMap {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
 			return strings.HasPrefix(mimeType, "image/")
 		},
-		"TabSizeClass": func(ec *editorconfig.Editorconfig, filename string) string {
+		"TabSizeClass": func(ec interface{}, filename string) string {
+			var (
+				value *editorconfig.Editorconfig
+				ok    bool
+			)
 			if ec != nil {
-				def, err := ec.GetDefinitionForFilename(filename)
+				if value, ok = ec.(*editorconfig.Editorconfig); !ok || value == nil {
+					return "tab-size-8"
+				}
+				def, err := value.GetDefinitionForFilename(filename)
 				if err != nil {
 					log.Error("tab size class: getting definition for filename: %v", err)
 					return "tab-size-8"
@@ -278,6 +289,14 @@ func NewFuncMap() []template.FuncMap {
 				return ""
 			}
 		},
+		"NotificationSettings": func() map[string]interface{} {
+			return map[string]interface{}{
+				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
+				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
+				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
+			}
+		},
 		"contain": func(s []int64, id int64) bool {
 			for i := 0; i < len(s); i++ {
 				if s[i] == id {
@@ -286,8 +305,30 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg": func(icon string, size int) template.HTML {
-			return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
+		"svg": SVG,
+		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
+			// if needed
+			if len(normSort) == 0 || len(urlSort) == 0 {
+				return ""
+			}
+
+			if len(urlSort) == 0 && isDefault {
+				// if sort is sorted as default add arrow tho this table header
+				if isDefault {
+					return SVG("octicon-triangle-down", 16)
+				}
+			} else {
+				// if sort arg is in url test if it correlates with column header sort arguments
+				if urlSort == normSort {
+					// the table is sorted with this header normal
+					return SVG("octicon-triangle-down", 16)
+				} else if urlSort == revSort {
+					// the table is sorted with this header reverse
+					return SVG("octicon-triangle-up", 16)
+				}
+			}
+			// the table is NOT sorted with this header
+			return ""
 		},
 	}}
 }
@@ -398,6 +439,11 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 	}}
 }
 
+// SVG render icons
+func SVG(icon string, size int) template.HTML {
+	return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
+}
+
 // Safe render raw as HTML
 func Safe(raw string) template.HTML {
 	return template.HTML(raw)
@@ -505,6 +551,29 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 	return template.HTML(renderedMessage)
 }
 
+// RenderEmoji renders html text with emoji post processors
+func RenderEmoji(text string) template.HTML {
+	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
+	if err != nil {
+		log.Error("RenderEmoji: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedText)
+}
+
+//ReactionToEmoji renders emoji for use in reactions
+func ReactionToEmoji(reaction string) template.HTML {
+	val := emoji.FromCode(reaction)
+	if val != nil {
+		return template.HTML(val.Emoji)
+	}
+	val = emoji.FromAlias(reaction)
+	if val != nil {
+		return template.HTML(val.Emoji)
+	}
+	return template.HTML(fmt.Sprintf(`<img src=%s/img/emoji/%s.png></img>`, setting.StaticURLPrefix, reaction))
+}
+
 // RenderNote renders the contents of a git-notes file as a commit message.
 func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
@@ -557,11 +626,11 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
 		return "repo-clone"
 	case models.ActionApprovePullRequest:
-		return "eye"
+		return "check"
 	case models.ActionRejectPullRequest:
-		return "x"
+		return "request-changes"
 	default:
-		return "invalid type"
+		return "question"
 	}
 }
 

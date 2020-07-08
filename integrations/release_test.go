@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -63,6 +65,9 @@ func TestViewReleases(t *testing.T) {
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	session.MakeRequest(t, req, http.StatusOK)
+
+	// if CI is to slow this test fail, so lets wait a bit
+	time.Sleep(time.Millisecond * 100)
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {
@@ -101,6 +106,12 @@ func TestCreateReleaseDraft(t *testing.T) {
 
 func TestCreateReleasePaging(t *testing.T) {
 	defer prepareTestEnv(t)()
+
+	oldAPIDefaultNum := setting.API.DefaultPagingNum
+	defer func() {
+		setting.API.DefaultPagingNum = oldAPIDefaultNum
+	}()
+	setting.API.DefaultPagingNum = 10
 
 	session := loginUser(t, "user2")
 	// Create enaugh releases to have paging

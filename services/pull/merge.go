@@ -337,6 +337,10 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 			return "", err
 		}
 
+		if err = pr.Issue.LoadPoster(); err != nil {
+			log.Error("LoadPoster: %v", err)
+			return "", fmt.Errorf("LoadPoster: %v", err)
+		}
 		sig := pr.Issue.Poster.NewGitSig()
 		if signArg == "" {
 			if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
@@ -531,7 +535,7 @@ func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error)
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
 func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
-	if !p.CanWrite(models.UnitTypeCode) {
+	if user == nil {
 		return false, nil
 	}
 
@@ -540,7 +544,7 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *mod
 		return false, err
 	}
 
-	if pr.ProtectedBranch == nil || pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID) {
+	if (p.CanWrite(models.UnitTypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID)) {
 		return true, nil
 	}
 
@@ -570,14 +574,20 @@ func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
 		}
 	}
 
-	if enoughApprovals := pr.ProtectedBranch.HasEnoughApprovals(pr); !enoughApprovals {
+	if !pr.ProtectedBranch.HasEnoughApprovals(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "Does not have enough approvals",
 		}
 	}
-	if rejected := pr.ProtectedBranch.MergeBlockedByRejectedReview(pr); rejected {
+	if pr.ProtectedBranch.MergeBlockedByRejectedReview(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "There are requested changes",
+		}
+	}
+
+	if pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: "The head branch is behind the base branch",
 		}
 	}
 

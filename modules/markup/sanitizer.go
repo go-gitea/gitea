@@ -37,12 +37,12 @@ func NewSanitizer() {
 // ReplaceSanitizer replaces the current sanitizer to account for changes in settings
 func ReplaceSanitizer() {
 	sanitizer.policy = bluemonday.UGCPolicy()
-	// We only want to allow HighlightJS specific classes for code blocks
-	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^language-[\w-]+$`)).OnElements("code")
+	// For Chroma markdown plugin
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(chroma )?language-[\w-]+$`)).OnElements("code")
 
 	// Checkboxes
 	sanitizer.policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
-	sanitizer.policy.AllowAttrs("checked", "disabled").OnElements("input")
+	sanitizer.policy.AllowAttrs("checked", "disabled", "readonly").OnElements("input")
 
 	// Custom URL-Schemes
 	sanitizer.policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
@@ -54,7 +54,19 @@ func ReplaceSanitizer() {
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`ref-issue`)).OnElements("a")
 
 	// Allow classes for task lists
-	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list`)).OnElements("ul")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`task-list-item`)).OnElements("li")
+
+	// Allow icons
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^icon(\s+[\p{L}\p{N}_-]+)+$`)).OnElements("i")
+
+	// Allow unlabelled labels
+	sanitizer.policy.AllowNoAttrs().OnElements("label")
+
+	// Allow classes for emojis
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("img")
+
+	// Allow icons, checkboxes, emojis, and chroma syntax on span
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(ui checkbox)|(ui checked checkbox)|(emoji))$|^([a-z][a-z0-9]{0,2})$`)).OnElements("span")
 
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",
