@@ -60,7 +60,7 @@ func ExecuteQuery(query string, schema graphql.Schema, ctx *giteaCtx.APIContext)
 	result := graphql.Do(graphql.Params{
 		Schema:        schema,
 		RequestString: query,
-		Context: context.WithValue(context.Background(), "giteaApiContext", *ctx),
+		Context: context.WithValue(context.Background(), "giteaApiContext", ctx),
 		RootObject: make(map[string]interface{}),
 	})
 

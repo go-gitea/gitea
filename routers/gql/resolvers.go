@@ -6,34 +6,62 @@ package gql
 
 import (
 	"errors"
+	"strings"
 
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"github.com/graphql-go/graphql"
-	giteaCtx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/models"
+	giteaCtx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
+	"github.com/graphql-go/graphql"
 )
 
 // RepositoryResolver resolves a repository
 func RepositoryResolver(p graphql.ResolveParams) (interface{}, error) {
-	ctx := p.Context.Value("giteaApiContext").(giteaCtx.APIContext)
-	err := authorizeRepository(ctx)
-	if err != nil {
-		return nil, err
-	}
 	owner, ownerOk := p.Args["owner"].(string)
 	name, nameOk := p.Args["name"].(string)
 	if ownerOk && nameOk {
-		repo, err := models.GetRepositoryByOwnerAndName(owner, name)
+		ctx := p.Context.Value("giteaApiContext").(*giteaCtx.APIContext)
+
+		var (
+			repoOwner *models.User
+			err   error
+		)
+
+		// Check if the user is the same as the repository owner.
+		if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(owner) {
+			repoOwner = ctx.User
+		} else {
+			repoOwner, err = models.GetUserByName(owner)
+			if err != nil {
+				return nil, err
+			}
+		}
+		ctx.Repo.Owner = repoOwner
+
+		// Get repository.
+		repo, err := models.GetRepositoryByName(repoOwner.ID, name)
 		if err != nil {
 			return nil, err
 		}
 
-		//set repo into the root value map so child resolvers can access it
-		rootValue := p.Info.RootValue.(map[string]interface{})
-		rootValue["repo"] = repo
+		repo.Owner = repoOwner
+		ctx.Repo.Repository = repo
+
+		ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
+		if err != nil {
+			return nil, err
+		}
+
+		if !ctx.Repo.HasAccess() {
+			return nil, errors.New("repo not found")
+		}
+
+		err = authorizeRepository(ctx)
+		if err != nil {
+			return nil, err
+		}
 
 		gqlRepo := repo.GqlFormat(models.AccessModeRead)
 		return *gqlRepo, nil
@@ -42,8 +70,8 @@ func RepositoryResolver(p graphql.ResolveParams) (interface{}, error) {
 	return nil, errors.New("both owner and repository name must be provided")
 }
 
-func authorizeRepository(ctx giteaCtx.APIContext) error {
-	if !utils.IsAnyRepoReader(&ctx) {
+func authorizeRepository(ctx *giteaCtx.APIContext) error {
+	if !utils.IsAnyRepoReader(ctx) {
 		return errors.New("Must have permission to read repository")
 	}
 	return nil
@@ -51,20 +79,17 @@ func authorizeRepository(ctx giteaCtx.APIContext) error {
 
 // CollaboratorsResolver resolves collaborators list for a repository
 func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
-	ctx := p.Context.Value("giteaApiContext").(giteaCtx.APIContext)
+	ctx := p.Context.Value("giteaApiContext").(*giteaCtx.APIContext)
 	err := authorizeCollaborators(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rootValue := p.Info.RootValue.(map[string]interface{})
-	repo := rootValue["repo"].(*models.Repository)
-
 	limitOptions := models.ListOptions{
 		Page:     0,
 		PageSize: 50,
 	}
-	collaborators, err := repo.GetCollaborators(limitOptions)
+	collaborators, err := ctx.Repo.Repository.GetCollaborators(limitOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -75,11 +100,11 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 	return users, nil
 }
 
-func authorizeCollaborators(ctx giteaCtx.APIContext) error {
-	if false == ctx.Data["IsApiToken"] {
-		return errors.New("Api token missing")
+func authorizeCollaborators(ctx *giteaCtx.APIContext) error {
+	if _, found :=  ctx.Data["IsApiToken"]; !found {
+		return errors.New("Api token missing or invalid")
 	}
-	if !utils.IsAnyRepoReader(&ctx) {
+	if !utils.IsAnyRepoReader(ctx) {
 		return errors.New("Must have permission to read repository")
 	}
 	return nil
@@ -87,16 +112,13 @@ func authorizeCollaborators(ctx giteaCtx.APIContext) error {
 
 // BranchesResolver resovles the branches of a repository
 func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
-	ctx := p.Context.Value("giteaApiContext").(giteaCtx.APIContext)
+	ctx := p.Context.Value("giteaApiContext").(*giteaCtx.APIContext)
 	err := authorizeBranches(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rootValue := p.Info.RootValue.(map[string]interface{})
-	repo := rootValue["repo"].(*models.Repository)
-
-	branches, err := repo_module.GetBranches(repo)
+	branches, err := repo_module.GetBranches(ctx.Repo.Repository)
 	if err != nil {
 		return nil, err
 	}
@@ -107,11 +129,12 @@ func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		branchProtection, err := repo.GetBranchProtection(branches[i].Name)
+		branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branches[i].Name)
 		if err != nil {
 			return nil, err
 		}
-		apiBranches[i], err = convert.ToBranch(repo, branches[i], c, branchProtection, ctx.User, ctx.Repo.IsAdmin())
+		apiBranches[i], err = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection,
+			ctx.User, ctx.Repo.IsAdmin())
 		if err != nil {
 			return nil, err
 		}
@@ -119,8 +142,8 @@ func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
 	return apiBranches, nil
 }
 
-func authorizeBranches(ctx giteaCtx.APIContext) error {
-	if !utils.IsRepoReader(&ctx, models.UnitTypeCode) {
+func authorizeBranches(ctx *giteaCtx.APIContext) error {
+	if !utils.IsRepoReader(ctx, models.UnitTypeCode) {
 		return errors.New("Must have read permission or be a repo or site admin")
 	}
 	return nil
