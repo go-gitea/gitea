@@ -44,6 +44,9 @@ func NewContext() {
 func Code(fileName, code string) string {
 	NewContext()
 
+	if code == "" {
+		return "\n"
+	}
 	if len(code) > sizeLimit {
 		return code
 	}
