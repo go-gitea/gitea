@@ -10,9 +10,7 @@ export default async function initProject() {
 
   for (const column of boardColumns) {
     new Sortable(
-      document.getElementById(
-        column.getElementsByClassName('board')[0].id
-      ),
+      column.getElementsByClassName('board')[0]
       {
         group: 'shared',
         animation: 150,
