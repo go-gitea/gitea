@@ -126,12 +126,12 @@ var checklist = []check{
 		isDefault: false,
 		f:         runDoctorUserStarNum,
 	},
-  {
-  	title:     "Enable push options",
+	{
+		title:     "Enable push options",
 		name:      "enable-push-options",
 		isDefault: false,
 		f:         runDoctorEnablePushOptions,
-  }
+	},
 	// more checks please append here
 }
 
