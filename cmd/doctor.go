@@ -120,6 +120,12 @@ var checklist = []check{
 		isDefault: false,
 		f:         runDoctorPRMergeBase,
 	},
+	{
+		title:     "Recalculate Stars number for all user",
+		name:      "recalculate_stars_number",
+		isDefault: false,
+		f:         runDoctorUserStarNum,
+	},
 	// more checks please append here
 }
 
@@ -492,6 +498,10 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 	}
 
 	return results, err
+}
+
+func runDoctorUserStarNum(ctx *cli.Context) ([]string, error) {
+	return nil, models.DoctorUserStarNum()
 }
 
 func runDoctorScriptType(ctx *cli.Context) ([]string, error) {

@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
@@ -68,7 +69,7 @@ func Code(fileName, code string) string {
 		lexer = lexers.Fallback
 	}
 
-	iterator, err := lexer.Tokenise(nil, string(code))
+	iterator, err := lexer.Tokenise(&chroma.TokeniseOptions{State: "root", Nested: true}, string(code))
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
 		return code
