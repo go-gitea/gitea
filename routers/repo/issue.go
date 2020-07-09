@@ -178,7 +178,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	}
 
 	isShowClosed := ctx.Query("state") == "closed"
-	// if open issues are zero and close dont use closed as default
+	// if open issues are zero and close don't, use closed as default
 	if len(ctx.Query("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
 		isShowClosed = true
 	}
