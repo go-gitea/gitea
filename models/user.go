@@ -448,8 +448,8 @@ func (u *User) AvatarLink() string {
 // GetFollowers returns range of user's followers.
 func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
 	sess := x.
-		Where("follow.follow_id=?", u.ID).
-		Join("LEFT", "follow", "`"+RealTableName("user")+"`.id=follow.user_id")
+		Where(RealTableName("follow")+".follow_id=?", u.ID).
+		Join("LEFT", RealTableName("follow"), "`"+RealTableName("user")+"`.id="+RealTableName("follow")+".user_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -471,7 +471,7 @@ func (u *User) IsFollowing(followID int64) bool {
 func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
 	sess := x.
 		Where(RealTableName("follow")+".user_id=?", u.ID).
-		Join("LEFT", RealTableName("follow"), "`"+RealTableName("user")+"`.id=follow.follow_id")
+		Join("LEFT", RealTableName("follow"), "`"+RealTableName("user")+"`.id="+RealTableName("follow")+".follow_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -660,7 +660,7 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 
 	if len(units) > 0 {
 		sess = sess.Join("INNER", RealTableName("repo_unit"), RealTableName("repository")+".id = "+RealTableName("repo_unit")+".repo_id")
-		sess = sess.In("repo_unit.type", units)
+		sess = sess.In(RealTableName("repo_unit")+".type", units)
 	}
 
 	return ids, sess.Where("owner_id = ?", u.ID).Find(&ids)
@@ -672,11 +672,11 @@ func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
 
 	if err := x.Table(RealTableName("repository")).
-		Cols("repository.id").
-		Join("INNER", "team_user", RealTableName("repository")+".owner_id = team_user.org_id").
-		Join("INNER", "team_repo", "(? != ? and repository.is_private != ?) OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true, u.IsRestricted, true).
+		Cols(RealTableName("repository")+".id").
+		Join("INNER", RealTableName("team_user"), RealTableName("repository")+".owner_id = "+RealTableName("team_user")+".org_id").
+		Join("INNER", RealTableName("team_repo"), "(? != ? and "+RealTableName("repository")+".is_private != ?) OR ("+RealTableName("team_user")+".team_id = "+RealTableName("team_repo")+".team_id AND "+RealTableName("repository")+".id = "+RealTableName("team_repo")+".repo_id)", true, u.IsRestricted, true).
 		Where(RealTableName("team_user")+".uid = ?", u.ID).
-		GroupBy("repository.id").Find(&ids); err != nil {
+		GroupBy(RealTableName("repository") + ".id").Find(&ids); err != nil {
 		return nil, err
 	}
 

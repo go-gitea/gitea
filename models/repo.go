@@ -1567,8 +1567,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	attachments := make([]*Attachment, 0, 20)
-	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
-		Where("`release`.repo_id = ?", repoID).
+	if err = sess.Join("INNER", "`"+RealTableName("release")+"`", "`"+RealTableName("release")+"`.id = `"+RealTableName("attachment")+"`.release_id").
+		Where("`"+RealTableName("release")+"`.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
 		return err
 	}
