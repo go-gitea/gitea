@@ -82,7 +82,7 @@ func CheckIssueWatch(user *User, issue *Issue) (bool, error) {
 }
 
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id
-// but avoids joining with `user` for performance reasons
+// but avoids joining with `"+ RealTableName("user") + "` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetIssueWatchersIDs(issueID int64, watching bool) ([]int64, error) {
 	return getIssueWatchersIDs(x, issueID, watching)
@@ -90,7 +90,7 @@ func GetIssueWatchersIDs(issueID int64, watching bool) ([]int64, error) {
 
 func getIssueWatchersIDs(e Engine, issueID int64, watching bool) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, e.Table("issue_watch").
+	return ids, e.Table(RealTableName("issue_watch")).
 		Where("issue_id=?", issueID).
 		And("is_watching = ?", watching).
 		Select("user_id").
@@ -104,11 +104,11 @@ func GetIssueWatchers(issueID int64, listOptions ListOptions) (IssueWatchList, e
 
 func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWatchList, error) {
 	sess := e.
-		Where("`issue_watch`.issue_id = ?", issueID).
-		And("`issue_watch`.is_watching = ?", true).
-		And("`user`.is_active = ?", true).
-		And("`user`.prohibit_login = ?", false).
-		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id")
+		Where("`"+RealTableName("issue_watch")+"`.issue_id = ?", issueID).
+		And("`"+RealTableName("issue_watch")+"`.is_watching = ?", true).
+		And("`"+RealTableName("user")+"`.is_active = ?", true).
+		And("`"+RealTableName("user")+"`.prohibit_login = ?", false).
+		Join("INNER", "`"+RealTableName("user")+"`", "`"+RealTableName("user")+"`.id = `"+RealTableName("issue_watch")+"`.user_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -121,8 +121,8 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWa
 
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
 	_, err := e.
-		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
-		Where("`issue_watch`.user_id = ?", userID).
+		Join("INNER", RealTableName("issue"), "`"+RealTableName("issue")+"`.id = `"+RealTableName("issue_watch")+"`.issue_id AND `"+RealTableName("issue")+"`.repo_id = ?", repoID).
+		Where("`"+RealTableName("issue_watch")+"`.user_id = ?", userID).
 		Delete(new(IssueWatch))
 	return err
 }

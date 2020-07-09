@@ -81,7 +81,7 @@ type FindTrackedTimesOptions struct {
 
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
-	cond := builder.NewCond().And(builder.Eq{"tracked_time.deleted": false})
+	cond := builder.NewCond().And(builder.Eq{RealTableName("tracked_time") + ".deleted": false})
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
@@ -89,16 +89,16 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 		cond = cond.And(builder.Eq{"user_id": opts.UserID})
 	}
 	if opts.RepositoryID != 0 {
-		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepositoryID})
+		cond = cond.And(builder.Eq{RealTableName("issue") + ".repo_id": opts.RepositoryID})
 	}
 	if opts.MilestoneID != 0 {
-		cond = cond.And(builder.Eq{"issue.milestone_id": opts.MilestoneID})
+		cond = cond.And(builder.Eq{RealTableName("issue") + ".milestone_id": opts.MilestoneID})
 	}
 	if opts.CreatedAfterUnix != 0 {
-		cond = cond.And(builder.Gte{"tracked_time.created_unix": opts.CreatedAfterUnix})
+		cond = cond.And(builder.Gte{RealTableName("tracked_time") + ".created_unix": opts.CreatedAfterUnix})
 	}
 	if opts.CreatedBeforeUnix != 0 {
-		cond = cond.And(builder.Lte{"tracked_time.created_unix": opts.CreatedBeforeUnix})
+		cond = cond.And(builder.Lte{RealTableName("tracked_time") + ".created_unix": opts.CreatedBeforeUnix})
 	}
 	return cond
 }
@@ -107,7 +107,7 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 func (opts *FindTrackedTimesOptions) ToSession(e Engine) Engine {
 	sess := e
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
-		sess = e.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
+		sess = e.Join("INNER", RealTableName("issue"), RealTableName("issue")+".id = "+RealTableName("tracked_time")+".issue_id")
 	}
 
 	sess = sess.Where(opts.ToCond())
@@ -288,7 +288,7 @@ func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err
 		return
 	}
 
-	_, err = opts.ToSession(e).Table("tracked_time").Cols("deleted").Update(&TrackedTime{Deleted: true})
+	_, err = opts.ToSession(e).Table(RealTableName("tracked_time")).Cols("deleted").Update(&TrackedTime{Deleted: true})
 	return
 }
 

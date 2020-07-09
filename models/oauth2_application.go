@@ -41,7 +41,7 @@ type OAuth2Application struct {
 
 // TableName sets the table name to `oauth2_application`
 func (app *OAuth2Application) TableName() string {
-	return "oauth2_application"
+	return RealTableName("oauth2_application")
 }
 
 // PrimaryRedirectURI returns the first redirect uri or an empty string if empty
@@ -301,7 +301,7 @@ type OAuth2AuthorizationCode struct {
 
 // TableName sets the table name to `oauth2_authorization_code`
 func (code *OAuth2AuthorizationCode) TableName() string {
-	return "oauth2_authorization_code"
+	return RealTableName("oauth2_authorization_code")
 }
 
 // GenerateRedirectURI generates a redirect URI for a successful authorization request. State will be used if not empty.
@@ -386,7 +386,7 @@ type OAuth2Grant struct {
 
 // TableName sets the table name to `oauth2_grant`
 func (grant *OAuth2Grant) TableName() string {
-	return "oauth2_grant"
+	return RealTableName("oauth2_grant")
 }
 
 // GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the databse
@@ -459,9 +459,9 @@ func getOAuth2GrantsByUserID(e Engine, uid int64) ([]*OAuth2Grant, error) {
 	var results *xorm.Rows
 	var err error
 	if results, err = e.
-		Table("oauth2_grant").
+		Table(RealTableName("oauth2_grant")).
 		Where("user_id = ?", uid).
-		Join("INNER", "oauth2_application", "application_id = oauth2_application.id").
+		Join("INNER", RealTableName("oauth2_application"), "application_id = "+RealTableName("oauth2_application")+".id").
 		Rows(new(joinedOAuth2Grant)); err != nil {
 		return nil, err
 	}

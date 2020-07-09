@@ -106,15 +106,15 @@ type repoAccess struct {
 }
 
 func (repoAccess) TableName() string {
-	return "access"
+	return RealTableName("access")
 }
 
 // GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
 func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 	rows, err := x.
-		Join("INNER", "repository", "repository.id = access.repo_id").
-		Where("access.user_id = ?", user.ID).
-		And("repository.owner_id <> ?", user.ID).
+		Join("INNER", RealTableName("repository"), RealTableName("repository")+".id = "+RealTableName("access")+".repo_id").
+		Where(RealTableName("access")+".user_id = ?", user.ID).
+		And(RealTableName("repository")+".owner_id <> ?", user.ID).
 		Rows(new(repoAccess))
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ e
 		repos = make([]*Repository, 0, 10)
 	}
 	return repos, sess.
-		Join("INNER", "access", "access.user_id = ? AND access.repo_id = repository.id", user.ID).
+		Join("INNER", RealTableName("access"), RealTableName("access")+".user_id = ? AND  "+RealTableName("access")+".repo_id = "+RealTableName("repository")+".id", user.ID).
 		Find(&repos)
 }
 
@@ -294,11 +294,11 @@ func (repo *Repository) recalculateUserAccess(e Engine, uid int64) (err error) {
 		return err
 	} else if repo.Owner.IsOrganization() {
 		var teams []Team
-		if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
-			Join("INNER", "team_user", "team_user.team_id = team.id").
-			Where("team.org_id = ?", repo.OwnerID).
-			And("team_repo.repo_id=?", repo.ID).
-			And("team_user.uid=?", uid).
+		if err := e.Join("INNER", RealTableName("team_repo"), RealTableName("team_repo")+".team_id = "+RealTableName("team")+".id").
+			Join("INNER", RealTableName("team_user"), RealTableName("team_user")+".team_id = "+RealTableName("team")+".id").
+			Where(RealTableName("team")+".org_id = ?", repo.OwnerID).
+			And(RealTableName("team_repo")+".repo_id=?", repo.ID).
+			And(RealTableName("team_user")+".uid=?", uid).
 			Find(&teams); err != nil {
 			return err
 		}

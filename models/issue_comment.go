@@ -703,7 +703,7 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 		}
 		fallthrough
 	case CommentTypeComment:
-		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+		if _, err = e.Exec("UPDATE `"+RealTableName("issue")+"` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
 
@@ -911,22 +911,22 @@ type FindCommentsOptions struct {
 func (opts *FindCommentsOptions) toConds() builder.Cond {
 	var cond = builder.NewCond()
 	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
+		cond = cond.And(builder.Eq{RealTableName("issue") + ".repo_id": opts.RepoID})
 	}
 	if opts.IssueID > 0 {
-		cond = cond.And(builder.Eq{"comment.issue_id": opts.IssueID})
+		cond = cond.And(builder.Eq{RealTableName("comment") + ".issue_id": opts.IssueID})
 	}
 	if opts.ReviewID > 0 {
-		cond = cond.And(builder.Eq{"comment.review_id": opts.ReviewID})
+		cond = cond.And(builder.Eq{RealTableName("comment") + ".review_id": opts.ReviewID})
 	}
 	if opts.Since > 0 {
-		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
+		cond = cond.And(builder.Gte{RealTableName("comment") + ".updated_unix": opts.Since})
 	}
 	if opts.Before > 0 {
-		cond = cond.And(builder.Lte{"comment.updated_unix": opts.Before})
+		cond = cond.And(builder.Lte{RealTableName("comment") + ".updated_unix": opts.Before})
 	}
 	if opts.Type != CommentTypeUnknown {
-		cond = cond.And(builder.Eq{"comment.type": opts.Type})
+		cond = cond.And(builder.Eq{RealTableName("comment") + ".type": opts.Type})
 	}
 	return cond
 }
@@ -935,7 +935,7 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := e.Where(opts.toConds())
 	if opts.RepoID > 0 {
-		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
+		sess.Join("INNER", RealTableName("issue"), RealTableName("issue")+".id = "+RealTableName("comment")+".issue_id")
 	}
 
 	if opts.Page != 0 {
@@ -943,8 +943,8 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	}
 
 	return comments, sess.
-		Asc("comment.created_unix").
-		Asc("comment.id").
+		Asc(RealTableName("comment") + ".created_unix").
+		Asc(RealTableName("comment") + ".id").
 		Find(&comments)
 }
 
@@ -992,7 +992,7 @@ func DeleteComment(comment *Comment, doer *User) error {
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err := sess.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := sess.Exec("UPDATE `"+RealTableName("issue")+"` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
 			return err
 		}
 	}
@@ -1032,8 +1032,8 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 
 	var comments []*Comment
 	if err := e.Where(conds).
-		Asc("comment.created_unix").
-		Asc("comment.id").
+		Asc(RealTableName("comment") + ".created_unix").
+		Asc(RealTableName("comment") + ".id").
 		Find(&comments); err != nil {
 		return nil, err
 	}
@@ -1091,16 +1091,16 @@ func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := x.Table("comment").
+	_, err := x.Table(RealTableName("comment")).
 		Where(builder.In("issue_id",
-			builder.Select("issue.id").
-				From("issue").
-				InnerJoin("repository", "issue.repo_id = repository.id").
+			builder.Select(RealTableName("issue")+".id").
+				From(RealTableName("issue")).
+				InnerJoin(RealTableName("repository"), RealTableName("issue")+".repo_id = "+RealTableName("repository")+".id").
 				Where(builder.Eq{
-					"repository.original_service_type": tp,
+					RealTableName("repository") + ".original_service_type": tp,
 				}),
 		)).
-		And("comment.original_author_id = ?", originalAuthorID).
+		And(RealTableName("comment")+".original_author_id = ?", originalAuthorID).
 		Update(map[string]interface{}{
 			"poster_id":          posterID,
 			"original_author":    "",

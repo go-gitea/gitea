@@ -118,11 +118,11 @@ func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
 
 func issueNoDependenciesLeft(e Engine, issue *Issue) (bool, error) {
 	exists, err := e.
-		Table("issue_dependency").
-		Select("issue.*").
-		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
-		Where("issue_dependency.issue_id = ?", issue.ID).
-		And("issue.is_closed = ?", "0").
+		Table(RealTableName("issue_dependency")).
+		Select(RealTableName("issue")+".*").
+		Join("INNER", RealTableName("issue"), RealTableName("issue")+".id = "+RealTableName("issue_dependency")+".dependency_id").
+		Where(RealTableName("issue_dependency")+".issue_id = ?", issue.ID).
+		And(RealTableName("issue")+".is_closed = ?", "0").
 		Exist(&Issue{})
 
 	return !exists, err

@@ -158,9 +158,9 @@ func (t *Team) getRepositories(e Engine) error {
 	if t.Repos != nil {
 		return nil
 	}
-	return e.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
-		Where("team_repo.team_id=?", t.ID).
-		OrderBy("repository.name").
+	return e.Join("INNER", RealTableName("team_repo"), RealTableName("repository")+".id = "+RealTableName("team_repo")+".repo_id").
+		Where(RealTableName("team_repo")+".team_id=?", t.ID).
+		OrderBy(RealTableName("repository") + ".name").
 		Find(&t.Repos)
 }
 
@@ -524,7 +524,7 @@ func NewTeam(t *Team) (err error) {
 	}
 
 	// Update organization number of teams.
-	if _, err = sess.Exec("UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
+	if _, err = sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
 		errRollback := sess.Rollback()
 		if errRollback != nil {
 			log.Error("NewTeam sess.Rollback: %v", errRollback)
@@ -598,7 +598,7 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 	}
 
 	var teamNames []string
-	err := x.Table("team").
+	err := x.Table(RealTableName("team")).
 		Select("lower_name").
 		In("id", teamIDs).
 		Asc("name").
@@ -725,7 +725,7 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 	// Update organization number of teams.
-	if _, err := sess.Exec("UPDATE `user` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
+	if _, err := sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
 	}
 
@@ -752,7 +752,7 @@ func isTeamMember(e Engine, orgID, teamID, userID int64) (bool, error) {
 		Where("org_id=?", orgID).
 		And("team_id=?", teamID).
 		And("uid=?", userID).
-		Table("team_user").
+		Table(RealTableName("team_user")).
 		Exist()
 }
 
@@ -794,8 +794,8 @@ func GetTeamMembers(teamID int64) ([]*User, error) {
 
 func getUserTeams(e Engine, userID int64, listOptions ListOptions) (teams []*Team, err error) {
 	sess := e.
-		Join("INNER", "team_user", "team_user.team_id = team.id").
-		Where("team_user.uid=?", userID)
+		Join("INNER", RealTableName("team_user"), RealTableName("team_user")+".team_id = "+RealTableName("team")+".id").
+		Where(RealTableName("team_user")+".uid=?", userID)
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
 	}
@@ -804,19 +804,19 @@ func getUserTeams(e Engine, userID int64, listOptions ListOptions) (teams []*Tea
 
 func getUserOrgTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
 	return teams, e.
-		Join("INNER", "team_user", "team_user.team_id = team.id").
-		Where("team.org_id = ?", orgID).
-		And("team_user.uid=?", userID).
+		Join("INNER", RealTableName("team_user"), RealTableName("team_user")+".team_id = "+RealTableName("team")+".id").
+		Where(RealTableName("team")+".org_id = ?", orgID).
+		And(RealTableName("team_user")+".uid=?", userID).
 		Find(&teams)
 }
 
 func getUserRepoTeams(e Engine, orgID, userID, repoID int64) (teams []*Team, err error) {
 	return teams, e.
-		Join("INNER", "team_user", "team_user.team_id = team.id").
-		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		Where("team.org_id = ?", orgID).
-		And("team_user.uid=?", userID).
-		And("team_repo.repo_id=?", repoID).
+		Join("INNER", RealTableName("team_user"), RealTableName("team_user")+".team_id = "+RealTableName("team")+".id").
+		Join("INNER", RealTableName("team_repo"), RealTableName("team_repo")+".team_id = "+RealTableName("team")+".id").
+		Where(RealTableName("team")+".org_id = ?", orgID).
+		And(RealTableName("team_user")+".uid=?", userID).
+		And(RealTableName("team_repo")+".repo_id=?", repoID).
 		Find(&teams)
 }
 
@@ -966,7 +966,7 @@ func isUserInTeams(e Engine, userID int64, teamIDs []int64) (bool, error) {
 func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (int64, error) {
 	var ids []int64
 	if err := x.In("uid", userIDs).In("team_id", teamIDs).
-		Table("team_user").
+		Table(RealTableName("team_user")).
 		Cols("uid").GroupBy("uid").Find(&ids); err != nil {
 		return 0, err
 	}
@@ -1022,10 +1022,10 @@ func removeTeamRepo(e Engine, teamID, repoID int64) error {
 // GetTeamsWithAccessToRepo returns all teams in an organization that have given access level to the repository.
 func GetTeamsWithAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, error) {
 	teams := make([]*Team, 0, 5)
-	return teams, x.Where("team.authorize >= ?", mode).
-		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		And("team_repo.org_id = ?", orgID).
-		And("team_repo.repo_id = ?", repoID).
+	return teams, x.Where(RealTableName("team")+".authorize >= ?", mode).
+		Join("INNER", RealTableName("team_repo"), RealTableName("team_repo")+".team_id = "+RealTableName("team")+".id").
+		And(RealTableName("team_repo")+".org_id = ?", orgID).
+		And(RealTableName("team_repo")+".repo_id = ?", repoID).
 		Find(&teams)
 }
 

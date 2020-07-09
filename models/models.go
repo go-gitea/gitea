@@ -158,6 +158,11 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 	}
 
 	x.SetMapper(names.GonicMapper{})
+
+	if len(setting.Database.TableNamePrefix) > 0 {
+		x.SetTableMapper(names.NewPrefixMapper(x.GetTableMapper(), setting.Database.TableNamePrefix))
+	}
+
 	x.SetLogger(NewXORMLogger(!setting.ProdMode))
 	x.ShowSQL(!setting.ProdMode)
 	return x.StoreEngine("InnoDB").Sync2(tables...)
@@ -171,6 +176,9 @@ func SetEngine() (err error) {
 	}
 
 	x.SetMapper(names.GonicMapper{})
+	if len(setting.Database.TableNamePrefix) > 0 {
+		x.SetTableMapper(names.NewPrefixMapper(x.GetTableMapper(), setting.Database.TableNamePrefix))
+	}
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
 	x.SetLogger(NewXORMLogger(setting.Database.LogSQL))
@@ -286,17 +294,20 @@ func Count(bean interface{}) (int64, error) {
 
 // IsTableNotEmpty returns true if table has at least one record
 func IsTableNotEmpty(tableName string) (bool, error) {
-	return x.Table(tableName).Exist()
+	return x.Table(RealTableName(tableName)).Exist()
 }
 
 // DeleteAllRecords will delete all the records of this table
 func DeleteAllRecords(tableName string) error {
-	_, err := x.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
+	_, err := x.Exec(fmt.Sprintf("DELETE FROM %s", RealTableName(tableName)))
 	return err
 }
 
 // GetMaxID will return max id of the table
 func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
+	if v, ok := beanOrTableName.(string); ok {
+		beanOrTableName = RealTableName(v)
+	}
 	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
 	return
 }
@@ -307,4 +318,9 @@ func FindByMaxID(maxID int64, limit int, results interface{}) error {
 		OrderBy("id DESC").
 		Limit(limit).
 		Find(results)
+}
+
+// RealTableName get table name with prefix
+func RealTableName(tableName string) string {
+	return setting.Database.TableNamePrefix + tableName
 }

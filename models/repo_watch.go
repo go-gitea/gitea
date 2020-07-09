@@ -91,7 +91,7 @@ func watchRepoMode(e Engine, watch Watch, mode RepoWatchMode) (err error) {
 		return err
 	}
 	if repodiff != 0 {
-		_, err = e.Exec("UPDATE `repository` SET num_watches = num_watches + ? WHERE id = ?", repodiff, watch.RepoID)
+		_, err = e.Exec("UPDATE `"+RealTableName("repository")+"` SET num_watches = num_watches + ? WHERE id = ?", repodiff, watch.RepoID)
 	}
 	return err
 }
@@ -127,11 +127,11 @@ func WatchRepo(userID, repoID int64, watch bool) (err error) {
 
 func getWatchers(e Engine, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
-	return watches, e.Where("`watch`.repo_id=?", repoID).
-		And("`watch`.mode<>?", RepoWatchModeDont).
-		And("`user`.is_active=?", true).
-		And("`user`.prohibit_login=?", false).
-		Join("INNER", "`user`", "`user`.id = `watch`.user_id").
+	return watches, e.Where("`"+RealTableName("watch")+"`.repo_id=?", repoID).
+		And("`"+RealTableName("watch")+"`.mode<>?", RepoWatchModeDont).
+		And("`"+RealTableName("user")+"`.is_active=?", true).
+		And("`"+RealTableName("user")+"`.prohibit_login=?", false).
+		Join("INNER", "`"+RealTableName("user")+"`", "`"+RealTableName("user")+"`.id = `"+RealTableName("watch")+"`.user_id").
 		Find(&watches)
 }
 
@@ -141,7 +141,7 @@ func GetWatchers(repoID int64) ([]*Watch, error) {
 }
 
 // GetRepoWatchersIDs returns IDs of watchers for a given repo ID
-// but avoids joining with `user` for performance reasons
+// but avoids joining with `"+ RealTableName("user") + "` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
 	return getRepoWatchersIDs(x, repoID)
@@ -149,18 +149,18 @@ func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
 
 func getRepoWatchersIDs(e Engine, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, e.Table("watch").
-		Where("watch.repo_id=?", repoID).
-		And("watch.mode<>?", RepoWatchModeDont).
+	return ids, e.Table(RealTableName("watch")).
+		Where(RealTableName("watch")+".repo_id=?", repoID).
+		And(RealTableName("watch")+".mode<>?", RepoWatchModeDont).
 		Select("user_id").
 		Find(&ids)
 }
 
 // GetWatchers returns range of users watching given repository.
 func (repo *Repository) GetWatchers(opts ListOptions) ([]*User, error) {
-	sess := x.Where("watch.repo_id=?", repo.ID).
-		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
-		And("`watch`.mode<>?", RepoWatchModeDont)
+	sess := x.Where(RealTableName("watch")+".repo_id=?", repo.ID).
+		Join("LEFT", RealTableName("watch"), "`"+RealTableName("user")+"`.id=`"+RealTableName("watch")+"`.user_id").
+		And("`"+RealTableName("watch")+"`.mode<>?", RepoWatchModeDont)
 	if opts.Page > 0 {
 		sess = opts.setSessionPagination(sess)
 		users := make([]*User, 0, opts.PageSize)

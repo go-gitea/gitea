@@ -449,7 +449,7 @@ func (u *User) AvatarLink() string {
 func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
 	sess := x.
 		Where("follow.follow_id=?", u.ID).
-		Join("LEFT", "follow", "`user`.id=follow.user_id")
+		Join("LEFT", "follow", "`"+RealTableName("user")+"`.id=follow.user_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -470,8 +470,8 @@ func (u *User) IsFollowing(followID int64) bool {
 // GetFollowing returns range of user's following.
 func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
 	sess := x.
-		Where("follow.user_id=?", u.ID).
-		Join("LEFT", "follow", "`user`.id=follow.follow_id")
+		Where(RealTableName("follow")+".user_id=?", u.ID).
+		Join("LEFT", RealTableName("follow"), "`"+RealTableName("user")+"`.id=follow.follow_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -656,10 +656,10 @@ func (u *User) GetRepositories(listOpts ListOptions) (err error) {
 func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
 
-	sess := x.Table("repository").Cols("repository.id")
+	sess := x.Table(RealTableName("repository")).Cols(RealTableName("repository") + ".id")
 
 	if len(units) > 0 {
-		sess = sess.Join("INNER", "repo_unit", "repository.id = repo_unit.repo_id")
+		sess = sess.Join("INNER", RealTableName("repo_unit"), RealTableName("repository")+".id = "+RealTableName("repo_unit")+".repo_id")
 		sess = sess.In("repo_unit.type", units)
 	}
 
@@ -671,11 +671,11 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
 
-	if err := x.Table("repository").
+	if err := x.Table(RealTableName("repository")).
 		Cols("repository.id").
-		Join("INNER", "team_user", "repository.owner_id = team_user.org_id").
+		Join("INNER", "team_user", RealTableName("repository")+".owner_id = team_user.org_id").
 		Join("INNER", "team_repo", "(? != ? and repository.is_private != ?) OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true, u.IsRestricted, true).
-		Where("team_user.uid = ?", u.ID).
+		Where(RealTableName("team_user")+".uid = ?", u.ID).
 		GroupBy("repository.id").Find(&ids); err != nil {
 		return nil, err
 	}
@@ -728,14 +728,14 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	groupByStr := groupByCols.String()
 	groupByStr = groupByStr[0 : len(groupByStr)-1]
 
-	sess.Select("`user`.*, count(repo_id) as org_count").
-		Table("user").
-		Join("INNER", "org_user", "`org_user`.org_id=`user`.id").
+	sess.Select("`"+RealTableName("user")+"`.*, count(repo_id) as org_count").
+		Table(RealTableName("user")).
+		Join("INNER", RealTableName("org_user"), "`"+RealTableName("org_user")+"`.org_id=`"+RealTableName("user")+"`.id").
 		Join("LEFT", builder.
 			Select("id as repo_id, owner_id as repo_owner_id").
-			From("repository").
-			Where(accessibleRepositoryCondition(u)), "`repository`.repo_owner_id = `org_user`.org_id").
-		And("`org_user`.uid=?", u.ID).
+			From(RealTableName("repository")).
+			Where(accessibleRepositoryCondition(u)), "`"+RealTableName("repository")+"`.repo_owner_id = `"+RealTableName("org_user")+"`.org_id").
+		And("`"+RealTableName("org_user")+"`.uid=?", u.ID).
 		GroupBy(groupByStr)
 	if opts.PageSize != 0 {
 		sess = opts.setSessionPagination(sess)
@@ -747,7 +747,7 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	orgCounts := make([]*OrgCount, 0, 10)
 
 	if err := sess.
-		Asc("`user`.name").
+		Asc("`" + RealTableName("user") + "`.name").
 		Find(&orgCounts); err != nil {
 		return err
 	}
@@ -1098,7 +1098,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+	if _, err = sess.Exec("UPDATE `"+RealTableName("repository")+"` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
 		return fmt.Errorf("Change repo owner name: %v", err)
 	}
 
@@ -1189,8 +1189,8 @@ func deleteUser(e *xorm.Session, u *User) error {
 
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
-	if err = e.Table("watch").Cols("watch.repo_id").
-		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
+	if err = e.Table(RealTableName("watch")).Cols(RealTableName("watch")+".repo_id").
+		Where(RealTableName("watch")+".user_id = ?", u.ID).And(RealTableName("watch")+".mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
 	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
@@ -1200,8 +1200,8 @@ func deleteUser(e *xorm.Session, u *User) error {
 
 	// ***** START: Star *****
 	starredRepoIDs := make([]int64, 0, 10)
-	if err = e.Table("star").Cols("star.repo_id").
-		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
+	if err = e.Table(RealTableName("star")).Cols(RealTableName("star")+".repo_id").
+		Where(RealTableName("star")+".uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
 	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_stars: %v", err)
@@ -1210,16 +1210,16 @@ func deleteUser(e *xorm.Session, u *User) error {
 
 	// ***** START: Follow *****
 	followeeIDs := make([]int64, 0, 10)
-	if err = e.Table("follow").Cols("follow.follow_id").
-		Where("follow.user_id = ?", u.ID).Find(&followeeIDs); err != nil {
+	if err = e.Table(RealTableName("follow")).Cols(RealTableName("follow")+".follow_id").
+		Where(RealTableName("follow")+".user_id = ?", u.ID).Find(&followeeIDs); err != nil {
 		return fmt.Errorf("get all followees: %v", err)
 	} else if _, err = e.Decr("num_followers").In("id", followeeIDs).Update(new(User)); err != nil {
 		return fmt.Errorf("decrease user num_followers: %v", err)
 	}
 
 	followerIDs := make([]int64, 0, 10)
-	if err = e.Table("follow").Cols("follow.user_id").
-		Where("follow.follow_id = ?", u.ID).Find(&followerIDs); err != nil {
+	if err = e.Table(RealTableName("follow")).Cols(RealTableName("follow")+".user_id").
+		Where(RealTableName("follow")+".follow_id = ?", u.ID).Find(&followerIDs); err != nil {
 		return fmt.Errorf("get all followers: %v", err)
 	} else if _, err = e.Decr("num_following").In("id", followerIDs).Update(new(User)); err != nil {
 		return fmt.Errorf("decrease user num_following: %v", err)
@@ -1436,7 +1436,7 @@ func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
 func GetUserNamesByIDs(ids []int64) ([]string, error) {
 	unames := make([]string, 0, len(ids))
 	err := x.In("id", ids).
-		Table("user").
+		Table(RealTableName("user")).
 		Asc("name").
 		Cols("name").
 		Find(&unames)
@@ -1612,20 +1612,20 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 	if opts.Actor != nil {
 		var exprCond builder.Cond
 		if setting.Database.UseMySQL {
-			exprCond = builder.Expr("org_user.org_id = user.id")
+			exprCond = builder.Expr(RealTableName("org_user") + ".org_id = " + RealTableName("user") + ".id")
 		} else if setting.Database.UseMSSQL {
-			exprCond = builder.Expr("org_user.org_id = [user].id")
+			exprCond = builder.Expr(RealTableName("org_user") + ".org_id = [" + RealTableName("user") + "].id")
 		} else {
-			exprCond = builder.Expr("org_user.org_id = \"user\".id")
+			exprCond = builder.Expr(RealTableName("org_user") + ".org_id = \"" + RealTableName("user") + "\".id")
 		}
 		var accessCond = builder.NewCond()
 		if !opts.Actor.IsRestricted {
 			accessCond = builder.Or(
-				builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
+				builder.In("id", builder.Select("org_id").From(RealTableName("org_user")).LeftJoin("`"+RealTableName("user")+"`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
 				builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 		} else {
 			// restricted users only see orgs they are a member of
-			accessCond = builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
+			accessCond = builder.In("id", builder.Select("org_id").From(RealTableName("org_user")).LeftJoin("`"+RealTableName("user")+"`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
 		}
 		cond = cond.And(accessCond)
 	}
@@ -1665,8 +1665,8 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 
 // GetStarredRepos returns the repos starred by a particular user
 func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
-	sess := x.Where("star.uid=?", userID).
-		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
+	sess := x.Where(RealTableName("star")+".uid=?", userID).
+		Join("LEFT", RealTableName("star"), "`"+RealTableName("repository")+"`.id=`"+RealTableName("star")+"`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
 	}
@@ -1684,9 +1684,9 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 
 // GetWatchedRepos returns the repos watched by a particular user
 func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
-	sess := x.Where("watch.user_id=?", userID).
-		And("`watch`.mode<>?", RepoWatchModeDont).
-		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
+	sess := x.Where(RealTableName("watch")+".user_id=?", userID).
+		And("`"+RealTableName("watch")+"`.mode<>?", RepoWatchModeDont).
+		Join("LEFT", RealTableName("watch"), "`"+RealTableName("repository")+"`.id=`"+RealTableName("watch")+"`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
 	}

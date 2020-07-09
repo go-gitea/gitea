@@ -30,7 +30,7 @@ func InsertMilestones(ms ...*Milestone) (err error) {
 		}
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {
+	if _, err = sess.Exec("UPDATE `"+RealTableName("repository")+"` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {
 		return err
 	}
 	return sess.Commit()
@@ -164,7 +164,7 @@ func InsertIssueComments(comments []*Comment) error {
 	}
 
 	for issueID := range issueIDs {
-		if _, err := sess.Exec("UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ?) WHERE id = ?", issueID, issueID); err != nil {
+		if _, err := sess.Exec("UPDATE "+RealTableName("issue")+" set num_comments = (SELECT count(*) FROM "+RealTableName("comment")+" WHERE issue_id = ?) WHERE id = ?", issueID, issueID); err != nil {
 			return err
 		}
 	}
@@ -219,18 +219,18 @@ func InsertReleases(rels ...*Release) error {
 
 func migratedIssueCond(tp structs.GitServiceType) builder.Cond {
 	return builder.In("issue_id",
-		builder.Select("issue.id").
-			From("issue").
-			InnerJoin("repository", "issue.repo_id = repository.id").
+		builder.Select(RealTableName("issue")+".id").
+			From(RealTableName("issue")).
+			InnerJoin(RealTableName("repository"), RealTableName("issue")+".repo_id = "+RealTableName("repository")+".id").
 			Where(builder.Eq{
-				"repository.original_service_type": tp,
+				RealTableName("repository") + ".original_service_type": tp,
 			}),
 	)
 }
 
 // UpdateReviewsMigrationsByType updates reviews' migrations information via given git service type and original id and poster id
 func UpdateReviewsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := x.Table("review").
+	_, err := x.Table(RealTableName("review")).
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(tp)).
 		Update(map[string]interface{}{

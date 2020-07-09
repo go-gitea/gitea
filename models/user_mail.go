@@ -297,10 +297,10 @@ func (s SearchEmailOrderBy) String() string {
 
 // Strings for sorting result
 const (
-	SearchEmailOrderByEmail        SearchEmailOrderBy = "emails.email ASC, is_primary DESC, sortid ASC"
-	SearchEmailOrderByEmailReverse SearchEmailOrderBy = "emails.email DESC, is_primary ASC, sortid DESC"
-	SearchEmailOrderByName         SearchEmailOrderBy = "`user`.lower_name ASC, is_primary DESC, sortid ASC"
-	SearchEmailOrderByNameReverse  SearchEmailOrderBy = "`user`.lower_name DESC, is_primary ASC, sortid DESC"
+	SearchEmailOrderByEmail        SearchEmailOrderBy = ".email ASC, is_primary DESC, sortid ASC"
+	SearchEmailOrderByEmailReverse SearchEmailOrderBy = ".email DESC, is_primary ASC, sortid DESC"
+	SearchEmailOrderByName         SearchEmailOrderBy = ".lower_name ASC, is_primary DESC, sortid ASC"
+	SearchEmailOrderByNameReverse  SearchEmailOrderBy = ".lower_name DESC, is_primary ASC, sortid DESC"
 )
 
 // SearchEmailOptions are options to search e-mail addresses for the admin panel
@@ -332,16 +332,16 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	args := make([]interface{}, 0, 5)
 
 	emailsSQL := "(SELECT id as sortid, uid, email, is_activated, 0 as is_primary " +
-		"FROM email_address " +
-		"UNION ALL " +
+		"FROM " + RealTableName("email_address") +
+		" UNION ALL " +
 		"SELECT id as sortid, id AS uid, email, is_active AS is_activated, 1 as is_primary " +
-		"FROM `user` " +
+		"FROM `" + RealTableName("user") + "`" +
 		"WHERE type = ?) AS emails"
 	args = append(args, UserTypeIndividual)
 
 	if len(opts.Keyword) > 0 {
 		// Note: % can be injected in the Keyword parameter, but it won't do any harm.
-		where = append(where, "(lower(`user`.full_name) LIKE ? OR `user`.lower_name LIKE ? OR emails.email LIKE ?)")
+		where = append(where, "(lower(`"+RealTableName("user")+"`.full_name) LIKE ? OR `"+RealTableName("user")+"`.lower_name LIKE ? OR "+RealTableName("emails")+".email LIKE ?)")
 		likeStr := "%" + strings.ToLower(opts.Keyword) + "%"
 		args = append(args, likeStr)
 		args = append(args, likeStr)
@@ -350,19 +350,19 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 
 	switch {
 	case opts.IsPrimary.IsTrue():
-		where = append(where, "emails.is_primary = ?")
+		where = append(where, RealTableName("emails")+".is_primary = ?")
 		args = append(args, true)
 	case opts.IsPrimary.IsFalse():
-		where = append(where, "emails.is_primary = ?")
+		where = append(where, RealTableName("emails")+".is_primary = ?")
 		args = append(args, false)
 	}
 
 	switch {
 	case opts.IsActivated.IsTrue():
-		where = append(where, "emails.is_activated = ?")
+		where = append(where, RealTableName("emails")+".is_activated = ?")
 		args = append(args, true)
 	case opts.IsActivated.IsFalse():
-		where = append(where, "emails.is_activated = ?")
+		where = append(where, RealTableName("emails")+".is_activated = ?")
 		args = append(args, false)
 	}
 
@@ -371,7 +371,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 		whereStr = "WHERE " + strings.Join(where, " AND ")
 	}
 
-	joinSQL := "FROM " + emailsSQL + " INNER JOIN `user` ON `user`.id = emails.uid " + whereStr
+	joinSQL := "FROM " + emailsSQL + " INNER JOIN `" + RealTableName("user") + "` ON `" + RealTableName("user") + "`.id = " + RealTableName("emails") + ".uid " + whereStr
 
 	count, err := x.SQL("SELECT count(*) "+joinSQL, args...).Count()
 	if err != nil {
@@ -380,11 +380,11 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 
 	orderby := opts.SortType.String()
 	if orderby == "" {
-		orderby = SearchEmailOrderByEmail.String()
+		orderby = RealTableName("emails") + SearchEmailOrderByEmail.String()
 	}
 
-	querySQL := "SELECT emails.uid, emails.email, emails.is_activated, emails.is_primary, " +
-		"`user`.name, `user`.full_name " + joinSQL + " ORDER BY " + orderby
+	querySQL := "SELECT " + RealTableName("emails") + ".uid, " + RealTableName("emails") + ".email, " + RealTableName("emails") + ".is_activated, " + RealTableName("emails") + ".is_primary, " +
+		"`" + RealTableName("user") + "`.name, `" + RealTableName("user") + "`.full_name " + joinSQL + " ORDER BY " + orderby
 
 	opts.setDefaultValues()
 

@@ -41,24 +41,24 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 	//If Issue ID is set add to Query
 	var cond = builder.NewCond()
 	if opts.IssueID > 0 {
-		cond = cond.And(builder.Eq{"reaction.issue_id": opts.IssueID})
+		cond = cond.And(builder.Eq{RealTableName("reaction") + ".issue_id": opts.IssueID})
 	}
 	//If CommentID is > 0 add to Query
 	//If it is 0 Query ignore CommentID to select
 	//If it is -1 it explicit search of Issue Reactions where CommentID = 0
 	if opts.CommentID > 0 {
-		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
+		cond = cond.And(builder.Eq{RealTableName("reaction") + ".comment_id": opts.CommentID})
 	} else if opts.CommentID == -1 {
-		cond = cond.And(builder.Eq{"reaction.comment_id": 0})
+		cond = cond.And(builder.Eq{RealTableName("reaction") + ".comment_id": 0})
 	}
 	if opts.UserID > 0 {
 		cond = cond.And(builder.Eq{
-			"reaction.user_id":            opts.UserID,
-			"reaction.original_author_id": 0,
+			RealTableName("reaction") + ".user_id":            opts.UserID,
+			RealTableName("reaction") + ".original_author_id": 0,
 		})
 	}
 	if opts.Reaction != "" {
-		cond = cond.And(builder.Eq{"reaction.type": opts.Reaction})
+		cond = cond.And(builder.Eq{RealTableName("reaction") + ".type": opts.Reaction})
 	}
 
 	return cond
@@ -83,8 +83,8 @@ func FindIssueReactions(issue *Issue, listOptions ListOptions) (ReactionList, er
 func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
 	e = e.
 		Where(opts.toConds()).
-		In("reaction.`type`", setting.UI.Reactions).
-		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
+		In(RealTableName("reaction")+".`type`", setting.UI.Reactions).
+		Asc(RealTableName("reaction")+".issue_id", RealTableName("reaction")+".comment_id", RealTableName("reaction")+".created_unix", RealTableName("reaction")+".id")
 	if opts.Page != 0 {
 		e = opts.setEnginePagination(e)
 

@@ -152,6 +152,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	setting.Database.SSLMode = form.SSLMode
 	setting.Database.Charset = form.Charset
 	setting.Database.Path = form.DbPath
+	setting.Database.TableNamePrefix = form.DbTableNamePrefix
 
 	if (setting.Database.Type == "sqlite3") &&
 		len(setting.Database.Path) == 0 {
@@ -273,6 +274,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("database").Key("SSL_MODE").SetValue(setting.Database.SSLMode)
 	cfg.Section("database").Key("CHARSET").SetValue(setting.Database.Charset)
 	cfg.Section("database").Key("PATH").SetValue(setting.Database.Path)
+	cfg.Section("database").Key("DB_TABLE_NAME_PREFIX").SetValue(setting.Database.TableNamePrefix)
 
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("repository").Key("ROOT").SetValue(form.RepoRootPath)
