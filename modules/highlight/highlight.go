@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
@@ -43,6 +44,9 @@ func NewContext() {
 func Code(fileName, code string) string {
 	NewContext()
 
+	if code == "" {
+		return "\n"
+	}
 	if len(code) > sizeLimit {
 		return code
 	}
@@ -68,7 +72,7 @@ func Code(fileName, code string) string {
 		lexer = lexers.Fallback
 	}
 
-	iterator, err := lexer.Tokenise(nil, string(code))
+	iterator, err := lexer.Tokenise(&chroma.TokeniseOptions{State: "root", Nested: true}, string(code))
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
 		return code
@@ -132,7 +136,12 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 	m := make(map[int]string, numLines)
 	for k, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
 		line := k + 1
-		m[line] = string(v)
+		content := string(v)
+		//need to keep lines that are only \n so copy/paste works properly in browser
+		if content == "" {
+			content = "\n"
+		}
+		m[line] = content
 	}
 	return m
 }
@@ -142,7 +151,12 @@ func plainText(code string, numLines int) map[int]string {
 	m := make(map[int]string, numLines)
 	for k, v := range strings.SplitN(string(code), "\n", numLines) {
 		line := k + 1
-		m[line] = string(v)
+		content := string(v)
+		//need to keep lines that are only \n so copy/paste works properly in browser
+		if content == "" {
+			content = "\n"
+		}
+		m[line] = content
 	}
 	return m
 }
