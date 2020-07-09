@@ -619,6 +619,7 @@ func runDoctorEnablePushOptions(ctx *cli.Context) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		defer r.Close()
 
 		if ctx.Bool("fix") {
 			_, err := git.NewCommand("config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
