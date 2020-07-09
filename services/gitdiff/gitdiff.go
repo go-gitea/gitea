@@ -269,20 +269,20 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]+"\n"))
+			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]+"\n"))
+			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]+"\n"))
+			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
 		}
 		return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content))
 	}
