@@ -754,6 +754,23 @@ async function initRepository() {
     });
   }
 
+  // Repo Creation
+  if ($('.repository.new.repo').length > 0) {
+    const markAutoInitialize = function (element) {
+      if (element.value.length > 0) {
+        $('input[name="auto_init"]')[0].checked = true;
+      }
+    };
+
+    $('input[name="gitignores"]').on('change', (evt) => {
+      markAutoInitialize(evt.target);
+    });
+
+    $('input[name="license"]').on('change', (evt) => {
+      markAutoInitialize(evt.target);
+    });
+  }
+
   // Issues
   if ($('.repository.view.issue').length > 0) {
     // Edit issue title
