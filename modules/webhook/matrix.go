@@ -230,7 +230,11 @@ func GetMatrixPayload(p api.Payloader, event models.HookEventType, meta string) 
 	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getMatrixIssuesPayload(p.(*api.IssuePayload), matrix)
 	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		return getMatrixIssueCommentPayload(p.(*api.IssueCommentPayload), matrix)
+		pl, ok := p.(*api.IssueCommentPayload)
+		if ok {
+			return getMatrixIssueCommentPayload(pl, matrix)
+		}
+		return getMatrixPullRequestPayload(p.(*api.PullRequestPayload), matrix)
 	case models.HookEventPush:
 		return getMatrixPushPayload(p.(*api.PushPayload), matrix)
 	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,

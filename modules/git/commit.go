@@ -482,6 +482,16 @@ func (c *Commit) GetBranchName() (string, error) {
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 
+// LoadBranchName load branch name for commit
+func (c *Commit) LoadBranchName() (err error) {
+	if len(c.Branch) != 0 {
+		return
+	}
+
+	c.Branch, err = c.GetBranchName()
+	return
+}
+
 // GetTagName gets the current tag name for given commit
 func (c *Commit) GetTagName() (string, error) {
 	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)

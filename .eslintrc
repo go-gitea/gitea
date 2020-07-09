@@ -28,9 +28,11 @@ globals:
   Tribute: false
 
 overrides:
-  - files: ["web_src/**/*.worker.js", "web_src/js/serviceworker.js"]
+  - files: ["web_src/**/*worker.js"]
     env:
       worker: true
+    rules:
+      no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
 
 rules:
   accessor-pairs: [2]
@@ -116,7 +118,7 @@ rules:
   import/order: [0]
   import/prefer-default-export: [0]
   import/unambiguous: [0]
-  indent: [2, 2, {ignoreComments: true, SwitchCase: 1}]
+  indent: [2, 2, {SwitchCase: 1}]
   init-declarations: [0]
   key-spacing: [2]
   keyword-spacing: [2]
@@ -165,7 +167,7 @@ rules:
   no-dupe-keys: [2]
   no-duplicate-case: [2]
   no-duplicate-imports: [2]
-  no-else-return: [0]
+  no-else-return: [2]
   no-empty-character-class: [2]
   no-empty-function: [0]
   no-empty-pattern: [2]
@@ -218,12 +220,13 @@ rules:
   no-octal: [2]
   no-param-reassign: [0]
   no-plusplus: [0]
+  no-promise-executor-return: [0]
   no-proto: [2]
   no-prototype-builtins: [2]
   no-redeclare: [2]
   no-regex-spaces: [2]
   no-restricted-exports: [0]
-  no-restricted-globals: [0]
+  no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, self, status, statusbar, stop, toolbar, top]
   no-restricted-imports: [0]
   no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement]
   no-return-assign: [0]
@@ -249,6 +252,7 @@ rules:
   no-unexpected-multiline: [2]
   no-unmodified-loop-condition: [2]
   no-unneeded-ternary: [0]
+  no-unreachable-loop: [2]
   no-unreachable: [2]
   no-unsafe-finally: [2]
   no-unsafe-negation: [2]
@@ -264,7 +268,7 @@ rules:
   no-useless-constructor: [2]
   no-useless-escape: [2]
   no-useless-rename: [2]
-  no-useless-return: [0]
+  no-useless-return: [2]
   no-var: [2]
   no-void: [2]
   no-warning-comments: [0]
