@@ -32,43 +32,11 @@ var repository = graphql.NewObject(
 //TODO add all these
 // Repository represents a repository
 type Repository struct {
-	Parent        *Repository `json:"parent"`
-	Mirror        bool        `json:"mirror"`
-	Size          int         `json:"size"`
-	HTMLURL       string      `json:"html_url"`
-	SSHURL        string      `json:"ssh_url"`
-	CloneURL      string      `json:"clone_url"`
-	OriginalURL   string      `json:"original_url"`
-	Website       string      `json:"website"`
-	Stars         int         `json:"stars_count"`
-	Forks         int         `json:"forks_count"`
-	Watchers      int         `json:"watchers_count"`
-	OpenIssues    int         `json:"open_issues_count"`
-	OpenPulls     int         `json:"open_pr_counter"`
-	Releases      int         `json:"release_counter"`
-	DefaultBranch string      `json:"default_branch"`
-	Archived      bool        `json:"archived"`
-	// swagger:strfmt date-time
-	Created time.Time `json:"created_at"`
-	// swagger:strfmt date-time
-	Updated                   time.Time        `json:"updated_at"`
 	Permissions               *Permission      `json:"permissions,omitempty"`
-	HasIssues                 bool             `json:"has_issues"`
 	InternalTracker           *InternalTracker `json:"internal_tracker,omitempty"`
 	ExternalTracker           *ExternalTracker `json:"external_tracker,omitempty"`
-	HasWiki                   bool             `json:"has_wiki"`
 	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
-	HasPullRequests           bool             `json:"has_pull_requests"`
-	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
-	AllowMerge                bool             `json:"allow_merge_commits"`
-	AllowRebase               bool             `json:"allow_rebase"`
-	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
-	AllowSquash               bool             `json:"allow_squash_merge"`
-	AvatarURL                 string           `json:"avatar_url"`
 }
-
-
-
 
 */
 
@@ -112,7 +80,123 @@ var generalInfo = graphql.NewObject(
 			},
 			"template": &graphql.Field{
 				Type: graphql.Boolean,
+				Description: "Is this repository a template",
 			},
+			"mirror": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Is this repository a mirror",
+			},
+			"archived": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Is this repository archived",
+			},
+			"has_issues": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Does this repository contain issues",
+			},
+			"has_wiki": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Does this repository have a wiki",
+			},
+			"has_pull_requests": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Does this repository have pull requests",
+			},
+			"ignore_whitespace_conflicts": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Does this repository ignore whitespace for conflicts",
+			},
+			"allow_merge_commits": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Is commit merging enabled",
+			},
+			"allow_rebase": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Is rebasing enabled",
+			},
+			"allow_rebase_explicit": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Is rebasing with explicit merge commits (--no-ff) enabled",
+			},
+			"allow_squash_merge": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Is squashing to merge commits enabled",
+			},
+			"internal": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Is visibility of repository set to private",
+			},
+			"size": &graphql.Field{
+				Type: graphql.Int,
+				Description: "Repository size",
+			},
+			"stars_count": &graphql.Field{
+				Type: graphql.Int,
+				Description: "Number of stars",
+			},
+			"forks_count": &graphql.Field{
+				Type: graphql.Int,
+				Description: "Number of forks",
+			},
+			"watchers_count": &graphql.Field{
+				Type: graphql.Int,
+				Description: "Number of watchers",
+			},
+			"open_issues_count": &graphql.Field{
+				Type: graphql.Int,
+				Description: "Number of open issues",
+			},
+			"open_pr_counter": &graphql.Field{
+				Type: graphql.Int,
+				Description: "Number of open pull requests",
+			},
+			"release_counter": &graphql.Field{
+				Type: graphql.Int,
+				Description: "Number of releases",
+			},
+			"html_url": &graphql.Field{
+				Type: graphql.String,
+				Description: "HTML url of repository",
+			},
+			"ssh_url": &graphql.Field{
+				Type: graphql.String,
+				Description: "SSH url of repository",
+			},
+			"clone_url": &graphql.Field{
+				Type: graphql.String,
+				Description: "Clone url of repository",
+			},
+			"website": &graphql.Field{
+				Type: graphql.String,
+				Description: "The repository's website address",
+			},
+			"default_branch": &graphql.Field{
+				Type: graphql.String,
+				Description: "The default branch",
+			},
+			"avatar_url": &graphql.Field{
+				Type: graphql.String,
+				Description: "Avatar url for repository",
+			},
+			"created_at": &graphql.Field{
+				Type:        graphql.DateTime,
+				Description: "Datetime repository created",
+			},
+			"updated_at": &graphql.Field{
+				Type:        graphql.DateTime,
+				Description: "Dateime repository last updated",
+			},
+
+/*
+
+	"parent": &graphql.Field{
+		Type:        repository,
+		Description: "Parent repository",
+	},
+
+
+ */
+
 		},
 	},
 )
@@ -187,3 +271,12 @@ var user = graphql.NewObject(
 		},
 	},
 )
+
+func init() {
+	//direct circular references not allowed, so adding here as a workaround
+	//reference: https://github.com/graphql-go/graphql/issues/164
+	generalInfo.AddFieldConfig("parent", &graphql.Field{
+		Type:        repository,
+		Description: "Parent repository",
+	})
+}
