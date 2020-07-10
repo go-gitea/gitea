@@ -363,7 +363,7 @@ test-sqlite-prefix: integrations.sqlite.test generate-ini-sqlite-prefix
 	result=$?; \
 	cd models/fixtures && \
 	sh remove_test_prefix.sh && \
-	cd ../.. \
+	cd ../.. ; \
 	exit $result
 
 .PHONY: test-sqlite\#%
