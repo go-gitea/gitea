@@ -237,8 +237,8 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 	}
 	codes := make([]*OAuth2AuthorizationCode, 0)
 	// delete correlating auth codes
-	if err := sess.Join("INNER", "oauth2_grant",
-		"oauth2_authorization_code.grant_id = oauth2_grant.id AND oauth2_grant.application_id = ?", id).Find(&codes); err != nil {
+	if err := sess.Join("INNER", RealTableName("oauth2_grant"),
+		RealTableName("oauth2_authorization_code")+".grant_id = "+RealTableName("oauth2_grant")+".id AND "+RealTableName("oauth2_grant")+".application_id = ?", id).Find(&codes); err != nil {
 		return err
 	}
 	codeIDs := make([]int64, 0)

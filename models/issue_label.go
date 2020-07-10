@@ -593,7 +593,7 @@ func updateLabelCols(e Engine, l *Label, cols ...string) error {
 		).
 		SetExpr("num_closed_issues",
 			builder.Select("count(*)").From(RealTableName("issue_label")).
-				InnerJoin("issue", RealTableName("issue_label")+".issue_id = "+RealTableName("issue")+".id").
+				InnerJoin(RealTableName("issue"), RealTableName("issue_label")+".issue_id = "+RealTableName("issue")+".id").
 				Where(builder.Eq{
 					RealTableName("issue_label") + ".label_id": l.ID,
 					RealTableName("issue") + ".is_closed":      true,

@@ -218,7 +218,7 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 
 	// Merged pull request authors
 	sess = pullRequestsForActivityStatement(repoID, fromTime, true)
-	if _, err = sess.Select("count(distinct " + RealTableName("issue") + ".poster_id) as `count`").Table("pull_request").Get(&count); err != nil {
+	if _, err = sess.Select("count(distinct " + RealTableName("issue") + ".poster_id) as `count`").Table(RealTableName("pull_request")).Get(&count); err != nil {
 		return err
 	}
 	stats.MergedPRAuthorCount = count
@@ -236,7 +236,7 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 
 	// Opened pull request authors
 	sess = pullRequestsForActivityStatement(repoID, fromTime, false)
-	if _, err = sess.Select("count(distinct " + RealTableName("issue") + ".poster_id) as `count`").Table("pull_request").Get(&count); err != nil {
+	if _, err = sess.Select("count(distinct " + RealTableName("issue") + ".poster_id) as `count`").Table(RealTableName("pull_request")).Get(&count); err != nil {
 		return err
 	}
 	stats.OpenedPRAuthorCount = count

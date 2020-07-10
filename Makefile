@@ -346,9 +346,25 @@ generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
 			integrations/sqlite.ini.tmpl > integrations/sqlite.ini
 
+generate-ini-sqlite-prefix:
+	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+			integrations/sqlite-prefix.ini.tmpl > integrations/sqlite.ini
+
 .PHONY: test-sqlite
 test-sqlite: integrations.sqlite.test generate-ini-sqlite
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test
+
+.PHONY: test-sqlite-prefix
+test-sqlite-prefix: integrations.sqlite.test generate-ini-sqlite-prefix
+	cd models/fixtures && \
+	sh add_test_prefix.sh && \
+	cd ../.. && \
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test; \
+	result=$?; \
+	cd models/fixtures && \
+	sh remove_test_prefix.sh && \
+	cd ../.. \
+	exit $result
 
 .PHONY: test-sqlite\#%
 test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite

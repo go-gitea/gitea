@@ -362,7 +362,7 @@ func isOrganizationMember(e Engine, orgID, uid int64) (bool, error) {
 	return e.
 		Where("uid=?", uid).
 		And("org_id=?", orgID).
-		Table("org_user").
+		Table(RealTableName("org_user")).
 		Exist()
 }
 

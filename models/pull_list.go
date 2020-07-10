@@ -71,7 +71,7 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 // GetPullRequestIDsByCheckStatus returns all pull requests according the special checking status.
 func GetPullRequestIDsByCheckStatus(status PullRequestStatus) ([]int64, error) {
 	prs := make([]int64, 0, 10)
-	return prs, x.Table("pull_request").
+	return prs, x.Table(RealTableName("pull_request")).
 		Where("status=?", status).
 		Cols(RealTableName("pull_request") + ".id").
 		Find(&prs)
