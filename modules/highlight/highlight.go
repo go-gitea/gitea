@@ -44,6 +44,9 @@ func NewContext() {
 func Code(fileName, code string) string {
 	NewContext()
 
+	if code == "" {
+		return "\n"
+	}
 	if len(code) > sizeLimit {
 		return code
 	}
@@ -133,7 +136,12 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 	m := make(map[int]string, numLines)
 	for k, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
 		line := k + 1
-		m[line] = string(v)
+		content := string(v)
+		//need to keep lines that are only \n so copy/paste works properly in browser
+		if content == "" {
+			content = "\n"
+		}
+		m[line] = content
 	}
 	return m
 }
@@ -143,7 +151,12 @@ func plainText(code string, numLines int) map[int]string {
 	m := make(map[int]string, numLines)
 	for k, v := range strings.SplitN(string(code), "\n", numLines) {
 		line := k + 1
-		m[line] = string(v)
+		content := string(v)
+		//need to keep lines that are only \n so copy/paste works properly in browser
+		if content == "" {
+			content = "\n"
+		}
+		m[line] = content
 	}
 	return m
 }
