@@ -4,7 +4,16 @@
 
 package gql
 
-import "github.com/graphql-go/graphql"
+import (
+	"github.com/graphql-go/graphql"
+	"github.com/graphql-go/graphql/language/ast"
+	"strconv"
+)
+
+//TODO need to create a custom scalar type for int64:
+// can adapt from https://github.com/graphql-go/graphql/blob/master/examples/custom-scalar-type/main.go
+// for now just using INT from graphql, but need to go back and make sure I'm right...
+
 
 var repository = graphql.NewObject(
 	graphql.ObjectConfig{
@@ -28,18 +37,6 @@ var repository = graphql.NewObject(
 	},
 )
 
-/*
-//TODO add all these
-// Repository represents a repository
-type Repository struct {
-	Permissions               *Permission      `json:"permissions,omitempty"`
-	InternalTracker           *InternalTracker `json:"internal_tracker,omitempty"`
-	ExternalTracker           *ExternalTracker `json:"external_tracker,omitempty"`
-	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
-}
-
-*/
-
 // generalInfo describes general information about a repository
 var generalInfo = graphql.NewObject(
 	graphql.ObjectConfig{
@@ -47,7 +44,7 @@ var generalInfo = graphql.NewObject(
 		Description: "General Information about a repository",
 		Fields: graphql.Fields{
 			"id": &graphql.Field{
-				Type:        graphql.Int,
+				Type:        gqlInt64,
 				Description: "The id of the repository",
 			},
 			"owner": &graphql.Field{
@@ -184,35 +181,27 @@ var generalInfo = graphql.NewObject(
 			},
 			"updated_at": &graphql.Field{
 				Type:        graphql.DateTime,
-				Description: "Dateime repository last updated",
+				Description: "Datetime repository last updated",
 			},
-
-/*
-
-	"parent": &graphql.Field{
-		Type:        repository,
-		Description: "Parent repository",
-	},
-
-
- */
-
+			"permissions": &graphql.Field{
+				Type:        permission,
+				Description: "Repository permissions",
+			},
+			"internal_tracker": &graphql.Field{
+				Type:        internalTracker,
+				Description: "Repository permissions",
+			},
+			"external_tracker": &graphql.Field{
+				Type:        externalTracker,
+				Description: "Repository permissions",
+			},
+			"external_wiki": &graphql.Field{
+				Type:        externalWiki,
+				Description: "Repository permissions",
+			},
 		},
 	},
 )
-
-/*
-type Branch struct {
-	Commit                        *PayloadCommit `json:"commit"`
-	Protected                     bool           `json:"protected"`
-	RequiredApprovals             int64          `json:"required_approvals"`
-	EnableStatusCheck             bool           `json:"enable_status_check"`
-	StatusCheckContexts           []string       `json:"status_check_contexts"`
-	UserCanPush                   bool           `json:"user_can_push"`
-	UserCanMerge                  bool           `json:"user_can_merge"`
-	EffectiveBranchProtectionName string         `json:"effective_branch_protection_name"`
-}
-*/
 
 //branch describes a branch
 var branch = graphql.NewObject(
@@ -222,6 +211,114 @@ var branch = graphql.NewObject(
 			"name": &graphql.Field{
 				Type: graphql.String,
 				Description: "name of the branch",
+			},
+			"commit": &graphql.Field{
+				Type: payloadCommit,
+				Description: "",
+			},
+			"protected": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "is branch protection enabled",
+			},
+			"required_approvals": &graphql.Field{
+				Type: gqlInt64,
+				Description: "number of approvals required before a pull request can be merged",
+			},
+			"enable_status_check": &graphql.Field{
+				Type: graphql.Boolean,
+				Description: "Status checks required before merge enabled",
+			},
+			"status_check_contexts": &graphql.Field{
+				Type: graphql.NewList(graphql.String),
+				Description: "List of status check contexts",
+			},
+			"user_can_push": &graphql.Field{
+				Type: graphql.String,
+				Description: "Anyone with write access will be allowed to push",
+			},
+			"user_can_merge": &graphql.Field{
+				Type: graphql.String,
+				Description: "Anyone with write access will be allowed to merge",
+			},
+			"effective_branch_protection_name": &graphql.Field{
+				Type: graphql.String,
+				Description: "The effective branch protection name",
+			},
+		},
+	},
+)
+
+// internalTracker represents settings for internal tracker
+var internalTracker = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "internal_tracker",
+		Fields: graphql.Fields{
+			"enable_time_tracker": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "Enable time tracking (Built-in issue tracker)",
+			},
+			"allow_only_contributors_to_track_time": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "Let only contributors track time",
+			},
+			"enable_issue_dependencies": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "Enable dependencies for issues and pull requests",
+			},
+		},
+	},
+)
+
+// externalTracker represents settings for external tracker
+var externalTracker = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "external_tracker",
+		Fields: graphql.Fields{
+			"external_tracker_url": &graphql.Field{
+				Type:        graphql.String,
+				Description: "URL of external issue tracker.",
+			},
+			"external_tracker_format": &graphql.Field{
+				Type:        graphql.String,
+				Description: "External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.",
+			},
+			"external_tracker_style": &graphql.Field{
+				Type:        graphql.String,
+				Description: "External Issue Tracker Number Format, either `numeric` or `alphanumeric`",
+			},
+		},
+	},
+)
+
+// externalWiki represents setting for external wiki
+var externalWiki = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "external_wiki",
+		Fields: graphql.Fields{
+			"external_wiki_url": &graphql.Field{
+				Type:        graphql.String,
+				Description: "URL of external wiki",
+			},
+		},
+	},
+)
+
+// permission describes a permission
+var permission = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "permission",
+		Fields: graphql.Fields{
+			"admin": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "is admin",
+			},
+			"push": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "push access",
+			},
+			"pull": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "pull access",
 			},
 		},
 	},
@@ -233,7 +330,7 @@ var user = graphql.NewObject(
 		Name: "user",
 		Fields: graphql.Fields{
 			"id": &graphql.Field{
-				Type:        graphql.Int,
+				Type:        gqlInt64,
 				Description: "the user's id",
 			},
 			"username": &graphql.Field{
@@ -271,6 +368,147 @@ var user = graphql.NewObject(
 		},
 	},
 )
+
+// payloadCommit represents a commit
+var payloadCommit = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "payload_commit",
+		Fields: graphql.Fields{
+			"id": &graphql.Field{
+				Type:        graphql.String,
+				Description: "sha1 hash of the commit",
+			},
+			"message": &graphql.Field{
+				Type:        graphql.String,
+				Description: "",
+			},
+			"url": &graphql.Field{
+				Type:        graphql.String,
+				Description: "",
+			},
+			"author": &graphql.Field{
+				Type:        payloadUser,
+				Description: "",
+			},
+			"committer": &graphql.Field{
+				Type:        payloadUser,
+				Description: "",
+			},
+			"verification": &graphql.Field{
+				Type:        payloadCommitVerification,
+				Description: "",
+			},
+			"timestamp": &graphql.Field{
+				Type:        graphql.DateTime,
+				Description: "",
+			},
+			"added": &graphql.Field{
+				Type:        graphql.NewList(graphql.String),
+				Description: "",
+			},
+			"removed": &graphql.Field{
+				Type:        graphql.NewList(graphql.String),
+				Description: "",
+			},
+			"modified": &graphql.Field{
+				Type:        graphql.NewList(graphql.String),
+				Description: "",
+			},
+		},
+	},
+)
+
+// payloadUser represents the author or committer of a commit
+var payloadUser = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "payload_user",
+		Fields: graphql.Fields{
+			"name": &graphql.Field{
+				Type:        graphql.String,
+				Description: "Full name of the commit author",
+			},
+			"email": &graphql.Field{
+				Type:        graphql.String,
+				Description: "Email of the commit author",
+			},
+			"username": &graphql.Field{
+				Type:        graphql.String,
+				Description: "User name of the commit author",
+			},
+		},
+	},
+)
+
+// payloadCommitVerification represents the GPG verification of a commit
+var payloadCommitVerification = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "payload_commit_verification",
+		Fields: graphql.Fields{
+			"verified": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "",
+			},
+			"reason": &graphql.Field{
+				Type:        graphql.String,
+				Description: "",
+			},
+			"signature": &graphql.Field{
+				Type:        graphql.String,
+				Description: "",
+			},
+			"signer": &graphql.Field{
+				Type:        payloadUser,
+				Description: "",
+			},
+			"payload": &graphql.Field{
+				Type:        graphql.String,
+				Description: "",
+			},
+		},
+	},
+)
+
+// gqlInt64 wraps an int64 because 64-bit int is not directly supported in graphql
+var gqlInt64 = graphql.NewScalar(graphql.ScalarConfig{
+	Name:        "gqlInt64",
+	Description: "The `gqlInt64` scalar type represents an int64 value.",
+	// Serialize serializes `gqlInt64` to int64.
+	Serialize: func(value interface{}) interface{} {
+		switch value := value.(type) {
+		case int64:
+			return value
+		case *int64:
+			return *value
+		default:
+			return nil
+		}
+	},
+	// ParseValue parses GraphQL variables from `int64` to `gqlInt64`.
+	ParseValue: func(value interface{}) interface{} {
+		switch value := value.(type) {
+		case int64:
+			return value
+		case *int64:
+			return *value
+		default:
+			return nil
+		}
+	},
+	// ParseLiteral parses GraphQL AST value to `gqlInt64`.
+	ParseLiteral: func(valueAST ast.Value) interface{} {
+		switch valueAST := valueAST.(type) {
+		case *ast.StringValue:
+			v, err := strconv.ParseInt(valueAST.Value, 10, 64)
+			if err != nil {
+				return v
+			} else {
+				return nil
+			}
+		default:
+			return nil
+		}
+	},
+})
 
 func init() {
 	//direct circular references not allowed, so adding here as a workaround
