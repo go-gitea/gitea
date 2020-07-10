@@ -99,8 +99,19 @@ func NewFuncMap() []template.FuncMap {
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
 		"MigrationIcon": MigrationIcon,
-		"Add": func(a, b int) int {
-			return a + b
+		"Add": func(a ...int) int {
+			sum := 0
+			for _, val := range a {
+				sum += val
+			}
+			return sum
+		},
+		"Mul": func(a ...int) int {
+			sum := 1
+			for _, val := range a {
+				sum *= val
+			}
+			return sum
 		},
 		"ActionIcon": ActionIcon,
 		"DateFmtLong": func(t time.Time) string {
@@ -436,6 +447,20 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 				sum += values[i]
 			}
 			return float32(n) * 100 / float32(sum)
+		},
+		"Add": func(a ...int) int {
+			sum := 0
+			for _, val := range a {
+				sum += val
+			}
+			return sum
+		},
+		"Mul": func(a ...int) int {
+			sum := 1
+			for _, val := range a {
+				sum *= val
+			}
+			return sum
 		},
 	}}
 }
