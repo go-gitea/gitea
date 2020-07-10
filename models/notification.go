@@ -92,11 +92,7 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	if len(opts.Status) == 1 {
 		cond = cond.And(builder.Eq{"notification.status": opts.Status[0]})
 	} else if len(opts.Status) > 1 {
-		eqConds := make([]builder.Cond, 0, len(opts.Status))
-		for _, status := range opts.Status {
-			eqConds = append(eqConds, builder.Eq{"notification.status": status})
-		}
-		cond = cond.And(cond.Or(eqConds...))
+		cond = cond.And(builder.In("notifiation.status", opts.Status))
 	}
 	if opts.UpdatedAfterUnix != 0 {
 		cond = cond.And(builder.Gte{"notification.updated_unix": opts.UpdatedAfterUnix})
