@@ -712,7 +712,7 @@ func (org *User) getUserTeamIDs(e Engine, userID int64) ([]int64, error) {
 		Table(RealTableName("team")).
 		Cols(RealTableName("team")+".id").
 		Where("`"+RealTableName("team_user")+"`.org_id = ?", org.ID).
-		Join("INNER", RealTableName("team_user"), "`"+RealTableName("team_user")+"`.team_id = team.id").
+		Join("INNER", RealTableName("team_user"), "`"+RealTableName("team_user")+"`.team_id = "+RealTableName("team")+".id").
 		And("`"+RealTableName("team_user")+"`.uid = ?", userID).
 		Find(&teamIDs)
 }

@@ -55,16 +55,16 @@ func Emails(ctx *context.Context) {
 	ctx.Data["SortType"] = ctx.Query("sort")
 	switch ctx.Query("sort") {
 	case "email":
-		orderBy = models.SearchEmailOrderBy(models.RealTableName("emails") + models.SearchEmailOrderByEmail.String())
+		orderBy = models.SearchEmailOrderBy(models.SearchEmailOrderByEmail.String())
 	case "reverseemail":
-		orderBy = models.SearchEmailOrderBy(models.RealTableName("emails") + models.SearchEmailOrderByEmailReverse.String())
+		orderBy = models.SearchEmailOrderBy(models.SearchEmailOrderByEmailReverse.String())
 	case "username":
 		orderBy = models.SearchEmailOrderBy("`" + models.RealTableName("user") + "`" + models.SearchEmailOrderByName.String())
 	case "reverseusername":
 		orderBy = models.SearchEmailOrderBy("`" + models.RealTableName("user") + "`" + models.SearchEmailOrderByNameReverse.String())
 	default:
 		ctx.Data["SortType"] = "email"
-		orderBy = models.SearchEmailOrderBy(models.RealTableName("emails") + models.SearchEmailOrderByEmail.String())
+		orderBy = models.SearchEmailOrderBy(models.SearchEmailOrderByEmail.String())
 	}
 
 	opts.Keyword = ctx.QueryTrim("q")

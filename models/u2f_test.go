@@ -33,7 +33,7 @@ func TestGetU2FRegistrationsByUID(t *testing.T) {
 }
 
 func TestU2FRegistration_TableName(t *testing.T) {
-	assert.Equal(t, "u2f_registration", U2FRegistration{}.TableName())
+	assert.Equal(t, "gitea_u2f_registration", U2FRegistration{}.TableName())
 }
 
 func TestU2FRegistration_UpdateCounter(t *testing.T) {

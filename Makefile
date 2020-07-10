@@ -303,7 +303,19 @@ watch-frontend: node-check $(FOMANTIC_DEST) node_modules
 
 .PHONY: test
 test:
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES)
+	cd models/fixtures && \
+	sh add_test_prefix.sh && \
+	cd ../.. && \
+	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES) \
+	&& { \
+    cd models/fixtures && \
+	bash remove_test_prefix.sh && \
+	cd ../.. ; \
+	exit 0; } || { \
+	cd models/fixtures && \
+	bash remove_test_prefix.sh && \
+	cd ../.. ; \
+	exit 1; }
 
 .PHONY: test-check
 test-check:
@@ -327,7 +339,20 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	cd models/fixtures && \
+	sh add_test_prefix.sh && \
+	cd ../.. && \
+	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) \
+	&& { \
+    cd models/fixtures && \
+	bash remove_test_prefix.sh && \
+	cd ../.. ; \
+	echo "\n==>\033[32m Ok\033[m\n" \
+	exit 0; } || { \
+	cd models/fixtures && \
+	bash remove_test_prefix.sh && \
+	cd ../.. ; \
+	exit 1; }
 
 .PHONY: vendor
 vendor:
@@ -360,11 +385,15 @@ test-sqlite-prefix: integrations.sqlite.test generate-ini-sqlite-prefix
 	sh add_test_prefix.sh && \
 	cd ../.. && \
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test; \
-	result=$?; \
+	&& { \
+    cd models/fixtures && \
+	bash remove_test_prefix.sh && \
+	cd ../.. ; \
+	exit 0; } || { \
 	cd models/fixtures && \
 	bash remove_test_prefix.sh && \
 	cd ../.. ; \
-	exit $result
+	exit 1; }
 
 .PHONY: test-sqlite\#%
 test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite

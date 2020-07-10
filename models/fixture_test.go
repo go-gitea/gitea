@@ -22,7 +22,7 @@ func TestFixtureGeneration(t *testing.T) {
 		if !assert.NoError(t, err) {
 			return
 		}
-		bytes, err := ioutil.ReadFile(filepath.Join(fixturesDir, name+".yml"))
+		bytes, err := ioutil.ReadFile(filepath.Join(fixturesDir, "gitea_"+name+".yml"))
 		if !assert.NoError(t, err) {
 			return
 		}

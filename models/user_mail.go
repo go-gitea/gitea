@@ -297,8 +297,8 @@ func (s SearchEmailOrderBy) String() string {
 
 // Strings for sorting result
 const (
-	SearchEmailOrderByEmail        SearchEmailOrderBy = ".email ASC, is_primary DESC, sortid ASC"
-	SearchEmailOrderByEmailReverse SearchEmailOrderBy = ".email DESC, is_primary ASC, sortid DESC"
+	SearchEmailOrderByEmail        SearchEmailOrderBy = "emails.email ASC, is_primary DESC, sortid ASC"
+	SearchEmailOrderByEmailReverse SearchEmailOrderBy = "emails.email DESC, is_primary ASC, sortid DESC"
 	SearchEmailOrderByName         SearchEmailOrderBy = ".lower_name ASC, is_primary DESC, sortid ASC"
 	SearchEmailOrderByNameReverse  SearchEmailOrderBy = ".lower_name DESC, is_primary ASC, sortid DESC"
 )
@@ -341,7 +341,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 
 	if len(opts.Keyword) > 0 {
 		// Note: % can be injected in the Keyword parameter, but it won't do any harm.
-		where = append(where, "(lower(`"+RealTableName("user")+"`.full_name) LIKE ? OR `"+RealTableName("user")+"`.lower_name LIKE ? OR "+RealTableName("emails")+".email LIKE ?)")
+		where = append(where, "(lower(`"+RealTableName("user")+"`.full_name) LIKE ? OR `"+RealTableName("user")+"`.lower_name LIKE ? OR emails.email LIKE ?)")
 		likeStr := "%" + strings.ToLower(opts.Keyword) + "%"
 		args = append(args, likeStr)
 		args = append(args, likeStr)
@@ -350,19 +350,19 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 
 	switch {
 	case opts.IsPrimary.IsTrue():
-		where = append(where, RealTableName("emails")+".is_primary = ?")
+		where = append(where, "emails.is_primary = ?")
 		args = append(args, true)
 	case opts.IsPrimary.IsFalse():
-		where = append(where, RealTableName("emails")+".is_primary = ?")
+		where = append(where, "emails.is_primary = ?")
 		args = append(args, false)
 	}
 
 	switch {
 	case opts.IsActivated.IsTrue():
-		where = append(where, RealTableName("emails")+".is_activated = ?")
+		where = append(where, "emails.is_activated = ?")
 		args = append(args, true)
 	case opts.IsActivated.IsFalse():
-		where = append(where, RealTableName("emails")+".is_activated = ?")
+		where = append(where, "emails.is_activated = ?")
 		args = append(args, false)
 	}
 
@@ -371,7 +371,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 		whereStr = "WHERE " + strings.Join(where, " AND ")
 	}
 
-	joinSQL := "FROM " + emailsSQL + " INNER JOIN `" + RealTableName("user") + "` ON `" + RealTableName("user") + "`.id = " + RealTableName("emails") + ".uid " + whereStr
+	joinSQL := "FROM " + emailsSQL + " INNER JOIN `" + RealTableName("user") + "` ON `" + RealTableName("user") + "`.id = emails.uid " + whereStr
 
 	count, err := x.SQL("SELECT count(*) "+joinSQL, args...).Count()
 	if err != nil {
@@ -380,10 +380,10 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 
 	orderby := opts.SortType.String()
 	if orderby == "" {
-		orderby = RealTableName("emails") + SearchEmailOrderByEmail.String()
+		orderby = SearchEmailOrderByEmail.String()
 	}
 
-	querySQL := "SELECT " + RealTableName("emails") + ".uid, " + RealTableName("emails") + ".email, " + RealTableName("emails") + ".is_activated, " + RealTableName("emails") + ".is_primary, " +
+	querySQL := "SELECT emails.uid, emails.email, emails.is_activated, emails.is_primary, " +
 		"`" + RealTableName("user") + "`.name, `" + RealTableName("user") + "`.full_name " + joinSQL + " ORDER BY " + orderby
 
 	opts.setDefaultValues()

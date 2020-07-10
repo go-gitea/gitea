@@ -1576,7 +1576,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 			builder.Like{"name", kw},
 			builder.Like{"content", kw},
 			builder.In("id", builder.Select("issue_id").
-				From("comment").
+				From(RealTableName("comment")).
 				Where(builder.And(
 					builder.Eq{"type": CommentTypeComment},
 					builder.In("issue_id", subQuery),

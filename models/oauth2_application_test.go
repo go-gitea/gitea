@@ -76,7 +76,7 @@ func TestOAuth2Application_LoadUser(t *testing.T) {
 }
 
 func TestOAuth2Application_TableName(t *testing.T) {
-	assert.Equal(t, "oauth2_application", new(OAuth2Application).TableName())
+	assert.Equal(t, "gitea_oauth2_application", new(OAuth2Application).TableName())
 }
 
 func TestOAuth2Application_GetGrantByUserID(t *testing.T) {
@@ -132,7 +132,7 @@ func TestOAuth2Grant_GenerateNewAuthorizationCode(t *testing.T) {
 }
 
 func TestOAuth2Grant_TableName(t *testing.T) {
-	assert.Equal(t, "oauth2_grant", new(OAuth2Grant).TableName())
+	assert.Equal(t, "gitea_oauth2_grant", new(OAuth2Grant).TableName())
 }
 
 func TestGetOAuth2GrantsByUserID(t *testing.T) {
@@ -224,5 +224,5 @@ func TestOAuth2AuthorizationCode_Invalidate(t *testing.T) {
 }
 
 func TestOAuth2AuthorizationCode_TableName(t *testing.T) {
-	assert.Equal(t, "oauth2_authorization_code", new(OAuth2AuthorizationCode).TableName())
+	assert.Equal(t, "gitea_oauth2_authorization_code", new(OAuth2AuthorizationCode).TableName())
 }

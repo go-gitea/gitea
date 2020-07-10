@@ -492,7 +492,7 @@ func CountMilestonesByRepoCond(repoCond builder.Cond, isClosed bool) (map[int64]
 	}, 0, 10)
 	if err := sess.GroupBy("repo_id").
 		Select("repo_id AS repo_id, COUNT(*) AS count").
-		Table("milestone").
+		Table(RealTableName("milestone")).
 		Find(&countsSlice); err != nil {
 		return nil, err
 	}
