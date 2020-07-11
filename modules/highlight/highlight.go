@@ -14,7 +14,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
@@ -44,9 +43,12 @@ func NewContext() {
 func Code(fileName, code string) string {
 	NewContext()
 
-	if code == "" {
+	// diff view newline will be passed as empty, change to literal \n so it can be copied
+	// preserve literal newline in blame view
+	if code == "" || code == "\n" {
 		return "\n"
 	}
+
 	if len(code) > sizeLimit {
 		return code
 	}
@@ -72,7 +74,7 @@ func Code(fileName, code string) string {
 		lexer = lexers.Fallback
 	}
 
-	iterator, err := lexer.Tokenise(&chroma.TokeniseOptions{State: "root", Nested: true}, string(code))
+	iterator, err := lexer.Tokenise(nil, string(code))
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
 		return code
@@ -85,7 +87,9 @@ func Code(fileName, code string) string {
 	}
 
 	htmlw.Flush()
-	return htmlbuf.String()
+	// Chroma will add newlines for certain lexers in order to highlight them properly
+	// Once highlighted, strip them here so they don't cause copy/paste trouble in HTML output
+	return strings.TrimSuffix(htmlbuf.String(), "\n")
 }
 
 // File returns map with line lumbers and HTML version of code with chroma syntax highlighting classes
