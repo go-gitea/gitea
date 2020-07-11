@@ -196,10 +196,6 @@ func getMSTeamsForkPayload(p *api.ForkPayload) (*MSTeamsPayload, error) {
 }
 
 func getMSTeamsPushPayload(p *api.PushPayload) (*MSTeamsPayload, error) {
-	if len(p.Commits) == 0 {
-		return nil, fmt.Errorf("no commits in payload")
-	}
-
 	var (
 		branchName = git.RefEndName(p.Ref)
 		commitDesc string

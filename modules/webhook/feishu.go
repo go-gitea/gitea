@@ -66,10 +66,6 @@ func getFeishuForkPayload(p *api.ForkPayload) (*FeishuPayload, error) {
 }
 
 func getFeishuPushPayload(p *api.PushPayload) (*FeishuPayload, error) {
-	if len(p.Commits) == 0 {
-		return nil, fmt.Errorf("no commits in payload")
-	}
-
 	var (
 		branchName = git.RefEndName(p.Ref)
 		commitDesc string
