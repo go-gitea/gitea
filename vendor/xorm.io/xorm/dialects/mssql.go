@@ -231,6 +231,7 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 		} else if strings.EqualFold(c.Default, "false") {
 			c.Default = "0"
 		}
+		return res
 	case schemas.Serial:
 		c.IsAutoIncrement = true
 		c.IsPrimaryKey = true
@@ -270,8 +271,8 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 		res = t
 	}
 
-	if res == schemas.Int {
-		return schemas.Int
+	if res == schemas.Int || res == schemas.Bit || res == schemas.DateTime {
+		return res
 	}
 
 	hasLen1 := (c.Length > 0)
