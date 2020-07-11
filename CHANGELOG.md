@@ -4,6 +4,26 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.12.2](https://github.com/go-gitea/gitea/releases/tag/v1.12.2) - 2020-07-11
+
+* BUGFIXES
+  * When deleting repository decrese user repositry count in cache (#11954) (#12188)
+  * Gitea commits API again returns commit summaries, not full messages (#12186) (#12187)
+  * Properly set HEAD when a repo is created with a non-master default branch (#12135) (#12182)
+  * Ensure Subkeys are verified (#12155) (#12168)
+  * Fix failing to cache last commit with key being to long (#12151) (#12161)
+  * Multiple small admin dashboard fixes (#12153) (#12156)
+  * Remove spurious logging (#12139) (#12148)
+  * Fix repository setup instructions when default branch is not master (#12122) (#12147)
+  * Move EventSource to SharedWorker (#12095) (#12130)
+  * Fix ui bug in wiki commit page (#12089) (#12125)
+  * Fix gitgraph branch continues after merge (#12044) (#12105)
+  * Set the base url when migrating from Gitlab using access token or username without password (#11852) (#12104)
+  * Ensure BlameReaders close at end of request (#12102) (#12103)
+  * Fix comments webhook panic backport (#12058)
+* ENHANCEMENTS
+  * Disable dropzone's timeout (#12024) (#12032)
+
 ## [1.12.1](https://github.com/go-gitea/gitea/releases/tag/v1.12.1) - 2020-06-21
 
 * BUGFIXES
