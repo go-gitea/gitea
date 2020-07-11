@@ -9,7 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * When deleting repository decrese user repository count in cache (#11954) (#12188)
   * Return full commit message instead of summary in commits API (#12186) (#12187)
-  * Properly set HEAD when a repo is created with a non-master default branch (#12135) (#12182)
+  * Properly set HEAD when a repo is created with a default branch that is not named 'master' (#12135) (#12182)
   * Ensure Subkeys are verified (#12155) (#12168)
   * Fix failing to cache last commit with key being to long (#12151) (#12161)
   * Multiple small admin dashboard fixes (#12153) (#12156)
