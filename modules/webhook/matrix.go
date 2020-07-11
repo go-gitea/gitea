@@ -145,6 +145,10 @@ func getMatrixReleasePayload(p *api.ReleasePayload, matrix *MatrixMeta) (*Matrix
 }
 
 func getMatrixPushPayload(p *api.PushPayload, matrix *MatrixMeta) (*MatrixPayloadUnsafe, error) {
+	if len(p.Commits) == 0 {
+		return nil, fmt.Errorf("no commits in payload")
+	}
+
 	var commitDesc string
 
 	if len(p.Commits) == 1 {

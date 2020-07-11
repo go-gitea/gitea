@@ -189,6 +189,10 @@ func getSlackReleasePayload(p *api.ReleasePayload, slack *SlackMeta) (*SlackPayl
 }
 
 func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, error) {
+	if len(p.Commits) == 0 {
+		return nil, fmt.Errorf("no commits in payload")
+	}
+
 	// n new commits
 	var (
 		commitDesc   string

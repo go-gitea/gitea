@@ -177,6 +177,10 @@ func getDiscordForkPayload(p *api.ForkPayload, meta *DiscordMeta) (*DiscordPaylo
 }
 
 func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPayload, error) {
+	if len(p.Commits) == 0 {
+		return nil, fmt.Errorf("no commits in payload")
+	}
+
 	var (
 		branchName = git.RefEndName(p.Ref)
 		commitDesc string
