@@ -89,9 +89,7 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
 	}
-	if len(opts.Status) == 1 {
-		cond = cond.And(builder.Eq{"notification.status": opts.Status[0]})
-	} else if len(opts.Status) > 1 {
+	if len(opts.Status) > 0 {
 		cond = cond.And(builder.In("notification.status", opts.Status))
 	}
 	if opts.UpdatedAfterUnix != 0 {
