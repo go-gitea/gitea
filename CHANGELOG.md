@@ -22,7 +22,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Ensure BlameReaders close at end of request (#12102) (#12103)
   * Fix panic when adding review comment (#12058)
 * ENHANCEMENTS
-  * Disable dropzone's timeout (#12024) (#12032)
+  * Disable dropzone's timeout for file uploads (#12024) (#12032)
 
 ## [1.12.1](https://github.com/go-gitea/gitea/releases/tag/v1.12.1) - 2020-06-21
 
