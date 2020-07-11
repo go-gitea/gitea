@@ -52,7 +52,7 @@ gitea.com/macaron/toolbox
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
-# github.com/PuerkitoBio/goquery v1.5.0
+# github.com/PuerkitoBio/goquery v1.5.1
 ## explicit
 github.com/PuerkitoBio/goquery
 # github.com/PuerkitoBio/purell v1.1.1
@@ -96,7 +96,7 @@ github.com/alecthomas/chroma/lexers/y
 github.com/alecthomas/chroma/styles
 # github.com/andybalholm/brotli v0.0.0-20190621154722-5f990b63d2d6
 github.com/andybalholm/brotli
-# github.com/andybalholm/cascadia v1.0.0
+# github.com/andybalholm/cascadia v1.1.0
 github.com/andybalholm/cascadia
 # github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239
 github.com/anmitsu/go-shlex
@@ -356,7 +356,7 @@ github.com/go-redis/redis/internal/hashtag
 github.com/go-redis/redis/internal/pool
 github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
-# github.com/go-sql-driver/mysql v1.4.1
+# github.com/go-sql-driver/mysql v1.5.0
 ## explicit
 github.com/go-sql-driver/mysql
 # github.com/go-stack/stack v1.8.0
@@ -850,7 +850,6 @@ golang.org/x/xerrors/internal
 # google.golang.org/appengine v1.6.5
 ## explicit
 google.golang.org/appengine
-google.golang.org/appengine/cloudsql
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/app_identity
 google.golang.org/appengine/internal/base
@@ -917,7 +916,7 @@ strk.kbt.io/projects/go/libravatar
 # xorm.io/builder v0.3.7
 ## explicit
 xorm.io/builder
-# xorm.io/xorm v1.0.2
+# xorm.io/xorm v1.0.3
 ## explicit
 xorm.io/xorm
 xorm.io/xorm/caches
