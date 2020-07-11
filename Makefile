@@ -384,7 +384,7 @@ test-sqlite-prefix: integrations.sqlite.test generate-ini-sqlite-prefix
 	cd models/fixtures && \
 	sh add_test_prefix.sh && \
 	cd ../.. && \
-	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test; \
+	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test \
 	&& { \
     cd models/fixtures && \
 	bash remove_test_prefix.sh && \
