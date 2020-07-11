@@ -20,7 +20,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix gitgraph branch continues after merge (#12044) (#12105)
   * Set the base url when migrating from Gitlab using access token or username without password (#11852) (#12104)
   * Ensure BlameReaders close at end of request (#12102) (#12103)
-  * Fix comments webhook panic backport (#12058)
+  * Fix panic when adding review comment (#12058)
 * ENHANCEMENTS
   * Disable dropzone's timeout (#12024) (#12032)
 
