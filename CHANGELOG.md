@@ -13,7 +13,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Ensure GPG Subkeys are verified (#12155) (#12168)
   * Fix failing to cache last commit with key being to long (#12151) (#12161)
   * Multiple small admin dashboard fixes (#12153) (#12156)
-  * Remove spurious logging (#12139) (#12148)
+  * Remove spurious logging of " Delete all repository archives" at startup (#12139) (#12148)
   * Fix repository setup instructions when default branch is not master (#12122) (#12147)
   * Move EventSource to SharedWorker (#12095) (#12130)
   * Fix ui bug in wiki commit page (#12089) (#12125)
