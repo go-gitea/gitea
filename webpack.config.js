@@ -5,7 +5,6 @@ const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
-const SpriteLoaderPlugin = require('svg-sprite-loader/plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
@@ -28,7 +27,7 @@ const filterCssImport = (parsedImport, cssFile) => {
 
   if (cssFile.includes('fomantic')) {
     if (/brand-icons/.test(importedFile)) return false;
-    if (/(eot|ttf|otf|woff)$/.test(importedFile)) return false;
+    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
   }
 
   if (cssFile.includes('font-awesome')) {
@@ -56,10 +55,6 @@ module.exports = {
     ],
     'eventsource.sharedworker': [
       resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
-    ],
-    icons: [
-      ...glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
-      ...glob('assets/svg/*.svg'),
     ],
     ...themes,
   },
@@ -233,23 +228,10 @@ module.exports = {
       },
       {
         test: /\.svg$/,
+        include: resolve(__dirname, 'public/img/svg'),
         use: [
           {
-            loader: 'svg-sprite-loader',
-            options: {
-              extract: true,
-              spriteFilename: 'img/svg/icons.svg',
-              symbolId: (path) => {
-                const {name} = parse(path);
-                if (/@primer[/\\]octicons/.test(path)) {
-                  return `octicon-${name}`;
-                }
-                return name;
-              },
-            },
-          },
-          {
-            loader: 'svgo-loader',
+            loader: 'raw-loader',
           },
         ],
       },
@@ -270,9 +252,9 @@ module.exports = {
   },
   plugins: [
     new VueLoaderPlugin(),
-    // avoid generating useless js output files for css- and svg-only chunks
+    // avoid generating useless js output files for css--only chunks
     new FixStyleOnlyEntriesPlugin({
-      extensions: ['less', 'scss', 'css', 'svg'],
+      extensions: ['less', 'scss', 'css'],
       silent: true,
     }),
     new MiniCssExtractPlugin({
@@ -285,9 +267,6 @@ module.exports = {
         'js/index.js',
         'css/index.css',
       ],
-    }),
-    new SpriteLoaderPlugin({
-      plainSprite: true,
     }),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].worker.js',
