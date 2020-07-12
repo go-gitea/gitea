@@ -15,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 const (
@@ -30,13 +32,13 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 
 	isShowClosed := ctx.Query("state") == "closed"
-	openCount, closedCount, err := models.MilestoneStats(ctx.Repo.Repository.ID)
+	stats, err := models.GetMilestonesStatsByRepoCond(builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}))
 	if err != nil {
 		ctx.ServerError("MilestoneStats", err)
 		return
 	}
-	ctx.Data["OpenCount"] = openCount
-	ctx.Data["ClosedCount"] = closedCount
+	ctx.Data["OpenCount"] = stats.OpenCount
+	ctx.Data["ClosedCount"] = stats.ClosedCount
 
 	sortType := ctx.Query("sort")
 	page := ctx.QueryInt("page")
@@ -46,9 +48,9 @@ func Milestones(ctx *context.Context) {
 
 	var total int
 	if !isShowClosed {
-		total = int(openCount)
+		total = int(stats.OpenCount)
 	} else {
-		total = int(closedCount)
+		total = int(stats.ClosedCount)
 	}
 
 	miles, err := models.GetMilestones(ctx.Repo.Repository.ID, page, isShowClosed, sortType)
@@ -88,7 +90,6 @@ func NewMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
-	ctx.Data["DateLang"] = setting.DateLang(ctx.Locale.Language())
 	ctx.HTML(200, tplMilestoneNew)
 }
 
@@ -97,7 +98,6 @@ func NewMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
-	ctx.Data["DateLang"] = setting.DateLang(ctx.Locale.Language())
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplMilestoneNew)
@@ -134,7 +134,6 @@ func EditMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
-	ctx.Data["DateLang"] = setting.DateLang(ctx.Locale.Language())
 
 	m, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -158,7 +157,6 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
-	ctx.Data["DateLang"] = setting.DateLang(ctx.Locale.Language())
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplMilestoneNew)
@@ -258,6 +256,8 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		ctx.ServerError("GetMilestoneByID", err)
 		return
 	}
+
+	milestone.RenderedContent = string(markdown.Render([]byte(milestone.Content), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
 
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone

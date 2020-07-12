@@ -139,7 +139,6 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			return
 		}
 	}
-	isShowClosed := ctx.Query("state") == "closed"
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if bytes.Contains([]byte(keyword), []byte{0x00}) {
@@ -177,6 +176,13 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			return
 		}
 	}
+
+	isShowClosed := ctx.Query("state") == "closed"
+	// if open issues are zero and close don't, use closed as default
+	if len(ctx.Query("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
+		isShowClosed = true
+	}
+
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
@@ -285,6 +291,9 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	if ctx.QueryInt64("assignee") == 0 {
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
 	}
+
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
+		issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
 
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
 		counts, ok := approvalCounts[issueID]
@@ -996,6 +1005,12 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadResolveDoer", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypePullPush {
+			participants = addParticipant(comment.Poster, participants)
+			if err = comment.LoadPushCommits(); err != nil {
+				ctx.ServerError("LoadPushCommits", err)
+				return
+			}
 		}
 	}
 
@@ -1127,6 +1142,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
+	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
 	ctx.HTML(200, tplIssueView)
 }
 

@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -241,8 +240,8 @@ func getProtectedBranchBy(e Engine, repoID int64, branchName string) (*Protected
 
 // GetProtectedBranchByID getting protected branch by ID
 func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{ID: id}
-	has, err := x.Get(rel)
+	rel := &ProtectedBranch{}
+	has, err := x.ID(id).Get(rel)
 	if err != nil {
 		return nil, err
 	}
@@ -510,9 +509,9 @@ func (repo *Repository) GetDeletedBranches() ([]*DeletedBranch, error) {
 }
 
 // GetDeletedBranchByID get a deleted branch by its ID
-func (repo *Repository) GetDeletedBranchByID(ID int64) (*DeletedBranch, error) {
-	deletedBranch := &DeletedBranch{ID: ID}
-	has, err := x.Get(deletedBranch)
+func (repo *Repository) GetDeletedBranchByID(id int64) (*DeletedBranch, error) {
+	deletedBranch := &DeletedBranch{}
+	has, err := x.ID(id).Get(deletedBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -561,11 +560,11 @@ func RemoveDeletedBranch(repoID int64, branch string) error {
 }
 
 // RemoveOldDeletedBranches removes old deleted branches
-func RemoveOldDeletedBranches(ctx context.Context) {
+func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 	// Nothing to do for shutdown or terminate
 	log.Trace("Doing: DeletedBranchesCleanup")
 
-	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)
+	deleteBefore := time.Now().Add(-olderThan)
 	_, err := x.Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
 	if err != nil {
 		log.Error("DeletedBranchesCleanup: %v", err)

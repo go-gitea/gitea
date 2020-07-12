@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/utils/ioutil"
 )
 
 // See https://github.com/git/git/blob/49fa3dc76179e04b0833542fa52d0f287a4955ac/delta.h
@@ -16,16 +17,20 @@ import (
 const deltaSizeMin = 4
 
 // ApplyDelta writes to target the result of applying the modification deltas in delta to base.
-func ApplyDelta(target, base plumbing.EncodedObject, delta []byte) error {
+func ApplyDelta(target, base plumbing.EncodedObject, delta []byte) (err error) {
 	r, err := base.Reader()
 	if err != nil {
 		return err
 	}
 
+	defer ioutil.CheckClose(r, &err)
+
 	w, err := target.Writer()
 	if err != nil {
 		return err
 	}
+
+	defer ioutil.CheckClose(w, &err)
 
 	buf := bufPool.Get().(*bytes.Buffer)
 	defer bufPool.Put(buf)

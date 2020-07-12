@@ -183,13 +183,17 @@ func GetFeishuPayload(p api.Payloader, event models.HookEventType, meta string) 
 		return getFeishuForkPayload(p.(*api.ForkPayload))
 	case models.HookEventIssues:
 		return getFeishuIssuesPayload(p.(*api.IssuePayload))
-	case models.HookEventIssueComment:
-		return getFeishuIssueCommentPayload(p.(*api.IssueCommentPayload))
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
+		pl, ok := p.(*api.IssueCommentPayload)
+		if ok {
+			return getFeishuIssueCommentPayload(pl)
+		}
+		return getFeishuPullRequestPayload(p.(*api.PullRequestPayload))
 	case models.HookEventPush:
 		return getFeishuPushPayload(p.(*api.PushPayload))
 	case models.HookEventPullRequest:
 		return getFeishuPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewRejected, models.HookEventPullRequestComment:
+	case models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewRejected:
 		return getFeishuPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case models.HookEventRepository:
 		return getFeishuRepositoryPayload(p.(*api.RepositoryPayload))

@@ -1,5 +1,4 @@
 {{$file := .file}}
-{{$highlightClass := $file.GetHighlightClass}}
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
 		<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
@@ -20,7 +19,11 @@
 			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
 			{{end}}
 			<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-			<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">+</a>{{end}}<span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}} nohighlight{{end}}">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+			{{if eq .GetType 4}}
+			<td class="chroma lines-code blob-hunk"><span class="mono wrap">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+			{{else}}
+			<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}" data-type-marker="+"></a>{{end}}<span class="mono wrap">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+			{{end}}
 		</tr>
 		{{if gt (len $line.Comments) 0}}
 			{{$resolved := (index $line.Comments 0).IsResolved}}
@@ -28,8 +31,7 @@
 			{{$isNotPending := (not (eq (index $line.Comments 0).Review.Type 0))}}
 		<tr>
 			<td colspan="2" class="lines-num"></td>
-			<td class="lines-type-marker"></td>
-			<td class="add-comment-left add-comment-right">
+			<td class="add-comment-left add-comment-right" colspan="2">
 				{{if $resolved}}
 					<div class = "ui attached header">
 						<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.root.i18n.Tr "repo.issues.review.resolved_by"}}</span>
