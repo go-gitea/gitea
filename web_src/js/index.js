@@ -3555,12 +3555,3 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
-
-// Pull SVGs via AJAX to workaround CORS issues with <use> tags
-// https://css-tricks.com/ajaxing-svg-sprite/
-$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
-  const div = document.createElement('div');
-  div.style.display = 'none';
-  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
-  document.body.insertBefore(div, document.body.childNodes[0]);
-});
