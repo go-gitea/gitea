@@ -37,6 +37,8 @@ var (
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 	// spaceTrimmedPattern let's us find the trailing space
 	spaceTrimmedPattern = regexp.MustCompile(`(?:.*[0-9a-zA-Z-_])\s`)
+	// timeLogPattern matches string for time tracking
+	timeLogPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@([0-9]+([\.,][0-9]+)?(w|d|m|h))+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 
 	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
 	issueKeywordsOnce                             sync.Once
@@ -62,10 +64,11 @@ const (
 
 // IssueReference contains an unverified cross-reference to a local issue or pull request
 type IssueReference struct {
-	Index  int64
-	Owner  string
-	Name   string
-	Action XRefAction
+	Index   int64
+	Owner   string
+	Name    string
+	Action  XRefAction
+	TimeLog string
 }
 
 // RenderizableReference contains an unverified cross-reference to with rendering information
@@ -91,16 +94,18 @@ type rawReference struct {
 	issue          string
 	refLocation    *RefSpan
 	actionLocation *RefSpan
+	timeLog        string
 }
 
 func rawToIssueReferenceList(reflist []*rawReference) []IssueReference {
 	refarr := make([]IssueReference, len(reflist))
 	for i, r := range reflist {
 		refarr[i] = IssueReference{
-			Index:  r.index,
-			Owner:  r.owner,
-			Name:   r.name,
-			Action: r.action,
+			Index:   r.index,
+			Owner:   r.owner,
+			Name:    r.name,
+			Action:  r.action,
+			TimeLog: r.timeLog,
 		}
 	}
 	return refarr
@@ -383,6 +388,38 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 				ref.refLocation = nil
 				ret = append(ret, ref)
 			}
+		}
+	}
+
+	if len(ret) == 0 {
+		return ret
+	}
+
+	pos = 0
+
+	for {
+		match := timeLogPattern.FindSubmatchIndex(content[pos:])
+		if match == nil {
+			break
+		}
+
+		timeLogEntry := string(content[match[2]+pos+1 : match[3]+pos])
+
+		var f *rawReference
+		for _, ref := range ret {
+			if ref.refLocation != nil && ref.refLocation.End < match[2]+pos && (f == nil || f.refLocation.End < ref.refLocation.End) {
+				f = ref
+			}
+		}
+
+		pos = match[1] + pos
+
+		if f == nil {
+			f = ret[0]
+		}
+
+		if len(f.timeLog) == 0 {
+			f.timeLog = timeLogEntry
 		}
 	}
 
