@@ -53,7 +53,7 @@ coverage.all
 /custom/*
 !/custom/conf
 /custom/conf/*
-!/custom/conf/app.ini.sample
+!/custom/conf/app.example.ini
 /data
 /indexers
 /log
@@ -79,8 +79,8 @@ coverage.all
 /public/serviceworker.js
 /public/css
 /public/fonts
-/public/fomantic
 /public/img/svg
+/web_src/fomantic/build
 /VERSION
 
 # Snapcraft

@@ -1,16 +1,16 @@
-const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
+const wrapAnsi = require('wrap-ansi');
+const CssNanoPlugin = require('cssnano-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
-const PostCSSSafeParser = require('postcss-safe-parser');
 const SpriteLoaderPlugin = require('svg-sprite-loader/plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
 const {resolve, parse} = require('path');
+const {LicenseWebpackPlugin} = require('license-webpack-plugin');
 const {SourceMapDevToolPlugin} = require('webpack');
 
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
@@ -22,23 +22,45 @@ for (const path of glob('web_src/less/themes/*.less')) {
 
 const isProduction = process.env.NODE_ENV !== 'development';
 
+const filterCssImport = (parsedImport, cssFile) => {
+  const url = parsedImport && parsedImport.url ? parsedImport.url : parsedImport;
+  const importedFile = url.replace(/[?#].+/, '').toLowerCase();
+
+  if (cssFile.includes('fomantic')) {
+    if (/brand-icons/.test(importedFile)) return false;
+    if (/(eot|ttf|otf|woff)$/.test(importedFile)) return false;
+  }
+
+  if (cssFile.includes('font-awesome')) {
+    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
+  }
+
+  return true;
+};
+
 module.exports = {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
+      resolve(__dirname, 'web_src/js/jquery.js'),
+      resolve(__dirname, 'web_src/fomantic/build/semantic.js'),
       resolve(__dirname, 'web_src/js/index.js'),
+      resolve(__dirname, 'web_src/fomantic/build/semantic.css'),
       resolve(__dirname, 'web_src/less/index.less'),
     ],
     swagger: [
       resolve(__dirname, 'web_src/js/standalone/swagger.js'),
     ],
-    jquery: [
-      resolve(__dirname, 'web_src/js/jquery.js'),
-    ],
     serviceworker: [
       resolve(__dirname, 'web_src/js/serviceworker.js'),
     ],
-    icons: glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
+    'eventsource.sharedworker': [
+      resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
+    ],
+    icons: [
+      ...glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
+      ...glob('assets/svg/*.svg'),
+    ],
     ...themes,
   },
   devtool: false,
@@ -58,18 +80,14 @@ module.exports = {
         sourceMap: true,
         extractComments: false,
         terserOptions: {
-          keep_fnames: /^(HTML|SVG)/, // https://github.com/fgnass/domino/issues/144
           output: {
             comments: false,
           },
         },
       }),
-      new OptimizeCSSAssetsPlugin({
-        cssProcessor: cssnano,
-        cssProcessorOptions: {
-          parser: PostCSSSafeParser,
-        },
-        cssProcessorPluginOptions: {
+      new CssNanoPlugin({
+        sourceMap: true,
+        cssnanoOptions: {
           preset: [
             'default',
             {
@@ -89,10 +107,10 @@ module.exports = {
         monaco: {
           test: /monaco-editor/,
           name: 'monaco',
-          chunks: 'async'
-        }
-      }
-    }
+          chunks: 'async',
+        },
+      },
+    },
   },
   module: {
     rules: [
@@ -148,12 +166,41 @@ module.exports = {
                 ],
                 '@babel/plugin-proposal-object-rest-spread',
               ],
+              generatorOpts: {
+                compact: false,
+              },
             },
           },
         ],
       },
       {
-        test: /\.(less|css)$/i,
+        test: /.css$/i,
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
+          },
+          {
+            loader: 'css-loader',
+            options: {
+              importLoaders: 1,
+              url: filterCssImport,
+              import: filterCssImport,
+              sourceMap: true,
+            },
+          },
+          {
+            loader: 'postcss-loader',
+            options: {
+              plugins: () => [
+                PostCSSPresetEnv(),
+              ],
+              sourceMap: true,
+            },
+          },
+        ],
+      },
+      {
+        test: /.less$/i,
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
@@ -162,11 +209,10 @@ module.exports = {
             loader: 'css-loader',
             options: {
               importLoaders: 2,
-              url: (_url, resourcePath) => {
-                // only resolve URLs for dependencies
-                return resourcePath.includes('node_modules');
-              },
-            }
+              url: filterCssImport,
+              import: filterCssImport,
+              sourceMap: true,
+            },
           },
           {
             loader: 'postcss-loader',
@@ -174,10 +220,14 @@ module.exports = {
               plugins: () => [
                 PostCSSPresetEnv(),
               ],
+              sourceMap: true,
             },
           },
           {
             loader: 'less-loader',
+            options: {
+              sourceMap: true,
+            },
           },
         ],
       },
@@ -230,9 +280,10 @@ module.exports = {
       chunkFilename: 'css/[name].css',
     }),
     new SourceMapDevToolPlugin({
-      filename: 'js/[name].js.map',
+      filename: '[file].map',
       include: [
         'js/index.js',
+        'css/index.css',
       ],
     }),
     new SpriteLoaderPlugin({
@@ -240,6 +291,28 @@ module.exports = {
     }),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].worker.js',
+    }),
+    new LicenseWebpackPlugin({
+      outputFilename: 'js/licenses.txt',
+      perChunkOutput: false,
+      addBanner: false,
+      skipChildCompilers: true,
+      modulesDirectories: [
+        resolve(__dirname, 'node_modules'),
+      ],
+      renderLicenses: (modules) => {
+        const line = '-'.repeat(80);
+        return modules.map((module) => {
+          const {name, version} = module.packageJson;
+          const {licenseId, licenseText} = module;
+          const body = wrapAnsi(licenseText || '', 80);
+          return `${line}\n${name}@${version} - ${licenseId}\n${line}\n${body}`;
+        }).join('\n');
+      },
+      stats: {
+        warnings: false,
+        errors: true,
+      },
     }),
   ],
   performance: {

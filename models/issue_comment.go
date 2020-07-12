@@ -10,7 +10,10 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -142,7 +145,8 @@ type Comment struct {
 	RenderedContent string `xorm:"-"`
 
 	// Path represents the 4 lines of code cemented by this comment
-	Patch string `xorm:"TEXT"`
+	Patch       string `xorm:"-"`
+	PatchQuoted string `xorm:"TEXT patch"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -196,6 +200,33 @@ func (c *Comment) loadIssue(e Engine) (err error) {
 	}
 	c.Issue, err = getIssueByID(e, c.IssueID)
 	return
+}
+
+// BeforeInsert will be invoked by XORM before inserting a record
+func (c *Comment) BeforeInsert() {
+	c.PatchQuoted = c.Patch
+	if !utf8.ValidString(c.Patch) {
+		c.PatchQuoted = strconv.Quote(c.Patch)
+	}
+}
+
+// BeforeUpdate will be invoked by XORM before updating a record
+func (c *Comment) BeforeUpdate() {
+	c.PatchQuoted = c.Patch
+	if !utf8.ValidString(c.Patch) {
+		c.PatchQuoted = strconv.Quote(c.Patch)
+	}
+}
+
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (c *Comment) AfterLoad(session *xorm.Session) {
+	c.Patch = c.PatchQuoted
+	if len(c.PatchQuoted) > 0 && c.PatchQuoted[0] == '"' {
+		unquoted, err := strconv.Unquote(c.PatchQuoted)
+		if err == nil {
+			c.Patch = unquoted
+		}
+	}
 }
 
 func (c *Comment) loadPoster(e Engine) (err error) {
@@ -505,10 +536,12 @@ func (c *Comment) LoadReview() error {
 	return c.loadReview(x)
 }
 
+var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
+
 func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
-	if err != nil && strings.Contains(err.Error(), "fatal: no such path") {
+	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
 		c.Invalidated = true
 		return UpdateComment(c, doer)
 	}
@@ -1124,12 +1157,11 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 		return nil, false, err
 	}
 
-	oldCommitBranch, err := oldCommit.GetBranchName()
-	if err != nil {
+	if err = oldCommit.LoadBranchName(); err != nil {
 		return nil, false, err
 	}
 
-	if oldCommitBranch == "" {
+	if len(oldCommit.Branch) == 0 {
 		commitIDs = make([]string, 2)
 		commitIDs[0] = oldCommitID
 		commitIDs[1] = newCommitID
@@ -1142,25 +1174,102 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 		return nil, false, err
 	}
 
-	var commits *list.List
+	var (
+		commits      *list.List
+		commitChecks map[string]commitBranchCheckItem
+	)
 	commits, err = newCommit.CommitsBeforeUntil(oldCommitID)
 	if err != nil {
 		return nil, false, err
 	}
 
 	commitIDs = make([]string, 0, commits.Len())
+	commitChecks = make(map[string]commitBranchCheckItem)
+
+	for e := commits.Front(); e != nil; e = e.Next() {
+		commitChecks[e.Value.(*git.Commit).ID.String()] = commitBranchCheckItem{
+			Commit:  e.Value.(*git.Commit),
+			Checked: false,
+		}
+	}
+
+	if err = commitBranchCheck(gitRepo, newCommit, oldCommitID, baseBranch, commitChecks); err != nil {
+		return
+	}
 
 	for e := commits.Back(); e != nil; e = e.Prev() {
-		commit := e.Value.(*git.Commit)
-		commitBranch, err := commit.GetBranchName()
-		if err != nil {
-			return nil, false, err
-		}
-
-		if commitBranch != baseBranch {
-			commitIDs = append(commitIDs, commit.ID.String())
+		commitID := e.Value.(*git.Commit).ID.String()
+		if item, ok := commitChecks[commitID]; ok && item.Checked {
+			commitIDs = append(commitIDs, commitID)
 		}
 	}
 
 	return
+}
+
+type commitBranchCheckItem struct {
+	Commit  *git.Commit
+	Checked bool
+}
+
+func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endCommitID, baseBranch string, commitList map[string]commitBranchCheckItem) (err error) {
+	var (
+		item     commitBranchCheckItem
+		ok       bool
+		listItem *list.Element
+		tmp      string
+	)
+
+	if startCommit.ID.String() == endCommitID {
+		return
+	}
+
+	checkStack := list.New()
+	checkStack.PushBack(startCommit.ID.String())
+	listItem = checkStack.Back()
+
+	for listItem != nil {
+		tmp = listItem.Value.(string)
+		checkStack.Remove(listItem)
+
+		if item, ok = commitList[tmp]; !ok {
+			listItem = checkStack.Back()
+			continue
+		}
+
+		if item.Commit.ID.String() == endCommitID {
+			listItem = checkStack.Back()
+			continue
+		}
+
+		if err = item.Commit.LoadBranchName(); err != nil {
+			return
+		}
+
+		if item.Commit.Branch == baseBranch {
+			listItem = checkStack.Back()
+			continue
+		}
+
+		if item.Checked {
+			listItem = checkStack.Back()
+			continue
+		}
+
+		item.Checked = true
+		commitList[tmp] = item
+
+		parentNum := item.Commit.ParentCount()
+		for i := 0; i < parentNum; i++ {
+			var parentCommit *git.Commit
+			parentCommit, err = item.Commit.Parent(i)
+			if err != nil {
+				return
+			}
+			checkStack.PushBack(parentCommit.ID.String())
+		}
+
+		listItem = checkStack.Back()
+	}
+	return nil
 }

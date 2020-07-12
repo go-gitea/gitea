@@ -73,6 +73,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/repo"
+	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
 
@@ -513,8 +514,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 		m.Group("/settings", func() {
-			m.Get("/allowed_reactions", misc.SettingGetsAllowedReactions)
-			m.Get("/repository", misc.GetGeneralRepoSettings)
+			m.Get("/ui", settings.GetGeneralUISettings)
+			m.Get("/repository", settings.GetGeneralRepoSettings)
 		})
 
 		// Notifications

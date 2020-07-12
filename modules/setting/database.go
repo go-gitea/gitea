@@ -51,7 +51,7 @@ var (
 	}
 )
 
-// GetDBTypeByName returns the dataase type as it defined on XORM according the given name
+// GetDBTypeByName returns the database type as it defined on XORM according the given name
 func GetDBTypeByName(name string) string {
 	return dbTypes[name]
 }
@@ -105,7 +105,7 @@ func DBConnStr() (string, error) {
 	switch Database.Type {
 	case "mysql":
 		connType := "tcp"
-		if Database.Host[0] == '/' { // looks like a unix socket
+		if len(Database.Host) > 0 && Database.Host[0] == '/' { // looks like a unix socket
 			connType = "unix"
 		}
 		tls := Database.SSLMode

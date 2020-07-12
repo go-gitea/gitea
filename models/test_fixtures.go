@@ -6,18 +6,48 @@ package models
 
 import (
 	"fmt"
+	"os"
 	"time"
 
-	"gopkg.in/testfixtures.v2"
+	"github.com/go-testfixtures/testfixtures/v3"
 	"xorm.io/xorm/schemas"
 )
 
-var fixtures *testfixtures.Context
+var fixtures *testfixtures.Loader
 
 // InitFixtures initialize test fixtures for a test database
-func InitFixtures(helper testfixtures.Helper, dir string) (err error) {
-	testfixtures.SkipDatabaseNameCheck(true)
-	fixtures, err = testfixtures.NewFolder(x.DB().DB, helper, dir)
+func InitFixtures(dir string) (err error) {
+	testfiles := testfixtures.Directory(dir)
+	dialect := "unknown"
+	switch x.Dialect().URI().DBType {
+	case schemas.POSTGRES:
+		dialect = "postgres"
+	case schemas.MYSQL:
+		dialect = "mysql"
+	case schemas.MSSQL:
+		dialect = "mssql"
+	case schemas.SQLITE:
+		dialect = "sqlite3"
+	default:
+		fmt.Println("Unsupported RDBMS for integration tests")
+		os.Exit(1)
+	}
+	loaderOptions := []func(loader *testfixtures.Loader) error{
+		testfixtures.Database(x.DB().DB),
+		testfixtures.Dialect(dialect),
+		testfixtures.DangerousSkipTestDatabaseCheck(),
+		testfiles,
+	}
+
+	if x.Dialect().URI().DBType == schemas.POSTGRES {
+		loaderOptions = append(loaderOptions, testfixtures.SkipResetSequences())
+	}
+
+	fixtures, err = testfixtures.New(loaderOptions...)
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 
