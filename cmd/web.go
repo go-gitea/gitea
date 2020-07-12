@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/routers/routes"
 
 	context2 "github.com/gorilla/context"
-	"github.com/graphql-go/graphql"
 	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/acme/autocert"
@@ -117,17 +116,18 @@ func runWeb(ctx *cli.Context) error {
 	// Perform global initialization
 	routers.GlobalInit(graceful.GetManager().HammerContext())
 
+	var err error
 	//sql, this should probably go into the GlobalInit once I understand that
 	// Create our root query for graphql
-	rootQuery := gql.NewRoot()
+	//rootQuery := gql.NewRoot()
 	// Create a new graphql schema, passing in the the root query
-	schema, err := graphql.NewSchema(
-		graphql.SchemaConfig{Query: rootQuery.Query},
-	)
-	if err != nil {
-		fmt.Println("Error creating graphql schema: ", err)
-	}
-	gql.Init(schema)
+	//schema, err := graphql.NewSchema(
+	//	graphql.SchemaConfig{Query: rootQuery.Query},
+	//)
+	//if err != nil {
+	//	fmt.Println("Error creating graphql schema: ", err)
+	//}
+	gql.Init(gql.Schema)
 
 	// Set up Macaron
 	m := routes.NewMacaron()

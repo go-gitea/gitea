@@ -35,6 +35,7 @@ func NewRoot() *Root {
 						},
 						Resolve: RepositoryResolver,
 					},
+					"node": nodeDefinitions.NodeField,
 				},
 			},
 		),

@@ -5,17 +5,59 @@
 package gql
 
 import (
+	"context"
 	"errors"
+	"github.com/seripap/relay"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	giteaCtx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"github.com/graphql-go/graphql"
 )
+
+// RepositoryByIdResolver resolvers a repository by id
+func RepositoryByIdResolver(id string, goCtx context.Context) (interface{}, error)  {
+	var (
+		err   error
+	)
+
+	internalId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, errors.New("Unable to parse id")
+	}
+
+	ctx := goCtx.Value("giteaApiContext").(*giteaCtx.APIContext)
+
+	// Get repository.
+	repo, err := models.GetRepositoryByID(internalId)
+	if err != nil {
+		return nil, err
+	}
+	repo.MustOwner()
+
+	ctx.Repo.Owner = repo.Owner
+	ctx.Repo.Repository = repo
+	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
+	if err != nil {
+		return nil, err
+	}
+
+	if !ctx.Repo.HasAccess() {
+		return nil, errors.New("repo not found")
+	}
+
+	err = authorizeRepository(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	gqlRepo := repo.GqlFormat(models.AccessModeRead)
+	return *gqlRepo, nil
+}
 
 // RepositoryResolver resolves a repository
 func RepositoryResolver(p graphql.ResolveParams) (interface{}, error) {
@@ -85,6 +127,7 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 		return nil, err
 	}
 
+	//TODO, how to set this???
 	limitOptions := models.ListOptions{
 		Page:     0,
 		PageSize: 50,
@@ -93,11 +136,14 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	users := make([]*api.User, len(collaborators))
-	for i, collaborator := range collaborators {
-		users[i] = convert.ToUser(collaborator.User, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+	users := []interface{}{}
+	for _, collaborator := range collaborators {
+		user := convert.ToUser(collaborator.User, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		users = append(users, user)
 	}
-	return users, nil
+
+	args := relay.NewConnectionArguments(p.Args)
+	return relay.ConnectionFromArray(users, args), nil
 }
 
 func authorizeCollaborators(ctx *giteaCtx.APIContext) error {
@@ -110,7 +156,7 @@ func authorizeCollaborators(ctx *giteaCtx.APIContext) error {
 	return nil
 }
 
-// BranchesResolver resovles the branches of a repository
+// BranchesResolver resolves the branches of a repository
 func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
 	ctx := p.Context.Value("giteaApiContext").(*giteaCtx.APIContext)
 	err := authorizeBranches(ctx)
@@ -123,7 +169,7 @@ func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
 		return nil, err
 	}
 
-	apiBranches := make([]*api.Branch, len(branches))
+	apiBranches := []interface{}{}
 	for i := range branches {
 		c, err := branches[i].GetCommit()
 		if err != nil {
@@ -133,13 +179,15 @@ func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		apiBranches[i], err = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection,
-			ctx.User, ctx.Repo.IsAdmin())
+		apiBranch, err := convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.User, ctx.Repo.IsAdmin())
 		if err != nil {
 			return nil, err
 		}
+		apiBranches = append(apiBranches, apiBranch)
 	}
-	return apiBranches, nil
+
+	args := relay.NewConnectionArguments(p.Args)
+	return relay.ConnectionFromArray(apiBranches, args), nil
 }
 
 func authorizeBranches(ctx *giteaCtx.APIContext) error {
