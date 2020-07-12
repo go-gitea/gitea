@@ -113,7 +113,10 @@ func (g *Manager) handleSignals(ctx context.Context) {
 				log.Info("PID: %d. Received SIGHUP. Attempting GracefulRestart...", pid)
 				g.DoGracefulRestart()
 			case syscall.SIGUSR1:
-				log.Info("PID %d. Received SIGUSR1.", pid)
+				log.Warn("PID %d. Received SIGUSR1. Releasing and reopening logs", pid)
+				if err := log.ReleaseReopen(); err != nil {
+					log.Error("Error whilst releasing and reopening logs: %v", err)
+				}
 			case syscall.SIGUSR2:
 				log.Warn("PID %d. Received SIGUSR2. Hammering...", pid)
 				g.DoImmediateHammer()

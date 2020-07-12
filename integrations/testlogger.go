@@ -170,6 +170,11 @@ func (log *TestLogger) Init(config string) error {
 func (log *TestLogger) Flush() {
 }
 
+//ReleaseReopen does nothing
+func (log *TestLogger) ReleaseReopen() error {
+	return nil
+}
+
 // GetName returns the default name for this implementation
 func (log *TestLogger) GetName() string {
 	return "test"

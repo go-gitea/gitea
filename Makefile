@@ -88,7 +88,11 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
-WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
+FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
+FOMANTIC_DEST := web_src/fomantic/build/semantic.js web_src/fomantic/build/semantic.css
+FOMANTIC_DEST_DIR := web_src/fomantic/build
+
+WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f) $(FOMANTIC_DEST)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
 WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/serviceworker.js public/img/svg
@@ -109,10 +113,6 @@ ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 endif
 
 GO_SOURCES_OWN := $(filter-out vendor/% %/bindata.go, $(GO_SOURCES))
-
-FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
-FOMANTIC_DEST := public/fomantic/semantic.min.js public/fomantic/semantic.min.css
-FOMANTIC_DEST_DIR := public/fomantic
 
 #To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
 SWAGGER := $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
@@ -253,7 +253,7 @@ swagger-validate:
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/kisielk/errcheck; \
+		GO111MODULE=off $(GO) get -u github.com/kisielk/errcheck; \
 	fi
 	errcheck $(GO_PACKAGES)
 
@@ -264,14 +264,14 @@ revive:
 .PHONY: misspell-check
 misspell-check:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
+		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
 	misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
 
 .PHONY: misspell
 misspell:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
+		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
 	misspell -w -i unknwon $(GO_SOURCES_OWN)
 
@@ -297,7 +297,7 @@ lint-frontend: node_modules
 	npx stylelint web_src/less
 
 .PHONY: watch-frontend
-watch-frontend: node_modules
+watch-frontend: node-check $(FOMANTIC_DEST) node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
 
@@ -529,7 +529,7 @@ $(DIST_DIRS):
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
+		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -539,7 +539,7 @@ endif
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
+		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -549,7 +549,7 @@ endif
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
+		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
 	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
@@ -590,7 +590,7 @@ npm-update: node-check | node_modules
 .PHONY: fomantic
 fomantic: $(FOMANTIC_DEST)
 
-$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
+$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) | node_modules
 	rm -rf $(FOMANTIC_DEST_DIR)
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp -r web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
