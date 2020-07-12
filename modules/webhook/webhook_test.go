@@ -34,7 +34,7 @@ func TestPrepareWebhooks(t *testing.T) {
 	for _, hookTask := range hookTasks {
 		models.AssertNotExistsBean(t, hookTask)
 	}
-	assert.NoError(t, PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{}))
+	assert.NoError(t, PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}}))
 	for _, hookTask := range hookTasks {
 		models.AssertExistsAndLoadBean(t, hookTask)
 	}
@@ -51,7 +51,7 @@ func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
 		models.AssertNotExistsBean(t, hookTask)
 	}
 	// this test also ensures that * doesn't handle / in any special way (like shell would)
-	assert.NoError(t, PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791"}))
+	assert.NoError(t, PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}}))
 	for _, hookTask := range hookTasks {
 		models.AssertExistsAndLoadBean(t, hookTask)
 	}
