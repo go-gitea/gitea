@@ -207,6 +207,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	wikiPath := m.Repo.WikiPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
+	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 	gitArgs := []string{"remote", "update"}
 	if m.EnablePrune {
 		gitArgs = append(gitArgs, "--prune")
@@ -248,17 +249,21 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
 	}
+
+	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
 	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
 		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
 	gitRepo.Close()
 
+	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
 	if err := m.Repo.UpdateSize(models.DefaultDBContext()); err != nil {
 		log.Error("Failed to update size for mirror repository: %v", err)
 	}
 
 	if m.Repo.HasWiki() {
+		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
 		if err := git.NewCommand("remote", "update", "--prune").
@@ -288,8 +293,10 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 			}
 			return nil, false
 		}
+		log.Trace("SyncMirrors [repo: %-v Wiki]: git remote update complete", m.Repo)
 	}
 
+	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
 	branches, err := repo_module.GetBranches(m.Repo)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
@@ -391,11 +398,13 @@ func syncMirror(repoID string) {
 
 	}
 
+	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(m)
 	if !ok {
 		return
 	}
 
+	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
 	if err = models.UpdateMirror(m); err != nil {
 		log.Error("UpdateMirror [%s]: %v", repoID, err)
@@ -404,8 +413,9 @@ func syncMirror(repoID string) {
 
 	var gitRepo *git.Repository
 	if len(results) == 0 {
-		log.Trace("SyncMirrors [repo_id: %d]: no commits fetched", m.RepoID)
+		log.Trace("SyncMirrors [repo: %-v]: no branches updated", m.Repo)
 	} else {
+		log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
 		gitRepo, err = git.OpenRepository(m.Repo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository [%d]: %v", m.RepoID, err)
@@ -460,6 +470,7 @@ func syncMirror(repoID string) {
 
 		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, result.refName, oldCommitID, newCommitID, theCommits)
 	}
+	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
 
 	// Get latest commit date and update to current repository updated time
 	commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
@@ -472,6 +483,8 @@ func syncMirror(repoID string) {
 		log.Error("Update repository 'updated_unix' [%d]: %v", m.RepoID, err)
 		return
 	}
+
+	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
 }
 
 // InitSyncMirrors initializes a go routine to sync the mirrors
