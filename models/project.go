@@ -311,20 +311,7 @@ func deleteProjectByID(e Engine, id int64) error {
 		return err
 	}
 
-	numProjects, err := countRepoProjects(e, p.RepoID)
-	if err != nil {
-		return err
-	}
-
-	numClosedProjects, err := countRepoClosedProjects(e, p.RepoID)
-	if err != nil {
-		return err
-	}
-
-	if _, err = e.ID(p.RepoID).Cols("num_projects, num_closed_projects").Update(&Repository{
-		NumProjects:       int(numProjects),
-		NumClosedProjects: int(numClosedProjects),
-	}); err != nil {
+	if err = updateRepositoryProjectCount(e, p.RepoID); err != nil {
 		return err
 	}
 
