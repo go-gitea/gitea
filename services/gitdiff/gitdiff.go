@@ -188,14 +188,14 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 		switch {
 		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
 			buf.Write(addedCodePrefix)
-			buf.WriteString(highlight.Code(fileName, diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
 			buf.Write(removedCodePrefix)
-			buf.WriteString(highlight.Code(fileName, diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffEqual:
-			buf.WriteString(highlight.Code(fileName, getLineContent(diffs[i].Text)))
+			buf.WriteString(getLineContent(diffs[i].Text))
 		}
 	}
 	return template.HTML(buf.Bytes())
@@ -287,7 +287,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 		return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content))
 	}
 
-	diffRecord := diffMatchPatch.DiffMain(diff1[1:], diff2[1:], true)
+	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1[1:]), highlight.Code(diffSection.FileName, diff2[1:]), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
 }

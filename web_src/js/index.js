@@ -20,6 +20,7 @@ import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {createCodeEditor} from './features/codeeditor.js';
+import {svg, svgs} from './svg.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -2022,22 +2023,17 @@ function initCodeView() {
       }
     }).trigger('hashchange');
   }
-  $('.fold-code').on('click', ({target}) => {
-    const box = target.closest('.file-content');
+  $(document).on('click', '.fold-file', ({currentTarget}) => {
+    const box = currentTarget.closest('.file-content');
     const folded = box.dataset.folded !== 'true';
-    target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
-    target.classList.remove(`fa-chevron-${folded ? 'down' : 'right'}`);
+    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
     box.dataset.folded = String(folded);
   });
-  function insertBlobExcerpt(e) {
-    const $blob = $(e.currentTarget);
-    const $row = $blob.parent().parent();
-    $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
-      $row.replaceWith(blob);
-      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
-    });
-  }
-  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
+  $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
+    const {url, query, anchor} = currentTarget.dataset;
+    const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
+    currentTarget.closest('tr').outerHTML = blob;
+  });
 }
 
 function initU2FAuth() {
@@ -2632,6 +2628,15 @@ function linkEmailAction(e) {
 }
 
 function initVueComponents() {
+  // register svg icon vue components, e.g. <octicon-repo size="16"/>
+  for (const [name, htmlString] of Object.entries(svgs)) {
+    const template = htmlString
+      .replace(/height="[0-9]+"/, 'v-bind:height="size"')
+      .replace(/width="[0-9]+"/, 'v-bind:width="size"');
+
+    Vue.component(name, {props: ['size'], template});
+  }
+
   const vueDelimeters = ['${', '}'];
 
   Vue.component('repo-search', {
@@ -2957,7 +2962,7 @@ function initVueComponents() {
         });
       },
 
-      repoClass(repo) {
+      repoIcon(repo) {
         if (repo.fork) {
           return 'octicon-repo-forked';
         } else if (repo.mirror) {
@@ -3562,12 +3567,3 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
-
-// Pull SVGs via AJAX to workaround CORS issues with <use> tags
-// https://css-tricks.com/ajaxing-svg-sprite/
-$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
-  const div = document.createElement('div');
-  div.style.display = 'none';
-  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
-  document.body.insertBefore(div, document.body.childNodes[0]);
-});
