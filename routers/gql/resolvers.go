@@ -11,11 +11,12 @@ import (
 	"strings"
 
 	giteaCtx "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/routers/api/v1/utils"
+
 	"github.com/graphql-go/graphql"
 	"github.com/seripap/relay"
 )

@@ -12,6 +12,7 @@ import (
 
 	giteaCtx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+
 	"github.com/graphql-go/graphql"
 )
 
