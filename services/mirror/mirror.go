@@ -157,6 +157,26 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 				refName:     refName,
 				newCommitID: gitShortEmptySha,
 			})
+		case strings.HasPrefix(lines[i], " + "): // Force update
+			idx := strings.Index(refName, " ")
+			if idx > -1 {
+				refName = refName[:idx]
+			}
+			delimIdx := strings.Index(lines[i][3:], " ")
+			if delimIdx == -1 {
+				log.Error("SHA delimiter not found: %q", lines[i])
+				continue
+			}
+			shas := strings.Split(lines[i][3:delimIdx+3], "...")
+			if len(shas) != 2 {
+				log.Error("Expect two SHAs but not what found: %q", lines[i])
+				continue
+			}
+			results = append(results, &mirrorSyncResult{
+				refName:     refName,
+				oldCommitID: shas[0],
+				newCommitID: shas[1],
+			})
 		case strings.HasPrefix(lines[i], "   "): // New commits of a reference
 			delimIdx := strings.Index(lines[i][3:], " ")
 			if delimIdx == -1 {
