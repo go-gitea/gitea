@@ -303,9 +303,5 @@ func deleteProjectByID(e Engine, id int64) error {
 		return err
 	}
 
-	if err = updateRepositoryProjectCount(e, p.RepoID); err != nil {
-		return err
-	}
-
-	return nil
+	return updateRepositoryProjectCount(e, p.RepoID)
 }
