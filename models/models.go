@@ -151,7 +151,7 @@ func getEngine() (*xorm.Engine, error) {
 }
 
 // NewTestEngine sets a new test xorm.Engine
-func NewTestEngine(x *xorm.Engine) (err error) {
+func NewTestEngine() (err error) {
 	x, err = getEngine()
 	if err != nil {
 		return fmt.Errorf("Connect to database: %v", err)
