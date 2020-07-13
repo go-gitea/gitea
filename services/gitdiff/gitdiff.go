@@ -192,7 +192,7 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 			// also changes the chroma class name. If found, just move the openining span code forward into the added/deleted code section
 			if strings.HasSuffix(diffs[i].Text, "<span class=\"") {
 				addSpan = true
-				buf.WriteString(getLineContent(strings.TrimRight(diffs[i].Text, "<span class=\"")))
+				buf.WriteString(strings.TrimSuffix(diffs[i].Text, "<span class=\""))
 			} else {
 				addSpan = false
 				buf.WriteString(getLineContent(diffs[i].Text))
