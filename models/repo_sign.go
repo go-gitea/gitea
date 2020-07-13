@@ -103,12 +103,13 @@ func SignInitialCommit(repoPath string, u *User) (bool, string, error) {
 		return false, "", &ErrWontSign{noKey}
 	}
 
+Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
 			return false, "", &ErrWontSign{never}
 		case always:
-			break
+			break Loop
 		case pubkey:
 			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {
@@ -138,12 +139,13 @@ func (repo *Repository) SignWikiCommit(u *User) (bool, string, error) {
 		return false, "", &ErrWontSign{noKey}
 	}
 
+Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
 			return false, "", &ErrWontSign{never}
 		case always:
-			break
+			break Loop
 		case pubkey:
 			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {
@@ -190,12 +192,13 @@ func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string
 		return false, "", &ErrWontSign{noKey}
 	}
 
+Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
 			return false, "", &ErrWontSign{never}
 		case always:
-			break
+			break Loop
 		case pubkey:
 			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {

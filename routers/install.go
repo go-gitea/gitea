@@ -23,7 +23,6 @@ import (
 
 	"github.com/unknwon/com"
 	"gopkg.in/ini.v1"
-	"xorm.io/xorm"
 )
 
 const (
@@ -161,8 +160,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	// Set test engine.
-	var x *xorm.Engine
-	if err = models.NewTestEngine(x); err != nil {
+	if err = models.NewTestEngine(); err != nil {
 		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
 			ctx.Data["Err_DbType"] = true
 			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/en-us/install-from-binary/"), tplInstall, &form)

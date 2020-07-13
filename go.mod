@@ -18,7 +18,7 @@ require (
 	gitea.com/macaron/session v0.0.0-20191207215012-613cebf0674d
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 	github.com/BurntSushi/toml v0.3.1
-	github.com/PuerkitoBio/goquery v1.5.0
+	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/RoaringBitmap/roaring v0.4.23 // indirect
 	github.com/alecthomas/chroma v0.7.3
 	github.com/bgentry/speakeasy v0.1.0 // indirect
@@ -43,7 +43,7 @@ require (
 	github.com/go-git/go-git/v5 v5.1.0
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-redis/redis v6.15.2+incompatible
-	github.com/go-sql-driver/mysql v1.4.1
+	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-swagger/go-swagger v0.21.0
 	github.com/go-testfixtures/testfixtures/v3 v3.2.0
 	github.com/gobwas/glob v0.2.3
@@ -100,8 +100,8 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/xanzy/go-gitlab v0.31.0
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark v1.1.32
+	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
@@ -120,5 +120,5 @@ require (
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.7
-	xorm.io/xorm v1.0.2
+	xorm.io/xorm v1.0.3
 )

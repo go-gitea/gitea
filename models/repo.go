@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"unicode/utf8"
 
 	// Needed for jpeg support
 	_ "image/jpeg"
@@ -1394,11 +1395,11 @@ func GetRepositoriesByForkID(forkID int64) ([]*Repository, error) {
 func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err error) {
 	repo.LowerName = strings.ToLower(repo.Name)
 
-	if len(repo.Description) > 255 {
-		repo.Description = repo.Description[:255]
+	if utf8.RuneCountInString(repo.Description) > 255 {
+		repo.Description = string([]rune(repo.Description)[:255])
 	}
-	if len(repo.Website) > 255 {
-		repo.Website = repo.Website[:255]
+	if utf8.RuneCountInString(repo.Website) > 255 {
+		repo.Website = string([]rune(repo.Website)[:255])
 	}
 
 	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
@@ -1574,6 +1575,10 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	releaseAttachments := make([]string, 0, len(attachments))
 	for i := 0; i < len(attachments); i++ {
 		releaseAttachments = append(releaseAttachments, attachments[i].LocalPath())
+	}
+
+	if _, err = sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
+		return err
 	}
 
 	if err = deleteBeans(sess,
@@ -2340,4 +2345,39 @@ func updateRepositoryCols(e Engine, repo *Repository, cols ...string) error {
 // UpdateRepositoryCols updates repository's columns
 func UpdateRepositoryCols(repo *Repository, cols ...string) error {
 	return updateRepositoryCols(x, repo, cols...)
+}
+
+// DoctorUserStarNum recalculate Stars number for all user
+func DoctorUserStarNum() (err error) {
+	const batchSize = 100
+	sess := x.NewSession()
+	defer sess.Close()
+
+	for start := 0; ; start += batchSize {
+		users := make([]User, 0, batchSize)
+		if err = sess.Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
+			return
+		}
+		if len(users) == 0 {
+			break
+		}
+
+		if err = sess.Begin(); err != nil {
+			return
+		}
+
+		for _, user := range users {
+			if _, err = sess.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+				return
+			}
+		}
+
+		if err = sess.Commit(); err != nil {
+			return
+		}
+	}
+
+	log.Debug("recalculate Stars number for all user finished")
+
+	return
 }
