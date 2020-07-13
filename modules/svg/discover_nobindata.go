@@ -8,7 +8,6 @@ package svg
 
 import (
 	"io/ioutil"
-	"path"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -18,11 +17,11 @@ import (
 func Discover() map[string]string {
 	svgs := make(map[string]string)
 
-	files, _ := filepath.Glob(path.Join(setting.StaticRootPath, "public", "img", "svg", "*.svg"))
+	files, _ := filepath.Glob(filepath.Join(setting.StaticRootPath, "public", "img", "svg", "*.svg"))
 	for _, file := range files {
 		content, err := ioutil.ReadFile(file)
 		if err == nil {
-			filename := path.Base(file)
+			filename := filepath.Base(file)
 			svgs[filename[:len(filename)-4]] = string(content)
 		}
 	}
