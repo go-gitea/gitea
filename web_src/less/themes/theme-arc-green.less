@@ -1056,9 +1056,17 @@ a.ui.basic.green.label:hover {
     border-color: #634343 !important;
 }
 
+.repository .diff-file-box .code-diff-unified tbody tr.del-code td.lines-num {
+    background-color: #4e2c2c !important;
+}
+
 .repository .diff-file-box .code-diff-unified tbody tr.add-code td {
     background-color: #283e2d !important;
     border-color: #314a37 !important;
+}
+
+.repository .diff-file-box .code-diff-unified tbody tr.add-code td.lines-num {
+    background-color: #2c4632 !important;
 }
 
 .removed-code {
@@ -1071,12 +1079,11 @@ a.ui.basic.green.label:hover {
 
 .tag-code,
 .tag-code td {
-    background: #242637 !important;
+    background: #353945 !important;
 
 }
 .tag-code td.lines-num {
-    background-color: #242637 !important;
-    border-color: transparent !important;
+    background-color: #3a3e4c !important;
 }
 
 .tag-code td.lines-type-marker,
@@ -1424,13 +1431,21 @@ input {
 }
 
 .lines-num {
-    background: #2e323e !important;
     color: #9e9e9e !important;
     border-color: #2d2d2d !important;
 }
 
 td.blob-excerpt {
     background-color: rgba(0, 0, 0, .15);
+}
+
+a.blob-excerpt {
+    color: #ccc;
+    background: #393d4a;
+}
+
+a.blob-excerpt:hover {
+    background: #87ab63;
 }
 
 .code-view .lines-code.active {

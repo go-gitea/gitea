@@ -1,3 +1,5 @@
+import octiconChevronDown from '../../public/img/svg/octicon-chevron-down.svg';
+import octiconChevronRight from '../../public/img/svg/octicon-chevron-right.svg';
 import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
 import octiconInternalRepo from '../../public/img/svg/octicon-internal-repo.svg';
@@ -12,6 +14,8 @@ import octiconRepoTemplate from '../../public/img/svg/octicon-repo-template.svg'
 import octiconRepoTemplatePrivate from '../../public/img/svg/octicon-repo-template-private.svg';
 
 export const svgs = {
+  'octicon-chevron-down': octiconChevronDown,
+  'octicon-chevron-right': octiconChevronRight,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
   'octicon-internal-repo': octiconInternalRepo,
