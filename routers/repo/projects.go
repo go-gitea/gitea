@@ -324,14 +324,14 @@ func UpdateIssueProject(ctx *context.Context) {
 func DeleteProjectBoard(ctx *context.Context) {
 	if ctx.User == nil {
 		ctx.JSON(403, map[string]string{
-			"message": "Only signed in users are allowed to call make this action.",
+			"message": "Only signed in users are allowed to perform this action.",
 		})
 		return
 	}
 
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
 		ctx.JSON(403, map[string]string{
-			"message": "Only authorized users are allowed to call make this action.",
+			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return
 	}
@@ -380,7 +380,7 @@ func AddBoardToProjectPost(ctx *context.Context, form auth.EditProjectBoardTitle
 
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
 		ctx.JSON(403, map[string]string{
-			"message": "Only authorized users are allowed to call make this action.",
+			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return
 	}
@@ -414,14 +414,14 @@ func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitle
 
 	if ctx.User == nil {
 		ctx.JSON(403, map[string]string{
-			"message": "Only signed in users are allowed to call make this action.",
+			"message": "Only signed in users are allowed to perform this action.",
 		})
 		return
 	}
 
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
 		ctx.JSON(403, map[string]string{
-			"message": "Only authorized users are allowed to call make this action.",
+			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return
 	}
@@ -474,14 +474,14 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 
 	if ctx.User == nil {
 		ctx.JSON(403, map[string]string{
-			"message": "Only signed in users are allowed to call make this action.",
+			"message": "Only signed in users are allowed to perform this action.",
 		})
 		return
 	}
 
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
 		ctx.JSON(403, map[string]string{
-			"message": "Only authorized users are allowed to call make this action.",
+			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return
 	}

@@ -64,7 +64,7 @@ func GetProjectsConfig() []ProjectsConfig {
 	}
 }
 
-// IsProjectTypeValid checks if a project typeis valid
+// IsProjectTypeValid checks if a project type is valid
 func IsProjectTypeValid(p ProjectType) bool {
 	switch p {
 	case ProjectTypeRepository:

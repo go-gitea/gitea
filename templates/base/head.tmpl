@@ -78,7 +78,7 @@
 				MaxTimeout: {{NotificationSettings.MaxTimeout}},
 				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
 			},
-			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{ end }},
+			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{end}},
       {{if .RequireTribute}}
 			tributeValues: [
 				{{ range .Assignees }}
