@@ -582,14 +582,14 @@ release-sources: | $(DIST_DIRS) node_modules
 
 .PHONY: release-docs
 release-docs: | $(DIST_DIRS) docs
-	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz ./docs/public
+	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
 
 .PHONY: docs
 docs:
 	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u github.com/gohugoio/hugo; \
 	fi
-	cd docs; make trans-copy clean build;
+	cd docs; make trans-copy clean build-offline;
 
 node_modules: package-lock.json
 	npm install --no-save
