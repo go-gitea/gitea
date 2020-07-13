@@ -251,7 +251,7 @@
 							{{end}}
 
 							{{if gt $rejectOfficial 0}}
-								<span class="rejects">{{svg "octicon-request-changes" 16}}
+								<span class="rejects">{{svg "octicon-diff" 16}}
 									{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
 								</span>
 							{{end}}

@@ -2961,11 +2961,11 @@ function initVueComponents() {
         } else if (repo.mirror) {
           return 'octicon-repo-clone';
         } else if (repo.template) {
-          return `octicon-repo-template${repo.private ? '-private' : ''}`;
+          return `octicon-repo-template`;
         } else if (repo.private) {
           return 'octicon-lock';
         } else if (repo.internal) {
-          return 'octicon-internal-repo';
+          return 'octicon-repo';
         }
         return 'octicon-repo';
       }
