@@ -189,7 +189,10 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 		case diffs[i].Type == diffmatchpatch.DiffEqual:
 			// Looking for the case where our 3rd party diff library previously detected a string difference
 			// in the middle of a span class because we highlight them first. This happens when added/deleted code
-			// also changes the chroma class name. If found, just move the openining span code forward into the added/deleted code section
+			// also changes the chroma class name. If found, just move the openining span code forward into the next section
+			if addSpan {
+				diffs[i].Text = "<span class=\"" + diffs[i].Text
+			}
 			if strings.HasSuffix(diffs[i].Text, "<span class=\"") {
 				addSpan = true
 				buf.WriteString(strings.TrimSuffix(diffs[i].Text, "<span class=\""))
@@ -199,14 +202,33 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 			}
 		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
 			if addSpan {
+				addSpan = false
 				diffs[i].Text = "<span class=\"" + diffs[i].Text
+			}
+			// Print existing closing span first before opening added-code span so it doesn't unintentionally close it
+			if strings.HasPrefix(diffs[i].Text, "</span>") {
+				buf.WriteString("</span>")
+				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
+			}
+			if strings.HasSuffix(diffs[i].Text, "<span class=\"") {
+				addSpan = true
+				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, "<span class=\"")
 			}
 			buf.Write(addedCodePrefix)
 			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
 			if addSpan {
+				addSpan = false
 				diffs[i].Text = "<span class=\"" + diffs[i].Text
+			}
+			if strings.HasPrefix(diffs[i].Text, "</span>") {
+				buf.WriteString("</span>")
+				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
+			}
+			if strings.HasSuffix(diffs[i].Text, "<span class=\"") {
+				addSpan = true
+				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, "<span class=\"")
 			}
 			buf.Write(removedCodePrefix)
 			buf.WriteString(getLineContent(diffs[i].Text))
