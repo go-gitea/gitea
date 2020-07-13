@@ -5,14 +5,15 @@
 package gql
 
 import (
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
 	"context"
 	"errors"
+	"strconv"
+
+	"code.gitea.io/gitea/modules/log"
+	api "code.gitea.io/gitea/modules/structs"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
 	"github.com/seripap/relay"
-	"strconv"
 )
 
 // nodeDefinitions functions to allow an arbitrary type (node) to be looked up by its id
@@ -79,14 +80,8 @@ func init() {
 			switch resolvedID.Type {
 			case "repository":
 				return RepositoryByIdResolver(resolvedID.ID, ctx)
-			//user
-			//branch
-			//case "user":
-			//	return UserByIdResolver(resolvedID.ID, ctx)
-			//case "branch":
-			//	return BranchByIdResolver(resolvedID.ID, ctx)
-			//case "payload_commit":
-			//	return PayloadCommitByIdResolver(resolvedID.ID, ctx)
+			case "user":
+				return UserByIdResolver(resolvedID.ID, ctx)
 			default:
 				return nil, errors.New("Unknown node type")
 			}
@@ -96,12 +91,8 @@ func init() {
 			switch p.Value.(type) {
 			case *api.GqlRepository:
 				return repository
-			case *api.Branch:
-				return branch
 			case *api.User:
 				return user
-			case *api.PayloadCommit:
-				return payloadCommit
 			default:
 				return repository
 			}
@@ -115,6 +106,13 @@ func init() {
 			Description: "A user",
 			Fields: graphql.Fields{
 				"id": relay.GlobalIDField("user", nil),
+				"rest_api_id": &graphql.Field{
+					Type:        gqlInt64,
+					Description: "Id from REST API",
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source.(*api.User).ID, nil
+					},
+				},
 				"username": &graphql.Field{
 					Type:        graphql.String,
 					Description: "the user's username",
@@ -290,7 +288,13 @@ func init() {
 		graphql.ObjectConfig{
 			Name: "payload_commit",
 			Fields: graphql.Fields{
-				"id": relay.GlobalIDField("payload_commit", nil),
+				//TODO we should make this id field a relay global id to enable re-fetching
+				//but would first need to create a contrived id with the repo id and sha commit...
+				//there isn't currently a method to fetch the commit with just the sha
+				"id": &graphql.Field{
+					Type:        graphql.String,
+					Description: "",
+				},
 				"message": &graphql.Field{
 					Type:        graphql.String,
 					Description: "",
@@ -328,9 +332,6 @@ func init() {
 					Description: "",
 				},
 			},
-			Interfaces: []*graphql.Interface{
-				nodeDefinitions.NodeInterface,
-			},
 		},
 	)
 
@@ -339,8 +340,9 @@ func init() {
 		graphql.ObjectConfig{
 			Name: "branch",
 			Description: "A git branch on a repository",
+			//TODO it would be best if branch provided an id and then we could make this a connection
+			//but at present there is no "id", but we could contrive one with the repo id/branch name
 			Fields: graphql.Fields{
-				"id": relay.GlobalIDField("branch", nil),
 				"name": &graphql.Field{
 					Type: graphql.String,
 					Description: "name of the branch",
@@ -359,35 +361,27 @@ func init() {
 				},
 				"enable_status_check": &graphql.Field{
 					Type: graphql.Boolean,
-					Description: "Status checks required before merge enabled",
+					Description: "status checks required before merge enabled",
 				},
 				"status_check_contexts": &graphql.Field{
 					Type: graphql.NewList(graphql.String),
-					Description: "List of status check contexts",
+					Description: "list of status check contexts",
 				},
 				"user_can_push": &graphql.Field{
 					Type: graphql.String,
-					Description: "Anyone with write access will be allowed to push",
+					Description: "anyone with write access will be allowed to push",
 				},
 				"user_can_merge": &graphql.Field{
 					Type: graphql.String,
-					Description: "Anyone with write access will be allowed to merge",
+					Description: "anyone with write access will be allowed to merge",
 				},
 				"effective_branch_protection_name": &graphql.Field{
 					Type: graphql.String,
-					Description: "The effective branch protection name",
+					Description: "the effective branch protection name",
 				},
-			},
-			Interfaces: []*graphql.Interface{
-				nodeDefinitions.NodeInterface,
 			},
 		},
 	)
-
-	var branchConnectionDefinition = relay.ConnectionDefinitions(relay.ConnectionConfig{
-		Name:     "branch",
-		NodeType: branch,
-	})
 
 	// repository a gitea repository
 	repository = graphql.NewObject(
@@ -396,6 +390,13 @@ func init() {
 			Description: "A Gitea repository",
 			Fields: graphql.Fields{
 				"id": relay.GlobalIDField("repository", nil),
+				"rest_api_id": &graphql.Field{
+					Type:        gqlInt64,
+					Description: "Id from REST API",
+					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+						return p.Source.(api.GqlRepository).ID, nil
+					},
+				},
 				"owner": &graphql.Field{
 					Type:        user,
 					Description: "Owner of the repository",
@@ -549,8 +550,7 @@ func init() {
 					Description: "Repository permissions",
 				},
 				"branches": &graphql.Field{
-					Type: branchConnectionDefinition.ConnectionType,
-					Args: relay.ConnectionArgs,
+					Type: graphql.NewList(branch),
 					Description: "Branches contained within a repostory",
 					Resolve: BranchesResolver,
 				},

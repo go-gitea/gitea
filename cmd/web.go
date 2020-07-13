@@ -117,16 +117,8 @@ func runWeb(ctx *cli.Context) error {
 	routers.GlobalInit(graceful.GetManager().HammerContext())
 
 	var err error
-	//sql, this should probably go into the GlobalInit once I understand that
-	// Create our root query for graphql
-	//rootQuery := gql.NewRoot()
-	// Create a new graphql schema, passing in the the root query
-	//schema, err := graphql.NewSchema(
-	//	graphql.SchemaConfig{Query: rootQuery.Query},
-	//)
-	//if err != nil {
-	//	fmt.Println("Error creating graphql schema: ", err)
-	//}
+
+	//initialize graphql
 	gql.Init(gql.Schema)
 
 	// Set up Macaron

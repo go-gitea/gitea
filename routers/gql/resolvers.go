@@ -7,23 +7,22 @@ package gql
 import (
 	"context"
 	"errors"
-	"github.com/seripap/relay"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	giteaCtx "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"github.com/graphql-go/graphql"
+	"github.com/seripap/relay"
 )
 
-// RepositoryByIdResolver resolvers a repository by id
+// RepositoryByIdResolver resolves a repository by id
 func RepositoryByIdResolver(id string, goCtx context.Context) (interface{}, error)  {
-	var (
-		err   error
-	)
+	var err error
 
 	internalId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
@@ -127,7 +126,7 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 		return nil, err
 	}
 
-	//TODO, how to set this???
+	//TODO, have to refactor relay helper lib to work with gitea pagination model
 	limitOptions := models.ListOptions{
 		Page:     0,
 		PageSize: 50,
@@ -144,6 +143,19 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 
 	args := relay.NewConnectionArguments(p.Args)
 	return relay.ConnectionFromArray(users, args), nil
+}
+
+// UserByIdResolver resolves a user by id
+func UserByIdResolver(id string, goCtx context.Context) (interface{}, error) {
+	internalId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil, errors.New("Unable to parse id")
+	}
+	user, err := models.GetUserByID(internalId)
+	if err != nil {
+		return nil, errors.New("Unable to find user")
+	}
+	return user.APIFormat(), nil
 }
 
 func authorizeCollaborators(ctx *giteaCtx.APIContext) error {
@@ -176,6 +188,7 @@ func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
 			return nil, err
 		}
 		branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branches[i].Name)
+		log.Info("branch name %d: %s", i, branches[i].Name)
 		if err != nil {
 			return nil, err
 		}
@@ -186,8 +199,7 @@ func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
 		apiBranches = append(apiBranches, apiBranch)
 	}
 
-	args := relay.NewConnectionArguments(p.Args)
-	return relay.ConnectionFromArray(apiBranches, args), nil
+	return apiBranches, nil
 }
 
 func authorizeBranches(ctx *giteaCtx.APIContext) error {

@@ -13,7 +13,7 @@ type Root struct {
 	Query *graphql.Object
 }
 
-// NewRoot returns base query type. This is where we add all the base queries
+// NewRoot returns base query type.
 func NewRoot() *Root {
 	root := Root{
 		Query: graphql.NewObject(
