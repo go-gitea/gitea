@@ -192,34 +192,26 @@ func updateProject(e Engine, p *Project) error {
 	return err
 }
 
-func countRepoProjects(e Engine, repoID int64) (int64, error) {
-	return e.Where("repo_id=? AND type=?", repoID, ProjectTypeRepository).
-		Count(new(Project))
-}
-
-func countRepoClosedProjects(e Engine, repoID int64) (int64, error) {
-	return e.
-		Where("repo_id=? AND type=? AND is_closed=?", repoID, ProjectTypeRepository, true).
-		Count(new(Project))
-}
-
 func updateRepositoryProjectCount(e Engine, repoID int64) error {
-	numProjects, err := countRepoProjects(e, repoID)
-	if err != nil {
+	if _, err := e.Exec(builder.Update(
+		builder.Eq{
+			"`num_projects`": builder.Select("count(*)").From("`project`").
+				Where(builder.Eq{"`project`.`repo_id`": repoID}.
+					And(builder.Eq{"`project`.`type`": ProjectTypeRepository})),
+		}).From("`repository`").Where(builder.Eq{"'1'": "1"})); err != nil {
 		return err
 	}
 
-	numClosedProjects, err := countRepoClosedProjects(e, repoID)
-	if err != nil {
+	if _, err := e.Exec(builder.Update(
+		builder.Eq{
+			"`num_closed_projects`": builder.Select("count(*)").From("`project`").
+				Where(builder.Eq{"`project`.`repo_id`": repoID}.
+					And(builder.Eq{"`project`.`type`": ProjectTypeRepository}).
+					And(builder.Eq{"`project`.`is_closed`": true})),
+		}).From("`repository`").Where(builder.Eq{"'1'": "1"})); err != nil {
 		return err
 	}
-
-	_, err = e.ID(repoID).Cols("num_projects, num_closed_projects").Update(&Repository{
-		NumProjects:       int(numProjects),
-		NumClosedProjects: int(numClosedProjects),
-	})
-
-	return err
+	return nil
 }
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
