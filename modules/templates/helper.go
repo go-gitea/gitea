@@ -316,16 +316,16 @@ func NewFuncMap() []template.FuncMap {
 			if len(urlSort) == 0 && isDefault {
 				// if sort is sorted as default add arrow tho this table header
 				if isDefault {
-					return SVG("octicon-caret-down", 16)
+					return SVG("octicon-triangle-down", 16)
 				}
 			} else {
 				// if sort arg is in url test if it correlates with column header sort arguments
 				if urlSort == normSort {
 					// the table is sorted with this header normal
-					return SVG("octicon-caret-down", 16)
+					return SVG("octicon-triangle-down", 16)
 				} else if urlSort == revSort {
 					// the table is sorted with this header reverse
-					return SVG("octicon-caret-up", 16)
+					return SVG("octicon-triangle-up", 16)
 				}
 			}
 			// the table is NOT sorted with this header
