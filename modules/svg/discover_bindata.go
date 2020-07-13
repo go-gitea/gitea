@@ -7,7 +7,6 @@
 package svg
 
 import (
-	"path"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/public"
@@ -22,7 +21,7 @@ func Discover() map[string]string {
 		if matched {
 			content, err := public.Asset(file)
 			if err == nil {
-				filename := path.Base(file)
+				filename := filepath.Base(file)
 				svgs[filename[:len(filename)-4]] = string(content)
 			}
 		}
