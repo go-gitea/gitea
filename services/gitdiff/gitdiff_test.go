@@ -52,7 +52,6 @@ func TestDiffToHTML(t *testing.T) {
 	}, DiffLineAdd))
 }
 
-//{Type:Insert Text:</span> <span class="o">||</span> <span class="nx">r</span><span class="p">.</span><span class="nx">GuessLanguage</span><span class="p">)} {Type:Equal Text:</span> <span class="p">{</span>}]
 func TestParsePatch(t *testing.T) {
 	var diff = `diff --git "a/README.md" "b/README.md"
 --- a/README.md
