@@ -2959,7 +2959,7 @@ function initVueComponents() {
         if (repo.fork) {
           return 'octicon-repo-forked';
         } else if (repo.mirror) {
-          return 'gitea-mirror';
+          return 'octicon-mirror';
         } else if (repo.template) {
           return `octicon-repo-template`;
         } else if (repo.private) {

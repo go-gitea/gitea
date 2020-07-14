@@ -1,4 +1,3 @@
-import giteaMirror from '../../public/img/svg/gitea-mirror.svg';
 import octiconChevronDown from '../../public/img/svg/octicon-chevron-down.svg';
 import octiconChevronRight from '../../public/img/svg/octicon-chevron-right.svg';
 import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
@@ -7,12 +6,12 @@ import octiconIssueClosed from '../../public/img/svg/octicon-issue-closed.svg';
 import octiconIssueOpened from '../../public/img/svg/octicon-issue-opened.svg';
 import octiconLink from '../../public/img/svg/octicon-link.svg';
 import octiconLock from '../../public/img/svg/octicon-lock.svg';
+import octiconMirror from '../../public/img/svg/octicon-mirror.svg';
 import octiconRepo from '../../public/img/svg/octicon-repo.svg';
 import octiconRepoForked from '../../public/img/svg/octicon-repo-forked.svg';
 import octiconRepoTemplate from '../../public/img/svg/octicon-repo-template.svg';
 
 export const svgs = {
-  'gitea-mirror': giteaMirror, // switch to octicon-mirror once available
   'octicon-chevron-down': octiconChevronDown,
   'octicon-chevron-right': octiconChevronRight,
   'octicon-git-merge': octiconGitMerge,
@@ -21,6 +20,7 @@ export const svgs = {
   'octicon-issue-opened': octiconIssueOpened,
   'octicon-link': octiconLink,
   'octicon-lock': octiconLock,
+  'octicon-mirror': octiconMirror,
   'octicon-repo': octiconRepo,
   'octicon-repo-forked': octiconRepoForked,
   'octicon-repo-template': octiconRepoTemplate,
