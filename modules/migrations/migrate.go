@@ -73,17 +73,29 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 	if err != nil {
 		return nil, err
 	}
+	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
+	uploader.gitServiceType = opts.GitServiceType
+	if err := MigrateRepositoryWithUploader(ctx, ownerName, opts, uploader); err != nil {
+		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
+			log.Error("create respotiry notice failed: ", err2)
+		}
+		return nil, err
+	}
+	return uploader.repo, nil
+}
 
+// MigrateRepositoryWithUploader migrate repository according MigrateOptions and uploader
+func MigrateRepositoryWithUploader(ctx context.Context, ownerName string, opts base.MigrateOptions, uploader base.Uploader) error {
 	var (
 		downloader base.Downloader
-		uploader   = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
+		err        error
 	)
 
 	for _, factory := range factories {
 		if factory.GitServiceType() == opts.GitServiceType {
 			downloader, err = factory.New(ctx, opts)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			break
 		}
@@ -101,8 +113,6 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 		log.Trace("Will migrate from git: %s", opts.OriginalURL)
 	}
 
-	uploader.gitServiceType = opts.GitServiceType
-
 	if setting.Migrations.MaxAttempts > 1 {
 		downloader = base.NewRetryDownloader(ctx, downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
@@ -111,14 +121,10 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
-
-		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
-			log.Error("create repository notice failed: ", err2)
-		}
-		return nil, err
+		return err
 	}
 
-	return uploader.repo, nil
+	return nil
 }
 
 // migrateRepository will download information and then upload it to Uploader, this is a simple

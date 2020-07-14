@@ -72,6 +72,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.Cmdembedded,
 		cmd.CmdMigrateStorage,
 		cmd.CmdDocs,
+		cmd.CmdDumpRepository,
 	}
 	// Now adjust these commands to add our global configuration options
 
