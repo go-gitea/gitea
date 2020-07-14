@@ -524,7 +524,7 @@ $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: frontend generate release-windows release-linux release-darwin release-copy release-compress release-sources release-check
+release: frontend generate release-windows release-linux release-darwin release-copy release-compress release-sources release-docs release-check
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
@@ -579,6 +579,17 @@ release-sources: | $(DIST_DIRS) node_modules
 	echo $(VERSION) > $(STORED_VERSION_FILE)
 	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
+
+.PHONY: release-docs
+release-docs: | $(DIST_DIRS) docs
+	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
+
+.PHONY: docs
+docs:
+	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		GO111MODULE=off $(GO) get -u github.com/gohugoio/hugo; \
+	fi
+	cd docs; make trans-copy clean build-offline;
 
 node_modules: package-lock.json
 	npm install --no-save
