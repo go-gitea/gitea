@@ -13,12 +13,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/structs"
 
 	"gopkg.in/yaml.v2"
 )
@@ -41,11 +39,8 @@ type RepositoryDumper struct {
 	pullrequestFile *os.File
 	reviewFile      *os.File
 
-	gitRepo        *git.Repository
-	prHeadCache    map[string]struct{}
-	userMap        map[int64]int64 // external user id mapping to user id
-	prCache        map[int64]*models.PullRequest
-	gitServiceType structs.GitServiceType
+	gitRepo     *git.Repository
+	prHeadCache map[string]struct{}
 }
 
 // NewRepositoryDumper creates an gitea Uploader
@@ -56,8 +51,6 @@ func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName strin
 		repoOwner:   repoOwner,
 		repoName:    repoName,
 		prHeadCache: make(map[string]struct{}),
-		userMap:     make(map[int64]int64),
-		prCache:     make(map[int64]*models.PullRequest),
 	}
 }
 
