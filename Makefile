@@ -587,7 +587,7 @@ release-docs: | $(DIST_DIRS) docs
 .PHONY: docs
 docs:
 	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/gohugoio/hugo; \
+		$(GO) get -u github.com/gohugoio/hugo; \
 	fi
 	cd docs; make trans-copy clean build-offline;
 
