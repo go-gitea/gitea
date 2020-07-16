@@ -331,9 +331,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	where := make([]string, 0, 5)
 	args := make([]interface{}, 0, 5)
 
-	var (
-		rUser = "`" + RealTableName("user") + "`"
-	)
+	var rUser = "`" + RealTableName("user") + "`"
 
 	emailsSQL := "(SELECT id as sortid, uid, email, is_activated, 0 as is_primary " +
 		"FROM " + RealTableName("email_address") +
@@ -388,7 +386,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	}
 
 	querySQL := "SELECT emails.uid, emails.email, emails.is_activated, emails.is_primary, " +
-		rUser + ".name, " + rUser + "`.full_name " + joinSQL + " ORDER BY " + orderby
+		rUser + ".name, " + rUser + ".full_name " + joinSQL + " ORDER BY " + orderby
 
 	opts.setDefaultValues()
 
