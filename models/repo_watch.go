@@ -127,11 +127,15 @@ func WatchRepo(userID, repoID int64, watch bool) (err error) {
 
 func getWatchers(e Engine, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
-	return watches, e.Where("`"+RealTableName("watch")+"`.repo_id=?", repoID).
-		And("`"+RealTableName("watch")+"`.mode<>?", RepoWatchModeDont).
-		And("`"+RealTableName("user")+"`.is_active=?", true).
-		And("`"+RealTableName("user")+"`.prohibit_login=?", false).
-		Join("INNER", "`"+RealTableName("user")+"`", "`"+RealTableName("user")+"`.id = `"+RealTableName("watch")+"`.user_id").
+	var (
+		rWatch string = "`" + RealTableName("watch") + "`"
+		rUser  string = "`" + RealTableName("user") + "`"
+	)
+	return watches, e.Where(rWatch+".repo_id=?", repoID).
+		And(rWatch+".mode<>?", RepoWatchModeDont).
+		And(rUser+".is_active=?", true).
+		And(rUser+".prohibit_login=?", false).
+		Join("INNER", rUser, rUser+".id = "+rWatch+".user_id").
 		Find(&watches)
 }
 
@@ -158,9 +162,13 @@ func getRepoWatchersIDs(e Engine, repoID int64) ([]int64, error) {
 
 // GetWatchers returns range of users watching given repository.
 func (repo *Repository) GetWatchers(opts ListOptions) ([]*User, error) {
-	sess := x.Where(RealTableName("watch")+".repo_id=?", repo.ID).
-		Join("LEFT", RealTableName("watch"), "`"+RealTableName("user")+"`.id=`"+RealTableName("watch")+"`.user_id").
-		And("`"+RealTableName("watch")+"`.mode<>?", RepoWatchModeDont)
+	var (
+		rWatch string = "`" + RealTableName("watch") + "`"
+		rUser  string = "`" + RealTableName("user") + "`"
+	)
+	sess := x.Where(rWatch+".repo_id=?", repo.ID).
+		Join("LEFT", rWatch, rUser+".id="+rWatch+".user_id").
+		And(rWatch+".mode<>?", RepoWatchModeDont)
 	if opts.Page > 0 {
 		sess = opts.setSessionPagination(sess)
 		users := make([]*User, 0, opts.PageSize)

@@ -29,9 +29,14 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 	// Reset maybe preexisting assignees
 	issue.Assignees = []*User{}
 
-	err = e.Table("`"+RealTableName("user")+"`").
-		Join("INNER", RealTableName("issue_assignees"), "assignee_id = `"+RealTableName("user")+"`.id").
-		Where(RealTableName("issue_assignees")+".issue_id = ?", issue.ID).
+	var (
+		rUser           string = "`" + RealTableName("user") + "`"
+		rIssueAssignees string = RealTableName("issue_assignees")
+	)
+
+	err = e.Table(rUser).
+		Join("INNER", rIssueAssignees, "assignee_id = "+rUser+".id").
+		Where(rIssueAssignees+".issue_id = ?", issue.ID).
 		Find(&issue.Assignees)
 
 	if err != nil {

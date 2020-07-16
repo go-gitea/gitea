@@ -39,26 +39,30 @@ type FindReactionsOptions struct {
 
 func (opts *FindReactionsOptions) toConds() builder.Cond {
 	//If Issue ID is set add to Query
-	var cond = builder.NewCond()
+	var (
+		cond             = builder.NewCond()
+		rReaction string = RealTableName("reaction")
+	)
+
 	if opts.IssueID > 0 {
-		cond = cond.And(builder.Eq{RealTableName("reaction") + ".issue_id": opts.IssueID})
+		cond = cond.And(builder.Eq{rReaction + ".issue_id": opts.IssueID})
 	}
 	//If CommentID is > 0 add to Query
 	//If it is 0 Query ignore CommentID to select
 	//If it is -1 it explicit search of Issue Reactions where CommentID = 0
 	if opts.CommentID > 0 {
-		cond = cond.And(builder.Eq{RealTableName("reaction") + ".comment_id": opts.CommentID})
+		cond = cond.And(builder.Eq{rReaction + ".comment_id": opts.CommentID})
 	} else if opts.CommentID == -1 {
-		cond = cond.And(builder.Eq{RealTableName("reaction") + ".comment_id": 0})
+		cond = cond.And(builder.Eq{rReaction + ".comment_id": 0})
 	}
 	if opts.UserID > 0 {
 		cond = cond.And(builder.Eq{
-			RealTableName("reaction") + ".user_id":            opts.UserID,
-			RealTableName("reaction") + ".original_author_id": 0,
+			rReaction + ".user_id":            opts.UserID,
+			rReaction + ".original_author_id": 0,
 		})
 	}
 	if opts.Reaction != "" {
-		cond = cond.And(builder.Eq{RealTableName("reaction") + ".type": opts.Reaction})
+		cond = cond.And(builder.Eq{rReaction + ".type": opts.Reaction})
 	}
 
 	return cond
@@ -81,10 +85,11 @@ func FindIssueReactions(issue *Issue, listOptions ListOptions) (ReactionList, er
 }
 
 func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
+	var rReaction string = RealTableName("reaction")
 	e = e.
 		Where(opts.toConds()).
-		In(RealTableName("reaction")+".`type`", setting.UI.Reactions).
-		Asc(RealTableName("reaction")+".issue_id", RealTableName("reaction")+".comment_id", RealTableName("reaction")+".created_unix", RealTableName("reaction")+".id")
+		In(rReaction+".`type`", setting.UI.Reactions).
+		Asc(rReaction+".issue_id", rReaction+".comment_id", rReaction+".created_unix", rReaction+".id")
 	if opts.Page != 0 {
 		e = opts.setEnginePagination(e)
 

@@ -33,11 +33,13 @@ func FollowUser(userID, followID int64) (err error) {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_followers = num_followers + 1 WHERE id = ?", followID); err != nil {
+	var rUser string = RealTableName("user")
+
+	if _, err = sess.Exec("UPDATE `"+rUser+"` SET num_followers = num_followers + 1 WHERE id = ?", followID); err != nil {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_following = num_following + 1 WHERE id = ?", userID); err != nil {
+	if _, err = sess.Exec("UPDATE `"+rUser+"` SET num_following = num_following + 1 WHERE id = ?", userID); err != nil {
 		return err
 	}
 	return sess.Commit()
@@ -59,11 +61,13 @@ func UnfollowUser(userID, followID int64) (err error) {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_followers = num_followers - 1 WHERE id = ?", followID); err != nil {
+	var rUser string = RealTableName("user")
+
+	if _, err = sess.Exec("UPDATE `"+rUser+"` SET num_followers = num_followers - 1 WHERE id = ?", followID); err != nil {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_following = num_following - 1 WHERE id = ?", userID); err != nil {
+	if _, err = sess.Exec("UPDATE `"+rUser+"` SET num_following = num_following - 1 WHERE id = ?", userID); err != nil {
 		return err
 	}
 	return sess.Commit()

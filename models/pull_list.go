@@ -24,23 +24,29 @@ type PullRequestsOptions struct {
 }
 
 func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xorm.Session, error) {
-	sess := x.Where(RealTableName("pull_request")+".base_repo_id=?", baseRepoID)
+	var (
+		rIssue       string = RealTableName("issue")
+		rPullRequest string = RealTableName("pull_request")
+		rIssueLabel  string = RealTableName("issue_label")
+	)
 
-	sess.Join("INNER", RealTableName("issue"), RealTableName("pull_request")+".issue_id = "+RealTableName("issue")+".id")
+	sess := x.Where(rPullRequest+".base_repo_id=?", baseRepoID)
+
+	sess.Join("INNER", rIssue, rPullRequest+".issue_id = "+rIssue+".id")
 	switch opts.State {
 	case "closed", "open":
-		sess.And(RealTableName("issue")+".is_closed=?", opts.State == "closed")
+		sess.And(rIssue+".is_closed=?", opts.State == "closed")
 	}
 
 	if labelIDs, err := base.StringsToInt64s(opts.Labels); err != nil {
 		return nil, err
 	} else if len(labelIDs) > 0 {
-		sess.Join("INNER", RealTableName("issue_label"), RealTableName("issue")+".id = "+RealTableName("issue_label")+".issue_id").
-			In(RealTableName("issue_label")+".label_id", labelIDs)
+		sess.Join("INNER", rIssueLabel, rIssue+".id = "+rIssueLabel+".issue_id").
+			In(rIssueLabel+".label_id", labelIDs)
 	}
 
 	if opts.MilestoneID > 0 {
-		sess.And(RealTableName("issue")+".milestone_id=?", opts.MilestoneID)
+		sess.And(rIssue+".milestone_id=?", opts.MilestoneID)
 	}
 
 	return sess, nil
@@ -50,10 +56,14 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 // by given head information (repo and branch).
 func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
+	var (
+		rIssue       string = RealTableName("issue")
+		rPullRequest string = RealTableName("pull_request")
+	)
 	return prs, x.
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND "+RealTableName("issue")+".is_closed = ?",
+		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND "+rIssue+".is_closed = ?",
 			repoID, branch, false, false).
-		Join("INNER", RealTableName("issue"), RealTableName("issue")+".id = "+RealTableName("pull_request")+".issue_id").
+		Join("INNER", rIssue, rIssue+".id = "+rPullRequest+".issue_id").
 		Find(&prs)
 }
 
@@ -61,19 +71,22 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 // by given base information (repo and branch).
 func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
+	var rIssue string = RealTableName("issue")
+
 	return prs, x.
-		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND "+RealTableName("issue")+".is_closed=?",
+		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND "+rIssue+".is_closed=?",
 			repoID, branch, false, false).
-		Join("INNER", RealTableName("issue"), RealTableName("issue")+".id="+RealTableName("pull_request")+".issue_id").
+		Join("INNER", rIssue, rIssue+".id="+RealTableName("pull_request")+".issue_id").
 		Find(&prs)
 }
 
 // GetPullRequestIDsByCheckStatus returns all pull requests according the special checking status.
 func GetPullRequestIDsByCheckStatus(status PullRequestStatus) ([]int64, error) {
 	prs := make([]int64, 0, 10)
-	return prs, x.Table(RealTableName("pull_request")).
+	var rPullRequest string = RealTableName("pull_request")
+	return prs, x.Table(rPullRequest).
 		Where("status=?", status).
-		Cols(RealTableName("pull_request") + ".id").
+		Cols(rPullRequest + ".id").
 		Find(&prs)
 }
 

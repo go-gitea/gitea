@@ -381,23 +381,31 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 	if owner, err := IsOrganizationOwner(orgID, uid); owner || err != nil {
 		return owner, err
 	}
+	var (
+		rTeam     string = RealTableName("team")
+		rTeamUser string = RealTableName("team_user")
+	)
 	return x.
-		Where(builder.Eq{RealTableName("team") + ".can_create_org_repo": true}).
-		Join("INNER", RealTableName("team_user"), RealTableName("team_user")+".team_id = "+RealTableName("team")+".id").
-		And(RealTableName("team_user")+".uid = ?", uid).
-		And(RealTableName("team_user")+".org_id = ?", orgID).
+		Where(builder.Eq{rTeam + ".can_create_org_repo": true}).
+		Join("INNER", rTeamUser, rTeamUser+".team_id = "+rTeam+".id").
+		And(rTeamUser+".uid = ?", uid).
+		And(rTeamUser+".org_id = ?", orgID).
 		Exist(new(Team))
 }
 
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
+	var (
+		rOrgUser string = RealTableName("org_user")
+		rUser    string = "`" + RealTableName("user") + "`"
+	)
 	if !showAll {
-		sess.And("`"+RealTableName("org_user")+"`.is_public=?", true)
+		sess.And(rOrgUser+".is_public=?", true)
 	}
 	return orgs, sess.
-		And("`"+RealTableName("org_user")+"`.uid=?", userID).
-		Join("INNER", "`"+RealTableName("org_user")+"`", "`"+RealTableName("org_user")+"`.org_id=`"+RealTableName("user")+"`.id").
-		Asc("`" + RealTableName("user") + "`.name").
+		And(rOrgUser+".uid=?", userID).
+		Join("INNER", rOrgUser, rOrgUser+".org_id="+rUser+".id").
+		Asc(rUser + ".name").
 		Find(&orgs)
 }
 
@@ -411,12 +419,17 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
+	var (
+		rTeam     string = RealTableName("team")
+		rTeamUser string = RealTableName("team_user")
+		rUser     string = "`" + RealTableName("user") + "`"
+	)
 	return orgs, sess.
-		Join("INNER", "`"+RealTableName("team_user")+"`", "`"+RealTableName("team_user")+"`.org_id=`"+RealTableName("user")+"`.id").
-		Join("INNER", "`"+RealTableName("team")+"`", "`"+RealTableName("team")+"`.id=`"+RealTableName("team_user")+"`.team_id").
-		Where("`"+RealTableName("team_user")+"`.uid=?", userID).
-		And("`"+RealTableName("team")+"`.authorize=?", AccessModeOwner).
-		Asc("`" + RealTableName("user") + "`.name").
+		Join("INNER", rTeamUser, rTeamUser+".org_id="+rUser+".id").
+		Join("INNER", rTeam, rTeam+".id="+rTeamUser+".team_id").
+		Where(rTeamUser+".uid=?", userID).
+		And(rTeam+".authorize=?", AccessModeOwner).
+		Asc(rUser + ".name").
 		Find(&orgs)
 }
 
@@ -472,21 +485,31 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 // are allowed to create repos.
 func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
+	var (
+		rTeam     string = RealTableName("team")
+		rTeamUser string = RealTableName("team_user")
+		rUser     string = "`" + RealTableName("user") + "`"
+	)
 
-	return orgs, x.Where(builder.In("id", builder.Select("`"+RealTableName("user")+"`.id").From("`"+RealTableName("user")+"`").
-		Join("INNER", "`"+RealTableName("team_user")+"`", "`"+RealTableName("team_user")+"`.org_id = `"+RealTableName("user")+"`.id").
-		Join("INNER", "`"+RealTableName("team")+"`", "`"+RealTableName("team")+"`.id = `"+RealTableName("team_user")+"`.team_id").
-		Where(builder.Eq{"`" + RealTableName("team_user") + "`.uid": userID}).
-		And(builder.Eq{"`" + RealTableName("team") + "`.authorize": AccessModeOwner}.Or(builder.Eq{"`" + RealTableName("team") + "`.can_create_org_repo": true})))).
-		Desc("`" + RealTableName("user") + "`.updated_unix").Find(&orgs)
+	return orgs, x.Where(builder.In("id", builder.Select(rUser+".id").From(rUser).
+		Join("INNER", rTeamUser, rTeamUser+".org_id = "+rUser+".id").
+		Join("INNER", rTeam, rTeam+".id = "+rTeamUser+".team_id").
+		Where(builder.Eq{rTeamUser + ".uid": userID}).
+		And(builder.Eq{rTeam + ".authorize": AccessModeOwner}.
+			Or(builder.Eq{rTeam + ".can_create_org_repo": true})))).
+		Desc(rUser + ".updated_unix").Find(&orgs)
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.
 func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
+	var (
+		rOrgUser string = RealTableName("org_user")
+		rUser    string = "`" + RealTableName("user") + "`"
+	)
 	sess := x.
-		Join("LEFT", "`"+RealTableName("user")+"`", "`"+RealTableName("org_user")+"`.org_id=`"+RealTableName("user")+"`.id").
-		Where("`"+RealTableName("org_user")+"`.uid=?", uid)
+		Join("LEFT", rUser, rOrgUser+".org_id="+rUser+".id").
+		Where(rOrgUser+".uid=?", uid)
 	if !opts.All {
 		// Only show public organizations
 		sess.And("is_public=?", true)
@@ -497,7 +520,7 @@ func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUse
 	}
 
 	err := sess.
-		Asc("`" + RealTableName("user") + "`.name").
+		Asc(rUser + ".name").
 		Find(&ous)
 	return ous, err
 }
@@ -565,7 +588,8 @@ func AddOrgUser(orgID, uid int64) error {
 			log.Error("AddOrgUser: sess.Rollback: %v", err)
 		}
 		return err
-	} else if _, err = sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_members = num_members + 1 WHERE id = ?", orgID); err != nil {
+	} else if _, err = sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_members = num_members + 1 WHERE id = ?",
+		orgID); err != nil {
 		if err := sess.Rollback(); err != nil {
 			log.Error("AddOrgUser: sess.Rollback: %v", err)
 		}
@@ -613,7 +637,8 @@ func removeOrgUser(sess *xorm.Session, orgID, userID int64) error {
 
 	if _, err := sess.ID(ou.ID).Delete(ou); err != nil {
 		return err
-	} else if _, err = sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_members=num_members-1 WHERE id=?", orgID); err != nil {
+	} else if _, err = sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_members=num_members-1 WHERE id=?",
+		orgID); err != nil {
 		return err
 	}
 
@@ -696,24 +721,32 @@ func removeOrgRepo(e Engine, orgID, repoID int64) error {
 
 func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, error) {
 	teams := make([]*Team, 0, org.NumTeams)
+	var (
+		rTeamUser string = RealTableName("team_user")
+		rUser     string = "`" + RealTableName("user") + "`"
+	)
 	return teams, e.
-		Where("`"+RealTableName("team_user")+"`.org_id = ?", org.ID).
-		Join("INNER", RealTableName("team_user"), "`"+RealTableName("team_user")+"`.team_id = "+RealTableName("team")+".id").
-		Join("INNER", "`"+RealTableName("user")+"`", "`"+RealTableName("user")+"`.id="+RealTableName("team_user")+".uid").
-		And("`"+RealTableName("team_user")+"`.uid = ?", userID).
-		Asc("`" + RealTableName("user") + "`.name").
+		Where(rTeamUser+".org_id = ?", org.ID).
+		Join("INNER", rTeamUser, rTeamUser+".team_id = "+RealTableName("team")+".id").
+		Join("INNER", rUser, rUser+".id="+rTeamUser+".uid").
+		And(rTeamUser+".uid = ?", userID).
+		Asc(rUser + ".name").
 		Cols(cols...).
 		Find(&teams)
 }
 
 func (org *User) getUserTeamIDs(e Engine, userID int64) ([]int64, error) {
 	teamIDs := make([]int64, 0, org.NumTeams)
+	var (
+		rTeamUser string = RealTableName("team_user")
+		rTeam     string = RealTableName("team")
+	)
 	return teamIDs, e.
-		Table(RealTableName("team")).
-		Cols(RealTableName("team")+".id").
-		Where("`"+RealTableName("team_user")+"`.org_id = ?", org.ID).
-		Join("INNER", RealTableName("team_user"), "`"+RealTableName("team_user")+"`.team_id = "+RealTableName("team")+".id").
-		And("`"+RealTableName("team_user")+"`.uid = ?", userID).
+		Table(rTeam).
+		Cols(rTeam+".id").
+		Where(rTeamUser+".org_id = ?", org.ID).
+		Join("INNER", rTeamUser, rTeamUser+".team_id = "+rTeam+".id").
+		And(rTeamUser+".uid = ?", userID).
 		Find(&teamIDs)
 }
 
@@ -784,27 +817,35 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 }
 
 func (env *accessibleReposEnv) cond() builder.Cond {
-	var cond = builder.NewCond()
+	var (
+		cond               = builder.NewCond()
+		rRepository string = RealTableName("repository")
+	)
+
 	if env.user == nil || !env.user.IsRestricted {
 		cond = cond.Or(builder.Eq{
-			"`" + RealTableName("repository") + "`.owner_id":   env.org.ID,
-			"`" + RealTableName("repository") + "`.is_private": false,
+			rRepository + ".owner_id":   env.org.ID,
+			rRepository + ".is_private": false,
 		})
 	}
 	if len(env.teamIDs) > 0 {
 		cond = cond.Or(builder.In(RealTableName("team_repo")+".team_id", env.teamIDs))
 	}
 	if env.keyword != "" {
-		cond = cond.And(builder.Like{"`" + RealTableName("repository") + "`.lower_name", strings.ToLower(env.keyword)})
+		cond = cond.And(builder.Like{rRepository + ".lower_name", strings.ToLower(env.keyword)})
 	}
 	return cond
 }
 
 func (env *accessibleReposEnv) CountRepos() (int64, error) {
+	var (
+		rTeamRepo   string = RealTableName("team_repo")
+		rRepository string = RealTableName("repository")
+	)
 	repoCount, err := env.e.
-		Join("INNER", RealTableName("team_repo"), "`"+RealTableName("team_repo")+"`.repo_id=`"+RealTableName("repository")+"`.id").
+		Join("INNER", rTeamRepo, rTeamRepo+".repo_id="+rRepository+".id").
 		Where(env.cond()).
-		Distinct("`" + RealTableName("repository") + "`.id").
+		Distinct(rRepository + ".id").
 		Count(&Repository{})
 	if err != nil {
 		return 0, fmt.Errorf("count user repositories in organization: %v", err)
@@ -818,14 +859,18 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 	}
 
 	repoIDs := make([]int64, 0, pageSize)
+	var (
+		rTeamRepo   string = RealTableName("team_repo")
+		rRepository string = RealTableName("repository")
+	)
 	return repoIDs, env.e.
-		Table(RealTableName("repository")).
-		Join("INNER", RealTableName("team_repo"), "`"+RealTableName("team_repo")+"`.repo_id=`"+RealTableName("repository")+"`.id").
+		Table(rRepository).
+		Join("INNER", rTeamRepo, rTeamRepo+".repo_id="+rRepository+".id").
 		Where(env.cond()).
-		GroupBy("`"+RealTableName("repository")+"`.id,`"+RealTableName("repository")+"`."+strings.Fields(string(env.orderBy))[0]).
+		GroupBy(rRepository+".id,"+rRepository+"."+strings.Fields(string(env.orderBy))[0]).
 		OrderBy(string(env.orderBy)).
 		Limit(pageSize, (page-1)*pageSize).
-		Cols("`" + RealTableName("repository") + "`.id").
+		Cols(rRepository + ".id").
 		Find(&repoIDs)
 }
 
@@ -848,13 +893,17 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) 
 
 func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
+	var (
+		rTeamRepo   string = RealTableName("team_repo")
+		rRepository string = RealTableName("repository")
+	)
 	return repoIDs, env.e.
-		Table(RealTableName("repository")).
-		Join("INNER", RealTableName("team_repo"), "`"+RealTableName("team_repo")+"`.repo_id=`"+RealTableName("repository")+"`.id AND `"+RealTableName("repository")+"`.is_mirror=?", true).
+		Table(rRepository).
+		Join("INNER", rTeamRepo, rTeamRepo+".repo_id="+rRepository+".id AND "+rRepository+".is_mirror=?", true).
 		Where(env.cond()).
-		GroupBy("`" + RealTableName("repository") + "`.id, `" + RealTableName("repository") + "`.updated_unix").
+		GroupBy(rRepository + ".id, " + rRepository + ".updated_unix").
 		OrderBy(string(env.orderBy)).
-		Cols("`" + RealTableName("repository") + "`.id").
+		Cols(rRepository + ".id").
 		Find(&repoIDs)
 }
 

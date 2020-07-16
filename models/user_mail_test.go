@@ -209,7 +209,7 @@ func TestListEmails(t *testing.T) {
 	assert.True(t, contains(func(s *SearchEmailResult) bool { return s.UID == 2 }))
 	assert.True(t, contains(func(s *SearchEmailResult) bool { return s.UID == 27 }))
 
-	// Must find only primary addresses (i.e. from the `"+ RealTableName("user") + "` table)
+	// Must find only primary addresses (i.e. from the `user` table)
 	opts = &SearchEmailOptions{IsPrimary: util.OptionalBoolTrue}
 	emails, count, err = SearchEmails(opts)
 	assert.NoError(t, err)

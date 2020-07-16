@@ -385,13 +385,18 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 
 // BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names
 func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
-	return builder.Select(RealTableName("issue_label")+".issue_id").
-		From(RealTableName("issue_label")).
-		InnerJoin(RealTableName("label"), RealTableName("label")+".id = "+RealTableName("issue_label")+".label_id").
+	var (
+		rIssueLabel string = RealTableName("issue_label")
+		rLabel      string = RealTableName("label")
+	)
+
+	return builder.Select(rIssueLabel+".issue_id").
+		From(rIssueLabel).
+		InnerJoin(rLabel, rLabel+".id = "+rIssueLabel+".label_id").
 		Where(
-			builder.In(RealTableName("label")+".name", labelNames),
+			builder.In(rLabel+".name", labelNames),
 		).
-		GroupBy(RealTableName("issue_label") + ".issue_id")
+		GroupBy(rIssueLabel + ".issue_id")
 }
 
 // GetLabelInRepoByID returns a label by ID in given repository.
@@ -573,10 +578,15 @@ func GetLabelsByOrgID(orgID int64, sortType string, listOptions ListOptions) ([]
 //          \/     \/            \/
 
 func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
-	var labels []*Label
-	return labels, e.Where(RealTableName("issue_label")+".issue_id = ?", issueID).
-		Join("LEFT", RealTableName("issue_label"), RealTableName("issue_label")+".label_id = "+RealTableName("label")+".id").
-		Asc(RealTableName("label") + ".name").
+	var (
+		rIssueLabel string = RealTableName("issue_label")
+		rLabel      string = RealTableName("label")
+		labels      []*Label
+	)
+
+	return labels, e.Where(rIssueLabel+".issue_id = ?", issueID).
+		Join("LEFT", rIssueLabel, rIssueLabel+".label_id = "+rLabel+".id").
+		Asc(rLabel + ".name").
 		Find(&labels)
 }
 
@@ -586,17 +596,22 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 }
 
 func updateLabelCols(e Engine, l *Label, cols ...string) error {
+	var (
+		rIssueLabel string = RealTableName("issue_label")
+		rIssue      string = RealTableName("issue")
+	)
+
 	_, err := e.ID(l.ID).
 		SetExpr("num_issues",
-			builder.Select("count(*)").From(RealTableName("issue_label")).
+			builder.Select("count(*)").From(rIssueLabel).
 				Where(builder.Eq{"label_id": l.ID}),
 		).
 		SetExpr("num_closed_issues",
-			builder.Select("count(*)").From(RealTableName("issue_label")).
-				InnerJoin(RealTableName("issue"), RealTableName("issue_label")+".issue_id = "+RealTableName("issue")+".id").
+			builder.Select("count(*)").From(rIssueLabel).
+				InnerJoin(rIssue, rIssueLabel+".issue_id = "+rIssue+".id").
 				Where(builder.Eq{
-					RealTableName("issue_label") + ".label_id": l.ID,
-					RealTableName("issue") + ".is_closed":      true,
+					rIssueLabel + ".label_id": l.ID,
+					rIssue + ".is_closed":     true,
 				}),
 		).
 		Cols(cols...).Update(l)

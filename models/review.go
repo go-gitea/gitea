@@ -294,7 +294,10 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 		return nil, nil, err
 	}
 
-	var official = false
+	var (
+		official        = false
+		rReview  string = RealTableName("review")
+	)
 
 	review, err := getCurrentReview(sess, doer, issue)
 	if err != nil {
@@ -308,7 +311,8 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 
 		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
 			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
-			if _, err := sess.Exec("UPDATE `"+RealTableName("review")+"` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
+			if _, err := sess.Exec("UPDATE `"+rReview+"` SET official=? WHERE issue_id=? AND reviewer_id=?",
+				false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
 			}
 			official, err = isOfficialReviewer(sess, issue, doer)
@@ -340,7 +344,8 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 
 		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
 			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
-			if _, err := sess.Exec("UPDATE `"+RealTableName("review")+"` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
+			if _, err := sess.Exec("UPDATE `"+rReview+"` SET official=? WHERE issue_id=? AND reviewer_id=?",
+				false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
 			}
 			official, err = isOfficialReviewer(sess, issue, doer)
@@ -380,6 +385,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 // GetReviewersByIssueID gets the latest review of each reviewer for a pull request
 func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 	reviewsUnfiltered := []*Review{}
+	var rReview string = RealTableName("review")
 
 	sess := x.NewSession()
 	defer sess.Close()
@@ -388,7 +394,7 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 	}
 
 	// Get latest review of each reviwer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM "+RealTableName("review")+" WHERE id IN (SELECT max(id) as id FROM "+RealTableName("review")+" WHERE issue_id = ? AND type in (?, ?, ?) GROUP BY issue_id, reviewer_id) ORDER BY "+RealTableName("review")+".updated_unix ASC",
+	if err := sess.SQL("SELECT * FROM "+rReview+" WHERE id IN (SELECT max(id) as id FROM "+rReview+" WHERE issue_id = ? AND type in (?, ?, ?) GROUP BY issue_id, reviewer_id) ORDER BY "+rReview+".updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviewsUnfiltered); err != nil {
 		return nil, err
@@ -415,8 +421,9 @@ func GetReviewerByIssueIDAndUserID(issueID, userID int64) (review *Review, err e
 
 func getReviewerByIssueIDAndUserID(e Engine, issueID, userID int64) (review *Review, err error) {
 	review = new(Review)
+	var rReview string = RealTableName("review")
 
-	if _, err := e.SQL("SELECT * FROM "+RealTableName("review")+" WHERE id IN (SELECT max(id) as id FROM "+RealTableName("review")+" WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
+	if _, err := e.SQL("SELECT * FROM "+rReview+" WHERE id IN (SELECT max(id) as id FROM "+rReview+" WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
 		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Get(review); err != nil {
 		return nil, err

@@ -80,23 +80,24 @@ type FindNotificationOptions struct {
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	cond := builder.NewCond()
+	var rNotification string = RealTableName("notification")
 	if opts.UserID != 0 {
-		cond = cond.And(builder.Eq{RealTableName("notification") + ".user_id": opts.UserID})
+		cond = cond.And(builder.Eq{rNotification + ".user_id": opts.UserID})
 	}
 	if opts.RepoID != 0 {
-		cond = cond.And(builder.Eq{RealTableName("notification") + ".repo_id": opts.RepoID})
+		cond = cond.And(builder.Eq{rNotification + ".repo_id": opts.RepoID})
 	}
 	if opts.IssueID != 0 {
-		cond = cond.And(builder.Eq{RealTableName("notification") + ".issue_id": opts.IssueID})
+		cond = cond.And(builder.Eq{rNotification + ".issue_id": opts.IssueID})
 	}
 	if opts.Status != 0 {
-		cond = cond.And(builder.Eq{RealTableName("notification") + ".status": opts.Status})
+		cond = cond.And(builder.Eq{rNotification + ".status": opts.Status})
 	}
 	if opts.UpdatedAfterUnix != 0 {
-		cond = cond.And(builder.Gte{RealTableName("notification") + ".updated_unix": opts.UpdatedAfterUnix})
+		cond = cond.And(builder.Gte{rNotification + ".updated_unix": opts.UpdatedAfterUnix})
 	}
 	if opts.UpdatedBeforeUnix != 0 {
-		cond = cond.And(builder.Lte{RealTableName("notification") + ".updated_unix": opts.UpdatedBeforeUnix})
+		cond = cond.And(builder.Lte{rNotification + ".updated_unix": opts.UpdatedBeforeUnix})
 	}
 	return cond
 }

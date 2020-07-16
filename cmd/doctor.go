@@ -552,14 +552,19 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		}
 	}
 
+	var (
+		rPullRequest string = models.RealTableName("pull_request")
+		rIssue       string = models.RealTableName("issue")
+	)
+
 	//find pulls without existing issues
-	count, err = models.CountOrphanedObjects(models.RealTableName("pull_request"), models.RealTableName("issue"), models.RealTableName("pull_request")+".issue_id="+models.RealTableName("issue")+".id")
+	count, err = models.CountOrphanedObjects(rPullRequest, rIssue, rPullRequest+".issue_id="+rIssue+".id")
 	if err != nil {
 		return nil, err
 	}
 	if count > 0 {
 		if ctx.Bool("fix") {
-			if err = models.DeleteOrphanedObjects(models.RealTableName("pull_request"), models.RealTableName("issue"), models.RealTableName("pull_request")+".issue_id="+models.RealTableName("issue")+".id"); err != nil {
+			if err = models.DeleteOrphanedObjects(rPullRequest, rIssue, rPullRequest+".issue_id="+rIssue+".id"); err != nil {
 				return nil, err
 			}
 			results = append(results, fmt.Sprintf("%d pull requests without existing issue deleted", count))

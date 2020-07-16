@@ -30,7 +30,9 @@ func InsertMilestones(ms ...*Milestone) (err error) {
 		}
 	}
 
-	if _, err = sess.Exec("UPDATE `"+RealTableName("repository")+"` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {
+	if _, err = sess.Exec("UPDATE `"+RealTableName("repository")+"` SET num_milestones = num_milestones + ? WHERE id = ?",
+		len(ms),
+		ms[0].RepoID); err != nil {
 		return err
 	}
 	return sess.Commit()
@@ -218,12 +220,16 @@ func InsertReleases(rels ...*Release) error {
 }
 
 func migratedIssueCond(tp structs.GitServiceType) builder.Cond {
+	var (
+		rIssue      string = RealTableName("issue")
+		rRepository string = RealTableName("repository")
+	)
 	return builder.In("issue_id",
-		builder.Select(RealTableName("issue")+".id").
-			From(RealTableName("issue")).
-			InnerJoin(RealTableName("repository"), RealTableName("issue")+".repo_id = "+RealTableName("repository")+".id").
+		builder.Select(rIssue+".id").
+			From(rIssue).
+			InnerJoin(rRepository, rIssue+".repo_id = "+rRepository+".id").
 			Where(builder.Eq{
-				RealTableName("repository") + ".original_service_type": tp,
+				rRepository + ".original_service_type": tp,
 			}),
 	)
 }

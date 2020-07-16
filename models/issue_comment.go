@@ -909,24 +909,29 @@ type FindCommentsOptions struct {
 }
 
 func (opts *FindCommentsOptions) toConds() builder.Cond {
-	var cond = builder.NewCond()
+	var (
+		cond            = builder.NewCond()
+		rIssue   string = RealTableName("issue")
+		rComment string = RealTableName("comment")
+	)
+
 	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{RealTableName("issue") + ".repo_id": opts.RepoID})
+		cond = cond.And(builder.Eq{rIssue + ".repo_id": opts.RepoID})
 	}
 	if opts.IssueID > 0 {
-		cond = cond.And(builder.Eq{RealTableName("comment") + ".issue_id": opts.IssueID})
+		cond = cond.And(builder.Eq{rComment + ".issue_id": opts.IssueID})
 	}
 	if opts.ReviewID > 0 {
-		cond = cond.And(builder.Eq{RealTableName("comment") + ".review_id": opts.ReviewID})
+		cond = cond.And(builder.Eq{rComment + ".review_id": opts.ReviewID})
 	}
 	if opts.Since > 0 {
-		cond = cond.And(builder.Gte{RealTableName("comment") + ".updated_unix": opts.Since})
+		cond = cond.And(builder.Gte{rComment + ".updated_unix": opts.Since})
 	}
 	if opts.Before > 0 {
-		cond = cond.And(builder.Lte{RealTableName("comment") + ".updated_unix": opts.Before})
+		cond = cond.And(builder.Lte{rComment + ".updated_unix": opts.Before})
 	}
 	if opts.Type != CommentTypeUnknown {
-		cond = cond.And(builder.Eq{RealTableName("comment") + ".type": opts.Type})
+		cond = cond.And(builder.Eq{rComment + ".type": opts.Type})
 	}
 	return cond
 }
@@ -934,8 +939,13 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := e.Where(opts.toConds())
+	var (
+		rIssue   string = RealTableName("issue")
+		rComment string = RealTableName("comment")
+	)
+
 	if opts.RepoID > 0 {
-		sess.Join("INNER", RealTableName("issue"), RealTableName("issue")+".id = "+RealTableName("comment")+".issue_id")
+		sess.Join("INNER", rIssue, rIssue+".id = "+rComment+".issue_id")
 	}
 
 	if opts.Page != 0 {
@@ -943,8 +953,8 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	}
 
 	return comments, sess.
-		Asc(RealTableName("comment") + ".created_unix").
-		Asc(RealTableName("comment") + ".id").
+		Asc(rComment + ".created_unix").
+		Asc(rComment + ".id").
 		Find(&comments)
 }
 
@@ -1030,10 +1040,14 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
 
-	var comments []*Comment
+	var (
+		comments []*Comment
+		rComment string = RealTableName("comment")
+	)
+
 	if err := e.Where(conds).
-		Asc(RealTableName("comment") + ".created_unix").
-		Asc(RealTableName("comment") + ".id").
+		Asc(rComment + ".created_unix").
+		Asc(rComment + ".id").
 		Find(&comments); err != nil {
 		return nil, err
 	}
@@ -1091,16 +1105,22 @@ func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := x.Table(RealTableName("comment")).
+	var (
+		rComment    string = RealTableName("comment")
+		rIssue      string = RealTableName("issue")
+		rRepository string = RealTableName("repository")
+	)
+
+	_, err := x.Table(rComment).
 		Where(builder.In("issue_id",
-			builder.Select(RealTableName("issue")+".id").
-				From(RealTableName("issue")).
-				InnerJoin(RealTableName("repository"), RealTableName("issue")+".repo_id = "+RealTableName("repository")+".id").
+			builder.Select(rIssue+".id").
+				From(rIssue).
+				InnerJoin(rRepository, rIssue+".repo_id = "+rRepository+".id").
 				Where(builder.Eq{
-					RealTableName("repository") + ".original_service_type": tp,
+					rRepository + ".original_service_type": tp,
 				}),
 		)).
-		And(RealTableName("comment")+".original_author_id = ?", originalAuthorID).
+		And(rComment+".original_author_id = ?", originalAuthorID).
 		Update(map[string]interface{}{
 			"poster_id":          posterID,
 			"original_author":    "",

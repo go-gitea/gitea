@@ -232,7 +232,11 @@ func (pr *PullRequest) GetApprovalCounts() ([]*ReviewCount, error) {
 func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 6)
 	sess := e.Where("issue_id = ?", pr.IssueID)
-	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ?", true).GroupBy("issue_id, type").Table(RealTableName("review")).Find(&rCounts)
+	return rCounts, sess.Select("issue_id, type, count(id) as `count`").
+		Where("official = ?", true).
+		GroupBy("issue_id, type").
+		Table(RealTableName("review")).
+		Find(&rCounts)
 }
 
 // GetApprovers returns the approvers of the pull request
@@ -464,10 +468,11 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 // by given head/base and repo/branch.
 func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string) (*PullRequest, error) {
 	pr := new(PullRequest)
+	var rIssue string = RealTableName("issue")
 	has, err := x.
-		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND "+RealTableName("issue")+".is_closed=?",
+		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND "+rIssue+".is_closed=?",
 			headRepoID, headBranch, baseRepoID, baseBranch, false, false).
-		Join("INNER", RealTableName("issue"), RealTableName("issue")+".id="+RealTableName("pull_request")+".issue_id").
+		Join("INNER", rIssue, rIssue+".id="+RealTableName("pull_request")+".issue_id").
 		Get(pr)
 	if err != nil {
 		return nil, err

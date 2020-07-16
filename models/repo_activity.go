@@ -202,12 +202,16 @@ func (stats *ActivityStats) PublishedReleaseCount() int {
 
 // FillPullRequests returns pull request information for activity page
 func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) error {
-	var err error
-	var count int64
+	var (
+		err          error
+		count        int64
+		rPullRequest string = RealTableName("pull_request")
+		rIssue       string = RealTableName("issue")
+	)
 
 	// Merged pull requests
 	sess := pullRequestsForActivityStatement(repoID, fromTime, true)
-	sess.OrderBy(RealTableName("pull_request") + ".merged_unix DESC")
+	sess.OrderBy(rPullRequest + ".merged_unix DESC")
 	stats.MergedPRs = make(PullRequestList, 0)
 	if err = sess.Find(&stats.MergedPRs); err != nil {
 		return err
@@ -218,14 +222,16 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 
 	// Merged pull request authors
 	sess = pullRequestsForActivityStatement(repoID, fromTime, true)
-	if _, err = sess.Select("count(distinct " + RealTableName("issue") + ".poster_id) as `count`").Table(RealTableName("pull_request")).Get(&count); err != nil {
+	if _, err = sess.Select("count(distinct " + rIssue + ".poster_id) as `count`").
+		Table(rPullRequest).
+		Get(&count); err != nil {
 		return err
 	}
 	stats.MergedPRAuthorCount = count
 
 	// Opened pull requests
 	sess = pullRequestsForActivityStatement(repoID, fromTime, false)
-	sess.OrderBy(RealTableName("issue") + ".created_unix ASC")
+	sess.OrderBy(rIssue + ".created_unix ASC")
 	stats.OpenedPRs = make(PullRequestList, 0)
 	if err = sess.Find(&stats.OpenedPRs); err != nil {
 		return err
@@ -236,7 +242,8 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 
 	// Opened pull request authors
 	sess = pullRequestsForActivityStatement(repoID, fromTime, false)
-	if _, err = sess.Select("count(distinct " + RealTableName("issue") + ".poster_id) as `count`").Table(RealTableName("pull_request")).Get(&count); err != nil {
+	if _, err = sess.Select("count(distinct " + rIssue + ".poster_id) as `count`").
+		Table(rPullRequest).Get(&count); err != nil {
 		return err
 	}
 	stats.OpenedPRAuthorCount = count
@@ -245,15 +252,19 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 }
 
 func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged bool) *xorm.Session {
-	sess := x.Where(RealTableName("pull_request")+".base_repo_id=?", repoID).
-		Join("INNER", RealTableName("issue"), RealTableName("pull_request")+".issue_id = "+RealTableName("issue")+".id")
+	var (
+		rPullRequest string = RealTableName("pull_request")
+		rIssue       string = RealTableName("issue")
+	)
+	sess := x.Where(rPullRequest+".base_repo_id=?", repoID).
+		Join("INNER", rIssue, rPullRequest+".issue_id = "+rIssue+".id")
 
 	if merged {
-		sess.And(RealTableName("pull_request")+".has_merged = ?", true)
-		sess.And(RealTableName("pull_request")+".merged_unix >= ?", fromTime.Unix())
+		sess.And(rPullRequest+".has_merged = ?", true)
+		sess.And(rPullRequest+".merged_unix >= ?", fromTime.Unix())
 	} else {
-		sess.And(RealTableName("issue")+".is_closed = ?", false)
-		sess.And(RealTableName("issue")+".created_unix >= ?", fromTime.Unix())
+		sess.And(rIssue+".is_closed = ?", false)
+		sess.And(rIssue+".created_unix >= ?", fromTime.Unix())
 	}
 
 	return sess
@@ -261,12 +272,15 @@ func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged b
 
 // FillIssues returns issue information for activity page
 func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
-	var err error
-	var count int64
+	var (
+		err    error
+		count  int64
+		rIssue string = RealTableName("issue")
+	)
 
 	// Closed issues
 	sess := issuesForActivityStatement(repoID, fromTime, true, false)
-	sess.OrderBy(RealTableName("issue") + ".closed_unix DESC")
+	sess.OrderBy(rIssue + ".closed_unix DESC")
 	stats.ClosedIssues = make(IssueList, 0)
 	if err = sess.Find(&stats.ClosedIssues); err != nil {
 		return err
@@ -274,14 +288,16 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 
 	// Closed issue authors
 	sess = issuesForActivityStatement(repoID, fromTime, true, false)
-	if _, err = sess.Select("count(distinct " + RealTableName("issue") + ".poster_id) as `count`").Table(RealTableName("issue")).Get(&count); err != nil {
+	if _, err = sess.Select("count(distinct " + rIssue + ".poster_id) as `count`").
+		Table(rIssue).
+		Get(&count); err != nil {
 		return err
 	}
 	stats.ClosedIssueAuthorCount = count
 
 	// New issues
 	sess = issuesForActivityStatement(repoID, fromTime, false, false)
-	sess.OrderBy(RealTableName("issue") + ".created_unix ASC")
+	sess.OrderBy(rIssue + ".created_unix ASC")
 	stats.OpenedIssues = make(IssueList, 0)
 	if err = sess.Find(&stats.OpenedIssues); err != nil {
 		return err
@@ -289,7 +305,9 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 
 	// Opened issue authors
 	sess = issuesForActivityStatement(repoID, fromTime, false, false)
-	if _, err = sess.Select("count(distinct " + RealTableName("issue") + ".poster_id) as `count`").Table(RealTableName("issue")).Get(&count); err != nil {
+	if _, err = sess.Select("count(distinct " + rIssue + ".poster_id) as `count`").
+		Table(rIssue).
+		Get(&count); err != nil {
 		return err
 	}
 	stats.OpenedIssueAuthorCount = count
@@ -313,19 +331,20 @@ func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Tim
 }
 
 func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unresolved bool) *xorm.Session {
-	sess := x.Where(RealTableName("issue")+".repo_id = ?", repoID).
-		And(RealTableName("issue")+".is_closed = ?", closed)
+	var rIssue string = RealTableName("issue")
+	sess := x.Where(rIssue+".repo_id = ?", repoID).
+		And(rIssue+".is_closed = ?", closed)
 
 	if !unresolved {
-		sess.And(RealTableName("issue")+".is_pull = ?", false)
+		sess.And(rIssue+".is_pull = ?", false)
 		if closed {
-			sess.And(RealTableName("issue")+".closed_unix >= ?", fromTime.Unix())
+			sess.And(rIssue+".closed_unix >= ?", fromTime.Unix())
 		} else {
-			sess.And(RealTableName("issue")+".created_unix >= ?", fromTime.Unix())
+			sess.And(rIssue+".created_unix >= ?", fromTime.Unix())
 		}
 	} else {
-		sess.And(RealTableName("issue")+".created_unix < ?", fromTime.Unix())
-		sess.And(RealTableName("issue")+".updated_unix >= ?", fromTime.Unix())
+		sess.And(rIssue+".created_unix < ?", fromTime.Unix())
+		sess.And(rIssue+".updated_unix >= ?", fromTime.Unix())
 	}
 
 	return sess
@@ -333,12 +352,15 @@ func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unreso
 
 // FillReleases returns release information for activity page
 func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error {
-	var err error
-	var count int64
+	var (
+		err      error
+		count    int64
+		rRelease string = RealTableName("release")
+	)
 
 	// Published releases list
 	sess := releasesForActivityStatement(repoID, fromTime)
-	sess.OrderBy(RealTableName("release") + ".created_unix DESC")
+	sess.OrderBy(rRelease + ".created_unix DESC")
 	stats.PublishedReleases = make([]*Release, 0)
 	if err = sess.Find(&stats.PublishedReleases); err != nil {
 		return err
@@ -346,7 +368,9 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 
 	// Published releases authors
 	sess = releasesForActivityStatement(repoID, fromTime)
-	if _, err = sess.Select("count(distinct " + RealTableName("release") + ".publisher_id) as `count`").Table(RealTableName("release")).Get(&count); err != nil {
+	if _, err = sess.Select("count(distinct " + rRelease + ".publisher_id) as `count`").
+		Table(rRelease).
+		Get(&count); err != nil {
 		return err
 	}
 	stats.PublishedReleaseAuthorCount = count
@@ -355,7 +379,8 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 }
 
 func releasesForActivityStatement(repoID int64, fromTime time.Time) *xorm.Session {
-	return x.Where(RealTableName("release")+".repo_id = ?", repoID).
-		And(RealTableName("release")+".is_draft = ?", false).
-		And(RealTableName("release")+".created_unix >= ?", fromTime.Unix())
+	var rRelease string = RealTableName("release")
+	return x.Where(rRelease+".repo_id = ?", repoID).
+		And(rRelease+".is_draft = ?", false).
+		And(rRelease+".created_unix >= ?", fromTime.Unix())
 }

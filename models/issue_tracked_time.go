@@ -81,7 +81,12 @@ type FindTrackedTimesOptions struct {
 
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
-	cond := builder.NewCond().And(builder.Eq{RealTableName("tracked_time") + ".deleted": false})
+	var (
+		rTrackedTime string = RealTableName("tracked_time")
+		rIssue       string = RealTableName("issue")
+	)
+
+	cond := builder.NewCond().And(builder.Eq{rTrackedTime + ".deleted": false})
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
@@ -89,16 +94,16 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 		cond = cond.And(builder.Eq{"user_id": opts.UserID})
 	}
 	if opts.RepositoryID != 0 {
-		cond = cond.And(builder.Eq{RealTableName("issue") + ".repo_id": opts.RepositoryID})
+		cond = cond.And(builder.Eq{rIssue + ".repo_id": opts.RepositoryID})
 	}
 	if opts.MilestoneID != 0 {
-		cond = cond.And(builder.Eq{RealTableName("issue") + ".milestone_id": opts.MilestoneID})
+		cond = cond.And(builder.Eq{rIssue + ".milestone_id": opts.MilestoneID})
 	}
 	if opts.CreatedAfterUnix != 0 {
-		cond = cond.And(builder.Gte{RealTableName("tracked_time") + ".created_unix": opts.CreatedAfterUnix})
+		cond = cond.And(builder.Gte{rTrackedTime + ".created_unix": opts.CreatedAfterUnix})
 	}
 	if opts.CreatedBeforeUnix != 0 {
-		cond = cond.And(builder.Lte{RealTableName("tracked_time") + ".created_unix": opts.CreatedBeforeUnix})
+		cond = cond.And(builder.Lte{rTrackedTime + ".created_unix": opts.CreatedBeforeUnix})
 	}
 	return cond
 }
@@ -106,8 +111,10 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
 func (opts *FindTrackedTimesOptions) ToSession(e Engine) Engine {
 	sess := e
+	var rIssue string = RealTableName("issue")
+
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
-		sess = e.Join("INNER", RealTableName("issue"), RealTableName("issue")+".id = "+RealTableName("tracked_time")+".issue_id")
+		sess = e.Join("INNER", rIssue, rIssue+".id = "+RealTableName("tracked_time")+".issue_id")
 	}
 
 	sess = sess.Where(opts.ToCond())

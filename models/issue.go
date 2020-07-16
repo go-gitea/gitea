@@ -865,8 +865,13 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	// Patch Index with the value calculated by the database
 	opts.Issue.Index = inserted.Index
 
+	var (
+		rMilestone  string = "`" + RealTableName("milestone") + "`"
+		rRepository string = RealTableName("repository")
+	)
+
 	if opts.Issue.MilestoneID > 0 {
-		if _, err = e.Exec("UPDATE `"+RealTableName("milestone")+"` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
+		if _, err = e.Exec("UPDATE "+rMilestone+" SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 
@@ -884,9 +889,9 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	if opts.IsPull {
-		_, err = e.Exec("UPDATE `"+RealTableName("repository")+"` SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
+		_, err = e.Exec("UPDATE `"+rRepository+"` SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
 	} else {
-		_, err = e.Exec("UPDATE `"+RealTableName("repository")+"` SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
+		_, err = e.Exec("UPDATE `"+rRepository+"` SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
 	}
 	if err != nil {
 		return err
@@ -1076,32 +1081,41 @@ type IssuesOptions struct {
 // sortIssuesSession sort an issues-related session based on the provided
 // sortType string
 func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64) {
+	var rIssue string = RealTableName("issue")
+
 	switch sortType {
 	case "oldest":
-		sess.Asc(RealTableName("issue") + ".created_unix")
+		sess.Asc(rIssue + ".created_unix")
 	case "recentupdate":
-		sess.Desc(RealTableName("issue") + ".updated_unix")
+		sess.Desc(rIssue + ".updated_unix")
 	case "leastupdate":
-		sess.Asc(RealTableName("issue") + ".updated_unix")
+		sess.Asc(rIssue + ".updated_unix")
 	case "mostcomment":
-		sess.Desc(RealTableName("issue") + ".num_comments")
+		sess.Desc(rIssue + ".num_comments")
 	case "leastcomment":
-		sess.Asc(RealTableName("issue") + ".num_comments")
+		sess.Asc(rIssue + ".num_comments")
 	case "priority":
-		sess.Desc(RealTableName("issue") + ".priority")
+		sess.Desc(rIssue + ".priority")
 	case "nearduedate":
 		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
-		sess.OrderBy("CASE WHEN " + RealTableName("issue") + ".deadline_unix = 0 THEN 253370764800 ELSE " + RealTableName("issue") + ".deadline_unix END ASC")
+		sess.OrderBy("CASE WHEN " + rIssue + ".deadline_unix = 0 THEN 253370764800 ELSE " + rIssue + ".deadline_unix END ASC")
 	case "farduedate":
-		sess.Desc(RealTableName("issue") + ".deadline_unix")
+		sess.Desc(rIssue + ".deadline_unix")
 	case "priorityrepo":
-		sess.OrderBy("CASE WHEN " + RealTableName("issue") + ".repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 ELSE 2 END, " + RealTableName("issue") + ".created_unix DESC")
+		sess.OrderBy("CASE WHEN " + rIssue + ".repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 ELSE 2 END, " + rIssue + ".created_unix DESC")
 	default:
-		sess.Desc(RealTableName("issue") + ".created_unix")
+		sess.Desc(rIssue + ".created_unix")
 	}
 }
 
 func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
+	var (
+		rIssue          string = RealTableName("issue")
+		rIssueAssignees string = RealTableName("issue_assignees")
+		rIssueUser      string = RealTableName("issue_user")
+		rIssueLabel     string = RealTableName("issue_label")
+	)
+
 	if opts.Page >= 0 && opts.PageSize > 0 {
 		var start int
 		if opts.Page == 0 {
@@ -1113,69 +1127,71 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if len(opts.IssueIDs) > 0 {
-		sess.In(RealTableName("issue")+".id", opts.IssueIDs)
+		sess.In(rIssue+".id", opts.IssueIDs)
 	}
 
 	if len(opts.RepoIDs) > 0 {
 		// In case repository IDs are provided but actually no repository has issue.
-		sess.In(RealTableName("issue")+".repo_id", opts.RepoIDs)
+		sess.In(rIssue+".repo_id", opts.RepoIDs)
 	}
 
 	switch opts.IsClosed {
 	case util.OptionalBoolTrue:
-		sess.And(RealTableName("issue")+".is_closed=?", true)
+		sess.And(rIssue+".is_closed=?", true)
 	case util.OptionalBoolFalse:
-		sess.And(RealTableName("issue")+".is_closed=?", false)
+		sess.And(rIssue+".is_closed=?", false)
 	}
 
 	if opts.AssigneeID > 0 {
-		sess.Join("INNER", RealTableName("issue_assignees"), RealTableName("issue")+".id = "+RealTableName("issue_assignees")+".issue_id").
-			And(RealTableName("issue_assignees")+".assignee_id = ?", opts.AssigneeID)
+		sess.Join("INNER", rIssueAssignees, rIssue+".id = "+rIssueAssignees+".issue_id").
+			And(rIssueAssignees+".assignee_id = ?", opts.AssigneeID)
 	}
 
 	if opts.PosterID > 0 {
-		sess.And(RealTableName("issue")+".poster_id=?", opts.PosterID)
+		sess.And(rIssue+".poster_id=?", opts.PosterID)
 	}
 
 	if opts.MentionedID > 0 {
-		sess.Join("INNER", RealTableName("issue_user"), RealTableName("issue")+".id = "+RealTableName("issue_user")+".issue_id").
-			And(RealTableName("issue_user")+".is_mentioned = ?", true).
-			And(RealTableName("issue_user")+".uid = ?", opts.MentionedID)
+		sess.Join("INNER", rIssueUser, rIssue+".id = "+rIssueUser+".issue_id").
+			And(rIssueUser+".is_mentioned = ?", true).
+			And(rIssueUser+".uid = ?", opts.MentionedID)
 	}
 
 	if len(opts.MilestoneIDs) > 0 {
-		sess.In(RealTableName("issue")+".milestone_id", opts.MilestoneIDs)
+		sess.In(rIssue+".milestone_id", opts.MilestoneIDs)
 	}
 
 	switch opts.IsPull {
 	case util.OptionalBoolTrue:
-		sess.And(RealTableName("issue")+".is_pull=?", true)
+		sess.And(rIssue+".is_pull=?", true)
 	case util.OptionalBoolFalse:
-		sess.And(RealTableName("issue")+".is_pull=?", false)
+		sess.And(rIssue+".is_pull=?", false)
 	}
 
 	if opts.LabelIDs != nil {
 		for i, labelID := range opts.LabelIDs {
 			if labelID > 0 {
-				sess.Join("INNER", fmt.Sprintf(RealTableName("issue_label")+" il%d", i),
-					fmt.Sprintf(RealTableName("issue")+".id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+				sess.Join("INNER", fmt.Sprintf(rIssueLabel+" il%d", i),
+					fmt.Sprintf(rIssue+".id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
 			} else {
-				sess.Where(RealTableName("issue")+".id not in (select issue_id from "+RealTableName("issue_label")+" where label_id = ?)", -labelID)
+				sess.Where(rIssue+".id not in (select issue_id from "+rIssueLabel+" where label_id = ?)", -labelID)
 			}
 		}
 	}
 
 	if len(opts.IncludedLabelNames) > 0 {
-		sess.In(RealTableName("issue")+".id", BuildLabelNamesIssueIDsCondition(opts.IncludedLabelNames))
+		sess.In(rIssue+".id", BuildLabelNamesIssueIDsCondition(opts.IncludedLabelNames))
 	}
 
 	if len(opts.ExcludedLabelNames) > 0 {
-		sess.And(builder.NotIn(RealTableName("issue")+".id", BuildLabelNamesIssueIDsCondition(opts.ExcludedLabelNames)))
+		sess.And(builder.NotIn(rIssue+".id", BuildLabelNamesIssueIDsCondition(opts.ExcludedLabelNames)))
 	}
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
 func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
+	var rIssue string = RealTableName("issue")
+
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -1185,9 +1201,9 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 		RepoID int64
 		Count  int64
 	}, 0, 10)
-	if err := sess.GroupBy(RealTableName("issue") + ".repo_id").
-		Select(RealTableName("issue") + ".repo_id AS repo_id, COUNT(*) AS count").
-		Table(RealTableName("issue")).
+	if err := sess.GroupBy(rIssue + ".repo_id").
+		Select(rIssue + ".repo_id AS repo_id, COUNT(*) AS count").
+		Table(rIssue).
 		Find(&countsSlice); err != nil {
 		return nil, err
 	}
@@ -1201,6 +1217,11 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
 func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error) {
+	var (
+		rIssue      string = RealTableName("issue")
+		rRepository string = RealTableName("repository")
+	)
+
 	repoIDs := make([]int64, 0, 5)
 	sess := x.NewSession()
 	defer sess.Close()
@@ -1209,9 +1230,9 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error
 
 	accessCond := accessibleRepositoryCondition(user)
 	if err := sess.Where(accessCond).
-		Join("INNER", RealTableName("repository"), "`"+RealTableName("issue")+"`.repo_id = `"+RealTableName("repository")+"`.id").
-		Distinct(RealTableName("issue") + ".repo_id").
-		Table(RealTableName("issue")).
+		Join("INNER", rRepository, "`"+rIssue+"`.repo_id = `"+rRepository+"`.id").
+		Distinct(rIssue + ".repo_id").
+		Table(rIssue).
 		Find(&repoIDs); err != nil {
 		return nil, err
 	}
@@ -1351,12 +1372,19 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats, error) {
 	stats := &IssueStats{}
 
+	var (
+		rIssue          string = RealTableName("issue")
+		rIssueLabel     string = RealTableName("issue_label")
+		rIssueUser      string = RealTableName("issue_user")
+		rIssueAssignees string = RealTableName("issue_assignees")
+	)
+
 	countSession := func(opts *IssueStatsOptions) *xorm.Session {
 		sess := x.
-			Where(RealTableName("issue")+".repo_id = ?", opts.RepoID)
+			Where(rIssue+".repo_id = ?", opts.RepoID)
 
 		if len(opts.IssueIDs) > 0 {
-			sess.In(RealTableName("issue")+".id", opts.IssueIDs)
+			sess.In(rIssue+".id", opts.IssueIDs)
 		}
 
 		if len(opts.Labels) > 0 && opts.Labels != "0" {
@@ -1366,39 +1394,39 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			} else {
 				for i, labelID := range labelIDs {
 					if labelID > 0 {
-						sess.Join("INNER", fmt.Sprintf(RealTableName("issue_label")+" il%d", i),
-							fmt.Sprintf(RealTableName("issue")+".id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+						sess.Join("INNER", fmt.Sprintf(rIssue+" il%d", i),
+							fmt.Sprintf(rIssue+".id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
 					} else {
-						sess.Where(RealTableName("issue")+".id NOT IN (SELECT issue_id FROM "+RealTableName("issue_label")+" WHERE label_id = ?)", -labelID)
+						sess.Where(rIssue+".id NOT IN (SELECT issue_id FROM "+rIssueLabel+" WHERE label_id = ?)", -labelID)
 					}
 				}
 			}
 		}
 
 		if opts.MilestoneID > 0 {
-			sess.And(RealTableName("issue")+".milestone_id = ?", opts.MilestoneID)
+			sess.And(rIssue+".milestone_id = ?", opts.MilestoneID)
 		}
 
 		if opts.AssigneeID > 0 {
-			sess.Join("INNER", RealTableName("issue_assignees"), RealTableName("issue")+".id = "+RealTableName("issue_assignees")+".issue_id").
-				And(RealTableName("issue_assignees")+".assignee_id = ?", opts.AssigneeID)
+			sess.Join("INNER", rIssueAssignees, rIssue+".id = "+rIssueAssignees+".issue_id").
+				And(rIssueAssignees+".assignee_id = ?", opts.AssigneeID)
 		}
 
 		if opts.PosterID > 0 {
-			sess.And(RealTableName("issue")+".poster_id = ?", opts.PosterID)
+			sess.And(rIssue+".poster_id = ?", opts.PosterID)
 		}
 
 		if opts.MentionedID > 0 {
-			sess.Join("INNER", RealTableName("issue_user"), RealTableName("issue")+".id = "+RealTableName("issue_user")+".issue_id").
-				And(RealTableName("issue_user")+".uid = ?", opts.MentionedID).
-				And(RealTableName("issue_user")+".is_mentioned = ?", true)
+			sess.Join("INNER", rIssueUser, rIssue+".id = "+rIssueUser+".issue_id").
+				And(rIssueUser+".uid = ?", opts.MentionedID).
+				And(rIssueUser+".is_mentioned = ?", true)
 		}
 
 		switch opts.IsPull {
 		case util.OptionalBoolTrue:
-			sess.And(RealTableName("issue")+".is_pull=?", true)
+			sess.And(rIssue+".is_pull=?", true)
 		case util.OptionalBoolFalse:
-			sess.And(RealTableName("issue")+".is_pull=?", false)
+			sess.And(rIssue+".is_pull=?", false)
 		}
 
 		return sess
@@ -1406,13 +1434,13 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 	var err error
 	stats.OpenCount, err = countSession(opts).
-		And(RealTableName("issue")+".is_closed = ?", false).
+		And(rIssue+".is_closed = ?", false).
 		Count(new(Issue))
 	if err != nil {
 		return stats, err
 	}
 	stats.ClosedCount, err = countSession(opts).
-		And(RealTableName("issue")+".is_closed = ?", true).
+		And(rIssue+".is_closed = ?", true).
 		Count(new(Issue))
 	return stats, err
 }
@@ -1430,81 +1458,87 @@ type UserIssueStatsOptions struct {
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
 func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
-	var err error
+	var (
+		err             error
+		rIssue          string = RealTableName("issue")
+		rIssueAssignees string = RealTableName("issue_assignees")
+		rIssueUser      string = RealTableName("issue_user")
+	)
+
 	stats := &IssueStats{}
 
 	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{RealTableName("issue") + ".is_pull": opts.IsPull})
+	cond = cond.And(builder.Eq{rIssue + ".is_pull": opts.IsPull})
 	if len(opts.RepoIDs) > 0 {
-		cond = cond.And(builder.In(RealTableName("issue")+".repo_id", opts.RepoIDs))
+		cond = cond.And(builder.In(rIssue+".repo_id", opts.RepoIDs))
 	}
 	if len(opts.IssueIDs) > 0 {
-		cond = cond.And(builder.In(RealTableName("issue")+".id", opts.IssueIDs))
+		cond = cond.And(builder.In(rIssue+".id", opts.IssueIDs))
 	}
 
 	switch opts.FilterMode {
 	case FilterModeAll:
-		stats.OpenCount, err = x.Where(cond).And(RealTableName("issue")+".is_closed = ?", false).
-			And(builder.In(RealTableName("issue")+".repo_id", opts.UserRepoIDs)).
+		stats.OpenCount, err = x.Where(cond).And(rIssue+".is_closed = ?", false).
+			And(builder.In(rIssue+".repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And(RealTableName("issue")+".is_closed = ?", true).
-			And(builder.In(RealTableName("issue")+".repo_id", opts.UserRepoIDs)).
+		stats.ClosedCount, err = x.Where(cond).And(rIssue+".is_closed = ?", true).
+			And(builder.In(rIssue+".repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 	case FilterModeAssign:
-		stats.OpenCount, err = x.Where(cond).And(RealTableName("issue")+".is_closed = ?", false).
-			Join("INNER", RealTableName("issue_assignees"), RealTableName("issue")+".id = "+RealTableName("issue_assignees")+".issue_id").
-			And(RealTableName("issue_assignees")+".assignee_id = ?", opts.UserID).
+		stats.OpenCount, err = x.Where(cond).And(rIssue+".is_closed = ?", false).
+			Join("INNER", rIssueAssignees, rIssue+".id = "+rIssueAssignees+".issue_id").
+			And(rIssueAssignees+".assignee_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And(RealTableName("issue")+".is_closed = ?", true).
-			Join("INNER", RealTableName("issue_assignees"), RealTableName("issue")+".id = "+RealTableName("issue_assignees")+".issue_id").
-			And(RealTableName("issue_assignees")+".assignee_id = ?", opts.UserID).
+		stats.ClosedCount, err = x.Where(cond).And(rIssue+".is_closed = ?", true).
+			Join("INNER", rIssueAssignees, rIssue+".id = "+rIssueAssignees+".issue_id").
+			And(rIssueAssignees+".assignee_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 	case FilterModeCreate:
-		stats.OpenCount, err = x.Where(cond).And(RealTableName("issue")+".is_closed = ?", false).
-			And(RealTableName("issue")+".poster_id = ?", opts.UserID).
+		stats.OpenCount, err = x.Where(cond).And(rIssue+".is_closed = ?", false).
+			And(rIssue+".poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And(RealTableName("issue")+".is_closed = ?", true).
-			And(RealTableName("issue")+".poster_id = ?", opts.UserID).
+		stats.ClosedCount, err = x.Where(cond).And(rIssue+".is_closed = ?", true).
+			And(rIssue+".poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 	case FilterModeMention:
-		stats.OpenCount, err = x.Where(cond).And(RealTableName("issue")+".is_closed = ?", false).
-			Join("INNER", RealTableName("issue_user"), RealTableName("issue")+".id = "+RealTableName("issue_user")+".issue_id and "+RealTableName("issue_user")+".is_mentioned = ?", true).
-			And(RealTableName("issue_user")+".uid = ?", opts.UserID).
+		stats.OpenCount, err = x.Where(cond).And(rIssue+".is_closed = ?", false).
+			Join("INNER", rIssueUser, rIssue+".id = "+rIssueUser+".issue_id and "+rIssueUser+".is_mentioned = ?", true).
+			And(rIssueUser+".uid = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And(RealTableName("issue")+".is_closed = ?", true).
-			Join("INNER", RealTableName("issue_user"), RealTableName("issue")+".id = "+RealTableName("issue_user")+".issue_id and "+RealTableName("issue_user")+".is_mentioned = ?", true).
-			And(RealTableName("issue_user")+".uid = ?", opts.UserID).
+		stats.ClosedCount, err = x.Where(cond).And(rIssue+".is_closed = ?", true).
+			Join("INNER", rIssueUser, rIssue+".id = "+rIssueUser+".issue_id and "+rIssueUser+".is_mentioned = ?", true).
+			And(rIssueUser+".uid = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	cond = cond.And(builder.Eq{RealTableName("issue") + ".is_closed": opts.IsClosed})
+	cond = cond.And(builder.Eq{rIssue + ".is_closed": opts.IsClosed})
 	stats.AssignCount, err = x.Where(cond).
-		Join("INNER", RealTableName("issue_assignees"), RealTableName("issue")+".id = "+RealTableName("issue_assignees")+".issue_id").
-		And(RealTableName("issue_assignees")+".assignee_id = ?", opts.UserID).
+		Join("INNER", rIssueAssignees, rIssue+".id = "+rIssueAssignees+".issue_id").
+		And(rIssueAssignees+".assignee_id = ?", opts.UserID).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
@@ -1518,15 +1552,15 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	stats.MentionCount, err = x.Where(cond).
-		Join("INNER", RealTableName("issue_user"), RealTableName("issue")+".id = "+RealTableName("issue_user")+".issue_id and "+RealTableName("issue_user")+".is_mentioned = ?", true).
-		And(RealTableName("issue_user")+".uid = ?", opts.UserID).
+		Join("INNER", rIssueUser, rIssue+".id = "+rIssueUser+".issue_id and "+rIssueUser+".is_mentioned = ?", true).
+		And(rIssueUser+".uid = ?", opts.UserID).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
 	}
 
 	stats.YourRepositoriesCount, err = x.Where(cond).
-		And(builder.In(RealTableName("issue")+".repo_id", opts.UserRepoIDs)).
+		And(builder.In(rIssue+".repo_id", opts.UserRepoIDs)).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
@@ -1549,12 +1583,17 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 	openCountSession := countSession(false, isPull, repoID)
 	closedCountSession := countSession(true, isPull, repoID)
 
+	var (
+		rIssue          string = RealTableName("issue")
+		rIssueAssignees string = RealTableName("issue_assignees")
+	)
+
 	switch filterMode {
 	case FilterModeAssign:
-		openCountSession.Join("INNER", RealTableName("issue_assignees"), RealTableName("issue")+".id = "+RealTableName("issue_assignees")+".issue_id").
-			And(RealTableName("issue_assignees")+".assignee_id = ?", uid)
-		closedCountSession.Join("INNER", RealTableName("issue_assignees"), RealTableName("issue")+".id = "+RealTableName("issue_assignees")+".issue_id").
-			And(RealTableName("issue_assignees")+".assignee_id = ?", uid)
+		openCountSession.Join("INNER", rIssueAssignees, rIssue+".id = "+rIssueAssignees+".issue_id").
+			And(rIssueAssignees+".assignee_id = ?", uid)
+		closedCountSession.Join("INNER", rIssueAssignees, rIssue+".id = "+rIssueAssignees+".issue_id").
+			And(rIssueAssignees+".assignee_id = ?", uid)
 	case FilterModeCreate:
 		openCountSession.And("poster_id = ?", uid)
 		closedCountSession.And("poster_id = ?", uid)
@@ -1694,13 +1733,19 @@ func (issue *Issue) getParticipantIDsByIssue(e Engine) ([]int64, error) {
 	if issue == nil {
 		return nil, nil
 	}
+
+	var (
+		rComment string = RealTableName("comment")
+		rUser    string = RealTableName("user")
+	)
+
 	userIDs := make([]int64, 0, 5)
-	if err := e.Table(RealTableName("comment")).Cols("poster_id").
-		Where("`"+RealTableName("comment")+"`.issue_id = ?", issue.ID).
-		And("`"+RealTableName("comment")+"`.type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
-		And("`"+RealTableName("user")+"`.is_active = ?", true).
-		And("`"+RealTableName("user")+"`.prohibit_login = ?", false).
-		Join("INNER", "`"+RealTableName("user")+"`", "`"+RealTableName("user")+"`.id = `"+RealTableName("comment")+"`.poster_id").
+	if err := e.Table(rComment).Cols("poster_id").
+		Where("`"+rComment+"`.issue_id = ?", issue.ID).
+		And("`"+rComment+"`.type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
+		And("`"+rUser+"`.is_active = ?", true).
+		And("`"+rUser+"`.prohibit_login = ?", false).
+		Join("INNER", "`"+rUser+"`", "`"+rUser+"`.id = `"+rComment+"`.poster_id").
 		Distinct("poster_id").
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %v", err)
@@ -1713,25 +1758,36 @@ func (issue *Issue) getParticipantIDsByIssue(e Engine) ([]int64, error) {
 
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
 func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
+	var (
+		rIssue           string = RealTableName("issue")
+		rRepository      string = RealTableName("repository")
+		rIssueDependency string = RealTableName("issue_dependency")
+	)
 	return issueDeps, e.
-		Table(RealTableName("issue")).
-		Join("INNER", RealTableName("repository"), RealTableName("repository")+".id = "+RealTableName("issue")+".repo_id").
-		Join("INNER", RealTableName("issue_dependency"), RealTableName("issue_dependency")+".dependency_id = "+RealTableName("issue")+".id").
+		Table(rIssue).
+		Join("INNER", rRepository, rRepository+".id = "+rIssue+".repo_id").
+		Join("INNER", rIssueDependency, rIssueDependency+".dependency_id = "+rIssue+".id").
 		Where("issue_id = ?", issue.ID).
 		//sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy("CASE WHEN " + RealTableName("issue") + ".repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE " + RealTableName("issue") + ".repo_id END, " + RealTableName("issue") + ".created_unix DESC").
+		OrderBy("CASE WHEN " + rIssue + ".repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE " + rIssue + ".repo_id END, " + rIssue + ".created_unix DESC").
 		Find(&issueDeps)
 }
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
 func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
+	var (
+		rIssue           string = RealTableName("issue")
+		rRepository      string = RealTableName("repository")
+		rIssueDependency string = RealTableName("issue_dependency")
+	)
+
 	return issueDeps, e.
-		Table(RealTableName("issue")).
-		Join("INNER", RealTableName("repository"), RealTableName("repository")+".id = "+RealTableName("issue")+".repo_id").
-		Join("INNER", RealTableName("issue_dependency"), RealTableName("issue_dependency")+".issue_id = "+RealTableName("issue")+".id").
+		Table(rIssue).
+		Join("INNER", rRepository, rRepository+".id = "+rIssue+".repo_id").
+		Join("INNER", rIssueDependency, rIssueDependency+".issue_id = "+rIssue+".id").
 		Where("dependency_id = ?", issue.ID).
 		//sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy("CASE WHEN " + RealTableName("issue") + ".repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE " + RealTableName("issue") + ".repo_id END, " + RealTableName("issue") + ".created_unix DESC").
+		OrderBy("CASE WHEN " + rIssue + ".repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE " + rIssue + ".repo_id END, " + rIssue + ".created_unix DESC").
 		Find(&issueDeps)
 }
 
@@ -1746,21 +1802,29 @@ func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
 }
 
 func (issue *Issue) updateClosedNum(e Engine) (err error) {
+	var (
+		rIssue      string = RealTableName("issue")
+		rRepository string = RealTableName("repository")
+	)
+
 	if issue.IsPull {
-		_, err = e.Exec("UPDATE `"+RealTableName("repository")+"` SET num_closed_pulls=(SELECT count(*) FROM "+RealTableName("issue")+" WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+		_, err = e.Exec("UPDATE `"+rRepository+"` SET num_closed_pulls=(SELECT count(*) FROM "+rIssue+" WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
 			issue.RepoID,
 			true,
 			true,
 			issue.RepoID,
 		)
-	} else {
-		_, err = e.Exec("UPDATE `"+RealTableName("repository")+"` SET num_closed_issues=(SELECT count(*) FROM "+RealTableName("issue")+" WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
-			issue.RepoID,
-			false,
-			true,
-			issue.RepoID,
-		)
+
+		return
 	}
+
+	_, err = e.Exec("UPDATE `"+rRepository+"` SET num_closed_issues=(SELECT count(*) FROM "+rIssue+" WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+		issue.RepoID,
+		false,
+		true,
+		issue.RepoID,
+	)
+
 	return
 }
 
@@ -1789,14 +1853,22 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 		return nil, err
 	}
 
+	var (
+		rTeamRepo string = RealTableName("team_repo")
+		rTeam     string = RealTableName("team")
+		rTeamUser string = RealTableName("team_user")
+		rUser     string = "`" + RealTableName("user") + "`"
+	)
+
 	if issue.Repo.Owner.IsOrganization() {
 		// Since there can be users with names that match the name of a team,
 		// if the team exists and can read the issue, the team takes precedence.
 		teams := make([]*Team, 0, len(names))
+
 		if err := ctx.e.
-			Join("INNER", RealTableName("team_repo"), RealTableName("team_repo")+".team_id = "+RealTableName("team")+".id").
-			Where(RealTableName("team_repo")+".repo_id=?", issue.Repo.ID).
-			In(RealTableName("team")+".lower_name", names).
+			Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeam+".id").
+			Where(rTeamRepo+".repo_id=?", issue.Repo.ID).
+			In(rTeam+".lower_name", names).
 			Find(&teams); err != nil {
 			return nil, fmt.Errorf("find mentioned teams: %v", err)
 		}
@@ -1824,8 +1896,8 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 			if len(checked) != 0 {
 				teamusers := make([]*User, 0, 20)
 				if err := ctx.e.
-					Join("INNER", RealTableName("team_user"), RealTableName("team_user")+".uid = `"+RealTableName("user")+"`.id").
-					In("`"+RealTableName("team_user")+"`.team_id", checked).
+					Join("INNER", rTeamUser, rTeamUser+".uid = `"+RealTableName("user")+"`.id").
+					In("`"+rTeamUser+"`.team_id", checked).
 					And("`"+RealTableName("user")+"`.is_active = ?", true).
 					And("`"+RealTableName("user")+"`.prohibit_login = ?", false).
 					Find(&teamusers); err != nil {
@@ -1857,9 +1929,9 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 
 	unchecked := make([]*User, 0, len(names))
 	if err := ctx.e.
-		Where("`"+RealTableName("user")+"`.is_active = ?", true).
-		And("`"+RealTableName("user")+"`.prohibit_login = ?", false).
-		In("`"+RealTableName("user")+"`.lower_name", names).
+		Where(rUser+".is_active = ?", true).
+		And(rUser+".prohibit_login = ?", false).
+		In(rUser+".lower_name", names).
 		Find(&unchecked); err != nil {
 		return nil, fmt.Errorf("find mentioned users: %v", err)
 	}
@@ -1896,7 +1968,7 @@ func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, origina
 
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
 func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, userID int64) error {
-	_, err := x.Table("reaction").
+	_, err := x.Table(RealTableName("reaction")).
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(gitServiceType)).
 		Update(map[string]interface{}{
@@ -1908,7 +1980,9 @@ func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, orig
 }
 
 func deleteIssuesByRepoID(sess Engine, repoID int64) (attachmentPaths []string, err error) {
-	deleteCond := builder.Select("id").From(RealTableName("issue")).Where(builder.Eq{RealTableName("issue") + ".repo_id": repoID})
+	rIssue := RealTableName("issue")
+
+	deleteCond := builder.Select("id").From(rIssue).Where(builder.Eq{rIssue + ".repo_id": repoID})
 
 	// Delete comments and attachments
 	if _, err = sess.In("issue_id", deleteCond).

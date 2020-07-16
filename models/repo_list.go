@@ -204,7 +204,17 @@ const (
 
 // SearchRepositoryCondition creates a query condition according search repository options
 func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
-	var cond = builder.NewCond()
+	var (
+		cond               = builder.NewCond()
+		rUser       string = "`" + RealTableName("user") + "`"
+		rRepository string = "`" + RealTableName("repository") + "`"
+		rAccess     string = "`" + RealTableName("access") + "`"
+		rTeamRepo   string = "`" + RealTableName("team_repo") + "`"
+		rTeamUser   string = "`" + RealTableName("team_user") + "`"
+		rOrgUser    string = "`" + RealTableName("org_user") + "`"
+		rTopic      string = "`" + RealTableName("topic") + "`"
+		rRepoTopic  string = "`" + RealTableName("repo_topic") + "`"
+	)
 
 	if opts.Private {
 		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
@@ -217,10 +227,11 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		// isn't in a private or limited organisation.
 		cond = cond.And(
 			builder.Eq{"is_private": false},
-			builder.NotIn("owner_id", builder.Select("id").From("`"+RealTableName("user")+"`").Where(
+			builder.NotIn("owner_id", builder.Select("id").From(rUser).Where(
 				builder.And(
 					builder.Eq{"type": UserTypeOrganization},
-					builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
+					builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited},
+						builder.Eq{"visibility": structs.VisibleTypePrivate}),
 				))))
 	}
 
@@ -234,7 +245,9 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 	// Restrict to starred repositories
 	if opts.StarredByID > 0 {
-		cond = cond.And(builder.In("id", builder.Select("repo_id").From(RealTableName("star")).Where(builder.Eq{"uid": opts.StarredByID})))
+		cond = cond.And(builder.In("id", builder.Select("repo_id").
+			From(RealTableName("star")).
+			Where(builder.Eq{"uid": opts.StarredByID})))
 	}
 
 	// Restrict repositories to those the OwnerID owns or contributes to as per opts.Collaborate
@@ -252,41 +265,50 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 				// 2. But we can see because of:
 				builder.Or(
 					// A. We have access
-					builder.In("`"+RealTableName("repository")+"`.id",
-						builder.Select("`"+RealTableName("access")+"`.repo_id").
-							From(RealTableName("access")).
-							Where(builder.Eq{"`" + RealTableName("access") + "`.user_id": opts.OwnerID})),
+					builder.In(rRepository+".id",
+						builder.Select(rAccess+".repo_id").
+							From(rAccess).
+							Where(builder.Eq{rAccess + ".user_id": opts.OwnerID})),
 					// B. We are in a team for
-					builder.In("`"+RealTableName("repository")+"`.id", builder.Select("`"+RealTableName("team_repo")+"`.repo_id").
-						From(RealTableName("team_repo")).
-						Where(builder.Eq{"`" + RealTableName("team_user") + "`.uid": opts.OwnerID}).
-						Join("INNER", RealTableName("team_user"), "`"+RealTableName("team_user")+"`.team_id = `"+RealTableName("team_repo")+"`.team_id")),
+					builder.In(rRepository+".id", builder.Select(rTeamRepo+".repo_id").
+						From(rTeamRepo).
+						Where(builder.Eq{rTeamUser + ".uid": opts.OwnerID}).
+						Join("INNER", rTeamUser, rTeamUser+".team_id = "+rTeamRepo+".team_id")),
 					// C. Public repositories in private organizations that we are member of
 					builder.And(
-						builder.Eq{"`" + RealTableName("repository") + "`.is_private": false},
-						builder.In("`"+RealTableName("repository")+"`.owner_id",
-							builder.Select("`"+RealTableName("org_user")+"`.org_id").
-								From(RealTableName("org_user")).
-								Join("INNER", "`"+RealTableName("user")+"`", "`"+RealTableName("user")+"`.id = `"+RealTableName("org_user")+"`.org_id").
+						builder.Eq{rRepository + ".is_private": false},
+						builder.In(rRepository+".owner_id",
+							builder.Select(rOrgUser+".org_id").
+								From(rOrgUser).
+								Join("INNER", rUser, rUser+".id = "+rOrgUser+".org_id").
 								Where(builder.Eq{
-									"`" + RealTableName("org_user") + "`.uid":    opts.OwnerID,
-									"`" + RealTableName("user") + "`.type":       UserTypeOrganization,
-									"`" + RealTableName("user") + "`.visibility": structs.VisibleTypePrivate,
+									rOrgUser + ".uid":     opts.OwnerID,
+									rUser + ".type":       UserTypeOrganization,
+									rUser + ".visibility": structs.VisibleTypePrivate,
 								})))),
 			)
 			if !opts.Private {
-				collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM "+RealTableName("org_user")+" WHERE "+RealTableName("org_user")+".uid = ? AND "+RealTableName("org_user")+".is_public = ?)", opts.OwnerID, false))
+				collaborateCond = collaborateCond.And(
+					builder.Expr("owner_id NOT IN (SELECT org_id FROM "+rOrgUser+" WHERE "+
+						rOrgUser+".uid = ? AND "+rOrgUser+".is_public = ?)",
+						opts.OwnerID, false))
 			}
 
 			accessCond = accessCond.Or(collaborateCond)
 		}
 
 		if opts.AllPublic {
-			accessCond = accessCond.Or(builder.Eq{"is_private": false}.And(builder.In("owner_id", builder.Select("`"+RealTableName("user")+"`.id").From("`"+RealTableName("user")+"`").Where(builder.Eq{"`" + RealTableName("user") + "`.visibility": structs.VisibleTypePublic}))))
+			accessCond = accessCond.Or(builder.Eq{"is_private": false}.
+				And(builder.In("owner_id", builder.Select(rUser+".id").
+					From(rUser).Where(builder.Eq{rUser + ".visibility": structs.VisibleTypePublic}))))
 		}
 
 		if opts.AllLimited {
-			accessCond = accessCond.Or(builder.Eq{"is_private": false}.And(builder.In("owner_id", builder.Select("`"+RealTableName("user")+"`.id").From("`"+RealTableName("user")+"`").Where(builder.Eq{"`" + RealTableName("user") + "`.visibility": structs.VisibleTypeLimited}))))
+			accessCond = accessCond.Or(builder.Eq{"is_private": false}.
+				And(builder.In("owner_id",
+					builder.Select(rUser+".id").
+						From(rUser).
+						Where(builder.Eq{rUser + ".visibility": structs.VisibleTypeLimited}))))
 		}
 
 		cond = cond.And(accessCond)
@@ -297,15 +319,15 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		var subQueryCond = builder.NewCond()
 		for _, v := range strings.Split(opts.Keyword, ",") {
 			if opts.TopicOnly {
-				subQueryCond = subQueryCond.Or(builder.Eq{RealTableName("topic") + ".name": strings.ToLower(v)})
+				subQueryCond = subQueryCond.Or(builder.Eq{rTopic + ".name": strings.ToLower(v)})
 			} else {
-				subQueryCond = subQueryCond.Or(builder.Like{RealTableName("topic") + ".name", strings.ToLower(v)})
+				subQueryCond = subQueryCond.Or(builder.Like{rTopic + ".name", strings.ToLower(v)})
 			}
 		}
-		subQuery := builder.Select(RealTableName("repo_topic")+".repo_id").From(RealTableName("repo_topic")).
-			Join("INNER", RealTableName("topic"), RealTableName("topic")+".id = "+RealTableName("repo_topic")+".topic_id").
+		subQuery := builder.Select(rRepoTopic+".repo_id").From(rRepoTopic).
+			Join("INNER", rTopic, rTopic+".id = "+rRepoTopic+".topic_id").
 			Where(subQueryCond).
-			GroupBy(RealTableName("repo_topic") + ".repo_id")
+			GroupBy(rRepoTopic + ".repo_id")
 
 		var keywordCond = builder.In("id", subQuery)
 		if !opts.TopicOnly {
@@ -399,7 +421,15 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 
 // accessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func accessibleRepositoryCondition(user *User) builder.Cond {
-	var cond = builder.NewCond()
+	var (
+		cond               = builder.NewCond()
+		rUser       string = "`" + RealTableName("user") + "`"
+		rRepository string = "`" + RealTableName("repository") + "`"
+		rAccess     string = "`" + RealTableName("access") + "`"
+		rTeamRepo   string = "`" + RealTableName("team_repo") + "`"
+		rTeamUser   string = "`" + RealTableName("team_user") + "`"
+		rOrgUser    string = "`" + RealTableName("org_user") + "`"
+	)
 
 	if user == nil || !user.IsRestricted || user.ID <= 0 {
 		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
@@ -408,36 +438,37 @@ func accessibleRepositoryCondition(user *User) builder.Cond {
 		}
 		// 1. Be able to see all non-private repositories that either:
 		cond = cond.Or(builder.And(
-			builder.Eq{"`" + RealTableName("repository") + "`.is_private": false},
+			builder.Eq{rRepository + ".is_private": false},
 			// 2. Aren't in an private organisation or limited organisation if we're not logged in
-			builder.NotIn("`"+RealTableName("repository")+"`.owner_id", builder.Select("id").From("`"+RealTableName("user")+"`").Where(
-				builder.And(
-					builder.Eq{"type": UserTypeOrganization},
-					builder.In("visibility", orgVisibilityLimit)),
-			))))
+			builder.NotIn(rRepository+".owner_id", builder.Select("id").From(rUser).
+				Where(
+					builder.And(
+						builder.Eq{"type": UserTypeOrganization},
+						builder.In("visibility", orgVisibilityLimit)),
+				))))
 	}
 
 	if user != nil {
 		cond = cond.Or(
 			// 2. Be able to see all repositories that we have access to
-			builder.In("`"+RealTableName("repository")+"`.id", builder.Select("repo_id").
-				From("`"+RealTableName("access")+"`").
+			builder.In(rRepository+".id", builder.Select("repo_id").
+				From(rAccess).
 				Where(builder.And(
 					builder.Eq{"user_id": user.ID},
 					builder.Gt{"mode": int(AccessModeNone)}))),
 			// 3. Repositories that we directly own
-			builder.Eq{"`" + RealTableName("repository") + "`.owner_id": user.ID},
+			builder.Eq{rRepository + ".owner_id": user.ID},
 			// 4. Be able to see all repositories that we are in a team
-			builder.In("`"+RealTableName("repository")+"`.id", builder.Select("`"+RealTableName("team_repo")+"`.repo_id").
-				From(RealTableName("team_repo")).
-				Where(builder.Eq{"`" + RealTableName("team_user") + "`.uid": user.ID}).
-				Join("INNER", RealTableName("team_user"), "`"+RealTableName("team_user")+"`.team_id = `"+RealTableName("team_repo")+"`.team_id")),
+			builder.In(rRepository+".id", builder.Select(rTeamRepo+".repo_id").
+				From(rTeamRepo).
+				Where(builder.Eq{rTeamUser + ".uid": user.ID}).
+				Join("INNER", rTeamUser, rTeamUser+".team_id = "+rTeamRepo+".team_id")),
 			// 5. Be able to see all public repos in private organizations that we are an org_user of
-			builder.And(builder.Eq{"`" + RealTableName("repository") + "`.is_private": false},
-				builder.In("`"+RealTableName("repository")+"`.owner_id",
-					builder.Select("`"+RealTableName("org_user")+"`.org_id").
-						From(RealTableName("org_user")).
-						Where(builder.Eq{"`" + RealTableName("org_user") + "`.uid": user.ID}))))
+			builder.And(builder.Eq{rRepository + ".is_private": false},
+				builder.In(rRepository+".owner_id",
+					builder.Select(rOrgUser+".org_id").
+						From(rOrgUser).
+						Where(builder.Eq{rOrgUser + ".uid": user.ID}))))
 	}
 
 	return cond

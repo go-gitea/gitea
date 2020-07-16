@@ -560,11 +560,15 @@ func (repo *Repository) ComposeMetas() map[string]string {
 		repo.MustOwner()
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
-			_ = x.Table(RealTableName("team_repo")).
-				Join("INNER", RealTableName("team"), RealTableName("team")+".id = "+RealTableName("team_repo")+".team_id").
-				Where(RealTableName("team_repo")+".repo_id = ?", repo.ID).
-				Select(RealTableName("team") + ".lower_name").
-				OrderBy(RealTableName("team") + ".lower_name").
+			var (
+				rTeam     string = RealTableName("team")
+				rTeamRepo string = RealTableName("team_repo")
+			)
+			_ = x.Table(rTeamRepo).
+				Join("INNER", rTeam, rTeam+".id = "+rTeamRepo+".team_id").
+				Where(rTeamRepo+".repo_id = ?", repo.ID).
+				Select(rTeam + ".lower_name").
+				OrderBy(rTeam + ".lower_name").
 				Find(&teams)
 			metas["teams"] = "," + strings.Join(teams, ",") + ","
 			metas["org"] = strings.ToLower(repo.OwnerName)
@@ -660,9 +664,11 @@ func (repo *Repository) getReviewersPublic(e Engine, doerID, posterID int64) (_ 
 	users := make([]*User, 0)
 
 	SQLCmd := "SELECT * FROM `" + RealTableName("user") + "` WHERE id IN ( " +
-		"SELECT user_id FROM `" + RealTableName("access") + "` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?) " +
+		"SELECT user_id FROM `" + RealTableName("access") +
+		"` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?) " +
 		"UNION " +
-		"SELECT user_id FROM `" + RealTableName("watch") + "` WHERE repo_id = ? AND user_id NOT IN ( ?, ?) AND mode IN (?, ?) " +
+		"SELECT user_id FROM `" + RealTableName("watch") +
+		"` WHERE repo_id = ? AND user_id NOT IN ( ?, ?) AND mode IN (?, ?) " +
 		") ORDER BY name"
 
 	if err = e.
@@ -1567,8 +1573,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	attachments := make([]*Attachment, 0, 20)
-	if err = sess.Join("INNER", "`"+RealTableName("release")+"`", "`"+RealTableName("release")+"`.id = `"+RealTableName("attachment")+"`.release_id").
-		Where("`"+RealTableName("release")+"`.repo_id = ?", repoID).
+	var rRelease string = "`" + RealTableName("release") + "`"
+	if err = sess.Join("INNER", rRelease, rRelease+".id = `"+RealTableName("attachment")+"`.release_id").
+		Where(rRelease+".repo_id = ?", repoID).
 		Find(&attachments); err != nil {
 		return err
 	}
@@ -1713,11 +1720,15 @@ func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error
 }
 
 func getRepositoryByOwnerAndName(e Engine, ownerName, repoName string) (*Repository, error) {
-	var repo Repository
-	has, err := e.Table(RealTableName("repository")).Select(RealTableName("repository")+".*").
-		Join("INNER", "`"+RealTableName("user")+"`", "`"+RealTableName("user")+"`.id = "+RealTableName("repository")+".owner_id").
-		Where(RealTableName("repository")+".lower_name = ?", strings.ToLower(repoName)).
-		And("`"+RealTableName("user")+"`.lower_name = ?", strings.ToLower(ownerName)).
+	var (
+		repo        Repository
+		rRepository string = RealTableName("repository")
+		rUser       string = "`" + RealTableName("user") + "`"
+	)
+	has, err := e.Table(rRepository).Select(rRepository+".*").
+		Join("INNER", rUser, rUser+".id = "+rRepository+".owner_id").
+		Where(rRepository+".lower_name = ?", strings.ToLower(repoName)).
+		And(rUser+".lower_name = ?", strings.ToLower(ownerName)).
 		Get(&repo)
 	if err != nil {
 		return nil, err

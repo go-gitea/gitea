@@ -171,22 +171,28 @@ func (action *Action) checkForConsistency(t *testing.T) {
 
 // CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
 func CountOrphanedLabels() (int64, error) {
-	noref, err := x.Table(RealTableName("label")).Where("repo_id=? AND org_id=?", 0, 0).Count(RealTableName("label") + ".id")
+	var (
+		rLabel      string = RealTableName("label")
+		rRepository string = RealTableName("repository")
+		rUser       string = "`" + RealTableName("user") + "`"
+	)
+
+	noref, err := x.Table(rLabel).Where("repo_id=? AND org_id=?", 0, 0).Count(rLabel + ".id")
 	if err != nil {
 		return 0, err
 	}
 
-	norepo, err := x.Table(RealTableName("label")).
-		Join("LEFT", RealTableName("repository"), RealTableName("label")+".repo_id="+RealTableName("repository")+".id").
-		Where(builder.IsNull{RealTableName("repository") + ".id"}).And(builder.Gt{RealTableName("label") + ".repo_id": 0}).
+	norepo, err := x.Table(rLabel).
+		Join("LEFT", rRepository, rLabel+".repo_id="+rRepository+".id").
+		Where(builder.IsNull{rRepository + ".id"}).And(builder.Gt{rLabel + ".repo_id": 0}).
 		Count("id")
 	if err != nil {
 		return 0, err
 	}
 
-	noorg, err := x.Table(RealTableName("label")).
-		Join("LEFT", "`"+RealTableName("user")+"`", RealTableName("label")+".org_id=`"+RealTableName("user")+"`.id").
-		Where(builder.IsNull{"`" + RealTableName("user") + "`.id"}).And(builder.Gt{RealTableName("label") + ".org_id": 0}).
+	noorg, err := x.Table(rLabel).
+		Join("LEFT", rUser, rLabel+".org_id="+rUser+".id").
+		Where(builder.IsNull{rUser + ".id"}).And(builder.Gt{rLabel + ".org_id": 0}).
 		Count("id")
 	if err != nil {
 		return 0, err
@@ -197,23 +203,29 @@ func CountOrphanedLabels() (int64, error) {
 
 // DeleteOrphanedLabels delete labels witch are broken and not accessible via ui anymore
 func DeleteOrphanedLabels() error {
+	var (
+		rLabel      string = RealTableName("label")
+		rRepository string = RealTableName("repository")
+		rUser       string = "`" + RealTableName("user") + "`"
+	)
+
 	// delete labels with no reference
-	if _, err := x.Table(RealTableName("label")).Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
+	if _, err := x.Table(rLabel).Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
 		return err
 	}
 
 	// delete labels with none existing repos
-	if _, err := x.In("id", builder.Select(RealTableName("label")+".id").From(RealTableName("label")).
-		Join("LEFT", RealTableName("repository"), RealTableName("label")+".repo_id="+RealTableName("repository")+".id").
-		Where(builder.IsNull{RealTableName("repository") + "id"}).And(builder.Gt{RealTableName("label") + ".repo_id": 0})).
+	if _, err := x.In("id", builder.Select(rLabel+".id").From(rLabel).
+		Join("LEFT", rRepository, rLabel+".repo_id="+rRepository+".id").
+		Where(builder.IsNull{rRepository + "id"}).And(builder.Gt{rLabel + ".repo_id": 0})).
 		Delete(Label{}); err != nil {
 		return err
 	}
 
 	// delete labels with none existing orgs
-	if _, err := x.In("id", builder.Select(RealTableName("label")+".id").From(RealTableName("label")).
-		Join("LEFT", "`"+RealTableName("user")+"`", RealTableName("label")+".org_id=`"+RealTableName("user")+"`.id").
-		Where(builder.IsNull{"`" + RealTableName("user") + "`.id"}).And(builder.Gt{RealTableName("label") + ".org_id": 0})).
+	if _, err := x.In("id", builder.Select(rLabel+".id").From(rLabel).
+		Join("LEFT", rUser, rLabel+".org_id="+rUser+".id").
+		Where(builder.IsNull{rUser + ".id"}).And(builder.Gt{rLabel + ".org_id": 0})).
 		Delete(Label{}); err != nil {
 		return err
 	}
@@ -223,9 +235,14 @@ func DeleteOrphanedLabels() error {
 
 // CountOrphanedIssues count issues without a repo
 func CountOrphanedIssues() (int64, error) {
-	return x.Table(RealTableName("issue")).
-		Join("LEFT", RealTableName("repository"), RealTableName("issue")+".repo_id="+RealTableName("repository")+".id").
-		Where(builder.IsNull{RealTableName("repository") + ".id"}).
+	var (
+		rIssue      string = RealTableName("issue")
+		rRepository string = RealTableName("repository")
+	)
+
+	return x.Table(rIssue).
+		Join("LEFT", rRepository, rIssue+".repo_id="+rRepository+".id").
+		Where(builder.IsNull{rRepository + ".id"}).
 		Count("id")
 }
 
@@ -237,11 +254,15 @@ func DeleteOrphanedIssues() error {
 		return err
 	}
 
-	var ids []int64
+	var (
+		ids         []int64
+		rIssue      string = RealTableName("issue")
+		rRepository string = RealTableName("repository")
+	)
 
-	if err := sess.Table(RealTableName("issue")).Distinct(RealTableName("issue")+".repo_id").
-		Join("LEFT", RealTableName("repository"), RealTableName("issue")+".repo_id="+RealTableName("repository")+".id").
-		Where(builder.IsNull{"" + RealTableName("repository") + ".id"}).GroupBy(RealTableName("issue") + ".repo_id").
+	if err := sess.Table(rIssue).Distinct(rIssue+".repo_id").
+		Join("LEFT", rRepository, rIssue+".repo_id="+rRepository+".id").
+		Where(builder.IsNull{rRepository + ".id"}).GroupBy(rIssue + ".repo_id").
 		Find(&ids); err != nil {
 		return err
 	}

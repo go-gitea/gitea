@@ -236,9 +236,14 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 		return fmt.Errorf("cannot find oauth2 application")
 	}
 	codes := make([]*OAuth2AuthorizationCode, 0)
+	var (
+		rOauth2AuthorizationCode string = RealTableName("oauth2_authorization_code")
+		rOauth2Grant             string = RealTableName("oauth2_grant")
+	)
 	// delete correlating auth codes
-	if err := sess.Join("INNER", RealTableName("oauth2_grant"),
-		RealTableName("oauth2_authorization_code")+".grant_id = "+RealTableName("oauth2_grant")+".id AND "+RealTableName("oauth2_grant")+".application_id = ?", id).Find(&codes); err != nil {
+	if err := sess.Join("INNER", rOauth2Grant,
+		rOauth2AuthorizationCode+".grant_id = "+rOauth2Grant+".id AND "+rOauth2Grant+".application_id = ?", id).
+		Find(&codes); err != nil {
 		return err
 	}
 	codeIDs := make([]int64, 0)

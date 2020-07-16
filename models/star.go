@@ -20,6 +20,11 @@ func StarRepo(userID, repoID int64, star bool) error {
 		return err
 	}
 
+	var (
+		rUser       string = "`" + RealTableName("user") + "`"
+		rRepository string = "`" + RealTableName("repository") + "`"
+	)
+
 	if star {
 		if isStaring(sess, userID, repoID) {
 			return nil
@@ -28,10 +33,10 @@ func StarRepo(userID, repoID int64, star bool) error {
 		if _, err := sess.Insert(&Star{UID: userID, RepoID: repoID}); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `"+RealTableName("repository")+"` SET num_stars = num_stars + 1 WHERE id = ?", repoID); err != nil {
+		if _, err := sess.Exec("UPDATE "+rRepository+" SET num_stars = num_stars + 1 WHERE id = ?", repoID); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_stars = num_stars + 1 WHERE id = ?", userID); err != nil {
+		if _, err := sess.Exec("UPDATE "+rUser+" SET num_stars = num_stars + 1 WHERE id = ?", userID); err != nil {
 			return err
 		}
 	} else {
@@ -42,10 +47,10 @@ func StarRepo(userID, repoID int64, star bool) error {
 		if _, err := sess.Delete(&Star{0, userID, repoID}); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `"+RealTableName("repository")+"` SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
+		if _, err := sess.Exec("UPDATE "+rRepository+" SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `"+RealTableName("user")+"` SET num_stars = num_stars - 1 WHERE id = ?", userID); err != nil {
+		if _, err := sess.Exec("UPDATE "+rUser+" SET num_stars = num_stars - 1 WHERE id = ?", userID); err != nil {
 			return err
 		}
 	}
@@ -65,8 +70,9 @@ func isStaring(e Engine, userID, repoID int64) bool {
 
 // GetStargazers returns the users that starred the repo.
 func (repo *Repository) GetStargazers(opts ListOptions) ([]*User, error) {
-	sess := x.Where(RealTableName("star")+".repo_id = ?", repo.ID).
-		Join("LEFT", RealTableName("star"), "`"+RealTableName("user")+"`.id = "+RealTableName("star")+".uid")
+	var rStar string = RealTableName("star")
+	sess := x.Where(rStar+".repo_id = ?", repo.ID).
+		Join("LEFT", rStar, "`"+RealTableName("user")+"`.id = "+rStar+".uid")
 	if opts.Page > 0 {
 		sess = opts.setSessionPagination(sess)
 
@@ -83,9 +89,10 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 	if len(orderBy) == 0 {
 		orderBy = "updated_unix DESC"
 	}
+	var rStar string = RealTableName("star")
 	sess := x.
-		Join("INNER", RealTableName("star"), RealTableName("star")+".repo_id = "+RealTableName("repository")+".id").
-		Where(RealTableName("star")+".uid = ?", u.ID).
+		Join("INNER", rStar, rStar+".repo_id = "+RealTableName("repository")+".id").
+		Where(rStar+".uid = ?", u.ID).
 		OrderBy(orderBy)
 
 	if !private {
@@ -112,9 +119,10 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 
 // GetStarredRepoCount returns the numbers of repo the user starred.
 func (u *User) GetStarredRepoCount(private bool) (int64, error) {
+	var rStar string = RealTableName("star")
 	sess := x.
-		Join("INNER", RealTableName("star"), RealTableName("star")+".repo_id = "+RealTableName("repository")+".id").
-		Where(RealTableName("star")+".uid = ?", u.ID)
+		Join("INNER", rStar, rStar+".repo_id = "+RealTableName("repository")+".id").
+		Where(rStar+".uid = ?", u.ID)
 
 	if !private {
 		sess = sess.And("is_private = ?", false)

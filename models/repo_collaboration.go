@@ -235,10 +235,14 @@ func (repo *Repository) reconsiderWatches(e Engine, uid int64) error {
 }
 
 func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
+	var (
+		rTeamRepo string = RealTableName("team_repo")
+		rTeam     string = RealTableName("team")
+	)
 	return teams, e.
-		Join("INNER", RealTableName("team_repo"), RealTableName("team_repo")+".team_id = "+RealTableName("team")+".id").
-		Where(RealTableName("team")+".org_id = ?", repo.OwnerID).
-		And(RealTableName("team_repo")+".repo_id=?", repo.ID).
+		Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeam+".id").
+		Where(rTeam+".org_id = ?", repo.OwnerID).
+		And(rTeamRepo+".repo_id=?", repo.ID).
 		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
 		Find(&teams)
 }
@@ -253,11 +257,16 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	teamMember, err := x.Join("INNER", RealTableName("team_repo"), RealTableName("team_repo")+".team_id = "+RealTableName("team_user")+".team_id").
-		Join("INNER", RealTableName("team_unit"), RealTableName("team_unit")+".team_id = "+RealTableName("team_user")+".team_id").
-		Where(RealTableName("team_repo")+".repo_id = ?", repo.ID).
-		And(RealTableName("team_unit")+".`type` = ?", UnitTypeCode).
-		And(RealTableName("team_user")+".uid = ?", userID).Table(RealTableName("team_user")).Exist(&TeamUser{})
+	var (
+		rTeamRepo string = RealTableName("team_repo")
+		rTeamUser string = RealTableName("team_user")
+		rTeamUnit string = RealTableName("team_unit")
+	)
+	teamMember, err := x.Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeamUser+".team_id").
+		Join("INNER", rTeamUnit, rTeamUnit+".team_id = "+rTeamUser+".team_id").
+		Where(rTeamRepo+".repo_id = ?", repo.ID).
+		And(rTeamUnit+".`type` = ?", UnitTypeCode).
+		And(rTeamUser+".uid = ?", userID).Table(rTeamUser).Exist(&TeamUser{})
 	if err != nil {
 		return false, err
 	}

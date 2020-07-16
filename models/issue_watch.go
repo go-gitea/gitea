@@ -103,12 +103,17 @@ func GetIssueWatchers(issueID int64, listOptions ListOptions) (IssueWatchList, e
 }
 
 func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWatchList, error) {
+	var (
+		rIssueWatch string = "`" + RealTableName("issue_watch") + "`"
+		rUser       string = "`" + RealTableName("user") + "`"
+	)
+
 	sess := e.
-		Where("`"+RealTableName("issue_watch")+"`.issue_id = ?", issueID).
-		And("`"+RealTableName("issue_watch")+"`.is_watching = ?", true).
-		And("`"+RealTableName("user")+"`.is_active = ?", true).
-		And("`"+RealTableName("user")+"`.prohibit_login = ?", false).
-		Join("INNER", "`"+RealTableName("user")+"`", "`"+RealTableName("user")+"`.id = `"+RealTableName("issue_watch")+"`.user_id")
+		Where(rIssueWatch+".issue_id = ?", issueID).
+		And(rIssueWatch+".is_watching = ?", true).
+		And(rUser+".is_active = ?", true).
+		And(rUser+".prohibit_login = ?", false).
+		Join("INNER", rUser, rUser+".id = "+rIssueWatch+".user_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -120,9 +125,13 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWa
 }
 
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
+	var (
+		rIssue      string = RealTableName("issue")
+		rIssueWatch string = RealTableName("issue_watch")
+	)
 	_, err := e.
-		Join("INNER", RealTableName("issue"), "`"+RealTableName("issue")+"`.id = `"+RealTableName("issue_watch")+"`.issue_id AND `"+RealTableName("issue")+"`.repo_id = ?", repoID).
-		Where("`"+RealTableName("issue_watch")+"`.user_id = ?", userID).
+		Join("INNER", rIssue, rIssue+".id = "+rIssueWatch+".issue_id AND "+rIssue+".repo_id = ?", repoID).
+		Where(rIssueWatch+".user_id = ?", userID).
 		Delete(new(IssueWatch))
 	return err
 }
