@@ -21,8 +21,8 @@ func StarRepo(userID, repoID int64, star bool) error {
 	}
 
 	var (
-		rUser       string = "`" + RealTableName("user") + "`"
-		rRepository string = "`" + RealTableName("repository") + "`"
+		rUser       = "`" + RealTableName("user") + "`"
+		rRepository = "`" + RealTableName("repository") + "`"
 	)
 
 	if star {

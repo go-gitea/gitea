@@ -1573,7 +1573,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	attachments := make([]*Attachment, 0, 20)
-	var rRelease string = "`" + RealTableName("release") + "`"
+	var rRelease = "`" + RealTableName("release") + "`"
 	if err = sess.Join("INNER", rRelease, rRelease+".id = `"+RealTableName("attachment")+"`.release_id").
 		Where(rRelease+".repo_id = ?", repoID).
 		Find(&attachments); err != nil {
@@ -1722,8 +1722,8 @@ func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error
 func getRepositoryByOwnerAndName(e Engine, ownerName, repoName string) (*Repository, error) {
 	var (
 		repo        Repository
-		rRepository        = RealTableName("repository")
-		rUser       string = "`" + RealTableName("user") + "`"
+		rRepository = RealTableName("repository")
+		rUser       = "`" + RealTableName("user") + "`"
 	)
 	has, err := e.Table(rRepository).Select(rRepository+".*").
 		Join("INNER", rUser, rUser+".id = "+rRepository+".owner_id").

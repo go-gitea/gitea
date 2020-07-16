@@ -740,9 +740,9 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	groupByStr = groupByStr[0 : len(groupByStr)-1]
 
 	var (
-		rUser       string = "`" + RealTableName("user") + "`"
-		rRepository        = RealTableName("repository")
-		rOrgUser           = RealTableName("org_user")
+		rUser       = "`" + RealTableName("user") + "`"
+		rRepository = RealTableName("repository")
+		rOrgUser    = RealTableName("org_user")
 	)
 
 	sess.Select(rUser+".*, count(repo_id) as org_count").

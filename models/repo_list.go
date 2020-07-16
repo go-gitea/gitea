@@ -205,15 +205,15 @@ const (
 // SearchRepositoryCondition creates a query condition according search repository options
 func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	var (
-		cond               = builder.NewCond()
-		rUser       string = "`" + RealTableName("user") + "`"
-		rRepository string = "`" + RealTableName("repository") + "`"
-		rAccess     string = "`" + RealTableName("access") + "`"
-		rTeamRepo   string = "`" + RealTableName("team_repo") + "`"
-		rTeamUser   string = "`" + RealTableName("team_user") + "`"
-		rOrgUser    string = "`" + RealTableName("org_user") + "`"
-		rTopic      string = "`" + RealTableName("topic") + "`"
-		rRepoTopic  string = "`" + RealTableName("repo_topic") + "`"
+		cond        = builder.NewCond()
+		rUser       = "`" + RealTableName("user") + "`"
+		rRepository = "`" + RealTableName("repository") + "`"
+		rAccess     = "`" + RealTableName("access") + "`"
+		rTeamRepo   = "`" + RealTableName("team_repo") + "`"
+		rTeamUser   = "`" + RealTableName("team_user") + "`"
+		rOrgUser    = "`" + RealTableName("org_user") + "`"
+		rTopic      = "`" + RealTableName("topic") + "`"
+		rRepoTopic  = "`" + RealTableName("repo_topic") + "`"
 	)
 
 	if opts.Private {
@@ -422,13 +422,13 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 // accessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func accessibleRepositoryCondition(user *User) builder.Cond {
 	var (
-		cond               = builder.NewCond()
-		rUser       string = "`" + RealTableName("user") + "`"
-		rRepository string = "`" + RealTableName("repository") + "`"
-		rAccess     string = "`" + RealTableName("access") + "`"
-		rTeamRepo   string = "`" + RealTableName("team_repo") + "`"
-		rTeamUser   string = "`" + RealTableName("team_user") + "`"
-		rOrgUser    string = "`" + RealTableName("org_user") + "`"
+		cond        = builder.NewCond()
+		rUser       = "`" + RealTableName("user") + "`"
+		rRepository = "`" + RealTableName("repository") + "`"
+		rAccess     = "`" + RealTableName("access") + "`"
+		rTeamRepo   = "`" + RealTableName("team_repo") + "`"
+		rTeamUser   = "`" + RealTableName("team_user") + "`"
+		rOrgUser    = "`" + RealTableName("org_user") + "`"
 	)
 
 	if user == nil || !user.IsRestricted || user.ID <= 0 {

@@ -332,7 +332,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	args := make([]interface{}, 0, 5)
 
 	var (
-		rUser string = "`" + RealTableName("user") + "`"
+		rUser = "`" + RealTableName("user") + "`"
 	)
 
 	emailsSQL := "(SELECT id as sortid, uid, email, is_activated, 0 as is_primary " +

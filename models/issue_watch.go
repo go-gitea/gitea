@@ -104,8 +104,8 @@ func GetIssueWatchers(issueID int64, listOptions ListOptions) (IssueWatchList, e
 
 func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWatchList, error) {
 	var (
-		rIssueWatch string = "`" + RealTableName("issue_watch") + "`"
-		rUser       string = "`" + RealTableName("user") + "`"
+		rIssueWatch = "`" + RealTableName("issue_watch") + "`"
+		rUser       = "`" + RealTableName("user") + "`"
 	)
 
 	sess := e.

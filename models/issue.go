@@ -866,8 +866,8 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Index = inserted.Index
 
 	var (
-		rMilestone  string = "`" + RealTableName("milestone") + "`"
-		rRepository        = RealTableName("repository")
+		rMilestone  = "`" + RealTableName("milestone") + "`"
+		rRepository = RealTableName("repository")
 	)
 
 	if opts.Issue.MilestoneID > 0 {
@@ -1854,10 +1854,10 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 	}
 
 	var (
-		rTeamRepo        = RealTableName("team_repo")
-		rTeam            = RealTableName("team")
-		rTeamUser        = RealTableName("team_user")
-		rUser     string = "`" + RealTableName("user") + "`"
+		rTeamRepo = RealTableName("team_repo")
+		rTeam     = RealTableName("team")
+		rTeamUser = RealTableName("team_user")
+		rUser     = "`" + RealTableName("user") + "`"
 	)
 
 	if issue.Repo.Owner.IsOrganization() {

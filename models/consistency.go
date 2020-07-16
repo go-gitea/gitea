@@ -172,9 +172,9 @@ func (action *Action) checkForConsistency(t *testing.T) {
 // CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
 func CountOrphanedLabels() (int64, error) {
 	var (
-		rLabel             = RealTableName("label")
-		rRepository        = RealTableName("repository")
-		rUser       string = "`" + RealTableName("user") + "`"
+		rLabel      = RealTableName("label")
+		rRepository = RealTableName("repository")
+		rUser       = "`" + RealTableName("user") + "`"
 	)
 
 	noref, err := x.Table(rLabel).Where("repo_id=? AND org_id=?", 0, 0).Count(rLabel + ".id")
@@ -204,9 +204,9 @@ func CountOrphanedLabels() (int64, error) {
 // DeleteOrphanedLabels delete labels witch are broken and not accessible via ui anymore
 func DeleteOrphanedLabels() error {
 	var (
-		rLabel             = RealTableName("label")
-		rRepository        = RealTableName("repository")
-		rUser       string = "`" + RealTableName("user") + "`"
+		rLabel      = RealTableName("label")
+		rRepository = RealTableName("repository")
+		rUser       = "`" + RealTableName("user") + "`"
 	)
 
 	// delete labels with no reference

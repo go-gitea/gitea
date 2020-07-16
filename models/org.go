@@ -396,8 +396,8 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	var (
-		rOrgUser        = RealTableName("org_user")
-		rUser    string = "`" + RealTableName("user") + "`"
+		rOrgUser = RealTableName("org_user")
+		rUser    = "`" + RealTableName("user") + "`"
 	)
 	if !showAll {
 		sess.And(rOrgUser+".is_public=?", true)
@@ -420,9 +420,9 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	var (
-		rTeam            = RealTableName("team")
-		rTeamUser        = RealTableName("team_user")
-		rUser     string = "`" + RealTableName("user") + "`"
+		rTeam     = RealTableName("team")
+		rTeamUser = RealTableName("team_user")
+		rUser     = "`" + RealTableName("user") + "`"
 	)
 	return orgs, sess.
 		Join("INNER", rTeamUser, rTeamUser+".org_id="+rUser+".id").
@@ -486,9 +486,9 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	var (
-		rTeam            = RealTableName("team")
-		rTeamUser        = RealTableName("team_user")
-		rUser     string = "`" + RealTableName("user") + "`"
+		rTeam     = RealTableName("team")
+		rTeamUser = RealTableName("team_user")
+		rUser     = "`" + RealTableName("user") + "`"
 	)
 
 	return orgs, x.Where(builder.In("id", builder.Select(rUser+".id").From(rUser).
@@ -504,8 +504,8 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
 	var (
-		rOrgUser        = RealTableName("org_user")
-		rUser    string = "`" + RealTableName("user") + "`"
+		rOrgUser = RealTableName("org_user")
+		rUser    = "`" + RealTableName("user") + "`"
 	)
 	sess := x.
 		Join("LEFT", rUser, rOrgUser+".org_id="+rUser+".id").
@@ -722,8 +722,8 @@ func removeOrgRepo(e Engine, orgID, repoID int64) error {
 func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, error) {
 	teams := make([]*Team, 0, org.NumTeams)
 	var (
-		rTeamUser        = RealTableName("team_user")
-		rUser     string = "`" + RealTableName("user") + "`"
+		rTeamUser = RealTableName("team_user")
+		rUser     = "`" + RealTableName("user") + "`"
 	)
 	return teams, e.
 		Where(rTeamUser+".org_id = ?", org.ID).
