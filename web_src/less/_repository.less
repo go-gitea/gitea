@@ -1694,6 +1694,11 @@
                 padding: 0 5px !important;
             }
 
+            .tag-code .lines-num,
+            .tag-code td {
+                padding: 0 !important;
+            }
+
             tbody {
                 tr {
                     td.halfwidth {
@@ -1727,17 +1732,21 @@
 
         .code-diff-unified tbody tr {
             &.del-code td {
-                background-color: #ffeef0 !important;
-                border-color: #f1c0c0 !important;
+                background-color: #ffeef0;
+                border-color: #f1c0c0;
             }
 
             &.add-code td {
                 background-color: #e6ffed;
+                border-color: #bef5cb;
+            }
+
+            &.del-code td.lines-num {
+                background-color: #ffe5e4;
             }
 
             &.add-code td.lines-num {
                 background-color: #cdffd8;
-                border-color: #bef5cb;
             }
 
         }
@@ -3001,19 +3010,15 @@ tbody.commit-list {
     margin: 0 !important;
 }
 
-.tag-code,
-.tag-code td {
-    background-color: #e6f1f6;
-    border-color: #f1f8ff !important;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    vertical-align: middle;
-    color: rgba(27, 31, 35, .7);
+.tag-code {
+    height: 28px;
 }
 
-.tag-code td.lines-num {
-    background-color: #f6e6eb !important;
-    border-color: #dbedff;
+.tag-code,
+.tag-code td {
+    background-color: #f0f9ff;
+    border-color: #f1f8ff !important;
+    vertical-align: middle;
 }
 
 .issue-keyword {
