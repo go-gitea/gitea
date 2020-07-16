@@ -5,7 +5,6 @@ const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
-const SpriteLoaderPlugin = require('svg-sprite-loader/plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
 const {statSync} = require('fs');
@@ -25,15 +24,17 @@ const isProduction = process.env.NODE_ENV !== 'development';
 const filterCssImport = (parsedImport, cssFile) => {
   const url = parsedImport && parsedImport.url ? parsedImport.url : parsedImport;
   const importedFile = url.replace(/[?#].+/, '').toLowerCase();
-  if (/vendor\/assets/.test(url)) return false; // font imports
-  if (/web_src[/\\]less/.test(cssFile)) return true; // relative imports
-  if (cssFile.includes('monaco')) return true;
+
   if (cssFile.includes('fomantic')) {
     if (/brand-icons/.test(importedFile)) return false;
-    if (/(eot|ttf|woff)$/.test(importedFile)) return false;
-    return true;
+    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
   }
-  return cssFile.includes('node_modules');
+
+  if (cssFile.includes('font-awesome')) {
+    if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
+  }
+
+  return true;
 };
 
 module.exports = {
@@ -54,10 +55,6 @@ module.exports = {
     ],
     'eventsource.sharedworker': [
       resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
-    ],
-    icons: [
-      ...glob('node_modules/@primer/octicons/build/svg/**/*.svg'),
-      ...glob('assets/svg/*.svg'),
     ],
     ...themes,
   },
@@ -231,23 +228,10 @@ module.exports = {
       },
       {
         test: /\.svg$/,
+        include: resolve(__dirname, 'public/img/svg'),
         use: [
           {
-            loader: 'svg-sprite-loader',
-            options: {
-              extract: true,
-              spriteFilename: 'img/svg/icons.svg',
-              symbolId: (path) => {
-                const {name} = parse(path);
-                if (/@primer[/\\]octicons/.test(path)) {
-                  return `octicon-${name}`;
-                }
-                return name;
-              },
-            },
-          },
-          {
-            loader: 'svgo-loader',
+            loader: 'raw-loader',
           },
         ],
       },
@@ -268,9 +252,9 @@ module.exports = {
   },
   plugins: [
     new VueLoaderPlugin(),
-    // avoid generating useless js output files for css- and svg-only chunks
+    // avoid generating useless js output files for css--only chunks
     new FixStyleOnlyEntriesPlugin({
-      extensions: ['less', 'scss', 'css', 'svg'],
+      extensions: ['less', 'scss', 'css'],
       silent: true,
     }),
     new MiniCssExtractPlugin({
@@ -283,9 +267,6 @@ module.exports = {
         'js/index.js',
         'css/index.css',
       ],
-    }),
-    new SpriteLoaderPlugin({
-      plainSprite: true,
     }),
     new MonacoWebpackPlugin({
       filename: 'js/monaco-[name].worker.js',

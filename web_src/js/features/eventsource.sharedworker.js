@@ -16,7 +16,7 @@ class Source {
   }
 
   register(port) {
-    if (!this.clients.includes(port)) return;
+    if (this.clients.includes(port)) return;
 
     this.clients.push(port);
 
