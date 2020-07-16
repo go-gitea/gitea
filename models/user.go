@@ -447,7 +447,7 @@ func (u *User) AvatarLink() string {
 
 // GetFollowers returns range of user's followers.
 func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
-	var rFollow string = RealTableName("follow")
+	var rFollow = RealTableName("follow")
 	sess := x.
 		Where(rFollow+".follow_id=?", u.ID).
 		Join("LEFT", rFollow, "`"+RealTableName("user")+"`.id="+rFollow+".user_id")
@@ -470,7 +470,7 @@ func (u *User) IsFollowing(followID int64) bool {
 
 // GetFollowing returns range of user's following.
 func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
-	var rFollow string = RealTableName("follow")
+	var rFollow = RealTableName("follow")
 	sess := x.
 		Where(rFollow+".user_id=?", u.ID).
 		Join("LEFT", rFollow, "`"+RealTableName("user")+"`.id="+rFollow+".follow_id")
@@ -658,8 +658,8 @@ func (u *User) GetRepositories(listOpts ListOptions) (err error) {
 func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var (
 		ids         []int64
-		rRepository string = RealTableName("repository")
-		rRepoUnit   string = RealTableName("repo_unit")
+		rRepository = RealTableName("repository")
+		rRepoUnit   = RealTableName("repo_unit")
 	)
 
 	sess := x.Table(rRepository).Cols(rRepository + ".id")
@@ -677,9 +677,9 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var (
 		ids         []int64
-		rRepository string = RealTableName("repository")
-		rTeamUser   string = RealTableName("team_user")
-		rTeamRepo   string = RealTableName("team_repo")
+		rRepository = RealTableName("repository")
+		rTeamUser   = RealTableName("team_user")
+		rTeamRepo   = RealTableName("team_repo")
 	)
 
 	if err := x.Table(rRepository).
@@ -741,8 +741,8 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 
 	var (
 		rUser       string = "`" + RealTableName("user") + "`"
-		rRepository string = RealTableName("repository")
-		rOrgUser    string = RealTableName("org_user")
+		rRepository        = RealTableName("repository")
+		rOrgUser           = RealTableName("org_user")
 	)
 
 	sess.Select(rUser+".*, count(repo_id) as org_count").
@@ -1205,9 +1205,9 @@ func deleteUser(e *xorm.Session, u *User) error {
 	}
 
 	var (
-		rWatch  string = RealTableName("watch")
-		rStar   string = RealTableName("star")
-		rFollow string = RealTableName("follow")
+		rWatch  = RealTableName("watch")
+		rStar   = RealTableName("star")
+		rFollow = RealTableName("follow")
 	)
 
 	// ***** START: Watch *****
@@ -1637,8 +1637,8 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 	}
 
 	var (
-		rOrgUser string = RealTableName("org_user")
-		rUser    string = RealTableName("user")
+		rOrgUser = RealTableName("org_user")
+		rUser    = RealTableName("user")
 	)
 
 	if opts.Actor != nil {
@@ -1699,7 +1699,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 
 // GetStarredRepos returns the repos starred by a particular user
 func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
-	var rStar string = RealTableName("star")
+	var rStar = RealTableName("star")
 	sess := x.Where(rStar+".uid=?", userID).
 		Join("LEFT", rStar, "`"+RealTableName("repository")+"`.id=`"+rStar+"`.repo_id")
 	if !private {
@@ -1719,7 +1719,7 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 
 // GetWatchedRepos returns the repos watched by a particular user
 func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
-	var rWatch string = RealTableName("watch")
+	var rWatch = RealTableName("watch")
 	sess := x.Where(rWatch+".user_id=?", userID).
 		And("`"+rWatch+"`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", rWatch, "`"+RealTableName("repository")+"`.id=`"+rWatch+"`.repo_id")

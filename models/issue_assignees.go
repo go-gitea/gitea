@@ -31,7 +31,7 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 
 	var (
 		rUser           string = "`" + RealTableName("user") + "`"
-		rIssueAssignees string = RealTableName("issue_assignees")
+		rIssueAssignees        = RealTableName("issue_assignees")
 	)
 
 	err = e.Table(rUser).

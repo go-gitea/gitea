@@ -205,8 +205,8 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 	var (
 		err          error
 		count        int64
-		rPullRequest string = RealTableName("pull_request")
-		rIssue       string = RealTableName("issue")
+		rPullRequest = RealTableName("pull_request")
+		rIssue       = RealTableName("issue")
 	)
 
 	// Merged pull requests
@@ -253,8 +253,8 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 
 func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged bool) *xorm.Session {
 	var (
-		rPullRequest string = RealTableName("pull_request")
-		rIssue       string = RealTableName("issue")
+		rPullRequest = RealTableName("pull_request")
+		rIssue       = RealTableName("issue")
 	)
 	sess := x.Where(rPullRequest+".base_repo_id=?", repoID).
 		Join("INNER", rIssue, rPullRequest+".issue_id = "+rIssue+".id")
@@ -275,7 +275,7 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 	var (
 		err    error
 		count  int64
-		rIssue string = RealTableName("issue")
+		rIssue = RealTableName("issue")
 	)
 
 	// Closed issues
@@ -331,7 +331,7 @@ func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Tim
 }
 
 func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unresolved bool) *xorm.Session {
-	var rIssue string = RealTableName("issue")
+	var rIssue = RealTableName("issue")
 	sess := x.Where(rIssue+".repo_id = ?", repoID).
 		And(rIssue+".is_closed = ?", closed)
 
@@ -355,7 +355,7 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 	var (
 		err      error
 		count    int64
-		rRelease string = RealTableName("release")
+		rRelease = RealTableName("release")
 	)
 
 	// Published releases list
@@ -379,7 +379,7 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 }
 
 func releasesForActivityStatement(repoID int64, fromTime time.Time) *xorm.Session {
-	var rRelease string = RealTableName("release")
+	var rRelease = RealTableName("release")
 	return x.Where(rRelease+".repo_id = ?", repoID).
 		And(rRelease+".is_draft = ?", false).
 		And(rRelease+".created_unix >= ?", fromTime.Unix())

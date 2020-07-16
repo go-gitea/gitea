@@ -401,8 +401,8 @@ func (comments CommentList) loadAttachments(e Engine) (err error) {
 		}
 
 		var (
-			rComment    string = RealTableName("comment")
-			rAttachment string = RealTableName("attachment")
+			rComment    = RealTableName("comment")
+			rAttachment = RealTableName("attachment")
 		)
 
 		rows, err := e.Table(rAttachment).

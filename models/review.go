@@ -295,8 +295,8 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 	}
 
 	var (
-		official        = false
-		rReview  string = RealTableName("review")
+		official = false
+		rReview  = RealTableName("review")
 	)
 
 	review, err := getCurrentReview(sess, doer, issue)
@@ -385,7 +385,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 // GetReviewersByIssueID gets the latest review of each reviewer for a pull request
 func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 	reviewsUnfiltered := []*Review{}
-	var rReview string = RealTableName("review")
+	var rReview = RealTableName("review")
 
 	sess := x.NewSession()
 	defer sess.Close()
@@ -421,7 +421,7 @@ func GetReviewerByIssueIDAndUserID(issueID, userID int64) (review *Review, err e
 
 func getReviewerByIssueIDAndUserID(e Engine, issueID, userID int64) (review *Review, err error) {
 	review = new(Review)
-	var rReview string = RealTableName("review")
+	var rReview = RealTableName("review")
 
 	if _, err := e.SQL("SELECT * FROM "+rReview+" WHERE id IN (SELECT max(id) as id FROM "+rReview+" WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
 		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).

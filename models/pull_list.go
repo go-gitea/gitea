@@ -25,9 +25,9 @@ type PullRequestsOptions struct {
 
 func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xorm.Session, error) {
 	var (
-		rIssue       string = RealTableName("issue")
-		rPullRequest string = RealTableName("pull_request")
-		rIssueLabel  string = RealTableName("issue_label")
+		rIssue       = RealTableName("issue")
+		rPullRequest = RealTableName("pull_request")
+		rIssueLabel  = RealTableName("issue_label")
 	)
 
 	sess := x.Where(rPullRequest+".base_repo_id=?", baseRepoID)
@@ -57,8 +57,8 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
 	var (
-		rIssue       string = RealTableName("issue")
-		rPullRequest string = RealTableName("pull_request")
+		rIssue       = RealTableName("issue")
+		rPullRequest = RealTableName("pull_request")
 	)
 	return prs, x.
 		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND "+rIssue+".is_closed = ?",
@@ -71,7 +71,7 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 // by given base information (repo and branch).
 func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	var rIssue string = RealTableName("issue")
+	var rIssue = RealTableName("issue")
 
 	return prs, x.
 		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND "+rIssue+".is_closed=?",
@@ -83,7 +83,7 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 // GetPullRequestIDsByCheckStatus returns all pull requests according the special checking status.
 func GetPullRequestIDsByCheckStatus(status PullRequestStatus) ([]int64, error) {
 	prs := make([]int64, 0, 10)
-	var rPullRequest string = RealTableName("pull_request")
+	var rPullRequest = RealTableName("pull_request")
 	return prs, x.Table(rPullRequest).
 		Where("status=?", status).
 		Cols(rPullRequest + ".id").

@@ -386,8 +386,8 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 // BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names
 func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
 	var (
-		rIssueLabel string = RealTableName("issue_label")
-		rLabel      string = RealTableName("label")
+		rIssueLabel = RealTableName("issue_label")
+		rLabel      = RealTableName("label")
 	)
 
 	return builder.Select(rIssueLabel+".issue_id").
@@ -579,8 +579,8 @@ func GetLabelsByOrgID(orgID int64, sortType string, listOptions ListOptions) ([]
 
 func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
 	var (
-		rIssueLabel string = RealTableName("issue_label")
-		rLabel      string = RealTableName("label")
+		rIssueLabel = RealTableName("issue_label")
+		rLabel      = RealTableName("label")
 		labels      []*Label
 	)
 
@@ -597,8 +597,8 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 
 func updateLabelCols(e Engine, l *Label, cols ...string) error {
 	var (
-		rIssueLabel string = RealTableName("issue_label")
-		rIssue      string = RealTableName("issue")
+		rIssueLabel = RealTableName("issue_label")
+		rIssue      = RealTableName("issue")
 	)
 
 	_, err := e.ID(l.ID).

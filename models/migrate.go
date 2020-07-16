@@ -221,8 +221,8 @@ func InsertReleases(rels ...*Release) error {
 
 func migratedIssueCond(tp structs.GitServiceType) builder.Cond {
 	var (
-		rIssue      string = RealTableName("issue")
-		rRepository string = RealTableName("repository")
+		rIssue      = RealTableName("issue")
+		rRepository = RealTableName("repository")
 	)
 	return builder.In("issue_id",
 		builder.Select(rIssue+".id").

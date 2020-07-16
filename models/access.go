@@ -112,8 +112,8 @@ func (repoAccess) TableName() string {
 // GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
 func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 	var (
-		rRepository string = RealTableName("repository")
-		rAccess     string = RealTableName("access")
+		rRepository = RealTableName("repository")
+		rAccess     = RealTableName("access")
 	)
 
 	rows, err := x.
@@ -152,8 +152,8 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 // If limit is smaller than 1 means returns all found results.
 func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ error) {
 	var (
-		rRepository string = RealTableName("repository")
-		rAccess     string = RealTableName("access")
+		rRepository = RealTableName("repository")
+		rAccess     = RealTableName("access")
 	)
 
 	sess := x.
@@ -305,9 +305,9 @@ func (repo *Repository) recalculateUserAccess(e Engine, uid int64) (err error) {
 	} else if repo.Owner.IsOrganization() {
 		var (
 			teams     []Team
-			rTeamRepo string = RealTableName("team_repo")
-			rTeam     string = RealTableName("team")
-			rTeamUser string = RealTableName("team_user")
+			rTeamRepo = RealTableName("team_repo")
+			rTeam     = RealTableName("team")
+			rTeamUser = RealTableName("team_user")
 		)
 
 		if err := e.Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeam+".id").

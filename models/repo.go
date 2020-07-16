@@ -561,8 +561,8 @@ func (repo *Repository) ComposeMetas() map[string]string {
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
 			var (
-				rTeam     string = RealTableName("team")
-				rTeamRepo string = RealTableName("team_repo")
+				rTeam     = RealTableName("team")
+				rTeamRepo = RealTableName("team_repo")
 			)
 			_ = x.Table(rTeamRepo).
 				Join("INNER", rTeam, rTeam+".id = "+rTeamRepo+".team_id").
@@ -1722,7 +1722,7 @@ func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error
 func getRepositoryByOwnerAndName(e Engine, ownerName, repoName string) (*Repository, error) {
 	var (
 		repo        Repository
-		rRepository string = RealTableName("repository")
+		rRepository        = RealTableName("repository")
 		rUser       string = "`" + RealTableName("user") + "`"
 	)
 	has, err := e.Table(rRepository).Select(rRepository+".*").

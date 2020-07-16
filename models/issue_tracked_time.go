@@ -82,8 +82,8 @@ type FindTrackedTimesOptions struct {
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 	var (
-		rTrackedTime string = RealTableName("tracked_time")
-		rIssue       string = RealTableName("issue")
+		rTrackedTime = RealTableName("tracked_time")
+		rIssue       = RealTableName("issue")
 	)
 
 	cond := builder.NewCond().And(builder.Eq{rTrackedTime + ".deleted": false})
@@ -111,7 +111,7 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
 func (opts *FindTrackedTimesOptions) ToSession(e Engine) Engine {
 	sess := e
-	var rIssue string = RealTableName("issue")
+	var rIssue = RealTableName("issue")
 
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
 		sess = e.Join("INNER", rIssue, rIssue+".id = "+RealTableName("tracked_time")+".issue_id")

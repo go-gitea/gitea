@@ -553,8 +553,8 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	}
 
 	var (
-		rPullRequest string = models.RealTableName("pull_request")
-		rIssue       string = models.RealTableName("issue")
+		rPullRequest = models.RealTableName("pull_request")
+		rIssue       = models.RealTableName("issue")
 	)
 
 	//find pulls without existing issues

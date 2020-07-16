@@ -126,8 +126,8 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWa
 
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
 	var (
-		rIssue      string = RealTableName("issue")
-		rIssueWatch string = RealTableName("issue_watch")
+		rIssue      = RealTableName("issue")
+		rIssueWatch = RealTableName("issue_watch")
 	)
 	_, err := e.
 		Join("INNER", rIssue, rIssue+".id = "+rIssueWatch+".issue_id AND "+rIssue+".repo_id = ?", repoID).

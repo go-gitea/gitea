@@ -867,7 +867,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 	var (
 		rMilestone  string = "`" + RealTableName("milestone") + "`"
-		rRepository string = RealTableName("repository")
+		rRepository        = RealTableName("repository")
 	)
 
 	if opts.Issue.MilestoneID > 0 {
@@ -1081,7 +1081,7 @@ type IssuesOptions struct {
 // sortIssuesSession sort an issues-related session based on the provided
 // sortType string
 func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64) {
-	var rIssue string = RealTableName("issue")
+	var rIssue = RealTableName("issue")
 
 	switch sortType {
 	case "oldest":
@@ -1110,10 +1110,10 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 
 func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	var (
-		rIssue          string = RealTableName("issue")
-		rIssueAssignees string = RealTableName("issue_assignees")
-		rIssueUser      string = RealTableName("issue_user")
-		rIssueLabel     string = RealTableName("issue_label")
+		rIssue          = RealTableName("issue")
+		rIssueAssignees = RealTableName("issue_assignees")
+		rIssueUser      = RealTableName("issue_user")
+		rIssueLabel     = RealTableName("issue_label")
 	)
 
 	if opts.Page >= 0 && opts.PageSize > 0 {
@@ -1190,7 +1190,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
 func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
-	var rIssue string = RealTableName("issue")
+	var rIssue = RealTableName("issue")
 
 	sess := x.NewSession()
 	defer sess.Close()
@@ -1218,8 +1218,8 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
 func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error) {
 	var (
-		rIssue      string = RealTableName("issue")
-		rRepository string = RealTableName("repository")
+		rIssue      = RealTableName("issue")
+		rRepository = RealTableName("repository")
 	)
 
 	repoIDs := make([]int64, 0, 5)
@@ -1373,10 +1373,10 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 	stats := &IssueStats{}
 
 	var (
-		rIssue          string = RealTableName("issue")
-		rIssueLabel     string = RealTableName("issue_label")
-		rIssueUser      string = RealTableName("issue_user")
-		rIssueAssignees string = RealTableName("issue_assignees")
+		rIssue          = RealTableName("issue")
+		rIssueLabel     = RealTableName("issue_label")
+		rIssueUser      = RealTableName("issue_user")
+		rIssueAssignees = RealTableName("issue_assignees")
 	)
 
 	countSession := func(opts *IssueStatsOptions) *xorm.Session {
@@ -1460,9 +1460,9 @@ type UserIssueStatsOptions struct {
 func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	var (
 		err             error
-		rIssue          string = RealTableName("issue")
-		rIssueAssignees string = RealTableName("issue_assignees")
-		rIssueUser      string = RealTableName("issue_user")
+		rIssue          = RealTableName("issue")
+		rIssueAssignees = RealTableName("issue_assignees")
+		rIssueUser      = RealTableName("issue_user")
 	)
 
 	stats := &IssueStats{}
@@ -1584,8 +1584,8 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 	closedCountSession := countSession(true, isPull, repoID)
 
 	var (
-		rIssue          string = RealTableName("issue")
-		rIssueAssignees string = RealTableName("issue_assignees")
+		rIssue          = RealTableName("issue")
+		rIssueAssignees = RealTableName("issue_assignees")
 	)
 
 	switch filterMode {
@@ -1735,8 +1735,8 @@ func (issue *Issue) getParticipantIDsByIssue(e Engine) ([]int64, error) {
 	}
 
 	var (
-		rComment string = RealTableName("comment")
-		rUser    string = RealTableName("user")
+		rComment = RealTableName("comment")
+		rUser    = RealTableName("user")
 	)
 
 	userIDs := make([]int64, 0, 5)
@@ -1759,9 +1759,9 @@ func (issue *Issue) getParticipantIDsByIssue(e Engine) ([]int64, error) {
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
 func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
 	var (
-		rIssue           string = RealTableName("issue")
-		rRepository      string = RealTableName("repository")
-		rIssueDependency string = RealTableName("issue_dependency")
+		rIssue           = RealTableName("issue")
+		rRepository      = RealTableName("repository")
+		rIssueDependency = RealTableName("issue_dependency")
 	)
 	return issueDeps, e.
 		Table(rIssue).
@@ -1776,9 +1776,9 @@ func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyI
 // Get Blocking Dependencies, aka all issues this issue blocks.
 func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
 	var (
-		rIssue           string = RealTableName("issue")
-		rRepository      string = RealTableName("repository")
-		rIssueDependency string = RealTableName("issue_dependency")
+		rIssue           = RealTableName("issue")
+		rRepository      = RealTableName("repository")
+		rIssueDependency = RealTableName("issue_dependency")
 	)
 
 	return issueDeps, e.
@@ -1803,8 +1803,8 @@ func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
 
 func (issue *Issue) updateClosedNum(e Engine) (err error) {
 	var (
-		rIssue      string = RealTableName("issue")
-		rRepository string = RealTableName("repository")
+		rIssue      = RealTableName("issue")
+		rRepository = RealTableName("repository")
 	)
 
 	if issue.IsPull {
@@ -1854,9 +1854,9 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 	}
 
 	var (
-		rTeamRepo string = RealTableName("team_repo")
-		rTeam     string = RealTableName("team")
-		rTeamUser string = RealTableName("team_user")
+		rTeamRepo        = RealTableName("team_repo")
+		rTeam            = RealTableName("team")
+		rTeamUser        = RealTableName("team_user")
 		rUser     string = "`" + RealTableName("user") + "`"
 	)
 

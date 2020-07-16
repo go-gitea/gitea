@@ -382,8 +382,8 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 		return owner, err
 	}
 	var (
-		rTeam     string = RealTableName("team")
-		rTeamUser string = RealTableName("team_user")
+		rTeam     = RealTableName("team")
+		rTeamUser = RealTableName("team_user")
 	)
 	return x.
 		Where(builder.Eq{rTeam + ".can_create_org_repo": true}).
@@ -396,7 +396,7 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	var (
-		rOrgUser string = RealTableName("org_user")
+		rOrgUser        = RealTableName("org_user")
 		rUser    string = "`" + RealTableName("user") + "`"
 	)
 	if !showAll {
@@ -420,8 +420,8 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	var (
-		rTeam     string = RealTableName("team")
-		rTeamUser string = RealTableName("team_user")
+		rTeam            = RealTableName("team")
+		rTeamUser        = RealTableName("team_user")
 		rUser     string = "`" + RealTableName("user") + "`"
 	)
 	return orgs, sess.
@@ -486,8 +486,8 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	var (
-		rTeam     string = RealTableName("team")
-		rTeamUser string = RealTableName("team_user")
+		rTeam            = RealTableName("team")
+		rTeamUser        = RealTableName("team_user")
 		rUser     string = "`" + RealTableName("user") + "`"
 	)
 
@@ -504,7 +504,7 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
 func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
 	var (
-		rOrgUser string = RealTableName("org_user")
+		rOrgUser        = RealTableName("org_user")
 		rUser    string = "`" + RealTableName("user") + "`"
 	)
 	sess := x.
@@ -722,7 +722,7 @@ func removeOrgRepo(e Engine, orgID, repoID int64) error {
 func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, error) {
 	teams := make([]*Team, 0, org.NumTeams)
 	var (
-		rTeamUser string = RealTableName("team_user")
+		rTeamUser        = RealTableName("team_user")
 		rUser     string = "`" + RealTableName("user") + "`"
 	)
 	return teams, e.
@@ -738,8 +738,8 @@ func (org *User) getUserTeams(e Engine, userID int64, cols ...string) ([]*Team, 
 func (org *User) getUserTeamIDs(e Engine, userID int64) ([]int64, error) {
 	teamIDs := make([]int64, 0, org.NumTeams)
 	var (
-		rTeamUser string = RealTableName("team_user")
-		rTeam     string = RealTableName("team")
+		rTeamUser = RealTableName("team_user")
+		rTeam     = RealTableName("team")
 	)
 	return teamIDs, e.
 		Table(rTeam).
@@ -818,8 +818,8 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 
 func (env *accessibleReposEnv) cond() builder.Cond {
 	var (
-		cond               = builder.NewCond()
-		rRepository string = RealTableName("repository")
+		cond        = builder.NewCond()
+		rRepository = RealTableName("repository")
 	)
 
 	if env.user == nil || !env.user.IsRestricted {
@@ -839,8 +839,8 @@ func (env *accessibleReposEnv) cond() builder.Cond {
 
 func (env *accessibleReposEnv) CountRepos() (int64, error) {
 	var (
-		rTeamRepo   string = RealTableName("team_repo")
-		rRepository string = RealTableName("repository")
+		rTeamRepo   = RealTableName("team_repo")
+		rRepository = RealTableName("repository")
 	)
 	repoCount, err := env.e.
 		Join("INNER", rTeamRepo, rTeamRepo+".repo_id="+rRepository+".id").
@@ -860,8 +860,8 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 
 	repoIDs := make([]int64, 0, pageSize)
 	var (
-		rTeamRepo   string = RealTableName("team_repo")
-		rRepository string = RealTableName("repository")
+		rTeamRepo   = RealTableName("team_repo")
+		rRepository = RealTableName("repository")
 	)
 	return repoIDs, env.e.
 		Table(rRepository).
@@ -894,8 +894,8 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) 
 func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
 	var (
-		rTeamRepo   string = RealTableName("team_repo")
-		rRepository string = RealTableName("repository")
+		rTeamRepo   = RealTableName("team_repo")
+		rRepository = RealTableName("repository")
 	)
 	return repoIDs, env.e.
 		Table(rRepository).

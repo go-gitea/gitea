@@ -468,7 +468,7 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 // by given head/base and repo/branch.
 func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string) (*PullRequest, error) {
 	pr := new(PullRequest)
-	var rIssue string = RealTableName("issue")
+	var rIssue = RealTableName("issue")
 	has, err := x.
 		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND "+rIssue+".is_closed=?",
 			headRepoID, headBranch, baseRepoID, baseBranch, false, false).

@@ -186,8 +186,8 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 // FindTopics retrieves the topics via FindTopicOptions
 func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 	var (
-		rTopic     string = RealTableName("topic")
-		rRepoTopic string = RealTableName("repo_topic")
+		rTopic     = RealTableName("topic")
+		rRepoTopic = RealTableName("repo_topic")
 	)
 	sess := x.Select(rTopic + ".*").Where(opts.toConds())
 	if opts.RepoID > 0 {
@@ -204,8 +204,8 @@ func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
 	var (
 		cond       = builder.NewCond()
 		topic      Topic
-		rTopic     string = RealTableName("topic")
-		rRepoTopic string = RealTableName("repo_topic")
+		rTopic     = RealTableName("topic")
+		rRepoTopic = RealTableName("repo_topic")
 	)
 	cond = cond.And(builder.Eq{rRepoTopic + ".repo_id": repoID}).And(builder.Eq{rTopic + ".name": topicName})
 	sess := x.Table(rTopic).Where(cond)
@@ -311,8 +311,8 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 
 	topicNames = make([]string, 0, 25)
 	var (
-		rTopic     string = RealTableName("topic")
-		rRepoTopic string = RealTableName("repo_topic")
+		rTopic     = RealTableName("topic")
+		rRepoTopic = RealTableName("repo_topic")
 	)
 	if err := sess.Table(rTopic).Cols("name").
 		Join("INNER", rRepoTopic, rRepoTopic+".topic_id = "+rTopic+".id").

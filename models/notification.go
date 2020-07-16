@@ -80,7 +80,7 @@ type FindNotificationOptions struct {
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	cond := builder.NewCond()
-	var rNotification string = RealTableName("notification")
+	var rNotification = RealTableName("notification")
 	if opts.UserID != 0 {
 		cond = cond.And(builder.Eq{rNotification + ".user_id": opts.UserID})
 	}

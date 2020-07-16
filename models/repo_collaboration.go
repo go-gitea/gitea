@@ -236,8 +236,8 @@ func (repo *Repository) reconsiderWatches(e Engine, uid int64) error {
 
 func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
 	var (
-		rTeamRepo string = RealTableName("team_repo")
-		rTeam     string = RealTableName("team")
+		rTeamRepo = RealTableName("team_repo")
+		rTeam     = RealTableName("team")
 	)
 	return teams, e.
 		Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeam+".id").
@@ -258,9 +258,9 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 		return true, nil
 	}
 	var (
-		rTeamRepo string = RealTableName("team_repo")
-		rTeamUser string = RealTableName("team_user")
-		rTeamUnit string = RealTableName("team_unit")
+		rTeamRepo = RealTableName("team_repo")
+		rTeamUser = RealTableName("team_user")
+		rTeamUnit = RealTableName("team_unit")
 	)
 	teamMember, err := x.Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeamUser+".team_id").
 		Join("INNER", rTeamUnit, rTeamUnit+".team_id = "+rTeamUser+".team_id").

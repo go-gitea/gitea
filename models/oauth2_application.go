@@ -237,8 +237,8 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 	}
 	codes := make([]*OAuth2AuthorizationCode, 0)
 	var (
-		rOauth2AuthorizationCode string = RealTableName("oauth2_authorization_code")
-		rOauth2Grant             string = RealTableName("oauth2_grant")
+		rOauth2AuthorizationCode = RealTableName("oauth2_authorization_code")
+		rOauth2Grant             = RealTableName("oauth2_grant")
 	)
 	// delete correlating auth codes
 	if err := sess.Join("INNER", rOauth2Grant,

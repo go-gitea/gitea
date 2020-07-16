@@ -910,9 +910,9 @@ type FindCommentsOptions struct {
 
 func (opts *FindCommentsOptions) toConds() builder.Cond {
 	var (
-		cond            = builder.NewCond()
-		rIssue   string = RealTableName("issue")
-		rComment string = RealTableName("comment")
+		cond     = builder.NewCond()
+		rIssue   = RealTableName("issue")
+		rComment = RealTableName("comment")
 	)
 
 	if opts.RepoID > 0 {
@@ -940,8 +940,8 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := e.Where(opts.toConds())
 	var (
-		rIssue   string = RealTableName("issue")
-		rComment string = RealTableName("comment")
+		rIssue   = RealTableName("issue")
+		rComment = RealTableName("comment")
 	)
 
 	if opts.RepoID > 0 {
@@ -1042,7 +1042,7 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 
 	var (
 		comments []*Comment
-		rComment string = RealTableName("comment")
+		rComment = RealTableName("comment")
 	)
 
 	if err := e.Where(conds).
@@ -1106,9 +1106,9 @@ func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	var (
-		rComment    string = RealTableName("comment")
-		rIssue      string = RealTableName("issue")
-		rRepository string = RealTableName("repository")
+		rComment    = RealTableName("comment")
+		rIssue      = RealTableName("issue")
+		rRepository = RealTableName("repository")
 	)
 
 	_, err := x.Table(rComment).

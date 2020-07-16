@@ -118,8 +118,8 @@ func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
 
 func issueNoDependenciesLeft(e Engine, issue *Issue) (bool, error) {
 	var (
-		rIssueDependency string = RealTableName("issue_dependency")
-		rIssue           string = RealTableName("issue")
+		rIssueDependency = RealTableName("issue_dependency")
+		rIssue           = RealTableName("issue")
 	)
 	exists, err := e.
 		Table(rIssueDependency).

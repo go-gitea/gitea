@@ -159,8 +159,8 @@ func (t *Team) getRepositories(e Engine) error {
 		return nil
 	}
 	var (
-		rTeamRepo   string = RealTableName("team_repo")
-		rRepository string = RealTableName("repository")
+		rTeamRepo   = RealTableName("team_repo")
+		rRepository = RealTableName("repository")
 	)
 	return e.Join("INNER", rTeamRepo, rRepository+".id = "+rTeamRepo+".repo_id").
 		Where(rTeamRepo+".team_id=?", t.ID).
@@ -797,7 +797,7 @@ func GetTeamMembers(teamID int64) ([]*User, error) {
 }
 
 func getUserTeams(e Engine, userID int64, listOptions ListOptions) (teams []*Team, err error) {
-	var rTeamUser string = RealTableName("team_user")
+	var rTeamUser = RealTableName("team_user")
 
 	sess := e.
 		Join("INNER", rTeamUser, rTeamUser+".team_id = "+RealTableName("team")+".id").
@@ -810,8 +810,8 @@ func getUserTeams(e Engine, userID int64, listOptions ListOptions) (teams []*Tea
 
 func getUserOrgTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
 	var (
-		rTeamUser string = RealTableName("team_user")
-		rTeam     string = RealTableName("team")
+		rTeamUser = RealTableName("team_user")
+		rTeam     = RealTableName("team")
 	)
 	return teams, e.
 		Join("INNER", rTeamUser, rTeamUser+".team_id = "+rTeam+".id").
@@ -822,9 +822,9 @@ func getUserOrgTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
 
 func getUserRepoTeams(e Engine, orgID, userID, repoID int64) (teams []*Team, err error) {
 	var (
-		rTeamUser string = RealTableName("team_user")
-		rTeam     string = RealTableName("team")
-		rTeamRepo string = RealTableName("team_repo")
+		rTeamUser = RealTableName("team_user")
+		rTeam     = RealTableName("team")
+		rTeamRepo = RealTableName("team_repo")
 	)
 	return teams, e.
 		Join("INNER", rTeamUser, rTeamUser+".team_id = "+rTeam+".id").
@@ -1038,8 +1038,8 @@ func removeTeamRepo(e Engine, teamID, repoID int64) error {
 func GetTeamsWithAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, error) {
 	teams := make([]*Team, 0, 5)
 	var (
-		rTeam     string = RealTableName("team")
-		rTeamRepo string = RealTableName("team_repo")
+		rTeam     = RealTableName("team")
+		rTeamRepo = RealTableName("team_repo")
 	)
 	return teams, x.Where(rTeam+".authorize >= ?", mode).
 		Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeam+".id").

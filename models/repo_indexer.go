@@ -33,8 +33,8 @@ type RepoIndexerStatus struct {
 func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageSize int) ([]int64, error) {
 	ids := make([]int64, 0, 50)
 	var (
-		rRepository        string = RealTableName("repository")
-		rRepoIndexerStatus string = RealTableName("repo_indexer_status")
+		rRepository        = RealTableName("repository")
+		rRepoIndexerStatus = RealTableName("repo_indexer_status")
 	)
 	cond := builder.Cond(builder.IsNull{
 		rRepoIndexerStatus + ".id",

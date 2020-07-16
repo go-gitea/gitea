@@ -33,7 +33,7 @@ func FollowUser(userID, followID int64) (err error) {
 		return err
 	}
 
-	var rUser string = RealTableName("user")
+	var rUser = RealTableName("user")
 
 	if _, err = sess.Exec("UPDATE `"+rUser+"` SET num_followers = num_followers + 1 WHERE id = ?", followID); err != nil {
 		return err
@@ -61,7 +61,7 @@ func UnfollowUser(userID, followID int64) (err error) {
 		return err
 	}
 
-	var rUser string = RealTableName("user")
+	var rUser = RealTableName("user")
 
 	if _, err = sess.Exec("UPDATE `"+rUser+"` SET num_followers = num_followers - 1 WHERE id = ?", followID); err != nil {
 		return err
