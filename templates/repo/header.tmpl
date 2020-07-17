@@ -50,8 +50,7 @@
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button" tabindex="0">
 							<button type="submit" class="ui compact basic button">
-								<!-- TODO use star-filled once octicons v2 are in place */ -->
-								{{if $.IsStaringRepo}}{{svg "octicon-star" 16}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{svg "octicon-star" 16}}{{$.i18n.Tr "repo.star"}}{{end}}
+								{{if $.IsStaringRepo}}{{svg "octicon-star-fill" 16}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{svg "octicon-star" 16}}{{$.i18n.Tr "repo.star"}}{{end}}
 							</button>
 							<a class="ui basic label" href="{{.Link}}/stars">
 								{{.NumStars}}

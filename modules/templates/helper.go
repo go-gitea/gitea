@@ -639,7 +639,7 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionApprovePullRequest:
 		return "check"
 	case models.ActionRejectPullRequest:
-		return "request-changes"
+		return "diff"
 	default:
 		return "question"
 	}
