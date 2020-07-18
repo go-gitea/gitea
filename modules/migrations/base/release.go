@@ -10,9 +10,9 @@ import "time"
 type ReleaseAsset struct {
 	ID            int64
 	Name          string
-	ContentType   *string
+	ContentType   *string `yaml:"content_type"`
 	Size          *int
-	DownloadCount *int
+	DownloadCount *int `yaml:"download_count"`
 	Created       time.Time
 	Updated       time.Time
 	DownloadURL   *string
@@ -20,15 +20,15 @@ type ReleaseAsset struct {
 
 // Release represents a release
 type Release struct {
-	TagName         string
-	TargetCommitish string
+	TagName         string `yaml:"tag_name"`
+	TargetCommitish string `yaml:"target_commitish"`
 	Name            string
 	Body            string
 	Draft           bool
 	Prerelease      bool
-	PublisherID     int64
-	PublisherName   string
-	PublisherEmail  string
+	PublisherID     int64  `yaml:"publisher_id"`
+	PublisherName   string `yaml:"publisher_name"`
+	PublisherEmail  string `yaml:"publisher_email"`
 	Assets          []ReleaseAsset
 	Created         time.Time
 	Published       time.Time

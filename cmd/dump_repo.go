@@ -27,6 +27,31 @@ var CmdDumpRepository = cli.Command{
 			Value: "./data",
 			Usage: "Repository dir path",
 		},
+		cli.StringFlag{
+			Name:  "clone_addr",
+			Value: "",
+			Usage: "Clone URL",
+		},
+		cli.StringFlag{
+			Name:  "auth_username",
+			Value: "",
+			Usage: "",
+		},
+		cli.StringFlag{
+			Name:  "auth_password",
+			Value: "",
+			Usage: "",
+		},
+		cli.StringFlag{
+			Name:  "owner_name",
+			Value: "",
+			Usage: "",
+		},
+		cli.StringFlag{
+			Name:  "repo_name",
+			Value: "",
+			Usage: "",
+		},
 	},
 }
 

@@ -45,6 +45,7 @@ type RepositoryDumper struct {
 
 // NewRepositoryDumper creates an gitea Uploader
 func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string) *RepositoryDumper {
+	baseDir = filepath.Join(baseDir, repoOwner, repoName)
 	return &RepositoryDumper{
 		ctx:         ctx,
 		baseDir:     baseDir,
@@ -59,7 +60,7 @@ func (g *RepositoryDumper) MaxBatchInsertSize(tp string) int {
 	return 1000
 }
 
-func (g *RepositoryDumper) repoPath() string {
+func (g *RepositoryDumper) gitPath() string {
 	return filepath.Join(g.baseDir, "git")
 }
 
@@ -68,40 +69,43 @@ func (g *RepositoryDumper) wikiPath() string {
 }
 
 func (g *RepositoryDumper) topicDir() string {
-	return filepath.Join(g.baseDir, "topic")
+	return filepath.Join(g.baseDir)
 }
 
 func (g *RepositoryDumper) milestoneDir() string {
-	return filepath.Join(g.baseDir, "milestone")
+	return filepath.Join(g.baseDir)
 }
 
 func (g *RepositoryDumper) labelDir() string {
-	return filepath.Join(g.baseDir, "label")
+	return filepath.Join(g.baseDir)
 }
 
 func (g *RepositoryDumper) releaseDir() string {
-	return filepath.Join(g.baseDir, "release")
+	return filepath.Join(g.baseDir)
 }
 
 func (g *RepositoryDumper) issueDir() string {
-	return filepath.Join(g.baseDir, "issue")
+	return filepath.Join(g.baseDir)
 }
 
 func (g *RepositoryDumper) commentDir() string {
-	return filepath.Join(g.baseDir, "comment")
+	return filepath.Join(g.baseDir)
 }
 
 func (g *RepositoryDumper) pullrequestDir() string {
-	return filepath.Join(g.baseDir, "pullrequest")
+	return filepath.Join(g.baseDir)
 }
 
 func (g *RepositoryDumper) reviewDir() string {
-	return filepath.Join(g.baseDir, "review")
+	return filepath.Join(g.baseDir)
 }
 
 // CreateRepo creates a repository
 func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
-	repoPath := g.repoPath()
+	if err := os.MkdirAll(g.baseDir, os.ModePerm); err != nil {
+		return err
+	}
+	repoPath := g.gitPath()
 	if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
 		return err
 	}
@@ -139,7 +143,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepository(g.repoPath())
+	g.gitRepo, err = git.OpenRepository(g.gitPath())
 	return err
 }
 
@@ -173,7 +177,7 @@ func (g *RepositoryDumper) CreateTopics(topics ...string) error {
 	if err := os.MkdirAll(g.topicDir(), os.ModePerm); err != nil {
 		return err
 	}
-	f, err := os.Create(filepath.Join(g.topicDir(), "data.yml"))
+	f, err := os.Create(filepath.Join(g.topicDir(), "topic.yml"))
 	if err != nil {
 		return err
 	}
@@ -200,7 +204,7 @@ func (g *RepositoryDumper) CreateMilestones(milestones ...*base.Milestone) error
 		if err := os.MkdirAll(g.milestoneDir(), os.ModePerm); err != nil {
 			return err
 		}
-		g.milestoneFile, err = os.Create(filepath.Join(g.milestoneDir(), "data.yml"))
+		g.milestoneFile, err = os.Create(filepath.Join(g.milestoneDir(), "milestone.yml"))
 		if err != nil {
 			return err
 		}
@@ -225,7 +229,7 @@ func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 		if err := os.MkdirAll(g.labelDir(), os.ModePerm); err != nil {
 			return err
 		}
-		g.labelFile, err = os.Create(filepath.Join(g.labelDir(), "data.yml"))
+		g.labelFile, err = os.Create(filepath.Join(g.labelDir(), "label.yml"))
 		if err != nil {
 			return err
 		}
@@ -246,7 +250,7 @@ func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 // CreateReleases creates releases
 func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 	for _, release := range releases {
-		attachDir := filepath.Join(g.releaseDir(), "assets", release.Name)
+		attachDir := filepath.Join(g.releaseDir(), "release_assets", release.Name)
 		if err := os.MkdirAll(attachDir, os.ModePerm); err != nil {
 			return err
 		}
@@ -280,7 +284,7 @@ func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
 		if err := os.MkdirAll(g.releaseDir(), os.ModePerm); err != nil {
 			return err
 		}
-		g.releaseFile, err = os.Create(filepath.Join(g.releaseDir(), "data.yml"))
+		g.releaseFile, err = os.Create(filepath.Join(g.releaseDir(), "release.yml"))
 		if err != nil {
 			return err
 		}
@@ -310,7 +314,7 @@ func (g *RepositoryDumper) CreateIssues(issues ...*base.Issue) error {
 		if err := os.MkdirAll(g.issueDir(), os.ModePerm); err != nil {
 			return err
 		}
-		g.issueFile, err = os.Create(filepath.Join(g.issueDir(), "data.yml"))
+		g.issueFile, err = os.Create(filepath.Join(g.issueDir(), "issue.yml"))
 		if err != nil {
 			return err
 		}
@@ -335,7 +339,7 @@ func (g *RepositoryDumper) CreateComments(comments ...*base.Comment) error {
 		if err := os.MkdirAll(g.commentDir(), os.ModePerm); err != nil {
 			return err
 		}
-		g.commentFile, err = os.Create(filepath.Join(g.commentDir(), "data.yml"))
+		g.commentFile, err = os.Create(filepath.Join(g.commentDir(), "comment.yml"))
 		if err != nil {
 			return err
 		}
@@ -363,7 +367,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 				return err
 			}
 			defer resp.Body.Close()
-			pullDir := filepath.Join(g.repoPath(), "pulls")
+			pullDir := filepath.Join(g.gitPath(), "pulls")
 			if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
 				return err
 			}
@@ -380,7 +384,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 		}
 
 		// set head information
-		pullHead := filepath.Join(g.repoPath(), "refs", "pull", fmt.Sprintf("%d", pr.Number))
+		pullHead := filepath.Join(g.gitPath(), "refs", "pull", fmt.Sprintf("%d", pr.Number))
 		if err := os.MkdirAll(pullHead, os.ModePerm); err != nil {
 			return err
 		}
@@ -410,11 +414,11 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 				}
 
 				if ok {
-					_, err = git.NewCommand("fetch", remote, pr.Head.Ref).RunInDir(g.repoPath())
+					_, err = git.NewCommand("fetch", remote, pr.Head.Ref).RunInDir(g.gitPath())
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {
-						headBranch := filepath.Join(g.repoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
+						headBranch := filepath.Join(g.gitPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
 						if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
 							return err
 						}
@@ -438,7 +442,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 		if err := os.MkdirAll(g.pullrequestDir(), os.ModePerm); err != nil {
 			return err
 		}
-		g.pullrequestFile, err = os.Create(filepath.Join(g.pullrequestDir(), "data.yml"))
+		g.pullrequestFile, err = os.Create(filepath.Join(g.pullrequestDir(), "pull_request.yml"))
 		if err != nil {
 			return err
 		}
@@ -463,7 +467,7 @@ func (g *RepositoryDumper) CreateReviews(reviews ...*base.Review) error {
 		if err := os.MkdirAll(g.reviewDir(), os.ModePerm); err != nil {
 			return err
 		}
-		g.reviewFile, err = os.Create(filepath.Join(g.reviewDir(), "data.yml"))
+		g.reviewFile, err = os.Create(filepath.Join(g.reviewDir(), "review.yml"))
 		if err != nil {
 			return err
 		}
