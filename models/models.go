@@ -145,6 +145,8 @@ func getEngine() (*xorm.Engine, error) {
 	}
 	if setting.Database.Type == "mysql" {
 		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
+	} else if setting.Database.Type == "mssql" {
+		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": setting.Database.DefaultVarchar})
 	}
 	engine.SetSchema(setting.Database.Schema)
 	return engine, nil
