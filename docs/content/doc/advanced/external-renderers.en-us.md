@@ -100,7 +100,7 @@ Once your configuration changes have been made, restart Gitea to have changes ta
 there were significant problems with this method of configuration necessitating configuration through multiple sections.
 
 ## Customising CSS
-The external renderer is specified in the .ini in the format `[markup.XXXXX]` and the HTML supplied by your external renderer will be wrapped in a `<div>` with classes `markup` and `XXXXX`. You can use these classes to specifically target the contents of your rendered HTML.
+The external renderer is specified in the .ini in the format `[markup.XXXXX]` and the HTML supplied by your external renderer will be wrapped in a `<div>` with classes `markup` and `XXXXX`. The `markup` class provides out of the box styling (as does `markdown` if `XXXXX`==`markdown`). Otherwise can use these classes to specifically target the contents of your rendered HTML. 
 
 And so you could write some Less:
 ```less
