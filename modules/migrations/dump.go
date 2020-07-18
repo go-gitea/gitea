@@ -27,31 +27,33 @@ var (
 
 // RepositoryDumper implements an Uploader to the local directory
 type RepositoryDumper struct {
-	ctx             context.Context
-	baseDir         string
-	repoOwner       string
-	repoName        string
-	milestoneFile   *os.File
-	labelFile       *os.File
-	releaseFile     *os.File
-	issueFile       *os.File
-	commentFile     *os.File
-	pullrequestFile *os.File
-	reviewFile      *os.File
+	ctx                  context.Context
+	baseDir              string
+	repoOwner            string
+	repoName             string
+	milestoneFile        *os.File
+	labelFile            *os.File
+	releaseFile          *os.File
+	issueFile            *os.File
+	commentFile          *os.File
+	pullrequestFile      *os.File
+	reviewFile           *os.File
+	migrateReleaseAssets bool
 
 	gitRepo     *git.Repository
 	prHeadCache map[string]struct{}
 }
 
 // NewRepositoryDumper creates an gitea Uploader
-func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string) *RepositoryDumper {
+func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string, migrateReleaseAssets bool) *RepositoryDumper {
 	baseDir = filepath.Join(baseDir, repoOwner, repoName)
 	return &RepositoryDumper{
-		ctx:         ctx,
-		baseDir:     baseDir,
-		repoOwner:   repoOwner,
-		repoName:    repoName,
-		prHeadCache: make(map[string]struct{}),
+		ctx:                  ctx,
+		baseDir:              baseDir,
+		repoOwner:            repoOwner,
+		repoName:             repoName,
+		prHeadCache:          make(map[string]struct{}),
+		migrateReleaseAssets: migrateReleaseAssets,
 	}
 }
 
@@ -249,32 +251,34 @@ func (g *RepositoryDumper) CreateLabels(labels ...*base.Label) error {
 
 // CreateReleases creates releases
 func (g *RepositoryDumper) CreateReleases(releases ...*base.Release) error {
-	for _, release := range releases {
-		attachDir := filepath.Join(g.releaseDir(), "release_assets", release.Name)
-		if err := os.MkdirAll(attachDir, os.ModePerm); err != nil {
-			return err
-		}
-		for _, asset := range release.Assets {
-			attachLocalPath := filepath.Join(attachDir, asset.Name)
-			// download attachment
-			err := func(attachLocalPath string) error {
-				resp, err := http.Get(asset.URL)
+	if g.migrateReleaseAssets {
+		for _, release := range releases {
+			attachDir := filepath.Join(g.releaseDir(), "release_assets", release.Name)
+			if err := os.MkdirAll(attachDir, os.ModePerm); err != nil {
+				return err
+			}
+			for _, asset := range release.Assets {
+				attachLocalPath := filepath.Join(attachDir, asset.Name)
+				// download attachment
+				err := func(attachLocalPath string) error {
+					resp, err := http.Get(asset.URL)
+					if err != nil {
+						return err
+					}
+					defer resp.Body.Close()
+
+					fw, err := os.Create(attachLocalPath)
+					if err != nil {
+						return fmt.Errorf("Create: %v", err)
+					}
+					defer fw.Close()
+
+					_, err = io.Copy(fw, resp.Body)
+					return err
+				}(attachLocalPath)
 				if err != nil {
 					return err
 				}
-				defer resp.Body.Close()
-
-				fw, err := os.Create(attachLocalPath)
-				if err != nil {
-					return fmt.Errorf("Create: %v", err)
-				}
-				defer fw.Close()
-
-				_, err = io.Copy(fw, resp.Body)
-				return err
-			}(attachLocalPath)
-			if err != nil {
-				return err
 			}
 		}
 	}
@@ -493,6 +497,6 @@ func (g *RepositoryDumper) Rollback() error {
 
 // DumpRepository dump repository according MigrateOptions to a local directory
 func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.MigrateOptions) error {
-	var uploader = NewRepositoryDumper(ctx, baseDir, ownerName, opts.RepoName)
+	var uploader = NewRepositoryDumper(ctx, baseDir, ownerName, opts.RepoName, opts.ReleaseAssets)
 	return MigrateRepositoryWithUploader(ctx, ownerName, opts, uploader)
 }

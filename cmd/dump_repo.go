@@ -57,7 +57,7 @@ var CmdDumpRepository = cli.Command{
 			Name:  "units",
 			Value: "",
 			Usage: `Which items will be migrated, one or more units should be seperated as comma. 
-wiki, issues, labels, releases, milestones, pull_requests, comments are allowed. Empty means all units.`,
+wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.`,
 		},
 	},
 }
@@ -88,6 +88,7 @@ func runDumpRepository(ctx *cli.Context) error {
 		opts.Releases = true
 		opts.Comments = true
 		opts.PullRequests = true
+		opts.ReleaseAssets = true
 	} else {
 		units := strings.Split(ctx.String("units"), ",")
 		for _, unit := range units {
@@ -102,6 +103,8 @@ func runDumpRepository(ctx *cli.Context) error {
 				opts.Labels = true
 			case "releases":
 				opts.Releases = true
+			case "release_assets":
+				opts.ReleaseAssets = true
 			case "comments":
 				opts.Comments = true
 			case "pull_requests":
