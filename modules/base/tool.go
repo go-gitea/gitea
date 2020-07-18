@@ -387,7 +387,7 @@ func EntryIcon(entry *git.TreeEntry) string {
 			return "file-symlink-file"
 		}
 		if te.IsDir() {
-			return "file-symlink-directory"
+			return "file-submodule"
 		}
 		return "file-symlink-file"
 	case entry.IsDir():
