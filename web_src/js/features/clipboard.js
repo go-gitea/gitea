@@ -7,17 +7,16 @@ export default async function initClipboard() {
   const clipboard = new ClipboardJS(els);
   clipboard.on('success', (e) => {
     e.clearSelection();
-
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-success'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
+    $(e.trigger).popup('destroy');
+    e.trigger.dataset.content = e.trigger.dataset.success;
+    $(e.trigger).popup('show');
+    e.trigger.dataset.content = e.trigger.dataset.original;
   });
 
   clipboard.on('error', (e) => {
-    $(`#${e.trigger.getAttribute('id')}`).popup('destroy');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-error'));
-    $(`#${e.trigger.getAttribute('id')}`).popup('show');
-    e.trigger.setAttribute('data-content', e.trigger.getAttribute('data-original'));
+    $(e.trigger).popup('destroy');
+    e.trigger.dataset.content = e.trigger.dataset.error;
+    $(e.trigger).popup('show');
+    e.trigger.dataset.content = e.trigger.dataset.original;
   });
 }

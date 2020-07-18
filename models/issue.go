@@ -76,7 +76,6 @@ var (
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
 const issueMaxDupIndexAttempts = 3
-const maxIssueIDs = 950
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -249,7 +248,7 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 }
 
 func (issue *Issue) loadMilestone(e Engine) (err error) {
-	if issue.Milestone == nil && issue.MilestoneID > 0 {
+	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
 		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
 		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
@@ -1114,9 +1113,6 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if len(opts.IssueIDs) > 0 {
-		if len(opts.IssueIDs) > maxIssueIDs {
-			opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
-		}
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
@@ -1360,9 +1356,6 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			Where("issue.repo_id = ?", opts.RepoID)
 
 		if len(opts.IssueIDs) > 0 {
-			if len(opts.IssueIDs) > maxIssueIDs {
-				opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
-			}
 			sess.In("issue.id", opts.IssueIDs)
 		}
 
@@ -1446,9 +1439,6 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
 	}
 	if len(opts.IssueIDs) > 0 {
-		if len(opts.IssueIDs) > maxIssueIDs {
-			opts.IssueIDs = opts.IssueIDs[:maxIssueIDs]
-		}
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
 	}
 
@@ -1915,4 +1905,71 @@ func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, orig
 			"original_author_id": 0,
 		})
 	return err
+}
+
+func deleteIssuesByRepoID(sess Engine, repoID int64) (attachmentPaths []string, err error) {
+	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"issue.repo_id": repoID})
+
+	// Delete comments and attachments
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Comment{}); err != nil {
+		return
+	}
+
+	// Dependencies for issues in this repository
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueDependency{}); err != nil {
+		return
+	}
+
+	// Delete dependencies for issues in other repositories
+	if _, err = sess.In("dependency_id", deleteCond).
+		Delete(&IssueDependency{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueUser{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Reaction{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueWatch{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Stopwatch{}); err != nil {
+		return
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&TrackedTime{}); err != nil {
+		return
+	}
+
+	var attachments []*Attachment
+	if err = sess.In("issue_id", deleteCond).
+		Find(&attachments); err != nil {
+		return
+	}
+	for j := range attachments {
+		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
+	}
+
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&Attachment{}); err != nil {
+		return
+	}
+
+	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+		return
+	}
+
+	return
 }

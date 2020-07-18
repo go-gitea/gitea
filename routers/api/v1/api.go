@@ -73,6 +73,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/repo"
+	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
 
@@ -512,6 +513,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
+		m.Group("/settings", func() {
+			m.Get("/ui", settings.GetGeneralUISettings)
+			m.Get("/repository", settings.GetGeneralRepoSettings)
+		})
 
 		// Notifications
 		m.Group("/notifications", func() {
@@ -665,6 +670,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", context.RepoRefByType(context.RepoRefBranch), repo.GetBranch)
 					m.Delete("/*", reqRepoWriter(models.UnitTypeCode), context.RepoRefByType(context.RepoRefBranch), repo.DeleteBranch)
+					m.Post("", reqRepoWriter(models.UnitTypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
@@ -792,6 +798,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Group("/:index", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
+						m.Get(".diff", repo.DownloadPullDiff)
+						m.Get(".patch", repo.DownloadPullPatch)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 						m.Group("/reviews", func() {
@@ -849,6 +857,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Delete(reqToken(), repo.DeleteTopic)
 					}, reqAdmin())
 				}, reqAnyRepoReader())
+				m.Get("/languages", reqRepoReader(models.UnitTypeCode), repo.GetLanguages)
 			}, repoAssignment())
 		})
 

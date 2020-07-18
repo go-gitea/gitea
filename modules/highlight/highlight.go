@@ -1,151 +1,166 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package highlight
 
 import (
-	"path"
+	"bufio"
+	"bytes"
+	"path/filepath"
 	"strings"
+	"sync"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/alecthomas/chroma/formatters/html"
+	"github.com/alecthomas/chroma/lexers"
+	"github.com/alecthomas/chroma/styles"
 )
+
+// don't index files larger than this many bytes for performance purposes
+const sizeLimit = 1000000
 
 var (
-	// File name should ignore highlight.
-	ignoreFileNames = map[string]bool{
-		"license": true,
-		"copying": true,
-	}
+	// For custom user mapping
+	highlightMapping = map[string]string{}
 
-	// File names that are representing highlight classes.
-	highlightFileNames = map[string]string{
-		"dockerfile":     "dockerfile",
-		"makefile":       "makefile",
-		"gnumakefile":    "makefile",
-		"cmakelists.txt": "cmake",
-	}
-
-	// Extensions that are same as highlight classes.
-	// See hljs.listLanguages() for list of language names.
-	highlightExts = map[string]struct{}{
-		".applescript": {},
-		".arm":         {},
-		".as":          {},
-		".bash":        {},
-		".bat":         {},
-		".c":           {},
-		".cmake":       {},
-		".cpp":         {},
-		".cs":          {},
-		".css":         {},
-		".dart":        {},
-		".diff":        {},
-		".django":      {},
-		".go":          {},
-		".gradle":      {},
-		".groovy":      {},
-		".haml":        {},
-		".handlebars":  {},
-		".html":        {},
-		".ini":         {},
-		".java":        {},
-		".json":        {},
-		".less":        {},
-		".lua":         {},
-		".php":         {},
-		".scala":       {},
-		".scss":        {},
-		".sql":         {},
-		".swift":       {},
-		".ts":          {},
-		".xml":         {},
-		".yaml":        {},
-	}
-
-	// Extensions that are not same as highlight classes.
-	highlightMapping = map[string]string{
-		".ahk":     "autohotkey",
-		".crmsh":   "crmsh",
-		".dash":    "shell",
-		".erl":     "erlang",
-		".escript": "erlang",
-		".ex":      "elixir",
-		".exs":     "elixir",
-		".f":       "fortran",
-		".f77":     "fortran",
-		".f90":     "fortran",
-		".f95":     "fortran",
-		".feature": "gherkin",
-		".fish":    "shell",
-		".for":     "fortran",
-		".hbs":     "handlebars",
-		".hs":      "haskell",
-		".hx":      "haxe",
-		".js":      "javascript",
-		".jsx":     "javascript",
-		".ksh":     "shell",
-		".kt":      "kotlin",
-		".l":       "ocaml",
-		".ls":      "livescript",
-		".md":      "markdown",
-		".mjs":     "javascript",
-		".mli":     "ocaml",
-		".mll":     "ocaml",
-		".mly":     "ocaml",
-		".patch":   "diff",
-		".pl":      "perl",
-		".pm":      "perl",
-		".ps1":     "powershell",
-		".psd1":    "powershell",
-		".psm1":    "powershell",
-		".py":      "python",
-		".pyw":     "python",
-		".rb":      "ruby",
-		".rs":      "rust",
-		".scpt":    "applescript",
-		".scptd":   "applescript",
-		".sh":      "bash",
-		".tcsh":    "shell",
-		".ts":      "typescript",
-		".tsx":     "typescript",
-		".txt":     "plaintext",
-		".vb":      "vbnet",
-		".vbs":     "vbscript",
-		".yml":     "yaml",
-		".zsh":     "shell",
-	}
+	once sync.Once
 )
 
-// NewContext loads highlight map
+// NewContext loads custom highlight map from local config
 func NewContext() {
-	keys := setting.Cfg.Section("highlight.mapping").Keys()
-	for i := range keys {
-		highlightMapping[keys[i].Name()] = keys[i].Value()
-	}
+	once.Do(func() {
+		keys := setting.Cfg.Section("highlight.mapping").Keys()
+		for i := range keys {
+			highlightMapping[keys[i].Name()] = keys[i].Value()
+		}
+	})
 }
 
-// FileNameToHighlightClass returns the best match for highlight class name
-// based on the rule of highlight.js.
-func FileNameToHighlightClass(fname string) string {
-	fname = strings.ToLower(fname)
-	if ignoreFileNames[fname] {
-		return "nohighlight"
+// Code returns a HTML version of code string with chroma syntax highlighting classes
+func Code(fileName, code string) string {
+	NewContext()
+
+	// diff view newline will be passed as empty, change to literal \n so it can be copied
+	// preserve literal newline in blame view
+	if code == "" || code == "\n" {
+		return "\n"
 	}
 
-	if name, ok := highlightFileNames[fname]; ok {
-		return name
+	if len(code) > sizeLimit {
+		return code
+	}
+	formatter := html.New(html.WithClasses(true),
+		html.WithLineNumbers(false),
+		html.PreventSurroundingPre(true),
+	)
+	if formatter == nil {
+		log.Error("Couldn't create chroma formatter")
+		return code
 	}
 
-	ext := path.Ext(fname)
-	if _, ok := highlightExts[ext]; ok {
-		return ext[1:]
+	htmlbuf := bytes.Buffer{}
+	htmlw := bufio.NewWriter(&htmlbuf)
+
+	if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
+		//change file name to one with mapped extension so we look that up instead
+		fileName = "mapped." + val
 	}
 
-	name, ok := highlightMapping[ext]
-	if ok {
-		return name
+	lexer := lexers.Match(fileName)
+	if lexer == nil {
+		lexer = lexers.Fallback
 	}
 
-	return ""
+	iterator, err := lexer.Tokenise(nil, string(code))
+	if err != nil {
+		log.Error("Can't tokenize code: %v", err)
+		return code
+	}
+	// style not used for live site but need to pass something
+	err = formatter.Format(htmlw, styles.GitHub, iterator)
+	if err != nil {
+		log.Error("Can't format code: %v", err)
+		return code
+	}
+
+	htmlw.Flush()
+	// Chroma will add newlines for certain lexers in order to highlight them properly
+	// Once highlighted, strip them here so they don't cause copy/paste trouble in HTML output
+	return strings.TrimSuffix(htmlbuf.String(), "\n")
+}
+
+// File returns map with line lumbers and HTML version of code with chroma syntax highlighting classes
+func File(numLines int, fileName string, code []byte) map[int]string {
+	NewContext()
+
+	if len(code) > sizeLimit {
+		return plainText(string(code), numLines)
+	}
+	formatter := html.New(html.WithClasses(true),
+		html.WithLineNumbers(false),
+		html.PreventSurroundingPre(true),
+	)
+
+	if formatter == nil {
+		log.Error("Couldn't create chroma formatter")
+		return plainText(string(code), numLines)
+	}
+
+	htmlbuf := bytes.Buffer{}
+	htmlw := bufio.NewWriter(&htmlbuf)
+
+	if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
+		fileName = "test." + val
+	}
+
+	lexer := lexers.Match(fileName)
+	if lexer == nil {
+		lexer = lexers.Analyse(string(code))
+		if lexer == nil {
+			lexer = lexers.Fallback
+		}
+	}
+
+	iterator, err := lexer.Tokenise(nil, string(code))
+	if err != nil {
+		log.Error("Can't tokenize code: %v", err)
+		return plainText(string(code), numLines)
+	}
+
+	err = formatter.Format(htmlw, styles.GitHub, iterator)
+	if err != nil {
+		log.Error("Can't format code: %v", err)
+		return plainText(string(code), numLines)
+	}
+
+	htmlw.Flush()
+	m := make(map[int]string, numLines)
+	for k, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
+		line := k + 1
+		content := string(v)
+		//need to keep lines that are only \n so copy/paste works properly in browser
+		if content == "" {
+			content = "\n"
+		}
+		m[line] = content
+	}
+	return m
+}
+
+// return unhiglighted map
+func plainText(code string, numLines int) map[int]string {
+	m := make(map[int]string, numLines)
+	for k, v := range strings.SplitN(string(code), "\n", numLines) {
+		line := k + 1
+		content := string(v)
+		//need to keep lines that are only \n so copy/paste works properly in browser
+		if content == "" {
+			content = "\n"
+		}
+		m[line] = content
+	}
+	return m
 }

@@ -1,8 +1,3 @@
-// retrieve a HTML string for given SVG icon name and size in pixels
-export function svg(name, size) {
-  return `<svg class="svg ${name}" width="${size}" height="${size}" aria-hidden="true"><use xlink:href="#${name}"/></svg>`;
-}
-
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
   return path ? path.replace(/^.*\//, '') : '';
@@ -22,4 +17,9 @@ export function isObject(obj) {
 // returns whether a dark theme is enabled
 export function isDarkTheme() {
   return document.documentElement.classList.contains('theme-arc-green');
+}
+
+// removes duplicate elements in an array
+export function uniq(arr) {
+  return Array.from(new Set(arr));
 }

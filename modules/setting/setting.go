@@ -29,7 +29,6 @@ import (
 
 	shellquote "github.com/kballard/go-shellquote"
 	version "github.com/mcuadros/go-version"
-	"github.com/unknwon/cae/zip"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
@@ -256,12 +255,14 @@ var (
 
 	// Markdown settings
 	Markdown = struct {
-		EnableHardLineBreak bool
-		CustomURLSchemes    []string `ini:"CUSTOM_URL_SCHEMES"`
-		FileExtensions      []string
+		EnableHardLineBreakInComments  bool
+		EnableHardLineBreakInDocuments bool
+		CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
+		FileExtensions                 []string
 	}{
-		EnableHardLineBreak: true,
-		FileExtensions:      strings.Split(".md,.markdown,.mdown,.mkd", ","),
+		EnableHardLineBreakInComments:  true,
+		EnableHardLineBreakInDocuments: false,
+		FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
 	}
 
 	// Admin settings
@@ -288,7 +289,6 @@ var (
 	LogLevel           string
 	StacktraceLogLevel string
 	LogRootPath        string
-	LogDescriptions    = make(map[string]*LogDescription)
 	RedirectMacaronLog bool
 	DisableRouterLog   bool
 	RouterLogLevel     log.Level
@@ -366,9 +366,8 @@ var (
 	}
 
 	// I18n settings
-	Langs     []string
-	Names     []string
-	dateLangs map[string]string
+	Langs []string
+	Names []string
 
 	// Highlight settings are loaded in modules/template/highlight.go
 
@@ -392,15 +391,6 @@ var (
 	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
 	UILocation = time.Local
 )
-
-// DateLang transforms standard language locale name to corresponding value in datetime plugin.
-func DateLang(lang string) string {
-	name, ok := dateLangs[lang]
-	if ok {
-		return name
-	}
-	return "en"
-}
 
 func getAppPath() (string, error) {
 	var appPath string
@@ -728,6 +718,8 @@ func NewContext() {
 	for _, key := range minimumKeySizes {
 		if key.MustInt() != -1 {
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
+		} else {
+			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))
 		}
 	}
 	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
@@ -999,17 +991,16 @@ func NewContext() {
 	if len(Langs) == 0 {
 		Langs = []string{
 			"en-US", "zh-CN", "zh-HK", "zh-TW", "de-DE", "fr-FR", "nl-NL", "lv-LV",
-			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pl-PL", "bg-BG", "it-IT",
-			"fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR"}
+			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pt-PT", "pl-PL", "bg-BG",
+			"it-IT", "fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR"}
 	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
 	if len(Names) == 0 {
 		Names = []string{"English", "简体中文", "繁體中文（香港）", "繁體中文（台灣）", "Deutsch",
 			"français", "Nederlands", "latviešu", "русский", "Українська", "日本語",
-			"español", "português do Brasil", "polski", "български", "italiano",
-			"suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
+			"español", "português do Brasil", "Português de Portugal", "polski", "български",
+			"italiano", "suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
 	}
-	dateLangs = Cfg.Section("i18n.datelang").KeysHash()
 
 	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
 	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
@@ -1027,8 +1018,6 @@ func NewContext() {
 	sec = Cfg.Section("U2F")
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
-
-	zip.Verbose = false
 
 	UI.ReactionsMap = make(map[string]bool)
 	for _, reaction := range UI.Reactions {
@@ -1069,7 +1058,7 @@ func loadInternalToken(sec *ini.Section) string {
 			return token
 		}
 
-		return string(buf)
+		return strings.TrimSpace(string(buf))
 	default:
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 	}

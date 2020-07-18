@@ -1,7 +1,7 @@
 {{template "base/head" .}}
-<div class="repository file list">
+<div class="repository file list {{if .IsBlame}}blame{{end}}">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
 		<div class="ui repo-description">
 			<div id="repo-desc">

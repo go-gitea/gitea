@@ -85,10 +85,16 @@ var checklist = []check{
 	},
 	{
 		title:         "Check Database Version",
-		name:          "check-db",
+		name:          "check-db-version",
 		isDefault:     true,
 		f:             runDoctorCheckDBVersion,
-		abortIfFailed: true,
+		abortIfFailed: false,
+	},
+	{
+		title:     "Check consistency of database",
+		name:      "check-db-consistency",
+		isDefault: false,
+		f:         runDoctorCheckDBConsistency,
 	},
 	{
 		title:     "Check if OpenSSH authorized_keys file is up-to-date",
@@ -113,6 +119,12 @@ var checklist = []check{
 		name:      "recalculate_merge_bases",
 		isDefault: false,
 		f:         runDoctorPRMergeBase,
+	},
+	{
+		title:     "Recalculate Stars number for all user",
+		name:      "recalculate_stars_number",
+		isDefault: false,
+		f:         runDoctorUserStarNum,
 	},
 	// more checks please append here
 }
@@ -488,10 +500,107 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 	return results, err
 }
 
+func runDoctorUserStarNum(ctx *cli.Context) ([]string, error) {
+	return nil, models.DoctorUserStarNum()
+}
+
 func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
 	path, err := exec.LookPath(setting.ScriptType)
 	if err != nil {
 		return []string{fmt.Sprintf("ScriptType %s is not on the current PATH", setting.ScriptType)}, err
 	}
 	return []string{fmt.Sprintf("ScriptType %s is on the current PATH at %s", setting.ScriptType, path)}, nil
+}
+
+func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
+	var results []string
+
+	// make sure DB version is uptodate
+	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+		return nil, fmt.Errorf("model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
+	}
+
+	//find labels without existing repo or org
+	count, err := models.CountOrphanedLabels()
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		if ctx.Bool("fix") {
+			if err = models.DeleteOrphanedLabels(); err != nil {
+				return nil, err
+			}
+			results = append(results, fmt.Sprintf("%d labels without existing repository/organisation deleted", count))
+		} else {
+			results = append(results, fmt.Sprintf("%d labels without existing repository/organisation", count))
+		}
+	}
+
+	//find issues without existing repository
+	count, err = models.CountOrphanedIssues()
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		if ctx.Bool("fix") {
+			if err = models.DeleteOrphanedIssues(); err != nil {
+				return nil, err
+			}
+			results = append(results, fmt.Sprintf("%d issues without existing repository deleted", count))
+		} else {
+			results = append(results, fmt.Sprintf("%d issues without existing repository", count))
+		}
+	}
+
+	//find pulls without existing issues
+	count, err = models.CountOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		if ctx.Bool("fix") {
+			if err = models.DeleteOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id"); err != nil {
+				return nil, err
+			}
+			results = append(results, fmt.Sprintf("%d pull requests without existing issue deleted", count))
+		} else {
+			results = append(results, fmt.Sprintf("%d pull requests without existing issue", count))
+		}
+	}
+
+	//find tracked times without existing issues/pulls
+	count, err = models.CountOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id")
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		if ctx.Bool("fix") {
+			if err = models.DeleteOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id"); err != nil {
+				return nil, err
+			}
+			results = append(results, fmt.Sprintf("%d tracked times without existing issue deleted", count))
+		} else {
+			results = append(results, fmt.Sprintf("%d tracked times without existing issue", count))
+		}
+	}
+
+	count, err = models.CountNullArchivedRepository()
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		if ctx.Bool("fix") {
+			updatedCount, err := models.FixNullArchivedRepository()
+			if err != nil {
+				return nil, err
+			}
+			results = append(results, fmt.Sprintf("%d repositories with null is_archived updated", updatedCount))
+		} else {
+			results = append(results, fmt.Sprintf("%d repositories with null is_archived", count))
+		}
+	}
+
+	//ToDo: function to recalc all counters
+
+	return results, nil
 }

@@ -7,9 +7,8 @@ package core
 import (
 	"context"
 	"database/sql"
-	"time"
 
-	"xorm.io/xorm/log"
+	"xorm.io/xorm/contexts"
 )
 
 var (
@@ -19,35 +18,54 @@ var (
 // Tx represents a transaction
 type Tx struct {
 	*sql.Tx
-	db *DB
+	db  *DB
+	ctx context.Context
 }
 
 func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
-	start := time.Now()
-	showSQL := db.NeedLogSQL(ctx)
-	if showSQL {
-		db.Logger.BeforeSQL(log.LogContext{
-			Ctx: ctx,
-			SQL: "BEGIN TRANSACTION",
-		})
-	}
-	tx, err := db.DB.BeginTx(ctx, opts)
-	if showSQL {
-		db.Logger.AfterSQL(log.LogContext{
-			Ctx:         ctx,
-			SQL:         "BEGIN TRANSACTION",
-			ExecuteTime: time.Now().Sub(start),
-			Err:         err,
-		})
-	}
+	hookCtx := contexts.NewContextHook(ctx, "BEGIN TRANSACTION", nil)
+	ctx, err := db.beforeProcess(hookCtx)
 	if err != nil {
 		return nil, err
 	}
-	return &Tx{tx, db}, nil
+	tx, err := db.DB.BeginTx(ctx, opts)
+	hookCtx.End(ctx, nil, err)
+	if err := db.afterProcess(hookCtx); err != nil {
+		return nil, err
+	}
+	return &Tx{tx, db, ctx}, nil
 }
 
 func (db *DB) Begin() (*Tx, error) {
 	return db.BeginTx(context.Background(), nil)
+}
+
+func (tx *Tx) Commit() error {
+	hookCtx := contexts.NewContextHook(tx.ctx, "COMMIT", nil)
+	ctx, err := tx.db.beforeProcess(hookCtx)
+	if err != nil {
+		return err
+	}
+	err = tx.Tx.Commit()
+	hookCtx.End(ctx, nil, err)
+	if err := tx.db.afterProcess(hookCtx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (tx *Tx) Rollback() error {
+	hookCtx := contexts.NewContextHook(tx.ctx, "ROLLBACK", nil)
+	ctx, err := tx.db.beforeProcess(hookCtx)
+	if err != nil {
+		return err
+	}
+	err = tx.Tx.Rollback()
+	hookCtx.End(ctx, nil, err)
+	if err := tx.db.afterProcess(hookCtx); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (tx *Tx) PrepareContext(ctx context.Context, query string) (*Stmt, error) {
@@ -58,25 +76,14 @@ func (tx *Tx) PrepareContext(ctx context.Context, query string) (*Stmt, error) {
 		i++
 		return "?"
 	})
-
-	start := time.Now()
-	showSQL := tx.db.NeedLogSQL(ctx)
-	if showSQL {
-		tx.db.Logger.BeforeSQL(log.LogContext{
-			Ctx: ctx,
-			SQL: "PREPARE",
-		})
+	hookCtx := contexts.NewContextHook(ctx, "PREPARE", nil)
+	ctx, err := tx.db.beforeProcess(hookCtx)
+	if err != nil {
+		return nil, err
 	}
 	stmt, err := tx.Tx.PrepareContext(ctx, query)
-	if showSQL {
-		tx.db.Logger.AfterSQL(log.LogContext{
-			Ctx:         ctx,
-			SQL:         "PREPARE",
-			ExecuteTime: time.Now().Sub(start),
-			Err:         err,
-		})
-	}
-	if err != nil {
+	hookCtx.End(ctx, nil, err)
+	if err := tx.db.afterProcess(hookCtx); err != nil {
 		return nil, err
 	}
 	return &Stmt{stmt, tx.db, names, query}, nil
@@ -116,24 +123,15 @@ func (tx *Tx) ExecStructContext(ctx context.Context, query string, st interface{
 }
 
 func (tx *Tx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	start := time.Now()
-	showSQL := tx.db.NeedLogSQL(ctx)
-	if showSQL {
-		tx.db.Logger.BeforeSQL(log.LogContext{
-			Ctx:  ctx,
-			SQL:  query,
-			Args: args,
-		})
+	hookCtx := contexts.NewContextHook(ctx, query, args)
+	ctx, err := tx.db.beforeProcess(hookCtx)
+	if err != nil {
+		return nil, err
 	}
 	res, err := tx.Tx.ExecContext(ctx, query, args...)
-	if showSQL {
-		tx.db.Logger.AfterSQL(log.LogContext{
-			Ctx:         ctx,
-			SQL:         query,
-			Args:        args,
-			ExecuteTime: time.Now().Sub(start),
-			Err:         err,
-		})
+	hookCtx.End(ctx, res, err)
+	if err := tx.db.afterProcess(hookCtx); err != nil {
+		return nil, err
 	}
 	return res, err
 }
@@ -143,26 +141,14 @@ func (tx *Tx) ExecStruct(query string, st interface{}) (sql.Result, error) {
 }
 
 func (tx *Tx) QueryContext(ctx context.Context, query string, args ...interface{}) (*Rows, error) {
-	start := time.Now()
-	showSQL := tx.db.NeedLogSQL(ctx)
-	if showSQL {
-		tx.db.Logger.BeforeSQL(log.LogContext{
-			Ctx:  ctx,
-			SQL:  query,
-			Args: args,
-		})
+	hookCtx := contexts.NewContextHook(ctx, query, args)
+	ctx, err := tx.db.beforeProcess(hookCtx)
+	if err != nil {
+		return nil, err
 	}
 	rows, err := tx.Tx.QueryContext(ctx, query, args...)
-	if showSQL {
-		tx.db.Logger.AfterSQL(log.LogContext{
-			Ctx:         ctx,
-			SQL:         query,
-			Args:        args,
-			ExecuteTime: time.Now().Sub(start),
-			Err:         err,
-		})
-	}
-	if err != nil {
+	hookCtx.End(ctx, nil, err)
+	if err := tx.db.afterProcess(hookCtx); err != nil {
 		if rows != nil {
 			rows.Close()
 		}
