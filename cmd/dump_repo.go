@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
@@ -30,27 +31,33 @@ var CmdDumpRepository = cli.Command{
 		cli.StringFlag{
 			Name:  "clone_addr",
 			Value: "",
-			Usage: "Clone URL",
+			Usage: "The URL will be clone, currently could be a github or gitlab http/https URL",
 		},
 		cli.StringFlag{
 			Name:  "auth_username",
 			Value: "",
-			Usage: "",
+			Usage: "The username or personal token to visit the clone_addr, it's required",
 		},
 		cli.StringFlag{
 			Name:  "auth_password",
 			Value: "",
-			Usage: "",
+			Usage: "The password to visit the clone_addr if auth_username is a real user name",
 		},
 		cli.StringFlag{
 			Name:  "owner_name",
 			Value: "",
-			Usage: "",
+			Usage: "The data will be stored on a directory with owner name if not empty",
 		},
 		cli.StringFlag{
 			Name:  "repo_name",
 			Value: "",
-			Usage: "",
+			Usage: "The data will be stored on a directory with repository name if not empty",
+		},
+		cli.StringFlag{
+			Name:  "units",
+			Value: "",
+			Usage: `Which items will be migrated, one or more units should be seperated as comma. 
+wiki, issues, labels, releases, milestones, pull_requests, comments are allowed. Empty means all units.`,
 		},
 	},
 }
@@ -66,23 +73,49 @@ func runDumpRepository(ctx *cli.Context) error {
 	log.Trace("Log path: %s", setting.LogRootPath)
 	setting.InitDBConfig()
 
+	var opts = base.MigrateOptions{
+		CloneAddr:    ctx.String("clone_addr"),
+		AuthUsername: ctx.String("auth_username"),
+		AuthPassword: ctx.String("auth_password"),
+		RepoName:     ctx.String("repo_name"),
+	}
+
+	if len(ctx.String("units")) == 0 {
+		opts.Wiki = true
+		opts.Issues = true
+		opts.Milestones = true
+		opts.Labels = true
+		opts.Releases = true
+		opts.Comments = true
+		opts.PullRequests = true
+	} else {
+		units := strings.Split(ctx.String("units"), ",")
+		for _, unit := range units {
+			switch strings.ToLower(unit) {
+			case "wiki":
+				opts.Wiki = true
+			case "issues":
+				opts.Issues = true
+			case "milestones":
+				opts.Milestones = true
+			case "labels":
+				opts.Labels = true
+			case "releases":
+				opts.Releases = true
+			case "comments":
+				opts.Comments = true
+			case "pull_requests":
+				opts.PullRequests = true
+			}
+		}
+	}
+
 	if err := migrations.DumpRepository(
 		context.Background(),
 		ctx.String("repo_dir"),
 		ctx.String("owner_name"),
-		base.MigrateOptions{
-			CloneAddr:    ctx.String("clone_addr"),
-			AuthUsername: ctx.String("auth_username"),
-			AuthPassword: ctx.String("auth_password"),
-			RepoName:     ctx.String("repo_name"),
-			Wiki:         true,
-			Issues:       true,
-			Milestones:   true,
-			Labels:       true,
-			Releases:     true,
-			Comments:     true,
-			PullRequests: true,
-		}); err != nil {
+		opts,
+	); err != nil {
 		log.Fatal("Failed to dump repository: %v", err)
 		return err
 	}
