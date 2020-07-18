@@ -35,7 +35,7 @@ var (
 		Path              string
 		LogSQL            bool
 		Charset           string
-		DefaultVarchar string
+		DefaultVarchar    string
 		Timeout           int // seconds
 		UseSQLite3        bool
 		UseMySQL          bool
@@ -49,7 +49,7 @@ var (
 		IterateBufferSize int
 	}{
 		DefaultVarchar: "varchar",
-		Timeout: 500,
+		Timeout:        500,
 	}
 )
 
