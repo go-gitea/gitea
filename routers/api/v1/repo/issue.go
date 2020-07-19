@@ -120,6 +120,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	var issues []*models.Issue
+	var filteredCount int64
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if strings.IndexByte(keyword, 0) >= 0 {
@@ -165,14 +166,32 @@ func SearchIssues(ctx *context.APIContext) {
 			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
 			IsPull:             isPull,
 		})
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "Issues", err)
+			return
+		}
+
+		filteredCount, err = models.CountIssues(&models.IssuesOptions{
+			ListOptions: models.ListOptions{
+				Page:     ctx.QueryInt("page"),
+				PageSize: issueCount,
+			},
+
+			RepoIDs:            repoIDs,
+			IsClosed:           isClosed,
+			IssueIDs:           issueIDs,
+			IncludedLabelNames: includedLabelNames,
+			SortType:           "priorityrepo",
+			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
+			IsPull:             isPull,
+		})
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
+			return
+		}
 	}
 
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Issues", err)
-		return
-	}
-
-	ctx.SetLinkHeader(issueCount, setting.UI.IssuePagingNum)
+	ctx.SetLinkHeader(int(filteredCount), setting.UI.IssuePagingNum)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
@@ -239,6 +258,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	var issues []*models.Issue
+	var filteredCount int64
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if strings.IndexByte(keyword, 0) >= 0 {
@@ -313,15 +333,32 @@ func ListIssues(ctx *context.APIContext) {
 			MilestoneIDs: mileIDs,
 			IsPull:       isPull,
 		})
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "Issues", err)
+			return
+		}
+
+		filteredCount, err = models.CountIssues(&models.IssuesOptions{
+			ListOptions: models.ListOptions{
+				Page:     ctx.QueryInt("page"),
+				PageSize: ctx.Repo.Repository.NumIssues,
+			},
+
+			RepoIDs:      []int64{ctx.Repo.Repository.ID},
+			IsClosed:     isClosed,
+			IssueIDs:     issueIDs,
+			LabelIDs:     labelIDs,
+			MilestoneIDs: mileIDs,
+			IsPull:       isPull,
+		})
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
+			return
+		}
 	}
 
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Issues", err)
-		return
-	}
-
-	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.Repo.Repository.NumIssues))
+	ctx.SetLinkHeader(int(filteredCount), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
 
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }

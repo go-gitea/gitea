@@ -1240,6 +1240,16 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	return issues, nil
 }
 
+// Number return of issues by given conditions.
+func CountIssues(opts *IssuesOptions) (int64, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	opts.setupSession(sess.Select("COUNT(*)").Table("issue"))
+
+	return sess.Count()
+}
+
 // GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
 // but skips joining with `user` for performance reasons.
 // User permissions must be verified elsewhere if required.
