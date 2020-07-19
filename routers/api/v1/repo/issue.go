@@ -131,6 +131,10 @@ func SearchIssues(ctx *context.APIContext) {
 	var err error
 	if len(keyword) > 0 && len(repoIDs) > 0 {
 		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
+			return
+		}
 	}
 
 	var isPull util.OptionalBool
@@ -269,6 +273,10 @@ func ListIssues(ctx *context.APIContext) {
 	var err error
 	if len(keyword) > 0 {
 		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{ctx.Repo.Repository.ID}, keyword)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
+			return
+		}
 	}
 
 	if splitted := strings.Split(ctx.Query("labels"), ","); len(splitted) > 0 {
