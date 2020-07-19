@@ -173,7 +173,7 @@
 				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item text yellow">
-							<i class="icon icon-octicon">{{svg "octicon-primitive-dot" 16}}</i>
+							<i class="icon icon-octicon">{{svg "octicon-dot-fill" 16}}</i>
 							{{$.i18n.Tr "repo.pulls.required_status_check_administrator"}}
 						</div>
 					{{else}}

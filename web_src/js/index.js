@@ -16,10 +16,10 @@ import initMarkdownAnchors from './markdown/anchors.js';
 import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
-import highlight from './features/highlight.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {createCodeEditor} from './features/codeeditor.js';
+import {svg, svgs} from './svg.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -46,9 +46,6 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      $('pre code', $previewPanel[0]).each(function () {
-        highlight(this);
-      });
     });
   });
 
@@ -78,9 +75,6 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        $('pre code', $previewPanel[0]).each(function () {
-          highlight(this);
-        });
       });
     });
   }
@@ -986,9 +980,6 @@ async function initRepository() {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
-              $('pre code', $renderContent[0]).each(function () {
-                highlight(this);
-              });
             }
             const $content = $segment.parent();
             if (!$content.find('.ui.small.images').length) {
@@ -1345,9 +1336,6 @@ function initWikiForm() {
               wiki: true
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-              $(preview).find('pre code').each((_, e) => {
-                highlight(e);
-              });
             });
           };
           if (!simplemde.isSideBySideActive()) {
@@ -2003,48 +1991,43 @@ function searchRepositories() {
 }
 
 function initCodeView() {
-  if ($('.code-view .linenums').length > 0) {
+  if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
-      const $list = $select.parent().siblings('.lines-code').find('ol.linenums > li');
+      const $list = $('.code-view td.lines-code');
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-      const $list = $('.code-view ol.linenums > li');
+      const $list = $('.code-view td.lines-code');
       let $first;
       if (m) {
-        $first = $list.filter(`.${m[1]}`);
-        selectRange($list, $first, $list.filter(`.${m[2]}`));
+        $first = $list.filter(`[rel=${m[1]}]`);
+        selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
       m = window.location.hash.match(/^#(L|n)(\d+)$/);
       if (m) {
-        $first = $list.filter(`.L${m[2]}`);
+        $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
   }
-  $('.fold-code').on('click', ({target}) => {
-    const box = target.closest('.file-content');
+  $(document).on('click', '.fold-file', ({currentTarget}) => {
+    const box = currentTarget.closest('.file-content');
     const folded = box.dataset.folded !== 'true';
-    target.classList.add(`fa-chevron-${folded ? 'right' : 'down'}`);
-    target.classList.remove(`fa-chevron-${folded ? 'down' : 'right'}`);
+    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
     box.dataset.folded = String(folded);
   });
-  function insertBlobExcerpt(e) {
-    const $blob = $(e.currentTarget);
-    const $row = $blob.parent().parent();
-    $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
-      $row.replaceWith(blob);
-      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e) });
-    });
-  }
-  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e) });
+  $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
+    const {url, query, anchor} = currentTarget.dataset;
+    const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
+    currentTarget.closest('tr').outerHTML = blob;
+  });
 }
 
 function initU2FAuth() {
@@ -2445,7 +2428,6 @@ $(document).ready(async () => {
   initContextPopups();
   initTableSort();
   initNotificationsTable();
-  initNotificationCount();
 
   // Repo clone url.
   if ($('#repo-clone-url').length > 0) {
@@ -2485,12 +2467,12 @@ $(document).ready(async () => {
 
   // parallel init of async loaded features
   await Promise.all([
-    highlight(document.querySelectorAll('pre code')),
     attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
     initUserHeatmap(),
     initServiceWorker(),
+    initNotificationCount(),
   ]);
 });
 
@@ -2524,7 +2506,7 @@ function selectRange($list, $select, $from) {
       }
       const classes = [];
       for (let i = a; i <= b; i++) {
-        classes.push(`.L${i}`);
+        classes.push(`[rel=L${i}]`);
       }
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
@@ -2639,6 +2621,15 @@ function linkEmailAction(e) {
 }
 
 function initVueComponents() {
+  // register svg icon vue components, e.g. <octicon-repo size="16"/>
+  for (const [name, htmlString] of Object.entries(svgs)) {
+    const template = htmlString
+      .replace(/height="[0-9]+"/, 'v-bind:height="size"')
+      .replace(/width="[0-9]+"/, 'v-bind:width="size"');
+
+    Vue.component(name, {props: ['size'], template});
+  }
+
   const vueDelimeters = ['${', '}'];
 
   Vue.component('repo-search', {
@@ -2964,17 +2955,17 @@ function initVueComponents() {
         });
       },
 
-      repoClass(repo) {
+      repoIcon(repo) {
         if (repo.fork) {
           return 'octicon-repo-forked';
         } else if (repo.mirror) {
-          return 'octicon-repo-clone';
+          return 'octicon-mirror';
         } else if (repo.template) {
-          return `octicon-repo-template${repo.private ? '-private' : ''}`;
+          return `octicon-repo-template`;
         } else if (repo.private) {
           return 'octicon-lock';
         } else if (repo.internal) {
-          return 'octicon-internal-repo';
+          return 'octicon-repo';
         }
         return 'octicon-repo';
       }
@@ -3569,12 +3560,3 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
-
-// Pull SVGs via AJAX to workaround CORS issues with <use> tags
-// https://css-tricks.com/ajaxing-svg-sprite/
-$.get(`${window.config.StaticUrlPrefix}/img/svg/icons.svg`, (data) => {
-  const div = document.createElement('div');
-  div.style.display = 'none';
-  div.innerHTML = new XMLSerializer().serializeToString(data.documentElement);
-  document.body.insertBefore(div, document.body.childNodes[0]);
-});

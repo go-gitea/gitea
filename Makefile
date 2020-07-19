@@ -88,13 +88,19 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
-WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
+FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
+FOMANTIC_DEST := web_src/fomantic/build/semantic.js web_src/fomantic/build/semantic.css
+FOMANTIC_DEST_DIR := web_src/fomantic/build
+
+WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f) $(FOMANTIC_DEST)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/serviceworker.js public/img/svg
+WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/serviceworker.js
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
+
+SVG_DEST_DIR := public/img/svg
 
 TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
@@ -109,10 +115,6 @@ ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 endif
 
 GO_SOURCES_OWN := $(filter-out vendor/% %/bindata.go, $(GO_SOURCES))
-
-FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
-FOMANTIC_DEST := public/fomantic/semantic.min.js public/fomantic/semantic.min.css
-FOMANTIC_DEST_DIR := public/fomantic
 
 #To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
 SWAGGER := $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
@@ -158,6 +160,7 @@ help:
 	@echo " - lint-backend                     lint backend files"
 	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
 	@echo " - webpack                          build webpack files"
+	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
 	@echo " - generate                         run \"go generate\""
 	@echo " - fmt                              format the Go code"
@@ -292,12 +295,12 @@ lint: lint-backend lint-frontend
 lint-backend: golangci-lint revive vet swagger-check swagger-validate test-vendor
 
 .PHONY: lint-frontend
-lint-frontend: node_modules
-	npx eslint web_src/js webpack.config.js
+lint-frontend: node_modules svg-check
+	npx eslint web_src/js build webpack.config.js
 	npx stylelint web_src/less
 
 .PHONY: watch-frontend
-watch-frontend: node_modules
+watch-frontend: node-check $(FOMANTIC_DEST) node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
 
@@ -521,7 +524,7 @@ $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: frontend generate release-windows release-linux release-darwin release-copy release-compress release-sources release-check
+release: frontend generate release-windows release-linux release-darwin release-copy release-compress release-sources release-docs release-check
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
@@ -577,6 +580,17 @@ release-sources: | $(DIST_DIRS) node_modules
 	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
+.PHONY: release-docs
+release-docs: | $(DIST_DIRS) docs
+	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
+
+.PHONY: docs
+docs:
+	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) get -u github.com/gohugoio/hugo; \
+	fi
+	cd docs; make trans-copy clean build-offline;
+
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
@@ -590,7 +604,7 @@ npm-update: node-check | node_modules
 .PHONY: fomantic
 fomantic: $(FOMANTIC_DEST)
 
-$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) package-lock.json | node_modules
+$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) | node_modules
 	rm -rf $(FOMANTIC_DEST_DIR)
 	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	cp -r web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
@@ -604,6 +618,20 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_
 	rm -rf $(WEBPACK_DEST_ENTRIES)
 	npx webpack --hide-modules --display-entrypoints=false
 	@touch $(WEBPACK_DEST)
+
+.PHONY: svg
+svg: node-check | node_modules
+	rm -rf $(SVG_DEST_DIR)
+	node build/generate-svg.js
+
+.PHONY: svg-check
+svg-check: svg
+	@diff=$$(git diff $(SVG_DEST_DIR)); \
+	if [ -n "$$diff" ]; then \
+		echo "Please run 'make svg' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi;
 
 .PHONY: update-translations
 update-translations:

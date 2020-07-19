@@ -22,6 +22,7 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 		Actor:       u,
 		Private:     private,
 		ListOptions: opts,
+		OrderBy:     "id ASC",
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
