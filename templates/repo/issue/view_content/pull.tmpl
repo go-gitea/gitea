@@ -240,112 +240,112 @@
 								</div>
 							{{end}}
 							{{if $prUnit.PullRequestsConfig.AllowMerge}}
-									<div class="ui form merge-fields" style="display: none">
-										<form action="{{.Link}}/merge" method="post">
-											{{.CsrfTokenHtml}}
+								<div class="ui form merge-fields" style="display: none">
+									<form action="{{.Link}}/merge" method="post">
+										{{.CsrfTokenHtml}}
+										{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
+											<input type="hidden" name="merge_when_checks_succeed" value="1"/>
+										{{end}}
+										<div class="field">
+											<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
+										</div>
+										<div class="field">
+											<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
+										</div>
+										<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="merge">
 											{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
-												<input type="hidden" name="merge_when_checks_succeed" value="1"/>
+												{{$.i18n.Tr "repo.pulls.merge_pull_request_on_status_success"}}
+											{{else if .HasPendingPullRequestMerge}}
+												{{$.i18n.Tr "repo.pulls.merge_pull_request_now"}}
+											{{else}}
+												{{$.i18n.Tr "repo.pulls.merge_pull_request"}}
 											{{end}}
-											<div class="field">
-												<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
-											</div>
-											<div class="field">
-												<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
-											</div>
-											<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="merge">
-												{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
-													{{$.i18n.Tr "repo.pulls.merge_pull_request_on_status_success"}}
-												{{else if .HasPendingPullRequestMerge}}
-													{{$.i18n.Tr "repo.pulls.merge_pull_request_now"}}
-												{{else}}
-													{{$.i18n.Tr "repo.pulls.merge_pull_request"}}
-												{{end}}
-											</button>
-											<button class="ui button merge-cancel">
-												{{$.i18n.Tr "cancel"}}
-											</button>
-										</form>
-									</div>
-								{{end}}
-								{{if $prUnit.PullRequestsConfig.AllowRebase}}
-									<div class="ui form rebase-fields" style="display: none">
-										<form action="{{.Link}}/merge" method="post">
-											{{.CsrfTokenHtml}}
+										</button>
+										<button class="ui button merge-cancel">
+											{{$.i18n.Tr "cancel"}}
+										</button>
+									</form>
+								</div>
+							{{end}}
+							{{if $prUnit.PullRequestsConfig.AllowRebase}}
+								<div class="ui form rebase-fields" style="display: none">
+									<form action="{{.Link}}/merge" method="post">
+										{{.CsrfTokenHtml}}
+										{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
+											<input type="hidden" name="merge_when_checks_succeed" value="1"/>
+										{{end}}
+										<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="rebase">
 											{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
-												<input type="hidden" name="merge_when_checks_succeed" value="1"/>
+												{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request_on_status_success"}}
+											{{else if .HasPendingPullRequestMerge}}
+												{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request_now"}}
+											{{else}}
+												{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
 											{{end}}
-											<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="rebase">
-												{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
-													{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request_on_status_success"}}
-												{{else if .HasPendingPullRequestMerge}}
-													{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request_now"}}
-												{{else}}
-													{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
-												{{end}}
-											</button>
-											<button class="ui button merge-cancel">
-												{{$.i18n.Tr "cancel"}}
-											</button>
-										</form>
-									</div>
-								{{end}}
-								{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
-									<div class="ui form rebase-merge-fields" style="display: none">
-										<form action="{{.Link}}/merge" method="post">
-											{{.CsrfTokenHtml}}
+										</button>
+										<button class="ui button merge-cancel">
+											{{$.i18n.Tr "cancel"}}
+										</button>
+									</form>
+								</div>
+							{{end}}
+							{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
+								<div class="ui form rebase-merge-fields" style="display: none">
+									<form action="{{.Link}}/merge" method="post">
+										{{.CsrfTokenHtml}}
+										{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
+											<input type="hidden" name="merge_when_checks_succeed" value="1"/>
+										{{end}}
+										<div class="field">
+											<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
+										</div>
+										<div class="field">
+											<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
+										</div>
+										<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="rebase-merge">
 											{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
-												<input type="hidden" name="merge_when_checks_succeed" value="1"/>
+												{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request_on_status_success"}}
+											{{else if .HasPendingPullRequestMerge}}
+												{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request_now"}}
+											{{else}}
+												{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
 											{{end}}
-											<div class="field">
-												<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
-											</div>
-											<div class="field">
-												<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
-											</div>
-											<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="rebase-merge">
-												{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
-													{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request_on_status_success"}}
-												{{else if .HasPendingPullRequestMerge}}
-													{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request_now"}}
-												{{else}}
-													{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
-												{{end}}
-											</button>
-											<button class="ui button merge-cancel">
-												{{$.i18n.Tr "cancel"}}
-											</button>
-										</form>
-									</div>
-								{{end}}
-								{{if $prUnit.PullRequestsConfig.AllowSquash}}
+										</button>
+										<button class="ui button merge-cancel">
+											{{$.i18n.Tr "cancel"}}
+										</button>
+									</form>
+								</div>
+							{{end}}
+							{{if $prUnit.PullRequestsConfig.AllowSquash}}
 
-									<div class="ui form squash-fields" style="display: none">
-										<form action="{{.Link}}/merge" method="post">
-											{{.CsrfTokenHtml}}
+								<div class="ui form squash-fields" style="display: none">
+									<form action="{{.Link}}/merge" method="post">
+										{{.CsrfTokenHtml}}
+										{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
+											<input type="hidden" name="merge_when_checks_succeed" value="1"/>
+										{{end}}
+										<div class="field">
+											<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultSquashMessage}}">
+										</div>
+										<div class="field">
+											<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{.GetCommitMessages}}Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
+										</div>
+										<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="squash">
 											{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
-												<input type="hidden" name="merge_when_checks_succeed" value="1"/>
+												{{$.i18n.Tr "repo.pulls.squash_merge_pull_request_on_status_success"}}
+											{{else if .HasPendingPullRequestMerge}}
+												{{$.i18n.Tr "repo.pulls.squash_merge_pull_request_now"}}
+											{{else}}
+												{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
 											{{end}}
-											<div class="field">
-												<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultSquashMessage}}">
-											</div>
-											<div class="field">
-												<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{.GetCommitMessages}}Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
-											</div>
-											<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="squash">
-												{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
-													{{$.i18n.Tr "repo.pulls.squash_merge_pull_request_on_status_success"}}
-												{{else if .HasPendingPullRequestMerge}}
-													{{$.i18n.Tr "repo.pulls.squash_merge_pull_request_now"}}
-												{{else}}
-													{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
-												{{end}}
-											</button>
-											<button class="ui button merge-cancel">
-												{{$.i18n.Tr "cancel"}}
-											</button>
-										</form>
-									</div>
-								{{end}}
+										</button>
+										<button class="ui button merge-cancel">
+											{{$.i18n.Tr "cancel"}}
+										</button>
+									</form>
+								</div>
+							{{end}}
 
 							{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
 								<div class="ui blue buttons merge-button">
