@@ -1227,7 +1227,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	opts.setupSession(sess)
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
-	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)
+	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
