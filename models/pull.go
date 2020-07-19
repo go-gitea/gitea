@@ -637,14 +637,15 @@ func (pr *PullRequest) IsSameRepo() bool {
 	return pr.BaseRepoID == pr.HeadRepoID
 }
 
-// GetPullRequestByHeadBranch returns a pr by head branch
-func GetPullRequestByHeadBranch(headBranch string, headRepo *Repository) (pr *PullRequest, err error) {
-	pr = &PullRequest{}
-	exists, err := x.
+// GetPullRequestByHeadBranch returns all prs by head branch
+// Since there could be multiple prs to the same head branch, this function returns a slice of prs
+func GetPullRequestByHeadBranch(headBranch string, headRepo *Repository) (prs []*PullRequest, err error) {
+	prs = make([]*PullRequest, 0)
+	err = x.
 		Where("head_branch = ? AND head_repo_id = ? AND status = ?", headBranch, headRepo.ID, PullRequestStatusMergeable).
 		Desc("id").
-		Get(pr)
-	if !exists {
+		Find(prs)
+	if len(prs) == 0 {
 		return nil, ErrPullRequestNotExist{
 			HeadBranch: headBranch,
 			HeadRepoID: headRepo.ID,

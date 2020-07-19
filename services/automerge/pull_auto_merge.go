@@ -35,7 +35,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		// to get the pull request for this branch.
 		// Each pull branch starts with refs/pull/ we then go from there to find the index of the pr and then
 		// use that to get the pr.
-		var pr *models.PullRequest
+		var prs = make([]*models.PullRequest, 0)
 		err = nil // Could be filled with an error from an earlier run
 		if strings.HasPrefix(branch, "refs/pull/") {
 
@@ -46,7 +46,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 				return err
 			}
 
-			pr, err = models.GetPullRequestByIndex(repo.ID, prIndex)
+			p, err := models.GetPullRequestByIndex(repo.ID, prIndex)
 			if err != nil {
 				// If there is no pull request for this branch, we don't try to merge it.
 				if models.IsErrPullRequestNotExist(err) {
@@ -54,8 +54,9 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 				}
 				return err
 			}
+			prs = append(prs, p)
 		} else {
-			pr, err = models.GetPullRequestByHeadBranch(branch, repo)
+			prs, err = models.GetPullRequestByHeadBranch(branch, repo)
 			if err != nil {
 				// If there is no pull request for this branch, we don't try to merge it.
 				if models.IsErrPullRequestNotExist(err) {
@@ -64,75 +65,79 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 				return err
 			}
 		}
-		if pr.HasMerged {
-			log.Info("PR scheduled for auto merge is already merged [ID: %d", pr.ID)
-			return nil
-		}
 
-		// Check if there is a scheduled pr in the db
-		exists, scheduledPRM, err := models.GetScheduledMergeRequestByPullID(pr.ID)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			log.Info("No scheduled pull request merge exists for this pr [PRID: %d]", pr.ID)
-			return nil
-		}
+		for _, pr := range prs {
 
-		// Get all checks for this pr
-		// We get the latest sha commit hash again to handle the case where the check of a previous push
-		// did not succeed or was not finished yet.
+			if pr.HasMerged {
+				log.Info("PR scheduled for auto merge is already merged [ID: %d", pr.ID)
+				continue
+			}
 
-		if err = pr.LoadHeadRepo(); err != nil {
-			return err
-		}
+			// Check if there is a scheduled pr in the db
+			exists, scheduledPRM, err := models.GetScheduledMergeRequestByPullID(pr.ID)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				log.Info("No scheduled pull request merge exists for this pr [PRID: %d]", pr.ID)
+				return nil
+			}
 
-		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-		if err != nil {
-			return err
-		}
-		defer headGitRepo.Close()
+			// Get all checks for this pr
+			// We get the latest sha commit hash again to handle the case where the check of a previous push
+			// did not succeed or was not finished yet.
 
-		headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
+			if err = pr.LoadHeadRepo(); err != nil {
+				return err
+			}
 
-		if pr.HeadRepo == nil || !headBranchExist {
-			log.Info("Head branch of auto merge pr does not exist [HeadRepoID: %d, Branch: %s, PRID: %d]", pr.HeadRepoID, pr.HeadBranch, pr.ID)
-			return nil
-		}
+			headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+			if err != nil {
+				return err
+			}
+			defer headGitRepo.Close()
 
-		// Check if all checks succeeded
-		pass, err := pullservice.IsPullCommitStatusPass(pr)
-		if err != nil {
-			return err
-		}
-		if !pass {
-			log.Info("Scheduled auto merge pr has unsuccessful status checks [PRID: %d, Commit: %s]", pr.ID, sha)
-			return nil
-		}
+			headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
 
-		// Merge if all checks succeeded
-		doer, err := models.GetUserByID(scheduledPRM.UserID)
-		if err != nil {
-			return err
-		}
+			if pr.HeadRepo == nil || !headBranchExist {
+				log.Info("Head branch of auto merge pr does not exist [HeadRepoID: %d, Branch: %s, PRID: %d]", pr.HeadRepoID, pr.HeadBranch, pr.ID)
+				return nil
+			}
 
-		if err = pr.LoadBaseRepo(); err != nil {
-			return err
-		}
+			// Check if all checks succeeded
+			pass, err := pullservice.IsPullCommitStatusPass(pr)
+			if err != nil {
+				return err
+			}
+			if !pass {
+				log.Info("Scheduled auto merge pr has unsuccessful status checks [PRID: %d, Commit: %s]", pr.ID, sha)
+				return nil
+			}
 
-		baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-		if err != nil {
-			return err
-		}
-		defer baseGitRepo.Close()
+			// Merge if all checks succeeded
+			doer, err := models.GetUserByID(scheduledPRM.UserID)
+			if err != nil {
+				return err
+			}
 
-		if err = pullservice.Merge(pr, doer, baseGitRepo, scheduledPRM.MergeStyle, scheduledPRM.Message); err != nil {
-			return err
-		}
+			if err = pr.LoadBaseRepo(); err != nil {
+				return err
+			}
 
-		// Remove the schedule from the db
-		if err = models.RemoveScheduledMergeRequest(scheduledPRM); err != nil {
-			return err
+			baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+			if err != nil {
+				return err
+			}
+			defer baseGitRepo.Close()
+
+			if err = pullservice.Merge(pr, doer, baseGitRepo, scheduledPRM.MergeStyle, scheduledPRM.Message); err != nil {
+				return err
+			}
+
+			// Remove the schedule from the db
+			if err = models.RemoveScheduledMergeRequest(scheduledPRM); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
