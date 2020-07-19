@@ -1240,7 +1240,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	return issues, nil
 }
 
-// Number return of issues by given conditions.
+// CountIssues number return of issues by given conditions.
 func CountIssues(opts *IssuesOptions) (int64, error) {
 	sess := x.NewSession()
 	defer sess.Close()
