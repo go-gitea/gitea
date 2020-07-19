@@ -125,6 +125,7 @@ func init() {
 		new(Task),
 		new(LanguageStat),
 		new(EmailHash),
+		new(ScheduledPullRequestMerge),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
