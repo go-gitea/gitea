@@ -48,7 +48,7 @@ var (
 		ConnMaxLifetime   time.Duration
 		IterateBufferSize int
 	}{
-		DefaultVarchar: "varchar",
+		DefaultVarchar: "nvarchar",
 		Timeout:        500,
 	}
 )
