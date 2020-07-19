@@ -56,7 +56,7 @@ var CmdDumpRepository = cli.Command{
 		cli.StringFlag{
 			Name:  "units",
 			Value: "",
-			Usage: `Which items will be migrated, one or more units should be seperated as comma. 
+			Usage: `Which items will be migrated, one or more units should be separated as comma. 
 wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.`,
 		},
 	},
