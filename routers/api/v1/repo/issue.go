@@ -196,6 +196,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), setting.UI.IssuePagingNum)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
