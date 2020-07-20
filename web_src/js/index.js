@@ -756,18 +756,10 @@ async function initRepository() {
 
   // Repo Creation
   if ($('.repository.new.repo').length > 0) {
-    const markAutoInitialize = function (element) {
-      if (element.value.length > 0) {
-        $('input[name="auto_init"]')[0].checked = true;
-      }
-    };
-
-    $('input[name="gitignores"]').on('change', (evt) => {
-      markAutoInitialize(evt.target);
-    });
-
-    $('input[name="license"]').on('change', (evt) => {
-      markAutoInitialize(evt.target);
+    $('input[name="gitignores"], input[name="license"]').on('change', () => {
+      const gitignores = $('input[name="gitignores"]').val();
+      const license = $('input[name="license"]').val();
+      $('input[name="auto_init"]')[0].checked = Boolean(gitignores || license);
     });
   }
 
