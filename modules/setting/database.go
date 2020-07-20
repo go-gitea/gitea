@@ -35,7 +35,6 @@ var (
 		Path              string
 		LogSQL            bool
 		Charset           string
-		DefaultVarchar    string
 		Timeout           int // seconds
 		UseSQLite3        bool
 		UseMySQL          bool
@@ -48,8 +47,7 @@ var (
 		ConnMaxLifetime   time.Duration
 		IterateBufferSize int
 	}{
-		DefaultVarchar: "nvarchar",
-		Timeout:        500,
+		Timeout: 500,
 	}
 )
 
@@ -81,7 +79,6 @@ func InitDBConfig() {
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
 	Database.Charset = sec.Key("CHARSET").In("utf8", []string{"utf8", "utf8mb4"})
-	Database.DefaultVarchar = sec.Key("DEFAULT_VARCHAR").In("varchar", []string{"varchar", "nvarchar"})
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
