@@ -177,7 +177,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 		filteredCount, err = models.CountIssues(&models.IssuesOptions{
 			ListOptions: models.ListOptions{
-				Page:     ctx.QueryInt("page"),
+				Page:     0,
 				PageSize: issueCount,
 			},
 
@@ -196,6 +196,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), setting.UI.IssuePagingNum)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
@@ -348,7 +349,7 @@ func ListIssues(ctx *context.APIContext) {
 
 		filteredCount, err = models.CountIssues(&models.IssuesOptions{
 			ListOptions: models.ListOptions{
-				Page:     ctx.QueryInt("page"),
+				Page:     0,
 				PageSize: ctx.Repo.Repository.NumIssues,
 			},
 
