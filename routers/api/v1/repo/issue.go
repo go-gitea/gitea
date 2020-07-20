@@ -156,12 +156,7 @@ func SearchIssues(ctx *context.APIContext) {
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
-		issues, err = models.Issues(&models.IssuesOptions{
-			ListOptions: models.ListOptions{
-				Page:     ctx.QueryInt("page"),
-				PageSize: setting.UI.IssuePagingNum,
-			},
-
+		issuesOpt := &models.IssuesOptions{
 			RepoIDs:            repoIDs,
 			IsClosed:           isClosed,
 			IssueIDs:           issueIDs,
@@ -169,26 +164,23 @@ func SearchIssues(ctx *context.APIContext) {
 			SortType:           "priorityrepo",
 			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
 			IsPull:             isPull,
-		})
+		}
+
+		issuesOpt.ListOptions = models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: setting.UI.IssuePagingNum,
+		}
+		issues, err = models.Issues(issuesOpt)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Issues", err)
 			return
 		}
 
-		filteredCount, err = models.CountIssues(&models.IssuesOptions{
-			ListOptions: models.ListOptions{
-				Page:     0,
-				PageSize: issueCount,
-			},
-
-			RepoIDs:            repoIDs,
-			IsClosed:           isClosed,
-			IssueIDs:           issueIDs,
-			IncludedLabelNames: includedLabelNames,
-			SortType:           "priorityrepo",
-			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
-			IsPull:             isPull,
-		})
+		issuesOpt.ListOptions = models.ListOptions{
+			Page:     0,
+			PageSize: issueCount,
+		}
+		filteredCount, err = models.CountIssues(issuesOpt)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
 			return
@@ -333,33 +325,27 @@ func ListIssues(ctx *context.APIContext) {
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
-		issues, err = models.Issues(&models.IssuesOptions{
-			ListOptions:  listOptions,
+		issuesOpt := &models.IssuesOptions{
 			RepoIDs:      []int64{ctx.Repo.Repository.ID},
 			IsClosed:     isClosed,
 			IssueIDs:     issueIDs,
 			LabelIDs:     labelIDs,
 			MilestoneIDs: mileIDs,
 			IsPull:       isPull,
-		})
+		}
+
+		issuesOpt.ListOptions = listOptions
+		issues, err = models.Issues(issuesOpt)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Issues", err)
 			return
 		}
 
-		filteredCount, err = models.CountIssues(&models.IssuesOptions{
-			ListOptions: models.ListOptions{
-				Page:     0,
-				PageSize: ctx.Repo.Repository.NumIssues,
-			},
-
-			RepoIDs:      []int64{ctx.Repo.Repository.ID},
-			IsClosed:     isClosed,
-			IssueIDs:     issueIDs,
-			LabelIDs:     labelIDs,
-			MilestoneIDs: mileIDs,
-			IsPull:       isPull,
-		})
+		issuesOpt.ListOptions = models.ListOptions{
+			Page:     0,
+			PageSize: ctx.Repo.Repository.NumIssues,
+		}
+		filteredCount, err = models.CountIssues(issuesOpt)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
 			return
