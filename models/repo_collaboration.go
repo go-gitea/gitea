@@ -7,7 +7,6 @@ package models
 
 import (
 	"fmt"
-
 	"xorm.io/builder"
 )
 
@@ -96,6 +95,19 @@ func (repo *Repository) getCollaborators(e Engine, listOptions ListOptions) ([]*
 // GetCollaborators returns the collaborators for a repository
 func (repo *Repository) GetCollaborators(listOptions ListOptions) ([]*Collaborator, error) {
 	return repo.getCollaborators(x, listOptions)
+}
+
+func (repo *Repository) countCollaborators(e Engine) (int, error) {
+	count, err := e.Count(&Collaboration{RepoID: repo.ID})
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
+// CountCollaborators returns the total number of collaborators for the repository
+func (repo *Repository) CountCollaborators() (int, error) {
+	return repo.countCollaborators(x)
 }
 
 func (repo *Repository) getCollaboration(e Engine, uid int64) (*Collaboration, error) {

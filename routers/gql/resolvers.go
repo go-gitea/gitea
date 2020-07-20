@@ -5,13 +5,14 @@
 package gql
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"context"
 	"errors"
 	"strconv"
 	"strings"
 
-	giteaCtx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/models"
+	giteaCtx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -127,11 +128,15 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 		return nil, err
 	}
 
-	//TODO, have to refactor relay helper lib to work with gitea pagination model
-	limitOptions := models.ListOptions{
-		Page:     0,
-		PageSize: 50,
+	totalSize, err := ctx.Repo.Repository.CountCollaborators()
+	if err != nil {
+		return nil, err
 	}
+
+	relayArgs := relay.NewConnectionArguments(p.Args)
+	limitOptions := GetLimitOptions(totalSize, relayArgs, setting.API.MaxResponseItems)
+	log.Info("limit options offset: %d", limitOptions.Offset)
+	log.Info("limit options page size: %d", limitOptions.PageSize)
 	collaborators, err := ctx.Repo.Repository.GetCollaborators(limitOptions)
 	if err != nil {
 		return nil, err
@@ -142,8 +147,7 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 		users = append(users, user)
 	}
 
-	args := relay.NewConnectionArguments(p.Args)
-	return relay.ConnectionFromArray(users, args), nil
+	return GiteaRelayConnection(users, limitOptions.Offset + 1, totalSize), nil
 }
 
 // UserByIdResolver resolves a user by id
