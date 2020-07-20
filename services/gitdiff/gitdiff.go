@@ -183,19 +183,56 @@ var (
 
 func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
-
+	var addSpan bool
 	for i := range diffs {
 		switch {
+		case diffs[i].Type == diffmatchpatch.DiffEqual:
+			// Looking for the case where our 3rd party diff library previously detected a string difference
+			// in the middle of a span class because we highlight them first. This happens when added/deleted code
+			// also changes the chroma class name. If found, just move the openining span code forward into the next section
+			if addSpan {
+				diffs[i].Text = "<span class=\"" + diffs[i].Text
+			}
+			if strings.HasSuffix(diffs[i].Text, "<span class=\"") {
+				addSpan = true
+				buf.WriteString(strings.TrimSuffix(diffs[i].Text, "<span class=\""))
+			} else {
+				addSpan = false
+				buf.WriteString(getLineContent(diffs[i].Text))
+			}
 		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
+			if addSpan {
+				addSpan = false
+				diffs[i].Text = "<span class=\"" + diffs[i].Text
+			}
+			// Print existing closing span first before opening added-code span so it doesn't unintentionally close it
+			if strings.HasPrefix(diffs[i].Text, "</span>") {
+				buf.WriteString("</span>")
+				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
+			}
+			if strings.HasSuffix(diffs[i].Text, "<span class=\"") {
+				addSpan = true
+				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, "<span class=\"")
+			}
 			buf.Write(addedCodePrefix)
-			buf.WriteString(highlight.Code(fileName, diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
+			if addSpan {
+				addSpan = false
+				diffs[i].Text = "<span class=\"" + diffs[i].Text
+			}
+			if strings.HasPrefix(diffs[i].Text, "</span>") {
+				buf.WriteString("</span>")
+				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
+			}
+			if strings.HasSuffix(diffs[i].Text, "<span class=\"") {
+				addSpan = true
+				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, "<span class=\"")
+			}
 			buf.Write(removedCodePrefix)
-			buf.WriteString(highlight.Code(fileName, diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
-		case diffs[i].Type == diffmatchpatch.DiffEqual:
-			buf.WriteString(highlight.Code(fileName, getLineContent(diffs[i].Text)))
 		}
 	}
 	return template.HTML(buf.Bytes())
@@ -269,25 +306,25 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]+"\n"))
+			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]+"\n"))
+			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]+"\n"))
+			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
 		}
 		return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content))
 	}
 
-	diffRecord := diffMatchPatch.DiffMain(diff1[1:], diff2[1:], true)
+	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1[1:]), highlight.Code(diffSection.FileName, diff2[1:]), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
 }

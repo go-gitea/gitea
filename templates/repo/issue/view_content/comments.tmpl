@@ -70,7 +70,7 @@
 		</div>
 	{{else if eq .Type 1}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-primitive-dot" 16}}</span>
+			<span class="badge">{{svg "octicon-dot-fill" 16}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -319,7 +319,7 @@
 		</div>
 	{{else if eq .Type 19}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-dependent" 16}}</span>
+			<span class="badge">{{svg "octicon-package-dependents" 16}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -344,7 +344,7 @@
 		</div>
 	{{else if eq .Type 20}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-dependent" 16}}</span>
+			<span class="badge">{{svg "octicon-package-dependents" 16}}</span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -603,7 +603,7 @@
 		</div>
 	{{else if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
-			<span class="badge">{{svg "octicon-repo-force-push" 16}}</span>
+			<span class="badge">{{svg "octicon-repo-push" 16}}</span>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{ if .IsForcePush }}

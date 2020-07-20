@@ -139,7 +139,6 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			return
 		}
 	}
-	isShowClosed := ctx.Query("state") == "closed"
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	if bytes.Contains([]byte(keyword), []byte{0x00}) {
@@ -177,6 +176,13 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			return
 		}
 	}
+
+	isShowClosed := ctx.Query("state") == "closed"
+	// if open issues are zero and close don't, use closed as default
+	if len(ctx.Query("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
+		isShowClosed = true
+	}
+
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
