@@ -46,7 +46,7 @@ func ServNoCommand(ctx *macaron.Context) {
 	}
 	results.Key = key
 
-	if key.Type == models.KeyTypeUser {
+	if key.Type == models.KeyTypeUser || key.Type == models.KeyTypePrincipal {
 		user, err := models.GetUserByID(key.OwnerID)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {

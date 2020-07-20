@@ -13,6 +13,8 @@ HostKey /data/ssh/ssh_host_dsa_key
 HostKey /data/ssh/ssh_host_ecdsa_key
 
 AuthorizedKeysFile .ssh/authorized_keys
+AuthorizedPrincipalsFile .ssh/authorized_principals
+TrustedUserCAKeys /data/ssh/trusted-user-ca-keys.pem
 
 UseDNS no
 AllowAgentForwarding no
