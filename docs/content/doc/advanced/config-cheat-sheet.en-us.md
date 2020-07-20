@@ -408,7 +408,7 @@ set name for unique queues. Individual queues will default to
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
    - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or `HOST=localhost`. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
-- `SKIP_VERIFY`: **\<empty\>**: Whether or not to skip verification of certificates; empty or `false` to enable verification; `true` to disable verification.
+- `SKIP_VERIFY`: **false**: Whether or not to skip verification of certificates; `true` to disable verification.
    - **Warning:** This option is unsafe. Consider adding the certificate to the system trust store instead.
    - **Note:** Gitea only supports SMTP with STARTTLS.
 - `SUBJECT_PREFIX`: **\<empty\>**: Prefix to be placed before e-mail subject lines.
