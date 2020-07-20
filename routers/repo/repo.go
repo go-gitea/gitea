@@ -32,6 +32,13 @@ func MustBeNotEmpty(ctx *context.Context) {
 	}
 }
 
+// MustHaveWiki render when a repo have wiki
+func MustHaveWiki(ctx *context.Context) {
+	if !ctx.Repo.Repository.HasWiki() {
+		ctx.NotFound("MustHaveWiki", nil)
+	}
+}
+
 // MustBeEditable check that repo can be edited
 func MustBeEditable(ctx *context.Context) {
 	if !ctx.Repo.Repository.CanEnableEditor() || ctx.Repo.IsViewCommit {

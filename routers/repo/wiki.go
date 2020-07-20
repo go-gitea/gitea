@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	wiki_service "code.gitea.io/gitea/services/wiki"
@@ -31,6 +32,7 @@ const (
 	tplWikiRevision base.TplName = "repo/wiki/revision"
 	tplWikiNew      base.TplName = "repo/wiki/new"
 	tplWikiPages    base.TplName = "repo/wiki/pages"
+	tplWikiUpload   base.TplName = "repo/wiki/upload"
 )
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
@@ -647,6 +649,65 @@ func DeleteWikiPagePost(ctx *context.Context) {
 
 	if err := wiki_service.DeleteWikiPage(ctx.User, ctx.Repo.Repository, wikiName); err != nil {
 		ctx.ServerError("DeleteWikiPage", err)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": ctx.Repo.RepoLink + "/wiki/",
+	})
+}
+
+// UploadWikiFile render wiki upload page
+func UploadWikiFile(ctx *context.Context) {
+	ctx.Data["PageIsWiki"] = true
+	ctx.Data["PageIsUpload"] = true
+	renderUploadSettings(ctx)
+
+	if !ctx.Repo.Repository.HasWiki() {
+		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
+		return
+	}
+
+	renderEditPage(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.HTML(200, tplWikiUpload)
+}
+
+// UploadWikiFilePost response for wiki upload request
+func UploadWikiFilePost(ctx *context.Context, form auth.UploadWikiFileForm) {
+	fmt.Println("UploadWikiFilePost")
+
+	ctx.Data["PageIsWiki"] = true
+	ctx.Data["PageIsUpload"] = true
+	renderUploadSettings(ctx)
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplWikiUpload)
+		return
+	}
+
+	message := strings.TrimSpace(form.CommitMessage)
+	if len(message) == 0 {
+		message = ctx.Tr("repo.editor.upload_files_to_dir", "_media")
+	}
+
+	form.CommitMessage = strings.TrimSpace(form.CommitMessage)
+	if len(form.CommitMessage) > 0 {
+		message += "\n\n" + form.CommitMessage
+	}
+
+	if err := repofiles.UploadRepoWikiFiles(ctx.Repo.Repository, ctx.User, &repofiles.UploadRepoFileOptions{
+		LastCommitID: ctx.Repo.CommitID,
+		OldBranch:    "master",
+		NewBranch:    "master",
+		TreePath:     "_media",
+		Message:      message,
+		Files:        form.Files,
+	}); err != nil {
+		log.Error("Error during upload to repo %-v : %v", ctx.Repo.Repository, err)
 		return
 	}
 

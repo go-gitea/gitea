@@ -713,6 +713,13 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 			}, context.RepoRef(), repo.MustBeEditable, repo.MustBeAbleToUpload)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 
+		m.Group("", func() {
+			m.Group("", func() {
+				m.Post("/upload-wiki-file", repo.UploadFileToServer)
+				m.Post("/upload-wiki-remove", bindIgnErr(auth.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
+			}, context.RepoRef(), repo.MustBeEditable, repo.MustBeAbleToUpload)
+		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustHaveWiki)
+
 		m.Group("/branches", func() {
 			m.Group("/_new/", func() {
 				m.Post("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.CreateBranch)
@@ -811,6 +818,8 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 					Post(bindIgnErr(auth.NewWikiForm{}), repo.NewWikiPost)
 				m.Combo("/:page/_edit").Get(repo.EditWiki).
 					Post(bindIgnErr(auth.NewWikiForm{}), repo.EditWikiPost)
+				m.Combo("/_upload").Get(repo.UploadWikiFile).
+					Post(bindIgnErr(auth.UploadWikiFileForm{}), repo.UploadWikiFilePost)
 				m.Post("/:page/delete", repo.DeleteWikiPagePost)
 			}, context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter)
 		}, repo.MustEnableWiki, context.RepoRef(), func(ctx *context.Context) {

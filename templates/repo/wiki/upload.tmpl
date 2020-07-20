@@ -1,0 +1,23 @@
+{{template "base/head" .}}
+<div class="repository file editor upload">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<form class="ui comment form" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field">
+				<div class="files"></div>
+				<div class="ui dropzone" id="dropzone" data-upload-url="{{.RepoLink}}/upload-wiki-file" data-remove-url="{{.RepoLink}}/upload-wiki-remove" data-csrf="{{.CsrfToken}}" data-accepts="{{.UploadAllowedTypes}}" data-max-file="{{.UploadMaxFiles}}" data-max-size="{{.UploadMaxSize}}" data-default-message="{{.i18n.Tr "dropzone.default_message"}}" data-invalid-input-type="{{.i18n.Tr "dropzone.invalid_input_type"}}" data-file-too-big="{{.i18n.Tr "dropzone.file_too_big"}}" data-remove-file="{{.i18n.Tr "dropzone.remove_file"}}"></div>
+			</div>
+            <div class="field">
+				<input name="message" placeholder="{{.i18n.Tr "repo.wiki.default_commit_message"}}">
+			</div>
+			<div class="text right">
+				<button class="ui green button">
+					{{.i18n.Tr "repo.wiki.upload_files_button"}}
+				</button>
+			</div>
+		</form>
+	</div>
+</div>
+{{template "base/footer" .}} 

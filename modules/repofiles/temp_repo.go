@@ -47,8 +47,13 @@ func (t *TemporaryUploadRepository) Close() {
 }
 
 // Clone the base repository to our path and set branch as the HEAD
-func (t *TemporaryUploadRepository) Clone(branch string) error {
-	if _, err := git.NewCommand("clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath).Run(); err != nil {
+func (t *TemporaryUploadRepository) clone(branch string, isWiki bool) error {
+	repoPath := t.repo.RepoPath()
+	if isWiki {
+		repoPath = t.repo.WikiPath()
+	}
+
+	if _, err := git.NewCommand("clone", "-s", "--bare", "-b", branch, repoPath, t.basePath).Run(); err != nil {
 		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
 			return git.ErrBranchNotExist{
@@ -65,12 +70,23 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 			return fmt.Errorf("Clone: %v %s", err, stderr)
 		}
 	}
+
 	gitRepo, err := git.OpenRepository(t.basePath)
 	if err != nil {
 		return err
 	}
 	t.gitRepo = gitRepo
 	return nil
+}
+
+// CloneWiki the base repository to our path and set branch as the HEAD
+func (t *TemporaryUploadRepository) CloneWiki(branch string) error {
+	return t.clone(branch, true)
+}
+
+// Clone the base repository to our path and set branch as the HEAD
+func (t *TemporaryUploadRepository) Clone(branch string) error {
+	return t.clone(branch, false)
 }
 
 // SetDefaultIndex sets the git index to our HEAD
@@ -253,11 +269,16 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 }
 
 // Push the provided commitHash to the repository branch by the provided user
-func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, branch string) error {
+func (t *TemporaryUploadRepository) push(doer *models.User, commitHash string, branch string, isWiki bool) error {
+	repoPath := t.repo.RepoPath()
+	if isWiki {
+		repoPath = t.repo.WikiPath()
+	}
+
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
 	if err := git.Push(t.basePath, git.PushOptions{
-		Remote: t.repo.RepoPath(),
+		Remote: repoPath,
 		Branch: strings.TrimSpace(commitHash) + ":refs/heads/" + strings.TrimSpace(branch),
 		Env:    env,
 	}); err != nil {
@@ -275,6 +296,16 @@ func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, b
 			t.repo.FullName(), t.basePath, err)
 	}
 	return nil
+}
+
+// PushWiki push the provided commitHash to the wiki repository branch by the provided user
+func (t *TemporaryUploadRepository) PushWiki(doer *models.User, commitHash string, branch string) error {
+	return t.push(doer, commitHash, branch, true)
+}
+
+// Push the provided commitHash to the repository branch by the provided user
+func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, branch string) error {
+	return t.push(doer, commitHash, branch, false)
 }
 
 // DiffIndex returns a Diff of the current index to the head

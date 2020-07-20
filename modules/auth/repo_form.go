@@ -652,6 +652,17 @@ func (f *NewWikiForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// UploadWikiFileForm form for uploading wiki file
+type UploadWikiFileForm struct {
+	CommitMessage string
+	Files         []string
+}
+
+// Validate validates the fields
+func (f *UploadWikiFileForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // ___________    .___.__  __
 // \_   _____/  __| _/|__|/  |_
 //  |    __)_  / __ | |  \   __\

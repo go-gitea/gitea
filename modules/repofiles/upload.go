@@ -45,8 +45,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 	return original
 }
 
-// UploadRepoFiles uploads files to the given repository
-func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRepoFileOptions) error {
+func uploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRepoFileOptions, isWiki bool) error {
 	if len(opts.Files) == 0 {
 		return nil
 	}
@@ -78,9 +77,17 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		return err
 	}
 	defer t.Close()
-	if err := t.Clone(opts.OldBranch); err != nil {
-		return err
+
+	if isWiki {
+		if err := t.CloneWiki(opts.OldBranch); err != nil {
+			return err
+		}
+	} else {
+		if err := t.Clone(opts.OldBranch); err != nil {
+			return err
+		}
 	}
+
 	if err := t.SetDefaultIndex(); err != nil {
 		return err
 	}
@@ -190,9 +197,25 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	// Then push this tree to NewBranch
-	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
-		return err
+	if isWiki {
+		if err := t.PushWiki(doer, commitHash, opts.NewBranch); err != nil {
+			return err
+		}
+	} else {
+		if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
+			return err
+		}
 	}
 
 	return models.DeleteUploads(uploads...)
+}
+
+// UploadRepoWikiFiles uploads files to the given repository's wiki repo
+func UploadRepoWikiFiles(repo *models.Repository, doer *models.User, opts *UploadRepoFileOptions) error {
+	return uploadRepoFiles(repo, doer, opts, true)
+}
+
+// UploadRepoFiles uploads files to the given repository
+func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRepoFileOptions) error {
+	return uploadRepoFiles(repo, doer, opts, false)
 }

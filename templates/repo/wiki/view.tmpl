@@ -28,7 +28,14 @@
 					</div>
 				</div>
 			</div>
-			<div class="right fitted item">
+			<div class="right fitted item" id="file-buttons">
+				<div class="ui tiny blue buttons">
+					<a href="{{.RepoLink}}/wiki/_upload" class="ui button">
+						{{.i18n.Tr "repo.wiki.upload_files_button"}}
+					</a>
+				</div>
+			</div>
+			<div class="fitted item">
 				<div class="ui action small input" id="clone-panel">
 					{{if not $.DisableHTTP}}
 						<button class="ui basic clone button" id="repo-clone-https" data-link="{{.WikiCloneLink.HTTPS}}">
