@@ -1,7 +1,7 @@
 # cloud.google.com/go v0.45.0
 ## explicit
 cloud.google.com/go/compute/metadata
-# code.gitea.io/gitea-vet v0.0.0-20200720134504-900a9f5eac13
+# code.gitea.io/gitea-vet v0.2.0
 ## explicit
 code.gitea.io/gitea-vet
 code.gitea.io/gitea-vet/checks
@@ -822,7 +822,7 @@ golang.org/x/text/width
 # golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200720162443-9cbb971a186e
+# golang.org/x/tools v0.0.0-20200721032237-77f530d86f9a
 ## explicit
 golang.org/x/tools/cover
 golang.org/x/tools/go/analysis
