@@ -148,8 +148,6 @@ TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 .PHONY: all
 all: build
 
-include docker/Makefile
-
 .PHONY: help
 help:
 	@echo "Make Routines:"
