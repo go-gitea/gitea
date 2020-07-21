@@ -577,6 +577,25 @@ func SearchPublicKeyByContent(content string) (*PublicKey, error) {
 	return searchPublicKeyByContentWithEngine(x, content)
 }
 
+func searchPublicKeyByContentExactWithEngine(e Engine, content string) (*PublicKey, error) {
+	key := new(PublicKey)
+	has, err := e.
+		Where("content = ?", content).
+		Get(key)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrKeyNotExist{}
+	}
+	return key, nil
+}
+
+// SearchPublicKeyByContentExact searches content
+// and returns public key found.
+func SearchPublicKeyByContentExact(content string) (*PublicKey, error) {
+	return searchPublicKeyByContentExactWithEngine(x, content)
+}
+
 // SearchPublicKey returns a list of public keys matching the provided arguments.
 func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
@@ -1149,10 +1168,6 @@ func GetPrincipalKeyByID(keyID int64) (*PublicKey, error) {
 func CheckPrincipalKeyString(content string) (_ string, err error) {
 	if setting.SSH.Disabled {
 		return "", ErrSSHDisabled{}
-	}
-
-	if setting.SSH.StartBuiltinServer {
-		return "", ErrSSHBuiltinNotSupported{}
 	}
 
 	content = strings.TrimRight(content, "\n\r")

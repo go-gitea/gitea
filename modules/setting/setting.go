@@ -30,6 +30,7 @@ import (
 	shellquote "github.com/kballard/go-shellquote"
 	version "github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
+	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -104,26 +105,28 @@ var (
 	StaticURLPrefix      string
 
 	SSH = struct {
-		Disabled                       bool           `ini:"DISABLE_SSH"`
-		StartBuiltinServer             bool           `ini:"START_SSH_SERVER"`
-		BuiltinServerUser              string         `ini:"BUILTIN_SSH_SERVER_USER"`
-		Domain                         string         `ini:"SSH_DOMAIN"`
-		Port                           int            `ini:"SSH_PORT"`
-		ListenHost                     string         `ini:"SSH_LISTEN_HOST"`
-		ListenPort                     int            `ini:"SSH_LISTEN_PORT"`
-		RootPath                       string         `ini:"SSH_ROOT_PATH"`
-		ServerCiphers                  []string       `ini:"SSH_SERVER_CIPHERS"`
-		ServerKeyExchanges             []string       `ini:"SSH_SERVER_KEY_EXCHANGES"`
-		ServerMACs                     []string       `ini:"SSH_SERVER_MACS"`
-		KeyTestPath                    string         `ini:"SSH_KEY_TEST_PATH"`
-		KeygenPath                     string         `ini:"SSH_KEYGEN_PATH"`
-		AuthorizedKeysBackup           bool           `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
-		AuthorizedPrincipalsBackup     bool           `ini:"SSH_AUTHORIZED_PRINCIPALS_BACKUP"`
-		MinimumKeySizeCheck            bool           `ini:"-"`
-		MinimumKeySizes                map[string]int `ini:"-"`
-		CreateAuthorizedKeysFile       bool           `ini:"SSH_CREATE_AUTHORIZED_KEYS_FILE"`
-		CreateAuthorizedPrincipalsFile bool           `ini:"SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE"`
-		ExposeAnonymous                bool           `ini:"SSH_EXPOSE_ANONYMOUS"`
+		Disabled                       bool              `ini:"DISABLE_SSH"`
+		StartBuiltinServer             bool              `ini:"START_SSH_SERVER"`
+		BuiltinServerUser              string            `ini:"BUILTIN_SSH_SERVER_USER"`
+		Domain                         string            `ini:"SSH_DOMAIN"`
+		Port                           int               `ini:"SSH_PORT"`
+		ListenHost                     string            `ini:"SSH_LISTEN_HOST"`
+		ListenPort                     int               `ini:"SSH_LISTEN_PORT"`
+		RootPath                       string            `ini:"SSH_ROOT_PATH"`
+		ServerCiphers                  []string          `ini:"SSH_SERVER_CIPHERS"`
+		ServerKeyExchanges             []string          `ini:"SSH_SERVER_KEY_EXCHANGES"`
+		ServerMACs                     []string          `ini:"SSH_SERVER_MACS"`
+		KeyTestPath                    string            `ini:"SSH_KEY_TEST_PATH"`
+		KeygenPath                     string            `ini:"SSH_KEYGEN_PATH"`
+		AuthorizedKeysBackup           bool              `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
+		AuthorizedPrincipalsBackup     bool              `ini:"SSH_AUTHORIZED_PRINCIPALS_BACKUP"`
+		MinimumKeySizeCheck            bool              `ini:"-"`
+		MinimumKeySizes                map[string]int    `ini:"-"`
+		CreateAuthorizedKeysFile       bool              `ini:"SSH_CREATE_AUTHORIZED_KEYS_FILE"`
+		CreateAuthorizedPrincipalsFile bool              `ini:"SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE"`
+		ExposeAnonymous                bool              `ini:"SSH_EXPOSE_ANONYMOUS"`
+		TrustedUserCAKeys              []string          `ini:"SSH_TRUSTED_USER_CA_KEYS"`
+		TrustedUserCAKeysParsed        []gossh.PublicKey `ini:"-"`
 	}{
 		Disabled:           false,
 		StartBuiltinServer: false,
@@ -725,6 +728,16 @@ func NewContext() {
 	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
 	SSH.CreateAuthorizedPrincipalsFile = sec.Key("SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE").MustBool(true)
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
+
+	trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
+	for _, caKey := range trustedUserCaKeys {
+		pubKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
+		if err != nil {
+			log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
+		}
+
+		SSH.TrustedUserCAKeysParsed = append(SSH.TrustedUserCAKeysParsed, pubKey)
+	}
 
 	sec = Cfg.Section("server")
 	if err = sec.MapTo(&LFS); err != nil {

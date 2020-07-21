@@ -46,8 +46,6 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		if err != nil {
 			if models.IsErrSSHDisabled(err) {
 				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
-			} else if models.IsErrSSHBuiltinNotSupported(err) {
-				ctx.Flash.Info(ctx.Tr("settings.ssh_builtin_not_supported"))
 			} else {
 				ctx.Flash.Error(ctx.Tr("form.invalid_ssh_principal", err.Error()))
 			}

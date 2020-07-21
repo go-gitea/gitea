@@ -85,20 +85,6 @@ func (err ErrSSHDisabled) Error() string {
 	return "SSH is disabled"
 }
 
-// ErrSSHBuiltinNotSupported represents an "Not supported by builtin SSH" error.
-type ErrSSHBuiltinNotSupported struct {
-}
-
-// IsErrSSHBuiltinNotSupported checks if an error is a ErrSSHBuiltinNotSupported.
-func IsErrSSHBuiltinNotSupported(err error) bool {
-	_, ok := err.(ErrSSHBuiltinNotSupported)
-	return ok
-}
-
-func (err ErrSSHBuiltinNotSupported) Error() string {
-	return "Not supported by builtin SSH"
-}
-
 // ErrCancelled represents an error due to context cancellation
 type ErrCancelled struct {
 	Message string

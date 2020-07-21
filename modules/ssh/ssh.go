@@ -5,6 +5,7 @@
 package ssh
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -134,6 +135,52 @@ func sessionHandler(session ssh.Session) {
 func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	if ctx.User() != setting.SSH.BuiltinServerUser {
 		return false
+	}
+
+	// check if we have a certificate
+	if cert, ok := key.(*gossh.Certificate); ok {
+		if len(setting.SSH.TrustedUserCAKeys) == 0 {
+			return false
+		}
+
+		// look for the exact principal
+		for _, principal := range cert.ValidPrincipals {
+			pkey, err := models.SearchPublicKeyByContentExact(principal)
+			if err != nil {
+				log.Error("SearchPublicKeyByContentExact: %v", err)
+				return false
+			}
+
+			if models.IsErrKeyNotExist(err) {
+				continue
+			}
+
+			c := &gossh.CertChecker{
+				IsUserAuthority: func(auth gossh.PublicKey) bool {
+					for _, k := range setting.SSH.TrustedUserCAKeysParsed {
+						if bytes.Equal(auth.Marshal(), k.Marshal()) {
+							return true
+						}
+					}
+
+					return false
+				},
+			}
+
+			// check the CA of the cert
+			if !c.IsUserAuthority(cert.SignatureKey) {
+				return false
+			}
+
+			// validate the cert for this principal
+			if err := c.CheckCert(principal, cert); err != nil {
+				return false
+			}
+
+			ctx.SetValue(giteaKeyID, pkey.ID)
+
+			return true
+		}
 	}
 
 	pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
