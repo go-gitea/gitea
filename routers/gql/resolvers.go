@@ -134,10 +134,8 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 	}
 
 	relayArgs := relay.NewConnectionArguments(p.Args)
-	limitOptions := GetLimitOptions(totalSize, relayArgs, setting.API.MaxResponseItems)
-	log.Info("limit options offset: %d", limitOptions.Offset)
-	log.Info("limit options page size: %d", limitOptions.PageSize)
-	collaborators, err := ctx.Repo.Repository.GetCollaborators(limitOptions)
+	listOptions := GetListOptions(totalSize, relayArgs, setting.API.MaxResponseItems)
+	collaborators, err := ctx.Repo.Repository.GetCollaborators(listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +145,7 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 		users = append(users, user)
 	}
 
-	return GiteaRelayConnection(users, limitOptions.Offset + 1, totalSize), nil
+	return GiteaRelayConnection(users, listOptions.Offset + 1, totalSize), nil
 }
 
 // UserByIdResolver resolves a user by id

@@ -23,8 +23,8 @@ import (
 
 const PREFIX = "giteaconnection:"
 
-// GetLimitOptions get the gitea list options for pagination based on the graphql pagination args and the total size of the data
-func GetLimitOptions(totalSize int, args relay.ConnectionArguments, maxPageSize int) models.ListOptions {
+// GetListOptions get the gitea list options for pagination based on the graphql pagination args and the total size of the data
+func GetListOptions(totalSize int, args relay.ConnectionArguments, maxPageSize int) models.ListOptions {
 	var (
 		offset int = 0
 		pageSize int = 0
