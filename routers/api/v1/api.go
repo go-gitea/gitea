@@ -511,15 +511,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/swagger", misc.Swagger) // Render V1 by default
 	}
 
-	//TODO this might be a bread crumb of a way to do this:
-	//https://github.com/graphql-go/graphql/pull/110
-	//https://github.com/graphql-go/graphql/pull/227/files
-	//some fields require admin, some just require token, some don't require auth at all :(
-	/*
-	m.Group("/", func() {
-		m.Post("/graphql", reqToken(), gql.GraphQL)
-	}, securityHeaders(), context.APIContexter(), sudo())
-	*/
 	m.Group("/", func() {
 		m.Post("/graphql", gql.GraphQL)
 	}, securityHeaders(), context.APIContexter(), sudo())
