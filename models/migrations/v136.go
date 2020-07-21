@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -41,7 +40,7 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 		MergedCommitID string `xorm:"VARCHAR(40)"`
 	}
 
-	if err := x.Sync2(new(models.PullRequest)); err != nil {
+	if err := x.Sync2(new(PullRequest)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 
@@ -64,7 +63,7 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 		if err := sess.Begin(); err != nil {
 			return err
 		}
-		var results = make([]*models.PullRequest, 0, batchSize)
+		var results = make([]*PullRequest, 0, batchSize)
 		err := sess.Where("has_merged = ?", false).OrderBy("id").Limit(batchSize, last).Find(&results)
 		if err != nil {
 			return err
