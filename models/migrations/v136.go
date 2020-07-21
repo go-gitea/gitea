@@ -28,7 +28,9 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 	}
 
 	type PullRequest struct {
-		ID int64 `xorm:"pk autoincr"`
+		ID      int64 `xorm:"pk autoincr"`
+		IssueID int64 `xorm:"INDEX"`
+		Index   int64
 
 		CommitsAhead  int
 		CommitsBehind int
