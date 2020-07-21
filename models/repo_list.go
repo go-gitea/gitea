@@ -204,18 +204,7 @@ const (
 
 // SearchRepositoryCondition creates a query condition according search repository options
 func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
-	var (
-		cond        = builder.NewCond()
-		rUser       = "`" + RealTableName("user") + "`"
-		rRepository = "`" + RealTableName("repository") + "`"
-		rAccess     = "`" + RealTableName("access") + "`"
-		rTeamRepo   = "`" + RealTableName("team_repo") + "`"
-		rTeamUser   = "`" + RealTableName("team_user") + "`"
-		rOrgUser    = "`" + RealTableName("org_user") + "`"
-		rTopic      = "`" + RealTableName("topic") + "`"
-		rRepoTopic  = "`" + RealTableName("repo_topic") + "`"
-	)
-
+	var cond = builder.NewCond()
 	if opts.Private {
 		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
 			// OK we're in the context of a User
@@ -421,16 +410,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 
 // accessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func accessibleRepositoryCondition(user *User) builder.Cond {
-	var (
-		cond        = builder.NewCond()
-		rUser       = "`" + RealTableName("user") + "`"
-		rRepository = "`" + RealTableName("repository") + "`"
-		rAccess     = "`" + RealTableName("access") + "`"
-		rTeamRepo   = "`" + RealTableName("team_repo") + "`"
-		rTeamUser   = "`" + RealTableName("team_user") + "`"
-		rOrgUser    = "`" + RealTableName("org_user") + "`"
-	)
-
+	var cond = builder.NewCond()
 	if user == nil || !user.IsRestricted || user.ID <= 0 {
 		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
 		if user == nil || user.ID <= 0 {
@@ -484,14 +464,14 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 // AccessibleRepoIDsQuery queries accessible repository ids. Usable as a subquery wherever repo ids need to be filtered.
 func AccessibleRepoIDsQuery(user *User) *builder.Builder {
 	// NB: Please note this code needs to still work if user is nil
-	return builder.Select("id").From(RealTableName("repository")).Where(accessibleRepositoryCondition(user))
+	return builder.Select("id").From(rRepository).Where(accessibleRepositoryCondition(user))
 }
 
 // FindUserAccessibleRepoIDs find all accessible repositories' ID by user's id
 func FindUserAccessibleRepoIDs(user *User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
 	if err := x.
-		Table(RealTableName("repository")).
+		Table(rRepository).
 		Cols("id").
 		Where(accessibleRepositoryCondition(user)).
 		Find(&repoIDs); err != nil {

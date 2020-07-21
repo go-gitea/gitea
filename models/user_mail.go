@@ -331,8 +331,6 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	where := make([]string, 0, 5)
 	args := make([]interface{}, 0, 5)
 
-	var rUser = "`" + RealTableName("user") + "`"
-
 	emailsSQL := "(SELECT id as sortid, uid, email, is_activated, 0 as is_primary " +
 		"FROM " + RealTableName("email_address") +
 		" UNION ALL " +

@@ -80,7 +80,6 @@ type FindNotificationOptions struct {
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	cond := builder.NewCond()
-	var rNotification = RealTableName("notification")
 	if opts.UserID != 0 {
 		cond = cond.And(builder.Eq{rNotification + ".user_id": opts.UserID})
 	}
@@ -112,7 +111,7 @@ func (opts *FindNotificationOptions) ToSession(e Engine) *xorm.Session {
 }
 
 func getNotifications(e Engine, options FindNotificationOptions) (nl NotificationList, err error) {
-	err = options.ToSession(e).OrderBy(RealTableName("notification") + ".updated_unix DESC").Find(&nl)
+	err = options.ToSession(e).OrderBy(rNotification + ".updated_unix DESC").Find(&nl)
 	return
 }
 
@@ -727,8 +726,8 @@ type UserIDCount struct {
 
 // GetUIDsAndNotificationCounts between the two provided times
 func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCount, error) {
-	sql := `SELECT user_id, count(*) AS count FROM ` + RealTableName("notification") +
-		` WHERE user_id IN (SELECT user_id FROM ` + RealTableName("notification") + ` WHERE updated_unix >= ? AND ` +
+	sql := `SELECT user_id, count(*) AS count FROM ` + rNotification +
+		` WHERE user_id IN (SELECT user_id FROM ` + rNotification + ` WHERE updated_unix >= ? AND ` +
 		`updated_unix < ?) AND status = ? GROUP BY user_id`
 	var res []UserIDCount
 	return res, x.SQL(sql, since, until, NotificationStatusUnread).Find(&res)

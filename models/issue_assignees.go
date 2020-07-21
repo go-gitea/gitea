@@ -29,11 +29,6 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 	// Reset maybe preexisting assignees
 	issue.Assignees = []*User{}
 
-	var (
-		rUser           = "`" + RealTableName("user") + "`"
-		rIssueAssignees = RealTableName("issue_assignees")
-	)
-
 	err = e.Table(rUser).
 		Join("INNER", rIssueAssignees, "assignee_id = "+rUser+".id").
 		Where(rIssueAssignees+".issue_id = ?", issue.ID).
@@ -52,11 +47,11 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 }
 
 // GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
-// but skips joining with `"+ RealTableName("user") + "` for performance reasons.
+// but skips joining with `user` for performance reasons.
 // User permissions must be verified elsewhere if required.
 func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
 	userIDs := make([]int64, 0, 5)
-	return userIDs, x.Table(RealTableName("issue_assignees")).
+	return userIDs, x.Table(rIssueAssignees).
 		Cols("assignee_id").
 		Where("issue_id = ?", issueID).
 		Distinct("assignee_id").

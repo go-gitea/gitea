@@ -82,7 +82,7 @@ func CheckIssueWatch(user *User, issue *Issue) (bool, error) {
 }
 
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id
-// but avoids joining with `"+ RealTableName("user") + "` for performance reasons
+// but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetIssueWatchersIDs(issueID int64, watching bool) ([]int64, error) {
 	return getIssueWatchersIDs(x, issueID, watching)
@@ -90,7 +90,7 @@ func GetIssueWatchersIDs(issueID int64, watching bool) ([]int64, error) {
 
 func getIssueWatchersIDs(e Engine, issueID int64, watching bool) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, e.Table(RealTableName("issue_watch")).
+	return ids, e.Table(rIssueWatch).
 		Where("issue_id=?", issueID).
 		And("is_watching = ?", watching).
 		Select("user_id").
@@ -103,11 +103,6 @@ func GetIssueWatchers(issueID int64, listOptions ListOptions) (IssueWatchList, e
 }
 
 func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWatchList, error) {
-	var (
-		rIssueWatch = "`" + RealTableName("issue_watch") + "`"
-		rUser       = "`" + RealTableName("user") + "`"
-	)
-
 	sess := e.
 		Where(rIssueWatch+".issue_id = ?", issueID).
 		And(rIssueWatch+".is_watching = ?", true).
@@ -125,10 +120,6 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWa
 }
 
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
-	var (
-		rIssue      = RealTableName("issue")
-		rIssueWatch = RealTableName("issue_watch")
-	)
 	_, err := e.
 		Join("INNER", rIssue, rIssue+".id = "+rIssueWatch+".issue_id AND "+rIssue+".repo_id = ?", repoID).
 		Where(rIssueWatch+".user_id = ?", userID).

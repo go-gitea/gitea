@@ -149,7 +149,7 @@ func removeTopicFromRepo(e Engine, repoID int64, topic *Topic) error {
 func removeTopicsFromRepo(e Engine, repoID int64) error {
 	_, err := e.Where(
 		builder.In("id",
-			builder.Select("topic_id").From(RealTableName("repo_topic")).Where(builder.Eq{"repo_id": repoID}),
+			builder.Select("topic_id").From(rRepoTopic).Where(builder.Eq{"repo_id": repoID}),
 		),
 	).Cols("repo_count").SetExpr("repo_count", "repo_count-1").Update(&Topic{})
 	if err != nil {
@@ -173,11 +173,11 @@ type FindTopicOptions struct {
 func (opts *FindTopicOptions) toConds() builder.Cond {
 	var cond = builder.NewCond()
 	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{RealTableName("repo_topic") + ".repo_id": opts.RepoID})
+		cond = cond.And(builder.Eq{rRepoTopic + ".repo_id": opts.RepoID})
 	}
 
 	if opts.Keyword != "" {
-		cond = cond.And(builder.Like{RealTableName("topic") + ".name", opts.Keyword})
+		cond = cond.And(builder.Like{rTopic + ".name", opts.Keyword})
 	}
 
 	return cond
@@ -185,10 +185,6 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 
 // FindTopics retrieves the topics via FindTopicOptions
 func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
-	var (
-		rTopic     = RealTableName("topic")
-		rRepoTopic = RealTableName("repo_topic")
-	)
 	sess := x.Select(rTopic + ".*").Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", rRepoTopic, rRepoTopic+".topic_id = "+rTopic+".id")
@@ -202,10 +198,8 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 // GetRepoTopicByName retrives topic from name for a repo if it exist
 func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
 	var (
-		cond       = builder.NewCond()
-		topic      Topic
-		rTopic     = RealTableName("topic")
-		rRepoTopic = RealTableName("repo_topic")
+		cond  = builder.NewCond()
+		topic Topic
 	)
 	cond = cond.And(builder.Eq{rRepoTopic + ".repo_id": repoID}).And(builder.Eq{rTopic + ".name": topicName})
 	sess := x.Table(rTopic).Where(cond)
@@ -310,10 +304,6 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 	}
 
 	topicNames = make([]string, 0, 25)
-	var (
-		rTopic     = RealTableName("topic")
-		rRepoTopic = RealTableName("repo_topic")
-	)
 	if err := sess.Table(rTopic).Cols("name").
 		Join("INNER", rRepoTopic, rRepoTopic+".topic_id = "+rTopic+".id").
 		Where(rRepoTopic+".repo_id = ?", repoID).Desc(rTopic + ".repo_count").Find(&topicNames); err != nil {

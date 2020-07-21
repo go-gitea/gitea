@@ -162,6 +162,7 @@ func NewTestEngine() (err error) {
 	if len(setting.Database.TableNamePrefix) > 0 {
 		x.SetTableMapper(names.NewPrefixMapper(x.GetTableMapper(), setting.Database.TableNamePrefix))
 	}
+	InitRealTableNameList()
 
 	x.SetLogger(NewXORMLogger(!setting.ProdMode))
 	x.ShowSQL(!setting.ProdMode)
@@ -179,6 +180,7 @@ func SetEngine() (err error) {
 	if len(setting.Database.TableNamePrefix) > 0 {
 		x.SetTableMapper(names.NewPrefixMapper(x.GetTableMapper(), setting.Database.TableNamePrefix))
 	}
+	InitRealTableNameList()
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
 	x.SetLogger(NewXORMLogger(setting.Database.LogSQL))
@@ -323,4 +325,86 @@ func FindByMaxID(maxID int64, limit int, results interface{}) error {
 // RealTableName get table name with prefix
 func RealTableName(tableName string) string {
 	return setting.Database.TableNamePrefix + tableName
+}
+
+// realtable name list
+var (
+	rAccess                  = "`access`"
+	rAction                  = "`action`"
+	rAttachment              = "`attachment`"
+	rComment                 = "`comment`"
+	rCommitStatus            = "`commit_status`"
+	rFollow                  = "`follow`"
+	rIssue                   = "`issue`"
+	rIssueAssignees          = "`issue_assignees`"
+	rIssueDependency         = "`issue_dependency`"
+	rIssueLabel              = "`issue_label`"
+	rIssueUser               = "`issue_user`"
+	rIssueWatch              = "`issue_watch`"
+	rLabel                   = "`label`"
+	rLfsMetaObject           = "`lfs_meta_object`"
+	rMilestone               = "`milestone`"
+	rNotification            = "`notification`"
+	rOauth2Application       = "`oauth2_application`"
+	rOauth2AuthorizationCode = "`oauth2_authorization_code`"
+	rOauth2Grant             = "`oauth2_grant`"
+	rOrgUser                 = "`org_user`"
+	rPullRequest             = "`pull_request`"
+	rReaction                = "`reaction`"
+	rRelease                 = "`rRelease`"
+	rRepoIndexerStatus       = "`repo_indexer_status`"
+	rRepository              = "`repository`"
+	rRepoTopic               = "`repo_topic`"
+	rRepoUnit                = "`repo_unit`"
+	rReview                  = "`review`"
+	rStar                    = "`star`"
+	rTeam                    = "`team`"
+	rTeamRepo                = "`team_repo`"
+	rTeamUnit                = "`team_unit`"
+	rTeamUser                = "`team_user`"
+	rTopic                   = "`topic`"
+	rTrackedTime             = "`tracked_time`"
+	rUser                    = "`user`"
+	rWatch                   = "`watch`"
+)
+
+// InitRealTableNameList Init realtable name list
+func InitRealTableNameList() {
+	rAccess = "`" + RealTableName("access") + "`"
+	rAction = "`" + RealTableName("action") + "`"
+	rAttachment = "`" + RealTableName("attachment") + "`"
+	rComment = "`" + RealTableName("comment") + "`"
+	rCommitStatus = "`" + RealTableName("commit_status") + "`"
+	rFollow = "`" + RealTableName("follow") + "`"
+	rIssue = "`" + RealTableName("issue") + "`"
+	rIssueAssignees = "`" + RealTableName("issue_assignees") + "`"
+	rIssueDependency = "`" + RealTableName("issue_dependency") + "`"
+	rIssueLabel = "`" + RealTableName("issue_label") + "`"
+	rIssueUser = "`" + RealTableName("issue_user") + "`"
+	rIssueWatch = "`" + RealTableName("issue_watch") + "`"
+	rLabel = "`" + RealTableName("label") + "`"
+	rLfsMetaObject = "`" + RealTableName("lfs_meta_object") + "`"
+	rMilestone = "`" + RealTableName("milestone") + "`"
+	rNotification = "`" + RealTableName("notification") + "`"
+	rOauth2Application = "`" + RealTableName("oauth2_application") + "`"
+	rOauth2AuthorizationCode = "`" + RealTableName("oauth2_authorization_code") + "`"
+	rOauth2Grant = "`" + RealTableName("oauth2_grant") + "`"
+	rOrgUser = "`" + RealTableName("org_user") + "`"
+	rPullRequest = "`" + RealTableName("pull_request") + "`"
+	rReaction = "`" + RealTableName("reaction") + "`"
+	rRelease = "`" + RealTableName("release") + "`"
+	rRepoIndexerStatus = "`" + RealTableName("repo_indexer_status") + "`"
+	rRepository = "`" + RealTableName("repository") + "`"
+	rRepoTopic = "`" + RealTableName("repo_topic") + "`"
+	rRepoUnit = "`" + RealTableName("repo_unit") + "`"
+	rReview = "`" + RealTableName("review") + "`"
+	rStar = "`" + RealTableName("star") + "`"
+	rTeam = "`" + RealTableName("team") + "`"
+	rTeamRepo = "`" + RealTableName("team_repo") + "`"
+	rTeamUnit = "`" + RealTableName("team_unit") + "`"
+	rTeamUser = "`" + RealTableName("team_user") + "`"
+	rTopic = "`" + RealTableName("topic") + "`"
+	rTrackedTime = "`" + RealTableName("tracked_time") + "`"
+	rUser = "`" + RealTableName("user") + "`"
+	rWatch = "`" + RealTableName("watch") + "`"
 }

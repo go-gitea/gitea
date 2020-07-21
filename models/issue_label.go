@@ -313,7 +313,7 @@ func GetLabelByID(id int64) (*Label, error) {
 // GetLabelsByIDs returns a list of labels by IDs
 func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
-	return labels, x.Table(RealTableName("label")).
+	return labels, x.Table(rLabel).
 		In("id", labelIDs).
 		Asc("name").
 		Cols("id").
@@ -375,7 +375,7 @@ func GetLabelInRepoByName(repoID int64, labelName string) (*Label, error) {
 // it silently ignores label names that do not belong to the repository.
 func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error) {
 	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, x.Table(RealTableName("label")).
+	return labelIDs, x.Table(rLabel).
 		Where("repo_id = ?", repoID).
 		In("name", labelNames).
 		Asc("name").
@@ -385,11 +385,6 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 
 // BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names
 func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
-	var (
-		rIssueLabel = RealTableName("issue_label")
-		rLabel      = RealTableName("label")
-	)
-
 	return builder.Select(rIssueLabel+".issue_id").
 		From(rIssueLabel).
 		InnerJoin(rLabel, rLabel+".id = "+rIssueLabel+".label_id").
@@ -503,7 +498,7 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 	}
 	labelIDs := make([]int64, 0, len(labelNames))
 
-	return labelIDs, x.Table(RealTableName("label")).
+	return labelIDs, x.Table(rLabel).
 		Where("org_id = ?", orgID).
 		In("name", labelNames).
 		Asc("name").
@@ -516,7 +511,7 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 // it silently ignores label names that do not belong to the organization.
 func GetLabelIDsInOrgsByNames(orgIDs []int64, labelNames []string) ([]int64, error) {
 	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, x.Table(RealTableName("label")).
+	return labelIDs, x.Table(rLabel).
 		In("org_id", orgIDs).
 		In("name", labelNames).
 		Asc("name").
@@ -578,11 +573,7 @@ func GetLabelsByOrgID(orgID int64, sortType string, listOptions ListOptions) ([]
 //          \/     \/            \/
 
 func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
-	var (
-		rIssueLabel = RealTableName("issue_label")
-		rLabel      = RealTableName("label")
-		labels      []*Label
-	)
+	var labels []*Label
 
 	return labels, e.Where(rIssueLabel+".issue_id = ?", issueID).
 		Join("LEFT", rIssueLabel, rIssueLabel+".label_id = "+rLabel+".id").
@@ -596,11 +587,6 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 }
 
 func updateLabelCols(e Engine, l *Label, cols ...string) error {
-	var (
-		rIssueLabel = RealTableName("issue_label")
-		rIssue      = RealTableName("issue")
-	)
-
 	_, err := e.ID(l.ID).
 		SetExpr("num_issues",
 			builder.Select("count(*)").From(rIssueLabel).

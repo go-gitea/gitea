@@ -703,7 +703,7 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 		}
 		fallthrough
 	case CommentTypeComment:
-		if _, err = e.Exec("UPDATE `"+RealTableName("issue")+"` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+		if _, err = e.Exec("UPDATE "+rIssue+" SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
 
@@ -909,12 +909,7 @@ type FindCommentsOptions struct {
 }
 
 func (opts *FindCommentsOptions) toConds() builder.Cond {
-	var (
-		cond     = builder.NewCond()
-		rIssue   = RealTableName("issue")
-		rComment = RealTableName("comment")
-	)
-
+	var cond = builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{rIssue + ".repo_id": opts.RepoID})
 	}
@@ -939,11 +934,6 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := e.Where(opts.toConds())
-	var (
-		rIssue   = RealTableName("issue")
-		rComment = RealTableName("comment")
-	)
-
 	if opts.RepoID > 0 {
 		sess.Join("INNER", rIssue, rIssue+".id = "+rComment+".issue_id")
 	}
@@ -1002,7 +992,7 @@ func DeleteComment(comment *Comment, doer *User) error {
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err := sess.Exec("UPDATE `"+RealTableName("issue")+"` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := sess.Exec("UPDATE "+rIssue+" SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
 			return err
 		}
 	}
@@ -1040,11 +1030,7 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
 
-	var (
-		comments []*Comment
-		rComment = RealTableName("comment")
-	)
-
+	var comments []*Comment
 	if err := e.Where(conds).
 		Asc(rComment + ".created_unix").
 		Asc(rComment + ".id").
@@ -1105,12 +1091,6 @@ func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	var (
-		rComment    = RealTableName("comment")
-		rIssue      = RealTableName("issue")
-		rRepository = RealTableName("repository")
-	)
-
 	_, err := x.Table(rComment).
 		Where(builder.In("issue_id",
 			builder.Select(rIssue+".id").

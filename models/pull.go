@@ -235,7 +235,7 @@ func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
 	return rCounts, sess.Select("issue_id, type, count(id) as `count`").
 		Where("official = ?", true).
 		GroupBy("issue_id, type").
-		Table(RealTableName("review")).
+		Table(rReview).
 		Find(&rCounts)
 }
 
@@ -364,11 +364,11 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, err
 	}
 
-	if _, err := sess.Exec("UPDATE `"+RealTableName("issue")+"` SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
+	if _, err := sess.Exec("UPDATE "+rIssue+" SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
 		return false, err
 	}
 
-	if _, err := sess.Exec("UPDATE `"+RealTableName("pull_request")+"` SET `issue_id` = `issue_id` WHERE `id` = ?", pr.ID); err != nil {
+	if _, err := sess.Exec("UPDATE "+rPullRequest+" SET `issue_id` = `issue_id` WHERE `id` = ?", pr.ID); err != nil {
 		return false, err
 	}
 
@@ -397,7 +397,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 	}
 
 	if _, err := pr.Issue.changeStatus(sess, pr.Merger, true, true); err != nil {
-		return false, fmt.Errorf(RealTableName("issue")+".changeStatus: %v", err)
+		return false, fmt.Errorf(rIssue+".changeStatus: %v", err)
 	}
 
 	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
@@ -468,11 +468,10 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 // by given head/base and repo/branch.
 func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string) (*PullRequest, error) {
 	pr := new(PullRequest)
-	var rIssue = RealTableName("issue")
 	has, err := x.
 		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND "+rIssue+".is_closed=?",
 			headRepoID, headBranch, baseRepoID, baseBranch, false, false).
-		Join("INNER", rIssue, rIssue+".id="+RealTableName("pull_request")+".issue_id").
+		Join("INNER", rIssue, rIssue+".id="+rPullRequest+".issue_id").
 		Get(pr)
 	if err != nil {
 		return nil, err

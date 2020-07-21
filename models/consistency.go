@@ -171,12 +171,6 @@ func (action *Action) checkForConsistency(t *testing.T) {
 
 // CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
 func CountOrphanedLabels() (int64, error) {
-	var (
-		rLabel      = RealTableName("label")
-		rRepository = RealTableName("repository")
-		rUser       = "`" + RealTableName("user") + "`"
-	)
-
 	noref, err := x.Table(rLabel).Where("repo_id=? AND org_id=?", 0, 0).Count(rLabel + ".id")
 	if err != nil {
 		return 0, err
@@ -203,12 +197,6 @@ func CountOrphanedLabels() (int64, error) {
 
 // DeleteOrphanedLabels delete labels witch are broken and not accessible via ui anymore
 func DeleteOrphanedLabels() error {
-	var (
-		rLabel      = RealTableName("label")
-		rRepository = RealTableName("repository")
-		rUser       = "`" + RealTableName("user") + "`"
-	)
-
 	// delete labels with no reference
 	if _, err := x.Table(rLabel).Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
 		return err
@@ -235,11 +223,6 @@ func DeleteOrphanedLabels() error {
 
 // CountOrphanedIssues count issues without a repo
 func CountOrphanedIssues() (int64, error) {
-	var (
-		rIssue      = RealTableName("issue")
-		rRepository = RealTableName("repository")
-	)
-
 	return x.Table(rIssue).
 		Join("LEFT", rRepository, rIssue+".repo_id="+rRepository+".id").
 		Where(builder.IsNull{rRepository + ".id"}).
@@ -254,11 +237,7 @@ func DeleteOrphanedIssues() error {
 		return err
 	}
 
-	var (
-		ids         []int64
-		rIssue      = RealTableName("issue")
-		rRepository = RealTableName("repository")
-	)
+	var ids []int64
 
 	if err := sess.Table(rIssue).Distinct(rIssue+".repo_id").
 		Join("LEFT", rRepository, rIssue+".repo_id="+rRepository+".id").

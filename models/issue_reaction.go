@@ -39,11 +39,7 @@ type FindReactionsOptions struct {
 
 func (opts *FindReactionsOptions) toConds() builder.Cond {
 	//If Issue ID is set add to Query
-	var (
-		cond      = builder.NewCond()
-		rReaction = RealTableName("reaction")
-	)
-
+	var cond = builder.NewCond()
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{rReaction + ".issue_id": opts.IssueID})
 	}
@@ -85,7 +81,6 @@ func FindIssueReactions(issue *Issue, listOptions ListOptions) (ReactionList, er
 }
 
 func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
-	var rReaction = RealTableName("reaction")
 	e = e.
 		Where(opts.toConds()).
 		In(rReaction+".`type`", setting.UI.Reactions).

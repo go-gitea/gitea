@@ -865,11 +865,6 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	// Patch Index with the value calculated by the database
 	opts.Issue.Index = inserted.Index
 
-	var (
-		rMilestone  = "`" + RealTableName("milestone") + "`"
-		rRepository = RealTableName("repository")
-	)
-
 	if opts.Issue.MilestoneID > 0 {
 		if _, err = e.Exec("UPDATE "+rMilestone+" SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
 			return err
@@ -889,9 +884,9 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	if opts.IsPull {
-		_, err = e.Exec("UPDATE `"+rRepository+"` SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
+		_, err = e.Exec("UPDATE "+rRepository+" SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
 	} else {
-		_, err = e.Exec("UPDATE `"+rRepository+"` SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
+		_, err = e.Exec("UPDATE "+rRepository+" SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
 	}
 	if err != nil {
 		return err
@@ -1045,7 +1040,7 @@ func getIssuesByIDs(e Engine, issueIDs []int64) ([]*Issue, error) {
 
 func getIssueIDsByRepoID(e Engine, repoID int64) ([]int64, error) {
 	var ids = make([]int64, 0, 10)
-	err := e.Table(RealTableName("issue")).Where("repo_id = ?", repoID).Find(&ids)
+	err := e.Table(rIssue).Where("repo_id = ?", repoID).Find(&ids)
 	return ids, err
 }
 
@@ -1081,8 +1076,6 @@ type IssuesOptions struct {
 // sortIssuesSession sort an issues-related session based on the provided
 // sortType string
 func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64) {
-	var rIssue = RealTableName("issue")
-
 	switch sortType {
 	case "oldest":
 		sess.Asc(rIssue + ".created_unix")
@@ -1109,13 +1102,6 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 }
 
 func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
-	var (
-		rIssue          = RealTableName("issue")
-		rIssueAssignees = RealTableName("issue_assignees")
-		rIssueUser      = RealTableName("issue_user")
-		rIssueLabel     = RealTableName("issue_label")
-	)
-
 	if opts.Page >= 0 && opts.PageSize > 0 {
 		var start int
 		if opts.Page == 0 {
@@ -1190,8 +1176,6 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
 func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
-	var rIssue = RealTableName("issue")
-
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -1217,11 +1201,6 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
 func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error) {
-	var (
-		rIssue      = RealTableName("issue")
-		rRepository = RealTableName("repository")
-	)
-
 	repoIDs := make([]int64, 0, 5)
 	sess := x.NewSession()
 	defer sess.Close()
@@ -1230,7 +1209,7 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error
 
 	accessCond := accessibleRepositoryCondition(user)
 	if err := sess.Where(accessCond).
-		Join("INNER", rRepository, "`"+rIssue+"`.repo_id = `"+rRepository+"`.id").
+		Join("INNER", rRepository, rIssue+".repo_id = "+rRepository+".id").
 		Distinct(rIssue + ".repo_id").
 		Table(rIssue).
 		Find(&repoIDs); err != nil {
@@ -1262,11 +1241,11 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 }
 
 // GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
-// but skips joining with `"+ RealTableName("user") + "` for performance reasons.
+// but skips joining with `user` for performance reasons.
 // User permissions must be verified elsewhere if required.
 func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
 	userIDs := make([]int64, 0, 5)
-	return userIDs, x.Table(RealTableName("comment")).
+	return userIDs, x.Table(rComment).
 		Cols("poster_id").
 		Where("issue_id = ?", issueID).
 		And("type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
@@ -1372,13 +1351,6 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats, error) {
 	stats := &IssueStats{}
 
-	var (
-		rIssue          = RealTableName("issue")
-		rIssueLabel     = RealTableName("issue_label")
-		rIssueUser      = RealTableName("issue_user")
-		rIssueAssignees = RealTableName("issue_assignees")
-	)
-
 	countSession := func(opts *IssueStatsOptions) *xorm.Session {
 		sess := x.
 			Where(rIssue+".repo_id = ?", opts.RepoID)
@@ -1458,13 +1430,7 @@ type UserIssueStatsOptions struct {
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
 func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
-	var (
-		err             error
-		rIssue          = RealTableName("issue")
-		rIssueAssignees = RealTableName("issue_assignees")
-		rIssueUser      = RealTableName("issue_user")
-	)
-
+	var err error
 	stats := &IssueStats{}
 
 	cond := builder.NewCond()
@@ -1583,11 +1549,6 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 	openCountSession := countSession(false, isPull, repoID)
 	closedCountSession := countSession(true, isPull, repoID)
 
-	var (
-		rIssue          = RealTableName("issue")
-		rIssueAssignees = RealTableName("issue_assignees")
-	)
-
 	switch filterMode {
 	case FilterModeAssign:
 		openCountSession.Join("INNER", rIssueAssignees, rIssue+".id = "+rIssueAssignees+".issue_id").
@@ -1608,14 +1569,14 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 // SearchIssueIDsByKeyword search issues on database
 func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
 	var repoCond = builder.In("repo_id", repoIDs)
-	var subQuery = builder.Select("id").From(RealTableName("issue")).Where(repoCond)
+	var subQuery = builder.Select("id").From(rIssue).Where(repoCond)
 	var cond = builder.And(
 		repoCond,
 		builder.Or(
 			builder.Like{"name", kw},
 			builder.Like{"content", kw},
 			builder.In("id", builder.Select("issue_id").
-				From(RealTableName("comment")).
+				From(rComment).
 				Where(builder.And(
 					builder.Eq{"type": CommentTypeComment},
 					builder.In("issue_id", subQuery),
@@ -1626,12 +1587,12 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	)
 
 	var ids = make([]int64, 0, limit)
-	err := x.Distinct("id").Table(RealTableName("issue")).Where(cond).Limit(limit, start).Find(&ids)
+	err := x.Distinct("id").Table(rIssue).Where(cond).Limit(limit, start).Find(&ids)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	total, err := x.Distinct("id").Table(RealTableName("issue")).Where(cond).Count()
+	total, err := x.Distinct("id").Table(rIssue).Where(cond).Count()
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1733,19 +1694,13 @@ func (issue *Issue) getParticipantIDsByIssue(e Engine) ([]int64, error) {
 	if issue == nil {
 		return nil, nil
 	}
-
-	var (
-		rComment = RealTableName("comment")
-		rUser    = RealTableName("user")
-	)
-
 	userIDs := make([]int64, 0, 5)
 	if err := e.Table(rComment).Cols("poster_id").
-		Where("`"+rComment+"`.issue_id = ?", issue.ID).
-		And("`"+rComment+"`.type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
-		And("`"+rUser+"`.is_active = ?", true).
-		And("`"+rUser+"`.prohibit_login = ?", false).
-		Join("INNER", "`"+rUser+"`", "`"+rUser+"`.id = `"+rComment+"`.poster_id").
+		Where(rComment+".issue_id = ?", issue.ID).
+		And(rComment+".type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
+		And(rUser+".is_active = ?", true).
+		And(rUser+".prohibit_login = ?", false).
+		Join("INNER", rUser, rUser+".id = "+rComment+".poster_id").
 		Distinct("poster_id").
 		Find(&userIDs); err != nil {
 		return nil, fmt.Errorf("get poster IDs: %v", err)
@@ -1758,11 +1713,6 @@ func (issue *Issue) getParticipantIDsByIssue(e Engine) ([]int64, error) {
 
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
 func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
-	var (
-		rIssue           = RealTableName("issue")
-		rRepository      = RealTableName("repository")
-		rIssueDependency = RealTableName("issue_dependency")
-	)
 	return issueDeps, e.
 		Table(rIssue).
 		Join("INNER", rRepository, rRepository+".id = "+rIssue+".repo_id").
@@ -1775,12 +1725,6 @@ func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyI
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
 func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
-	var (
-		rIssue           = RealTableName("issue")
-		rRepository      = RealTableName("repository")
-		rIssueDependency = RealTableName("issue_dependency")
-	)
-
 	return issueDeps, e.
 		Table(rIssue).
 		Join("INNER", rRepository, rRepository+".id = "+rIssue+".repo_id").
@@ -1802,13 +1746,8 @@ func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
 }
 
 func (issue *Issue) updateClosedNum(e Engine) (err error) {
-	var (
-		rIssue      = RealTableName("issue")
-		rRepository = RealTableName("repository")
-	)
-
 	if issue.IsPull {
-		_, err = e.Exec("UPDATE `"+rRepository+"` SET num_closed_pulls=(SELECT count(*) FROM "+rIssue+" WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+		_, err = e.Exec("UPDATE "+rRepository+" SET num_closed_pulls=(SELECT count(*) FROM "+rIssue+" WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
 			issue.RepoID,
 			true,
 			true,
@@ -1818,7 +1757,7 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 		return
 	}
 
-	_, err = e.Exec("UPDATE `"+rRepository+"` SET num_closed_issues=(SELECT count(*) FROM "+rIssue+" WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+	_, err = e.Exec("UPDATE "+rRepository+" SET num_closed_issues=(SELECT count(*) FROM "+rIssue+" WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
 		issue.RepoID,
 		false,
 		true,
@@ -1852,13 +1791,6 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 	if err := issue.Repo.getOwner(ctx.e); err != nil {
 		return nil, err
 	}
-
-	var (
-		rTeamRepo = RealTableName("team_repo")
-		rTeam     = RealTableName("team")
-		rTeamUser = RealTableName("team_user")
-		rUser     = "`" + RealTableName("user") + "`"
-	)
 
 	if issue.Repo.Owner.IsOrganization() {
 		// Since there can be users with names that match the name of a team,
@@ -1896,10 +1828,10 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 			if len(checked) != 0 {
 				teamusers := make([]*User, 0, 20)
 				if err := ctx.e.
-					Join("INNER", rTeamUser, rTeamUser+".uid = `"+RealTableName("user")+"`.id").
-					In("`"+rTeamUser+"`.team_id", checked).
-					And("`"+RealTableName("user")+"`.is_active = ?", true).
-					And("`"+RealTableName("user")+"`.prohibit_login = ?", false).
+					Join("INNER", rTeamUser, rTeamUser+".uid = "+rUser+".id").
+					In(rTeamUser+".team_id", checked).
+					And(rUser+".is_active = ?", true).
+					And(rUser+".prohibit_login = ?", false).
 					Find(&teamusers); err != nil {
 					return nil, fmt.Errorf("get teams users: %v", err)
 				}
@@ -1955,7 +1887,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 
 // UpdateIssuesMigrationsByType updates all migrated repositories' issues from gitServiceType to replace originalAuthorID to posterID
 func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := x.Table(RealTableName("issue")).
+	_, err := x.Table(rIssue).
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
 		Update(map[string]interface{}{
@@ -1968,7 +1900,7 @@ func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, origina
 
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
 func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, userID int64) error {
-	_, err := x.Table(RealTableName("reaction")).
+	_, err := x.Table(rReaction).
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(gitServiceType)).
 		Update(map[string]interface{}{
@@ -1980,8 +1912,6 @@ func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, orig
 }
 
 func deleteIssuesByRepoID(sess Engine, repoID int64) (attachmentPaths []string, err error) {
-	rIssue := RealTableName("issue")
-
 	deleteCond := builder.Select("id").From(rIssue).Where(builder.Eq{rIssue + ".repo_id": repoID})
 
 	// Delete comments and attachments

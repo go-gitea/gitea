@@ -203,10 +203,8 @@ func (stats *ActivityStats) PublishedReleaseCount() int {
 // FillPullRequests returns pull request information for activity page
 func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) error {
 	var (
-		err          error
-		count        int64
-		rPullRequest = RealTableName("pull_request")
-		rIssue       = RealTableName("issue")
+		err   error
+		count int64
 	)
 
 	// Merged pull requests
@@ -252,10 +250,6 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 }
 
 func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged bool) *xorm.Session {
-	var (
-		rPullRequest = RealTableName("pull_request")
-		rIssue       = RealTableName("issue")
-	)
 	sess := x.Where(rPullRequest+".base_repo_id=?", repoID).
 		Join("INNER", rIssue, rPullRequest+".issue_id = "+rIssue+".id")
 
@@ -273,9 +267,8 @@ func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged b
 // FillIssues returns issue information for activity page
 func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 	var (
-		err    error
-		count  int64
-		rIssue = RealTableName("issue")
+		err   error
+		count int64
 	)
 
 	// Closed issues
@@ -323,15 +316,14 @@ func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Tim
 	}
 	sess := issuesForActivityStatement(repoID, fromTime, false, true)
 	if !issues || !prs {
-		sess.And(RealTableName("issue")+".is_pull = ?", prs)
+		sess.And(rIssue+".is_pull = ?", prs)
 	}
-	sess.OrderBy(RealTableName("issue") + ".updated_unix DESC")
+	sess.OrderBy(rIssue + ".updated_unix DESC")
 	stats.UnresolvedIssues = make(IssueList, 0)
 	return sess.Find(&stats.UnresolvedIssues)
 }
 
 func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unresolved bool) *xorm.Session {
-	var rIssue = RealTableName("issue")
 	sess := x.Where(rIssue+".repo_id = ?", repoID).
 		And(rIssue+".is_closed = ?", closed)
 
@@ -353,9 +345,8 @@ func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unreso
 // FillReleases returns release information for activity page
 func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error {
 	var (
-		err      error
-		count    int64
-		rRelease = RealTableName("release")
+		err   error
+		count int64
 	)
 
 	// Published releases list
@@ -379,7 +370,6 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 }
 
 func releasesForActivityStatement(repoID int64, fromTime time.Time) *xorm.Session {
-	var rRelease = RealTableName("release")
 	return x.Where(rRelease+".repo_id = ?", repoID).
 		And(rRelease+".is_draft = ?", false).
 		And(rRelease+".created_unix >= ?", fromTime.Unix())

@@ -133,10 +133,10 @@ func (issues IssueList) loadLabels(e Engine) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.Table(RealTableName("label")).
-			Join("LEFT", RealTableName("issue_label"), RealTableName("issue_label")+".label_id = "+RealTableName("label")+".id").
-			In(RealTableName("issue_label")+".issue_id", issueIDs[:limit]).
-			Asc(RealTableName("label") + ".name").
+		rows, err := e.Table(rLabel).
+			Join("LEFT", rIssueLabel, rIssueLabel+".label_id = "+rLabel+".id").
+			In(rIssueLabel+".issue_id", issueIDs[:limit]).
+			Asc(rLabel + ".name").
 			Rows(new(LabelIssue))
 		if err != nil {
 			return err
@@ -225,9 +225,9 @@ func (issues IssueList) loadAssignees(e Engine) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.Table(RealTableName("issue_assignees")).
-			Join("INNER", "`"+RealTableName("user")+"`", "`"+RealTableName("user")+"`.id = `"+RealTableName("issue_assignees")+"`.assignee_id").
-			In("`"+RealTableName("issue_assignees")+"`.issue_id", issueIDs[:limit]).
+		rows, err := e.Table(rIssueAssignees).
+			Join("INNER", rUser, rUser+".id = "+rIssueAssignees+".assignee_id").
+			In(rIssueAssignees+".issue_id", issueIDs[:limit]).
 			Rows(new(AssigneeIssue))
 		if err != nil {
 			return err
@@ -325,9 +325,9 @@ func (issues IssueList) loadAttachments(e Engine) (err error) {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.Table(RealTableName("attachment")).
-			Join("INNER", RealTableName("issue"), RealTableName("issue")+".id = "+RealTableName("attachment")+".issue_id").
-			In(RealTableName("issue")+".id", issuesIDs[:limit]).
+		rows, err := e.Table(rAttachment).
+			Join("INNER", rIssue, rIssue+".id = "+rAttachment+".issue_id").
+			In(rIssue+".id", issuesIDs[:limit]).
 			Rows(new(Attachment))
 		if err != nil {
 			return err
@@ -370,9 +370,9 @@ func (issues IssueList) loadComments(e Engine, cond builder.Cond) (err error) {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.Table(RealTableName("comment")).
-			Join("INNER", RealTableName("issue"), RealTableName("issue")+".id = "+RealTableName("comment")+".issue_id").
-			In(RealTableName("issue")+".id", issuesIDs[:limit]).
+		rows, err := e.Table(rComment).
+			Join("INNER", rIssue, rIssue+".id = "+rComment+".issue_id").
+			In(rIssue+".id", issuesIDs[:limit]).
 			Where(cond).
 			Rows(new(Comment))
 		if err != nil {
@@ -428,7 +428,7 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 		}
 
 		// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
-		rows, err := e.Table(RealTableName("tracked_time")).
+		rows, err := e.Table(rTrackedTime).
 			Where("deleted = ?", false).
 			Select("issue_id, sum(time) as time").
 			In("issue_id", ids[:limit]).
@@ -465,31 +465,31 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 // loadAttributes loads all attributes, expect for attachments and comments
 func (issues IssueList) loadAttributes(e Engine) error {
 	if _, err := issues.loadRepositories(e); err != nil {
-		return fmt.Errorf(RealTableName("issue")+".loadAttributes: loadRepositories: %v", err)
+		return fmt.Errorf(rIssue+".loadAttributes: loadRepositories: %v", err)
 	}
 
 	if err := issues.loadPosters(e); err != nil {
-		return fmt.Errorf(RealTableName("issue")+".loadAttributes: loadPosters: %v", err)
+		return fmt.Errorf(rIssue+".loadAttributes: loadPosters: %v", err)
 	}
 
 	if err := issues.loadLabels(e); err != nil {
-		return fmt.Errorf(RealTableName("issue")+".loadAttributes: loadLabels: %v", err)
+		return fmt.Errorf(rIssue+".loadAttributes: loadLabels: %v", err)
 	}
 
 	if err := issues.loadMilestones(e); err != nil {
-		return fmt.Errorf(RealTableName("issue")+".loadAttributes: loadMilestones: %v", err)
+		return fmt.Errorf(rIssue+".loadAttributes: loadMilestones: %v", err)
 	}
 
 	if err := issues.loadAssignees(e); err != nil {
-		return fmt.Errorf(RealTableName("issue")+".loadAttributes: loadAssignees: %v", err)
+		return fmt.Errorf(rIssue+".loadAttributes: loadAssignees: %v", err)
 	}
 
 	if err := issues.loadPullRequests(e); err != nil {
-		return fmt.Errorf(RealTableName("issue")+".loadAttributes: loadPullRequests: %v", err)
+		return fmt.Errorf(rIssue+".loadAttributes: loadPullRequests: %v", err)
 	}
 
 	if err := issues.loadTotalTrackedTimes(e); err != nil {
-		return fmt.Errorf(RealTableName("issue")+".loadAttributes: loadTotalTrackedTimes: %v", err)
+		return fmt.Errorf(rIssue+".loadAttributes: loadTotalTrackedTimes: %v", err)
 	}
 
 	return nil
@@ -513,7 +513,7 @@ func (issues IssueList) LoadComments() error {
 
 // LoadDiscussComments loads discuss comments
 func (issues IssueList) LoadDiscussComments() error {
-	return issues.loadComments(x, builder.Eq{RealTableName("comment") + ".type": CommentTypeComment})
+	return issues.loadComments(x, builder.Eq{rComment + ".type": CommentTypeComment})
 }
 
 // GetApprovalCounts returns a map of issue ID to slice of approval counts
@@ -533,7 +533,7 @@ func (issues IssueList) getApprovalCounts(e Engine) (map[int64][]*ReviewCount, e
 		Where("official = ?", true).
 		GroupBy("issue_id, type").
 		OrderBy("issue_id").
-		Table(RealTableName("review")).
+		Table(rReview).
 		Find(&rCounts)
 	if err != nil {
 		return nil, err

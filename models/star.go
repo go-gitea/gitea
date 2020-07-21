@@ -20,11 +20,6 @@ func StarRepo(userID, repoID int64, star bool) error {
 		return err
 	}
 
-	var (
-		rUser       = "`" + RealTableName("user") + "`"
-		rRepository = "`" + RealTableName("repository") + "`"
-	)
-
 	if star {
 		if isStaring(sess, userID, repoID) {
 			return nil
@@ -70,9 +65,8 @@ func isStaring(e Engine, userID, repoID int64) bool {
 
 // GetStargazers returns the users that starred the repo.
 func (repo *Repository) GetStargazers(opts ListOptions) ([]*User, error) {
-	var rStar = RealTableName("star")
 	sess := x.Where(rStar+".repo_id = ?", repo.ID).
-		Join("LEFT", rStar, "`"+RealTableName("user")+"`.id = "+rStar+".uid")
+		Join("LEFT", rStar, rUser+".id = "+rStar+".uid")
 	if opts.Page > 0 {
 		sess = opts.setSessionPagination(sess)
 
@@ -89,9 +83,8 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 	if len(orderBy) == 0 {
 		orderBy = "updated_unix DESC"
 	}
-	var rStar = RealTableName("star")
 	sess := x.
-		Join("INNER", rStar, rStar+".repo_id = "+RealTableName("repository")+".id").
+		Join("INNER", rStar, rStar+".repo_id = "+rRepository+".id").
 		Where(rStar+".uid = ?", u.ID).
 		OrderBy(orderBy)
 
@@ -119,9 +112,8 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 
 // GetStarredRepoCount returns the numbers of repo the user starred.
 func (u *User) GetStarredRepoCount(private bool) (int64, error) {
-	var rStar = RealTableName("star")
 	sess := x.
-		Join("INNER", rStar, rStar+".repo_id = "+RealTableName("repository")+".id").
+		Join("INNER", rStar, rStar+".repo_id = "+rRepository+".id").
 		Where(rStar+".uid = ?", u.ID)
 
 	if !private {

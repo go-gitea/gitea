@@ -399,12 +399,6 @@ func (comments CommentList) loadAttachments(e Engine) (err error) {
 		if left < limit {
 			limit = left
 		}
-
-		var (
-			rComment    = RealTableName("comment")
-			rAttachment = RealTableName("attachment")
-		)
-
 		rows, err := e.Table(rAttachment).
 			Join("INNER", rComment, rComment+".id = "+rAttachment+".comment_id").
 			In(rComment+".id", commentsIDs[:limit]).

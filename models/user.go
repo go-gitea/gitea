@@ -447,10 +447,9 @@ func (u *User) AvatarLink() string {
 
 // GetFollowers returns range of user's followers.
 func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
-	var rFollow = RealTableName("follow")
 	sess := x.
 		Where(rFollow+".follow_id=?", u.ID).
-		Join("LEFT", rFollow, "`"+RealTableName("user")+"`.id="+rFollow+".user_id")
+		Join("LEFT", rFollow, rUser+".id="+rFollow+".user_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -470,10 +469,9 @@ func (u *User) IsFollowing(followID int64) bool {
 
 // GetFollowing returns range of user's following.
 func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
-	var rFollow = RealTableName("follow")
 	sess := x.
 		Where(rFollow+".user_id=?", u.ID).
-		Join("LEFT", rFollow, "`"+RealTableName("user")+"`.id="+rFollow+".follow_id")
+		Join("LEFT", rFollow, rUser+".id="+rFollow+".follow_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -656,11 +654,7 @@ func (u *User) GetRepositories(listOpts ListOptions) (err error) {
 // GetRepositoryIDs returns repositories IDs where user owned and has unittypes
 // Caller shall check that units is not globally disabled
 func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
-	var (
-		ids         []int64
-		rRepository = RealTableName("repository")
-		rRepoUnit   = RealTableName("repo_unit")
-	)
+	var ids []int64
 
 	sess := x.Table(rRepository).Cols(rRepository + ".id")
 
@@ -675,13 +669,7 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 // GetOrgRepositoryIDs returns repositories IDs where user's team owned and has unittypes
 // Caller shall check that units is not globally disabled
 func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
-	var (
-		ids         []int64
-		rRepository = RealTableName("repository")
-		rTeamUser   = RealTableName("team_user")
-		rTeamRepo   = RealTableName("team_repo")
-	)
-
+	var ids []int64
 	if err := x.Table(rRepository).
 		Cols(rRepository+".id").
 		Join("INNER", rTeamUser, rRepository+".owner_id = "+rTeamUser+".org_id").
@@ -739,12 +727,6 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	groupByStr := groupByCols.String()
 	groupByStr = groupByStr[0 : len(groupByStr)-1]
 
-	var (
-		rUser       = "`" + RealTableName("user") + "`"
-		rRepository = RealTableName("repository")
-		rOrgUser    = RealTableName("org_user")
-	)
-
 	sess.Select(rUser+".*, count(repo_id) as org_count").
 		Table(rUser).
 		Join("INNER", rOrgUser, rOrgUser+".org_id="+rUser+".id").
@@ -764,7 +746,7 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	orgCounts := make([]*OrgCount, 0, 10)
 
 	if err := sess.
-		Asc("`" + RealTableName("user") + "`.name").
+		Asc(rUser + ".name").
 		Find(&orgCounts); err != nil {
 		return err
 	}
@@ -1115,7 +1097,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `"+RealTableName("repository")+"` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+	if _, err = sess.Exec("UPDATE "+rRepository+" SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
 		return fmt.Errorf("Change repo owner name: %v", err)
 	}
 
@@ -1203,12 +1185,6 @@ func deleteUser(e *xorm.Session, u *User) error {
 	} else if count > 0 {
 		return ErrUserHasOrgs{UID: u.ID}
 	}
-
-	var (
-		rWatch  = RealTableName("watch")
-		rStar   = RealTableName("star")
-		rFollow = RealTableName("follow")
-	)
 
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
@@ -1463,7 +1439,7 @@ func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
 func GetUserNamesByIDs(ids []int64) ([]string, error) {
 	unames := make([]string, 0, len(ids))
 	err := x.In("id", ids).
-		Table(RealTableName("user")).
+		Table(rUser).
 		Asc("name").
 		Cols("name").
 		Find(&unames)
@@ -1636,11 +1612,6 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
-	var (
-		rOrgUser = RealTableName("org_user")
-		rUser    = RealTableName("user")
-	)
-
 	if opts.Actor != nil {
 		var exprCond builder.Cond
 		if setting.Database.UseMySQL {
@@ -1699,9 +1670,8 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 
 // GetStarredRepos returns the repos starred by a particular user
 func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
-	var rStar = RealTableName("star")
 	sess := x.Where(rStar+".uid=?", userID).
-		Join("LEFT", rStar, "`"+RealTableName("repository")+"`.id=`"+rStar+"`.repo_id")
+		Join("LEFT", rStar, rRepository+".id="+rStar+".repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
 	}
@@ -1719,10 +1689,9 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 
 // GetWatchedRepos returns the repos watched by a particular user
 func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
-	var rWatch = RealTableName("watch")
 	sess := x.Where(rWatch+".user_id=?", userID).
-		And("`"+rWatch+"`.mode<>?", RepoWatchModeDont).
-		Join("LEFT", rWatch, "`"+RealTableName("repository")+"`.id=`"+rWatch+"`.repo_id")
+		And(rWatch+".mode<>?", RepoWatchModeDont).
+		Join("LEFT", rWatch, rRepository+".id="+rWatch+".repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
 	}

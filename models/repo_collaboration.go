@@ -146,7 +146,7 @@ func (repo *Repository) changeCollaborationAccessMode(e Engine, uid int64, mode 
 		Cols("mode").
 		Update(collaboration); err != nil {
 		return fmt.Errorf("update collaboration: %v", err)
-	} else if _, err = e.Exec("UPDATE "+RealTableName("access")+" SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
+	} else if _, err = e.Exec("UPDATE "+rAccess+" SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
 		return fmt.Errorf("update access table: %v", err)
 	}
 
@@ -214,7 +214,7 @@ func (repo *Repository) reconsiderIssueAssignees(e Engine, uid int64) error {
 	}
 
 	if _, err := e.Where(builder.Eq{"assignee_id": uid}).
-		In("issue_id", builder.Select("id").From(RealTableName("issue")).Where(builder.Eq{"repo_id": repo.ID})).
+		In("issue_id", builder.Select("id").From(rIssue).Where(builder.Eq{"repo_id": repo.ID})).
 		Delete(&IssueAssignees{}); err != nil {
 		return fmt.Errorf("Could not delete assignee[%d] %v", uid, err)
 	}
@@ -235,10 +235,6 @@ func (repo *Repository) reconsiderWatches(e Engine, uid int64) error {
 }
 
 func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
-	var (
-		rTeamRepo = RealTableName("team_repo")
-		rTeam     = RealTableName("team")
-	)
 	return teams, e.
 		Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeam+".id").
 		Where(rTeam+".org_id = ?", repo.OwnerID).
@@ -257,11 +253,6 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	var (
-		rTeamRepo = RealTableName("team_repo")
-		rTeamUser = RealTableName("team_user")
-		rTeamUnit = RealTableName("team_unit")
-	)
 	teamMember, err := x.Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeamUser+".team_id").
 		Join("INNER", rTeamUnit, rTeamUnit+".team_id = "+rTeamUser+".team_id").
 		Where(rTeamRepo+".repo_id = ?", repo.ID).

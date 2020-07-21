@@ -236,10 +236,6 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 		return fmt.Errorf("cannot find oauth2 application")
 	}
 	codes := make([]*OAuth2AuthorizationCode, 0)
-	var (
-		rOauth2AuthorizationCode = RealTableName("oauth2_authorization_code")
-		rOauth2Grant             = RealTableName("oauth2_grant")
-	)
 	// delete correlating auth codes
 	if err := sess.Join("INNER", rOauth2Grant,
 		rOauth2AuthorizationCode+".grant_id = "+rOauth2Grant+".id AND "+rOauth2Grant+".application_id = ?", id).
@@ -464,9 +460,9 @@ func getOAuth2GrantsByUserID(e Engine, uid int64) ([]*OAuth2Grant, error) {
 	var results *xorm.Rows
 	var err error
 	if results, err = e.
-		Table(RealTableName("oauth2_grant")).
+		Table(rOauth2Grant).
 		Where("user_id = ?", uid).
-		Join("INNER", RealTableName("oauth2_application"), "application_id = "+RealTableName("oauth2_application")+".id").
+		Join("INNER", rOauth2Application, "application_id = "+rOauth2Application+".id").
 		Rows(new(joinedOAuth2Grant)); err != nil {
 		return nil, err
 	}
