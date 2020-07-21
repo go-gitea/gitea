@@ -21,6 +21,10 @@ server: $(THEME)
 build: $(THEME)
 	hugo --cleanDestinationDir
 
+.PHONY: build-offline
+build-offline: $(THEME)
+	hugo --baseURL="/" --cleanDestinationDir
+
 .PHONY: update
 update: $(THEME)
 
