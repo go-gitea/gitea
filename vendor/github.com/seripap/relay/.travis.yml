@@ -1,0 +1,15 @@
+language: go
+
+go:
+  - 1.11.x
+env:
+  global: 
+    - GO111MODULE=on
+script:
+  - go test -parallel 50 -v -covermode=count -coverprofile=coverage.out `go list ./... | grep -v /vendor/`
+  - go clean && go build -ldflags="-s -w"
+install:
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/mattn/goveralls
+after_script:
+  - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci

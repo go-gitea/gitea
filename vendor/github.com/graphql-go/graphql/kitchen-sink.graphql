@@ -1,0 +1,52 @@
+# Filename: kitchen-sink.graphql
+
+query namedQuery($foo: ComplexFooType, $bar: Bar = DefaultBarValue) {
+  customUser: user(id: [987, 654]) {
+    id,
+    ... on User @defer {
+      field2 {
+        id ,
+        alias: field1(first:10, after:$foo,) @include(if: $foo) {
+          id,
+          ...frag
+        }
+      }
+    }
+    ... @skip(unless: $foo) {
+      id
+    }
+    ... {
+      id
+    }
+  }
+}
+
+mutation favPost {
+  fav(post: 123) @defer {
+    post {
+      id
+    }
+  }
+}
+
+subscription PostFavSubscription($input: StoryLikeSubscribeInput) {
+  postFavSubscribe(input: $input) {
+    post {
+      favers {
+        count
+      }
+      favSentence {
+        text
+      }
+    }
+  }
+}
+
+fragment frag on Follower {
+  foo(size: $size, bar: $b, obj: {key: "value"})
+}
+
+{
+  unnamed(truthyVal: true, falseyVal: false),
+  query
+}
