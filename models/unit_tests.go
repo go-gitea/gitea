@@ -102,6 +102,8 @@ func CreateTestEngine(fixturesDir string) error {
 		x.ShowSQL(true)
 	}
 
+	InitRealTableNameList()
+
 	return InitFixtures(fixturesDir)
 }
 
