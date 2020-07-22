@@ -713,6 +713,12 @@ func NewContext() {
 		} else if err = os.MkdirAll(SSH.KeyTestPath, 0644); err != nil {
 			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
 		}
+
+		trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
+		if err := ioutil.WriteFile(filepath.Join(SSH.RootPath, "trusted-user-ca-keys.pem"),
+			[]byte(strings.Join(trustedUserCaKeys, "\n")), 0600); err != nil {
+			log.Fatal("Failed to create '%s': %v", filepath.Join(SSH.RootPath, "trusted-user-ca-keys.pem"), err)
+		}
 	}
 
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool()
