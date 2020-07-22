@@ -158,8 +158,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 				newCommitID: gitShortEmptySha,
 			})
 		case strings.HasPrefix(lines[i], " + "): // Force update
-			idx := strings.Index(refName, " ")
-			if idx > -1 {
+			if idx := strings.Index(refName, " "); idx > -1 {
 				refName = refName[:idx]
 			}
 			delimIdx := strings.Index(lines[i][3:], " ")
