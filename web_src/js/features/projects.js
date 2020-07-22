@@ -23,8 +23,7 @@ export default async function initProject() {
             contentType: 'application/json',
             type: 'POST',
             error: () => {
-              // ToDo: if backend respond with an error (because user has no right to move a issue - or somethinge else)
-              // move the issue back to the old board
+              e.from.insertBefore(e.item, e.from.children[e.oldIndex]);
             },
           });
         },
