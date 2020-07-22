@@ -56,7 +56,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 			}
 			prs = append(prs, p)
 		} else {
-			prs, err = models.GetPullRequestByHeadBranch(branch, repo)
+			prs, err = models.GetPullRequestByHeadBranch(branch, repo, models.PullRequestStatusMergeable)
 			if err != nil {
 				// If there is no pull request for this branch, we don't try to merge it.
 				if models.IsErrPullRequestNotExist(err) {
