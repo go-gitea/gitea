@@ -761,7 +761,7 @@ async function initRepository() {
       const gitignores = $('input[name="gitignores"]').prop('checked');
       const license = $('input[name="license"]').prop('checked');
       if (gitignores || license) {
-          $('input[name="auto_init"]').prop('checked', true);
+        $('input[name="auto_init"]').prop('checked', true);
       }
     });
   }
