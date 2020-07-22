@@ -30,8 +30,7 @@ func ScheduleAutoMerge(opts *ScheduledPullRequestMerge) (err error) {
 
 	opts.UserID = opts.User.ID
 
-	_, err = x.Insert(opts)
-	if err != nil {
+	if _, err = x.Insert(opts); err != nil {
 		return
 	}
 
