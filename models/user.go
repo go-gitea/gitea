@@ -1614,23 +1614,24 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if opts.Actor != nil {
 		var exprCond builder.Cond
+		var rUser2 = rUser[1 : len(rUser)-1]
 		if setting.Database.UseMySQL {
-			exprCond = builder.Expr(rOrgUser + ".org_id = " + rUser + ".id")
+			exprCond = builder.Expr(rOrgUser + ".org_id = " + rUser2 + ".id")
 		} else if setting.Database.UseMSSQL {
-			exprCond = builder.Expr(rOrgUser + ".org_id = [" + rUser + "].id")
+			exprCond = builder.Expr(rOrgUser + ".org_id = [" + rUser2 + "].id")
 		} else {
-			exprCond = builder.Expr(rOrgUser + ".org_id = \"" + rUser + "\".id")
+			exprCond = builder.Expr(rOrgUser + ".org_id = \"" + rUser2 + "\".id")
 		}
 		var accessCond = builder.NewCond()
 		if !opts.Actor.IsRestricted {
 			accessCond = builder.Or(
-				builder.In("id", builder.Select("org_id").From(rOrgUser).LeftJoin("`"+rUser+"`", exprCond).
+				builder.In("id", builder.Select("org_id").From(rOrgUser).LeftJoin(rUser, exprCond).
 					Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
 				builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 		} else {
 			// restricted users only see orgs they are a member of
 			accessCond = builder.In("id", builder.Select("org_id").From(rOrgUser).
-				LeftJoin("`"+rUser+"`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
+				LeftJoin(rUser, exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
 		}
 		cond = cond.And(accessCond)
 	}
