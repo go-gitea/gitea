@@ -56,7 +56,7 @@ func RepositoryByIdResolver(id string, goCtx context.Context) (interface{}, erro
 		return nil, err
 	}
 
-	gqlRepo := repo.GqlFormat(models.AccessModeRead)
+	gqlRepo := convert.ToGqlRepository(repo, models.AccessModeRead)
 	return *gqlRepo, nil
 }
 
@@ -106,7 +106,7 @@ func RepositoryResolver(p graphql.ResolveParams) (interface{}, error) {
 			return nil, err
 		}
 
-		gqlRepo := repo.GqlFormat(models.AccessModeRead)
+		gqlRepo := convert.ToGqlRepository(repo, models.AccessModeRead)
 		return *gqlRepo, nil
 	}
 

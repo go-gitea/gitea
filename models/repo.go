@@ -277,53 +277,6 @@ func (repo *Repository) APIFormat(mode AccessMode) *api.Repository {
 	return repo.innerAPIFormat(x, mode, false)
 }
 
-// GqlFormat converts a Repository to api.GqlRepository
-func (repo *Repository) GqlFormat(mode AccessMode) *api.GqlRepository {
-	apiRepo := repo.innerAPIFormat(x, mode, false)
-	return &api.GqlRepository{
-		ID:                        apiRepo.ID,
-		Owner:                     apiRepo.Owner,
-		Name:                      apiRepo.Name,
-		FullName:                  apiRepo.FullName,
-		Description:               apiRepo.Description,
-		Private:                   apiRepo.Private,
-		Template:                  apiRepo.Template,
-		Empty:                     apiRepo.Empty,
-		Archived:                  apiRepo.Archived,
-		Size:                      apiRepo.Size,
-		Fork:                      apiRepo.Fork,
-		Parent:                    apiRepo.Parent,
-		Mirror:                    apiRepo.Mirror,
-		HTMLURL:                   apiRepo.HTMLURL,
-		SSHURL:                    apiRepo.SSHURL,
-		CloneURL:                  apiRepo.CloneURL,
-		Website:                   apiRepo.Website,
-		Stars:                     apiRepo.Stars,
-		Forks:                     apiRepo.Forks,
-		Watchers:                  apiRepo.Watchers,
-		OpenIssues:                apiRepo.OpenIssues,
-		OpenPulls:                 apiRepo.OpenPulls,
-		Releases:                  apiRepo.Releases,
-		DefaultBranch:             apiRepo.DefaultBranch,
-		Created:                   apiRepo.Created,
-		Updated:                   apiRepo.Updated,
-		Permissions:               apiRepo.Permissions,
-		HasIssues:                 apiRepo.HasIssues,
-		ExternalTracker:           apiRepo.ExternalTracker,
-		InternalTracker:           apiRepo.InternalTracker,
-		HasWiki:                   apiRepo.HasWiki,
-		ExternalWiki:              apiRepo.ExternalWiki,
-		HasPullRequests:           apiRepo.HasPullRequests,
-		IgnoreWhitespaceConflicts: apiRepo.IgnoreWhitespaceConflicts,
-		AllowMerge:                apiRepo.AllowMerge,
-		AllowRebase:               apiRepo.AllowRebase,
-		AllowRebaseMerge:          apiRepo.AllowRebaseMerge,
-		AllowSquash:               apiRepo.AllowSquash,
-		AvatarURL:                 apiRepo.AvatarURL,
-		Internal:                  apiRepo.Internal,
-	}
-}
-
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
 func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) string {
 	var prefix string

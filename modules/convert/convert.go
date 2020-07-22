@@ -413,3 +413,50 @@ func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
 		Created:      app.CreatedUnix.AsTime(),
 	}
 }
+
+// ToGqlRepository convert from models.Repository to api.GqlRepository
+func ToGqlRepository(repo *models.Repository, mode models.AccessMode) *api.GqlRepository {
+	apiRepo := repo.APIFormat(mode)
+	return &api.GqlRepository{
+		ID:                        apiRepo.ID,
+		Owner:                     apiRepo.Owner,
+		Name:                      apiRepo.Name,
+		FullName:                  apiRepo.FullName,
+		Description:               apiRepo.Description,
+		Private:                   apiRepo.Private,
+		Template:                  apiRepo.Template,
+		Empty:                     apiRepo.Empty,
+		Archived:                  apiRepo.Archived,
+		Size:                      apiRepo.Size,
+		Fork:                      apiRepo.Fork,
+		Parent:                    apiRepo.Parent,
+		Mirror:                    apiRepo.Mirror,
+		HTMLURL:                   apiRepo.HTMLURL,
+		SSHURL:                    apiRepo.SSHURL,
+		CloneURL:                  apiRepo.CloneURL,
+		Website:                   apiRepo.Website,
+		Stars:                     apiRepo.Stars,
+		Forks:                     apiRepo.Forks,
+		Watchers:                  apiRepo.Watchers,
+		OpenIssues:                apiRepo.OpenIssues,
+		OpenPulls:                 apiRepo.OpenPulls,
+		Releases:                  apiRepo.Releases,
+		DefaultBranch:             apiRepo.DefaultBranch,
+		Created:                   apiRepo.Created,
+		Updated:                   apiRepo.Updated,
+		Permissions:               apiRepo.Permissions,
+		HasIssues:                 apiRepo.HasIssues,
+		ExternalTracker:           apiRepo.ExternalTracker,
+		InternalTracker:           apiRepo.InternalTracker,
+		HasWiki:                   apiRepo.HasWiki,
+		ExternalWiki:              apiRepo.ExternalWiki,
+		HasPullRequests:           apiRepo.HasPullRequests,
+		IgnoreWhitespaceConflicts: apiRepo.IgnoreWhitespaceConflicts,
+		AllowMerge:                apiRepo.AllowMerge,
+		AllowRebase:               apiRepo.AllowRebase,
+		AllowRebaseMerge:          apiRepo.AllowRebaseMerge,
+		AllowSquash:               apiRepo.AllowSquash,
+		AvatarURL:                 apiRepo.AvatarURL,
+		Internal:                  apiRepo.Internal,
+	}
+}
