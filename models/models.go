@@ -329,7 +329,7 @@ func RealTableName(tableName string) string {
 	return setting.Database.TableNamePrefix + tableName
 }
 
-// realtable name list
+// Real table name list
 var (
 	rAccess                  = "`access`"
 	rAction                  = "`action`"
@@ -370,7 +370,7 @@ var (
 	rWatch                   = "`watch`"
 )
 
-// InitRealTableNameList Init realtable name list
+// InitRealTableNameList Init the real table name list
 func InitRealTableNameList() {
 	rAccess = "`" + RealTableName("access") + "`"
 	rAction = "`" + RealTableName("action") + "`"
