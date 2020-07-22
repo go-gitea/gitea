@@ -5,19 +5,15 @@
 package log
 
 import (
-	"context"
-	"time"
+	"fmt"
+
+	"xorm.io/xorm/contexts"
 )
 
 // LogContext represents a log context
-type LogContext struct {
-	Ctx         context.Context
-	SQL         string        // log content or SQL
-	Args        []interface{} // if it's a SQL, it's the arguments
-	ExecuteTime time.Duration
-	Err         error // SQL executed error
-}
+type LogContext contexts.ContextHook
 
+// SQLLogger represents an interface to log SQL
 type SQLLogger interface {
 	BeforeSQL(context LogContext) // only invoked when IsShowSQL is true
 	AfterSQL(context LogContext)  // only invoked when IsShowSQL is true
@@ -43,55 +39,78 @@ var (
 	_ ContextLogger = &LoggerAdapter{}
 )
 
-// LoggerAdapter wraps a Logger interafce as LoggerContext interface
+// enumerate all the context keys
+var (
+	SessionIDKey      = "__xorm_session_id"
+	SessionKey        = "__xorm_session_key"
+	SessionShowSQLKey = "__xorm_show_sql"
+)
+
+// LoggerAdapter wraps a Logger interface as LoggerContext interface
 type LoggerAdapter struct {
 	logger Logger
 }
 
+// NewLoggerAdapter creates an adapter for old xorm logger interface
 func NewLoggerAdapter(logger Logger) ContextLogger {
 	return &LoggerAdapter{
 		logger: logger,
 	}
 }
 
+// BeforeSQL implements ContextLogger
 func (l *LoggerAdapter) BeforeSQL(ctx LogContext) {}
 
+// AfterSQL implements ContextLogger
 func (l *LoggerAdapter) AfterSQL(ctx LogContext) {
+	var sessionPart string
+	v := ctx.Ctx.Value(SessionIDKey)
+	if key, ok := v.(string); ok {
+		sessionPart = fmt.Sprintf(" [%s]", key)
+	}
 	if ctx.ExecuteTime > 0 {
-		l.logger.Infof("[SQL] %v %v - %v", ctx.SQL, ctx.Args, ctx.ExecuteTime)
+		l.logger.Infof("[SQL]%s %s %v - %v", sessionPart, ctx.SQL, ctx.Args, ctx.ExecuteTime)
 	} else {
-		l.logger.Infof("[SQL] %v %v", ctx.SQL, ctx.Args)
+		l.logger.Infof("[SQL]%s %s %v", sessionPart, ctx.SQL, ctx.Args)
 	}
 }
 
+// Debugf implements ContextLogger
 func (l *LoggerAdapter) Debugf(format string, v ...interface{}) {
 	l.logger.Debugf(format, v...)
 }
 
+// Errorf implements ContextLogger
 func (l *LoggerAdapter) Errorf(format string, v ...interface{}) {
 	l.logger.Errorf(format, v...)
 }
 
+// Infof implements ContextLogger
 func (l *LoggerAdapter) Infof(format string, v ...interface{}) {
 	l.logger.Infof(format, v...)
 }
 
+// Warnf implements ContextLogger
 func (l *LoggerAdapter) Warnf(format string, v ...interface{}) {
 	l.logger.Warnf(format, v...)
 }
 
+// Level implements ContextLogger
 func (l *LoggerAdapter) Level() LogLevel {
 	return l.logger.Level()
 }
 
+// SetLevel implements ContextLogger
 func (l *LoggerAdapter) SetLevel(lv LogLevel) {
 	l.logger.SetLevel(lv)
 }
 
+// ShowSQL implements ContextLogger
 func (l *LoggerAdapter) ShowSQL(show ...bool) {
 	l.logger.ShowSQL(show...)
 }
 
+// IsShowSQL implements ContextLogger
 func (l *LoggerAdapter) IsShowSQL() bool {
 	return l.logger.IsShowSQL()
 }

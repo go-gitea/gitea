@@ -6,10 +6,14 @@ package xorm
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"io"
 	"reflect"
 	"strings"
 	"time"
@@ -19,6 +23,7 @@ import (
 	"xorm.io/xorm/core"
 	"xorm.io/xorm/internal/json"
 	"xorm.io/xorm/internal/statements"
+	"xorm.io/xorm/log"
 	"xorm.io/xorm/schemas"
 )
 
@@ -42,24 +47,24 @@ func (e ErrFieldIsNotValid) Error() string {
 	return fmt.Sprintf("field %s is not valid on table %s", e.FieldName, e.TableName)
 }
 
-type sessionType int
+type sessionType bool
 
 const (
-	engineSession sessionType = iota
-	groupSession
+	engineSession sessionType = false
+	groupSession  sessionType = true
 )
 
 // Session keep a pointer to sql.DB and provides all execution of all
 // kind of database operations.
 type Session struct {
-	db                     *core.DB
 	engine                 *Engine
 	tx                     *core.Tx
 	statement              *statements.Statement
 	isAutoCommit           bool
 	isCommitedOrRollbacked bool
 	isAutoClose            bool
-
+	isClosed               bool
+	prepareStmt            bool
 	// Automatically reset the statement after operations that execute a SQL
 	// query such as Count(), Find(), Get(), ...
 	autoResetStatement bool
@@ -70,81 +75,109 @@ type Session struct {
 	afterDeleteBeans map[interface{}]*[]func(interface{})
 	// --
 
-	beforeClosures []func(interface{})
-	afterClosures  []func(interface{})
-
+	beforeClosures  []func(interface{})
+	afterClosures   []func(interface{})
 	afterProcessors []executedProcessor
 
-	prepareStmt bool
-	stmtCache   map[uint32]*core.Stmt //key: hash.Hash32 of (queryStr, len(queryStr))
+	stmtCache map[uint32]*core.Stmt //key: hash.Hash32 of (queryStr, len(queryStr))
 
 	lastSQL     string
 	lastSQLArgs []interface{}
-	showSQL     bool
 
 	ctx         context.Context
 	sessionType sessionType
 }
 
-// Clone copy all the session's content and return a new session
-func (session *Session) Clone() *Session {
-	var sess = *session
-	return &sess
+func newSessionID() string {
+	hash := sha256.New()
+	_, err := io.CopyN(hash, rand.Reader, 50)
+	if err != nil {
+		return "????????????????????"
+	}
+	md := hash.Sum(nil)
+	mdStr := hex.EncodeToString(md)
+	return mdStr[0:20]
 }
 
-// Init reset the session as the init status.
-func (session *Session) Init() {
-	session.statement = statements.NewStatement(
-		session.engine.dialect,
-		session.engine.tagParser,
-		session.engine.DatabaseTZ,
-	)
-	session.db = session.engine.db
-	session.isAutoCommit = true
-	session.isCommitedOrRollbacked = false
-	session.isAutoClose = false
-	session.autoResetStatement = true
-	session.prepareStmt = false
+func newSession(engine *Engine) *Session {
+	var ctx context.Context
+	if engine.logSessionID {
+		ctx = context.WithValue(engine.defaultContext, log.SessionIDKey,  newSessionID())
+	} else {
+		ctx = engine.defaultContext
+	}
 
-	// !nashtsai! is lazy init better?
-	session.afterInsertBeans = make(map[interface{}]*[]func(interface{}), 0)
-	session.afterUpdateBeans = make(map[interface{}]*[]func(interface{}), 0)
-	session.afterDeleteBeans = make(map[interface{}]*[]func(interface{}), 0)
-	session.beforeClosures = make([]func(interface{}), 0)
-	session.afterClosures = make([]func(interface{}), 0)
-	session.stmtCache = make(map[uint32]*core.Stmt)
+	session := &Session{
+		ctx:    ctx,
+		engine: engine,
+		tx:     nil,
+		statement: statements.NewStatement(
+			engine.dialect,
+			engine.tagParser,
+			engine.DatabaseTZ,
+		),
+		isClosed:               false,
+		isAutoCommit:           true,
+		isCommitedOrRollbacked: false,
+		isAutoClose:            false,
+		autoResetStatement:     true,
+		prepareStmt:            false,
 
-	session.afterProcessors = make([]executedProcessor, 0)
+		afterInsertBeans: make(map[interface{}]*[]func(interface{}), 0),
+		afterUpdateBeans: make(map[interface{}]*[]func(interface{}), 0),
+		afterDeleteBeans: make(map[interface{}]*[]func(interface{}), 0),
+		beforeClosures:   make([]func(interface{}), 0),
+		afterClosures:    make([]func(interface{}), 0),
+		afterProcessors:  make([]executedProcessor, 0),
+		stmtCache:        make(map[uint32]*core.Stmt),
 
-	session.lastSQL = ""
-	session.lastSQLArgs = []interface{}{}
+		lastSQL:     "",
+		lastSQLArgs: make([]interface{}, 0),
 
-	session.ctx = session.engine.defaultContext
+		sessionType: engineSession,
+	}
+	if engine.logSessionID {
+		session.ctx = context.WithValue(session.ctx, log.SessionKey, session)
+	}
+	return session
 }
 
 // Close release the connection from pool
-func (session *Session) Close() {
+func (session *Session) Close() error {
 	for _, v := range session.stmtCache {
-		v.Close()
+		if err := v.Close(); err != nil {
+			return err
+		}
 	}
 
-	if session.db != nil {
+	if !session.isClosed {
 		// When Close be called, if session is a transaction and do not call
 		// Commit or Rollback, then call Rollback.
 		if session.tx != nil && !session.isCommitedOrRollbacked {
-			session.Rollback()
+			if err := session.Rollback(); err != nil {
+				return err
+			}
 		}
 		session.tx = nil
 		session.stmtCache = nil
-		session.db = nil
+		session.isClosed = true
 	}
+	return nil
+}
+
+func (session *Session) db() *core.DB {
+	return session.engine.db
+}
+
+func (session *Session) Engine() *Engine {
+	return session.engine
 }
 
 func (session *Session) getQueryer() core.Queryer {
 	if session.tx != nil {
 		return session.tx
 	}
-	return session.db
+	return session.db()
 }
 
 // ContextCache enable context cache or not
@@ -155,7 +188,7 @@ func (session *Session) ContextCache(context contexts.ContextCache) *Session {
 
 // IsClosed returns if session is closed
 func (session *Session) IsClosed() bool {
-	return session.db == nil
+	return session.isClosed
 }
 
 func (session *Session) resetStatement() {
@@ -264,12 +297,12 @@ func (session *Session) Cascade(trueOrFalse ...bool) *Session {
 }
 
 // MustLogSQL means record SQL or not and don't follow engine's setting
-func (session *Session) MustLogSQL(log ...bool) *Session {
+func (session *Session) MustLogSQL(logs ...bool) *Session {
 	var showSQL = true
-	if len(log) > 0 {
-		showSQL = log[0]
+	if len(logs) > 0 {
+		showSQL = logs[0]
 	}
-	session.ctx = context.WithValue(session.ctx, "__xorm_show_sql", showSQL)
+	session.ctx = context.WithValue(session.ctx, log.SessionShowSQLKey, showSQL)
 	return session
 }
 
@@ -300,17 +333,7 @@ func (session *Session) Having(conditions string) *Session {
 
 // DB db return the wrapper of sql.DB
 func (session *Session) DB() *core.DB {
-	if session.db == nil {
-		session.db = session.engine.DB()
-		session.stmtCache = make(map[uint32]*core.Stmt, 0)
-	}
-	return session.db
-}
-
-func cleanupProcessorsClosures(slices *[]func(interface{})) {
-	if len(*slices) > 0 {
-		*slices = make([]func(interface{}), 0)
-	}
+	return session.db()
 }
 
 func (session *Session) canCache() bool {
@@ -404,56 +427,17 @@ func (session *Session) row2Slice(rows *core.Rows, fields []string, bean interfa
 		return nil, err
 	}
 
-	if b, hasBeforeSet := bean.(BeforeSetProcessor); hasBeforeSet {
-		for ii, key := range fields {
-			b.BeforeSet(key, Cell(scanResults[ii].(*interface{})))
-		}
-	}
+	executeBeforeSet(bean, fields, scanResults)
+
 	return scanResults, nil
 }
 
 func (session *Session) slice2Bean(scanResults []interface{}, fields []string, bean interface{}, dataStruct *reflect.Value, table *schemas.Table) (schemas.PK, error) {
 	defer func() {
-		if b, hasAfterSet := bean.(AfterSetProcessor); hasAfterSet {
-			for ii, key := range fields {
-				b.AfterSet(key, Cell(scanResults[ii].(*interface{})))
-			}
-		}
+		executeAfterSet(bean, fields, scanResults)
 	}()
 
-	// handle afterClosures
-	for _, closure := range session.afterClosures {
-		session.afterProcessors = append(session.afterProcessors, executedProcessor{
-			fun: func(sess *Session, bean interface{}) error {
-				closure(bean)
-				return nil
-			},
-			session: session,
-			bean:    bean,
-		})
-	}
-
-	if a, has := bean.(AfterLoadProcessor); has {
-		session.afterProcessors = append(session.afterProcessors, executedProcessor{
-			fun: func(sess *Session, bean interface{}) error {
-				a.AfterLoad()
-				return nil
-			},
-			session: session,
-			bean:    bean,
-		})
-	}
-
-	if a, has := bean.(AfterLoadSessionProcessor); has {
-		session.afterProcessors = append(session.afterProcessors, executedProcessor{
-			fun: func(sess *Session, bean interface{}) error {
-				a.AfterLoad(sess)
-				return nil
-			},
-			session: session,
-			bean:    bean,
-		})
-	}
+	buildAfterProcessors(session, bean)
 
 	var tempMap = make(map[string]int)
 	var pk schemas.PK
@@ -911,7 +895,7 @@ func (session *Session) incrVersionFieldValue(fieldValue *reflect.Value) {
 	}
 }
 
-// Context sets the context on this session
+// ContextHook sets the context on this session
 func (session *Session) Context(ctx context.Context) *Session {
 	session.ctx = ctx
 	return session

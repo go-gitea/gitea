@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"xorm.io/builder"
 	"xorm.io/xorm/internal/utils"
 	"xorm.io/xorm/schemas"
 )
@@ -112,13 +111,14 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 		return 0, ErrTableNotFound
 	}
 
-	table := session.statement.RefTable
-	size := sliceValue.Len()
-
-	var colNames []string
-	var colMultiPlaces []string
-	var args []interface{}
-	var cols []*schemas.Column
+	var (
+		table          = session.statement.RefTable
+		size           = sliceValue.Len()
+		colNames       []string
+		colMultiPlaces []string
+		args           []interface{}
+		cols           []*schemas.Column
+	)
 
 	for i := 0; i < size; i++ {
 		v := sliceValue.Index(i)
@@ -233,7 +233,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 			for _, closure := range session.afterClosures {
 				closure(elemValue)
 			}
-			if processor, ok := interface{}(elemValue).(AfterInsertProcessor); ok {
+			if processor, ok := elemValue.(AfterInsertProcessor); ok {
 				processor.AfterInsert()
 			}
 		} else {
@@ -246,7 +246,7 @@ func (session *Session) innerInsertMulti(rowsSlicePtr interface{}) (int64, error
 					session.afterInsertBeans[elemValue] = &afterClosures
 				}
 			} else {
-				if _, ok := interface{}(elemValue).(AfterInsertProcessor); ok {
+				if _, ok := elemValue.(AfterInsertProcessor); ok {
 					session.afterInsertBeans[elemValue] = nil
 				}
 			}
@@ -265,12 +265,11 @@ func (session *Session) InsertMulti(rowsSlicePtr interface{}) (int64, error) {
 
 	sliceValue := reflect.Indirect(reflect.ValueOf(rowsSlicePtr))
 	if sliceValue.Kind() != reflect.Slice {
-		return 0, ErrParamsType
-
+		return 0, ErrPtrSliceType
 	}
 
 	if sliceValue.Len() <= 0 {
-		return 0, nil
+		return 0, ErrNoElementsOnSlice
 	}
 
 	return session.innerInsertMulti(rowsSlicePtr)
@@ -483,7 +482,7 @@ func (session *Session) cacheInsert(table string) error {
 	if cacher == nil {
 		return nil
 	}
-	session.engine.logger.Debugf("[cache] clear sql: %v", table)
+	session.engine.logger.Debugf("[cache] clear SQL: %v", table)
 	cacher.ClearIds(table)
 	return nil
 }
@@ -623,73 +622,10 @@ func (session *Session) insertMap(columns []string, args []interface{}) (int64, 
 		return 0, ErrTableNotFound
 	}
 
-	exprs := session.statement.ExprColumns
-	w := builder.NewWriter()
-	// if insert where
-	if session.statement.Conds().IsValid() {
-		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (", session.engine.Quote(tableName))); err != nil {
-			return 0, err
-		}
-
-		if err := session.engine.dialect.Quoter().JoinWrite(w.Builder, append(columns, exprs.ColNames...), ","); err != nil {
-			return 0, err
-		}
-
-		if _, err := w.WriteString(") SELECT "); err != nil {
-			return 0, err
-		}
-
-		if err := session.statement.WriteArgs(w, args); err != nil {
-			return 0, err
-		}
-
-		if len(exprs.Args) > 0 {
-			if _, err := w.WriteString(","); err != nil {
-				return 0, err
-			}
-			if err := exprs.WriteArgs(w); err != nil {
-				return 0, err
-			}
-		}
-
-		if _, err := w.WriteString(fmt.Sprintf(" FROM %s WHERE ", session.engine.Quote(tableName))); err != nil {
-			return 0, err
-		}
-
-		if err := session.statement.Conds().WriteTo(w); err != nil {
-			return 0, err
-		}
-	} else {
-		qm := strings.Repeat("?,", len(columns))
-		qm = qm[:len(qm)-1]
-
-		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (", session.engine.Quote(tableName))); err != nil {
-			return 0, err
-		}
-
-		if err := session.engine.dialect.Quoter().JoinWrite(w.Builder, append(columns, exprs.ColNames...), ","); err != nil {
-			return 0, err
-		}
-		if _, err := w.WriteString(fmt.Sprintf(") VALUES (%s", qm)); err != nil {
-			return 0, err
-		}
-
-		w.Append(args...)
-		if len(exprs.Args) > 0 {
-			if _, err := w.WriteString(","); err != nil {
-				return 0, err
-			}
-			if err := exprs.WriteArgs(w); err != nil {
-				return 0, err
-			}
-		}
-		if _, err := w.WriteString(")"); err != nil {
-			return 0, err
-		}
+	sql, args, err := session.statement.GenInsertMapSQL(columns, args)
+	if err != nil {
+		return 0, err
 	}
-
-	sql := w.String()
-	args = w.Args()
 
 	if err := session.cacheInsert(tableName); err != nil {
 		return 0, err

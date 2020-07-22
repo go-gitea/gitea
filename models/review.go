@@ -38,11 +38,11 @@ func (rt ReviewType) Icon() string {
 	case ReviewTypeApprove:
 		return "check"
 	case ReviewTypeReject:
-		return "request-changes"
+		return "diff"
 	case ReviewTypeComment:
 		return "comment"
 	case ReviewTypeRequest:
-		return "primitive-dot"
+		return "dot-fill"
 	default:
 		return "comment"
 	}

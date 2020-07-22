@@ -7,51 +7,55 @@
 					{{ $createdStr:= TimeSinceUnix .UpdatedUnix $.Lang }}
 					<div class="ui divider"></div>
 					<div class="review-item">
-						<span class="type-icon text {{if eq .Type 1}}green
-							{{- else if eq .Type 2}}grey
-							{{- else if eq .Type 3}}red
-							{{- else if eq .Type 4}}yellow
-							{{else}}grey{{end}}">
-
-							{{$canChoose := false}}
-							{{if eq .Type 4}}
-								{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
-									{{$canChoose = true}}
+						<div class="review-item-left">
+							<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
+								<img src="{{.Reviewer.RelAvatarLink}}">
+							</a>
+							<span class="text grey"><a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
+								{{if eq .Type 1}}
+									{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
+								{{else if eq .Type 2}}
+									{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+								{{else if eq .Type 3}}
+									{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+								{{else if eq .Type 4}}
+									{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
+								{{else}}
+									{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
 								{{end}}
-							{{else}}
-								{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
-									{{$canChoose = true}}
-								{{end}}
+							</span>
+						</div>
+						<div class="review-item-right">
+							{{if .Stale}}
+							<span class="type-icon text grey">
+								<i class="octicon icon fa-hourglass-end"></i>
+							</span>
 							{{end}}
+							<span class="type-icon text {{if eq .Type 1}}green
+								{{- else if eq .Type 2}}grey
+								{{- else if eq .Type 3}}red
+								{{- else if eq .Type 4}}yellow
+								{{else}}grey{{end}}">
 
-							{{if $canChoose }}
-								<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-									{{svg "octicon-sync" 16}}
-								</a>
-							{{end}}
-							{{svg (printf "octicon-%s" .Type.Icon) 16}}
-						</span>
-						{{if .Stale}}
-						<span class="type-icon text grey">
-							<i class="octicon icon fa-hourglass-end"></i>
-						</span>
-						{{end}}
-						<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
-							<img src="{{.Reviewer.RelAvatarLink}}">
-						</a>
-						<span class="text grey"><a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
-							{{if eq .Type 1}}
-								{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
-							{{else if eq .Type 2}}
-								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
-							{{else if eq .Type 3}}
-								{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
-							{{else if eq .Type 4}}
-								{{$.i18n.Tr "repo.issues.review.wait" $createdStr | Safe}}
-							{{else}}
-								{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
-							{{end}}
-						</span>
+								{{$canChoose := false}}
+								{{if eq .Type 4}}
+									{{if or (eq .ReviewerID $.SignedUserID) $.Permission.IsAdmin}}
+										{{$canChoose = true}}
+									{{end}}
+								{{else}}
+									{{if and (or $.IsIssuePoster $.CanChooseReviewer) (not (eq $.SignedUserID .ReviewerID))}}
+										{{$canChoose = true}}
+									{{end}}
+								{{end}}
+
+								{{if $canChoose }}
+									<a href="#" class="ui poping up icon re-request-review" data-is-checked="{{if  eq .Type 4}}remove{{else}}add{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{ if eq .Type 4 }} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ReviewerID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+										{{svg "octicon-sync" 16}}
+									</a>
+								{{end}}
+								{{svg (printf "octicon-%s" .Type.Icon) 16}}
+							</span>
+						</div>
 					</div>
 				{{end}}
 			</div>
@@ -75,6 +79,7 @@
 	{{- else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
 	<div class="content">
 		{{template "repo/pulls/status" .}}
+		{{$canAutoMerge := false}}
 		<div class="ui attached merge-section segment {{if not $.LatestCommitStatus}}no-header{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
 				<div class="item text purple">
@@ -168,7 +173,7 @@
 				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item text yellow">
-							<i class="icon icon-octicon">{{svg "octicon-primitive-dot" 16}}</i>
+							<i class="icon icon-octicon">{{svg "octicon-dot-fill" 16}}</i>
 							{{$.i18n.Tr "repo.pulls.required_status_check_administrator"}}
 						</div>
 					{{else}}
@@ -188,6 +193,30 @@
 							{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 						</div>
 					{{end}}
+				{{end}}
+
+				{{$canAutoMerge = true}}
+				{{if (gt .Issue.PullRequest.CommitsBehind 0)}}
+					<div class="ui divider"></div>
+					<div class="item item-section text grey">
+						<div class="item-section-left">
+							<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+							{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
+						</div>
+						<div class="item-section-right">
+							{{if .UpdateAllowed}}
+								<form action="{{.Link}}/update" method="post" class="ui update-branch-form">
+									{{.CsrfTokenHtml}}
+									<button class="ui compact button" data-do="update">
+										<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+									</button>
+								</form>
+							{{end}}
+						</div>
+					</div>
+				{{end}}
+
+				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .RequireSigned) .WillSign)}}
 					{{if .AllowMerge}}
 						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 						{{$approvers := .Issue.PullRequest.GetApprovers}}
@@ -300,6 +329,7 @@
 								</div>
 							</div>
 						{{else}}
+							<div class="ui divider"></div>
 							<div class="item text red">
 								{{svg "octicon-x" 16}}
 								{{$.i18n.Tr "repo.pulls.no_merge_desc"}}
@@ -310,31 +340,12 @@
 							</div>
 						{{end}}
 					{{else}}
+						<div class="ui divider"></div>
 						<div class="item text grey">
 							{{svg "octicon-info" 16}}
 							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
 						</div>
 					{{end}}
-				{{end}}
-				{{if gt .Issue.PullRequest.CommitsBehind 0}}
-				<div class="ui very compact branch-update grid">
-						<div class="row">
-						<div class="item text gray eleven wide left floated column">
-							<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
-							{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
-						</div>
-						{{if .UpdateAllowed}}
-							<div class="item text five wide right floated column">
-								<form action="{{.Link}}/update" method="post">
-									{{.CsrfTokenHtml}}
-									<button class="ui button" data-do="update">
-										<span class="item text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
-									</button>
-								</form>
-							</div>
-						{{end}}
-					</div>
-				</div>
 				{{end}}
 			{{else}}
 				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
@@ -373,6 +384,21 @@
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
 					</div>
 				{{end}}
+			{{end}}
+
+			{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
+				<div class="item text grey">
+					<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+					{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
+					{{if .UpdateAllowed}}
+						<form action="{{.Link}}/update" method="post" class="ui floating right">
+							{{.CsrfTokenHtml}}
+							<button class="ui compact button" data-do="update">
+								<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+							</button>
+						</form>
+					{{end}}
+				</div>
 			{{end}}
 		</div>
 	</div>

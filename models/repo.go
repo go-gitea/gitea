@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"unicode/utf8"
 
 	// Needed for jpeg support
 	_ "image/jpeg"
@@ -35,6 +36,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
+	"xorm.io/builder"
 )
 
 var (
@@ -251,19 +253,9 @@ func (repo *Repository) SanitizedOriginalURL() string {
 
 // ColorFormat returns a colored string to represent this repo
 func (repo *Repository) ColorFormat(s fmt.State) {
-	var ownerName interface{}
-
-	if repo.OwnerName != "" {
-		ownerName = repo.OwnerName
-	} else if repo.Owner != nil {
-		ownerName = repo.Owner.Name
-	} else {
-		ownerName = log.NewColoredIDValue(strconv.FormatInt(repo.OwnerID, 10))
-	}
-
 	log.ColorFprintf(s, "%d:%s/%s",
 		log.NewColoredIDValue(repo.ID),
-		ownerName,
+		repo.OwnerName,
 		repo.Name)
 }
 
@@ -1447,11 +1439,11 @@ func GetRepositoriesByForkID(forkID int64) ([]*Repository, error) {
 func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err error) {
 	repo.LowerName = strings.ToLower(repo.Name)
 
-	if len(repo.Description) > 255 {
-		repo.Description = repo.Description[:255]
+	if utf8.RuneCountInString(repo.Description) > 255 {
+		repo.Description = string([]rune(repo.Description)[:255])
 	}
-	if len(repo.Website) > 255 {
-		repo.Website = repo.Website[:255]
+	if utf8.RuneCountInString(repo.Website) > 255 {
+		repo.Website = string([]rune(repo.Website)[:255])
 	}
 
 	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
@@ -1498,7 +1490,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 			return fmt.Errorf("getRepositoriesByForkID: %v", err)
 		}
 		for i := range forkRepos {
-			forkRepos[i].IsPrivate = repo.IsPrivate
+			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
 			if err = updateRepository(e, forkRepos[i], true); err != nil {
 				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
 			}
@@ -1627,6 +1619,10 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	releaseAttachments := make([]string, 0, len(attachments))
 	for i := 0; i < len(attachments); i++ {
 		releaseAttachments = append(releaseAttachments, attachments[i].LocalPath())
+	}
+
+	if _, err = sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
+		return err
 	}
 
 	if err = deleteBeans(sess,
@@ -1818,22 +1814,28 @@ func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, error) {
+func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
 
-	sess := x.
-		Where("owner_id = ?", opts.Actor.ID).
-		OrderBy(opts.OrderBy.String())
+	var cond = builder.NewCond()
+	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
-		sess.And("is_private=?", false)
+		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	sess = opts.setSessionPagination(sess)
+	sess := x.NewSession()
+	defer sess.Close()
 
+	count, err := sess.Where(cond).Count(new(Repository))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, opts.setSessionPagination(sess).Find(&repos)
+	return repos, count, opts.setSessionPagination(sess).Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.
@@ -2114,7 +2116,7 @@ func CheckRepoStats(ctx context.Context) error {
 // SetArchiveRepoState sets if a repo is archived
 func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
 	repo.IsArchived = isArchived
-	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").Update(repo)
+	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").NoAutoTime().Update(repo)
 	return
 }
 
@@ -2399,4 +2401,39 @@ func (repo *Repository) GetTrustModel() TrustModelType {
 		}
 	}
 	return trustModel
+}
+
+// DoctorUserStarNum recalculate Stars number for all user
+func DoctorUserStarNum() (err error) {
+	const batchSize = 100
+	sess := x.NewSession()
+	defer sess.Close()
+
+	for start := 0; ; start += batchSize {
+		users := make([]User, 0, batchSize)
+		if err = sess.Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
+			return
+		}
+		if len(users) == 0 {
+			break
+		}
+
+		if err = sess.Begin(); err != nil {
+			return
+		}
+
+		for _, user := range users {
+			if _, err = sess.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+				return
+			}
+		}
+
+		if err = sess.Commit(); err != nil {
+			return
+		}
+	}
+
+	log.Debug("recalculate Stars number for all user finished")
+
+	return
 }
