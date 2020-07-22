@@ -338,8 +338,7 @@
                     }
 
                     &.octicon-file-directory,
-                    &.octicon-file-submodule,
-                    &.octicon-file-symlink-directory {
+                    &.octicon-file-submodule {
                         color: #1e70bf;
                     }
                 }
@@ -788,9 +787,7 @@
 
                 .badge.badge-commit {
                     border-color: transparent;
-                    background: radial-gradient(white 60%, transparent 60%) no-repeat;
-                    height: 10px;
-                    margin-top: 11px;
+                    background: radial-gradient(white 40%, transparent 40%) no-repeat;
                 }
 
                 .badge {
@@ -805,19 +802,18 @@
                     margin-right: 8px;
                     color: #444;
                     align-items: center;
+                    justify-content: center;
 
                     .svg {
-                        width: 28px;
-                        height: 28px;
-                        text-align: center;
-                        line-height: 28px;
-                        padding: 4px;
+                        width: 24px;
+                        height: 24px;
+                        padding: 3px;
 
                         &.octicon-circle-slash {
                             color: #bd2c00;
                         }
 
-                        &.octicon-primitive-dot {
+                        &.octicon-dot-fill {
                             color: #6cc644;
                         }
 
@@ -959,7 +955,8 @@
 
                         &.action {
                             margin-top: 6px;
-                            margin-left: 10px;
+                            padding-left: 10px;
+                            padding-right: 3px;
                         }
                     }
                 }
