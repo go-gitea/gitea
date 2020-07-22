@@ -30,6 +30,10 @@ XGO_VERSION := go-1.14.x
 MIN_GO_VERSION := 001012000
 MIN_NODE_VERSION := 010013000
 
+DOCKER_IMAGE ?= gitea/gitea
+DOCKER_TAG ?= latest
+DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
+
 ifeq ($(HAS_GO), GO)
 	GOPATH ?= $(shell $(GO) env GOPATH)
 	export PATH := $(GOPATH)/bin:$(PATH)
@@ -143,8 +147,6 @@ TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
 .PHONY: all
 all: build
-
-include docker/Makefile
 
 .PHONY: help
 help:
@@ -685,6 +687,15 @@ golangci-lint:
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0; \
 	fi
 	golangci-lint run --timeout 5m
+
+.PHONY: docker
+docker:
+	docker build --disable-content-trust=false -t $(DOCKER_REF) .
+# support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
+
+.PHONY: docker-build
+docker-build:
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea -e TAGS="bindata $(TAGS)" LDFLAGS="$(LDFLAGS)" CGO_EXTRA_CFLAGS="$(CGO_EXTRA_CFLAGS)" webhippie/golang:edge make clean build
 
 # This endif closes the if at the top of the file
 endif
