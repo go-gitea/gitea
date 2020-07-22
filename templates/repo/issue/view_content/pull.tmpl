@@ -249,7 +249,7 @@
 										<div class="field">
 											<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
 										</div>
-										<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="merge">
+										<button class="ui red button" type="submit" name="do" value="merge">
 											{{$.i18n.Tr "repo.pulls.merge_pull_request_now"}}
 										</button>
 										<button class="ui button merge-cancel">
@@ -288,7 +288,7 @@
 								<div class="ui form rebase-now-fields" style="display: none">
 									<form action="{{.Link}}/merge" method="post">
 										{{.CsrfTokenHtml}}
-										<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="rebase">
+										<button class="ui red button" type="submit" name="do" value="rebase">
 											{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request_now"}}
 										</button>
 										<button class="ui button merge-cancel">
@@ -327,7 +327,7 @@
 										<div class="field">
 											<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
 										</div>
-										<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="rebase-merge">
+										<button class="ui red button" type="submit" name="do" value="rebase-merge">
 											{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request_now"}}
 										</button>
 										<button class="ui button merge-cancel">
@@ -372,7 +372,7 @@
 										<div class="field">
 											<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{.GetCommitMessages}}Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
 										</div>
-										<button class="ui {{$mergeButtonColor}} button" type="submit" name="do" value="squash">
+										<button class="ui red button" type="submit" name="do" value="squash">
 											{{$.i18n.Tr "repo.pulls.squash_merge_pull_request_now"}}
 										</button>
 										<button class="ui button merge-cancel">
@@ -432,19 +432,51 @@
 										<div class="menu">
 											{{if $prUnit.PullRequestsConfig.AllowMerge}}
 												<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request_on_status_success"}}</div>
-												<div class="item" data-do="merge-now">{{$.i18n.Tr "repo.pulls.merge_pull_request_now"}}</div>
 											{{end}}
 											{{if $prUnit.PullRequestsConfig.AllowRebase}}
 												<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request_on_status_success"}}</div>
-												<div class="item" data-do="rebase-now">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request_now"}}</div>
 											{{end}}
 											{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
 												<div class="item{{if eq .MergeStyle "rebase-merge"}} active selected{{end}}" data-do="rebase-merge">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request_on_status_success"}}</div>
-												<div class="item" data-do="rebase-merge-now">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request_now"}}</div>
 											{{end}}
 											{{if $prUnit.PullRequestsConfig.AllowSquash}}
 												<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request_on_status_success"}}</div>
-												<div class="item" data-do="squash-now">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request_now"}}</div>
+											{{end}}
+										</div>
+									</div>
+								</div>
+								<div class="ui red buttons merge-now-button">
+									<button class="ui button" data-do="{{.MergeStyle}}-now">
+										<span class="octicon octicon-git-merge"></span>
+										<span class="button-text">
+											{{if eq .MergeStyle "merge"}}
+												{{$.i18n.Tr "repo.pulls.merge_pull_request_now"}}
+											{{end}}
+											{{if eq .MergeStyle "rebase"}}
+												{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request_now"}}
+											{{end}}
+											{{if eq .MergeStyle "rebase-merge"}}
+												{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request_now"}}
+											{{end}}
+											{{if eq .MergeStyle "squash"}}
+												{{$.i18n.Tr "repo.pulls.squash_merge_pull_request_now"}}
+											{{end}}
+										</span>
+									</button>
+									<div class="ui dropdown icon button">
+										<i class="dropdown icon"></i>
+										<div class="menu">
+											{{if $prUnit.PullRequestsConfig.AllowMerge}}
+												<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge-now">{{$.i18n.Tr "repo.pulls.merge_pull_request_now"}}</div>
+											{{end}}
+											{{if $prUnit.PullRequestsConfig.AllowRebase}}
+												<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase-now">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request_now"}}</div>
+											{{end}}
+											{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
+												<div class="item{{if eq .MergeStyle "rebase-merge"}} active selected{{end}}" data-do="rebase-merge-now">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request_now"}}</div>
+											{{end}}
+											{{if $prUnit.PullRequestsConfig.AllowSquash}}
+												<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash-now">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request_now"}}</div>
 											{{end}}
 										</div>
 									</div>
