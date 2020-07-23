@@ -243,7 +243,7 @@ module.exports = {
             options: {
               name: '[name].[ext]',
               outputPath: 'fonts/',
-              publicPath: (url) => `../fonts/${url}`, // required to remove css/ path
+              publicPath: (url) => `../fonts/${url}`, // required to remove css/ path segment
             },
           },
         ],
@@ -256,11 +256,11 @@ module.exports = {
             options: {
               name: '[name].[ext]',
               outputPath: 'img/webpack/',
-              publicPath: (url) => `../img/webpack/${url}`, // required to remove css/ path
+              publicPath: (url) => `../img/webpack/${url}`, // required to remove css/ path segment
             },
           },
         ],
-      }
+      },
     ],
   },
   plugins: [
