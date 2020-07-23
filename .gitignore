@@ -79,6 +79,7 @@ coverage.all
 /public/serviceworker.js
 /public/css
 /public/fonts
+/public/img/webpack
 /web_src/fomantic/build
 /VERSION
 /.air
