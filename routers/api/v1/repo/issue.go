@@ -93,7 +93,6 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.AllLimited = true
 	}
 
-	issueCount := 0
 	for page := 1; ; page++ {
 		opts.Page = page
 		repos, count, err := models.SearchRepositoryByName(opts)
@@ -107,14 +106,6 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
-			switch isClosed {
-			case util.OptionalBoolTrue:
-				issueCount += repo.NumClosedIssues
-			case util.OptionalBoolFalse:
-				issueCount += repo.NumOpenIssues
-			case util.OptionalBoolNone:
-				issueCount += repo.NumIssues
-			}
 			repoIDs = append(repoIDs, repo.ID)
 		}
 	}
