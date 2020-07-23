@@ -130,8 +130,7 @@ func SearchIssues(ctx *context.APIContext) {
 	var labelIDs []int64
 	var err error
 	if len(keyword) > 0 && len(repoIDs) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword)
-		if err != nil {
+		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
 		}
@@ -157,6 +156,10 @@ func SearchIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &models.IssuesOptions{
+			ListOptions: models.ListOptions{
+				Page:     ctx.QueryInt("page"),
+				PageSize: setting.UI.IssuePagingNum,
+			},
 			RepoIDs:            repoIDs,
 			IsClosed:           isClosed,
 			IssueIDs:           issueIDs,
@@ -166,12 +169,7 @@ func SearchIssues(ctx *context.APIContext) {
 			IsPull:             isPull,
 		}
 
-		issuesOpt.ListOptions = models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: setting.UI.IssuePagingNum,
-		}
-		issues, err = models.Issues(issuesOpt)
-		if err != nil {
+		if issues, err = models.Issues(issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, "Issues", err)
 			return
 		}
@@ -180,8 +178,7 @@ func SearchIssues(ctx *context.APIContext) {
 			Page:     0,
 			PageSize: issueCount,
 		}
-		filteredCount, err = models.CountIssues(issuesOpt)
-		if err != nil {
+		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
 			return
 		}
@@ -326,6 +323,7 @@ func ListIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &models.IssuesOptions{
+			ListOptions:  listOptions,
 			RepoIDs:      []int64{ctx.Repo.Repository.ID},
 			IsClosed:     isClosed,
 			IssueIDs:     issueIDs,
@@ -334,9 +332,7 @@ func ListIssues(ctx *context.APIContext) {
 			IsPull:       isPull,
 		}
 
-		issuesOpt.ListOptions = listOptions
-		issues, err = models.Issues(issuesOpt)
-		if err != nil {
+		if issues, err = models.Issues(issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, "Issues", err)
 			return
 		}
@@ -345,8 +341,7 @@ func ListIssues(ctx *context.APIContext) {
 			Page:     0,
 			PageSize: ctx.Repo.Repository.NumIssues,
 		}
-		filteredCount, err = models.CountIssues(issuesOpt)
-		if err != nil {
+		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
 			return
 		}
@@ -354,7 +349,6 @@ func ListIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(filteredCount), listOptions.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
-
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
