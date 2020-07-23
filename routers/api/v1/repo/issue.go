@@ -339,7 +339,6 @@ func ListIssues(ctx *context.APIContext) {
 
 		issuesOpt.ListOptions = models.ListOptions{
 		Page:     -1,
-			PageSize: ctx.Repo.Repository.NumIssues,
 		}
 		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
