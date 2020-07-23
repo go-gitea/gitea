@@ -168,7 +168,7 @@ steps:
     pull: always
     image: golang:1.14
     commands:
-      - make unit-test-coverage test-check
+      - make test-prefix unit-test-coverage test-check
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify

@@ -308,18 +308,26 @@ watch-frontend: node-check $(FOMANTIC_DEST) node_modules
 
 .PHONY: test
 test:
+	export TABLE_NAME_PREFIX= ; \
+	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES)
+
+.PHONY: test-prefix
+test-prefix:
 	cd models/fixtures && \
 	sh add_test_prefix.sh && \
 	cd ../.. && \
+	export TABLE_NAME_PREFIX=gitea_ && \
 	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' $(GO_PACKAGES) \
 	&& { \
     cd models/fixtures && \
 	bash remove_test_prefix.sh && \
 	cd ../.. ; \
+	export TABLE_NAME_PREFIX= ; \
 	exit 0; } || { \
 	cd models/fixtures && \
 	bash remove_test_prefix.sh && \
 	cd ../.. ; \
+	export TABLE_NAME_PREFIX= ; \
 	exit 1; }
 
 .PHONY: test-check
@@ -344,20 +352,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	cd models/fixtures && \
-	sh add_test_prefix.sh && \
-	cd ../.. && \
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) \
-	&& { \
-    cd models/fixtures && \
-	bash remove_test_prefix.sh && \
-	cd ../.. ; \
-	echo "\n==>\033[32m Ok\033[m\n" \
-	exit 0; } || { \
-	cd models/fixtures && \
-	bash remove_test_prefix.sh && \
-	cd ../.. ; \
-	exit 1; }
+	export TABLE_NAME_PREFIX= ; $(GO) test $(GOTESTFLAGS) -mod=vendor -tags='sqlite sqlite_unlock_notify' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
