@@ -175,7 +175,7 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 
 		issuesOpt.ListOptions = models.ListOptions{
-			PageSize: issueCount,
+		Page:     -1,
 		}
 		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
 			ctx.Error(http.StatusInternalServerError, "CountIssues", err)
