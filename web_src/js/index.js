@@ -143,7 +143,7 @@ function initLabelEdit() {
     $('.minicolors-swatch-color').css('background-color', color_hex);
   });
   $('.edit-label-button').on('click', function () {
-    $('.color-picker').minicolors('value', {color: $(this).data('color'), opacity: 1});
+    $('.color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
     $('.edit-label .new-label-input').val($(this).data('title'));
     $('.edit-label .new-label-desc-input').val($(this).data('description'));
