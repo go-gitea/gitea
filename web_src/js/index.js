@@ -758,8 +758,8 @@ async function initRepository() {
   // Repo Creation
   if ($('.repository.new.repo').length > 0) {
     $('input[name="gitignores"], input[name="license"]').on('change', () => {
-      const gitignores = $('input[name="gitignores"]').prop('checked');
-      const license = $('input[name="license"]').prop('checked');
+      const gitignores = $('input[name="gitignores"]').val();
+      const license = $('input[name="license"]').val();
       if (gitignores || license) {
         $('input[name="auto_init"]').prop('checked', true);
       }
