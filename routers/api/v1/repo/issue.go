@@ -175,7 +175,6 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 
 		issuesOpt.ListOptions = models.ListOptions{
-			Page:     0,
 			PageSize: issueCount,
 		}
 		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
