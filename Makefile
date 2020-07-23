@@ -323,6 +323,7 @@ test-prefix:
 	bash remove_test_prefix.sh && \
 	cd ../.. ; \
 	export TABLE_NAME_PREFIX= ; \
+	echo "\n==>\033[32m Ok\033[m\n" ; \
 	exit 0; } || { \
 	cd models/fixtures && \
 	bash remove_test_prefix.sh && \
