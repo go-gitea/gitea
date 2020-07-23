@@ -214,11 +214,41 @@ var (
 
 type mssql struct {
 	Base
+	defaultVarchar string
+	defaultChar    string
 }
 
 func (db *mssql) Init(uri *URI) error {
 	db.quoter = mssqlQuoter
 	return db.Base.Init(db, uri)
+}
+
+func (db *mssql) SetParams(params map[string]string) {
+	defaultVarchar, ok := params["DEFAULT_VARCHAR"]
+	if ok {
+		var t = strings.ToUpper(defaultVarchar)
+		switch t {
+		case "NVARCHAR", "VARCHAR":
+			db.defaultVarchar = defaultVarchar
+		default:
+			db.defaultVarchar = "VARCHAR"
+		}
+	} else {
+		db.defaultVarchar = "VARCHAR"
+	}
+
+	defaultChar, ok := params["DEFAULT_CHAR"]
+	if ok {
+		var t = strings.ToUpper(defaultChar)
+		switch t {
+		case "NCHAR", "CHAR":
+			db.defaultChar = defaultChar
+		default:
+			db.defaultChar = "CHAR"
+		}
+	} else {
+		db.defaultChar = "CHAR"
+	}
 }
 
 func (db *mssql) SQLType(c *schemas.Column) string {
@@ -267,6 +297,10 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 	case schemas.BigInt:
 		res = schemas.BigInt
 		c.Length = 0
+	case schemas.Varchar:
+		res = db.defaultVarchar
+	case schemas.Char:
+		res = db.defaultChar
 	default:
 		res = t
 	}
