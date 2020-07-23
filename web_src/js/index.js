@@ -1045,7 +1045,7 @@ async function initRepository() {
     // Pull Request merge button
     const $mergeButton = $('.merge-button > button');
     const $mergeNowButton = $('.merge-now-button > button');
-    function mergeClickHandler(e) {
+    const mergeClickHandler = function (e) {
       e.preventDefault();
       $(`.${$(this).data('do')}-fields`).show();
       $mergeButton.parent().hide();
