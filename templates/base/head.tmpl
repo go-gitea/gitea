@@ -66,7 +66,6 @@
 			UseServiceWorker: {{UseServiceWorker}},
 			csrf: '{{.CsrfToken}}',
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
-			Minicolors: {{if .RequireMinicolors}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
 			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
 			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
@@ -101,9 +100,6 @@
 			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
 		</style>
 	</noscript>
-{{if .RequireMinicolors}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
-{{end}}
 	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
 	<meta property="og:title" content="{{.Owner.Name}}" />

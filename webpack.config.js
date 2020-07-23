@@ -248,6 +248,14 @@ module.exports = {
           },
         ],
       },
+      {
+        test: /\.png$/i,
+        use: [
+          {
+            loader: 'url-loader',
+          },
+        ],
+      }
     ],
   },
   plugins: [
