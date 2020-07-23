@@ -1050,7 +1050,7 @@ async function initRepository() {
       $(`.${$(this).data('do')}-fields`).show();
       $mergeButton.parent().hide();
       $mergeNowButton.parent().hide();
-    }
+    };
     $mergeButton.on('click', mergeClickHandler);
     $mergeNowButton.on('click', mergeClickHandler);
     $('.merge-button > .dropdown').dropdown({
