@@ -628,9 +628,10 @@ svg: node-check | node_modules
 
 .PHONY: svg-check
 svg-check: svg
-	@diff=$$(git diff $(SVG_DEST_DIR)); \
+	@git add $(SVG_DEST_DIR)
+	@diff=$$(git diff --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and commit the result:"; \
+		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
