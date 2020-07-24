@@ -139,7 +139,7 @@ func FindEmojiSubmatchIndex(s string) []int {
 		return nil
 	}
 
-	// get index of first emoji occurance while also checking for longest combination
+	// get index of first emoji occurrence while also checking for longest combination
 	for j := range GemojiData {
 		i := strings.Index(s, GemojiData[j].Emoji)
 		if i != -1 {
