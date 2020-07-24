@@ -136,8 +136,8 @@ type GqlRepository struct {
 	AllowSquash               bool             `json:"allow_squash_merge"`
 	AvatarURL                 string           `json:"avatar_url"`
 	Internal                  bool             `json:"internal"`
-	Branches      []*Branch   `json:"branches"`
-	Collaborators []*User     `json:"collaborators"`
+	Branches                  []*Branch        `json:"branches"`
+	Collaborators             []*User          `json:"collaborators"`
 }
 
 // CreateRepoOption options when creating repository

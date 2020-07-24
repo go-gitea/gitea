@@ -53,7 +53,7 @@ func (opts ListOptions) setDefaultValues() {
 func (opts ListOptions) getOffset() int {
 	var offset int
 	if opts.Offset <= 0 {
-		offset = (opts.Page-1)*opts.PageSize
+		offset = (opts.Page - 1) * opts.PageSize
 	} else {
 		offset = opts.Offset
 	}

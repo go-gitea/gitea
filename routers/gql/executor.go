@@ -24,6 +24,8 @@ type reqBody struct {
 	Query string `json:"query"`
 }
 
+type contextKeyType string
+
 // Init initializes gql server
 func Init(cfg graphql.Schema) {
 	schema = cfg
@@ -58,10 +60,11 @@ func GraphQL(ctx *giteaCtx.APIContext) {
 
 // ExecuteQuery runs our graphql queries
 func ExecuteQuery(query string, schema graphql.Schema, ctx *giteaCtx.APIContext) *graphql.Result {
+	apiContextKey := contextKeyType("giteaApiContext")
 	result := graphql.Do(graphql.Params{
 		Schema:        schema,
 		RequestString: query,
-		Context: context.WithValue(context.Background(), "giteaApiContext", ctx),
+		Context: context.WithValue(context.Background(), apiContextKey, ctx),
 		RootObject: make(map[string]interface{}),
 	})
 

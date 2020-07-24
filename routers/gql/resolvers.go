@@ -23,18 +23,18 @@ import (
 )
 
 // RepositoryByIdResolver resolves a repository by id
-func RepositoryByIdResolver(id string, goCtx context.Context) (interface{}, error)  {
+func RepositoryByIdResolver(goCtx context.Context, id string) (interface{}, error)  {
 	var err error
 
-	internalId, err := strconv.ParseInt(id, 10, 64)
+	internalID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, errors.New("Unable to parse id")
 	}
 
-	ctx := goCtx.Value("giteaApiContext").(*giteaCtx.APIContext)
+	ctx := goCtx.Value(contextKeyType("giteaApiContext")).(*giteaCtx.APIContext)
 
 	// Get repository.
-	repo, err := models.GetRepositoryByID(internalId)
+	repo, err := models.GetRepositoryByID(internalID)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func RepositoryResolver(p graphql.ResolveParams) (interface{}, error) {
 	owner, ownerOk := p.Args["owner"].(string)
 	name, nameOk := p.Args["name"].(string)
 	if ownerOk && nameOk {
-		ctx := p.Context.Value("giteaApiContext").(*giteaCtx.APIContext)
+		ctx := p.Context.Value(contextKeyType("giteaApiContext")).(*giteaCtx.APIContext)
 
 		var (
 			repoOwner *models.User
@@ -122,7 +122,7 @@ func authorizeRepository(ctx *giteaCtx.APIContext) error {
 
 // CollaboratorsResolver resolves collaborators list for a repository
 func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
-	ctx := p.Context.Value("giteaApiContext").(*giteaCtx.APIContext)
+	ctx := p.Context.Value(contextKeyType("giteaApiContext")).(*giteaCtx.APIContext)
 	err := authorizeCollaborators(ctx)
 	if err != nil {
 		return nil, err
@@ -149,12 +149,12 @@ func CollaboratorsResolver(p graphql.ResolveParams) (interface{}, error) {
 }
 
 // UserByIdResolver resolves a user by id
-func UserByIdResolver(id string, goCtx context.Context) (interface{}, error) {
-	internalId, err := strconv.ParseInt(id, 10, 64)
+func UserByIdResolver(goCtx context.Context, id string) (interface{}, error) {
+	internalID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, errors.New("Unable to parse id")
 	}
-	user, err := models.GetUserByID(internalId)
+	user, err := models.GetUserByID(internalID)
 	if err != nil {
 		return nil, errors.New("Unable to find user")
 	}
@@ -173,7 +173,7 @@ func authorizeCollaborators(ctx *giteaCtx.APIContext) error {
 
 // BranchesResolver resolves the branches of a repository
 func BranchesResolver(p graphql.ResolveParams) (interface{}, error) {
-	ctx := p.Context.Value("giteaApiContext").(*giteaCtx.APIContext)
+	ctx := p.Context.Value(contextKeyType("giteaApiContext")).(*giteaCtx.APIContext)
 	err := authorizeBranches(ctx)
 	if err != nil {
 		return nil, err

@@ -65,9 +65,8 @@ func init() {
 				v, err := strconv.ParseInt(valueAST.Value, 10, 64)
 				if err != nil {
 					return v
-				} else {
-					return nil
 				}
+				return nil
 			default:
 				return nil
 			}
@@ -80,9 +79,9 @@ func init() {
 			// based on id and its type, return the object
 			switch resolvedID.Type {
 			case "repository":
-				return RepositoryByIdResolver(resolvedID.ID, ctx)
+				return RepositoryByIdResolver(ctx, resolvedID.ID)
 			case "user":
-				return UserByIdResolver(resolvedID.ID, ctx)
+				return UserByIdResolver(ctx, resolvedID.ID)
 			default:
 				return nil, errors.New("Unknown node type")
 			}
@@ -235,7 +234,7 @@ func init() {
 	)
 
 	// payloadUser represents the author or committer of a commit
-	var payloadUser = graphql.NewObject(
+	payloadUser = graphql.NewObject(
 		graphql.ObjectConfig{
 			Name: "payload_user",
 			Fields: graphql.Fields{
@@ -577,12 +576,6 @@ func init() {
 
 	var err error
 	rootQuery := NewRoot()
-	if rootQuery == nil {
-		log.Error("root query is nil!")
-	}
-	if rootQuery.Query == nil {
-		log.Error("root query query is nil!")
-	}
 	Schema, err = graphql.NewSchema(
 		graphql.SchemaConfig {
 			Query: rootQuery.Query,

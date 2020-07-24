@@ -19,19 +19,19 @@ import (
 /*
  Implementation of a relay connection using gitea specific pagination information. Adapted from
  arrayconnection implementation in github.com/seripap/relay implementation.
- */
+*/
 
 const PREFIX = "giteaconnection:"
 
 // GetListOptions get the gitea list options for pagination based on the graphql pagination args and the total size of the data
 func GetListOptions(totalSize int, args relay.ConnectionArguments, maxPageSize int) models.ListOptions {
 	var (
-		offset int = 0
+		offset   int = 0
 		pageSize int = 0
-		first int = args.First
-		last int = args.Last
-		before int = getOffsetWithDefault(args.Before, -1)
-		after int = getOffsetWithDefault(args.After, -1)
+		first    int = args.First
+		last     int = args.Last
+		before   int = getOffsetWithDefault(args.Before, -1)
+		after    int = getOffsetWithDefault(args.After, -1)
 	)
 
 	if first > -1 {
@@ -54,7 +54,7 @@ func GetListOptions(totalSize int, args relay.ConnectionArguments, maxPageSize i
 				before = totalSize
 			}
 			if first >= before {
-				first = before -1
+				first = before - 1
 			}
 			pageSize = first
 		}
@@ -76,7 +76,7 @@ func GetListOptions(totalSize int, args relay.ConnectionArguments, maxPageSize i
 			}
 			offset = before - last - 1
 			if offset < 0 {
-				last = last + offset
+				last += offset
 				offset = 0
 			}
 			pageSize = last
@@ -93,7 +93,7 @@ func GetListOptions(totalSize int, args relay.ConnectionArguments, maxPageSize i
 		}
 	}
 	return models.ListOptions{
-		Page:     1,  //gitea pagination will use offset rather than page number, but need to default to number other than 0
+		Page:     1, //gitea pagination will use offset rather than page number, but need to default to number other than 0
 		Offset:   offset,
 		PageSize: pageSize,
 	}
@@ -126,7 +126,7 @@ func GiteaRelayConnection(data []interface{}, startPosition int, totalSize int) 
 		StartCursor:     firstEdgeCursor,
 		EndCursor:       lastEdgeCursor,
 		HasPreviousPage: startPosition > 1,
-		HasNextPage:     (startPosition -1) + len(data) < totalSize,
+		HasNextPage:     (startPosition-1)+len(data) < totalSize,
 	}
 	conn.TotalCount = totalSize
 
