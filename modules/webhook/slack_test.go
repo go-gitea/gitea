@@ -22,13 +22,13 @@ func TestSlackIssuesPayloadOpened(t *testing.T) {
 	pl, err := s.Issue(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
-	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue opened: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue opened: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
 
 	p.Action = api.HookIssueClosed
 	pl, err = s.Issue(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
-	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue closed: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue closed: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
 }
 
 func TestSlackIssueCommentPayload(t *testing.T) {
@@ -40,7 +40,7 @@ func TestSlackIssueCommentPayload(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on issue <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on issue <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
 }
 
 func TestSlackPullRequestCommentPayload(t *testing.T) {
@@ -52,7 +52,7 @@ func TestSlackPullRequestCommentPayload(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on pull request <http://localhost:3000/test/repo/pulls/2|#2 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on pull request <http://localhost:3000/test/repo/pulls/2|#2 Fix bug> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
 }
 
 func TestSlackReleasePayload(t *testing.T) {
@@ -64,7 +64,7 @@ func TestSlackReleasePayload(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Release created: <http://localhost:3000/test/repo/src/v1.0|v1.0> by <https://try.gitea.io/user1|user1>", pl.Text)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Release created: <http://localhost:3000/test/repo/src/v1.0|v1.0> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
 }
 
 func TestSlackPullRequestPayload(t *testing.T) {
@@ -76,5 +76,5 @@ func TestSlackPullRequestPayload(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#2 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#2 Fix bug> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
 }
