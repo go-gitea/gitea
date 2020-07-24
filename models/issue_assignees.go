@@ -19,6 +19,11 @@ type IssueAssignees struct {
 	IssueID    int64 `xorm:"INDEX"`
 }
 
+// LoadAssignees load assignees of this issue.
+func (issue *Issue) LoadAssignees() error {
+	return issue.loadAssignees(x)
+}
+
 // This loads all assignees of an issue
 func (issue *Issue) loadAssignees(e Engine) (err error) {
 	// Reset maybe preexisting assignees
@@ -74,23 +79,6 @@ func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error
 
 func isUserAssignedToIssue(e Engine, issue *Issue, user *User) (isAssigned bool, err error) {
 	return e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
-}
-
-// MakeAssigneeList concats a string with all names of the assignees. Useful for logs.
-func MakeAssigneeList(issue *Issue) (assigneeList string, err error) {
-	err = issue.loadAssignees(x)
-	if err != nil {
-		return "", err
-	}
-
-	for in, assignee := range issue.Assignees {
-		assigneeList += assignee.Name
-
-		if len(issue.Assignees) > (in + 1) {
-			assigneeList += ", "
-		}
-	}
-	return
 }
 
 // ClearAssigneeByUserID deletes all assignments of an user

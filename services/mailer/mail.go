@@ -10,13 +10,13 @@ import (
 	"fmt"
 	"html/template"
 	"mime"
-	"path"
 	"regexp"
 	"strings"
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -52,7 +52,7 @@ func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
-	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").Message)
+	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
 }
 
 // SendUserMail sends a mail to the user
@@ -142,7 +142,7 @@ func SendRegisterNotifyMail(locale Locale, u *models.User) {
 
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
-	repoName := path.Join(repo.Owner.Name, repo.Name)
+	repoName := repo.FullName()
 	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
 
 	data := map[string]interface{}{
@@ -177,7 +177,6 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 
 	commentType := models.CommentTypeComment
 	if ctx.Comment != nil {
-		prefix = "Re: "
 		commentType = ctx.Comment.Type
 		link = ctx.Issue.HTMLURL() + "#" + ctx.Comment.HashTag()
 	} else {
@@ -189,12 +188,15 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 		reviewType = ctx.Comment.Review.Type
 	}
 
-	fallback = prefix + fallbackMailSubject(ctx.Issue)
-
 	// This is the body of the new issue or comment, not the mail body
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(ctx.Content), ctx.Issue.Repo.HTMLURL(), ctx.Issue.Repo.ComposeMetas()))
 
 	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
+
+	if actName != "new" {
+		prefix = "Re: "
+	}
+	fallback = prefix + fallbackMailSubject(ctx.Issue)
 
 	if ctx.Comment != nil && ctx.Comment.Review != nil {
 		reviewComments = make([]*models.Comment, 0, 10)
@@ -232,6 +234,9 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 	if subject == "" {
 		subject = fallback
 	}
+
+	subject = emoji.ReplaceAliases(subject)
+
 	mailMeta["Subject"] = subject
 
 	var mailBody bytes.Buffer
@@ -247,7 +252,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
 		// Set Message-ID on first message so replies know what to reference
-		if ctx.Comment == nil {
+		if actName == "new" {
 			msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference()+">")
 		} else {
 			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference()+">")
@@ -314,6 +319,8 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 			name = "code"
 		case models.CommentTypeAssignees:
 			name = "assigned"
+		case models.CommentTypePullPush:
+			name = "push"
 		default:
 			name = "default"
 		}

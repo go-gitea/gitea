@@ -5,7 +5,11 @@
 package gitgraph
 
 import (
+	"bufio"
+	"bytes"
+	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -31,10 +35,11 @@ type GraphItems []GraphItem
 
 // GetCommitGraph return a list of commit (GraphItems) from all branches
 func GetCommitGraph(r *git.Repository, page int) (GraphItems, error) {
-
-	var CommitGraph []GraphItem
-
 	format := "DATA:|%d|%H|%ad|%an|%ae|%h|%s"
+
+	if page == 0 {
+		page = 1
+	}
 
 	graphCmd := git.NewCommand("log")
 	graphCmd.AddArguments("--graph",
@@ -42,26 +47,60 @@ func GetCommitGraph(r *git.Repository, page int) (GraphItems, error) {
 		"--all",
 		"-C",
 		"-M",
-		fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum),
-		fmt.Sprintf("--skip=%d", setting.UI.GraphMaxCommitNum*(page-1)),
+		fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum*page),
 		"--date=iso",
 		fmt.Sprintf("--pretty=format:%s", format),
 	)
-	graph, err := graphCmd.RunInDir(r.Path)
+	commitGraph := make([]GraphItem, 0, 100)
+	stderr := new(strings.Builder)
+	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		return CommitGraph, err
+		return nil, err
 	}
+	commitsToSkip := setting.UI.GraphMaxCommitNum * (page - 1)
 
-	CommitGraph = make([]GraphItem, 0, 100)
-	for _, s := range strings.Split(graph, "\n") {
-		GraphItem, err := graphItemFromString(s, r)
-		if err != nil {
-			return CommitGraph, err
+	scanner := bufio.NewScanner(stdoutReader)
+
+	if err := graphCmd.RunInDirTimeoutEnvFullPipelineFunc(nil, -1, r.Path, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) error {
+		_ = stdoutWriter.Close()
+		defer stdoutReader.Close()
+		for commitsToSkip > 0 && scanner.Scan() {
+			line := scanner.Bytes()
+			dataIdx := bytes.Index(line, []byte("DATA:"))
+			starIdx := bytes.IndexByte(line, '*')
+			if starIdx >= 0 && starIdx < dataIdx {
+				commitsToSkip--
+			}
 		}
-		CommitGraph = append(CommitGraph, GraphItem)
+		// Skip initial non-commit lines
+		for scanner.Scan() {
+			if bytes.IndexByte(scanner.Bytes(), '*') >= 0 {
+				line := scanner.Text()
+				graphItem, err := graphItemFromString(line, r)
+				if err != nil {
+					cancel()
+					return err
+				}
+				commitGraph = append(commitGraph, graphItem)
+				break
+			}
+		}
+
+		for scanner.Scan() {
+			line := scanner.Text()
+			graphItem, err := graphItemFromString(line, r)
+			if err != nil {
+				cancel()
+				return err
+			}
+			commitGraph = append(commitGraph, graphItem)
+		}
+		return scanner.Err()
+	}); err != nil {
+		return commitGraph, err
 	}
 
-	return CommitGraph, nil
+	return commitGraph, nil
 }
 
 func graphItemFromString(s string, r *git.Repository) (GraphItem, error) {

@@ -2,10 +2,19 @@
 	<h4 class="file-header ui top attached header">
 		<div class="file-header-left">
 			{{if .ReadmeInList}}
-				<i class="book icon"></i>
+				{{if .FileIsSymlink}}
+					<i class="icons"><i class="book icon"></i><i class="bottom left corner tiny inverted share icon"></i></i>
+				{{else}}
+					<i class="book icon"></i>
+				{{end}}
 				<strong>{{.FileName}}</strong>
 			{{else}}
 				<div class="file-info text grey normal mono">
+					{{if .FileIsSymlink}}
+						<div class="file-info-entry">
+							{{.i18n.Tr "repo.symbolic_link"}}
+						</div>
+					{{end}}
 					{{if .NumLinesSet}}
 						<div class="file-info-entry">
 							{{.NumLines}} {{.i18n.Tr (TrN .i18n.Lang .NumLines "repo.line" "repo.lines") }}
@@ -40,14 +49,14 @@
 				</div>
 				{{if .Repository.CanEnableEditor}}
 					{{if .CanEditFile}}
-						<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><i class="octicon octicon-pencil btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i></a>
+						<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil" 16}}</span></a>
 					{{else}}
-						<i class="octicon octicon-pencil btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i>
+						<span class="btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil" 16}}</span>
 					{{end}}
 					{{if .CanDeleteFile}}
-						<a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><i class="octicon octicon-trashcan btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i></a>
+						<a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan" 16}}</span></a>
 					{{else}}
-						<i class="octicon octicon-trashcan btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i>
+						<span class="btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan" 16}}</span>
 					{{end}}
 				{{end}}
 			</div>
@@ -55,7 +64,7 @@
 		{{end}}
 	</h4>
 	<div class="ui attached table unstackable segment">
-		<div class="file-view {{if .IsMarkup}}{{.MarkupType}} markdown{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}} has-emoji">
+		<div class="file-view {{if .IsMarkup}}{{.MarkupType}} markdown{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}}">
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 			{{else if .IsRenderedHTML}}
@@ -79,18 +88,30 @@
 					{{end}}
 				</div>
 			{{else if .FileSize}}
+				{{if .IsFileTooLarge}}
 				<table>
 					<tbody>
 						<tr>
-						{{if .IsFileTooLarge}}
 							<td><strong>{{.i18n.Tr "repo.file_too_large"}}</strong></td>
-						{{else}}
-							<td class="lines-num">{{.LineNums}}</td>
-							<td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.FileContent}}</ol></code></pre></td>
-						{{end}}
 						</tr>
 					</tbody>
 				</table>
+				{{else}}
+				<table>
+					<tbody>
+						{{range $line, $code := .FileContent}}
+						<tr>
+							<td id="L{{$line}}" class="lines-num">
+								<span id="L{{$line}}" data-line-number="{{$line}}"></span>
+							</td>
+							<td rel="L{{$line}}" class="lines-code chroma">
+								<code>{{$code | Safe}}</code>
+							</td>
+						</tr>
+						{{end}}
+					</tbody>
+				</table>
+				{{end}}
 			{{end}}
 		</div>
 	</div>

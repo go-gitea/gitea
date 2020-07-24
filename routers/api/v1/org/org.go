@@ -6,6 +6,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -13,10 +14,14 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
-	if err := u.GetOrganizations(all); err != nil {
+	if err := u.GetOrganizations(&models.SearchOrganizationsOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		All:         all,
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetOrganizations", err)
 		return
 	}
@@ -35,6 +40,15 @@ func ListMyOrgs(ctx *context.APIContext) {
 	// summary: List the current user's organizations
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
@@ -55,6 +69,14 @@ func ListUserOrgs(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
@@ -64,6 +86,56 @@ func ListUserOrgs(ctx *context.APIContext) {
 		return
 	}
 	listUserOrgs(ctx, u, ctx.User.IsAdmin)
+}
+
+// GetAll return list of all public organizations
+func GetAll(ctx *context.APIContext) {
+	// swagger:operation Get /orgs organization orgGetAll
+	// ---
+	// summary: Get list of organizations
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/OrganizationList"
+
+	vMode := []api.VisibleType{api.VisibleTypePublic}
+	if ctx.IsSigned {
+		vMode = append(vMode, api.VisibleTypeLimited)
+		if ctx.User.IsAdmin {
+			vMode = append(vMode, api.VisibleTypePrivate)
+		}
+	}
+
+	listOptions := utils.GetListOptions(ctx)
+
+	publicOrgs, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+		ListOptions: listOptions,
+		Type:        models.UserTypeOrganization,
+		OrderBy:     models.SearchOrderByAlphabetically,
+		Visible:     vMode,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)
+		return
+	}
+	orgs := make([]*api.Organization, len(publicOrgs))
+	for i := range publicOrgs {
+		orgs[i] = convert.ToOrganization(publicOrgs[i])
+	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.JSON(http.StatusOK, &orgs)
 }
 
 // Create api for create organization
@@ -112,6 +184,7 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	if err := models.CreateOrganization(org, ctx.User); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrNameReserved(err) ||
+			models.IsErrNameCharsNotAllowed(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {

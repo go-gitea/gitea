@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"net/smtp"
 	"net/textproto"
-	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/auth/ldap"
@@ -23,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/unknwon/com"
-	"xorm.io/core"
 	"xorm.io/xorm"
+	"xorm.io/xorm/convert"
 )
 
 // LoginType represents an login type.
@@ -61,11 +60,11 @@ var SecurityProtocolNames = map[ldap.SecurityProtocol]string{
 
 // Ensure structs implemented interface.
 var (
-	_ core.Conversion = &LDAPConfig{}
-	_ core.Conversion = &SMTPConfig{}
-	_ core.Conversion = &PAMConfig{}
-	_ core.Conversion = &OAuth2Config{}
-	_ core.Conversion = &SSPIConfig{}
+	_ convert.Conversion = &LDAPConfig{}
+	_ convert.Conversion = &SMTPConfig{}
+	_ convert.Conversion = &PAMConfig{}
+	_ convert.Conversion = &OAuth2Config{}
+	_ convert.Conversion = &SSPIConfig{}
 )
 
 // LDAPConfig holds configuration for LDAP login source.
@@ -166,10 +165,10 @@ func (cfg *SSPIConfig) ToDB() ([]byte, error) {
 type LoginSource struct {
 	ID            int64 `xorm:"pk autoincr"`
 	Type          LoginType
-	Name          string          `xorm:"UNIQUE"`
-	IsActived     bool            `xorm:"INDEX NOT NULL DEFAULT false"`
-	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
-	Cfg           core.Conversion `xorm:"TEXT"`
+	Name          string             `xorm:"UNIQUE"`
+	IsActived     bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsSyncEnabled bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	Cfg           convert.Conversion `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -301,7 +300,7 @@ func (source *LoginSource) SSPI() *SSPIConfig {
 // CreateLoginSource inserts a LoginSource in the DB if not already
 // existing with the given name.
 func CreateLoginSource(source *LoginSource) error {
-	has, err := x.Get(&LoginSource{Name: source.Name})
+	has, err := x.Where("name=?", source.Name).Exist(new(LoginSource))
 	if err != nil {
 		return err
 	} else if has {
@@ -455,13 +454,9 @@ func composeFullName(firstname, surname, username string) string {
 	}
 }
 
-var (
-	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
-)
-
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
+func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*User, error) {
 	sr := source.Cfg.(*LDAPConfig).SearchEntry(login, password, source.Type == LoginDLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
@@ -473,17 +468,35 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	// Update User admin flag if exist
 	if isExist, err := IsUserExist(0, sr.Username); err != nil {
 		return nil, err
-	} else if isExist &&
-		!user.ProhibitLogin && len(source.LDAP().AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
-		// Change existing admin flag only if AdminFilter option is set
-		user.IsAdmin = sr.IsAdmin
-		err = UpdateUserCols(user, "is_admin")
-		if err != nil {
-			return nil, err
+	} else if isExist {
+		if user == nil {
+			user, err = GetUserByName(sr.Username)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if user != nil && !user.ProhibitLogin {
+			cols := make([]string, 0)
+			if len(source.LDAP().AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
+				// Change existing admin flag only if AdminFilter option is set
+				user.IsAdmin = sr.IsAdmin
+				cols = append(cols, "is_admin")
+			}
+			if !user.IsAdmin && len(source.LDAP().RestrictedFilter) > 0 && user.IsRestricted != sr.IsRestricted {
+				// Change existing restricted flag only if RestrictedFilter option is set
+				user.IsRestricted = sr.IsRestricted
+				cols = append(cols, "is_restricted")
+			}
+			if len(cols) > 0 {
+				err = UpdateUserCols(user, cols...)
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
-	if !autoRegister {
+	if user != nil {
 		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
 			return user, RewriteAllPublicKeys()
 		}
@@ -495,25 +508,22 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	if len(sr.Username) == 0 {
 		sr.Username = login
 	}
-	// Validate username make sure it satisfies requirement.
-	if alphaDashDotPattern.MatchString(sr.Username) {
-		return nil, fmt.Errorf("Invalid pattern for attribute 'username' [%s]: must be valid alpha or numeric or dash(-_) or dot characters", sr.Username)
-	}
 
 	if len(sr.Mail) == 0 {
 		sr.Mail = fmt.Sprintf("%s@localhost", sr.Username)
 	}
 
 	user = &User{
-		LowerName:   strings.ToLower(sr.Username),
-		Name:        sr.Username,
-		FullName:    composeFullName(sr.Name, sr.Surname, sr.Username),
-		Email:       sr.Mail,
-		LoginType:   source.Type,
-		LoginSource: source.ID,
-		LoginName:   login,
-		IsActive:    true,
-		IsAdmin:     sr.IsAdmin,
+		LowerName:    strings.ToLower(sr.Username),
+		Name:         sr.Username,
+		FullName:     composeFullName(sr.Name, sr.Surname, sr.Username),
+		Email:        sr.Mail,
+		LoginType:    source.Type,
+		LoginSource:  source.ID,
+		LoginName:    login,
+		IsActive:     true,
+		IsAdmin:      sr.IsAdmin,
+		IsRestricted: sr.IsRestricted,
 	}
 
 	err := CreateUser(user)
@@ -594,7 +604,7 @@ func SMTPAuth(a smtp.Auth, cfg *SMTPConfig) error {
 
 // LoginViaSMTP queries if login/password is valid against the SMTP,
 // and create a local user if success when enabled.
-func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPConfig, autoRegister bool) (*User, error) {
+func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPConfig) (*User, error) {
 	// Verify allowed domains.
 	if len(cfg.AllowedDomains) > 0 {
 		idx := strings.Index(login, "@")
@@ -625,7 +635,7 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 		return nil, err
 	}
 
-	if !autoRegister {
+	if user != nil {
 		return user, nil
 	}
 
@@ -657,33 +667,41 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 
 // LoginViaPAM queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
-func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMConfig, autoRegister bool) (*User, error) {
-	if err := pam.Auth(cfg.ServiceName, login, password); err != nil {
+func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMConfig) (*User, error) {
+	pamLogin, err := pam.Auth(cfg.ServiceName, login, password)
+	if err != nil {
 		if strings.Contains(err.Error(), "Authentication failure") {
 			return nil, ErrUserNotExist{0, login, 0}
 		}
 		return nil, err
 	}
 
-	if !autoRegister {
+	if user != nil {
 		return user, nil
 	}
 
+	// Allow PAM sources with `@` in their name, like from Active Directory
+	username := pamLogin
+	idx := strings.Index(pamLogin, "@")
+	if idx > -1 {
+		username = pamLogin[:idx]
+	}
+
 	user = &User{
-		LowerName:   strings.ToLower(login),
-		Name:        login,
-		Email:       login,
+		LowerName:   strings.ToLower(username),
+		Name:        username,
+		Email:       pamLogin,
 		Passwd:      password,
 		LoginType:   LoginPAM,
 		LoginSource: sourceID,
-		LoginName:   login,
+		LoginName:   login, // This is what the user typed in
 		IsActive:    true,
 	}
 	return user, CreateUser(user)
 }
 
 // ExternalUserLogin attempts a login using external source types.
-func ExternalUserLogin(user *User, login, password string, source *LoginSource, autoRegister bool) (*User, error) {
+func ExternalUserLogin(user *User, login, password string, source *LoginSource) (*User, error) {
 	if !source.IsActived {
 		return nil, ErrLoginSourceNotActived
 	}
@@ -691,11 +709,11 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 	var err error
 	switch source.Type {
 	case LoginLDAP, LoginDLDAP:
-		user, err = LoginViaLDAP(user, login, password, source, autoRegister)
+		user, err = LoginViaLDAP(user, login, password, source)
 	case LoginSMTP:
-		user, err = LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig), autoRegister)
+		user, err = LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig))
 	case LoginPAM:
-		user, err = LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig), autoRegister)
+		user, err = LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig))
 	default:
 		return nil, ErrUnsupportedLoginType
 	}
@@ -775,7 +793,7 @@ func UserSignIn(username, password string) (*User, error) {
 				return nil, ErrLoginSourceNotExist{user.LoginSource}
 			}
 
-			return ExternalUserLogin(user, user.LoginName, password, &source, false)
+			return ExternalUserLogin(user, user.LoginName, password, &source)
 		}
 	}
 
@@ -789,7 +807,7 @@ func UserSignIn(username, password string) (*User, error) {
 			// don't try to authenticate against OAuth2 and SSPI sources here
 			continue
 		}
-		authUser, err := ExternalUserLogin(nil, username, password, source, true)
+		authUser, err := ExternalUserLogin(nil, username, password, source)
 		if err == nil {
 			return authUser, nil
 		}

@@ -82,6 +82,7 @@ func (q *UniqueQueue) AddFunc(id interface{}, fn func()) {
 	idStr := com.ToStr(id)
 	q.table.lock.Lock()
 	if _, ok := q.table.pool[idStr]; ok {
+		q.table.lock.Unlock()
 		return
 	}
 	q.table.pool[idStr] = struct{}{}

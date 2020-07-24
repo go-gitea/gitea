@@ -34,7 +34,6 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 	setting.Service.EnableTimetracking = true
 	issueList := IssueList{
 		AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
-		AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue),
 		AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue),
 	}
 
@@ -66,7 +65,7 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 		if issue.ID == int64(1) {
 			assert.Equal(t, int64(400), issue.TotalTrackedTime)
 		} else if issue.ID == int64(2) {
-			assert.Equal(t, int64(3662), issue.TotalTrackedTime)
+			assert.Equal(t, int64(3682), issue.TotalTrackedTime)
 		}
 	}
 }

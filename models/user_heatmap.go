@@ -18,6 +18,11 @@ type UserHeatmapData struct {
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData
 func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
+
+	if user.KeepActivityPrivate {
+		return hdata, nil
+	}
+
 	var groupBy string
 	var groupByName = "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
 	switch {

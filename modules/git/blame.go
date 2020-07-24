@@ -79,7 +79,9 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
 	defer process.GetManager().Remove(r.pid)
-	defer r.cancel()
+	r.cancel()
+
+	_ = r.output.Close()
 
 	if err := r.cmd.Wait(); err != nil {
 		return fmt.Errorf("Wait: %v", err)
@@ -89,19 +91,19 @@ func (r *BlameReader) Close() error {
 }
 
 // CreateBlameReader creates reader for given repository, commit and file
-func CreateBlameReader(repoPath, commitID, file string) (*BlameReader, error) {
+func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*BlameReader, error) {
 	gitRepo, err := OpenRepository(repoPath)
 	if err != nil {
 		return nil, err
 	}
 	gitRepo.Close()
 
-	return createBlameReader(repoPath, GitExecutable, "blame", commitID, "--porcelain", "--", file)
+	return createBlameReader(ctx, repoPath, GitExecutable, "blame", commitID, "--porcelain", "--", file)
 }
 
-func createBlameReader(dir string, command ...string) (*BlameReader, error) {
-	// FIXME: graceful: This should have a timeout
-	ctx, cancel := context.WithCancel(DefaultContext)
+func createBlameReader(ctx context.Context, dir string, command ...string) (*BlameReader, error) {
+	// Here we use the provided context - this should be tied to the request performing the blame so that it does not hang around.
+	ctx, cancel := context.WithCancel(ctx)
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
 	cmd.Dir = dir
 	cmd.Stderr = os.Stderr

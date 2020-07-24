@@ -429,6 +429,7 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 
 		// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
 		rows, err := e.Table("tracked_time").
+			Where("deleted = ?", false).
 			Select("issue_id, sum(time) as time").
 			In("issue_id", ids[:limit]).
 			GroupBy("issue_id").
@@ -513,4 +514,36 @@ func (issues IssueList) LoadComments() error {
 // LoadDiscussComments loads discuss comments
 func (issues IssueList) LoadDiscussComments() error {
 	return issues.loadComments(x, builder.Eq{"comment.type": CommentTypeComment})
+}
+
+// GetApprovalCounts returns a map of issue ID to slice of approval counts
+// FIXME: only returns official counts due to double counting of non-official approvals
+func (issues IssueList) GetApprovalCounts() (map[int64][]*ReviewCount, error) {
+	return issues.getApprovalCounts(x)
+}
+
+func (issues IssueList) getApprovalCounts(e Engine) (map[int64][]*ReviewCount, error) {
+	rCounts := make([]*ReviewCount, 0, 2*len(issues))
+	ids := make([]int64, len(issues))
+	for i, issue := range issues {
+		ids[i] = issue.ID
+	}
+	sess := e.In("issue_id", ids)
+	err := sess.Select("issue_id, type, count(id) as `count`").
+		Where("official = ?", true).
+		GroupBy("issue_id, type").
+		OrderBy("issue_id").
+		Table("review").
+		Find(&rCounts)
+	if err != nil {
+		return nil, err
+	}
+
+	approvalCountMap := make(map[int64][]*ReviewCount, len(issues))
+
+	for _, c := range rCounts {
+		approvalCountMap[c.IssueID] = append(approvalCountMap[c.IssueID], c)
+	}
+
+	return approvalCountMap, nil
 }

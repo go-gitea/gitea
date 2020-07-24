@@ -28,10 +28,9 @@ import (
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/scorch/segment"
-	"github.com/blevesearch/bleve/index/scorch/segment/zap"
 	"github.com/blevesearch/bleve/index/store"
 	"github.com/blevesearch/bleve/registry"
-	bolt "github.com/etcd-io/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 const Name = "scorch"
@@ -67,7 +66,6 @@ type Scorch struct {
 	persists           chan *persistIntroduction
 	merges             chan *segmentMerge
 	introducerNotifier chan *epochWatcher
-	revertToSnapshots  chan *snapshotReversion
 	persisterNotifier  chan *epochWatcher
 	rootBolt           *bolt.DB
 	asyncTasks         sync.WaitGroup
@@ -78,6 +76,8 @@ type Scorch struct {
 	pauseLock sync.RWMutex
 
 	pauseCount uint64
+
+	segPlugin segment.Plugin
 }
 
 type internalStats struct {
@@ -101,7 +101,25 @@ func NewScorch(storeName string,
 		nextSnapshotEpoch:    1,
 		closeCh:              make(chan struct{}),
 		ineligibleForRemoval: map[string]bool{},
+		segPlugin:            defaultSegmentPlugin,
 	}
+
+	// check if the caller has requested a specific segment type/version
+	forcedSegmentVersion, ok := config["forceSegmentVersion"].(int)
+	if ok {
+		forcedSegmentType, ok2 := config["forceSegmentType"].(string)
+		if !ok2 {
+			return nil, fmt.Errorf(
+				"forceSegmentVersion set to %d, must also specify forceSegmentType", forcedSegmentVersion)
+		}
+
+		err := rv.loadSegmentPlugin(forcedSegmentType,
+			uint32(forcedSegmentVersion))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	rv.root = &IndexSnapshot{parent: rv, refs: 1, creator: "NewScorch"}
 	ro, ok := config["read_only"].(bool)
 	if ok {
@@ -221,8 +239,8 @@ func (s *Scorch) openBolt() error {
 	s.persists = make(chan *persistIntroduction)
 	s.merges = make(chan *segmentMerge)
 	s.introducerNotifier = make(chan *epochWatcher, 1)
-	s.revertToSnapshots = make(chan *snapshotReversion)
 	s.persisterNotifier = make(chan *epochWatcher, 1)
+	s.closeCh = make(chan struct{})
 
 	if !s.readOnly && s.path != "" {
 		err := s.removeOldZapFiles() // Before persister or merger create any new files.
@@ -263,7 +281,10 @@ func (s *Scorch) Close() (err error) {
 		err = s.rootBolt.Close()
 		s.rootLock.Lock()
 		if s.root != nil {
-			_ = s.root.DecRef()
+			err2 := s.root.DecRef()
+			if err == nil {
+				err = err2
+			}
 		}
 		s.root = nil
 		s.rootLock.Unlock()
@@ -349,7 +370,7 @@ func (s *Scorch) Batch(batch *index.Batch) (err error) {
 	var newSegment segment.Segment
 	var bufBytes uint64
 	if len(analysisResults) > 0 {
-		newSegment, bufBytes, err = zap.AnalysisResultsToSegmentBase(analysisResults, DefaultChunkFactor)
+		newSegment, bufBytes, err = s.segPlugin.New(analysisResults)
 		if err != nil {
 			return err
 		}
@@ -466,8 +487,9 @@ func (s *Scorch) Stats() json.Marshaler {
 	return &s.stats
 }
 
-func (s *Scorch) diskFileStats() (uint64, uint64) {
-	var numFilesOnDisk, numBytesUsedDisk uint64
+func (s *Scorch) diskFileStats(rootSegmentPaths map[string]struct{}) (uint64,
+	uint64, uint64) {
+	var numFilesOnDisk, numBytesUsedDisk, numBytesOnDiskByRoot uint64
 	if s.path != "" {
 		finfos, err := ioutil.ReadDir(s.path)
 		if err == nil {
@@ -475,24 +497,47 @@ func (s *Scorch) diskFileStats() (uint64, uint64) {
 				if !finfo.IsDir() {
 					numBytesUsedDisk += uint64(finfo.Size())
 					numFilesOnDisk++
+					if rootSegmentPaths != nil {
+						fname := s.path + string(os.PathSeparator) + finfo.Name()
+						if _, fileAtRoot := rootSegmentPaths[fname]; fileAtRoot {
+							numBytesOnDiskByRoot += uint64(finfo.Size())
+						}
+					}
 				}
 			}
 		}
 	}
-	return numFilesOnDisk, numBytesUsedDisk
+	// if no root files path given, then consider all disk files.
+	if rootSegmentPaths == nil {
+		return numFilesOnDisk, numBytesUsedDisk, numBytesUsedDisk
+	}
+
+	return numFilesOnDisk, numBytesUsedDisk, numBytesOnDiskByRoot
+}
+
+func (s *Scorch) rootDiskSegmentsPaths() map[string]struct{} {
+	rv := make(map[string]struct{}, len(s.root.segment))
+	for _, segmentSnapshot := range s.root.segment {
+		if seg, ok := segmentSnapshot.segment.(segment.PersistedSegment); ok {
+			rv[seg.Path()] = struct{}{}
+		}
+	}
+	return rv
 }
 
 func (s *Scorch) StatsMap() map[string]interface{} {
 	m := s.stats.ToMap()
 
-	numFilesOnDisk, numBytesUsedDisk := s.diskFileStats()
+	s.rootLock.RLock()
+	rootSegPaths := s.rootDiskSegmentsPaths()
+	m["CurFilesIneligibleForRemoval"] = uint64(len(s.ineligibleForRemoval))
+	s.rootLock.RUnlock()
+
+	numFilesOnDisk, numBytesUsedDisk, numBytesOnDiskByRoot := s.diskFileStats(rootSegPaths)
 
 	m["CurOnDiskBytes"] = numBytesUsedDisk
 	m["CurOnDiskFiles"] = numFilesOnDisk
 
-	s.rootLock.RLock()
-	m["CurFilesIneligibleForRemoval"] = uint64(len(s.ineligibleForRemoval))
-	s.rootLock.RUnlock()
 	// TODO: consider one day removing these backwards compatible
 	// names for apps using the old names
 	m["updates"] = m["TotUpdates"]
@@ -507,8 +552,11 @@ func (s *Scorch) StatsMap() map[string]interface{} {
 	m["num_items_introduced"] = m["TotIntroducedItems"]
 	m["num_items_persisted"] = m["TotPersistedItems"]
 	m["num_recs_to_persist"] = m["TotItemsToPersist"]
-	m["num_bytes_used_disk"] = m["CurOnDiskBytes"]
-	m["num_files_on_disk"] = m["CurOnDiskFiles"]
+	// total disk bytes found in index directory inclusive of older snapshots
+	m["num_bytes_used_disk"] = numBytesUsedDisk
+	// total disk bytes by the latest root index, exclusive of older snapshots
+	m["num_bytes_used_disk_by_root"] = numBytesOnDiskByRoot
+	m["num_files_on_disk"] = numFilesOnDisk
 	m["num_root_memorysegments"] = m["TotMemorySegmentsAtRoot"]
 	m["num_root_filesegments"] = m["TotFileSegmentsAtRoot"]
 	m["num_persister_nap_pause_completed"] = m["TotPersisterNapPauseCompleted"]

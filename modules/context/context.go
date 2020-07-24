@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -122,7 +123,7 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 		}
 
 		u, err := url.Parse(loc)
-		if err != nil || (u.Scheme != "" && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
+		if err != nil || ((u.Scheme != "" || u.Host != "") && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
 			continue
 		}
 
@@ -241,6 +242,7 @@ func Contexter() macaron.Handler {
 		}
 		ctx.Data["Language"] = ctx.Locale.Language()
 		c.Data["Link"] = ctx.Link
+		ctx.Data["CurrentURL"] = setting.AppSubURL + c.Req.URL.RequestURI()
 		ctx.Data["PageStartTime"] = time.Now()
 		// Quick responses appropriate go-get meta with status 200
 		// regardless of if user have access to the repository,

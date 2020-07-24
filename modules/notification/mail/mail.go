@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/services/mailer"
@@ -38,6 +37,8 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 		act = models.ActionCommentIssue
 	} else if comment.Type == models.CommentTypeCode {
 		act = models.ActionCommentIssue
+	} else if comment.Type == models.CommentTypePullPush {
+		act = 0
 	}
 
 	if err := mailer.MailParticipantsComment(comment, act, issue); err != nil {
@@ -53,6 +54,7 @@ func (m *mailNotifier) NotifyNewIssue(issue *models.Issue) {
 
 func (m *mailNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 	var actionType models.ActionType
+	issue.Content = ""
 	if issue.IsPull {
 		if isClosed {
 			actionType = models.ActionClosePullRequest
@@ -100,13 +102,46 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 	}
 }
 
-func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (m *mailNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() == models.EmailNotificationsEnabled {
+		ct := fmt.Sprintf("Requested to review #%d.", issue.Index)
+		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []string{reviewer.Email})
+	}
+}
+
+func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
-
+	pr.Issue.Content = ""
 	if err := mailer.MailParticipants(pr.Issue, doer, models.ActionMergePullRequest); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
+}
+
+func (m *mailNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
+	var err error
+	if err = comment.LoadIssue(); err != nil {
+		log.Error("comment.LoadIssue: %v", err)
+		return
+	}
+	if err = comment.Issue.LoadRepo(); err != nil {
+		log.Error("comment.Issue.LoadRepo: %v", err)
+		return
+	}
+	if err = comment.Issue.LoadPullRequest(); err != nil {
+		log.Error("comment.Issue.LoadPullRequest: %v", err)
+		return
+	}
+	if err = comment.Issue.PullRequest.LoadBaseRepo(); err != nil {
+		log.Error("comment.Issue.PullRequest.LoadBaseRepo: %v", err)
+		return
+	}
+	if err := comment.LoadPushCommits(); err != nil {
+		log.Error("comment.LoadPushCommits: %v", err)
+	}
+	comment.Content = ""
+
+	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment)
 }

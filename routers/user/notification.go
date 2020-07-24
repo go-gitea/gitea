@@ -7,6 +7,7 @@ package user
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -17,7 +18,8 @@ import (
 )
 
 const (
-	tplNotification base.TplName = "user/notification/notification"
+	tplNotification    base.TplName = "user/notification/notification"
+	tplNotificationDiv base.TplName = "user/notification/notification_div"
 )
 
 // GetNotificationCount is the middleware that sets the notification count in the context
@@ -30,17 +32,31 @@ func GetNotificationCount(c *context.Context) {
 		return
 	}
 
-	count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
-	if err != nil {
-		c.ServerError("GetNotificationCount", err)
-		return
-	}
+	c.Data["NotificationUnreadCount"] = func() int64 {
+		count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
+		if err != nil {
+			c.ServerError("GetNotificationCount", err)
+			return -1
+		}
 
-	c.Data["NotificationUnreadCount"] = count
+		return count
+	}
 }
 
 // Notifications is the notifications page
 func Notifications(c *context.Context) {
+	getNotifications(c)
+	if c.Written() {
+		return
+	}
+	if c.QueryBool("div-only") {
+		c.HTML(http.StatusOK, tplNotificationDiv)
+		return
+	}
+	c.HTML(http.StatusOK, tplNotification)
+}
+
+func getNotifications(c *context.Context) {
 	var (
 		keyword = strings.Trim(c.Query("q"), " ")
 		status  models.NotificationStatus
@@ -61,6 +77,19 @@ func Notifications(c *context.Context) {
 		status = models.NotificationStatusUnread
 	}
 
+	total, err := models.GetNotificationCount(c.User, status)
+	if err != nil {
+		c.ServerError("ErrGetNotificationCount", err)
+		return
+	}
+
+	// redirect to last page if request page is more than total pages
+	pager := context.NewPagination(int(total), perPage, page, 5)
+	if pager.Paginater.Current() < page {
+		c.Redirect(fmt.Sprintf("/notifications?q=%s&page=%d", c.Query("q"), pager.Paginater.Current()))
+		return
+	}
+
 	statuses := []models.NotificationStatus{status, models.NotificationStatusPinned}
 	notifications, err := models.NotificationsForUser(c.User, statuses, page, perPage)
 	if err != nil {
@@ -68,45 +97,47 @@ func Notifications(c *context.Context) {
 		return
 	}
 
-	repos, err := notifications.LoadRepos()
+	failCount := 0
+
+	repos, failures, err := notifications.LoadRepos()
 	if err != nil {
 		c.ServerError("LoadRepos", err)
 		return
 	}
+	notifications = notifications.Without(failures)
 	if err := repos.LoadAttributes(); err != nil {
 		c.ServerError("LoadAttributes", err)
 		return
 	}
+	failCount += len(failures)
 
-	if err := notifications.LoadIssues(); err != nil {
+	failures, err = notifications.LoadIssues()
+	if err != nil {
 		c.ServerError("LoadIssues", err)
 		return
 	}
-	if err := notifications.LoadComments(); err != nil {
+	notifications = notifications.Without(failures)
+	failCount += len(failures)
+
+	failures, err = notifications.LoadComments()
+	if err != nil {
 		c.ServerError("LoadComments", err)
 		return
 	}
+	notifications = notifications.Without(failures)
+	failCount += len(failures)
 
-	total, err := models.GetNotificationCount(c.User, status)
-	if err != nil {
-		c.ServerError("ErrGetNotificationCount", err)
-		return
+	if failCount > 0 {
+		c.Flash.Error(fmt.Sprintf("ERROR: %d notifications were removed due to missing parts - check the logs", failCount))
 	}
 
-	title := c.Tr("notifications")
-	if status == models.NotificationStatusUnread && total > 0 {
-		title = fmt.Sprintf("(%d) %s", total, title)
-	}
-	c.Data["Title"] = title
+	c.Data["Title"] = c.Tr("notifications")
 	c.Data["Keyword"] = keyword
 	c.Data["Status"] = status
 	c.Data["Notifications"] = notifications
 
-	pager := context.NewPagination(int(total), perPage, page, 5)
 	pager.SetDefaultParams(c)
 	c.Data["Page"] = pager
-
-	c.HTML(200, tplNotification)
 }
 
 // NotificationStatusPost is a route for changing the status of a notification
@@ -134,8 +165,17 @@ func NotificationStatusPost(c *context.Context) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/notifications", setting.AppSubURL)
-	c.Redirect(url, 303)
+	if !c.QueryBool("noredirect") {
+		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, c.Query("page"))
+		c.Redirect(url, http.StatusSeeOther)
+	}
+
+	getNotifications(c)
+	if c.Written() {
+		return
+	}
+
+	c.HTML(http.StatusOK, tplNotificationDiv)
 }
 
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
@@ -147,5 +187,5 @@ func NotificationPurgePost(c *context.Context) {
 	}
 
 	url := fmt.Sprintf("%s/notifications", setting.AppSubURL)
-	c.Redirect(url, 303)
+	c.Redirect(url, http.StatusSeeOther)
 }

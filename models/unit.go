@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // UnitType is Unit's Type
@@ -78,12 +79,88 @@ var (
 		UnitTypeWiki,
 	}
 
+	// NotAllowedDefaultRepoUnits contains units that can't be default
+	NotAllowedDefaultRepoUnits = []UnitType{
+		UnitTypeExternalWiki,
+		UnitTypeExternalTracker,
+	}
+
 	// MustRepoUnits contains the units could not be disabled currently
 	MustRepoUnits = []UnitType{
 		UnitTypeCode,
 		UnitTypeReleases,
 	}
+
+	// DisabledRepoUnits contains the units that have been globally disabled
+	DisabledRepoUnits = []UnitType{}
 )
+
+func loadUnitConfig() {
+	setDefaultRepoUnits := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
+	// Default repo units set if setting is not empty
+	if len(setDefaultRepoUnits) > 0 {
+		// MustRepoUnits required as default
+		DefaultRepoUnits = make([]UnitType, len(MustRepoUnits))
+		copy(DefaultRepoUnits, MustRepoUnits)
+		for _, defaultU := range setDefaultRepoUnits {
+			if !defaultU.CanBeDefault() {
+				log.Warn("Not allowed as default unit: %s", defaultU.String())
+				continue
+			}
+			// MustRepoUnits already added
+			if defaultU.CanDisable() {
+				DefaultRepoUnits = append(DefaultRepoUnits, defaultU)
+			}
+		}
+	}
+
+	DisabledRepoUnits = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
+	// Check that must units are not disabled
+	for i, disabledU := range DisabledRepoUnits {
+		if !disabledU.CanDisable() {
+			log.Warn("Not allowed to global disable unit %s", disabledU.String())
+			DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
+		}
+	}
+	// Remove disabled units from default units
+	for _, disabledU := range DisabledRepoUnits {
+		for i, defaultU := range DefaultRepoUnits {
+			if defaultU == disabledU {
+				DefaultRepoUnits = append(DefaultRepoUnits[:i], DefaultRepoUnits[i+1:]...)
+			}
+		}
+	}
+}
+
+// UnitGlobalDisabled checks if unit type is global disabled
+func (u UnitType) UnitGlobalDisabled() bool {
+	for _, ud := range DisabledRepoUnits {
+		if u == ud {
+			return true
+		}
+	}
+	return false
+}
+
+// CanDisable checks if this unit type can be disabled.
+func (u *UnitType) CanDisable() bool {
+	for _, mu := range MustRepoUnits {
+		if *u == mu {
+			return false
+		}
+	}
+	return true
+}
+
+// CanBeDefault checks if the unit type can be a default repo unit
+func (u *UnitType) CanBeDefault() bool {
+	for _, nadU := range NotAllowedDefaultRepoUnits {
+		if *u == nadU {
+			return false
+		}
+	}
+	return true
+}
 
 // Unit is a section of one repository
 type Unit struct {
@@ -96,7 +173,7 @@ type Unit struct {
 
 // CanDisable returns if this unit could be disabled.
 func (u *Unit) CanDisable() bool {
-	return true
+	return u.Type.CanDisable()
 }
 
 // IsLessThan compares order of two units

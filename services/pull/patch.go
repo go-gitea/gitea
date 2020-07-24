@@ -19,44 +19,21 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// DownloadDiff will write the patch for the pr to the writer
-func DownloadDiff(pr *models.PullRequest, w io.Writer, patch bool) error {
-	return DownloadDiffOrPatch(pr, w, false)
-}
-
-// DownloadPatch will write the patch for the pr to the writer
-func DownloadPatch(pr *models.PullRequest, w io.Writer, patch bool) error {
-	return DownloadDiffOrPatch(pr, w, true)
-}
-
 // DownloadDiffOrPatch will write the patch for the pr to the writer
 func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error {
-	// Clone base repo.
-	tmpBasePath, err := createTemporaryRepo(pr)
-	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("Unable to load base repository ID %d for pr #%d [%d]", pr.BaseRepoID, pr.Index, pr.ID)
 		return err
 	}
-	defer func() {
-		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
-			log.Error("DownloadDiff: RemoveTemporaryPath: %s", err)
-		}
-	}()
 
-	gitRepo, err := git.OpenRepository(tmpBasePath)
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
 	defer gitRepo.Close()
-
-	pr.MergeBase, err = git.NewCommand("merge-base", "--", "base", "tracking").RunInDir(tmpBasePath)
-	if err != nil {
-		pr.MergeBase = "base"
-	}
-	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
-	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, "tracking", w, patch); err != nil {
-		log.Error("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
+	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch); err != nil {
+		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	return nil
 }
@@ -108,8 +85,8 @@ func TestPatch(pr *models.PullRequest) error {
 
 	if err := gitRepo.GetDiff(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
-		log.Error("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
+		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	stat, err := tmpPatchFile.Stat()
 	if err != nil {
@@ -162,7 +139,7 @@ func TestPatch(pr *models.PullRequest) error {
 		RunInDirTimeoutEnvFullPipelineFunc(
 			nil, -1, tmpBasePath,
 			nil, stderrWriter, nil,
-			func(ctx context.Context, cancel context.CancelFunc) {
+			func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stderrWriter.Close()
 				const prefix = "error: patch failed:"
 				const errorPrefix = "error: "
@@ -171,7 +148,6 @@ func TestPatch(pr *models.PullRequest) error {
 				scanner := bufio.NewScanner(stderrReader)
 				for scanner.Scan() {
 					line := scanner.Text()
-					fmt.Printf("%s\n", line)
 					if strings.HasPrefix(line, prefix) {
 						conflict = true
 						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
@@ -200,6 +176,7 @@ func TestPatch(pr *models.PullRequest) error {
 					}
 				}
 				_ = stderrReader.Close()
+				return nil
 			})
 
 	if err != nil {

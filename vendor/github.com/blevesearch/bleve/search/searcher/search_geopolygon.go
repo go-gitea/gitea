@@ -15,6 +15,7 @@
 package searcher
 
 import (
+	"fmt"
 	"github.com/blevesearch/bleve/geo"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/numeric"
@@ -25,6 +26,10 @@ import (
 func NewGeoBoundedPolygonSearcher(indexReader index.IndexReader,
 	polygon []geo.Point, field string, boost float64,
 	options search.SearcherOptions) (search.Searcher, error) {
+
+	if len(polygon) < 3 {
+		return nil, fmt.Errorf("Too few points specified for the polygon boundary")
+	}
 
 	// compute the bounding box enclosing the polygon
 	topLeftLon, topLeftLat, bottomRightLon, bottomRightLat, err :=
@@ -63,7 +68,8 @@ func almostEqual(a, b float64) bool {
 func buildPolygonFilter(dvReader index.DocValueReader, field string,
 	polygon []geo.Point) FilterFunc {
 	return func(d *search.DocumentMatch) bool {
-		var lon, lat float64
+		// check geo matches against all numeric type terms indexed
+		var lons, lats []float64
 		var found bool
 
 		err := dvReader.VisitDocValues(d.IndexInternalID, func(field string, term []byte) {
@@ -73,8 +79,8 @@ func buildPolygonFilter(dvReader index.DocValueReader, field string,
 			if err == nil && shift == 0 {
 				i64, err := prefixCoded.Int64()
 				if err == nil {
-					lon = geo.MortonUnhashLon(uint64(i64))
-					lat = geo.MortonUnhashLat(uint64(i64))
+					lons = append(lons, geo.MortonUnhashLon(uint64(i64)))
+					lats = append(lats, geo.MortonUnhashLat(uint64(i64)))
 					found = true
 				}
 			}
@@ -84,26 +90,36 @@ func buildPolygonFilter(dvReader index.DocValueReader, field string,
 		// the polygon. ie it might fail for certain points on the polygon boundaries.
 		if err == nil && found {
 			nVertices := len(polygon)
-			var inside bool
-			// check for a direct vertex match
-			if almostEqual(polygon[0].Lat, lat) &&
-				almostEqual(polygon[0].Lon, lon) {
-				return true
+			if len(polygon) < 3 {
+				return false
+			}
+			rayIntersectsSegment := func(point, a, b geo.Point) bool {
+				return (a.Lat > point.Lat) != (b.Lat > point.Lat) &&
+					point.Lon < (b.Lon-a.Lon)*(point.Lat-a.Lat)/(b.Lat-a.Lat)+a.Lon
 			}
 
-			for i := 1; i < nVertices; i++ {
-				if almostEqual(polygon[i].Lat, lat) &&
-					almostEqual(polygon[i].Lon, lon) {
+			for i := range lons {
+				pt := geo.Point{Lon: lons[i], Lat: lats[i]}
+				inside := rayIntersectsSegment(pt, polygon[len(polygon)-1], polygon[0])
+				// check for a direct vertex match
+				if almostEqual(polygon[0].Lat, lats[i]) &&
+					almostEqual(polygon[0].Lon, lons[i]) {
 					return true
 				}
-				if (polygon[i].Lat > lat) != (polygon[i-1].Lat > lat) &&
-					lon < (polygon[i-1].Lon-polygon[i].Lon)*(lat-polygon[i].Lat)/
-						(polygon[i-1].Lat-polygon[i].Lat)+polygon[i].Lon {
-					inside = !inside
+
+				for j := 1; j < nVertices; j++ {
+					if almostEqual(polygon[j].Lat, lats[i]) &&
+						almostEqual(polygon[j].Lon, lons[i]) {
+						return true
+					}
+					if rayIntersectsSegment(pt, polygon[j-1], polygon[j]) {
+						inside = !inside
+					}
+				}
+				if inside {
+					return true
 				}
 			}
-			return inside
-
 		}
 		return false
 	}

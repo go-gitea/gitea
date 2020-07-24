@@ -44,6 +44,16 @@ There are a number of places where Gitea will generate commits itself:
 Depending on configuration and server trust you may want Gitea to
 sign these commits.
 
+## Installing and generating a GPG key for Gitea
+
+It is up to a server administrator to determine how best to install
+a signing key. Gitea generates all its commits using the server `git`
+command at present - and therefore the server `gpg` will be used for
+signing (if configured.) Administrators should review best-practices
+for gpg - in particular it is probably advisable to only install a
+signing secret subkey without the master signing and certifying secret
+key.
+
 ## General Configuration
 
 Gitea's configuration for signing can be found with the
@@ -81,7 +91,7 @@ of the `user.signingkey`, `user.name` and `user.email` as appropriate.
 
 Please note: by adjusting git's `config` file within Gitea's
 repositories, `SIGNING_KEY=default` could be used to provide different
-signing keys on a per-repository basis. However, this is cleary not an
+signing keys on a per-repository basis. However, this is clearly not an
 ideal UI and therefore subject to change.
 
 ### `INITIAL_COMMIT`
@@ -142,22 +152,16 @@ The possible options are:
 Options other than `never` and `always` can be combined as a comma
 separated list.
 
-## Installing and generating a GPG key for Gitea
-
-It is up to a server administrator to determine how best to install
-a signing key. Gitea generates all its commits using the server `git`
-command at present - and therefore the server `gpg` will be used for
-signing (if configured.) Administrators should review best-practices
-for gpg - in particular it is probably advisable to only install a
-signing secret subkey without the master signing and certifying secret
-key.
-
 ## Obtaining the Public Key of the Signing Key
 
 The public key used to sign Gitea's commits can be obtained from the API at:
 
-```/api/v1/signing-key.gpg```
+```
+/api/v1/signing-key.gpg
+```
 
 In cases where there is a repository specific key this can be obtained from:
 
-```/api/v1/repos/:username/:reponame/signing-key.gpg```
+```
+/api/v1/repos/:username/:reponame/signing-key.gpg
+```

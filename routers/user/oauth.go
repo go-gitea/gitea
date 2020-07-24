@@ -229,6 +229,11 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 			}, form.RedirectURI)
 			return
 		}
+		// Here we're just going to try to release the session early
+		if err := ctx.Session.Release(); err != nil {
+			// we'll tolerate errors here as they *should* get saved elsewhere
+			log.Error("Unable to save changes to the session: %v", err)
+		}
 	case "":
 		break
 	default:
@@ -286,6 +291,11 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		log.Error(err.Error())
 		return
+	}
+	// Here we're just going to try to release the session early
+	if err := ctx.Session.Release(); err != nil {
+		// we'll tolerate errors here as they *should* get saved elsewhere
+		log.Error("Unable to save changes to the session: %v", err)
 	}
 	ctx.HTML(200, tplGrantAccess)
 }

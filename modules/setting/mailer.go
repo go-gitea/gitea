@@ -6,6 +6,7 @@ package setting
 
 import (
 	"net/mail"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -35,8 +36,9 @@ type Mailer struct {
 	IsTLSEnabled      bool
 
 	// Sendmail sender
-	SendmailPath string
-	SendmailArgs []string
+	SendmailPath    string
+	SendmailArgs    []string
+	SendmailTimeout time.Duration
 }
 
 var (
@@ -69,7 +71,8 @@ func newMailService() {
 		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 		SubjectPrefix:  sec.Key("SUBJECT_PREFIX").MustString(""),
 
-		SendmailPath: sec.Key("SENDMAIL_PATH").MustString("sendmail"),
+		SendmailPath:    sec.Key("SENDMAIL_PATH").MustString("sendmail"),
+		SendmailTimeout: sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 

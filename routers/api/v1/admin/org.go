@@ -6,6 +6,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // CreateOrg api for create organization
@@ -66,6 +68,7 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 	if err := models.CreateOrganization(org, u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrNameReserved(err) ||
+			models.IsErrNameCharsNotAllowed(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
@@ -91,7 +94,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -99,12 +102,13 @@ func GetAllOrgs(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	users, _, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
-		OrderBy:  models.SearchOrderByAlphabetically,
-		Page:     ctx.QueryInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		Private:  true,
+	listOptions := utils.GetListOptions(ctx)
+
+	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+		Type:        models.UserTypeOrganization,
+		OrderBy:     models.SearchOrderByAlphabetically,
+		ListOptions: listOptions,
+		Visible:     []api.VisibleType{api.VisibleTypePublic, api.VisibleTypeLimited, api.VisibleTypePrivate},
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)
@@ -114,5 +118,8 @@ func GetAllOrgs(ctx *context.APIContext) {
 	for i := range users {
 		orgs[i] = convert.ToOrganization(users[i])
 	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
 	ctx.JSON(http.StatusOK, &orgs)
 }

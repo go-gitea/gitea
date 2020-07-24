@@ -26,10 +26,10 @@ func TestIssues(t *testing.T) {
 	Issues(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
+	assert.EqualValues(t, map[int64]int64{1: 1, 2: 1}, ctx.Data["Counts"])
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.Len(t, ctx.Data["Issues"], 1)
-	assert.Len(t, ctx.Data["Repos"], 1)
+	assert.Len(t, ctx.Data["Repos"], 2)
 }
 
 func TestMilestones(t *testing.T) {
@@ -48,7 +48,7 @@ func TestMilestones(t *testing.T) {
 	assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])
 	assert.EqualValues(t, 1, ctx.Data["Total"])
 	assert.Len(t, ctx.Data["Milestones"], 1)
-	assert.Len(t, ctx.Data["Repos"], 1)
+	assert.Len(t, ctx.Data["Repos"], 2) // both repo 42 and 1 have milestones and both are owned by user 2
 }
 
 func TestMilestonesForSpecificRepo(t *testing.T) {
@@ -68,5 +68,5 @@ func TestMilestonesForSpecificRepo(t *testing.T) {
 	assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])
 	assert.EqualValues(t, 1, ctx.Data["Total"])
 	assert.Len(t, ctx.Data["Milestones"], 1)
-	assert.Len(t, ctx.Data["Repos"], 1)
+	assert.Len(t, ctx.Data["Repos"], 2) // both repo 42 and 1 have milestones and both are owned by user 2
 }

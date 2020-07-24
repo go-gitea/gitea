@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -23,6 +24,7 @@ type DeleteRepoFileOptions struct {
 	SHA          string
 	Author       *IdentityOptions
 	Committer    *IdentityOptions
+	Dates        *CommitDateOptions
 }
 
 // DeleteRepoFile deletes a file in the given repository
@@ -36,7 +38,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	}
 
 	// oldBranch must exist for this operation
-	if _, err := repo.GetBranch(opts.OldBranch); err != nil {
+	if _, err := repo_module.GetBranch(repo, opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -44,8 +46,8 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		newBranch, err := repo.GetBranch(opts.NewBranch)
-		if git.IsErrNotExist(err) {
+		newBranch, err := repo_module.GetBranch(repo, opts.NewBranch)
+		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
 		if newBranch != nil {
@@ -53,9 +55,36 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 				BranchName: opts.NewBranch,
 			}
 		}
-	} else if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-		return nil, models.ErrUserCannotCommit{
-			UserName: doer.LowerName,
+	} else {
+		protectedBranch, err := repo.GetBranchProtection(opts.OldBranch)
+		if err != nil {
+			return nil, err
+		}
+		if protectedBranch != nil {
+			if !protectedBranch.CanUserPush(doer.ID) {
+				return nil, models.ErrUserCannotCommit{
+					UserName: doer.LowerName,
+				}
+			}
+			if protectedBranch.RequireSignedCommits {
+				_, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
+				if err != nil {
+					if !models.IsErrWontSign(err) {
+						return nil, err
+					}
+					return nil, models.ErrUserCannotCommit{
+						UserName: doer.LowerName,
+					}
+				}
+			}
+			patterns := protectedBranch.GetProtectedFilePatterns()
+			for _, pat := range patterns {
+				if pat.Match(strings.ToLower(opts.TreePath)) {
+					return nil, models.ErrFilePathProtected{
+						Path: opts.TreePath,
+					}
+				}
+			}
 		}
 	}
 
@@ -168,7 +197,12 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	}
 
 	// Now commit the tree
-	commitHash, err := t.CommitTree(author, committer, treeHash, message)
+	var commitHash string
+	if opts.Dates != nil {
+		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Dates.Author, opts.Dates.Committer)
+	} else {
+		commitHash, err = t.CommitTree(author, committer, treeHash, message)
+	}
 	if err != nil {
 		return nil, err
 	}

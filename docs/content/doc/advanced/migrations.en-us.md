@@ -15,32 +15,34 @@ menu:
 
 # Migration Features
 
-The new migration features were introduced in Gitea 1.9.0. It defines two interfaces to support migrating 
-repositories data from other git host platforms to gitea or, in the future migrating gitea data to other 
+The new migration features were introduced in Gitea 1.9.0. It defines two interfaces to support migrating
+repositories data from other git host platforms to gitea or, in the future migrating gitea data to other
 git host platforms. Currently, only the migrations from github via APIv3 to Gitea is implemented.
 
 First of all, Gitea defines some standard objects in packages `modules/migrations/base`. They are
- `Repository`, `Milestone`, `Release`, `Label`, `Issue`, `Comment`, `PullRequest`.
+ `Repository`, `Milestone`, `Release`, `Label`, `Issue`, `Comment`, `PullRequest`, `Reaction`, `Review`, `ReviewComment`.
 
 ## Downloader Interfaces
 
 To migrate from a new git host platform, there are two steps to be updated.
 
 - You should implement a `Downloader` which will get all kinds of repository informations.
-- You should implement a `DownloaderFactory` which is used to detect if the URL matches and 
+- You should implement a `DownloaderFactory` which is used to detect if the URL matches and
 create a Downloader.
 - You'll need to register the `DownloaderFactory` via `RegisterDownloaderFactory` on init.
 
 ```Go
 type Downloader interface {
+	SetContext(context.Context)
 	GetRepoInfo() (*Repository, error)
 	GetTopics() ([]string, error)
 	GetMilestones() ([]*Milestone, error)
 	GetReleases() ([]*Release, error)
 	GetLabels() ([]*Label, error)
-	GetIssues(start, limit int) ([]*Issue, error)
+	GetIssues(page, perPage int) ([]*Issue, bool, error)
 	GetComments(issueNumber int64) ([]*Comment, error)
-	GetPullRequests(start, limit int) ([]*PullRequest, error)
+	GetPullRequests(page, perPage int) ([]*PullRequest, error)
+	GetReviews(pullRequestNumber int64) ([]*Review, error)
 }
 ```
 
@@ -53,20 +55,24 @@ type DownloaderFactory interface {
 
 ## Uploader Interface
 
-Currently, only a `GiteaLocalUploader` is implemented, so we only save downloaded 
+Currently, only a `GiteaLocalUploader` is implemented, so we only save downloaded
 data via this `Uploader` on the local Gitea instance. Other uploaders are not supported
 and will be implemented in future.
 
 ```Go
 // Uploader uploads all the informations
 type Uploader interface {
-	CreateRepo(repo *Repository, includeWiki bool) error
-	CreateMilestone(milestone *Milestone) error
-	CreateRelease(release *Release) error
-	CreateLabel(label *Label) error
-	CreateIssue(issue *Issue) error
-	CreateComment(issueNumber int64, comment *Comment) error
-	CreatePullRequest(pr *PullRequest) error
+	MaxBatchInsertSize(tp string) int
+	CreateRepo(repo *Repository, opts MigrateOptions) error
+	CreateTopics(topic ...string) error
+	CreateMilestones(milestones ...*Milestone) error
+	CreateReleases(releases ...*Release) error
+	SyncTags() error
+	CreateLabels(labels ...*Label) error
+	CreateIssues(issues ...*Issue) error
+	CreateComments(comments ...*Comment) error
+	CreatePullRequests(prs ...*PullRequest) error
+	CreateReviews(reviews ...*Review) error
 	Rollback() error
 	Close()
 }

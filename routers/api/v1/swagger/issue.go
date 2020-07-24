@@ -99,23 +99,16 @@ type swaggerResponseStopWatchList struct {
 	Body []api.StopWatch `json:"body"`
 }
 
-// EditReactionOption
-// swagger:response EditReactionOption
-type swaggerEditReactionOption struct {
+// Reaction
+// swagger:response Reaction
+type swaggerReaction struct {
 	// in:body
-	Body api.EditReactionOption `json:"body"`
+	Body api.Reaction `json:"body"`
 }
 
-// ReactionResponse
-// swagger:response ReactionResponse
-type swaggerReactionResponse struct {
+// ReactionList
+// swagger:response ReactionList
+type swaggerReactionList struct {
 	// in:body
-	Body api.ReactionResponse `json:"body"`
-}
-
-// ReactionResponseList
-// swagger:response ReactionResponseList
-type swaggerReactionResponseList struct {
-	// in:body
-	Body []api.ReactionResponse `json:"body"`
+	Body []api.Reaction `json:"body"`
 }

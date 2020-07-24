@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -19,6 +20,69 @@ import (
 )
 
 var filenameSuffix = ""
+
+var descriptionLock = sync.RWMutex{}
+var logDescriptions = make(map[string]*LogDescription)
+
+// GetLogDescriptions returns a race safe set of descriptions
+func GetLogDescriptions() map[string]*LogDescription {
+	descriptionLock.RLock()
+	defer descriptionLock.RUnlock()
+	descs := make(map[string]*LogDescription, len(logDescriptions))
+	for k, v := range logDescriptions {
+		subLogDescriptions := make([]SubLogDescription, len(v.SubLogDescriptions))
+		for i, s := range v.SubLogDescriptions {
+			subLogDescriptions[i] = s
+		}
+		descs[k] = &LogDescription{
+			Name:               v.Name,
+			SubLogDescriptions: subLogDescriptions,
+		}
+	}
+	return descs
+}
+
+// AddLogDescription adds a set of descriptions to the complete description
+func AddLogDescription(key string, description *LogDescription) {
+	descriptionLock.Lock()
+	defer descriptionLock.Unlock()
+	logDescriptions[key] = description
+}
+
+// AddSubLogDescription adds a sub log description
+func AddSubLogDescription(key string, subLogDescription SubLogDescription) bool {
+	descriptionLock.Lock()
+	defer descriptionLock.Unlock()
+	desc, ok := logDescriptions[key]
+	if !ok {
+		return false
+	}
+	for i, sub := range desc.SubLogDescriptions {
+		if sub.Name == subLogDescription.Name {
+			desc.SubLogDescriptions[i] = subLogDescription
+			return true
+		}
+	}
+	desc.SubLogDescriptions = append(desc.SubLogDescriptions, subLogDescription)
+	return true
+}
+
+// RemoveSubLogDescription removes a sub log description
+func RemoveSubLogDescription(key string, name string) bool {
+	descriptionLock.Lock()
+	defer descriptionLock.Unlock()
+	desc, ok := logDescriptions[key]
+	if !ok {
+		return false
+	}
+	for i, sub := range desc.SubLogDescriptions {
+		if sub.Name == name {
+			desc.SubLogDescriptions = append(desc.SubLogDescriptions[:i], desc.SubLogDescriptions[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
 
 type defaultLogOptions struct {
 	levelName      string // LogLevel
@@ -185,7 +249,7 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 		log.Info("%s Log: %s(%s:%s)", strings.Title(key), strings.Title(name), provider, levelName)
 	}
 
-	LogDescriptions[key] = &description
+	AddLogDescription(key, &description)
 
 	return &description
 }
@@ -204,7 +268,7 @@ func newMacaronLogService() {
 func newAccessLogService() {
 	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
 	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
-		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`)
+		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`)
 	Cfg.Section("log").Key("ACCESS").MustString("file")
 	if EnableAccessLog {
 		options := newDefaultLogOptions()
@@ -261,9 +325,12 @@ func newLogService() {
 			continue
 		}
 
-		sec, err := Cfg.GetSection("log." + name)
+		sec, err := Cfg.GetSection("log." + name + ".default")
 		if err != nil {
-			sec, _ = Cfg.NewSection("log." + name)
+			sec, err = Cfg.GetSection("log." + name)
+			if err != nil {
+				sec, _ = Cfg.NewSection("log." + name)
+			}
 		}
 
 		provider, config, levelName := generateLogConfig(sec, name, options)
@@ -276,7 +343,7 @@ func newLogService() {
 		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
 	}
 
-	LogDescriptions[log.DEFAULT] = &description
+	AddLogDescription(log.DEFAULT, &description)
 
 	// Finally redirect the default golog to here
 	golog.SetFlags(0)

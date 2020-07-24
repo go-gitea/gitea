@@ -44,6 +44,10 @@ type EdDSAPrivateKey struct {
 	seed parsedMPI
 }
 
+func (e *EdDSAPrivateKey) Seed() []byte {
+	return e.seed.bytes
+}
+
 func (e *EdDSAPrivateKey) Sign(digest []byte) (R, S []byte, err error) {
 	r := bytes.NewReader(e.seed.bytes)
 	publicKey, privateKey, err := ed25519.GenerateKey(r)
@@ -85,6 +89,13 @@ func NewElGamalPrivateKey(currentTime time.Time, priv *elgamal.PrivateKey) *Priv
 func NewECDSAPrivateKey(currentTime time.Time, priv *ecdsa.PrivateKey) *PrivateKey {
 	pk := new(PrivateKey)
 	pk.PublicKey = *NewECDSAPublicKey(currentTime, &priv.PublicKey)
+	pk.PrivateKey = priv
+	return pk
+}
+
+func NewECDHPrivateKey(currentTime time.Time, priv *ecdh.PrivateKey) *PrivateKey {
+	pk := new(PrivateKey)
+	pk.PublicKey = *NewECDHPublicKey(currentTime, &priv.PublicKey)
 	pk.PrivateKey = priv
 	return pk
 }
@@ -415,8 +426,11 @@ func (pk *PrivateKey) parsePrivateKey(data []byte) (err error) {
 		return pk.parseECDHPrivateKey(data)
 	case PubKeyAlgoEdDSA:
 		return pk.parseEdDSAPrivateKey(data)
+	case PubKeyAlgoBadElGamal:
+		return errors.UnsupportedError("parsing el-gamal sign-or-encrypt privatekeys is unsupported")
+	default:
+		return errors.UnsupportedError("cannot parse this private key type")
 	}
-	panic("impossible")
 }
 
 func (pk *PrivateKey) parseRSAPrivateKey(data []byte) (err error) {

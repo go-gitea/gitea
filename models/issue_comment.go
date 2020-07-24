@@ -7,8 +7,13 @@
 package models
 
 import (
+	"container/list"
+	"encoding/json"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -84,6 +89,14 @@ const (
 	CommentTypeUnlock
 	// Change pull request's target branch
 	CommentTypeChangeTargetBranch
+	// Delete time manual for time tracking
+	CommentTypeDeleteTimeManual
+	// add or remove Request from one
+	CommentTypeReviewRequest
+	// merge pull request
+	CommentTypeMergePull
+	// push to PR head branch
+	CommentTypePullPush
 )
 
 // CommentTag defines comment tag type
@@ -100,7 +113,7 @@ const (
 // Comment represents a comment in commit and issue page.
 type Comment struct {
 	ID               int64       `xorm:"pk autoincr"`
-	Type             CommentType `xorm:"index"`
+	Type             CommentType `xorm:"INDEX"`
 	PosterID         int64       `xorm:"INDEX"`
 	Poster           *User       `xorm:"-"`
 	OriginalAuthor   string
@@ -116,6 +129,8 @@ type Comment struct {
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *User `xorm:"-"`
+	ResolveDoerID    int64
+	ResolveDoer      *User `xorm:"-"`
 	OldTitle         string
 	NewTitle         string
 	OldRef           string
@@ -130,7 +145,8 @@ type Comment struct {
 	RenderedContent string `xorm:"-"`
 
 	// Path represents the 4 lines of code cemented by this comment
-	Patch string `xorm:"TEXT"`
+	Patch       string `xorm:"-"`
+	PatchQuoted string `xorm:"TEXT patch"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -159,6 +175,18 @@ type Comment struct {
 	RefRepo    *Repository `xorm:"-"`
 	RefIssue   *Issue      `xorm:"-"`
 	RefComment *Comment    `xorm:"-"`
+
+	Commits     *list.List `xorm:"-"`
+	OldCommit   string     `xorm:"-"`
+	NewCommit   string     `xorm:"-"`
+	CommitsNum  int64      `xorm:"-"`
+	IsForcePush bool       `xorm:"-"`
+}
+
+// PushActionContent is content of push pull comment
+type PushActionContent struct {
+	IsForcePush bool     `json:"is_force_push"`
+	CommitIDs   []string `json:"commit_ids"`
 }
 
 // LoadIssue loads issue from database
@@ -172,6 +200,33 @@ func (c *Comment) loadIssue(e Engine) (err error) {
 	}
 	c.Issue, err = getIssueByID(e, c.IssueID)
 	return
+}
+
+// BeforeInsert will be invoked by XORM before inserting a record
+func (c *Comment) BeforeInsert() {
+	c.PatchQuoted = c.Patch
+	if !utf8.ValidString(c.Patch) {
+		c.PatchQuoted = strconv.Quote(c.Patch)
+	}
+}
+
+// BeforeUpdate will be invoked by XORM before updating a record
+func (c *Comment) BeforeUpdate() {
+	c.PatchQuoted = c.Patch
+	if !utf8.ValidString(c.Patch) {
+		c.PatchQuoted = strconv.Quote(c.Patch)
+	}
+}
+
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (c *Comment) AfterLoad(session *xorm.Session) {
+	c.Patch = c.PatchQuoted
+	if len(c.PatchQuoted) > 0 && c.PatchQuoted[0] == '"' {
+		unquoted, err := strconv.Unquote(c.PatchQuoted)
+		if err == nil {
+			c.Patch = unquoted
+		}
+	}
 }
 
 func (c *Comment) loadPoster(e Engine) (err error) {
@@ -231,6 +286,22 @@ func (c *Comment) HTMLURL() string {
 		}
 	}
 	return fmt.Sprintf("%s#%s", c.Issue.HTMLURL(), c.HashTag())
+}
+
+// APIURL formats a API-string to the issue-comment
+func (c *Comment) APIURL() string {
+	err := c.LoadIssue()
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
+
+	return fmt.Sprintf("%s/issues/comments/%d", c.Issue.Repo.APIURL(), c.ID)
 }
 
 // IssueURL formats a URL-string to the issue
@@ -398,6 +469,26 @@ func (c *Comment) LoadAssigneeUser() error {
 	return nil
 }
 
+// LoadResolveDoer if comment.Type is CommentTypeCode and ResolveDoerID not zero, then load resolveDoer
+func (c *Comment) LoadResolveDoer() (err error) {
+	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
+		return nil
+	}
+	c.ResolveDoer, err = getUserByID(x, c.ResolveDoerID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.ResolveDoer = NewGhostUser()
+			err = nil
+		}
+	}
+	return
+}
+
+// IsResolved check if an code comment is resolved
+func (c *Comment) IsResolved() bool {
+	return c.ResolveDoerID != 0 && c.Type == CommentTypeCode
+}
+
 // LoadDepIssueDetails loads Dependent Issue Details
 func (c *Comment) LoadDepIssueDetails() (err error) {
 	if c.DependentIssueID <= 0 || c.DependentIssue != nil {
@@ -407,7 +498,7 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	return err
 }
 
-func (c *Comment) loadReactions(e Engine) (err error) {
+func (c *Comment) loadReactions(e Engine, repo *Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
@@ -419,15 +510,15 @@ func (c *Comment) loadReactions(e Engine) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := c.Reactions.LoadUsers(); err != nil {
+	if _, err := c.Reactions.loadUsers(e, repo); err != nil {
 		return err
 	}
 	return nil
 }
 
 // LoadReactions loads comment reactions
-func (c *Comment) LoadReactions() error {
-	return c.loadReactions(x)
+func (c *Comment) LoadReactions(repo *Repository) error {
+	return c.loadReactions(x, repo)
 }
 
 func (c *Comment) loadReview(e Engine) (err error) {
@@ -445,10 +536,12 @@ func (c *Comment) LoadReview() error {
 	return c.loadReview(x)
 }
 
+var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
+
 func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
-	if err != nil && strings.Contains(err.Error(), "fatal: no such path") {
+	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
 		c.Invalidated = true
 		return UpdateComment(c, doer)
 	}
@@ -499,6 +592,47 @@ func (c *Comment) CodeCommentURL() string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
 }
 
+// LoadPushCommits Load push commits
+func (c *Comment) LoadPushCommits() (err error) {
+	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullPush {
+		return nil
+	}
+
+	var data PushActionContent
+
+	err = json.Unmarshal([]byte(c.Content), &data)
+	if err != nil {
+		return
+	}
+
+	c.IsForcePush = data.IsForcePush
+
+	if c.IsForcePush {
+		if len(data.CommitIDs) != 2 {
+			return nil
+		}
+		c.OldCommit = data.CommitIDs[0]
+		c.NewCommit = data.CommitIDs[1]
+	} else {
+		repoPath := c.Issue.Repo.RepoPath()
+		gitRepo, err := git.OpenRepository(repoPath)
+		if err != nil {
+			return err
+		}
+		defer gitRepo.Close()
+
+		c.Commits = gitRepo.GetCommitsFromIDs(data.CommitIDs)
+		c.CommitsNum = int64(c.Commits.Len())
+		if c.CommitsNum > 0 {
+			c.Commits = ValidateCommitsWithEmails(c.Commits)
+			c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.Repo)
+			c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.Repo)
+		}
+	}
+
+	return err
+}
+
 func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {
@@ -532,6 +666,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		RefCommentID:     opts.RefCommentID,
 		RefAction:        opts.RefAction,
 		RefIsPull:        opts.RefIsPull,
+		IsForcePush:      opts.IsForcePush,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -694,6 +829,7 @@ type CreateCommentOptions struct {
 	RefCommentID     int64
 	RefAction        references.XRefAction
 	RefIsPull        bool
+	IsForcePush      bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -747,8 +883,12 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 
 // GetCommentByID returns the comment by given ID.
 func GetCommentByID(id int64) (*Comment, error) {
+	return getCommentByID(x, id)
+}
+
+func getCommentByID(e Engine, id int64) (*Comment, error) {
 	c := new(Comment)
-	has, err := x.ID(id).Get(c)
+	has, err := e.ID(id).Get(c)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -759,10 +899,12 @@ func GetCommentByID(id int64) (*Comment, error) {
 
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
+	ListOptions
 	RepoID   int64
 	IssueID  int64
 	ReviewID int64
 	Since    int64
+	Before   int64
 	Type     CommentType
 }
 
@@ -780,6 +922,9 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	if opts.Since > 0 {
 		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
 	}
+	if opts.Before > 0 {
+		cond = cond.And(builder.Lte{"comment.updated_unix": opts.Before})
+	}
 	if opts.Type != CommentTypeUnknown {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})
 	}
@@ -792,6 +937,11 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
+
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
+
 	return comments, sess.
 		Asc("comment.created_unix").
 		Asc("comment.id").
@@ -907,7 +1057,12 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 	if err := e.In("id", ids).Find(&reviews); err != nil {
 		return nil, err
 	}
+
 	for _, comment := range comments {
+		if err := comment.LoadResolveDoer(); err != nil {
+			return nil, err
+		}
+
 		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
 			// If the review is pending only the author can see the comments (except the review is set)
 			if review.ID == 0 {
@@ -952,4 +1107,169 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 			"original_author_id": 0,
 		})
 	return err
+}
+
+// CreatePushPullComment create push code to pull base commend
+func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
+	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
+		return nil, nil
+	}
+
+	ops := &CreateCommentOptions{
+		Type: CommentTypePullPush,
+		Doer: pusher,
+		Repo: pr.BaseRepo,
+	}
+
+	var data PushActionContent
+
+	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	ops.Issue = pr.Issue
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	ops.Content = string(dataJSON)
+
+	comment, err = CreateComment(ops)
+
+	return
+}
+
+// getCommitsFromRepo get commit IDs from repo in betwern oldCommitID and newCommitID
+// isForcePush will be true if oldCommit isn't on the branch
+// Commit on baseBranch will skip
+func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
+	repoPath := repo.RepoPath()
+	gitRepo, err := git.OpenRepository(repoPath)
+	if err != nil {
+		return nil, false, err
+	}
+	defer gitRepo.Close()
+
+	oldCommit, err := gitRepo.GetCommit(oldCommitID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if err = oldCommit.LoadBranchName(); err != nil {
+		return nil, false, err
+	}
+
+	if len(oldCommit.Branch) == 0 {
+		commitIDs = make([]string, 2)
+		commitIDs[0] = oldCommitID
+		commitIDs[1] = newCommitID
+
+		return commitIDs, true, err
+	}
+
+	newCommit, err := gitRepo.GetCommit(newCommitID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	var (
+		commits      *list.List
+		commitChecks map[string]commitBranchCheckItem
+	)
+	commits, err = newCommit.CommitsBeforeUntil(oldCommitID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	commitIDs = make([]string, 0, commits.Len())
+	commitChecks = make(map[string]commitBranchCheckItem)
+
+	for e := commits.Front(); e != nil; e = e.Next() {
+		commitChecks[e.Value.(*git.Commit).ID.String()] = commitBranchCheckItem{
+			Commit:  e.Value.(*git.Commit),
+			Checked: false,
+		}
+	}
+
+	if err = commitBranchCheck(gitRepo, newCommit, oldCommitID, baseBranch, commitChecks); err != nil {
+		return
+	}
+
+	for e := commits.Back(); e != nil; e = e.Prev() {
+		commitID := e.Value.(*git.Commit).ID.String()
+		if item, ok := commitChecks[commitID]; ok && item.Checked {
+			commitIDs = append(commitIDs, commitID)
+		}
+	}
+
+	return
+}
+
+type commitBranchCheckItem struct {
+	Commit  *git.Commit
+	Checked bool
+}
+
+func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endCommitID, baseBranch string, commitList map[string]commitBranchCheckItem) (err error) {
+	var (
+		item     commitBranchCheckItem
+		ok       bool
+		listItem *list.Element
+		tmp      string
+	)
+
+	if startCommit.ID.String() == endCommitID {
+		return
+	}
+
+	checkStack := list.New()
+	checkStack.PushBack(startCommit.ID.String())
+	listItem = checkStack.Back()
+
+	for listItem != nil {
+		tmp = listItem.Value.(string)
+		checkStack.Remove(listItem)
+
+		if item, ok = commitList[tmp]; !ok {
+			listItem = checkStack.Back()
+			continue
+		}
+
+		if item.Commit.ID.String() == endCommitID {
+			listItem = checkStack.Back()
+			continue
+		}
+
+		if err = item.Commit.LoadBranchName(); err != nil {
+			return
+		}
+
+		if item.Commit.Branch == baseBranch {
+			listItem = checkStack.Back()
+			continue
+		}
+
+		if item.Checked {
+			listItem = checkStack.Back()
+			continue
+		}
+
+		item.Checked = true
+		commitList[tmp] = item
+
+		parentNum := item.Commit.ParentCount()
+		for i := 0; i < parentNum; i++ {
+			var parentCommit *git.Commit
+			parentCommit, err = item.Commit.Parent(i)
+			if err != nil {
+				return
+			}
+			checkStack.PushBack(parentCommit.ID.String())
+		}
+
+		listItem = checkStack.Back()
+	}
+	return nil
 }

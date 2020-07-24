@@ -39,7 +39,7 @@ func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
 		return
 	}
 
-	if _, err := models.AddTime(c.User, issue, int64(total.Seconds())); err != nil {
+	if _, err := models.AddTime(c.User, issue, int64(total.Seconds()), time.Now()); err != nil {
 		c.ServerError("AddTime", err)
 		return
 	}

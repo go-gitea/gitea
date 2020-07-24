@@ -188,7 +188,11 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 
 // CommitTree creates a commit from a given tree for the user with provided message
 func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, treeHash string, message string) (string, error) {
-	commitTimeStr := time.Now().Format(time.RFC3339)
+	return t.CommitTreeWithDate(author, committer, treeHash, message, time.Now(), time.Now())
+}
+
+// CommitTreeWithDate creates a commit from a given tree for the user with provided message
+func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models.User, treeHash string, message string, authorDate, committerDate time.Time) (string, error) {
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
@@ -201,10 +205,10 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 	env := append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,
-		"GIT_AUTHOR_DATE="+commitTimeStr,
+		"GIT_AUTHOR_DATE="+authorDate.Format(time.RFC3339),
 		"GIT_COMMITTER_NAME="+committerSig.Name,
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
-		"GIT_COMMITTER_DATE="+commitTimeStr,
+		"GIT_COMMITTER_DATE="+committerDate.Format(time.RFC3339),
 	)
 
 	messageBytes := new(bytes.Buffer)
@@ -215,7 +219,7 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 
 	// Determine if we should sign
 	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+		sign, keyID, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
 		} else if version.Compare(binVersion, "2.0.0", ">=") {
@@ -238,9 +242,20 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, branch string) error {
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
-
-	if _, err := git.NewCommand("push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)).RunInDirWithEnv(t.basePath, env); err != nil {
-		log.Error("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
+	if err := git.Push(t.basePath, git.PushOptions{
+		Remote: t.repo.RepoPath(),
+		Branch: strings.TrimSpace(commitHash) + ":refs/heads/" + strings.TrimSpace(branch),
+		Env:    env,
+	}); err != nil {
+		if git.IsErrPushOutOfDate(err) {
+			return err
+		} else if git.IsErrPushRejected(err) {
+			rejectErr := err.(*git.ErrPushRejected)
+			log.Info("Unable to push back to repo from temporary repo due to rejection: %s (%s)\nStdout: %s\nStderr: %s\nError: %v",
+				t.repo.FullName(), t.basePath, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
+			return err
+		}
+		log.Error("Unable to push back to repo from temporary repo: %s (%s)\nError: %v",
 			t.repo.FullName(), t.basePath, err)
 		return fmt.Errorf("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
 			t.repo.FullName(), t.basePath, err)
@@ -264,7 +279,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 	var finalErr error
 
 	if err := git.NewCommand("diff-index", "--cached", "-p", "HEAD").
-		RunInDirTimeoutEnvFullPipelineFunc(nil, 30*time.Second, t.basePath, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) {
+		RunInDirTimeoutEnvFullPipelineFunc(nil, 30*time.Second, t.basePath, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader)
 			if finalErr != nil {
@@ -272,6 +287,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 				cancel()
 			}
 			_ = stdoutReader.Close()
+			return finalErr
 		}); err != nil {
 		if finalErr != nil {
 			log.Error("Unable to ParsePatch in temporary repo %s (%s). Error: %v", t.repo.FullName(), t.basePath, finalErr)
@@ -281,6 +297,11 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 			t.repo.FullName(), t.basePath, err, stderr)
 		return nil, fmt.Errorf("Unable to run diff-index pipeline in temporary repo %s. Error: %v\nStderr: %s",
 			t.repo.FullName(), err, stderr)
+	}
+
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(t.basePath, "--cached", "HEAD")
+	if err != nil {
+		return nil, err
 	}
 
 	return diff, nil

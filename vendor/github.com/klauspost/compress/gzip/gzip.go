@@ -207,7 +207,7 @@ func (z *Writer) Write(p []byte) (int, error) {
 	z.size += uint32(len(p))
 	z.digest = crc32.Update(z.digest, crc32.IEEETable, p)
 	if z.level == StatelessCompression {
-		return len(p), flate.StatelessDeflate(z.w, p, false)
+		return len(p), flate.StatelessDeflate(z.w, p, false, nil)
 	}
 	n, z.err = z.compressor.Write(p)
 	return n, z.err
@@ -255,7 +255,7 @@ func (z *Writer) Close() error {
 		}
 	}
 	if z.level == StatelessCompression {
-		z.err = flate.StatelessDeflate(z.w, nil, true)
+		z.err = flate.StatelessDeflate(z.w, nil, true, nil)
 	} else {
 		z.err = z.compressor.Close()
 	}

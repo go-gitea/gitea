@@ -21,10 +21,11 @@ type repoIndexerOperation struct {
 
 var repoIndexerOperationQueue chan repoIndexerOperation
 
-func processRepoIndexerOperationQueue(indexer Indexer) {
-	defer indexer.Close()
+func initQueue(queueLength int) {
+	repoIndexerOperationQueue = make(chan repoIndexerOperation, queueLength)
+}
 
-	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
+func processRepoIndexerOperationQueue(indexer Indexer) {
 	for {
 		select {
 		case op := <-repoIndexerOperationQueue:
@@ -108,7 +109,7 @@ func populateRepoIndexer() {
 			return
 		default:
 		}
-		ids, err := models.GetUnindexedRepos(maxRepoID, 0, 50)
+		ids, err := models.GetUnindexedRepos(models.RepoIndexerTypeCode, maxRepoID, 0, 50)
 		if err != nil {
 			log.Error("populateRepoIndexer: %v", err)
 			return

@@ -5,9 +5,11 @@
 		<div class="ui three column stackable grid">
 			<div class="column">
 				<h3>{{.Milestone.Name}}</h3>
+				<div class="content">
+					{{.Milestone.RenderedContent|Str2html}}
+				</div>
 			</div>
 			<div class="column center aligned">
-				
 			</div>
 			{{if not .Repository.IsArchived}}
 				<div class="column right aligned">
@@ -22,16 +24,16 @@
             <div class="column">
                 {{ $closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.Lang }}
                 {{if .IsClosed}}
-                    <span class="octicon octicon-clock"></span> {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+					{{svg "octicon-clock" 16}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
                 {{else}}
-                    <span class="octicon octicon-calendar"></span>
+					{{svg "octicon-calendar" 16}}
                     {{if .Milestone.DeadlineString}}
                         <span {{if .IsOverdue}}class="overdue"{{end}}>{{.Milestone.DeadlineString}}</span>
                     {{else}}
                         {{$.i18n.Tr "repo.milestones.no_due_date"}}
                     {{end}}
                 {{end}}
-                &nbsp; 
+                &nbsp;
                 <b>{{.i18n.Tr "repo.milestones.completeness" .Milestone.Completeness}}</b>
             </div>
         </div>
@@ -40,11 +42,11 @@
 			<div class="six wide column">
 				<div class="ui tiny basic status buttons">
 					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						<i class="octicon octicon-issue-opened"></i>
+						{{svg "octicon-issue-opened" 16}}
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						<i class="octicon octicon-issue-closed"></i>
+						{{svg "octicon-issue-closed" 16}}
 						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 					</a>
 				</div>
@@ -61,7 +63,7 @@
 							<span class="info">{{.i18n.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item has-emoji label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}"><span class="octicon {{if .IsExcluded}}octicon-circle-slash{{else if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}">{{if .IsExcluded}}{{svg "octicon-circle-slash" 16}}{{else if contain $.SelLabelIDs .ID}}{{svg "octicon-check" 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -118,11 +120,11 @@
 			<div class="six wide column">
 				<div class="ui tiny basic status buttons">
 					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						<i class="octicon octicon-issue-opened"></i>
+						{{svg "octicon-issue-opened" 16}}
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&assignee={{.AssigneeID}}">
-						<i class="octicon octicon-issue-closed"></i>
+						{{svg "octicon-issue-closed" 16}}
 						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 					</a>
 				</div>
@@ -148,8 +150,8 @@
 						</span>
 						<div class="menu">
 							{{range .Labels}}
-								<div class="item issue-action has-emoji" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
-									<span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}
+								<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+									{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check" 16}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
 								</div>
 							{{end}}
 						</div>
@@ -177,6 +179,7 @@
 		</div>
 
 		<div class="issue list">
+			{{ $approvalCounts := .ApprovalCounts}}
 			{{range .Issues}}
 				{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 				<li class="item">
@@ -185,47 +188,83 @@
 						<input type="checkbox" data-issue-id={{.ID}}></input>
 					</div>
 					{{end}}
-					<div class="ui {{if .IsRead}}gray{{else}}green{{end}} label">#{{.Index}}</div>
-					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+					<div class="ui {{if .IsClosed}}{{if .IsPull}}{{if .PullRequest.HasMerged}}purple{{else}}red{{end}}{{else}}red{{end}}{{else}}{{if .IsRead}}white{{else}}green{{end}}{{end}} label">#{{.Index}}</div>
+					<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
+
+					{{if .IsPull }}
+						{{if (index $.CommitStatus .PullRequest.ID)}}
+							{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
+						{{end}}
+					{{end}}
 
 					{{range .Labels}}
-						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+						<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name | RenderEmoji}}</a>
 					{{end}}
 
 					{{if .NumComments}}
-						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
+						<span class="comment ui right">{{svg "octicon-comment" 16}} {{.NumComments}}</span>
 					{{end}}
 
 					{{if .TotalTrackedTime}}
-						<span class="comment ui right"><i class="octicon octicon-clock"></i> {{.TotalTrackedTime | Sec2Time}}</span>
+						<span class="comment ui right">{{svg "octicon-clock" 16}} {{.TotalTrackedTime | Sec2Time}}</span>
 					{{end}}
 
 					<p class="desc">
-						{{if gt .Poster.ID 0}}
-							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName|Escape) | Safe}}
+						{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
+						{{if .OriginalAuthor }}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+						{{else if gt .Poster.ID 0}}
+							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
 						{{else}}
-							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 						{{end}}
+
 						{{if .Ref}}
-							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
-								<span class="octicon octicon-git-branch"></span> {{.Ref}}
+							<a class="ref" href="{{index $.IssueRefURLs .ID}}">
+								{{svg "octicon-git-branch" 16}} {{index $.IssueRefEndNames .ID}}
 							</a>
 						{{end}}
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
 							{{$tasksDone := .GetTasksDone}}
 							<span class="checklist">
-								<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+								{{svg "octicon-checklist" 16}} {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 							</span>
 						{{end}}
 						{{if ne .DeadlineUnix 0}}
-							<span class="octicon octicon-calendar"></span>
+							{{svg "octicon-calendar" 16}}
 							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 						{{end}}
 						{{range .Assignees}}
 							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-variation="inverted" data-position="left center">
 								<img class="ui avatar image" src="{{.RelAvatarLink}}">
 							</a>
+						{{end}}
+						{{if .IsPull}}
+							{{$approveOfficial := call $approvalCounts .ID "approve"}}
+							{{$rejectOfficial := call $approvalCounts .ID "reject"}}
+							{{$waitingOfficial := call $approvalCounts .ID "waiting"}}
+							{{if gt $approveOfficial 0}}
+								<span class="approvals">{{svg "octicon-check" 16}}
+									{{$.i18n.Tr (TrN $.i18n.Lang $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n") $approveOfficial}}
+								</span>
+							{{end}}
+
+							{{if gt $rejectOfficial 0}}
+								<span class="rejects">{{svg "octicon-diff" 16}}
+									{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
+								</span>
+							{{end}}
+
+							{{if gt $waitingOfficial 0}}
+								<span class="waiting">{{svg "octicon-eye" 16}}
+									{{$.i18n.Tr (TrN $.i18n.Lang $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n") $waitingOfficial}}
+								</span>
+							{{end}}
+
+							{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
+								<span class="conflicting">{{svg "octicon-x" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
+							{{end}}
 						{{end}}
 					</p>
 				</li>

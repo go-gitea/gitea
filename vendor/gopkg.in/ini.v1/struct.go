@@ -155,23 +155,45 @@ func wrapStrictError(err error, isStrict bool) error {
 // but it does not return error for failing parsing,
 // because we want to use default value that is already assigned to struct.
 func setWithProperType(t reflect.Type, key *Key, field reflect.Value, delim string, allowShadow, isStrict bool) error {
-	switch t.Kind() {
+	vt := t
+	isPtr := t.Kind() == reflect.Ptr
+	if isPtr {
+		vt = t.Elem()
+	}
+	switch vt.Kind() {
 	case reflect.String:
-		if len(key.String()) == 0 {
-			return nil
+		stringVal := key.String()
+		if isPtr {
+			field.Set(reflect.ValueOf(&stringVal))
+		} else if len(stringVal) > 0 {
+			field.SetString(key.String())
 		}
-		field.SetString(key.String())
 	case reflect.Bool:
 		boolVal, err := key.Bool()
 		if err != nil {
 			return wrapStrictError(err, isStrict)
 		}
-		field.SetBool(boolVal)
+		if isPtr {
+			field.Set(reflect.ValueOf(&boolVal))
+		} else {
+			field.SetBool(boolVal)
+		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		durationVal, err := key.Duration()
-		// Skip zero value
-		if err == nil && int64(durationVal) > 0 {
-			field.Set(reflect.ValueOf(durationVal))
+		// ParseDuration will not return err for `0`, so check the type name
+		if vt.Name() == "Duration" {
+			durationVal, err := key.Duration()
+			if err != nil {
+				if intVal, err := key.Int64(); err == nil {
+					field.SetInt(intVal)
+					return nil
+				}
+				return wrapStrictError(err, isStrict)
+			}
+			if isPtr {
+				field.Set(reflect.ValueOf(&durationVal))
+			} else if int64(durationVal) > 0 {
+				field.Set(reflect.ValueOf(durationVal))
+			}
 			return nil
 		}
 
@@ -179,13 +201,23 @@ func setWithProperType(t reflect.Type, key *Key, field reflect.Value, delim stri
 		if err != nil {
 			return wrapStrictError(err, isStrict)
 		}
-		field.SetInt(intVal)
+		if isPtr {
+			pv := reflect.New(t.Elem())
+			pv.Elem().SetInt(intVal)
+			field.Set(pv)
+		} else {
+			field.SetInt(intVal)
+		}
 	//	byte is an alias for uint8, so supporting uint8 breaks support for byte
 	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		durationVal, err := key.Duration()
 		// Skip zero value
 		if err == nil && uint64(durationVal) > 0 {
-			field.Set(reflect.ValueOf(durationVal))
+			if isPtr {
+				field.Set(reflect.ValueOf(&durationVal))
+			} else {
+				field.Set(reflect.ValueOf(durationVal))
+			}
 			return nil
 		}
 
@@ -193,33 +225,38 @@ func setWithProperType(t reflect.Type, key *Key, field reflect.Value, delim stri
 		if err != nil {
 			return wrapStrictError(err, isStrict)
 		}
-		field.SetUint(uintVal)
+		if isPtr {
+			pv := reflect.New(t.Elem())
+			pv.Elem().SetUint(uintVal)
+			field.Set(pv)
+		} else {
+			field.SetUint(uintVal)
+		}
 
 	case reflect.Float32, reflect.Float64:
 		floatVal, err := key.Float64()
 		if err != nil {
 			return wrapStrictError(err, isStrict)
 		}
-		field.SetFloat(floatVal)
+		if isPtr {
+			pv := reflect.New(t.Elem())
+			pv.Elem().SetFloat(floatVal)
+			field.Set(pv)
+		} else {
+			field.SetFloat(floatVal)
+		}
 	case reflectTime:
 		timeVal, err := key.Time()
 		if err != nil {
 			return wrapStrictError(err, isStrict)
 		}
-		field.Set(reflect.ValueOf(timeVal))
+		if isPtr {
+			field.Set(reflect.ValueOf(&timeVal))
+		} else {
+			field.Set(reflect.ValueOf(timeVal))
+		}
 	case reflect.Slice:
 		return setSliceWithProperType(key, field, delim, allowShadow, isStrict)
-	case reflect.Ptr:
-		switch t.Elem().Kind() {
-		case reflect.Bool:
-			boolVal, err := key.Bool()
-			if err != nil {
-				return wrapStrictError(err, isStrict)
-			}
-			field.Set(reflect.ValueOf(&boolVal))
-		default:
-			return fmt.Errorf("unsupported type '%s'", t)
-		}
 	default:
 		return fmt.Errorf("unsupported type '%s'", t)
 	}
@@ -268,23 +305,21 @@ func (s *Section) mapTo(val reflect.Value, isStrict bool) error {
 
 		if isAnonymous || isStruct || isStructPtr {
 			if sec, err := s.f.GetSection(fieldName); err == nil {
-				// Only set the field to non-nil struct value if we have
-				// a section for it. Otherwise, we end up with a non-nil
-				// struct ptr even though there is no data.
+				// Only set the field to non-nil struct value if we have a section for it.
+				// Otherwise, we end up with a non-nil struct ptr even though there is no data.
 				if isStructPtr && field.IsNil() {
 					field.Set(reflect.New(tpField.Type.Elem()))
 				}
 				if err = sec.mapTo(field, isStrict); err != nil {
-					return fmt.Errorf("error mapping field(%s): %v", fieldName, err)
+					return fmt.Errorf("error mapping field %q: %v", fieldName, err)
 				}
 				continue
 			}
 		}
-
 		if key, err := s.GetKey(fieldName); err == nil {
 			delim := parseDelim(tpField.Tag.Get("delim"))
 			if err = setWithProperType(tpField.Type, key, field, delim, allowShadow, isStrict); err != nil {
-				return fmt.Errorf("error mapping field(%s): %v", fieldName, err)
+				return fmt.Errorf("error mapping field %q: %v", fieldName, err)
 			}
 		}
 	}
@@ -476,6 +511,11 @@ func isEmptyValue(v reflect.Value) bool {
 	return false
 }
 
+// StructReflector is the interface implemented by struct types that can extract themselves into INI objects.
+type StructReflector interface {
+	ReflectINIStruct(*File) error
+}
+
 func (s *Section) reflectFrom(val reflect.Value) error {
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -494,6 +534,10 @@ func (s *Section) reflectFrom(val reflect.Value) error {
 		rawName, omitEmpty, allowShadow := parseTagOptions(tag)
 		if omitEmpty && isEmptyValue(field) {
 			continue
+		}
+
+		if r, ok := field.Interface().(StructReflector); ok {
+			return r.ReflectINIStruct(s.f)
 		}
 
 		fieldName := s.parseFieldName(tpField.Name, rawName)
@@ -516,12 +560,11 @@ func (s *Section) reflectFrom(val reflect.Value) error {
 			}
 
 			if err = sec.reflectFrom(field); err != nil {
-				return fmt.Errorf("error reflecting field (%s): %v", fieldName, err)
+				return fmt.Errorf("error reflecting field %q: %v", fieldName, err)
 			}
 			continue
 		}
 
-		// Note: Same reason as secion.
 		key, err := s.GetKey(fieldName)
 		if err != nil {
 			key, _ = s.NewKey(fieldName, "")
@@ -532,8 +575,9 @@ func (s *Section) reflectFrom(val reflect.Value) error {
 			key.Comment = tpField.Tag.Get("comment")
 		}
 
-		if err = reflectWithProperType(tpField.Type, key, field, parseDelim(tpField.Tag.Get("delim")), allowShadow); err != nil {
-			return fmt.Errorf("error reflecting field (%s): %v", fieldName, err)
+		delim := parseDelim(tpField.Tag.Get("delim"))
+		if err = reflectWithProperType(tpField.Type, key, field, delim, allowShadow); err != nil {
+			return fmt.Errorf("error reflecting field %q: %v", fieldName, err)
 		}
 
 	}

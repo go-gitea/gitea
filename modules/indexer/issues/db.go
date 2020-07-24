@@ -25,6 +25,10 @@ func (db *DBIndexer) Delete(ids ...int64) error {
 	return nil
 }
 
+// Close dummy function
+func (db *DBIndexer) Close() {
+}
+
 // Search dummy function
 func (db *DBIndexer) Search(kw string, repoIDs []int64, limit, start int) (*SearchResult, error) {
 	total, ids, err := models.SearchIssueIDsByKeyword(kw, repoIDs, limit, start)

@@ -6,13 +6,13 @@ package notification
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
 	"code.gitea.io/gitea/modules/notification/ui"
 	"code.gitea.io/gitea/modules/notification/webhook"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -60,9 +60,9 @@ func NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComme
 }
 
 // NotifyMergePullRequest notifies merge pull request to notifiers
-func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository) {
+func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	for _, notifier := range notifiers {
-		notifier.NotifyMergePullRequest(pr, doer, baseGitRepo)
+		notifier.NotifyMergePullRequest(pr, doer)
 	}
 }
 
@@ -91,6 +91,13 @@ func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comm
 func NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPullRequestChangeTargetBranch(doer, pr, oldBranch)
+	}
+}
+
+// NotifyPullRequestPushCommits notifies when push commits to pull request's head branch
+func NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestPushCommits(doer, pr, comment)
 	}
 }
 
@@ -147,6 +154,13 @@ func NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent
 func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 	for _, notifier := range notifiers {
 		notifier.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
+	}
+}
+
+// NotifyPullReviewRequest notifies Request Review change
+func NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullReviewRequest(doer, issue, reviewer, isRequest, comment)
 	}
 }
 
@@ -215,7 +229,7 @@ func NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName 
 }
 
 // NotifyPushCommits notifies commits pushed to notifiers
-func NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+func NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
 	}
@@ -236,7 +250,7 @@ func NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refF
 }
 
 // NotifySyncPushCommits notifies commits pushed to notifiers
-func NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+func NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
 	for _, notifier := range notifiers {
 		notifier.NotifySyncPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
 	}

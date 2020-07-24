@@ -7,6 +7,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -18,7 +19,10 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/jaytaylor/html2text"
@@ -27,38 +31,63 @@ import (
 
 // Message mail body and log info
 type Message struct {
-	Info string // Message information for log purpose.
-	*gomail.Message
+	Info            string // Message information for log purpose.
+	FromAddress     string
+	FromDisplayName string
+	To              []string
+	Subject         string
+	Date            time.Time
+	Body            string
+	Headers         map[string][]string
+}
+
+// ToMessage converts a Message to gomail.Message
+func (m *Message) ToMessage() *gomail.Message {
+	msg := gomail.NewMessage()
+	msg.SetAddressHeader("From", m.FromAddress, m.FromDisplayName)
+	msg.SetHeader("To", m.To...)
+	for header := range m.Headers {
+		msg.SetHeader(header, m.Headers[header]...)
+	}
+
+	if len(setting.MailService.SubjectPrefix) > 0 {
+		msg.SetHeader("Subject", setting.MailService.SubjectPrefix+" "+m.Subject)
+	} else {
+		msg.SetHeader("Subject", m.Subject)
+	}
+	msg.SetDateHeader("Date", m.Date)
+	msg.SetHeader("X-Auto-Response-Suppress", "All")
+
+	plainBody, err := html2text.FromString(m.Body)
+	if err != nil || setting.MailService.SendAsPlainText {
+		if strings.Contains(base.TruncateString(m.Body, 100), "<html>") {
+			log.Warn("Mail contains HTML but configured to send as plain text.")
+		}
+		msg.SetBody("text/plain", plainBody)
+	} else {
+		msg.SetBody("text/plain", plainBody)
+		msg.AddAlternative("text/html", m.Body)
+	}
+	return msg
+}
+
+// SetHeader adds additional headers to a message
+func (m *Message) SetHeader(field string, value ...string) {
+	m.Headers[field] = value
 }
 
 // NewMessageFrom creates new mail message object with custom From header.
 func NewMessageFrom(to []string, fromDisplayName, fromAddress, subject, body string) *Message {
 	log.Trace("NewMessageFrom (body):\n%s", body)
 
-	msg := gomail.NewMessage()
-	msg.SetAddressHeader("From", fromAddress, fromDisplayName)
-	msg.SetHeader("To", to...)
-	if len(setting.MailService.SubjectPrefix) > 0 {
-		msg.SetHeader("Subject", setting.MailService.SubjectPrefix+" "+subject)
-	} else {
-		msg.SetHeader("Subject", subject)
-	}
-	msg.SetDateHeader("Date", time.Now())
-	msg.SetHeader("X-Auto-Response-Suppress", "All")
-
-	plainBody, err := html2text.FromString(body)
-	if err != nil || setting.MailService.SendAsPlainText {
-		if strings.Contains(base.TruncateString(body, 100), "<html>") {
-			log.Warn("Mail contains HTML but configured to send as plain text.")
-		}
-		msg.SetBody("text/plain", plainBody)
-	} else {
-		msg.SetBody("text/plain", plainBody)
-		msg.AddAlternative("text/html", body)
-	}
-
 	return &Message{
-		Message: msg,
+		FromAddress:     fromAddress,
+		FromDisplayName: fromDisplayName,
+		To:              to,
+		Subject:         subject,
+		Date:            time.Now(),
+		Body:            body,
+		Headers:         map[string][]string{},
 	}
 }
 
@@ -213,11 +242,18 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	var closeError error
 	var waitError error
 
-	args := []string{"-F", from, "-i"}
+	args := []string{"-f", from, "-i"}
 	args = append(args, setting.MailService.SendmailArgs...)
 	args = append(args, to...)
 	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
-	cmd := exec.Command(setting.MailService.SendmailPath, args...)
+
+	pm := process.GetManager()
+	desc := fmt.Sprintf("SendMail: %s %v", setting.MailService.SendmailPath, args)
+
+	ctx, cancel := context.WithTimeout(graceful.GetManager().HammerContext(), setting.MailService.SendmailTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, setting.MailService.SendmailPath, args...)
 	pipe, err := cmd.StdinPipe()
 
 	if err != nil {
@@ -228,12 +264,15 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 		return err
 	}
 
+	pid := pm.Add(desc, cancel)
+
 	_, err = msg.WriteTo(pipe)
 
 	// we MUST close the pipe or sendmail will hang waiting for more of the message
 	// Also we should wait on our sendmail command even if something fails
 	closeError = pipe.Close()
 	waitError = cmd.Wait()
+	pm.Remove(pid)
 	if err != nil {
 		return err
 	} else if closeError != nil {
@@ -257,18 +296,7 @@ func (s *dummySender) Send(from string, to []string, msg io.WriterTo) error {
 	return nil
 }
 
-func processMailQueue() {
-	for msg := range mailQueue {
-		log.Trace("New e-mail sending request %s: %s", msg.GetHeader("To"), msg.Info)
-		if err := gomail.Send(Sender, msg.Message); err != nil {
-			log.Error("Failed to send emails %s: %s - %v", msg.GetHeader("To"), msg.Info, err)
-		} else {
-			log.Trace("E-mails sent %s: %s", msg.GetHeader("To"), msg.Info)
-		}
-	}
-}
-
-var mailQueue chan *Message
+var mailQueue queue.Queue
 
 // Sender sender for sending mail synchronously
 var Sender gomail.Sender
@@ -291,14 +319,26 @@ func NewContext() {
 		Sender = &dummySender{}
 	}
 
-	mailQueue = make(chan *Message, setting.MailService.QueueLength)
-	go processMailQueue()
+	mailQueue = queue.CreateQueue("mail", func(data ...queue.Data) {
+		for _, datum := range data {
+			msg := datum.(*Message)
+			gomailMsg := msg.ToMessage()
+			log.Trace("New e-mail sending request %s: %s", gomailMsg.GetHeader("To"), msg.Info)
+			if err := gomail.Send(Sender, gomailMsg); err != nil {
+				log.Error("Failed to send emails %s: %s - %v", gomailMsg.GetHeader("To"), msg.Info, err)
+			} else {
+				log.Trace("E-mails sent %s: %s", gomailMsg.GetHeader("To"), msg.Info)
+			}
+		}
+	}, &Message{})
+
+	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
 }
 
 // SendAsync send mail asynchronously
 func SendAsync(msg *Message) {
 	go func() {
-		mailQueue <- msg
+		_ = mailQueue.Push(msg)
 	}()
 }
 
@@ -306,7 +346,7 @@ func SendAsync(msg *Message) {
 func SendAsyncs(msgs []*Message) {
 	go func() {
 		for _, msg := range msgs {
-			mailQueue <- msg
+			_ = mailQueue.Push(msg)
 		}
 	}()
 }

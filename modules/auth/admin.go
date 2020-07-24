@@ -37,6 +37,7 @@ type AdminEditUserForm struct {
 	MaxRepoCreation         int
 	Active                  bool
 	Admin                   bool
+	Restricted              bool
 	AllowGitHook            bool
 	AllowImportLocal        bool
 	AllowCreateOrganization bool
@@ -45,5 +46,16 @@ type AdminEditUserForm struct {
 
 // Validate validates form fields
 func (f *AdminEditUserForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// AdminDashboardForm form for admin dashboard operations
+type AdminDashboardForm struct {
+	Op   string `binding:"required"`
+	From string
+}
+
+// Validate validates form fields
+func (f *AdminDashboardForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

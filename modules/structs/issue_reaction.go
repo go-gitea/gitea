@@ -13,8 +13,8 @@ type EditReactionOption struct {
 	Reaction string `json:"content"`
 }
 
-// ReactionResponse contain one reaction
-type ReactionResponse struct {
+// Reaction contain one reaction
+type Reaction struct {
 	User     *User  `json:"user"`
 	Reaction string `json:"content"`
 	// swagger:strfmt date-time
