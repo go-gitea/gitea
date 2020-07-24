@@ -228,12 +228,18 @@ func Init() {
 
 // DeleteRepoFromIndexer remove all of a repository's entries from the indexer
 func DeleteRepoFromIndexer(repo *models.Repository) {
-	indexerQueue.Push(&IndexerData{RepoID: repo.ID, IsDelete: true})
+	indexData := &IndexerData{RepoID: repo.ID, IsDelete: true}
+	if err := indexerQueue.Push(indexData); err != nil {
+		log.Error("Delete repo index data %v failed: %v", indexData, err)
+	}
 }
 
 // UpdateRepoIndexer update a repository's entries in the indexer
 func UpdateRepoIndexer(repo *models.Repository) {
-	indexerQueue.Push(&IndexerData{RepoID: repo.ID, IsDelete: false})
+	indexData := &IndexerData{RepoID: repo.ID, IsDelete: false}
+	if err := indexerQueue.Push(indexData); err != nil {
+		log.Error("Update repo index data %v failed: %v", indexData, err)
+	}
 }
 
 // populateRepoIndexer populate the repo indexer with pre-existing data. This
@@ -286,7 +292,10 @@ func populateRepoIndexer() {
 				return
 			default:
 			}
-			indexerQueue.Push(&IndexerData{RepoID: id, IsDelete: false})
+			if err := indexerQueue.Push(&IndexerData{RepoID: id, IsDelete: false}); err != nil {
+				log.Error("indexerQueue.Push: %v", err)
+				return
+			}
 			maxRepoID = id - 1
 		}
 	}
