@@ -21,19 +21,24 @@ type (
 	DingtalkPayload dingtalk.Payload
 )
 
+var (
+	_ PayloadConvertor = &DingtalkPayload{}
+)
+
 // SetSecret sets the dingtalk secret
-func (p *DingtalkPayload) SetSecret(_ string) {}
+func (d *DingtalkPayload) SetSecret(_ string) {}
 
 // JSONPayload Marshals the DingtalkPayload to json
-func (p *DingtalkPayload) JSONPayload() ([]byte, error) {
-	data, err := json.MarshalIndent(p, "", "  ")
+func (d *DingtalkPayload) JSONPayload() ([]byte, error) {
+	data, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
 		return []byte{}, err
 	}
 	return data, nil
 }
 
-func getDingtalkCreatePayload(p *api.CreatePayload) (*DingtalkPayload, error) {
+// Create implements PayloadConvertor Create method
+func (d *DingtalkPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
@@ -50,7 +55,8 @@ func getDingtalkCreatePayload(p *api.CreatePayload) (*DingtalkPayload, error) {
 	}, nil
 }
 
-func getDingtalkDeletePayload(p *api.DeletePayload) (*DingtalkPayload, error) {
+// Delete implements PayloadConvertor Delete method
+func (d *DingtalkPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
@@ -67,7 +73,8 @@ func getDingtalkDeletePayload(p *api.DeletePayload) (*DingtalkPayload, error) {
 	}, nil
 }
 
-func getDingtalkForkPayload(p *api.ForkPayload) (*DingtalkPayload, error) {
+// Fork implements PayloadConvertor Fork method
+func (d *DingtalkPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
 	return &DingtalkPayload{
@@ -82,7 +89,8 @@ func getDingtalkForkPayload(p *api.ForkPayload) (*DingtalkPayload, error) {
 	}, nil
 }
 
-func getDingtalkPushPayload(p *api.PushPayload) (*DingtalkPayload, error) {
+// Push implements PayloadConvertor Push method
+func (d *DingtalkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
 		branchName = git.RefEndName(p.Ref)
 		commitDesc string
@@ -131,7 +139,8 @@ func getDingtalkPushPayload(p *api.PushPayload) (*DingtalkPayload, error) {
 	}, nil
 }
 
-func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
+// Issue implements PayloadConvertor Issue method
+func (d *DingtalkPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
@@ -147,7 +156,8 @@ func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
 	}, nil
 }
 
-func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayload, error) {
+// IssueComment implements PayloadConvertor IssueComment method
+func (d *DingtalkPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
@@ -162,7 +172,8 @@ func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayloa
 	}, nil
 }
 
-func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload, error) {
+// PullRequest implements PayloadConvertor PullRequest method
+func (d *DingtalkPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
 	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
@@ -178,7 +189,8 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 	}, nil
 }
 
-func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event models.HookEventType) (*DingtalkPayload, error) {
+// Review implements PayloadConvertor Review method
+func (d *DingtalkPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
 	var text, title string
 	switch p.Action {
 	case api.HookIssueReviewed:
@@ -204,7 +216,8 @@ func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event mode
 	}, nil
 }
 
-func getDingtalkRepositoryPayload(p *api.RepositoryPayload) (*DingtalkPayload, error) {
+// Repository implements PayloadConvertor Repository method
+func (d *DingtalkPayload) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
 	var title, url string
 	switch p.Action {
 	case api.HookRepoCreated:
@@ -235,7 +248,8 @@ func getDingtalkRepositoryPayload(p *api.RepositoryPayload) (*DingtalkPayload, e
 	return nil, nil
 }
 
-func getDingtalkReleasePayload(p *api.ReleasePayload) (*DingtalkPayload, error) {
+// Release implements PayloadConvertor Release method
+func (d *DingtalkPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
@@ -251,36 +265,6 @@ func getDingtalkReleasePayload(p *api.ReleasePayload) (*DingtalkPayload, error) 
 }
 
 // GetDingtalkPayload converts a ding talk webhook into a DingtalkPayload
-func GetDingtalkPayload(p api.Payloader, event models.HookEventType, meta string) (*DingtalkPayload, error) {
-	s := new(DingtalkPayload)
-
-	switch event {
-	case models.HookEventCreate:
-		return getDingtalkCreatePayload(p.(*api.CreatePayload))
-	case models.HookEventDelete:
-		return getDingtalkDeletePayload(p.(*api.DeletePayload))
-	case models.HookEventFork:
-		return getDingtalkForkPayload(p.(*api.ForkPayload))
-	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
-		return getDingtalkIssuesPayload(p.(*api.IssuePayload))
-	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		pl, ok := p.(*api.IssueCommentPayload)
-		if ok {
-			return getDingtalkIssueCommentPayload(pl)
-		}
-		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPush:
-		return getDingtalkPushPayload(p.(*api.PushPayload))
-	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
-		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
-		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewComment:
-		return getDingtalkPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
-	case models.HookEventRepository:
-		return getDingtalkRepositoryPayload(p.(*api.RepositoryPayload))
-	case models.HookEventRelease:
-		return getDingtalkReleasePayload(p.(*api.ReleasePayload))
-	}
-
-	return s, nil
+func GetDingtalkPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+	return convertPayloader(new(DingtalkPayload), p, event)
 }

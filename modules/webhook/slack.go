@@ -38,6 +38,7 @@ func GetSlackHook(w *models.Webhook) *SlackMeta {
 type SlackPayload struct {
 	Channel     string            `json:"channel"`
 	Text        string            `json:"text"`
+	Color       string            `json:"-"`
 	Username    string            `json:"username"`
 	IconURL     string            `json:"icon_url"`
 	UnfurlLinks int               `json:"unfurl_links"`
@@ -55,11 +56,11 @@ type SlackAttachment struct {
 }
 
 // SetSecret sets the slack secret
-func (p *SlackPayload) SetSecret(_ string) {}
+func (s *SlackPayload) SetSecret(_ string) {}
 
 // JSONPayload Marshals the SlackPayload to json
-func (p *SlackPayload) JSONPayload() ([]byte, error) {
-	data, err := json.MarshalIndent(p, "", "  ")
+func (s *SlackPayload) JSONPayload() ([]byte, error) {
+	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return []byte{}, err
 	}
@@ -98,53 +99,59 @@ func SlackLinkToRef(repoURL, ref string) string {
 	return SlackLinkFormatter(url, refName)
 }
 
-func getSlackCreatePayload(p *api.CreatePayload, slack *SlackMeta) (*SlackPayload, error) {
+var (
+	_ PayloadConvertor = &SlackPayload{}
+)
+
+// Create implements PayloadConvertor Create method
+func (s *SlackPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	refLink := SlackLinkToRef(p.Repo.HTMLURL, p.Ref)
 	text := fmt.Sprintf("[%s:%s] %s created by %s", repoLink, refLink, p.RefType, p.Sender.UserName)
 
 	return &SlackPayload{
-		Channel:  slack.Channel,
+		Channel:  s.Channel,
 		Text:     text,
-		Username: slack.Username,
-		IconURL:  slack.IconURL,
+		Username: s.Username,
+		IconURL:  s.IconURL,
 	}, nil
 }
 
-// getSlackDeletePayload composes Slack payload for delete a branch or tag.
-func getSlackDeletePayload(p *api.DeletePayload, slack *SlackMeta) (*SlackPayload, error) {
+// Delete composes Slack payload for delete a branch or tag.
+func (s *SlackPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	refName := git.RefEndName(p.Ref)
 	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, refName, p.RefType, p.Sender.UserName)
 	return &SlackPayload{
-		Channel:  slack.Channel,
+		Channel:  s.Channel,
 		Text:     text,
-		Username: slack.Username,
-		IconURL:  slack.IconURL,
+		Username: s.Username,
+		IconURL:  s.IconURL,
 	}, nil
 }
 
-// getSlackForkPayload composes Slack payload for forked by a repository.
-func getSlackForkPayload(p *api.ForkPayload, slack *SlackMeta) (*SlackPayload, error) {
+// Fork composes Slack payload for forked by a repository.
+func (s *SlackPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 	baseLink := SlackLinkFormatter(p.Forkee.HTMLURL, p.Forkee.FullName)
 	forkLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("%s is forked to %s", baseLink, forkLink)
 	return &SlackPayload{
-		Channel:  slack.Channel,
+		Channel:  s.Channel,
 		Text:     text,
-		Username: slack.Username,
-		IconURL:  slack.IconURL,
+		Username: s.Username,
+		IconURL:  s.IconURL,
 	}, nil
 }
 
-func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload, error) {
+// Issue implements PayloadConvertor Issue method
+func (s *SlackPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	text, issueTitle, attachmentText, color := getIssuesPayloadInfo(p, SlackLinkFormatter, true)
 
 	pl := &SlackPayload{
-		Channel:  slack.Channel,
+		Channel:  s.Channel,
 		Text:     text,
-		Username: slack.Username,
-		IconURL:  slack.IconURL,
+		Username: s.Username,
+		IconURL:  s.IconURL,
 	}
 	if attachmentText != "" {
 		attachmentText = SlackTextFormatter(attachmentText)
@@ -160,14 +167,15 @@ func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload
 	return pl, nil
 }
 
-func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta) (*SlackPayload, error) {
+// IssueComment implements PayloadConvertor IssueComment method
+func (s *SlackPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	text, issueTitle, color := getIssueCommentPayloadInfo(p, SlackLinkFormatter, true)
 
 	return &SlackPayload{
-		Channel:  slack.Channel,
+		Channel:  s.Channel,
 		Text:     text,
-		Username: slack.Username,
-		IconURL:  slack.IconURL,
+		Username: s.Username,
+		IconURL:  s.IconURL,
 		Attachments: []SlackAttachment{{
 			Color:     fmt.Sprintf("%x", color),
 			Title:     issueTitle,
@@ -177,18 +185,20 @@ func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta) (
 	}, nil
 }
 
-func getSlackReleasePayload(p *api.ReleasePayload, slack *SlackMeta) (*SlackPayload, error) {
+// Release implements PayloadConvertor Release method
+func (s *SlackPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, SlackLinkFormatter, true)
 
 	return &SlackPayload{
-		Channel:  slack.Channel,
+		Channel:  s.Channel,
 		Text:     text,
-		Username: slack.Username,
-		IconURL:  slack.IconURL,
+		Username: s.Username,
+		IconURL:  s.IconURL,
 	}, nil
 }
 
-func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, error) {
+// Push implements PayloadConvertor Push method
+func (s *SlackPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	// n new commits
 	var (
 		commitDesc   string
@@ -221,12 +231,12 @@ func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, e
 	}
 
 	return &SlackPayload{
-		Channel:  slack.Channel,
+		Channel:  s.Channel,
 		Text:     text,
-		Username: slack.Username,
-		IconURL:  slack.IconURL,
+		Username: s.Username,
+		IconURL:  s.IconURL,
 		Attachments: []SlackAttachment{{
-			Color:     slack.Color,
+			Color:     s.Color,
 			Title:     p.Repo.HTMLURL,
 			TitleLink: p.Repo.HTMLURL,
 			Text:      attachmentText,
@@ -234,14 +244,15 @@ func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, e
 	}, nil
 }
 
-func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*SlackPayload, error) {
+// PullRequest implements PayloadConvertor PullRequest method
+func (s *SlackPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
 	text, issueTitle, attachmentText, color := getPullRequestPayloadInfo(p, SlackLinkFormatter, true)
 
 	pl := &SlackPayload{
-		Channel:  slack.Channel,
+		Channel:  s.Channel,
 		Text:     text,
-		Username: slack.Username,
-		IconURL:  slack.IconURL,
+		Username: s.Username,
+		IconURL:  s.IconURL,
 	}
 	if attachmentText != "" {
 		attachmentText = SlackTextFormatter(p.PullRequest.Body)
@@ -257,7 +268,8 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 	return pl, nil
 }
 
-func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackMeta, event models.HookEventType) (*SlackPayload, error) {
+// Review implements PayloadConvertor Review method
+func (s *SlackPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
 	titleLink := fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index)
@@ -275,14 +287,15 @@ func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackM
 	}
 
 	return &SlackPayload{
-		Channel:  slack.Channel,
+		Channel:  s.Channel,
 		Text:     text,
-		Username: slack.Username,
-		IconURL:  slack.IconURL,
+		Username: s.Username,
+		IconURL:  s.IconURL,
 	}, nil
 }
 
-func getSlackRepositoryPayload(p *api.RepositoryPayload, slack *SlackMeta) (*SlackPayload, error) {
+// Repository implements PayloadConvertor Repository method
+func (s *SlackPayload) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text string
@@ -295,15 +308,15 @@ func getSlackRepositoryPayload(p *api.RepositoryPayload, slack *SlackMeta) (*Sla
 	}
 
 	return &SlackPayload{
-		Channel:  slack.Channel,
+		Channel:  s.Channel,
 		Text:     text,
-		Username: slack.Username,
-		IconURL:  slack.IconURL,
+		Username: s.Username,
+		IconURL:  s.IconURL,
 	}, nil
 }
 
 // GetSlackPayload converts a slack webhook into a SlackPayload
-func GetSlackPayload(p api.Payloader, event models.HookEventType, meta string) (*SlackPayload, error) {
+func GetSlackPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
 	s := new(SlackPayload)
 
 	slack := &SlackMeta{}
@@ -311,33 +324,10 @@ func GetSlackPayload(p api.Payloader, event models.HookEventType, meta string) (
 		return s, errors.New("GetSlackPayload meta json:" + err.Error())
 	}
 
-	switch event {
-	case models.HookEventCreate:
-		return getSlackCreatePayload(p.(*api.CreatePayload), slack)
-	case models.HookEventDelete:
-		return getSlackDeletePayload(p.(*api.DeletePayload), slack)
-	case models.HookEventFork:
-		return getSlackForkPayload(p.(*api.ForkPayload), slack)
-	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
-		return getSlackIssuesPayload(p.(*api.IssuePayload), slack)
-	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		pl, ok := p.(*api.IssueCommentPayload)
-		if ok {
-			return getSlackIssueCommentPayload(pl, slack)
-		}
-		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
-	case models.HookEventPush:
-		return getSlackPushPayload(p.(*api.PushPayload), slack)
-	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
-		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
-		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
-	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
-		return getSlackPullRequestApprovalPayload(p.(*api.PullRequestPayload), slack, event)
-	case models.HookEventRepository:
-		return getSlackRepositoryPayload(p.(*api.RepositoryPayload), slack)
-	case models.HookEventRelease:
-		return getSlackReleasePayload(p.(*api.ReleasePayload), slack)
-	}
+	s.Channel = slack.Channel
+	s.Username = slack.Username
+	s.IconURL = slack.IconURL
+	s.Color = slack.Color
 
-	return s, nil
+	return convertPayloader(s, p, event)
 }

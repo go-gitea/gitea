@@ -16,7 +16,7 @@ func TestGetTelegramIssuesPayload(t *testing.T) {
 	p := issueTestPayload()
 	p.Action = api.HookIssueClosed
 
-	pl, err := getTelegramIssuesPayload(p)
+	pl, err := new(TelegramPayload).Issue(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 

@@ -40,22 +40,27 @@ func GetTelegramHook(w *models.Webhook) *TelegramMeta {
 	return s
 }
 
+var (
+	_ PayloadConvertor = &TelegramPayload{}
+)
+
 // SetSecret sets the telegram secret
-func (p *TelegramPayload) SetSecret(_ string) {}
+func (t *TelegramPayload) SetSecret(_ string) {}
 
 // JSONPayload Marshals the TelegramPayload to json
-func (p *TelegramPayload) JSONPayload() ([]byte, error) {
-	p.ParseMode = "HTML"
-	p.DisableWebPreview = true
-	p.Message = markup.Sanitize(p.Message)
-	data, err := json.MarshalIndent(p, "", "  ")
+func (t *TelegramPayload) JSONPayload() ([]byte, error) {
+	t.ParseMode = "HTML"
+	t.DisableWebPreview = true
+	t.Message = markup.Sanitize(t.Message)
+	data, err := json.MarshalIndent(t, "", "  ")
 	if err != nil {
 		return []byte{}, err
 	}
 	return data, nil
 }
 
-func getTelegramCreatePayload(p *api.CreatePayload) (*TelegramPayload, error) {
+// Create implements PayloadConvertor Create method
+func (t *TelegramPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> created`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
@@ -66,7 +71,8 @@ func getTelegramCreatePayload(p *api.CreatePayload) (*TelegramPayload, error) {
 	}, nil
 }
 
-func getTelegramDeletePayload(p *api.DeletePayload) (*TelegramPayload, error) {
+// Delete implements PayloadConvertor Delete method
+func (t *TelegramPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> deleted`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
@@ -77,7 +83,8 @@ func getTelegramDeletePayload(p *api.DeletePayload) (*TelegramPayload, error) {
 	}, nil
 }
 
-func getTelegramForkPayload(p *api.ForkPayload) (*TelegramPayload, error) {
+// Fork implements PayloadConvertor Fork method
+func (t *TelegramPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 	title := fmt.Sprintf(`%s is forked to <a href="%s">%s</a>`, p.Forkee.FullName, p.Repo.HTMLURL, p.Repo.FullName)
 
 	return &TelegramPayload{
@@ -85,7 +92,8 @@ func getTelegramForkPayload(p *api.ForkPayload) (*TelegramPayload, error) {
 	}, nil
 }
 
-func getTelegramPushPayload(p *api.PushPayload) (*TelegramPayload, error) {
+// Push implements PayloadConvertor Push method
+func (t *TelegramPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
 		branchName = git.RefEndName(p.Ref)
 		commitDesc string
@@ -124,7 +132,8 @@ func getTelegramPushPayload(p *api.PushPayload) (*TelegramPayload, error) {
 	}, nil
 }
 
-func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
+// Issue implements PayloadConvertor Issue method
+func (t *TelegramPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	text, _, attachmentText, _ := getIssuesPayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
@@ -132,7 +141,8 @@ func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
 	}, nil
 }
 
-func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayload, error) {
+// IssueComment implements PayloadConvertor IssueComment method
+func (t *TelegramPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	text, _, _ := getIssueCommentPayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
@@ -140,7 +150,8 @@ func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayloa
 	}, nil
 }
 
-func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload, error) {
+// PullRequest implements PayloadConvertor PullRequest method
+func (t *TelegramPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
 	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
@@ -148,7 +159,8 @@ func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload,
 	}, nil
 }
 
-func getTelegramPullRequestApprovalPayload(p *api.PullRequestPayload, event models.HookEventType) (*TelegramPayload, error) {
+// Review implements PayloadConvertor Review method
+func (t *TelegramPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
 	var text, attachmentText string
 	switch p.Action {
 	case api.HookIssueReviewed:
@@ -167,7 +179,8 @@ func getTelegramPullRequestApprovalPayload(p *api.PullRequestPayload, event mode
 	}, nil
 }
 
-func getTelegramRepositoryPayload(p *api.RepositoryPayload) (*TelegramPayload, error) {
+// Repository implements PayloadConvertor Repository method
+func (t *TelegramPayload) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
 	var title string
 	switch p.Action {
 	case api.HookRepoCreated:
@@ -184,7 +197,8 @@ func getTelegramRepositoryPayload(p *api.RepositoryPayload) (*TelegramPayload, e
 	return nil, nil
 }
 
-func getTelegramReleasePayload(p *api.ReleasePayload) (*TelegramPayload, error) {
+// Release implements PayloadConvertor Release method
+func (t *TelegramPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
@@ -193,36 +207,6 @@ func getTelegramReleasePayload(p *api.ReleasePayload) (*TelegramPayload, error) 
 }
 
 // GetTelegramPayload converts a telegram webhook into a TelegramPayload
-func GetTelegramPayload(p api.Payloader, event models.HookEventType, meta string) (*TelegramPayload, error) {
-	s := new(TelegramPayload)
-
-	switch event {
-	case models.HookEventCreate:
-		return getTelegramCreatePayload(p.(*api.CreatePayload))
-	case models.HookEventDelete:
-		return getTelegramDeletePayload(p.(*api.DeletePayload))
-	case models.HookEventFork:
-		return getTelegramForkPayload(p.(*api.ForkPayload))
-	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
-		return getTelegramIssuesPayload(p.(*api.IssuePayload))
-	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		pl, ok := p.(*api.IssueCommentPayload)
-		if ok {
-			return getTelegramIssueCommentPayload(pl)
-		}
-		return getTelegramPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPush:
-		return getTelegramPushPayload(p.(*api.PushPayload))
-	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
-		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
-		return getTelegramPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
-		return getTelegramPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
-	case models.HookEventRepository:
-		return getTelegramRepositoryPayload(p.(*api.RepositoryPayload))
-	case models.HookEventRelease:
-		return getTelegramReleasePayload(p.(*api.ReleasePayload))
-	}
-
-	return s, nil
+func GetTelegramPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+	return convertPayloader(new(TelegramPayload), p, event)
 }

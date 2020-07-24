@@ -97,25 +97,30 @@ var (
 )
 
 // SetSecret sets the discord secret
-func (p *DiscordPayload) SetSecret(_ string) {}
+func (d *DiscordPayload) SetSecret(_ string) {}
 
 // JSONPayload Marshals the DiscordPayload to json
-func (p *DiscordPayload) JSONPayload() ([]byte, error) {
-	data, err := json.MarshalIndent(p, "", "  ")
+func (d *DiscordPayload) JSONPayload() ([]byte, error) {
+	data, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
 		return []byte{}, err
 	}
 	return data, nil
 }
 
-func getDiscordCreatePayload(p *api.CreatePayload, meta *DiscordMeta) (*DiscordPayload, error) {
+var (
+	_ PayloadConvertor = &DiscordPayload{}
+)
+
+// Create implements PayloadConvertor Create method
+func (d *DiscordPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
 	return &DiscordPayload{
-		Username:  meta.Username,
-		AvatarURL: meta.IconURL,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title: title,
@@ -131,14 +136,15 @@ func getDiscordCreatePayload(p *api.CreatePayload, meta *DiscordMeta) (*DiscordP
 	}, nil
 }
 
-func getDiscordDeletePayload(p *api.DeletePayload, meta *DiscordMeta) (*DiscordPayload, error) {
+// Delete implements PayloadConvertor Delete method
+func (d *DiscordPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// deleted tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
 	return &DiscordPayload{
-		Username:  meta.Username,
-		AvatarURL: meta.IconURL,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title: title,
@@ -154,13 +160,13 @@ func getDiscordDeletePayload(p *api.DeletePayload, meta *DiscordMeta) (*DiscordP
 	}, nil
 }
 
-func getDiscordForkPayload(p *api.ForkPayload, meta *DiscordMeta) (*DiscordPayload, error) {
-	// fork
+// Fork implements PayloadConvertor Fork method
+func (d *DiscordPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
 	return &DiscordPayload{
-		Username:  meta.Username,
-		AvatarURL: meta.IconURL,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title: title,
@@ -176,7 +182,8 @@ func getDiscordForkPayload(p *api.ForkPayload, meta *DiscordMeta) (*DiscordPaylo
 	}, nil
 }
 
-func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPayload, error) {
+// Push implements PayloadConvertor Push method
+func (d *DiscordPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
 		branchName = git.RefEndName(p.Ref)
 		commitDesc string
@@ -208,8 +215,8 @@ func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPaylo
 	}
 
 	return &DiscordPayload{
-		Username:  meta.Username,
-		AvatarURL: meta.IconURL,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title:       title,
@@ -226,12 +233,13 @@ func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPaylo
 	}, nil
 }
 
-func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPayload, error) {
+// Issue implements PayloadConvertor Issue method
+func (d *DiscordPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	text, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
 	return &DiscordPayload{
-		Username:  meta.Username,
-		AvatarURL: meta.IconURL,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title:       text,
@@ -248,12 +256,13 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 	}, nil
 }
 
-func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordMeta) (*DiscordPayload, error) {
+// IssueComment implements PayloadConvertor IssueComment method
+func (d *DiscordPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
 	return &DiscordPayload{
-		Username:  discord.Username,
-		AvatarURL: discord.IconURL,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title:       text,
@@ -270,12 +279,13 @@ func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordM
 	}, nil
 }
 
-func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) (*DiscordPayload, error) {
+// PullRequest implements PayloadConvertor PullRequest method
+func (d *DiscordPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
 	text, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
 	return &DiscordPayload{
-		Username:  meta.Username,
-		AvatarURL: meta.IconURL,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title:       text,
@@ -292,7 +302,8 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 	}, nil
 }
 
-func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *DiscordMeta, event models.HookEventType) (*DiscordPayload, error) {
+// Review implements PayloadConvertor Review method
+func (d *DiscordPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -318,8 +329,8 @@ func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *Disco
 	}
 
 	return &DiscordPayload{
-		Username:  meta.Username,
-		AvatarURL: meta.IconURL,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title:       title,
@@ -336,7 +347,8 @@ func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *Disco
 	}, nil
 }
 
-func getDiscordRepositoryPayload(p *api.RepositoryPayload, meta *DiscordMeta) (*DiscordPayload, error) {
+// Repository implements PayloadConvertor Repository method
+func (d *DiscordPayload) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
 	var title, url string
 	var color int
 	switch p.Action {
@@ -350,8 +362,8 @@ func getDiscordRepositoryPayload(p *api.RepositoryPayload, meta *DiscordMeta) (*
 	}
 
 	return &DiscordPayload{
-		Username:  meta.Username,
-		AvatarURL: meta.IconURL,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title: title,
@@ -367,12 +379,13 @@ func getDiscordRepositoryPayload(p *api.RepositoryPayload, meta *DiscordMeta) (*
 	}, nil
 }
 
-func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*DiscordPayload, error) {
+// Release implements PayloadConvertor Release method
+func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
 	return &DiscordPayload{
-		Username:  meta.Username,
-		AvatarURL: meta.IconURL,
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
 		Embeds: []DiscordEmbed{
 			{
 				Title:       text,
@@ -390,47 +403,20 @@ func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*Discor
 }
 
 // GetDiscordPayload converts a discord webhook into a DiscordPayload
-func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string) (*DiscordPayload, error) {
+func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(meta), &discord); err != nil {
 		return s, errors.New("GetDiscordPayload meta json:" + err.Error())
 	}
+	s.Username = discord.Username
+	s.AvatarURL = discord.IconURL
 
-	switch event {
-	case models.HookEventCreate:
-		return getDiscordCreatePayload(p.(*api.CreatePayload), discord)
-	case models.HookEventDelete:
-		return getDiscordDeletePayload(p.(*api.DeletePayload), discord)
-	case models.HookEventFork:
-		return getDiscordForkPayload(p.(*api.ForkPayload), discord)
-	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
-		return getDiscordIssuesPayload(p.(*api.IssuePayload), discord)
-	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		pl, ok := p.(*api.IssueCommentPayload)
-		if ok {
-			return getDiscordIssueCommentPayload(pl, discord)
-		}
-		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
-	case models.HookEventPush:
-		return getDiscordPushPayload(p.(*api.PushPayload), discord)
-	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
-		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
-		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
-	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
-		return getDiscordPullRequestApprovalPayload(p.(*api.PullRequestPayload), discord, event)
-	case models.HookEventRepository:
-		return getDiscordRepositoryPayload(p.(*api.RepositoryPayload), discord)
-	case models.HookEventRelease:
-		return getDiscordReleasePayload(p.(*api.ReleasePayload), discord)
-	}
-
-	return s, nil
+	return convertPayloader(s, p, event)
 }
 
 func parseHookPullRequestEventType(event models.HookEventType) (string, error) {
-
 	switch event {
 
 	case models.HookEventPullRequestReviewApproved:

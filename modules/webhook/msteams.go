@@ -56,18 +56,23 @@ type (
 )
 
 // SetSecret sets the MSTeams secret
-func (p *MSTeamsPayload) SetSecret(_ string) {}
+func (m *MSTeamsPayload) SetSecret(_ string) {}
 
 // JSONPayload Marshals the MSTeamsPayload to json
-func (p *MSTeamsPayload) JSONPayload() ([]byte, error) {
-	data, err := json.MarshalIndent(p, "", "  ")
+func (m *MSTeamsPayload) JSONPayload() ([]byte, error) {
+	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return []byte{}, err
 	}
 	return data, nil
 }
 
-func getMSTeamsCreatePayload(p *api.CreatePayload) (*MSTeamsPayload, error) {
+var (
+	_ PayloadConvertor = &MSTeamsPayload{}
+)
+
+// Create implements PayloadConvertor Create method
+func (m *MSTeamsPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
@@ -110,7 +115,8 @@ func getMSTeamsCreatePayload(p *api.CreatePayload) (*MSTeamsPayload, error) {
 	}, nil
 }
 
-func getMSTeamsDeletePayload(p *api.DeletePayload) (*MSTeamsPayload, error) {
+// Delete implements PayloadConvertor Delete method
+func (m *MSTeamsPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// deleted tag/branch
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
@@ -153,8 +159,8 @@ func getMSTeamsDeletePayload(p *api.DeletePayload) (*MSTeamsPayload, error) {
 	}, nil
 }
 
-func getMSTeamsForkPayload(p *api.ForkPayload) (*MSTeamsPayload, error) {
-	// fork
+// Fork implements PayloadConvertor Fork method
+func (m *MSTeamsPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
 	return &MSTeamsPayload{
@@ -195,7 +201,8 @@ func getMSTeamsForkPayload(p *api.ForkPayload) (*MSTeamsPayload, error) {
 	}, nil
 }
 
-func getMSTeamsPushPayload(p *api.PushPayload) (*MSTeamsPayload, error) {
+// Push implements PayloadConvertor Push method
+func (m *MSTeamsPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	var (
 		branchName = git.RefEndName(p.Ref)
 		commitDesc string
@@ -265,7 +272,8 @@ func getMSTeamsPushPayload(p *api.PushPayload) (*MSTeamsPayload, error) {
 	}, nil
 }
 
-func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
+// Issue implements PayloadConvertor Issue method
+func (m *MSTeamsPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	text, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
 	return &MSTeamsPayload{
@@ -307,7 +315,8 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 	}, nil
 }
 
-func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload, error) {
+// IssueComment implements PayloadConvertor IssueComment method
+func (m *MSTeamsPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
 	return &MSTeamsPayload{
@@ -349,7 +358,8 @@ func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload,
 	}, nil
 }
 
-func getMSTeamsPullRequestPayload(p *api.PullRequestPayload) (*MSTeamsPayload, error) {
+// PullRequest implements PayloadConvertor PullRequest method
+func (m *MSTeamsPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
 	text, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
 	return &MSTeamsPayload{
@@ -391,7 +401,8 @@ func getMSTeamsPullRequestPayload(p *api.PullRequestPayload) (*MSTeamsPayload, e
 	}, nil
 }
 
-func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event models.HookEventType) (*MSTeamsPayload, error) {
+// Review implements PayloadConvertor Review method
+func (m *MSTeamsPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -455,7 +466,8 @@ func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event model
 	}, nil
 }
 
-func getMSTeamsRepositoryPayload(p *api.RepositoryPayload) (*MSTeamsPayload, error) {
+// Repository implements PayloadConvertor Repository method
+func (m *MSTeamsPayload) Repository(p *api.RepositoryPayload) (api.Payloader, error) {
 	var title, url string
 	var color int
 	switch p.Action {
@@ -502,7 +514,8 @@ func getMSTeamsRepositoryPayload(p *api.RepositoryPayload) (*MSTeamsPayload, err
 	}, nil
 }
 
-func getMSTeamsReleasePayload(p *api.ReleasePayload) (*MSTeamsPayload, error) {
+// Release implements PayloadConvertor Release method
+func (m *MSTeamsPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
 	return &MSTeamsPayload{
@@ -545,36 +558,6 @@ func getMSTeamsReleasePayload(p *api.ReleasePayload) (*MSTeamsPayload, error) {
 }
 
 // GetMSTeamsPayload converts a MSTeams webhook into a MSTeamsPayload
-func GetMSTeamsPayload(p api.Payloader, event models.HookEventType, meta string) (*MSTeamsPayload, error) {
-	s := new(MSTeamsPayload)
-
-	switch event {
-	case models.HookEventCreate:
-		return getMSTeamsCreatePayload(p.(*api.CreatePayload))
-	case models.HookEventDelete:
-		return getMSTeamsDeletePayload(p.(*api.DeletePayload))
-	case models.HookEventFork:
-		return getMSTeamsForkPayload(p.(*api.ForkPayload))
-	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
-		return getMSTeamsIssuesPayload(p.(*api.IssuePayload))
-	case models.HookEventIssueComment, models.HookEventPullRequestComment:
-		pl, ok := p.(*api.IssueCommentPayload)
-		if ok {
-			return getMSTeamsIssueCommentPayload(pl)
-		}
-		return getMSTeamsPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPush:
-		return getMSTeamsPushPayload(p.(*api.PushPayload))
-	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
-		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
-		return getMSTeamsPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
-		return getMSTeamsPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
-	case models.HookEventRepository:
-		return getMSTeamsRepositoryPayload(p.(*api.RepositoryPayload))
-	case models.HookEventRelease:
-		return getMSTeamsReleasePayload(p.(*api.ReleasePayload))
-	}
-
-	return s, nil
+func GetMSTeamsPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+	return convertPayloader(new(MSTeamsPayload), p, event)
 }

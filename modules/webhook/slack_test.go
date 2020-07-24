@@ -14,18 +14,18 @@ import (
 
 func TestSlackIssuesPayloadOpened(t *testing.T) {
 	p := issueTestPayload()
-	sl := &SlackMeta{
-		Username: p.Sender.UserName,
-	}
-
 	p.Action = api.HookIssueOpened
-	pl, err := getSlackIssuesPayload(p, sl)
+
+	s := new(SlackPayload)
+	s.Username = p.Sender.UserName
+
+	pl, err := s.Issue(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue opened: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
 
 	p.Action = api.HookIssueClosed
-	pl, err = getSlackIssuesPayload(p, sl)
+	pl, err = s.Issue(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue closed: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
@@ -33,12 +33,10 @@ func TestSlackIssuesPayloadOpened(t *testing.T) {
 
 func TestSlackIssueCommentPayload(t *testing.T) {
 	p := issueCommentTestPayload()
+	s := new(SlackPayload)
+	s.Username = p.Sender.UserName
 
-	sl := &SlackMeta{
-		Username: p.Sender.UserName,
-	}
-
-	pl, err := getSlackIssueCommentPayload(p, sl)
+	pl, err := s.IssueComment(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
@@ -47,12 +45,10 @@ func TestSlackIssueCommentPayload(t *testing.T) {
 
 func TestSlackPullRequestCommentPayload(t *testing.T) {
 	p := pullRequestCommentTestPayload()
+	s := new(SlackPayload)
+	s.Username = p.Sender.UserName
 
-	sl := &SlackMeta{
-		Username: p.Sender.UserName,
-	}
-
-	pl, err := getSlackIssueCommentPayload(p, sl)
+	pl, err := s.IssueComment(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
@@ -61,12 +57,10 @@ func TestSlackPullRequestCommentPayload(t *testing.T) {
 
 func TestSlackReleasePayload(t *testing.T) {
 	p := pullReleaseTestPayload()
+	s := new(SlackPayload)
+	s.Username = p.Sender.UserName
 
-	sl := &SlackMeta{
-		Username: p.Sender.UserName,
-	}
-
-	pl, err := getSlackReleasePayload(p, sl)
+	pl, err := s.Release(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
@@ -75,12 +69,10 @@ func TestSlackReleasePayload(t *testing.T) {
 
 func TestSlackPullRequestPayload(t *testing.T) {
 	p := pullRequestTestPayload()
+	s := new(SlackPayload)
+	s.Username = p.Sender.UserName
 
-	sl := &SlackMeta{
-		Username: p.Sender.UserName,
-	}
-
-	pl, err := getSlackPullRequestPayload(p, sl)
+	pl, err := s.PullRequest(p)
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
