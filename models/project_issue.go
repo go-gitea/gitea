@@ -89,7 +89,9 @@ func (i *Issue) projectBoardID(e Engine) int64 {
 func (p *Project) NumIssues() int {
 	c, err := x.Table("project_issue").
 		Where("project_id=?", p.ID).
-		GroupBy("issue_id").Count("issue_id")
+		GroupBy("issue_id").
+		Cols("issue_id").
+		Count()
 	if err != nil {
 		return 0
 	}
@@ -100,7 +102,9 @@ func (p *Project) NumIssues() int {
 func (p *Project) NumClosedIssues() int {
 	c, err := x.Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).Count("issue.id")
+		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).
+		Cols("issue_id").
+		Count()
 	if err != nil {
 		return 0
 	}
