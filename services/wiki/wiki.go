@@ -209,13 +209,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 	if err := git.Push(basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
-		Env: models.FullPushingEnvironment(
-			doer,
-			doer,
-			repo,
-			repo.Name+".wiki",
-			0,
-		),
+		Env:    models.WikiPushingEnvironment(doer, repo),
 	}); err != nil {
 		log.Error("%v", err)
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {

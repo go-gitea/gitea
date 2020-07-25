@@ -707,7 +707,10 @@ func UploadWikiFilePost(ctx *context.Context, form auth.UploadWikiFileForm) {
 		Message:      message,
 		Files:        form.Files,
 	}); err != nil {
+		// FIXME: it will get a "The process cannot access the file because it is being used by another process." error when try to remove
+		//        the uploaded cache file. Upload is successed anyway, but still need to fix this one.
 		log.Error("Error during upload to repo %-v : %v", ctx.Repo.Repository, err)
+		ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", "_media", err), tplWikiUpload, &form)
 		return
 	}
 

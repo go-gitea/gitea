@@ -43,6 +43,11 @@ func PushingEnvironment(doer *User, repo *Repository) []string {
 	return FullPushingEnvironment(doer, doer, repo, repo.Name, 0)
 }
 
+// WikiPushingEnvironment returns an os environment for wiki repo
+func WikiPushingEnvironment(doer *User, repo *Repository) []string {
+	return FullPushingEnvironment(doer, doer, repo, repo.Name+".wiki", 0)
+}
+
 // FullPushingEnvironment returns an os environment to allow hooks to work on push
 func FullPushingEnvironment(author, committer *User, repo *Repository, repoName string, prID int64) []string {
 	isWiki := "false"

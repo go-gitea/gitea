@@ -270,13 +270,15 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 
 // Push the provided commitHash to the repository branch by the provided user
 func (t *TemporaryUploadRepository) push(doer *models.User, commitHash string, branch string, isWiki bool) error {
-	repoPath := t.repo.RepoPath()
-	if isWiki {
-		repoPath = t.repo.WikiPath()
-	}
-
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
+	repoPath := t.repo.RepoPath()
+
+	if isWiki {
+		repoPath = t.repo.WikiPath()
+		env = models.WikiPushingEnvironment(doer, t.repo)
+	}
+
 	if err := git.Push(t.basePath, git.PushOptions{
 		Remote: repoPath,
 		Branch: strings.TrimSpace(commitHash) + ":refs/heads/" + strings.TrimSpace(branch),
