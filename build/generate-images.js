@@ -37,7 +37,7 @@ async function generate(svg, outputFile, {size, bg, removeDetail} = {}) {
   const png = await promisify(svg2img)(processedSvg, {
     width: size,
     height: size,
-    preserveAspectRatio: 'xMinYMid meet',
+    preserveAspectRatio: 'xMidYMid meet',
   });
 
   const optimizedPng = await imageminZopfli({more: true})(png);
