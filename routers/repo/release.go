@@ -219,7 +219,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 			return
 		}
 
-		rel := &models.Release{
+		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			PublisherID:  ctx.User.ID,
 			Title:        form.Title,

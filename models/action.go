@@ -49,6 +49,7 @@ const (
 	ActionApprovePullRequest                       // 21
 	ActionRejectPullRequest                        // 22
 	ActionCommentPull                              // 23
+	ActionPublishRelease                           // 24
 )
 
 // Action represents user operation type and other information to
@@ -283,6 +284,36 @@ func (a *Action) GetIssueContent() string {
 		return "500 when get issue"
 	}
 	return issue.Content
+}
+
+// GetReleaseInfos get release info for ActionPublishRelease
+func (a *Action) GetReleaseInfos() (r *Release) {
+	var (
+		id  int64
+		err error
+	)
+
+	if a.OpType != ActionPublishRelease {
+		return nil
+	}
+
+	if id, err = com.StrTo(a.Content).Int64(); err != nil {
+		return nil
+	}
+
+	if r, err = GetReleaseByID(id); err != nil {
+		return nil
+	}
+
+	if r.LoadAttributes(); err != nil {
+		return nil
+	}
+
+	if len(r.Attachments) > 5 {
+		r.Attachments = r.Attachments[0:5]
+	}
+
+	return
 }
 
 // GetFeedsOptions options for retrieving feeds
