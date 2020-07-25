@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 'use strict';
 
-const imageminZopfli = require('imagemin-zopfli'); // eslint-disable-line import/no-unresolved
-const {fabric} = require('fabric'); // eslint-disable-line import/no-unresolved
-const {DOMParser, XMLSerializer} = require('xmldom'); // eslint-disable-line import/no-unresolved
+const imageminZopfli = require('imagemin-zopfli');
+const {fabric} = require('fabric');
+const {DOMParser, XMLSerializer} = require('xmldom');
 const {readFile, writeFile} = require('fs').promises;
 const {resolve} = require('path');
 
