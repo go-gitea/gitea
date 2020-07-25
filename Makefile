@@ -648,7 +648,7 @@ update-translations:
 
 .PHONY: generate-images
 generate-images:
-	npm install --no-save --no-package-lock xmldom svg2img imagemin-zopfli
+	npm install --no-save --no-package-lock xmldom fabric imagemin-zopfli
 	node build/generate-images.js
 
 .PHONY: pr\#%

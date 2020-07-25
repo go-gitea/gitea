@@ -2,9 +2,8 @@
 'use strict';
 
 const imageminZopfli = require('imagemin-zopfli'); // eslint-disable-line import/no-unresolved
-const svg2img = require('svg2img'); // eslint-disable-line import/no-unresolved
+const {fabric} = require('fabric'); // eslint-disable-line import/no-unresolved
 const {DOMParser, XMLSerializer} = require('xmldom'); // eslint-disable-line import/no-unresolved
-const {promisify} = require('util');
 const {readFile, writeFile} = require('fs').promises;
 const {resolve} = require('path');
 
@@ -13,15 +12,18 @@ function exit(err) {
   process.exit(err ? 1 : 0);
 }
 
+function loadSvg(svg) {
+  return new Promise((resolve) => {
+    fabric.loadSVGFromString(svg, (objects, options) => {
+      resolve({objects, options});
+    });
+  });
+}
+
 async function generate(svg, outputFile, {size, bg, removeDetail} = {}) {
   const parser = new DOMParser();
   const serializer = new XMLSerializer();
   const document = parser.parseFromString(svg);
-
-  if (bg) {
-    const rect = parser.parseFromString('<rect width="100%" height="100%" fill="white"/>');
-    document.documentElement.insertBefore(rect, document.documentElement.firstChild);
-  }
 
   if (removeDetail) {
     for (const el of Array.from(document.getElementsByTagName('g') || [])) {
@@ -33,15 +35,34 @@ async function generate(svg, outputFile, {size, bg, removeDetail} = {}) {
     }
   }
 
-  const processedSvg = serializer.serializeToString(document);
-  const png = await promisify(svg2img)(processedSvg, {
-    width: size,
-    height: size,
-    preserveAspectRatio: 'xMidYMid meet',
-  });
+  svg = serializer.serializeToString(document);
 
-  const optimizedPng = await imageminZopfli({more: true})(png);
-  await writeFile(outputFile, optimizedPng);
+  const {objects, options} = await loadSvg(svg);
+  const canvas = new fabric.Canvas();
+  canvas.setDimensions({width: size, height: size});
+  const ctx = canvas.getContext('2d');
+  ctx.scale(options.width ? (size / options.width) : 1, options.height ? (size / options.height) : 1);
+
+  if (bg) {
+    canvas.add(new fabric.Rect({
+      left: 0,
+      top: 0,
+      height: size * (1 / (size / options.height)),
+      width: size * (1 / (size / options.height)),
+      fill: 'white',
+    }));
+  }
+
+  canvas.add(fabric.util.groupSVGElements(objects, options));
+  canvas.renderAll();
+
+  let png = Buffer.from([]);
+  for await (const chunk of canvas.createPNGStream()) {
+    png = Buffer.concat([png, chunk]);
+  }
+
+  png = await imageminZopfli({more: true})(png);
+  await writeFile(outputFile, png);
 }
 
 async function main() {
