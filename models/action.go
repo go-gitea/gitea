@@ -67,6 +67,8 @@ type Action struct {
 	Comment     *Comment    `xorm:"-"`
 	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
+	ReleaseID   int64
+	Release     *Release           `xorm:"-"`
 	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -286,34 +288,28 @@ func (a *Action) GetIssueContent() string {
 	return issue.Content
 }
 
-// GetReleaseInfos get release info for ActionPublishRelease
-func (a *Action) GetReleaseInfos() (r *Release) {
-	var (
-		id  int64
-		err error
-	)
+// GetRelease get release info for ActionPublishRelease
+func (a *Action) GetRelease() *Release {
+	var err error
+	if a.OpType != ActionPublishRelease || a.Release != nil {
+		return a.Release
+	}
 
-	if a.OpType != ActionPublishRelease {
+	if a.Release, err = GetReleaseByID(a.ReleaseID); err != nil {
+		log.Error("GetReleaseByID(%d): %v", a.ReleaseID, err)
 		return nil
 	}
 
-	if id, err = com.StrTo(a.Content).Int64(); err != nil {
+	if err = a.Release.LoadAttributes(); err != nil {
+		log.Error("Release.LoadAttributes(%d): %v", a.ReleaseID, err)
 		return nil
 	}
 
-	if r, err = GetReleaseByID(id); err != nil {
-		return nil
+	if len(a.Release.Attachments) > 5 {
+		a.Release.Attachments = a.Release.Attachments[0:5]
 	}
 
-	if err = r.LoadAttributes(); err != nil {
-		return nil
-	}
-
-	if len(r.Attachments) > 5 {
-		r.Attachments = r.Attachments[0:5]
-	}
-
-	return
+	return a.Release
 }
 
 // GetFeedsOptions options for retrieving feeds
