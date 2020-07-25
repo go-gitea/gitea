@@ -48,7 +48,7 @@ async function generate(svg, outputFile, {size, bg, removeDetail} = {}) {
       left: 0,
       top: 0,
       height: size * (1 / (size / options.height)),
-      width: size * (1 / (size / options.height)),
+      width: size * (1 / (size / options.width)),
       fill: 'white',
     }));
   }
