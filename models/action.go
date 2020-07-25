@@ -305,7 +305,7 @@ func (a *Action) GetReleaseInfos() (r *Release) {
 		return nil
 	}
 
-	if r.LoadAttributes(); err != nil {
+	if err = r.LoadAttributes(); err != nil {
 		return nil
 	}
 
