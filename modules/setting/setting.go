@@ -626,7 +626,6 @@ func NewContext() {
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
-	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
 	urlHostname, _, err := net.SplitHostPort(appURL.Host)
 	if err != nil {
 		log.Fatal("Invalid host in ROOT_URL '%s': %s", appURL.Host, err)
