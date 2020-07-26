@@ -198,6 +198,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_PORT`: **22**: SSH port displayed in clone URL.
 - `SSH_LISTEN_HOST`: **0.0.0.0**: Listen address for the built-in SSH server.
 - `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
+- `SSH_TRUSTED_USER_CA_KEYS`: **\<empty\>**: Specifies the public keys of certificate authorities that are trusted to sign user certificates for authentication. Multiple keys should be comma separated. E.g.`ssh-<algorithm> <key>` or `ssh-<algorithm> <key1>, ssh-<algorithm> <key2>`. For more information see `TrustedUserCAKeys` in the sshd config man pages.
+- `SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE`: **true**: Gitea will create a authorized_principals file by default when it is not using the internal ssh server. If you intend to use the AuthorizedKeysCommand functionality then you should turn this off.
+- `SSH_AUTHORIZED_PRINCIPALS_BACKUP`: **true**: Enable SSH Authorized Principals Backup when rewriting all keys, default is true.
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
 - `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. From 1.11 paths are relative to `CUSTOM_PATH`.
