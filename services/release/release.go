@@ -95,8 +95,8 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 	return nil
 }
 
-// UpdateRelease updates information of a release.
-func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string) (err error) {
+// UpdateReleaseOrCreatReleaseFromTag updates information of a release or create release from tag.
+func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string, isCreate bool) (err error) {
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
@@ -110,7 +110,14 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 		log.Error("AddReleaseAttachments: %v", err)
 	}
 
-	notification.NotifyUpdateRelease(doer, rel)
+	if !isCreate {
+		notification.NotifyUpdateRelease(doer, rel)
+		return
+	}
+
+	if !rel.IsDraft {
+		notification.NotifyNewRelease(rel)
+	}
 
 	return err
 }
