@@ -220,8 +220,6 @@ var migrations = []Migration{
 	NewMigration("Ensure Repository.IsArchived is not null", setIsArchivedToFalse),
 	// v143 -> v144
 	NewMigration("recalculate Stars number for all user", recalculateStars),
-	// v144 -> v145
-	NewMigration("Add ReleaseID to action table", addReleaseIDActionColumn),
 }
 
 // GetCurrentDBVersion returns the current db version

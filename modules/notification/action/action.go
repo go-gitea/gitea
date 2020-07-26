@@ -327,7 +327,7 @@ func (a *actionNotifier) NotifyNewRelease(rel *models.Release) {
 		RepoID:    rel.RepoID,
 		Repo:      rel.Repo,
 		IsPrivate: rel.Repo.IsPrivate,
-		ReleaseID: rel.ID,
+		Content:   rel.Title,
 		RefName:   rel.TagName,
 	}); err != nil {
 		log.Error("notifyWatchers: %v", err)

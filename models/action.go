@@ -67,8 +67,6 @@ type Action struct {
 	Comment     *Comment    `xorm:"-"`
 	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
-	ReleaseID   int64
-	Release     *Release           `xorm:"-"`
 	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -286,24 +284,6 @@ func (a *Action) GetIssueContent() string {
 		return "500 when get issue"
 	}
 	return issue.Content
-}
-
-// GetRelease get release info for ActionPublishRelease
-func (a *Action) GetRelease() *Release {
-	var err error
-	if a.OpType != ActionPublishRelease || a.Release != nil {
-		return a.Release
-	}
-
-	if a.Release, err = GetReleaseByID(a.ReleaseID); err != nil {
-		log.Error("GetReleaseByID(%d): %v", a.ReleaseID, err)
-		return nil
-	}
-
-	a.Release.Repo = a.Repo
-	a.Release.Publisher = a.ActUser
-
-	return a.Release
 }
 
 // GetFeedsOptions options for retrieving feeds
