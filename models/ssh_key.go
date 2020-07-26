@@ -1134,7 +1134,7 @@ func appendAuthorizedPrincipalsToFile(keys ...*PublicKey) error {
 	}
 	defer f.Close()
 
-	// Note: chmod command does not support in Windows.
+	// Note: chmod is noop on Windows.
 	if !setting.IsWindows {
 		fi, err := f.Stat()
 		if err != nil {
