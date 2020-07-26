@@ -300,14 +300,8 @@ func (a *Action) GetRelease() *Release {
 		return nil
 	}
 
-	if err = a.Release.LoadAttributes(); err != nil {
-		log.Error("Release.LoadAttributes(%d): %v", a.ReleaseID, err)
-		return nil
-	}
-
-	if len(a.Release.Attachments) > 5 {
-		a.Release.Attachments = a.Release.Attachments[0:5]
-	}
+	a.Release.Repo = a.Repo
+	a.Release.Publisher = a.ActUser
 
 	return a.Release
 }

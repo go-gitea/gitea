@@ -102,31 +102,7 @@
 					{{else if or (eq .GetOpType 12) (eq .GetOpType 13) (eq .GetOpType 14) (eq .GetOpType 15)}}
 						<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji}}</span>
 					{{else if (and (eq .GetOpType 24) .Release)}}
-						<div class="ui accordion content">
-							<p class="text light grey">{{.Release.Title | RenderEmoji}}</p>
-							<div class="title">
-								<i class="icon dropdown"></i>
-								<p class="text light grey">{{$.i18n.Tr "repo.release.downloads"}}</p>
-							</div>
-							<div class="content">
-								<ul>
-									<li>
-										<a href="{{.GetRepoLink}}/archive/{{.Release.TagName | EscapePound}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16}} {{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
-									</li>
-									<li>
-										<a href="{{.GetRepoLink}}/archive/{{.Release.TagName | EscapePound}}.tar.gz"><strong>{{svg "octicon-file-zip" 16}} {{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
-									</li>
-									
-									{{range .Release.Attachments}}
-										<li>
-											<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
-												<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16}}</span> {{.Name}}</strong>
-											</a>
-										</li>
-									{{end}}
-								</ul>
-							</div>
-						</div>
+						<p class="text light grey">{{.Release.Title | RenderEmoji}}</p>
 					{{end}}
 					<p class="text italic light grey">{{TimeSince .GetCreate $.i18n.Lang}}</p>
 				</div>
