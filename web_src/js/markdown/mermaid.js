@@ -12,10 +12,11 @@ export async function renderMermaid(els) {
   });
 
   for (const el of els) {
-    mermaidAPI.render(`mermaid-${random(12)}`, el.textContent, (svg) => {
+    mermaidAPI.render(`mermaid-${random(12)}`, el.textContent, (svg, bindFunctions) => {
       const div = document.createElement('div');
       div.classList.add('mermaid-chart');
       div.innerHTML = svg;
+      if (typeof bindFunctions === 'function') bindFunctions(div);
       el.closest('pre').replaceWith(div);
     });
   }
