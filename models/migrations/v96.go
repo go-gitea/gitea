@@ -26,12 +26,6 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 		CommentID int64
 	}
 
-	// AttachmentLocalPath returns where attachment is stored in local file
-	// system based on given UUID.
-	AttachmentLocalPath := func(uuid string) string {
-		return path.Join(setting.AttachmentPath, uuid[0:1], uuid[1:2], uuid)
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 
