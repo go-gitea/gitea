@@ -155,10 +155,9 @@ Note: When working on frontend code, set `USE_SERVICE_WORKER` to `false` in `app
 
 SVG icons are built using the `make svg` target which compiles the icon sources defined in `build/generate-svg.js` into the output directory `public/img/svg`. Custom icons can be added in the `web_src/svg` directory.
 
-### Building Images
+### Building the Logo
 
-To build the images, ImageMagick, `inkscape` and `zopflipng` binaries must be available in
-your `PATH` to run `make generate-images`.
+The PNG versions of the logo are built from a single SVG source file `assets/logo.svg` using the `make generate-images` target. To run it, Node.js and npm must be available. The same process can also be used to generate a custom logo PNGs from a SVG source file. It's possible to remove parts of the SVG logo for the favicon build by adding a `detail-remove` class to the SVG nodes to be removed.
 
 ### Updating the API
 
