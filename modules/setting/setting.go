@@ -626,10 +626,11 @@ func NewContext() {
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
-	urlHostname, _, err := net.SplitHostPort(appURL.Host)
+	u, err := url.Parse(fmt.Sprintf("http://%s",appURL.Host))
 	if err != nil {
 		log.Fatal("Invalid host in ROOT_URL '%s': %s", appURL.Host, err)
 	}
+	urlHostname := u.Hostname()
 	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
 		Domain = urlHostname
 	}
