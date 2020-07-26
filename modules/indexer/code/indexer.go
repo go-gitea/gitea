@@ -39,7 +39,7 @@ type SearchResultLanguages struct {
 	Count    int
 }
 
-// Indexer defines an interface to indexer issues contents
+// Indexer defines an interface to index and search code contents
 type Indexer interface {
 	Index(repo *models.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
@@ -111,7 +111,7 @@ func Init() {
 					log.Error("Unable to process provided datum: %v - not possible to cast to IndexerData", datum)
 					continue
 				}
-				log.Trace("IndexerData Process: %d %v %t", indexerData.RepoID, indexerData.IsDelete)
+				log.Trace("IndexerData Process: %v %t", indexerData.RepoID, indexerData.IsDelete)
 
 				if indexerData.IsDelete {
 					if err := indexer.Delete(indexerData.RepoID); err != nil {
@@ -187,8 +187,11 @@ func Init() {
 
 		indexer.set(rIndexer)
 
+		// Start processing the queue
+		go graceful.GetManager().RunWithShutdownFns(indexerQueue.Run)
+
 		if created {
-			go populateRepoIndexer()
+			go graceful.GetManager().RunWithShutdownContext(populateRepoIndexer)
 		}
 		select {
 		case waitChannel <- time.Since(start):
@@ -236,7 +239,7 @@ func DeleteRepoFromIndexer(repo *models.Repository) {
 
 // UpdateRepoIndexer update a repository's entries in the indexer
 func UpdateRepoIndexer(repo *models.Repository) {
-	indexData := &IndexerData{RepoID: repo.ID, IsDelete: false}
+	indexData := &IndexerData{RepoID: repo.ID}
 	if err := indexerQueue.Push(indexData); err != nil {
 		log.Error("Update repo index data %v failed: %v", indexData, err)
 	}
@@ -244,10 +247,8 @@ func UpdateRepoIndexer(repo *models.Repository) {
 
 // populateRepoIndexer populate the repo indexer with pre-existing data. This
 // should only be run when the indexer is created for the first time.
-func populateRepoIndexer() {
+func populateRepoIndexer(ctx context.Context) {
 	log.Info("Populating the repo indexer with existing repositories")
-
-	isShutdown := graceful.GetManager().IsShutdown()
 
 	exist, err := models.IsTableNotEmpty("repository")
 	if err != nil {
@@ -273,7 +274,7 @@ func populateRepoIndexer() {
 	// already be added to the indexer, and we don't need to add them again.
 	for maxRepoID > 0 {
 		select {
-		case <-isShutdown:
+		case <-ctx.Done():
 			log.Info("Repository Indexer population shutdown before completion")
 			return
 		default:
@@ -287,12 +288,12 @@ func populateRepoIndexer() {
 		}
 		for _, id := range ids {
 			select {
-			case <-isShutdown:
+			case <-ctx.Done():
 				log.Info("Repository Indexer population shutdown before completion")
 				return
 			default:
 			}
-			if err := indexerQueue.Push(&IndexerData{RepoID: id, IsDelete: false}); err != nil {
+			if err := indexerQueue.Push(&IndexerData{RepoID: id}); err != nil {
 				log.Error("indexerQueue.Push: %v", err)
 				return
 			}
