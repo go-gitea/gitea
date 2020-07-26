@@ -631,7 +631,7 @@ func NewContext() {
 		log.Fatal("Invalid host in ROOT_URL '%s': %s", appURL.Host, err)
 	}
 	urlHostname := tempURL.Hostname()
-	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
+	if urlHostname != Domain && net.ParseIP(urlHostname) == nil && urlHostname != "" {
 		Domain = urlHostname
 	}
 
