@@ -5,7 +5,11 @@ export async function renderMermaid(els) {
 
   const {mermaidAPI} = await import(/* webpackChunkName: "mermaid" */'mermaid');
 
-  mermaidAPI.initialize({startOnLoad: false});
+  mermaidAPI.initialize({
+    startOnLoad: false,
+    theme: 'neutral',
+    securityLevel: 'strict',
+  });
 
   for (const el of els) {
     mermaidAPI.render(`mermaid-${random(12)}`, el.textContent, (svg) => {
