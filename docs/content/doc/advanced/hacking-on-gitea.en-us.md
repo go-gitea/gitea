@@ -93,6 +93,14 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 See `make help` for all available `make` tasks. Also see [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see how our continuous integration works.
 
+To continuously watch the backend source files and rebuild when they change, you can use
+
+````bash
+make watch-backend
+````
+
+On macOS, watching all source files may hit the default open files limit which you can increase using `ulimit -n 12288` for the current shell or in your shell startup file for all shells.
+
 ### Formatting, code analysis and spell check
 
 Our continuous integration will reject PRs that are not properly formatted, fail
