@@ -21,7 +21,6 @@ IMPORT := code.gitea.io/gitea
 export GO111MODULE=on
 
 GO ?= go
-SED_INPLACE := sed -i
 SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
@@ -42,18 +41,16 @@ ifeq ($(HAS_GO), GO)
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
 endif
 
-
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE ?= gitea.exe
 else
 	EXECUTABLE ?= gitea
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Darwin)
-		SED_INPLACE := sed -i ''
-	endif
-	ifeq ($(UNAME_S),FreeBSD)
-		SED_INPLACE := sed -i ''
-	endif
+endif
+
+ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
+	SED_INPLACE := sed -i
+else
+	SED_INPLACE := sed -i ''
 endif
 
 GOFMT ?= gofmt -s
