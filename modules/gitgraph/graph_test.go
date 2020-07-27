@@ -238,8 +238,8 @@ func TestParseGlyphs(t *testing.T) {
 		}
 		row++
 	}
-	if len(parser.availableColors) != 11 {
-		t.Errorf("Expected 11 colors but have %d", len(parser.availableColors))
+	if len(parser.availableColors) != 9 {
+		t.Errorf("Expected 9 colors but have %d", len(parser.availableColors))
 	}
 }
 
