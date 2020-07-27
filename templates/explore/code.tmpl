@@ -49,7 +49,16 @@
                                     </table>
                                 </div>
                             </div>
-                        {{end}}
+                            <div class="ui bottom attached table segment">
+                                {{if $result.Language}}
+                                    <i class="color-icon" style="background-color: {{$result.Color}}"></i>{{$result.Language}}
+                                {{end}}
+                                &nbsp;
+                                {{if not $result.UpdatedUnix.IsZero}}
+                                    <span class="ui small grey text pull right">{{$.i18n.Tr "explore.code_last_indexed_at" (TimeSinceUnix $result.UpdatedUnix $.i18n.Lang) | Safe}} &nbsp;</span>
+                                {{end}}
+                            </div>
+                        </div>
                     {{end}}
                 </div>
 			{{else}}
