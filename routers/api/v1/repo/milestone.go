@@ -39,6 +39,10 @@ func ListMilestones(ctx *context.APIContext) {
 	//   in: query
 	//   description: Milestone state, Recognised values are open, closed and all. Defaults to "open"
 	//   type: string
+	// - name: name
+	//   in: query
+	//   description: filter by milestone name
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -55,6 +59,7 @@ func ListMilestones(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		State:       api.StateType(ctx.Query("state")),
+		Name:        ctx.Query("name"),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetMilestones", err)

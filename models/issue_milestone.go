@@ -335,31 +335,26 @@ type GetMilestonesOption struct {
 	ListOptions
 	RepoID   int64
 	State    api.StateType
+	Name     string
 	SortType string
 }
 
 // GetMilestones returns milestones filtered by GetMilestonesOption's
 func GetMilestones(opts GetMilestonesOption) (MilestoneList, error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return nil, err
-	}
-
-	if opts.RepoID != 0 {
-		sess = sess.Where("repo_id = ?", opts.RepoID)
-	}
+	sess := x.Where("repo_id = ?", opts.RepoID)
 
 	switch opts.State {
 	case api.StateClosed:
 		sess = sess.And("is_closed = ?", true)
-
 	case api.StateAll:
 		break
-
 	// api.StateOpen:
 	default:
 		sess = sess.And("is_closed = ?", false)
+	}
+
+	if len(opts.Name) != 0 {
+		sess = sess.And(builder.Like{"name", opts.Name})
 	}
 
 	if opts.Page != 0 {
