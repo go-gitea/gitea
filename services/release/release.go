@@ -54,7 +54,6 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = timeutil.TimeStampNow()
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
