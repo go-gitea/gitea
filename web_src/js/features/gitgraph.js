@@ -2,7 +2,7 @@ export default async function initGitGraph() {
   const graphContainer = document.getElementById('git-graph-container');
   if (!graphContainer) return;
 
-  $('#flow-color-monochrome').click(() => {
+  $('#flow-color-monochrome').on('click', () => {
     $('#flow-color-monochrome').addClass('active');
     $('#flow-color-colored').removeClass('active');
     $('#git-graph-container').removeClass('colored').addClass('monochrome');
@@ -24,7 +24,7 @@ export default async function initGitGraph() {
       $(that).attr('href', url.href);
     });
   });
-  $('#flow-color-colored').click(() => {
+  $('#flow-color-colored').on('click', () => {
     $('#flow-color-colored').addClass('active');
     $('#flow-color-monochrome').removeClass('active');
     $('#git-graph-container').addClass('colored').removeClass('monochrome');
@@ -46,42 +46,36 @@ export default async function initGitGraph() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   });
-  $('#git-graph-container #rev-list li').hover(
-    (e) => {
-      const flow = $(e.currentTarget).data('flow');
-      if (flow === 0) return;
-      $(`#flow-${flow}`).addClass('highlight');
-      $(e.currentTarget).addClass('hover');
-      $(`#rev-list li[data-flow='${flow}']`).addClass('highlight');
-    },
-    (e) => {
-      const flow = $(e.currentTarget).data('flow');
-      if (flow === 0) return;
-      $(`#flow-${flow}`).removeClass('highlight');
-      $(e.currentTarget).removeClass('hover');
-      $(`#rev-list li[data-flow='${flow}']`).removeClass('highlight');
-    },
-  );
-  $('#git-graph-container #rel-container .flow-group').hover(
-    (e) => {
-      $(e.currentTarget).addClass('highlight');
-      const flow = $(e.currentTarget).data('flow');
-      $(`#rev-list li[data-flow='${flow}']`).addClass('highlight');
-    },
-    (e) => {
-      $(e.currentTarget).removeClass('highlight');
-      const flow = $(e.currentTarget).data('flow');
-      $(`#rev-list li[data-flow='${flow}']`).removeClass('highlight');
-    },
-  );
-  $('#git-graph-container #rel-container .flow-commit').hover(
-    (e) => {
-      const rev = $(e.currentTarget).data('rev');
-      $(`#rev-list li#commit-${rev}`).addClass('hover');
-    },
-    (e) => {
-      const rev = $(e.currentTarget).data('rev');
-      $(`#rev-list li#commit-${rev}`).removeClass('hover');
-    },
-  );
+  $('#git-graph-container').on('mouseenter', '#rev-list li', (e) => {
+    const flow = $(e.currentTarget).data('flow');
+    if (flow === 0) return;
+    $(`#flow-${flow}`).addClass('highlight');
+    $(e.currentTarget).addClass('hover');
+    $(`#rev-list li[data-flow='${flow}']`).addClass('highlight');
+  });
+  $('#git-graph-container').on('mouseleave', '#rev-list li', (e) => {
+    const flow = $(e.currentTarget).data('flow');
+    if (flow === 0) return;
+    $(`#flow-${flow}`).removeClass('highlight');
+    $(e.currentTarget).removeClass('hover');
+    $(`#rev-list li[data-flow='${flow}']`).removeClass('highlight');
+  });
+  $('#git-graph-container').on('mouseenter', '#rel-container .flow-group', (e) => {
+    $(e.currentTarget).addClass('highlight');
+    const flow = $(e.currentTarget).data('flow');
+    $(`#rev-list li[data-flow='${flow}']`).addClass('highlight');
+  });
+  $('#git-graph-container').on('mouseleave', '#rel-container .flow-group', (e) => {
+    $(e.currentTarget).removeClass('highlight');
+    const flow = $(e.currentTarget).data('flow');
+    $(`#rev-list li[data-flow='${flow}']`).removeClass('highlight');
+  });
+  $('#git-graph-container').on('mouseenter', '#rel-container .flow-commit', (e) => {
+    const rev = $(e.currentTarget).data('rev');
+    $(`#rev-list li#commit-${rev}`).addClass('hover');
+  });
+  $('#git-graph-container').on('mouseleave', '#rel-container .flow-commit', (e) => {
+    const rev = $(e.currentTarget).data('rev');
+    $(`#rev-list li#commit-${rev}`).removeClass('hover');
+  });
 }
