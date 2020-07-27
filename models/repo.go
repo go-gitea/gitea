@@ -17,6 +17,7 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"path"
@@ -969,12 +970,21 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	}
 
 	cl := new(CloneLink)
+
+	// if we have a ipv6 literal we need to put brackets around it
+	// for the git cloning to work.
+	sshDomain := setting.SSH.Domain
+	ip := net.ParseIP(setting.SSH.Domain)
+	if ip != nil && ip.To4() == nil {
+		sshDomain = "[" + setting.SSH.Domain + "]"
+	}
+
 	if setting.SSH.Port != 22 {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", sshUser, setting.SSH.Domain, setting.SSH.Port, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), repo.OwnerName, repoName)
 	} else if setting.Repository.UseCompatSSHURI {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, setting.SSH.Domain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
 	} else {
-		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, setting.SSH.Domain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
 	}
 	cl.HTTPS = ComposeHTTPSCloneURL(repo.OwnerName, repoName)
 	return cl
