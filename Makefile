@@ -106,6 +106,8 @@ BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
 SVG_DEST_DIR := public/img/svg
 
+AIR_TMP_DIR := .air
+
 TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
@@ -161,6 +163,7 @@ help:
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
 	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
+	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -305,6 +308,13 @@ lint-frontend: node_modules svg-check
 watch-frontend: node-check $(FOMANTIC_DEST) node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
+
+.PHONY: watch-backend
+watch-backend: go-check
+	@hash air > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		GO111MODULE=off $(GO) get -u github.com/cosmtrek/air; \
+	fi
+	air -c .air.conf
 
 .PHONY: test
 test:
@@ -579,7 +589,7 @@ release-compress: | $(DIST_DIRS)
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS) node_modules
 	echo $(VERSION) > $(STORED_VERSION_FILE)
-	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache --exclude=./$(AIR_TMP_DIR) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: release-docs
