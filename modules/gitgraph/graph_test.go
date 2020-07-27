@@ -36,12 +36,12 @@ func BenchmarkGetCommitGraph(b *testing.B) {
 func BenchmarkParseCommitString(b *testing.B) {
 	testString := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|Kjell Kvinge|kjell@kvinge.biz|4e61bac|Add route for graph"
 
-	parser := &parserState{}
-	parser.reset()
+	parser := &Parser{}
+	parser.Reset()
 	for i := 0; i < b.N; i++ {
-		parser.reset()
+		parser.Reset()
 		graph := NewGraph()
-		if err := parser.parseFlows(graph, 0, []byte(testString)); err != nil {
+		if err := parser.AddLineToGraph(graph, 0, []byte(testString)); err != nil {
 			b.Error("could not parse teststring")
 		}
 		if graph.Flows[1].Commits[0].Author != "Kjell Kvinge" {
@@ -51,17 +51,17 @@ func BenchmarkParseCommitString(b *testing.B) {
 }
 
 func BenchmarkParseGlyphs(b *testing.B) {
-	parser := &parserState{}
-	parser.reset()
+	parser := &Parser{}
+	parser.Reset()
 	tgBytes := []byte(testglyphs)
 	tg := tgBytes
 	idx := bytes.Index(tg, []byte("\n"))
 	for i := 0; i < b.N; i++ {
-		parser.reset()
+		parser.Reset()
 		tg = tgBytes
 		idx = bytes.Index(tg, []byte("\n"))
 		for idx > 0 {
-			parser.parseGlyphs(tg[:idx])
+			parser.ParseGlyphs(tg[:idx])
 			tg = tg[idx+1:]
 			idx = bytes.Index(tg, []byte("\n"))
 		}
@@ -107,8 +107,8 @@ func TestReleaseUnusedColors(t *testing.T) {
 		},
 	}
 	for _, testcase := range testcases {
-		parser := &parserState{}
-		parser.reset()
+		parser := &Parser{}
+		parser.Reset()
 		parser.availableColors = append([]int{}, testcase.availableColors...)
 		parser.oldColors = append(parser.oldColors, testcase.oldColors...)
 		parser.firstAvailable = testcase.firstAvailable
@@ -205,14 +205,14 @@ func TestReleaseUnusedColors(t *testing.T) {
 }
 
 func TestParseGlyphs(t *testing.T) {
-	parser := &parserState{}
-	parser.reset()
+	parser := &Parser{}
+	parser.Reset()
 	tgBytes := []byte(testglyphs)
 	tg := tgBytes
 	idx := bytes.Index(tg, []byte("\n"))
 	row := 0
 	for idx > 0 {
-		parser.parseGlyphs(tg[:idx])
+		parser.ParseGlyphs(tg[:idx])
 		tg = tg[idx+1:]
 		idx = bytes.Index(tg, []byte("\n"))
 		if parser.flows[0] != 1 {
@@ -260,7 +260,7 @@ func TestCommitStringParsing(t *testing.T) {
 		t.Run(test.testName, func(t *testing.T) {
 			testString := fmt.Sprintf("%s%s", dataFirstPart, test.commitMessage)
 			idx := strings.Index(testString, "DATA:")
-			commit, err := newCommit(0, 0, idx, []byte(testString))
+			commit, err := NewCommit(0, 0, []byte(testString[idx+5:]))
 			if err != nil && test.shouldPass {
 				t.Errorf("Could not parse %s", testString)
 				return
