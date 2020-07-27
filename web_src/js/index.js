@@ -13,6 +13,7 @@ import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initServiceWorker from './features/serviceworker.js';
 import initMarkdownAnchors from './markdown/anchors.js';
+import renderMarkdownContent from './markdown/content.js';
 import attachTribute from './features/tribute.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
@@ -46,6 +47,7 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
+      renderMarkdownContent();
     });
   });
 
@@ -75,6 +77,7 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
+        renderMarkdownContent();
       });
     });
   }
@@ -1007,6 +1010,7 @@ async function initRepository() {
             }
             dz.emit('submit');
             dz.emit('reload');
+            renderMarkdownContent();
           });
         });
       } else {
@@ -1347,6 +1351,7 @@ function initWikiForm() {
               wiki: true
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
+              renderMarkdownContent();
             });
           };
           if (!simplemde.isSideBySideActive()) {
@@ -2484,6 +2489,7 @@ $(document).ready(async () => {
     initUserHeatmap(),
     initServiceWorker(),
     initNotificationCount(),
+    renderMarkdownContent(),
   ]);
 });
 
