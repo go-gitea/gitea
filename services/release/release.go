@@ -67,7 +67,6 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 	} else {
 		rel.CreatedUnix = timeutil.TimeStampNow()
 	}
-
 	return nil
 }
 
