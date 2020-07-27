@@ -7,6 +7,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 	"os"
@@ -156,7 +157,7 @@ func runWeb(ctx *cli.Context) error {
 
 	listenAddr := setting.HTTPAddr
 	if setting.Protocol != setting.UnixSocket && setting.Protocol != setting.FCGIUnix {
-		listenAddr += ":" + setting.HTTPPort
+		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
 
