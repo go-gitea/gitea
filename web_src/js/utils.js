@@ -23,3 +23,14 @@ export function isDarkTheme() {
 export function uniq(arr) {
   return Array.from(new Set(arr));
 }
+
+const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+// generate a random string
+export function random(length) {
+  let str = '';
+  for (let i = 0; i < length; i++) {
+    str += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return str;
+}
