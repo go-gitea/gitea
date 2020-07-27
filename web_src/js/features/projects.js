@@ -32,7 +32,8 @@ export default async function initProject() {
   }
 
   $('.edit-project-board').each(function () {
-    const projectTitle = $(this).find(
+    const projectTitleLabel = $(this).closest('.board-column-header').find('.board-label');
+    const projectTitleInput = $(this).find(
       '.content > .form > .field > .project-board-title'
     );
 
@@ -43,7 +44,7 @@ export default async function initProject() {
 
         $.ajax({
           url: $(this).data('url'),
-          data: JSON.stringify({title: projectTitle.val()}),
+          data: JSON.stringify({title: projectTitleInput.val()}),
           headers: {
             'X-Csrf-Token': csrf,
             'X-Remote': true,
@@ -51,8 +52,9 @@ export default async function initProject() {
           contentType: 'application/json',
           method: 'PUT',
         }).done(() => {
-          projectTitle.closest('form').removeClass('dirty');
-          setTimeout(window.location.reload(true), 2000);
+          projectTitleLabel.text(projectTitleInput.val());
+          projectTitleInput.closest('form').removeClass('dirty');
+          $('.ui.modal').modal('hide');
         });
       });
   });
