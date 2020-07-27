@@ -609,6 +609,7 @@ npm-update: node-check | node_modules
 	npx updates -cu
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
+	@touch node_modules
 
 .PHONY: fomantic
 fomantic: $(FOMANTIC_DEST)
