@@ -20,7 +20,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/RoaringBitmap/roaring v0.4.23 // indirect
-	github.com/alecthomas/chroma v0.7.3
+	github.com/alecthomas/chroma v0.8.0
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/blevesearch/bleve v1.0.7
 	github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 // indirect
