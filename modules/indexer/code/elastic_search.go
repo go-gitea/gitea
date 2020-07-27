@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
+	"github.com/go-enry/go-enry/v2"
 	"github.com/olivere/elastic/v7"
-	"github.com/src-d/enry/v2"
 )
 
 var (
