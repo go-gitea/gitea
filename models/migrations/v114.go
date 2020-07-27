@@ -48,6 +48,5 @@ func sanitizeOriginalURL(x *xorm.Engine) error {
 			}
 		}
 	}
-
 	return nil
 }
