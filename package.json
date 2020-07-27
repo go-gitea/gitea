@@ -25,6 +25,7 @@
     "jquery.are-you-sure": "1.9.0",
     "less-loader": "6.2.0",
     "license-webpack-plugin": "2.2.0",
+    "mermaid": "8.6.3",
     "mini-css-extract-plugin": "0.9.0",
     "monaco-editor": "0.20.0",
     "monaco-editor-webpack-plugin": "1.9.0",
