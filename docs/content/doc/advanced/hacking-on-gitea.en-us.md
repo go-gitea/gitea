@@ -91,7 +91,23 @@ The simplest recommended way to build from source is:
 TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
-See `make help` for all available `make` tasks. Also see [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see how our continuous integration works.
+The `build` target will execute both `frontend` and `backend` sub-targets. If the `bindata` tag is present, the frontend files will be compiled into the binary. It is recommended to leave out the tag when doing frontend development so that changes will be reflected.
+
+See `make help` for all available `make` targets. Also see [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see how our continuous integration works.
+
+## Building continuously
+
+Both the `frontend` and `backend` targets can be ran continuously when source files change:
+
+````bash
+# in your first terminal
+make watch-backend
+
+# in your second terminal
+make watch-frontend
+````
+
+On macOS, watching all backend source files may hit the default open files limit which can be increased via `ulimit -n 12288` for the current shell or in your shell startup file for all future shells.
 
 ### Formatting, code analysis and spell check
 
@@ -123,24 +139,10 @@ make revive vet misspell-check
 
 ### Working on JS and CSS
 
-For simple changes, edit files in `web_src`, run the build and start the server to test:
+Either use the `watch-frontend` target mentioned above or just build once:
 
 ```bash
 make build && ./gitea
-```
-
-`make build` runs both `make frontend` and `make backend` which can be run individually as well as long as the `bindata` tag is not used (which compiles frontend files into the binary).
-
-For more involved changes use the `watch-frontend` task to continuously rebuild files when their sources change. The `bindata` tag must be absent. First, build and run the backend:
-
-```bash
-make backend && ./gitea
-```
-
-With the backend running, open another terminal and run:
-
-```bash
-make watch-frontend
 ```
 
 Before committing, make sure the linters pass:

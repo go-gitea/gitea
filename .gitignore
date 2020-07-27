@@ -81,6 +81,7 @@ coverage.all
 /public/fonts
 /web_src/fomantic/build
 /VERSION
+/.air
 
 # Snapcraft
 snap/.snapcraft/
