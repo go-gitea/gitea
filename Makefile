@@ -47,7 +47,7 @@ else
 	EXECUTABLE ?= gitea
 endif
 
-ifeq ($(shell sed --version | grep -q GNU && echo gnu),gnu)
+ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
 	SED_INPLACE := sed -i
 else
 	SED_INPLACE := sed -i ''
