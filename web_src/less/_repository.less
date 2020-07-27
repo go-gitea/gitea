@@ -3084,6 +3084,9 @@ tbody.commit-list {
 
 #git-graph-container {
     display: block;
+    .ui.header.dividing {
+        padding-bottom: 10px;
+    }
 }
 
 #git-graph-container.monochrome #rel-container .flow-group {
@@ -3096,112 +3099,112 @@ tbody.commit-list {
     fill: black;
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group {
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight {
     &.flow-color-16-1 {
+        stroke: #5ac144;
+        fill: #5ac144;
+    }
+
+    &.flow-color-16-2 {
         stroke: #ed5a8b;
         fill: #ed5a8b;
     }
 
-    &.flow-color-16-2 {
-        stroke: #66e049;
-        fill: #66e049;
-    }
-
     &.flow-color-16-3 {
-        stroke: #db62d6;
-        fill: #db62d6;
+        stroke: #ced049;
+        fill: #ced048;
     }
 
     &.flow-color-16-4 {
-        stroke: #b7e83e;
-        fill: #b7e83e;
+        stroke: #db61d7;
+        fill: #db62d6;
     }
 
     &.flow-color-16-5 {
-        stroke: #8683ee;
-        fill: #8683ee;
+        stroke: #4e33d1;
+        fill: #4f35d1;
     }
 
     &.flow-color-16-6 {
-        stroke: #e1d037;
-        fill: #e1d037;
+        stroke: #e6a151;
+        fill: #e6a151;
     }
 
     &.flow-color-16-7 {
-        stroke: #4be9b7;
-        fill: #4be9b7;
+        stroke: #44daaa;
+        fill: #44daaa;
     }
 
     &.flow-color-16-8 {
-        stroke: #ea6542;
-        fill: #ea6542;
+        stroke: #dd7a5c;
+        fill: #dd7a5c;
     }
 
     &.flow-color-16-9 {
-        stroke: #57e185;
-        fill: #57e185;
+        stroke: #3e61a3;
+        fill: #3d60a1;
     }
 
     &.flow-color-16-10 {
-        stroke: #db9333;
-        fill: #db9333;
+        stroke: #d95520;
+        fill: #d95520;
     }
 
     &.flow-color-16-11 {
-        stroke: #42af69;
-        fill: #42af69;
+        stroke: #42ae68;
+        fill: #42ae68;
     }
 
     &.flow-color-16-12 {
-        stroke: #afa63a;
-        fill: #afa63a;
+        stroke: #9126b5;
+        fill: #9126b5;
     }
 
     &.flow-color-16-13 {
-        stroke: #95e57b;
-        fill: #95e57b;
+        stroke: #4ab080;
+        fill: #4ab080;
     }
 
     &.flow-color-16-14 {
-        stroke: #d4e572;
-        fill: #d4e572;
+        stroke: #284fb8;
+        fill: #284fb8;
     }
 
     &.flow-color-16-15 {
-        stroke: #4da841;
-        fill: #4da841;
+        stroke: #971c80;
+        fill: #971c80;
     }
 
     &.flow-color-16-0 {
-        stroke: #7db233;
-        fill: #7db233;
+        stroke: #87ca28;
+        fill: #87ca28;
     }
 }
 
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight {
+#git-graph-container:not(.monochrome) #rel-container .flow-group {
     &.flow-color-16-1 {
-        stroke: #ce4751;
-        fill: #ce4751;
-    }
-
-    &.flow-color-16-2 {
         stroke: #499a37;
         fill: #499a37;
     }
 
-    &.flow-color-16-3 {
-        stroke: #a846e5;
-        fill: #a846e5;
+    &.flow-color-16-2 {
+        stroke: hsl(356, 58%, 54%);
+        fill: #ce4751;
     }
 
-    &.flow-color-16-4 {
+    &.flow-color-16-3 {
         stroke: #8f9121;
         fill: #8f9121;
     }
 
+    &.flow-color-16-4 {
+        stroke: #ac32a6;
+        fill: #ac32a6;
+    }
+
     &.flow-color-16-5 {
-        stroke: #5d45d1;
-        fill: #5d45d1;
+        stroke: #3d27aa;
+        fill: #3d27aa;
     }
 
     &.flow-color-16-6 {
@@ -3210,18 +3213,18 @@ tbody.commit-list {
     }
 
     &.flow-color-16-7 {
-        stroke: #5d7ce2;
-        fill: #5d7ce2;
+        stroke: #4db392;
+        fill: #4db392;
     }
 
     &.flow-color-16-8 {
-        stroke: #e33a28;
-        fill: #e33a28;
+        stroke: #aa4d30;
+        fill: #aa4d30;
     }
 
     &.flow-color-16-9 {
-        stroke: #5742a1;
-        fill: #5742a1;
+        stroke: #2a4984;
+        fill: #2a4984;
     }
 
     &.flow-color-16-10 {
@@ -3230,33 +3233,33 @@ tbody.commit-list {
     }
 
     &.flow-color-16-11 {
-        stroke: #872ea6;
-        fill: #872ea6;
+        stroke: #3d965c;
+        fill: #3d965c;
     }
 
     &.flow-color-16-12 {
-        stroke: #af2f63;
-        fill: #af2f63;
+        stroke: #792a93;
+        fill: #792a93;
     }
 
     &.flow-color-16-13 {
-        stroke: #d747ce;
-        fill: #d747ce;
+        stroke: #439d73;
+        fill: #439d73;
     }
 
     &.flow-color-16-14 {
-        stroke: #e64996;
-        fill: #e64996;
+        stroke: #103aad;
+        fill: #103aad;
     }
 
     &.flow-color-16-15 {
-        stroke: #bf6fce;
-        fill: #bf6fce;
+        stroke: #982e85;
+        fill: #982e85;
     }
 
     &.flow-color-16-0 {
-        stroke: #982e85;
-        fill: #982e85;
+        stroke: #7db233;
+        fill: #7db233;
     }
 }
 

@@ -3,8 +3,8 @@ export default async function initGitGraph() {
   if (!graphContainer) return;
 
   $('#flow-color-monochrome').click(() => {
-    $('#flow-color-monochrome').addClass('selected');
-    $('#flow-color-colored').removeClass('selected');
+    $('#flow-color-monochrome').addClass('active');
+    $('#flow-color-colored').removeClass('active');
     $('#git-graph-container').removeClass('colored').addClass('monochrome');
     const params = new URLSearchParams(window.location.search);
     params.set('mode', 'monochrome');
@@ -25,8 +25,8 @@ export default async function initGitGraph() {
     });
   });
   $('#flow-color-colored').click(() => {
-    $('#flow-color-colored').addClass('selected');
-    $('#flow-color-monochrome').removeClass('selected');
+    $('#flow-color-colored').addClass('active');
+    $('#flow-color-monochrome').removeClass('active');
     $('#git-graph-container').addClass('colored').removeClass('monochrome');
     $('.pagination a').each((_, that) => {
       const href = $(that).attr('href');

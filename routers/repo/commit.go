@@ -90,7 +90,11 @@ func Commits(ctx *context.Context) {
 func Graph(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
-	ctx.Data["Mode"] = ctx.Query("mode")
+	mode := strings.ToLower(ctx.QueryTrim("mode"))
+	if mode != "monochrome" {
+		mode = "color"
+	}
+	ctx.Data["Mode"] = mode
 
 	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
