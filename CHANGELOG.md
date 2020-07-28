@@ -7,9 +7,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.12.3](https://github.com/go-gitea/gitea/releases/tag/v1.12.3) - 2020-07-28
 
 * BUGFIXES
-  * Don't change creation date when updating Release (#12351)
+  * Don't change creation date when updating Release (#12343) (#12351)
   * Show 404 page when release not found (#12328) (#12332)
-  * Backport emoji fixes to 1.12 (#12327)
+  * Fix emoji detection in certain cases (#12320) (#12327)
+  * Reduce emoji size (#12317) (#12327)
   * Fix double-indirection bug in logging IDs (#12294) (#12308)
   * Link to pull list page on sidebar when view pr (#12256) (#12263)
   * Extend Notifications API and return pinned notifications by default (#12164) (#12232)
