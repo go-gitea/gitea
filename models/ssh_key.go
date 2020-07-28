@@ -1185,8 +1185,8 @@ func CheckPrincipalKeyString(content string) (_ string, err error) {
 		return "", ErrSSHDisabled{}
 	}
 
-	content = strings.TrimRight(content, "\n\r")
-	if strings.ContainsAny(content, "\n\r") {
+	content = strings.TrimSpace(content)
+	if strings.ContainsAny(content, "\r\n") {
 		return "", errors.New("only a single line with a single principal please")
 	}
 
