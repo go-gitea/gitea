@@ -249,6 +249,19 @@ func (log *FileLogger) Flush() {
 	_ = log.mw.fd.Sync()
 }
 
+// ReleaseReopen releases and reopens log files
+func (log *FileLogger) ReleaseReopen() error {
+	closingErr := log.mw.fd.Close()
+	startingErr := log.StartLogger()
+	if startingErr != nil {
+		if closingErr != nil {
+			return fmt.Errorf("Error during closing: %v Error during starting: %v", closingErr, startingErr)
+		}
+		return startingErr
+	}
+	return closingErr
+}
+
 // GetName returns the default name for this implementation
 func (log *FileLogger) GetName() string {
 	return "file"

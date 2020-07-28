@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -47,13 +48,24 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var total int
+	var state structs.StateType
 	if !isShowClosed {
 		total = int(stats.OpenCount)
+		state = structs.StateOpen
 	} else {
 		total = int(stats.ClosedCount)
+		state = structs.StateClosed
 	}
 
-	miles, err := models.GetMilestones(ctx.Repo.Repository.ID, page, isShowClosed, sortType)
+	miles, err := models.GetMilestones(models.GetMilestonesOption{
+		ListOptions: models.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.IssuePagingNum,
+		},
+		RepoID:   ctx.Repo.Repository.ID,
+		State:    state,
+		SortType: sortType,
+	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
 		return
@@ -256,6 +268,8 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		ctx.ServerError("GetMilestoneByID", err)
 		return
 	}
+
+	milestone.RenderedContent = string(markdown.Render([]byte(milestone.Content), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
 
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone

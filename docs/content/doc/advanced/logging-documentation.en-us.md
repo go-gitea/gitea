@@ -316,6 +316,28 @@ COLORIZE = true # Or false if your windows terminal cannot color
 
 This is equivalent to sending all logs to the console, with default go log being sent to the console log too.
 
+## Releasing-and-Reopening, Pausing and Resuming logging
+
+If you are running on Unix you may wish to release-and-reopen logs in order to use `logrotate` or other tools.
+It is possible force gitea to release and reopen it's logging files and connections by sending `SIGUSR1` to the
+running process, or running `gitea manager logging release-and-reopen`.
+
+Alternatively, you may wish to pause and resume logging - this can be accomplished through the use of the 
+`gitea manager logging pause` and `gitea manager logging resume` commands. Please note that whilst logging
+is paused log events below INFO level will not be stored and only a limited number of events will be stored.
+Logging may block, albeit temporarily, slowing gitea considerably whilst paused - therefore it is
+recommended that pausing only done for a very short period of time.
+
+## Adding and removing logging whilst Gitea is running
+
+It is possible to add and remove logging whilst Gitea is running using the `gitea manager logging add` and `remove` subcommands.
+This functionality can only adjust running log systems and cannot be used to start the access, macaron or router loggers if they
+were not already initialised. If you wish to start these systems you are advised to adjust the app.ini and (gracefully) restart
+the Gitea service.
+
+The main intention of these commands is to easily add a temporary logger to investigate problems on running systems where a restart
+may cause the issue to disappear.
+
 ## Log colorization
 
 Logs to the console will be colorized by default when not running on
@@ -399,3 +421,14 @@ func newNewoneLogService() {
 
 You should then add `newOneLogService` to `NewServices()` in
 `modules/setting/setting.go`
+
+## Using `logrotate` instead of built-in log rotation
+
+Gitea includes built-in log rotation, which should be enough for most deployments. However, if you instead want to use the `logrotate` utility:
+
+-  Disable built-in log rotation by setting `LOG_ROTATE` to `false` in your `app.ini`.
+-  Install `logrotate`.
+-  Configure `logrotate` to match your deployment requirements, see `man 8 logrotate` for configuration syntax details. In the `postrotate/endscript` block send Gitea a `USR1` signal via `kill -USR1` or `kill -10`,  or run `gitea manager logging release-and-reopen` (with the appropriate environment).  Ensure that your configurations apply to all files emitted by Gitea loggers as described in the above sections.
+-  Always do `logrotate /etc/logrotate.conf --debug` to test your configurations.
+
+The next `logrotate` jobs will include your configurations, so no restart is needed. You can also immediately reload `logrotate` with `logrotate /etc/logrotate.conf --force`.

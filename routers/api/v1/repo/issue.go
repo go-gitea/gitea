@@ -198,6 +198,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: whether issue is open or closed
 	//   type: string
+	//   enum: [closed, open, all]
 	// - name: labels
 	//   in: query
 	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
@@ -210,6 +211,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter by type (issues / pulls) if set
 	//   type: string
+	//   enum: [issues, pulls]
 	// - name: milestones
 	//   in: query
 	//   description: comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of this milestones. Non existent milestones are discarded
@@ -288,9 +290,6 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	listOptions := utils.GetListOptions(ctx)
-	if ctx.QueryInt("limit") == 0 {
-		listOptions.PageSize = setting.UI.IssuePagingNum
-	}
 
 	var isPull util.OptionalBool
 	switch ctx.Query("type") {
@@ -322,6 +321,8 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.Repo.Repository.NumIssues))
+
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 

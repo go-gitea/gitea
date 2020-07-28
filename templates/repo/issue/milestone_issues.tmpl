@@ -5,9 +5,11 @@
 		<div class="ui three column stackable grid">
 			<div class="column">
 				<h3>{{.Milestone.Name}}</h3>
+				<div class="content">
+					{{.Milestone.RenderedContent|Str2html}}
+				</div>
 			</div>
 			<div class="column center aligned">
-
 			</div>
 			{{if not .Repository.IsArchived}}
 				<div class="column right aligned">
@@ -249,7 +251,7 @@
 							{{end}}
 
 							{{if gt $rejectOfficial 0}}
-								<span class="rejects">{{svg "octicon-request-changes" 16}}
+								<span class="rejects">{{svg "octicon-diff" 16}}
 									{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
 								</span>
 							{{end}}
@@ -261,7 +263,7 @@
 							{{end}}
 
 							{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
-								<span class="conflicting">{{svg "octicon-mirror" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
+								<span class="conflicting">{{svg "octicon-x" 16}} {{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}</span>
 							{{end}}
 						{{end}}
 					</p>

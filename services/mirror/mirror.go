@@ -100,7 +100,25 @@ func SaveAddress(m *models.Mirror, addr string) error {
 	}
 
 	_, err = git.NewCommand("remote", "add", "origin", "--mirror=fetch", addr).RunInDir(repoPath)
-	return err
+	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+		return err
+	}
+
+	if m.Repo.HasWiki() {
+		wikiPath := m.Repo.WikiPath()
+		wikiRemotePath := repo_module.WikiRemoteURL(addr)
+		// Remove old origin of wiki
+		_, err := git.NewCommand("remote", "rm", "origin").RunInDir(wikiPath)
+		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+			return err
+		}
+
+		_, err = git.NewCommand("remote", "add", "origin", "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
+		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+			return err
+		}
+	}
+	return nil
 }
 
 // gitShortEmptySha Git short empty SHA
