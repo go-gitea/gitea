@@ -1311,6 +1311,7 @@ func regeneratePrincipalKeys(e Engine, t io.StringWriter) error {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	}); err != nil {
+		return err
 	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
