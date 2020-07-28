@@ -15,11 +15,9 @@ func updateMatrixWebhookHTTPMethod(x *xorm.Engine) error {
 	type Webhook struct {
 		HTTPMethod string
 	}
-	count, err := x.Where(
-		builder.Neq{
-			"http_method":    "PUT",
-			"hook_task_type": models.MATRIX,
-		}).Cols("http_method").Update(&Webhook{HTTPMethod: "PUT"})
+
+	cond := builder.Eq{"hook_task_type": models.MATRIX}.And(builder.Neq{"http_method": "PUT"})
+	count, err := x.Where(cond).Cols("http_method").Update(&Webhook{HTTPMethod: "PUT"})
 	if err == nil {
 		log.Debug("Updated %d Matrix webhooks with http_method 'PUT'", count)
 	}
