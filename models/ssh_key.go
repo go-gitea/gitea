@@ -1307,15 +1307,10 @@ func RegeneratePrincipalKeys(t io.StringWriter) error {
 }
 
 func regeneratePrincipalKeys(e Engine, t io.StringWriter) error {
-	err := e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
-		if bean.(*PublicKey).Type == KeyTypePrincipal {
-			_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
-			return err
-		}
-		return nil
-	})
-	if err != nil {
+	if err := e.Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
+	}); err != nil {
 	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
