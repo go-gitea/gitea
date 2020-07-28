@@ -69,10 +69,11 @@
 	</div>
 	<div class="ui container fluid padded" id="project-board">
 
-		<div class="board">
+		<div class="board" id="board-container" data-url="{{.RepoLink}}/projects/{{$.Project.ID}}">
 			{{ range $board := .Boards }}
 
-			<div class="ui segment board-column">
+			<div class="ui segment board-column {{if eq .ID 0}}ignore-elements{{end}}"
+                 data-column-priority="{{.Priority}} "data-column-id="{{.ID}}">
 				<div class="board-column-header">
 					<div class="ui large label board-label">{{.Title}}</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) $.PageIsProjects (ne .ID 0)}}
@@ -135,32 +136,36 @@
 				</div>
 				<div class="ui divider"></div>
 
-				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
+				<div class="ui cards board draggable-cards"
+					data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}"
+					data-column-ID={{.ID}}
+					data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 
-					{{ range .Issues }}
+					{{ range .ProjectIssues }}
 
 					<!-- start issue card -->
-					<div class="card board-card" data-issue="{{.ID}}">
+					<div class="card board-card"
+						data-id="{{.ID}}" data-priority="{{.Priority}}">
 						<div class="content">
 							<div class="header">
-								<span class="{{if .IsClosed}}red{{else}}green{{end}}">
-									{{if .IsPull}}{{svg "octicon-git-merge"}}
-									{{else if .IsClosed}}{{svg "octicon-issue-closed"}}
+								<span class="{{if .Issue.IsClosed}}red{{else}}green{{end}}">
+									{{if .Issue.IsPull}}{{svg "octicon-git-merge"}}
+									{{else if .Issue.IsClosed}}{{svg "octicon-issue-closed"}}
 									{{else}}{{svg "octicon-issue-opened"}}
 									{{end}}
 								</span>
-								<a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">#{{.Index}} {{.Title}}</a>
+								<a class="project-board-title" href="{{$.RepoLink}}/issues/{{.IssueID}}">#{{.IssueID}} {{.Issue.Title}}</a>
 							</div>
 							<div class="meta">
-								{{ if .MilestoneID }}
-								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
-									{{svg "octicon-milestone"}} {{ .Milestone.Name }}
+								{{ if .Issue.MilestoneID }}
+								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .Issue.MilestoneID}}">
+									{{svg "octicon-milestone"}} {{ .Issue.Milestone.Name }}
 								</a>
 								{{ end }}
 							</div>
 						</div>
 						<div class="extra content">
-							{{ range .Labels }}
+							{{ range .Issue.Labels }}
 							<a class="ui label has-emoji" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}; margin-bottom: 3px;" title="{{.Description}}">{{.Name}}</a>
 							{{ end }}
 						</div>

@@ -12,9 +12,13 @@ import (
 
 // ProjectIssue saves relation from issue to a project
 type ProjectIssue struct {
-	ID        int64 `xorm:"pk autoincr"`
-	IssueID   int64 `xorm:"INDEX"`
-	ProjectID int64 `xorm:"INDEX"`
+	ID          int64  `xorm:"pk autoincr"`
+	IssueID     int64  `xorm:"INDEX"`
+	ProjectID   int64  `xorm:"INDEX"`
+	IssueTitle  string `xorm:"-"`
+	IssueIsPull bool   `xorm:"-"`
+	Priority    int
+	Issue       *Issue `xorm:"-"`
 
 	// If 0, then it has not been added to a specific board in the project
 	ProjectBoardID int64 `xorm:"INDEX"`

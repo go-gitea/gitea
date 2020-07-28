@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -304,4 +305,28 @@ func deleteProjectByID(e Engine, id int64) error {
 	}
 
 	return updateRepositoryProjectCount(e, p.RepoID)
+}
+
+// Update given boards priority for a project
+func UpdateBoards(boards []ProjectBoard) error {
+	for _, board := range boards {
+		if _, err := x.ID(board.ID).Cols("priority").Update(&board); err != nil {
+			log.Info("failed updating board priorities %s", err)
+			return err
+		}
+
+	}
+	return nil
+}
+
+// Update given issue priority and column
+func UpdateBoardIssues(issues []ProjectIssue) error {
+	for _, issue := range issues {
+		if _, err := x.ID(issue.ID).Cols("priority", "project_board_id").Update(&issue); err != nil {
+			log.Info("failed updating cards priorities %s", err)
+			return err
+		}
+
+	}
+	return nil
 }

@@ -286,7 +286,7 @@ func ViewProject(ctx *context.Context) {
 	allBoards := models.ProjectBoardList{uncategorizedBoard}
 	allBoards = append(allBoards, boards...)
 
-	if ctx.Data["Issues"], err = allBoards.LoadIssues(); err != nil {
+	if err = allBoards.LoadIssues(); err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
@@ -597,4 +597,35 @@ func CreateProjectPost(ctx *context.Context, form auth.UserCreateProjectForm) {
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
 	ctx.Redirect(setting.AppSubURL + "/")
+}
+
+// UpdateBoardsPriorityPost takes a slice of boards and updates their priority order on drag and drop
+func UpdateBoardsPriorityPost(ctx *context.Context, form auth.UpdateBoardPriorityForm) {
+	if ctx.Written() {
+		return
+	}
+
+	if ctx.HasError() {
+		return
+	}
+
+	boards := form
+	models.UpdateBoards(form.Boards)
+	ctx.JSON(200, boards)
+}
+
+// UpdateBoardIssuePriority takes a slice of ProjectIssue and updates their priority order on drag and drop
+func UpdateBoardIssuePriority(ctx *context.Context, form auth.UpdateIssuePriorityBoardForm) {
+	if ctx.Written() {
+		return
+	}
+
+	if ctx.HasError() {
+		return
+	}
+
+	issues := form
+	models.UpdateBoardIssues(form.Issues)
+
+	ctx.JSON(200, issues)
 }
