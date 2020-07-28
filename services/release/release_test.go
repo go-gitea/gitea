@@ -7,6 +7,7 @@ package release
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
