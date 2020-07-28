@@ -687,6 +687,10 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 	}
 	sess.Close()
 
+	if key.Type == KeyTypePrincipal {
+		return RewriteAllPrincipalKeys()
+	}
+
 	return RewriteAllPublicKeys()
 }
 
@@ -1169,11 +1173,6 @@ func appendAuthorizedPrincipalsToFile(keys ...*PublicKey) error {
 	return nil
 }
 
-// GetPrincipalKeyByID returns public key by given ID.
-func GetPrincipalKeyByID(keyID int64) (*PublicKey, error) {
-	return GetPublicKeyByID(keyID)
-}
-
 // CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
 func CheckPrincipalKeyString(content string) (_ string, err error) {
 	if setting.SSH.Disabled {
@@ -1186,46 +1185,6 @@ func CheckPrincipalKeyString(content string) (_ string, err error) {
 	}
 
 	return content, nil
-}
-
-// deletePrincipalKeys does the actual key deletion but does not update authorized_principals file.
-func deletePrincipalKeys(e Engine, keyIDs ...int64) error {
-	if len(keyIDs) == 0 {
-		return nil
-	}
-
-	_, err := e.In("id", keyIDs).Delete(new(PublicKey))
-	return err
-}
-
-// DeletePrincipalKey deletes SSH key information both in database and authorized_principals file.
-func DeletePrincipalKey(doer *User, id int64) (err error) {
-	key, err := GetPrincipalKeyByID(id)
-	if err != nil {
-		return err
-	}
-
-	// Check if user has access to delete this key.
-	if !doer.IsAdmin && doer.ID != key.OwnerID {
-		return ErrKeyAccessDenied{doer.ID, key.ID, "public"}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = deletePrincipalKeys(sess, id); err != nil {
-		return err
-	}
-
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	return RewriteAllPrincipalKeys()
 }
 
 // RewriteAllPrincipalKeys removes any authorized principal and rewrite all keys from database again.

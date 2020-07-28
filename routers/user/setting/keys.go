@@ -162,8 +162,8 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
 		}
 	case "principal":
-		if err := models.DeletePrincipalKey(ctx.User, ctx.QueryInt64("id")); err != nil {
-			ctx.Flash.Error("DeletePrincipalKey: " + err.Error())
+		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_principal_deletion_success"))
 		}
