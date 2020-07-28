@@ -5,11 +5,12 @@
 package release
 
 import (
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
