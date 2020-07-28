@@ -715,6 +715,14 @@ func NewContext() {
 		}
 
 		trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
+
+		for _, caKey := range trustedUserCaKeys {
+			_, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
+			if err != nil {
+				log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
+			}
+		}
+
 		if err := ioutil.WriteFile(filepath.Join(SSH.RootPath, "trusted-user-ca-keys.pem"),
 			[]byte(strings.Join(trustedUserCaKeys, "\n")), 0600); err != nil {
 			log.Fatal("Failed to create '%s': %v", filepath.Join(SSH.RootPath, "trusted-user-ca-keys.pem"), err)
