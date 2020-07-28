@@ -338,8 +338,7 @@
                     }
 
                     &.octicon-file-directory,
-                    &.octicon-file-submodule,
-                    &.octicon-file-symlink-directory {
+                    &.octicon-file-submodule {
                         color: #1e70bf;
                     }
                 }
@@ -788,9 +787,7 @@
 
                 .badge.badge-commit {
                     border-color: transparent;
-                    background: radial-gradient(white 60%, transparent 60%) no-repeat;
-                    height: 10px;
-                    margin-top: 11px;
+                    background: radial-gradient(white 40%, transparent 40%) no-repeat;
                 }
 
                 .badge {
@@ -805,19 +802,18 @@
                     margin-right: 8px;
                     color: #444;
                     align-items: center;
+                    justify-content: center;
 
                     .svg {
-                        width: 28px;
-                        height: 28px;
-                        text-align: center;
-                        line-height: 28px;
-                        padding: 4px;
+                        width: 24px;
+                        height: 24px;
+                        padding: 3px;
 
                         &.octicon-circle-slash {
                             color: #bd2c00;
                         }
 
-                        &.octicon-primitive-dot {
+                        &.octicon-dot-fill {
                             color: #6cc644;
                         }
 
@@ -959,7 +955,8 @@
 
                         &.action {
                             margin-top: 6px;
-                            margin-left: 10px;
+                            padding-left: 10px;
+                            padding-right: 3px;
                         }
                     }
                 }
@@ -1694,6 +1691,11 @@
                 padding: 0 5px !important;
             }
 
+            .tag-code .lines-num,
+            .tag-code td {
+                padding: 0 !important;
+            }
+
             tbody {
                 tr {
                     td.halfwidth {
@@ -1727,17 +1729,21 @@
 
         .code-diff-unified tbody tr {
             &.del-code td {
-                background-color: #ffeef0 !important;
-                border-color: #f1c0c0 !important;
+                background-color: #ffeef0;
+                border-color: #f1c0c0;
             }
 
             &.add-code td {
                 background-color: #e6ffed;
+                border-color: #bef5cb;
+            }
+
+            &.del-code td.lines-num {
+                background-color: #ffe5e4;
             }
 
             &.add-code td.lines-num {
                 background-color: #cdffd8;
-                border-color: #bef5cb;
             }
 
         }
@@ -2381,7 +2387,7 @@
         .select-reaction {
             display: flex;
             align-items: center;
-            padding: .5rem;
+            padding: 0 .5rem;
 
             &:not(.active) a {
                 display: none;
@@ -3001,19 +3007,15 @@ tbody.commit-list {
     margin: 0 !important;
 }
 
-.tag-code,
-.tag-code td {
-    background-color: #e6f1f6;
-    border-color: #f1f8ff !important;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    vertical-align: middle;
-    color: rgba(27, 31, 35, .7);
+.tag-code {
+    height: 28px;
 }
 
-.tag-code td.lines-num {
-    background-color: #f6e6eb !important;
-    border-color: #dbedff;
+.tag-code,
+.tag-code td {
+    background-color: #f0f9ff;
+    border-color: #f1f8ff !important;
+    vertical-align: middle;
 }
 
 .issue-keyword {
