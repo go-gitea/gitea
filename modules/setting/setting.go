@@ -126,6 +126,7 @@ var (
 		CreateAuthorizedPrincipalsFile bool              `ini:"SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE"`
 		ExposeAnonymous                bool              `ini:"SSH_EXPOSE_ANONYMOUS"`
 		TrustedUserCAKeys              []string          `ini:"SSH_TRUSTED_USER_CA_KEYS"`
+		TrustedUserCAKeysFile          string            `ini:"SSH_TRUSTED_USER_CA_KEYS_FILENAME"`
 		TrustedUserCAKeysParsed        []gossh.PublicKey `ini:"-"`
 	}{
 		Disabled:           false,
@@ -723,9 +724,12 @@ func NewContext() {
 			}
 		}
 
-		if err := ioutil.WriteFile(filepath.Join(SSH.RootPath, "trusted-user-ca-keys.pem"),
-			[]byte(strings.Join(trustedUserCaKeys, "\n")), 0600); err != nil {
-			log.Fatal("Failed to create '%s': %v", filepath.Join(SSH.RootPath, "trusted-user-ca-keys.pem"), err)
+		if len(trustedUserCaKeys) > 0 {
+			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
+			if err := ioutil.WriteFile(fname,
+				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0600); err != nil {
+				log.Fatal("Failed to create '%s': %v", fname, err)
+			}
 		}
 	}
 
