@@ -153,7 +153,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil))
 	release, err = models.GetReleaseByID(release.ID)
 	assert.NoError(t, err)
-	assert.Greater(t, release.CreatedUnix, releaseCreatedUnix, )
+	assert.Greater(t, release.CreatedUnix, releaseCreatedUnix)
 
 	// Test a changed pre-release
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
@@ -224,7 +224,7 @@ func TestRelease_createTag(t *testing.T) {
 	releaseCreatedUnix = release.CreatedUnix
 	release.Title = "Changed title"
 	assert.NoError(t, createTag(gitRepo, release))
-	assert.Greater(t, release.CreatedUnix, releaseCreatedUnix, )
+	assert.Greater(t, release.CreatedUnix, releaseCreatedUnix)
 
 	// Test a changed pre-release
 	release = &models.Release{
