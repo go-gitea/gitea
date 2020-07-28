@@ -290,16 +290,25 @@ fmt-check:
 		exit 1; \
 	fi;
 
-.PHONY: lint
-lint: lint-backend lint-frontend
+.PHONY: checks
+checks: checks-frontend checks-backend
 
-.PHONY: lint-backend
-lint-backend: golangci-lint revive vet swagger-check swagger-validate test-vendor
+.PHONY: checks-frontend
+checks-frontend: svg-check
+
+.PHONY: checks-backend
+checks-backend: misspell-check test-vendor swagger-check swagger-validate
+
+.PHONY: lint
+lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
-lint-frontend: node_modules svg-check
+lint-frontend: node_modules
 	npx eslint web_src/js build webpack.config.js
 	npx stylelint web_src/less
+
+.PHONY: lint-backend
+lint-backend: golangci-lint revive vet
 
 .PHONY: watch-frontend
 watch-frontend: node-check $(FOMANTIC_DEST) node_modules
