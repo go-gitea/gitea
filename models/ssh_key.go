@@ -1163,6 +1163,9 @@ func appendAuthorizedPrincipalsToFile(keys ...*PublicKey) error {
 	}
 
 	for _, key := range keys {
+		if key.Type != KeyTypePrincipal {
+			continue
+		}
 		if _, err = f.WriteString(key.AuthorizedString()); err != nil {
 			return err
 		}
