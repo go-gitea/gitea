@@ -125,7 +125,7 @@ func TestRelease_Update(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}, nil))
-	release, err := models.GetRelease(repo.ID, "v0.1")
+	release, err := models.GetRelease(repo.ID, "v1.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix := release.CreatedUnix
 	release.Note = "Changed note"
@@ -146,7 +146,7 @@ func TestRelease_Update(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}, nil))
-	release, err = models.GetRelease(repo.ID, "v1.1")
+	release, err = models.GetRelease(repo.ID, "v1.2")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	release.Title = "Changed title"
