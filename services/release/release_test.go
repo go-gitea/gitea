@@ -162,7 +162,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
 		PublisherID:  user.ID,
-		TagName:      "v1.3",
+		TagName:      "v1.3.1",
 		Target:       "65f1bf2",
 		Title:        "v1.3.1 is pre-released",
 		Note:         "v1.3.1 is pre-released",
