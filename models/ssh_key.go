@@ -1190,9 +1190,6 @@ func CheckPrincipalKeyString(content string) (_ string, err error) {
 		return "", errors.New("only a single line with a single principal please")
 	}
 
-	// remove any unnecessary whitespace now
-	content = strings.TrimSpace(content)
-
 	return content, nil
 }
 
