@@ -1929,8 +1929,13 @@ footer .container .links > * {
     }
 }
 
-#git-graph-container #rev-list li.highlight {
-    background-color: #39423e;
+#git-graph-container #rev-list li.highlight,
+#git-graph-container #rev-list li.hover {
+    background-color: rgba(255, 255, 255, .05);
+}
+
+#git-graph-container #rev-list li.highlight.hover {
+    background-color: rgba(255, 255, 255, .1);
 }
 
 #git-graph-container .ui.buttons button#flow-color-monochrome.ui.button {

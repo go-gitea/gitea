@@ -3263,10 +3263,15 @@ tbody.commit-list {
     }
 }
 
+#git-graph-container #rev-list li.highlight,
 #git-graph-container #rev-list li.hover {
-    font-weight: bold;
+    background-color: rgba(0, 0, 0, .05);
 }
 
-#git-graph-container #rev-list li.highlight {
-    background-color: #fcf8e9;
+#git-graph-container #rev-list li.highlight.hover {
+    background-color: rgba(0, 0, 0, .1);
+}
+
+#git-graph-container .color-buttons {
+    margin-right: 0;
 }

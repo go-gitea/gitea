@@ -5,9 +5,9 @@
 		<div id="git-graph-container" class="ui segment{{if eq .Mode "monochrome"}} monochrome{{end}}">
 			<h2 class="ui header dividing">{{.i18n.Tr "repo.commit_graph"}}
 				<div class="ui right">
-					<div class="ui icon buttons small">
-						<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.monochrome"}}"><span class="emoji">◐</span> {{.i18n.Tr "repo.commit_graph.monochrome"}}</button>
-						<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.color"}}"><span class="emoji">🎨</span> {{.i18n.Tr "repo.commit_graph.color"}}</button>
+					<div class="ui icon buttons tiny color-buttons">
+						<button id="flow-color-monochrome" class="ui labelled icon button{{if eq .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.monochrome"}}"><span class="emoji">{{svg "material-invert-colors" 16}}</span> {{.i18n.Tr "repo.commit_graph.monochrome"}}</button>
+						<button id="flow-color-colored" class="ui labelled icon button{{if ne .Mode "monochrome"}} active{{end}}" title="{{.i18n.Tr "repo.commit_graph.color"}}"><span class="emoji">{{svg "material-palette" 16}}</span> {{.i18n.Tr "repo.commit_graph.color"}}</button>
 					</div>
 				</div>
 			</h2>
@@ -28,9 +28,9 @@
 								{{- else if eq $glyph.Glyph '_' -}}
 									M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 10) 10}} h 10 {{/* */ -}}
 								{{- end -}}
-							{{- end}}" stroke-width="2" fill="none" id="flow-{{$flow.ID}}-path" stroke-linecap="round"/>
+							{{- end}}" stroke-width="1" fill="none" id="flow-{{$flow.ID}}-path" stroke-linecap="round"/>
 							{{range $flow.Commits}}
-								<circle class="flow-commit" cx="{{Add (Mul .Column 5) 5}}" cy="{{Add (Mul .Row 10) 5}}" r="3" stroke="none" id="flow-commit-{{.Rev}}" data-rev="{{.Rev}}"/>
+								<circle class="flow-commit" cx="{{Add (Mul .Column 5) 5}}" cy="{{Add (Mul .Row 10) 5}}" r="2.5" stroke="none" id="flow-commit-{{.Rev}}" data-rev="{{.Rev}}"/>
 							{{end}}
 						</g>
 					{{end}}
