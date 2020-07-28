@@ -752,14 +752,10 @@ func RegeneratePublicKeys(t io.StringWriter) error {
 }
 
 func regeneratePublicKeys(e Engine, t io.StringWriter) error {
-	err := e.Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
-		if bean.(*PublicKey).Type != KeyTypePrincipal {
-			_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
-			return err
-		}
-		return nil
-	})
-	if err != nil {
+	if err := e.Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
+		return err
+	}); err != nil {
 		return err
 	}
 
@@ -1178,8 +1174,7 @@ func GetPrincipalKeyByID(keyID int64) (*PublicKey, error) {
 	return GetPublicKeyByID(keyID)
 }
 
-// CheckPrincipalKeyString checks if the given public key string is recognized by SSH.
-// It returns the actual public key line on success.
+// CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
 func CheckPrincipalKeyString(content string) (_ string, err error) {
 	if setting.SSH.Disabled {
 		return "", ErrSSHDisabled{}
