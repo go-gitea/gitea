@@ -125,8 +125,13 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string) (int, error) {
 	if err := NewCommand("diff", "-z", "--name-only", base+"..."+head).
 		RunInDirPipeline(repo.Path, w, stderr); err != nil {
 		if strings.HasSuffix(err.Error(), "no merge base") {
-			// git >= 2.28 return error only if git history is unrelated
-			return 0, nil
+			// git >= 2.28 now returns an error if base and head have become unrelated.
+			// previously it would return the results of git diff -z --name-only base head so let's try that...
+			w = &lineCountWriter{}
+			stderr.Reset()
+			if err = NewCommand("diff", "-z", "--name-only", base, head).RunInDirPipeline(repo.Path, w, stderr); err == nil {
+				return w.numLines, nil
+			}
 		}
 		return 0, fmt.Errorf("%v: Stderr: %s", err, stderr)
 	}
