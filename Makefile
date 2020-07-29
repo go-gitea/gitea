@@ -523,7 +523,7 @@ build: frontend backend
 frontend: node-check $(FOMANTIC_DEST) $(WEBPACK_DEST)
 
 .PHONY: backend
-backend: | go-check generate $(EXECUTABLE)
+backend: go-check generate $(EXECUTABLE)
 
 $(BINDATA_DEST): generate 
 
