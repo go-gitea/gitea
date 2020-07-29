@@ -62,7 +62,7 @@ github.com/PuerkitoBio/urlesc
 # github.com/RoaringBitmap/roaring v0.4.23
 ## explicit
 github.com/RoaringBitmap/roaring
-# github.com/alecthomas/chroma v0.7.3
+# github.com/alecthomas/chroma v0.8.0
 ## explicit
 github.com/alecthomas/chroma
 github.com/alecthomas/chroma/formatters/html
@@ -93,6 +93,7 @@ github.com/alecthomas/chroma/lexers/v
 github.com/alecthomas/chroma/lexers/w
 github.com/alecthomas/chroma/lexers/x
 github.com/alecthomas/chroma/lexers/y
+github.com/alecthomas/chroma/lexers/z
 github.com/alecthomas/chroma/styles
 # github.com/andybalholm/brotli v0.0.0-20190621154722-5f990b63d2d6
 github.com/andybalholm/brotli
