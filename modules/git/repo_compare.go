@@ -71,10 +71,16 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 		// We have a common base
 		logs, err := NewCommand("log", compareInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
 		if err != nil {
+			if strings.HasSuffix(strings.TrimSpace(err.Error()), "no merge base") {
+				return compareInfo, nil
+			}
 			return nil, err
 		}
 		compareInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
 		if err != nil {
+			if strings.HasSuffix(strings.TrimSpace(err.Error()), "no merge base") {
+				return compareInfo, nil
+			}
 			return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
 		}
 	} else {
@@ -90,6 +96,9 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(remoteBranch, headBranch)
 	if err != nil {
+		if strings.HasSuffix(strings.TrimSpace(err.Error()), "no merge base") {
+			return compareInfo, nil
+		}
 		return nil, err
 	}
 	return compareInfo, nil

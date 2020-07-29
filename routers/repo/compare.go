@@ -443,9 +443,12 @@ func PrepareCompareDiff(
 	diff, err := gitdiff.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
 		compareInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
-	if err != nil {
+	if err != nil && !strings.HasSuffix(strings.TrimSpace(err.Error()), "no merge base") {
 		ctx.ServerError("GetDiffRange", err)
 		return false
+	}
+	if diff == nil {
+		diff = &gitdiff.Diff{}
 	}
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
