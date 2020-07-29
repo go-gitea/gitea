@@ -10,6 +10,7 @@
     "@babel/plugin-transform-runtime": "7.10.5",
     "@babel/preset-env": "7.10.4",
     "@babel/runtime": "7.10.5",
+    "@claviska/jquery-minicolors": "2.3.5",
     "@primer/octicons": "10.0.0",
     "babel-loader": "8.1.0",
     "clipboard": "2.0.6",

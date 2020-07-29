@@ -1,6 +1,6 @@
 # Gitea - Docker
 
-Dockefile is found in root of repository.
+Dockerfile is found in root of repository.
 
 Docker image can be found on [docker hub](https://hub.docker.com/r/gitea/gitea)
 
