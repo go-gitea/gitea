@@ -525,11 +525,12 @@ frontend: node-check $(FOMANTIC_DEST) $(WEBPACK_DEST)
 .PHONY: backend
 backend: go-check generate $(EXECUTABLE)
 
-$(BINDATA_DEST): generate 
-
 .PHONY: generate
-generate: $(TAGS_PREREQ) | $(FOMANTIC_DEST) $(WEBPACK_DEST)
+.NOTPARALLEL: generate
+generate: $(TAGS_PREREQ)
 	CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
+
+$(BINDATA_DEST): generate
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
