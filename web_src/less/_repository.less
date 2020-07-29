@@ -3083,10 +3083,69 @@ tbody.commit-list {
 }
 
 #git-graph-container {
+    float: left;
     display: block;
+    overflow-x: auto;
+    width: 100%;
+
     .ui.header.dividing {
         padding-bottom: 10px;
     }
+
+    li {
+        list-style-type: none;
+        height: 20px;
+        line-height: 20px;
+        white-space: nowrap;
+
+        .node-relation {
+            font-family: 'Bitstream Vera Sans Mono', 'Courier', monospace;
+        }
+
+        .author {
+            color: #666666;
+        }
+
+        .time {
+            color: #999999;
+            font-size: 80%;
+        }
+
+        a {
+            color: #000000;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        a em {
+            color: #bb0000;
+            border-bottom: 1px dotted #bbbbbb;
+            text-decoration: none;
+            font-style: normal;
+        }
+    }
+}
+
+#rel-container {
+    max-width: 30%;
+    overflow-x: auto;
+    float: left;
+}
+
+#rev-container {
+    width: 100%;
+}
+
+#rev-list {
+    margin: 0;
+    padding: 0 5px;
+    min-width: 95%;
+}
+
+#graph-raw-list {
+    margin: 0;
 }
 
 #git-graph-container.monochrome #rel-container .flow-group {
