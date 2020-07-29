@@ -46,6 +46,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 				rel.Publisher, rel.Repo, git.TagPrefix+rel.TagName,
 				git.EmptySHA, commit.ID.String(), repository.NewPushCommits())
 			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
+			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
@@ -53,7 +54,6 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = timeutil.TimeStampNow()
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
