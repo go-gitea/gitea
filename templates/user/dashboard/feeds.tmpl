@@ -79,7 +79,7 @@
 								{{ $repoLink := .GetRepoLink}}
 								{{if $push.Commits}}
 									{{range $push.Commits}}
-										<li><img class="img-8" src="{{$push.AvatarLink .AuthorEmail}}"> <a class="commit-id" href="{{$repoLink}}/commit/{{.Sha1}}">{{ShortSha .Sha1}}</a> <span class="text truncate light grey">{{.Message}}</span></li>
+										<li><img class="img-8" src="{{$push.AvatarLink .AuthorEmail}}"> <a class="commit-id" href="{{$repoLink}}/commit/{{.Sha1}}">{{ShortSha .Sha1}}</a> <span class="text truncate light grey">{{.Message | RenderEmoji}}</span></li>
 									{{end}}
 								{{end}}
 								{{if and (gt $push.Len 1) $push.CompareURL}}<li><a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.i18n.Tr "action.compare_commits" $push.Len}} »</a></li>{{end}}
