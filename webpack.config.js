@@ -243,7 +243,20 @@ module.exports = {
             options: {
               name: '[name].[ext]',
               outputPath: 'fonts/',
-              publicPath: (url) => `../fonts/${url}`, // seems required for monaco's font
+              publicPath: (url) => `../fonts/${url}`, // required to remove css/ path segment
+            },
+          },
+        ],
+      },
+      {
+        test: /\.png$/i,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]',
+              outputPath: 'img/webpack/',
+              publicPath: (url) => `../img/webpack/${url}`, // required to remove css/ path segment
             },
           },
         ],
