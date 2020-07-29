@@ -115,6 +115,10 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string) (int, error) {
 
 	if err := NewCommand("diff", "-z", "--name-only", base+"..."+head).
 		RunInDirPipeline(repo.Path, w, stderr); err != nil {
+		if strings.HasSuffix(err.Error(), "no merge base") {
+			// git >= 2.28 return error only if git history is unrelated
+			return 0, nil
+		}
 		return 0, fmt.Errorf("%v: Stderr: %s", err, stderr)
 	}
 	return w.numLines, nil
