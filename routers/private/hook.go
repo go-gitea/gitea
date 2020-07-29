@@ -39,6 +39,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		_ = stdoutWriter.Close()
 	}()
 
+	// This is safe as force pushes are already forbidden
 	err = git.NewCommand("rev-list", oldCommitID+"..."+newCommitID).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
@@ -70,6 +71,7 @@ func checkFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 		_ = stdoutWriter.Close()
 	}()
 
+	// This use of ...  is safe as force-pushes have already been ruled out.
 	err = git.NewCommand("diff", "--name-only", oldCommitID+"..."+newCommitID).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
