@@ -528,7 +528,7 @@ backend: go-check generate $(EXECUTABLE)
 $(BINDATA_DEST): generate 
 
 .PHONY: generate
-generate: $(TAGS_PREREQ) | frontend
+generate: $(TAGS_PREREQ) | $(FOMANTIC_DEST) $(WEBPACK_DEST)
 	CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
