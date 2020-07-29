@@ -6,6 +6,7 @@
 package git
 
 import (
+	"bytes"
 	"container/list"
 	"fmt"
 	"io"
@@ -66,7 +67,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 	compareInfo := new(CompareInfo)
 	compareInfo.MergeBase, remoteBranch, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
 	if err == nil {
-		// We have a common base
+		// We have a common base - therefore we know that ... should work
 		logs, err := NewCommand("log", compareInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
 		if err != nil {
 			return nil, err
@@ -85,6 +86,11 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 
 	// Count number of changed files.
 	stdout, err := NewCommand("diff", "--name-only", remoteBranch+"..."+headBranch).RunInDir(repo.Path)
+	if err != nil && strings.Contains(err.Error(), "no merge base") {
+		// git >= 2.28 now returns an error if base and head have become unrelated.
+		// previously it would return the results of git diff --name-only base head so let's try that...
+		stdout, err = NewCommand("diff", "--name-only", remoteBranch, headBranch).RunInDir(repo.Path)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -108,12 +114,24 @@ func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
 
 // GetPatch generates and returns format-patch data between given revisions.
 func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
-	return NewCommand("format-patch", "--binary", "--stdout", base+"..."+head).
-		RunInDirPipeline(repo.Path, w, nil)
+	stderr := new(bytes.Buffer)
+	err := NewCommand("format-patch", "--binary", "--stdout", base+"..."+head).
+		RunInDirPipeline(repo.Path, w, stderr)
+	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
+		return NewCommand("format-patch", "--binary", "--stdout", base, head).
+			RunInDirPipeline(repo.Path, w, nil)
+	}
+	return err
 }
 
 // GetDiffFromMergeBase generates and return patch data from merge base to head
 func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
-	return NewCommand("diff", "-p", "--binary", base+"..."+head).
-		RunInDirPipeline(repo.Path, w, nil)
+	stderr := new(bytes.Buffer)
+	err := NewCommand("diff", "-p", "--binary", base+"..."+head).
+		RunInDirPipeline(repo.Path, w, stderr)
+	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
+		return NewCommand("diff", "-p", "--binary", base, head).
+			RunInDirPipeline(repo.Path, w, nil)
+	}
+	return err
 }
