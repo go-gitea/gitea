@@ -47,6 +47,8 @@ If pre-built frontend files are present it is possible to only build the backend
 
 		TAGS="bindata" make backend
 
+Parallelism is not supported for these targets, so please don't include `-j <num>`.
+
 More info: https://docs.gitea.io/en-us/install-from-source/
 
 ## Using
