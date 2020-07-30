@@ -13,7 +13,9 @@ import initClipboard from './features/clipboard.js';
 import initUserHeatmap from './features/userheatmap.js';
 import initServiceWorker from './features/serviceworker.js';
 import initMarkdownAnchors from './markdown/anchors.js';
+import renderMarkdownContent from './markdown/content.js';
 import attachTribute from './features/tribute.js';
+import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
@@ -46,6 +48,7 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
+      renderMarkdownContent();
     });
   });
 
@@ -75,6 +78,7 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
+        renderMarkdownContent();
       });
     });
   }
@@ -131,15 +135,15 @@ function initLabelEdit() {
     $newLabelPanel.hide();
   });
 
-  $('.color-picker').each(function () {
-    $(this).minicolors();
-  });
+  createColorPicker($('.color-picker'));
+
   $('.precolors .color').on('click', function () {
     const color_hex = $(this).data('color-hex');
     $('.color-picker').val(color_hex);
     $('.minicolors-swatch-color').css('background-color', color_hex);
   });
   $('.edit-label-button').on('click', function () {
+    $('.color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
     $('.edit-label .new-label-input').val($(this).data('title'));
     $('.edit-label .new-label-desc-input').val($(this).data('description'));
@@ -755,6 +759,17 @@ async function initRepository() {
     });
   }
 
+  // Repo Creation
+  if ($('.repository.new.repo').length > 0) {
+    $('input[name="gitignores"], input[name="license"]').on('change', () => {
+      const gitignores = $('input[name="gitignores"]').val();
+      const license = $('input[name="license"]').val();
+      if (gitignores || license) {
+        $('input[name="auto_init"]').prop('checked', true);
+      }
+    });
+  }
+
   // Issues
   if ($('.repository.view.issue').length > 0) {
     // Edit issue title
@@ -996,6 +1011,7 @@ async function initRepository() {
             }
             dz.emit('submit');
             dz.emit('reload');
+            renderMarkdownContent();
           });
         });
       } else {
@@ -1336,6 +1352,7 @@ function initWikiForm() {
               wiki: true
             }, (data) => {
               preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
+              renderMarkdownContent();
             });
           };
           if (!simplemde.isSideBySideActive()) {
@@ -2473,6 +2490,7 @@ $(document).ready(async () => {
     initUserHeatmap(),
     initServiceWorker(),
     initNotificationCount(),
+    renderMarkdownContent(),
   ]);
 });
 

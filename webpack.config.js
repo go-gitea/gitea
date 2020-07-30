@@ -21,8 +21,8 @@ for (const path of glob('web_src/less/themes/*.less')) {
 
 const isProduction = process.env.NODE_ENV !== 'development';
 
-const filterCssImport = (parsedImport, cssFile) => {
-  const url = parsedImport && parsedImport.url ? parsedImport.url : parsedImport;
+const filterCssImport = (url, ...args) => {
+  const cssFile = args[1] || args[0]; // resourcePath is 2nd argument for url and 3rd for import
   const importedFile = url.replace(/[?#].+/, '').toLowerCase();
 
   if (cssFile.includes('fomantic')) {
@@ -243,7 +243,20 @@ module.exports = {
             options: {
               name: '[name].[ext]',
               outputPath: 'fonts/',
-              publicPath: (url) => `../fonts/${url}`, // seems required for monaco's font
+              publicPath: (url) => `../fonts/${url}`, // required to remove css/ path segment
+            },
+          },
+        ],
+      },
+      {
+        test: /\.png$/i,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]',
+              outputPath: 'img/webpack/',
+              publicPath: (url) => `../img/webpack/${url}`, // required to remove css/ path segment
             },
           },
         ],

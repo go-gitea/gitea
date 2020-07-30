@@ -640,6 +640,8 @@ func ActionIcon(opType models.ActionType) string {
 		return "check"
 	case models.ActionRejectPullRequest:
 		return "diff"
+	case models.ActionPublishRelease:
+		return "tag"
 	default:
 		return "question"
 	}

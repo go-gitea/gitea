@@ -360,8 +360,11 @@ func Issues(ctx *context.Context) {
 	issues(ctx, ctx.QueryInt64("milestone"), util.OptionalBoolOf(isPullList))
 
 	var err error
-	// Get milestones.
-	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")), models.ListOptions{})
+	// Get milestones
+	ctx.Data["Milestones"], err = models.GetMilestones(models.GetMilestonesOption{
+		RepoID: ctx.Repo.Repository.ID,
+		State:  api.StateType(ctx.Query("state")),
+	})
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
 		return
@@ -375,12 +378,18 @@ func Issues(ctx *context.Context) {
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repository) {
 	var err error
-	ctx.Data["OpenMilestones"], err = models.GetMilestones(repo.ID, -1, false, "")
+	ctx.Data["OpenMilestones"], err = models.GetMilestones(models.GetMilestonesOption{
+		RepoID: repo.ID,
+		State:  api.StateOpen,
+	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], err = models.GetMilestones(repo.ID, -1, true, "")
+	ctx.Data["ClosedMilestones"], err = models.GetMilestones(models.GetMilestonesOption{
+		RepoID: repo.ID,
+		State:  api.StateClosed,
+	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
 		return
