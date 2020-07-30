@@ -134,6 +134,10 @@ func SingleRelease(ctx *context.Context) {
 
 	release, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("tag"))
 	if err != nil {
+		if models.IsErrReleaseNotExist(err) {
+			ctx.NotFound("GetRelease", err)
+			return
+		}
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
 	}

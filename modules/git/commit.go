@@ -271,11 +271,12 @@ func AllCommitsCount(repoPath string) (int64, error) {
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
-func commitsCount(repoPath, revision, relpath string) (int64, error) {
+func commitsCount(repoPath string, revision, relpath []string) (int64, error) {
 	cmd := NewCommand("rev-list", "--count")
-	cmd.AddArguments(revision)
+	cmd.AddArguments(revision...)
 	if len(relpath) > 0 {
-		cmd.AddArguments("--", relpath)
+		cmd.AddArguments("--")
+		cmd.AddArguments(relpath...)
 	}
 
 	stdout, err := cmd.RunInDir(repoPath)
@@ -288,7 +289,7 @@ func commitsCount(repoPath, revision, relpath string) (int64, error) {
 
 // CommitsCount returns number of total commits of until given revision.
 func CommitsCount(repoPath, revision string) (int64, error) {
-	return commitsCount(repoPath, revision, "")
+	return commitsCount(repoPath, []string{revision}, []string{})
 }
 
 // CommitsCount returns number of total commits of until current revision.
