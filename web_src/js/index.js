@@ -185,6 +185,17 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
         id: elementId,
       },
       success: resolve
+    }).done(data => {
+      console.log('done', data);
+      console.log(url, action, issueIds, elementId, isAdd);
+      let projectID = $('[data-project]').data('project');
+
+      if (projectID === elementId) {
+        console.log('same project, don\'t remove!');
+      } else {
+        $(`.board-card[data-issueid=${elementId}]`).remove();
+        console.log('different project, please remove!');
+      }
     });
   }));
 }
@@ -334,7 +345,76 @@ async function uploadFile(file) {
 }
 
 function reload() {
-  window.location.reload();
+  if ($("#current-card-details").length > 0) {
+    reloadIssuesActions();
+  } else {
+    window.location.reload();
+  }
+}
+
+function reloadIssuesActions(data) {
+  if ($('#current-card-details').length === 0) {
+    window.location.reload();
+  }
+  if (!data || !data.url) {
+    data = $('body').data();
+    if (!data.url) {
+      data.url = window.location.href + '/sidebar/true';
+    }
+  } else {
+    $('body').data('url', data.url);
+  }
+  fetch(data.url, {
+    method: 'GET',
+    headers: { 'X-Csrf-Token': csrf, 'Content-Type': 'text/html' }
+  })
+    .then(function(res) {
+      return res.text();
+    })
+
+    .then(function(html) {
+      $('#current-card-details').html(html);
+      $('#current-card-details').removeClass('hide');
+      initCommentForm(true);
+      initIssueList();
+      initAjaxForms('#subscribe-repo');
+      initAjaxForms('#toggle_stopwatch_form');
+      initAjaxForms('#cancel_stopwatch_form');
+      initAjaxForms('#add_time_manual_form');
+      initAjaxForms('#addDependencyForm');
+      initAjaxForms('#lock-form');
+      initAjaxForms('#removeDependencyForm');
+      $('#lock-dropdown').dropdown('show');
+      $('#lock').modal('hide');
+      $('.show-modal.button').on('click', function() {
+        $($(this).data('modal')).modal('show');
+      });
+    });
+}
+
+//subscribe-repo
+//toggle_stopwatch_form"
+//cancel_stopwatch_form"
+//add_time_manual_form
+//addDependencyForm
+function initAjaxForms(formId) {
+  $(formId).submit(function(e) {
+    e.preventDefault(); // avoid to execute the actual submit of the form.
+
+    var form = $(this);
+    var url = form.attr("action");
+
+    $.ajax({
+      type: "POST",
+      url: url,
+      data: form.serialize(), // serializes the form's elements.
+      success: function(data) {
+        $("#lock").modal("hide");
+        $("#lock").remove();
+        reloadIssuesActions();
+      }
+    });
+  });
 }
 
 function initImagePaste(target) {
@@ -368,15 +448,19 @@ function initSimpleMDEImagePaste(simplemde, files) {
 
 let autoSimpleMDE;
 
-function initCommentForm() {
-  if ($('.comment.form').length === 0) {
-    return;
-  }
+function initCommentForm(skipCommentForm) {
+  if (!skipCommentForm) {
+    if ($('.comment.form').length === 0) {
+      return;
+    }
 
-  autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
+    autoSimpleMDE = setCommentSimpleMDE(
+      $('.comment.form textarea:not(.review-textarea)')
+    );
+    initCommentPreviewTab($('.comment.form'));
+    initImagePaste($('.comment.form textarea'));
+  }
   initBranchSelector();
-  initCommentPreviewTab($('.comment.form'));
-  initImagePaste($('.comment.form textarea'));
 
   // Listsubmit
   function initListSubmits(selector, outerSelector) {
@@ -400,7 +484,7 @@ function initCommentForm() {
           );
           promises.push(promise);
         });
-        Promise.all(promises).then(reload);
+        Promise.all(promises).then(reloadIssuesActions);
       }
     });
 
@@ -493,10 +577,12 @@ function initCommentForm() {
   }
 
   // Init labels and assignees
-  initListSubmits('select-label', 'labels');
-  initListSubmits('select-assignees', 'assignees');
-  initListSubmits('select-assignees-modify', 'assignees');
-  initListSubmits('select-reviewers-modify', 'assignees');
+  initListSubmits("select-label", "labels");
+  initListSubmits("select-milestone", "milestone");
+  initListSubmits("select-project", "project");
+  initListSubmits("select-assignees", "assignees");
+  initListSubmits("select-assignees-modify", "assignees");
+  initListSubmits("select-reviewers-modify", "assignees");
 
   function selectItem(select_id, input_id) {
     const $menu = $(`${select_id} .menu`);
@@ -739,6 +825,12 @@ function initArchiveLinks() {
 }
 
 async function initRepository() {
+  $('body').keyup(e => {
+    if (e.keyCode === 27) {
+      $('#current-card-details').hide();
+    }
+  });
+
   if ($('.repository').length === 0) {
     return;
   }
@@ -2310,6 +2402,15 @@ function initTemplateSearch() {
 }
 
 $(document).ready(async () => {
+  // Show issue or pr in board sidebar
+  $('.draggable-cards [data-url]').on("click", e => {
+    e.preventDefault();
+    let data = $(e.currentTarget).data();
+    $('#current-card-details').css('visibility', 'visible');
+    $('#current-card-details').show();
+    reloadIssuesActions(data);
+  });
+
   // Show exact time
   $('.time-since').each(function () {
     $(this)

@@ -1,5 +1,8 @@
 <div class="four wide column">
 	<div class="ui segment metas">
+        {{if eq .Sidebar true}}
+        <h3>#{{.Issue.ID}} {{.Issue.Title}}</h3>
+        {{end}}
 		{{template "repo/issue/branch_selector_field" .}}
 
 		{{if .Issue.IsPull }}
@@ -567,7 +570,7 @@
 				</div>
 
 				<form class="ui form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}{{ if .Issue.IsLocked }}/unlock{{ else }}/lock{{ end }}"
-					method="post">
+					method="post" id="lock-form">
 					{{.CsrfTokenHtml}}
 
 					{{ if not .Issue.IsLocked }}
@@ -576,7 +579,7 @@
 					</div>
 
 					<div class="field">
-						<div class="ui fluid dropdown selection" tabindex="0">
+						<div class="ui fluid dropdown selection" tabindex="0" id="lock-dropdown">
 
 							<select name="reason">
 								<option value=""> </option>

@@ -202,7 +202,8 @@ func (b *ProjectBoard) LoadProjectIssues() ([]*ProjectIssue, error) {
 	}
 	var projectIssuesDB []*ProjectIssue
 	var projectIssues []*ProjectIssue
-	err := x.Table("project_issue").Where("project_board_id = ?", boardID).
+	err := x.Table("project_issue").Where("project_board_id = ? and project_id =?",
+		boardID, b.ProjectID).
 		OrderBy("priority").Find(&projectIssuesDB)
 	for _, projectIssue := range projectIssuesDB {
 		if issue, err := getIssueByID(x, projectIssue.IssueID); err != nil {

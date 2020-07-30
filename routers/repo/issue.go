@@ -48,6 +48,7 @@ const (
 
 	issueTemplateKey      = "IssueTemplate"
 	issueTemplateTitleKey = "IssueTemplateTitle"
+	tplSidebar            = "repo/issue/view_content/sidebar"
 )
 
 var (
@@ -1486,7 +1487,14 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
-	ctx.HTML(200, tplIssueView)
+
+	if ctx.Params(":sidebar") == "true" {
+		ctx.Data["Sidebar"] = true
+		ctx.HTML(200, tplSidebar)
+	} else {
+		ctx.Data["Sidebar"] = false
+		ctx.HTML(200, tplIssueView)
+	}
 }
 
 // GetActionIssue will return the issue which is used in the context.

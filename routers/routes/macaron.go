@@ -772,6 +772,7 @@ func RegisterMacaronRoutes(m *macaron.Macaron) {
 		m.Group("", func() {
 			m.Get("/^:type(issues|pulls)$", repo.Issues)
 			m.Get("/^:type(issues|pulls)$/:index", repo.ViewIssue)
+			m.Get("/^:type(issues|pulls)$/:index/sidebar/:sidebar", repo.ViewIssue)
 			m.Get("/labels/", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
