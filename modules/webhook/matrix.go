@@ -292,7 +292,7 @@ func getMatrixHookRequest(t *models.HookTask) (*http.Request, error) {
 	}
 	t.PayloadContent = string(payload)
 
-	txnID, err := getTxnID(payload)
+	txnID, err := getMatrixTxnID(payload)
 	if err != nil {
 		return nil, fmt.Errorf("getMatrixHookRequest: unable to hash payload: %+v", err)
 	}
@@ -310,8 +310,8 @@ func getMatrixHookRequest(t *models.HookTask) (*http.Request, error) {
 	return req, nil
 }
 
-// getTxnID creates a txnID based on the payload to ensure idempotency
-func getTxnID(payload []byte) (string, error) {
+// getMatrixTxnID creates a txnID based on the payload to ensure idempotency
+func getMatrixTxnID(payload []byte) (string, error) {
 	h := sha1.New()
 	_, err := h.Write(payload)
 	if err != nil {
