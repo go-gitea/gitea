@@ -41,7 +41,7 @@ and it takes care of all the other things for you`,
 		},
 		cli.StringFlag{
 			Name:  "pid, P",
-			Value: "/var/run/gitea.pid",
+			Value: "/run/gitea.pid",
 			Usage: "Custom pid file path",
 		},
 	},
