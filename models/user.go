@@ -238,17 +238,11 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-
-type AllUsersOpts struct {
-	AdminsOnly bool
-}
-
 // GetAllUsers returns a slice of all users found in DB.
-func GetAllUsers(opts AllUsersOpts) ([]*User, error) {
+func GetAllUsers() ([]*User, error) {
 	users := make([]*User, 0)
-	return users, x.OrderBy("id").Where("is_admin = ?", opts.AdminsOnly).Find(&users)
+	return users, x.OrderBy("id").Find(&users)
 }
-
 
 // APIFormat converts a User to api.User
 func (u *User) APIFormat() *api.User {
