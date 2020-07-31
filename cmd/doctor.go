@@ -120,6 +120,12 @@ var checklist = []check{
 		isDefault: false,
 		f:         runDoctorPRMergeBase,
 	},
+	{
+		title:     "Recalculate Stars number for all user",
+		name:      "recalculate_stars_number",
+		isDefault: false,
+		f:         runDoctorUserStarNum,
+	},
 	// more checks please append here
 }
 
@@ -494,6 +500,10 @@ func runDoctorPRMergeBase(ctx *cli.Context) ([]string, error) {
 	return results, err
 }
 
+func runDoctorUserStarNum(ctx *cli.Context) ([]string, error) {
+	return nil, models.DoctorUserStarNum()
+}
+
 func runDoctorScriptType(ctx *cli.Context) ([]string, error) {
 	path, err := exec.LookPath(setting.ScriptType)
 	if err != nil {
@@ -571,6 +581,22 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 			results = append(results, fmt.Sprintf("%d tracked times without existing issue deleted", count))
 		} else {
 			results = append(results, fmt.Sprintf("%d tracked times without existing issue", count))
+		}
+	}
+
+	count, err = models.CountNullArchivedRepository()
+	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		if ctx.Bool("fix") {
+			updatedCount, err := models.FixNullArchivedRepository()
+			if err != nil {
+				return nil, err
+			}
+			results = append(results, fmt.Sprintf("%d repositories with null is_archived updated", updatedCount))
+		} else {
+			results = append(results, fmt.Sprintf("%d repositories with null is_archived", count))
 		}
 	}
 

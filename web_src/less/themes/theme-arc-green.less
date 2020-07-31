@@ -1,68 +1,379 @@
-.hljs {
+/* Background */
+
+.chroma {
+    background-color: #2a2e3a;
+}
+/* LineTableTD */
+
+.chroma .lntd {
+    vertical-align: top;
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+/* LineTable */
+
+.chroma .lntable {
+    border-spacing: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    width: auto;
+    overflow: auto;
     display: block;
-    overflow-x: auto;
-    padding: .5em;
-    color: #bababa;
 }
+/* LineHighlight */
 
-.hljs-strong,
-.hljs-emphasis {
-    color: #a8a8a2;
+.chroma .hl {
+    display: block;
+    width: 100%;
+    background-color: #3f424d;
 }
+/* LineNumbersTable */
 
-.hljs-bullet,
-.hljs-quote,
-.hljs-link,
-.hljs-number,
-.hljs-regexp,
-.hljs-literal {
-    color: #6896ba;
+.chroma .lnt {
+    margin-right: .4em;
+    padding: 0 .4em;
+    color: #7f7f7f;
 }
+/* LineNumbers */
 
-.hljs-code,
-.hljs-selector-class {
-    color: #a6e22e;
+.chroma .ln {
+    margin-right: .4em;
+    padding: 0 .4em;
+    color: #7f7f7f;
 }
+/* Keyword */
 
-.hljs-emphasis {
+.chroma .k {
+    color: #f63;
+}
+/* KeywordConstant */
+
+.chroma .kc {
+    color: #fa1;
+}
+/* KeywordDeclaration */
+
+.chroma .kd {
+    color: #9daccc;
+}
+/* KeywordNamespace */
+
+.chroma .kn {
+    color: #fa1;
+}
+/* KeywordPseudo */
+
+.chroma .kp {
+    color: #5f8700;
+}
+/* KeywordReserved */
+
+.chroma .kr {
+    color: #f63;
+}
+/* KeywordType */
+
+.chroma .kt {
+    color: #9daccc;
+}
+/* NameAttribute */
+
+.chroma .na {
+    color: #8a8a8a;
+}
+/* NameBuiltin */
+
+.chroma .nb {
+    color: #9daccc;
+}
+/* NameBuiltinPseudo */
+
+.chroma .bp {
+    color: #9daccc;
+}
+/* NameClass */
+
+.chroma .nc {
+    color: #fa1;
+}
+/* NameConstant */
+
+.chroma .no {
+    color: #fa1;
+}
+/* NameDecorator */
+
+.chroma .nd {
+    color: #9daccc;
+}
+/* NameEntity */
+
+.chroma .ni {
+    color: #fa1;
+}
+/* NameException */
+
+.chroma .ne {
+    color: #af8700;
+}
+/* NameFunction */
+
+.chroma .nf {
+    color: #9daccc;
+}
+/* NameLabel */
+
+.chroma .nl {
+    color: #fa1;
+}
+/* NameNamespace */
+
+.chroma .nn {
+    color: #fa1;
+}
+/* NameOther */
+
+.chroma .nx {
+    color: #9daccc;
+}
+/* NameTag */
+
+.chroma .nt {
+    color: #9daccc;
+}
+/* NameVariable */
+
+.chroma .nv {
+    color: #9daccc;
+}
+/* NameVariableClass */
+
+.chroma .vc {
+    color: #f81;
+}
+/* NameVariableGlobal */
+
+.chroma .vg {
+    color: #fa1;
+}
+/* NameVariableInstance */
+
+.chroma .vi {
+    color: #fa1;
+}
+/* LiteralString */
+
+.chroma .s {
+    color: #1af;
+}
+/* LiteralStringAffix */
+
+.chroma .sa {
+    color: #1af;
+}
+/* LiteralStringBacktick */
+
+.chroma .sb {
+    color: #a0cc75;
+}
+/* LiteralStringChar */
+
+.chroma .sc {
+    color: #1af;
+}
+/* LiteralStringDelimiter */
+
+.chroma .dl {
+    color: #1af;
+}
+/* LiteralStringDoc */
+
+.chroma .sd {
+    color: #6a737d;
+}
+/* LiteralStringDouble */
+
+.chroma .s2 {
+    color: #a0cc75;
+}
+/* LiteralStringEscape */
+
+.chroma .se {
+    color: #f63;
+}
+/* LiteralStringHeredoc */
+
+.chroma .sh {
+    color: #1af;
+}
+/* LiteralStringInterpol */
+
+.chroma .si {
+    color: #fa1;
+}
+/* LiteralStringOther */
+
+.chroma .sx {
+    color: #fa1;
+}
+/* LiteralStringRegex */
+
+.chroma .sr {
+    color: #97c;
+}
+/* LiteralStringSingle */
+
+.chroma .s1 {
+    color: #a0cc75;
+}
+/* LiteralStringSymbol */
+
+.chroma .ss {
+    color: #fa1;
+}
+/* LiteralNumber */
+
+.chroma .m {
+    color: #1af;
+}
+/* LiteralNumberBin */
+
+.chroma .mb {
+    color: #1af;
+}
+/* LiteralNumberFloat */
+
+.chroma .mf {
+    color: #1af;
+}
+/* LiteralNumberHex */
+
+.chroma .mh {
+    color: #1af;
+}
+/* LiteralNumberInteger */
+
+.chroma .mi {
+    color: #1af;
+}
+/* LiteralNumberIntegerLong */
+
+.chroma .il {
+    color: #1af;
+}
+/* LiteralNumberOct */
+
+.chroma .mo {
+    color: #1af;
+}
+/* Operator */
+
+.chroma .o {
+    color: #f63;
+}
+/* OperatorWord */
+
+.chroma .ow {
+    color: #5f8700;
+}
+/* Comment */
+
+.chroma .c {
+    color: #6a737d;
+}
+/* CommentHashbang */
+
+.chroma .ch {
+    color: #6a737d;
+}
+/* CommentMultiline */
+
+.chroma .cm {
+    color: #6a737d;
+}
+/* CommentSingle */
+
+.chroma .c1 {
+    color: #6a737d;
+}
+/* CommentSpecial */
+
+.chroma .cs {
+    color: #637d;
+}
+/* CommentPreproc */
+
+.chroma .cp {
+    color: #fc6;
+}
+/* CommentPreprocFile */
+
+.chroma .cpf {
+    color: #fc6;
+}
+/* GenericDeleted */
+
+.chroma .gd {
+    color: #fff;
+    background-color: #5f3737;
+}
+/* GenericEmph */
+
+.chroma .ge {
     font-style: italic;
 }
+/* GenericError */
 
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-section,
-.hljs-attribute,
-.hljs-name,
-.hljs-variable {
-    color: #cb7832;
+.chroma .gr {
+    color: #f33;
 }
+/* GenericHeading */
 
-.hljs-params {
-    color: #b9b9b9;
+.chroma .gh {
+    color: #fa1;
 }
+/* GenericInserted */
 
-.hljs-string {
-    color: #6a8759;
+.chroma .gi {
+    color: #fff;
+    background-color: #3a523a;
 }
+/* GenericOutput */
 
-.hljs-subst,
-.hljs-type,
-.hljs-built_in,
-.hljs-builtin-name,
-.hljs-symbol,
-.hljs-selector-id,
-.hljs-selector-attr,
-.hljs-selector-pseudo,
-.hljs-template-tag,
-.hljs-template-variable,
-.hljs-addition {
-    color: #e0c46c;
+.chroma .go {
+    color: #888888;
 }
+/* GenericPrompt */
 
-.hljs-comment,
-.hljs-deletion,
-.hljs-meta {
-    color: #7f7f7f;
+.chroma .gp {
+    color: #555555;
+}
+/* GenericStrong */
+
+.chroma .gs {
+    font-weight: bold;
+}
+/* GenericSubheading */
+
+.chroma .gu {
+    color: #9daccc;
+}
+/* GenericTraceback */
+
+.chroma .gt {
+    color: #f63;
+}
+/* GenericUnderline */
+
+.chroma .gl {
+    text-decoration: underline;
+}
+/* TextWhitespace */
+
+.chroma .w {
+    color: #bbbbbb;
 }
 
 .repository .ui.segment.sub-menu .list .item {
@@ -200,11 +511,6 @@ a:hover {
     color: #ffffff;
 }
 
-.repository.view.issue .comment-list .comment .content > .bottom.segment a {
-    border: solid 1px #353945;
-    background-color: #353945;
-}
-
 .ui.attached.header {
     background: #404552;
     border: 1px solid #404552;
@@ -228,7 +534,8 @@ a:hover {
 .ui.secondary.menu .dropdown.item:hover,
 .ui.secondary.menu .link.item:hover,
 .ui.secondary.menu .active.item:hover,
-.ui.secondary.menu a.item:hover {
+.ui.secondary.menu a.item:hover,
+.ui.dropdown .menu .active.item {
     color: #ffffff;
 }
 
@@ -479,7 +786,7 @@ a.ui.basic.green.label:hover {
 
 .ui.table thead th,
 .ui.table > thead > tr > th {
-    background: #404552 !important;
+    background: #404552;
     color: #dbdbdb !important;
 }
 
@@ -516,13 +823,13 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.tabular.menu {
-    border-bottom-color: rgba(187, 187, 187, .24);
+    border-bottom-color: rgba(255, 255, 255, .1);
 
     .item.active {
-        border-top-color: transparent;
-        border-left-color: transparent;
-        border-right-color: transparent;
-        background: #404552;
+        border-top-color: #404552;
+        border-left-color: #404552;
+        border-right-color: #404552;
+        background: #353945;
         color: #dbdbdb;
     }
 
@@ -536,19 +843,12 @@ a.ui.basic.green.label:hover {
 
     &.navbar {
         .item.active {
-            background: #383c4a;
+            border-top-color: transparent;
             border-left-color: transparent;
             border-right-color: transparent;
-            border-top: none;
+            background: #383c4a;
         }
     }
-}
-
-.hljs,
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-subst {
-    color: #9daccc;
 }
 
 .markdown:not(code) .highlight pre,
@@ -641,21 +941,6 @@ a.ui.basic.green.label:hover {
     border: 1px solid #404552;
 }
 
-.repository.view.issue .comment-list .comment .content > .bottom.segment {
-    background: #353945;
-}
-
-.repository.view.issue .comment-list .comment .content .header {
-    color: #dbdbdb;
-    background-color: #404552;
-    border-bottom: 1px solid #353944;
-}
-
-.repository.view.issue .comment-list .comment .content .merge-section {
-    background-color: #404552;
-    border-top: 1px solid #353944;
-}
-
 .repository.view.issue .comment-list .event > .svg.issue-symbol {
     background: #3b4954;
 }
@@ -677,16 +962,39 @@ a.ui.basic.green.label:hover {
     color: #fff !important;
 }
 
-.repository.view.issue .comment-list .comment .content .header:after {
-    border-right-color: #404552;
+.repository.view.issue .comment-list .comment .content {
+    > .bottom.segment {
+        background: #353945;
+        a {
+            border: solid 1px #353945;
+            background-color: #353945;
+        }
+    }
+
+    .header {
+        color: #dbdbdb;
+        background-color: #404552;
+        border-bottom: 1px solid #353944;
+    }
+
+    .merge-section {
+        background-color: #404552;
+        border-top: 1px solid #353944;
+    }
+
+    .header:after,
+    > .merge-section.no-header:after {
+        border-right-color: #404552;
+    }
+
+    .header:before,
+    > .merge-section.no-header:before {
+        border-right-color: #404552;
+    }
 }
 
 .repository.new.issue .comment.form .content:after {
     border-right-color: #353945;
-}
-
-.repository.view.issue .comment-list .comment .content .header:before {
-    border-right-color: #404552;
 }
 
 .repository.new.issue .comment.form .content:before {
@@ -710,8 +1018,7 @@ a.ui.basic.green.label:hover {
 }
 
 .repository.view.issue .comment-list .timeline-item .badge.badge-commit {
-    background: radial-gradient(#383c4a 60%, transparent 60%) no-repeat;
-    height: 0 !important;
+    background: radial-gradient(#383c4a 40%, transparent 40%) no-repeat;
 }
 
 .repository .comment.form .content .form:after {
@@ -752,9 +1059,17 @@ a.ui.basic.green.label:hover {
     border-color: #634343 !important;
 }
 
+.repository .diff-file-box .code-diff-unified tbody tr.del-code td.lines-num {
+    background-color: #4e2c2c !important;
+}
+
 .repository .diff-file-box .code-diff-unified tbody tr.add-code td {
     background-color: #283e2d !important;
     border-color: #314a37 !important;
+}
+
+.repository .diff-file-box .code-diff-unified tbody tr.add-code td.lines-num {
+    background-color: #2c4632 !important;
 }
 
 .removed-code {
@@ -765,21 +1080,18 @@ a.ui.basic.green.label:hover {
     background-color: #3a523a;
 }
 
-.hljs-title,
-.hljs-section,
-.hljs-selector-id {
-    color: #986c88;
-}
-
-.hljs-string,
-.hljs-doctag {
-    color: #8ab398;
-}
-
 .tag-code,
 .tag-code td {
-    background: #242637 !important;
-    border-color: transparent !important;
+    background: #353945 !important;
+
+}
+.tag-code td.lines-num {
+    background-color: #3a3e4c !important;
+}
+
+.tag-code td.lines-type-marker,
+td.blob-hunk {
+    color: #dbdbdb !important;
 }
 
 .ui.vertical.menu .active.item {
@@ -857,10 +1169,12 @@ a.ui.basic.green.label:hover {
     background: #353945;
 }
 
+.ui.secondary.pointing.menu {
+    border-bottom-color: rgba(255, 255, 255, .15);
+}
+
 .ui.secondary.pointing.menu .active.item {
     color: #dbdbdb;
-    border: 0;
-    background: #383c4a;
 }
 
 .ui.user.list .item:not(:first-child) {
@@ -868,15 +1182,17 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.secondary.pointing.menu .active.item:hover {
-    border-color: #af8b4c;
     color: #dbdbdb;
-    background: #4b5162;
 }
 
 .ui.secondary.pointing.menu .dropdown.item:hover,
 .ui.secondary.pointing.menu .link.item:hover,
 .ui.secondary.pointing.menu a.item:hover {
     color: #dbdbdb;
+}
+
+.ui.pointing.dropdown > .menu:not(.hidden)::after {
+    background: #2c303a;
 }
 
 .ui.checkbox label,
@@ -902,11 +1218,12 @@ a.ui.basic.green.label:hover {
 }
 
 .ui.menu.new-menu {
-    background-color: #2a2e3a !important;
+    background: #2a2e3a;
+    border-color: transparent !important;
 
     @media only screen and (max-width: 1200px) {
         &:after {
-            background-image: linear-gradient(to right, rgba(42, 46, 42, 0), rgba(42, 46, 42, 1) 100%);
+            background: linear-gradient(to right, transparent 0%, #2a2e3a 100%);
         }
     }
 }
@@ -1049,22 +1366,8 @@ input {
     box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
 }
 
-.hljs-tag,
-.hljs-name,
-.hljs-attribute {
-    color: #ef5e77;
-}
-
 .user.profile .ui.card .extra.content ul li:not(:last-child) {
     border-bottom: 1px solid #4c505c;
-}
-
-.hljs-number,
-.hljs-literal,
-.hljs-variable,
-.hljs-template-variable,
-.hljs-tag .hljs-attr {
-    color: #bd84bf;
 }
 
 .ui.form .dropzone {
@@ -1135,25 +1438,25 @@ input {
 }
 
 .lines-num {
-    background: #2e323e !important;
     color: #9e9e9e !important;
     border-color: #2d2d2d !important;
 }
 
-.lines-num pre,
-.lines-code pre,
-.lines-num ol,
-.lines-code ol,
-.lines-num .hljs,
-.lines-code .hljs {
-    background-color: #2a2e3a !important;
-}
 td.blob-excerpt {
     background-color: rgba(0, 0, 0, .15);
 }
 
-.code-view .lines-code .active {
-    background: #534d1b;
+a.blob-excerpt {
+    color: #ccc;
+    background: #393d4a;
+}
+
+a.blob-excerpt:hover {
+    background: #87ab63;
+}
+
+.code-view .lines-code.active {
+    background: #534d1b !important;
 }
 
 a.ui.label:hover,
@@ -1258,7 +1561,8 @@ a.ui.labels .label:hover {
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(4),
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(5),
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(6),
-.repository .diff-file-box .code-diff-split tbody tr td.add-code {
+.repository .diff-file-box .code-diff-split tbody tr td.add-code,
+.repository .diff-file-box .code-diff-split tbody tr td.lines-num-new.add-code {
     background-color: #283e2d !important;
     border-color: #314a37 !important;
 }
@@ -1269,6 +1573,11 @@ a.ui.labels .label:hover {
 .repository .diff-file-box .code-diff-split tbody tr td.del-code {
     background-color: #3c2626 !important;
     border-color: #634343 !important;
+}
+
+.organization.teams .detail .item:not(:last-child),
+.organization.members .list .item {
+    border-bottom-color: #404552;
 }
 
 .ui.blue.button:active,
@@ -1336,6 +1645,10 @@ a.ui.labels .label:hover {
     .detail-files {
         background-color: inherit;
     }
+
+    &.sticky {
+        border-bottom-color: rgba(255, 255, 255, .1);
+    }
 }
 
 .comment-code-cloud {
@@ -1359,7 +1672,7 @@ a.ui.labels .label:hover {
             background: #404552;
         }
 
-        border-color: rgba(187, 187, 187, .24);
+        border-color: rgba(255, 255, 255, .15);
     }
 
     .footer {
@@ -1392,80 +1705,6 @@ a.ui.labels .label:hover {
 
     .text {
         color: #9e9e9e;
-    }
-}
-
-body .xdsoft_datetimepicker {
-    background: #2a2e39;
-    border: 1px solid #4c505c;
-    color: #9e9e9e;
-
-    .xdsoft_monthpicker {
-        height: 36px;
-        background: #464c5d;
-        margin: -2px -8px 2px;
-        padding: 2px 8px 0;
-
-        button {
-            background-image: none;
-            text-indent: 0;
-            text-align: center;
-            color: #9e9e9e;
-
-            &.xdsoft_prev::before {
-                content: "\f0d9";
-                font: normal normal normal 14px/1 FontAwesome, serif;
-                font-size: 1.7em;
-            }
-
-            &.xdsoft_next::before {
-                content: "\f0da";
-                font: normal normal normal 14px/1 FontAwesome, serif;
-                font-size: 1.7em;
-            }
-
-            &.xdsoft_today_button::before {
-                content: "\f015";
-                font: normal normal normal 14px/1 FontAwesome, serif;
-                font-size: 1.4em;
-            }
-        }
-
-        & > div.xdsoft_label {
-            background: #464c5d;
-
-            i {
-                line-height: 14px;
-                background-image: none;
-                text-indent: 0;
-                text-align: center;
-
-                ::before {
-                    content: "\f0dd";
-                    font: normal normal normal 14px/1 FontAwesome, serif;
-                    font-size: .7em;
-                }
-            }
-
-            .xdsoft_select {
-                background: #353945;
-            }
-        }
-    }
-
-    .xdsoft_datepicker .xdsoft_calendar {
-        td,
-        th {
-            border-color: #4c505c;
-            background-color: #2a2e39;
-        }
-
-        td.xdsoft_other_month,
-        td.xdsoft_disabled {
-            opacity: .8;
-            background: #a0cc75;
-            color: #000000;
-        }
     }
 }
 
@@ -1648,11 +1887,20 @@ footer .container .links > * {
 }
 
 .repository.release #release-list > li .detail {
-    border-left-color: #888;
+    border-left-color: #4c505c;
 }
 
 .repository.release #release-list > li .detail .dot {
     background-color: #888;
+    border-color: #383c4a;
+}
+
+.repository.release #release-list > li .detail .download .list {
+    border-top-color: #404552;
+}
+
+.repository.release #release-list > li .detail .download .list li {
+    border-bottom-color: #404552;
 }
 
 .tribute-container {
@@ -1666,4 +1914,12 @@ footer .container .links > * {
 .tribute-container li.highlight,
 .tribute-container li:hover {
     background: #728e5e !important;
+}
+
+.repository .repo-header .ui.huge.breadcrumb.repo-title .repo-header-icon .avatar {
+    color: #2a2e3a;
+}
+
+.mermaid-chart {
+    filter: invert(84%) hue-rotate(180deg);
 }

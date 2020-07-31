@@ -61,15 +61,15 @@
 								<a @click="togglePrivateFilter()">
 									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.i18n.Tr "home.show_both_private_public"}}" v-if="privateFilter === 'both'">
 										<input type="checkbox">
-										<label><svg class="svg octicon-lock" width="16" height="16" aria-hidden="true"><use xlink:href="#octicon-lock" /></svg>{{.i18n.Tr "home.show_private"}}</label>
+										<label>{{svg "octicon-lock" 16}}{{.i18n.Tr "home.show_private"}}</label>
 									</div>
 									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.i18n.Tr "home.show_only_public"}}" v-if="privateFilter === 'public'">
 										<input type="checkbox">
-										<label><svg class="svg octicon-lock" width="16" height="16" aria-hidden="true"><use xlink:href="#octicon-lock" /></svg>{{.i18n.Tr "home.show_private"}}</label>
+										<label>{{svg "octicon-lock" 16}}</svg>{{.i18n.Tr "home.show_private"}}</label>
 									</div>
 									<div class="ui checkbox" id="privateFilterCheckbox" title="{{.i18n.Tr "home.show_only_private"}}" v-if="privateFilter === 'private'">
 										<input type="checkbox">
-										<label><svg class="svg octicon-lock" width="16" height="16" aria-hidden="true"><use xlink:href="#octicon-lock" /></svg>{{.i18n.Tr "home.show_private"}}</label>
+										<label>{{svg "octicon-lock" 16}}</svg>{{.i18n.Tr "home.show_private"}}</label>
 									</div>
 								</a>
 							</div>
@@ -101,9 +101,9 @@
 			</div>
 			<div class="ui attached table segment">
 				<ul class="repo-owner-name-list">
-					<li v-for="repo in repos" :class="{'private': repo.private}">
+					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
 						<a :href="suburl + '/' + repo.full_name">
-							<svg :class="'svg ' + repoClass(repo)" width="16" height="16" aria-hidden="true"><use :xlink:href="'#' + repoClass(repo)" /></svg>
+							<component v-bind:is="repoIcon(repo)" size="16"></component>
 							<strong class="text truncate item-name">${repo.full_name}</strong>
 							<i v-if="repo.archived" class="archive icon archived-icon"></i>
 							<span class="ui right text light grey">

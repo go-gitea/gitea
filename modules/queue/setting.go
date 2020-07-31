@@ -75,6 +75,7 @@ func CreateQueue(name string, handle HandlerFunc, exemplar interface{}) Queue {
 			MaxAttempts: q.MaxAttempts,
 			Config:      cfg,
 			QueueLength: q.Length,
+			Name:        name,
 		}, exemplar)
 	}
 	if err != nil {

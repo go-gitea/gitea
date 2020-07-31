@@ -208,7 +208,7 @@ func TestRender_email(t *testing.T) {
 	// Test that should *not* be turned into email links
 	test(
 		"\"info@gitea.com\"",
-		`<p>“info@gitea.com”</p>`)
+		`<p>&#34;info@gitea.com&#34;</p>`)
 	test(
 		"/home/gitea/mailstore/info@gitea/com",
 		`<p>/home/gitea/mailstore/info@gitea/com</p>`)
@@ -266,6 +266,10 @@ func TestRender_emoji(t *testing.T) {
 	test(
 		"Some text with 😄😄 2 emoji next to each other",
 		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
+	test(
+		"😎🤪🔐🤑❓",
+		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="question mark">❓</span></p>`)
+
 	// should match nothing
 	test(
 		"2001:0db8:85a3:0000:0000:8a2e:0370:7334",

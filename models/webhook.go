@@ -15,7 +15,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 )
 
 // HookContentType is the content type of a web hook
@@ -769,7 +769,7 @@ func createHookTask(e Engine, t *HookTask) error {
 	if err != nil {
 		return err
 	}
-	t.UUID = gouuid.NewV4().String()
+	t.UUID = gouuid.New().String()
 	t.PayloadContent = string(data)
 	_, err = e.Insert(t)
 	return err

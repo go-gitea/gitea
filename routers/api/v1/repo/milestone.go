@@ -39,21 +39,30 @@ func ListMilestones(ctx *context.APIContext) {
 	//   in: query
 	//   description: Milestone state, Recognised values are open, closed and all. Defaults to "open"
 	//   type: string
+	// - name: name
+	//   in: query
+	//   description: filter by milestone name
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
 
-	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")), utils.GetListOptions(ctx))
+	milestones, err := models.GetMilestones(models.GetMilestonesOption{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+		State:       api.StateType(ctx.Query("state")),
+		Name:        ctx.Query("name"),
+	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetMilestonesByRepoID", err)
+		ctx.Error(http.StatusInternalServerError, "GetMilestones", err)
 		return
 	}
 
@@ -142,6 +151,11 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 		Name:         form.Title,
 		Content:      form.Description,
 		DeadlineUnix: timeutil.TimeStamp(form.Deadline.Unix()),
+	}
+
+	if form.State == "closed" {
+		milestone.IsClosed = true
+		milestone.ClosedDateUnix = timeutil.TimeStampNow()
 	}
 
 	if err := models.NewMilestone(milestone); err != nil {

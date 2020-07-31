@@ -55,7 +55,7 @@ Nginx is optimized for serving static content, while the proxying of large respo
  (see https://serverfault.com/q/587386).
 
 Download a snapshot of the Gitea source repository to `/path/to/gitea/`.
-After this, run `make webpack` in the repository directory to generate the static resources. We are only interested in the `public/` directory for this task, so you can delete the rest.
+After this, run `make frontend` in the repository directory to generate the static resources. We are only interested in the `public/` directory for this task, so you can delete the rest.
 (You will need to have [Node with npm](https://nodejs.org/en/download/) and `make` installed to generate the static resources)
 
 Depending on the scale of your user base, you might want to split the traffic to two distinct servers,
@@ -159,7 +159,15 @@ If you want Caddy to serve your Gitea instance, you can add the following server
 
 ```
 git.example.com {
-    proxy / http://localhost:3000
+    reverse_proxy localhost:3000
+}
+```
+
+If you still use Caddy v1, use:
+
+```
+git.example.com {
+    proxy / localhost:3000
 }
 ```
 
@@ -169,7 +177,18 @@ In case you already have a site, and you want Gitea to share the domain name, yo
 
 ```
 git.example.com {
-    proxy /git/ http://localhost:3000 # Note: Trailing Slash after /git/
+    route /git/* {
+        uri strip_prefix /git
+        reverse_proxy localhost:3000
+    }
+}
+```
+
+Or, for Caddy v1:
+
+```
+git.example.com {
+    proxy /git/ localhost:3000
 }
 ```
 

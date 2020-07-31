@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/google/go-github/v24/github"
+	"github.com/google/go-github/v32/github"
 	"golang.org/x/oauth2"
 )
 
@@ -364,7 +364,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		}
 		var labels = make([]*base.Label, 0, len(issue.Labels))
 		for _, l := range issue.Labels {
-			labels = append(labels, convertGithubLabel(&l))
+			labels = append(labels, convertGithubLabel(l))
 		}
 
 		var email string
@@ -425,8 +425,8 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 		asc         = "asc"
 	)
 	opt := &github.IssueListCommentsOptions{
-		Sort:      created,
-		Direction: asc,
+		Sort:      &created,
+		Direction: &asc,
 		ListOptions: github.ListOptions{
 			PerPage: 100,
 		},
