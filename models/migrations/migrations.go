@@ -221,6 +221,8 @@ var migrations = []Migration{
 	// v143 -> v144
 	NewMigration("recalculate Stars number for all user", recalculateStars),
 	// v144 -> v145
+	NewMigration("update Matrix Webhook http method to 'PUT'", updateMatrixWebhookHTTPMethod),
+	// v145 -> v146
 	NewMigration("Add projects info to repository table", addProjectsInfo),
 }
 
