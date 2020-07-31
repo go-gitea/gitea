@@ -1,5 +1,7 @@
 const fastGlob = require('fast-glob');
 const wrapAnsi = require('wrap-ansi');
+const {constants} = require('zlib');
+const CompressionPlugin = require('compression-webpack-plugin');
 const CssNanoPlugin = require('cssnano-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -36,6 +38,75 @@ const filterCssImport = (url, ...args) => {
 
   return true;
 };
+
+const plugins = [
+  new VueLoaderPlugin(),
+  // avoid generating useless js output files for css--only chunks
+  new FixStyleOnlyEntriesPlugin({
+    extensions: ['less', 'scss', 'css'],
+    silent: true,
+  }),
+  new MiniCssExtractPlugin({
+    filename: 'css/[name].css',
+    chunkFilename: 'css/[name].css',
+  }),
+  new SourceMapDevToolPlugin({
+    filename: '[file].map',
+    include: [
+      'js/index.js',
+      'css/index.css',
+    ],
+  }),
+  new MonacoWebpackPlugin({
+    filename: 'js/monaco-[name].worker.js',
+  }),
+  new LicenseWebpackPlugin({
+    outputFilename: 'js/licenses.txt',
+    perChunkOutput: false,
+    addBanner: false,
+    skipChildCompilers: true,
+    modulesDirectories: [
+      resolve(__dirname, 'node_modules'),
+    ],
+    renderLicenses: (modules) => {
+      const line = '-'.repeat(80);
+      return modules.map((module) => {
+        const {name, version} = module.packageJson;
+        const {licenseId, licenseText} = module;
+        const body = wrapAnsi(licenseText || '', 80);
+        return `${line}\n${name}@${version} - ${licenseId}\n${line}\n${body}`;
+      }).join('\n');
+    },
+    stats: {
+      warnings: false,
+      errors: true,
+    },
+  }),
+];
+
+if (isProduction) {
+  plugins.push(
+    new CompressionPlugin({
+      filename: '[path].gz',
+      algorithm: 'gzip',
+      test: /\.(js|css)$/,
+      compressionOptions: {
+        level: constants.Z_BEST_COMPRESSION,
+      },
+      threshold: 10240,
+    }),
+    new CompressionPlugin({
+      filename: '[path].br',
+      algorithm: 'brotliCompress',
+      test: /\.(js|css)$/,
+      compressionOptions: {
+        [constants.BROTLI_PARAM_QUALITY]: constants.BROTLI_MAX_QUALITY,
+      },
+      threshold: 10240,
+    }),
+  );
+}
+
 
 module.exports = {
   mode: isProduction ? 'production' : 'development',
@@ -255,50 +326,7 @@ module.exports = {
       },
     ],
   },
-  plugins: [
-    new VueLoaderPlugin(),
-    // avoid generating useless js output files for css--only chunks
-    new FixStyleOnlyEntriesPlugin({
-      extensions: ['less', 'scss', 'css'],
-      silent: true,
-    }),
-    new MiniCssExtractPlugin({
-      filename: 'css/[name].css',
-      chunkFilename: 'css/[name].css',
-    }),
-    new SourceMapDevToolPlugin({
-      filename: '[file].map',
-      include: [
-        'js/index.js',
-        'css/index.css',
-      ],
-    }),
-    new MonacoWebpackPlugin({
-      filename: 'js/monaco-[name].worker.js',
-    }),
-    new LicenseWebpackPlugin({
-      outputFilename: 'js/licenses.txt',
-      perChunkOutput: false,
-      addBanner: false,
-      skipChildCompilers: true,
-      modulesDirectories: [
-        resolve(__dirname, 'node_modules'),
-      ],
-      renderLicenses: (modules) => {
-        const line = '-'.repeat(80);
-        return modules.map((module) => {
-          const {name, version} = module.packageJson;
-          const {licenseId, licenseText} = module;
-          const body = wrapAnsi(licenseText || '', 80);
-          return `${line}\n${name}@${version} - ${licenseId}\n${line}\n${body}`;
-        }).join('\n');
-      },
-      stats: {
-        warnings: false,
-        errors: true,
-      },
-    }),
-  ],
+  plugins,
   performance: {
     hints: false,
     maxEntrypointSize: Infinity,
@@ -321,6 +349,7 @@ module.exports = {
       // exclude monaco's language chunks in stats output for brevity
       // https://github.com/microsoft/monaco-editor-webpack-plugin/issues/113
       /^js\/[0-9]+\.js$/,
+      /\.(gz|br)$/,
     ],
   },
 };

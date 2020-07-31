@@ -2,7 +2,7 @@
   "license": "MIT",
   "private": true,
   "engines": {
-    "node": ">= 10.13.0"
+    "node": ">= 10.16.0"
   },
   "dependencies": {
     "@babel/core": "7.10.5",
@@ -14,6 +14,7 @@
     "@primer/octicons": "10.0.0",
     "babel-loader": "8.1.0",
     "clipboard": "2.0.6",
+    "compression-webpack-plugin": "4.0.0",
     "core-js": "3.6.5",
     "css-loader": "4.0.0",
     "cssnano-webpack-plugin": "1.0.3",

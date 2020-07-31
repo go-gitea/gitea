@@ -130,9 +130,6 @@ func NewMacaron() *macaron.Macaron {
 		setupAccessLogger(m)
 	}
 	m.Use(macaron.Recovery())
-	if setting.EnableGzip {
-		m.Use(gzip.Middleware())
-	}
 	if setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
@@ -149,6 +146,9 @@ func NewMacaron() *macaron.Macaron {
 			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
+	if setting.EnableGzip {
+		m.Use(gzip.Middleware())
+	}
 	m.Use(public.StaticHandler(
 		setting.AvatarUploadPath,
 		&public.Options{

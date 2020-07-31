@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -89,6 +90,8 @@ func (opts *Options) staticHandler(dir string) macaron.Handler {
 	}
 }
 
+var commaRe = regexp.MustCompile(`,\s*`)
+
 func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options) bool {
 	if ctx.Req.Method != "GET" && ctx.Req.Method != "HEAD" {
 		return false
@@ -106,7 +109,32 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 		}
 	}
 
-	f, err := opt.FileSystem.Open(file)
+	var f http.File
+	split := commaRe.Split(ctx.Req.Header.Get("Accept-Encoding"), -1)
+	encodings := make(map[string]bool)
+	for i := range split {
+		encodings[split[i]] = true
+	}
+
+	var err error
+	if encodings["br"] {
+		f, err = opt.FileSystem.Open(file + ".br")
+		if err != nil {
+			f, err = opt.FileSystem.Open(file)
+		} else {
+			ctx.Resp.Header().Set("Content-Encoding", "br")
+		}
+	} else if encodings["gzip"] {
+		f, err = opt.FileSystem.Open(file + ".gz")
+		if err != nil {
+			f, err = opt.FileSystem.Open(file)
+		} else {
+			ctx.Resp.Header().Set("Content-Encoding", "gzip")
+		}
+	} else {
+		f, err = opt.FileSystem.Open(file)
+	}
+
 	if err != nil {
 		// 404 requests to any known entries in `public`
 		if path.Base(opts.Directory) == "public" {

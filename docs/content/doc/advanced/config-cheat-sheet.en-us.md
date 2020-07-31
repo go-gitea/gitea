@@ -203,7 +203,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. From 1.11 paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars.
-- `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
+- `ENABLE_GZIP`: **false**: Enable gzip compression for runtime-generated content.
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
 - `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files.
