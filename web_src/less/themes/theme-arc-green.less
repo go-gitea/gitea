@@ -534,7 +534,8 @@ a:hover {
 .ui.secondary.menu .dropdown.item:hover,
 .ui.secondary.menu .link.item:hover,
 .ui.secondary.menu .active.item:hover,
-.ui.secondary.menu a.item:hover {
+.ui.secondary.menu a.item:hover,
+.ui.dropdown .menu .active.item {
     color: #ffffff;
 }
 
@@ -825,10 +826,10 @@ a.ui.basic.green.label:hover {
     border-bottom-color: rgba(255, 255, 255, .1);
 
     .item.active {
-        border-top-color: transparent;
-        border-left-color: transparent;
-        border-right-color: transparent;
-        background: #383c4a;
+        border-top-color: #404552;
+        border-left-color: #404552;
+        border-right-color: #404552;
+        background: #353945;
         color: #dbdbdb;
     }
 
@@ -842,8 +843,10 @@ a.ui.basic.green.label:hover {
 
     &.navbar {
         .item.active {
+            border-top-color: transparent;
             border-left-color: transparent;
             border-right-color: transparent;
+            background: #383c4a;
         }
     }
 }
@@ -1186,6 +1189,10 @@ td.blob-hunk {
 .ui.secondary.pointing.menu .link.item:hover,
 .ui.secondary.pointing.menu a.item:hover {
     color: #dbdbdb;
+}
+
+.ui.pointing.dropdown > .menu:not(.hidden)::after {
+    background: #2c303a;
 }
 
 .ui.checkbox label,
@@ -1568,6 +1575,11 @@ a.ui.labels .label:hover {
     border-color: #634343 !important;
 }
 
+.organization.teams .detail .item:not(:last-child),
+.organization.members .list .item {
+    border-bottom-color: #404552;
+}
+
 .ui.blue.button:active,
 .ui.blue.buttons .button:active {
     background-color: #a27558;
@@ -1875,11 +1887,20 @@ footer .container .links > * {
 }
 
 .repository.release #release-list > li .detail {
-    border-left-color: #888;
+    border-left-color: #4c505c;
 }
 
 .repository.release #release-list > li .detail .dot {
     background-color: #888;
+    border-color: #383c4a;
+}
+
+.repository.release #release-list > li .detail .download .list {
+    border-top-color: #404552;
+}
+
+.repository.release #release-list > li .detail .download .list li {
+    border-bottom-color: #404552;
 }
 
 .tribute-container {
