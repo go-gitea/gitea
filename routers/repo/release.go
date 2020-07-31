@@ -223,7 +223,7 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 			return
 		}
 
-		rel := &models.Release{
+		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			PublisherID:  ctx.User.ID,
 			Title:        form.Title,
@@ -262,9 +262,9 @@ func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
 		rel.PublisherID = ctx.User.ID
 		rel.IsTag = false
 
-		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, true); err != nil {
 			ctx.Data["Err_TagName"] = true
-			ctx.ServerError("UpdateRelease", err)
+			ctx.ServerError("UpdateReleaseOrCreatReleaseFromTag", err)
 			return
 		}
 	}
@@ -341,7 +341,7 @@ func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+	if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, false); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}
