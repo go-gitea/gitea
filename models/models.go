@@ -10,6 +10,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
 
@@ -208,6 +210,38 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 	}
 
 	return nil
+}
+
+// NamesToBean return a list of beans or an error
+func NamesToBean(names ...string) ([]interface{}, error) {
+	beans := []interface{}{}
+	if len(names) == 0 {
+		for _, bean := range tables {
+			beans = append(beans, bean)
+		}
+		return beans, nil
+	}
+	// Need to map provided names to beans...
+	beanMap := make(map[string]interface{})
+	for _, bean := range tables {
+
+		beanMap[strings.ToLower(reflect.Indirect(reflect.ValueOf(bean)).Type().Name())] = bean
+		beanMap[strings.ToLower(x.TableName(bean))] = bean
+		beanMap[strings.ToLower(x.TableName(bean, true))] = bean
+	}
+
+	gotBean := make(map[interface{}]bool)
+	for _, name := range names {
+		bean, ok := beanMap[strings.ToLower(strings.TrimSpace(name))]
+		if !ok {
+			return nil, fmt.Errorf("No table found that matches: %s", name)
+		}
+		if !gotBean[bean] {
+			beans = append(beans, bean)
+			gotBean[bean] = true
+		}
+	}
+	return beans, nil
 }
 
 // Statistic contains the database statistics

@@ -61,6 +61,21 @@ var CmdDoctor = cli.Command{
 			Usage: `Name of the log file (default: "doctor.log"). Set to "-" to output to stdout, set to "" to disable`,
 		},
 	},
+	Subcommands: []cli.Command{
+		cmdRecreateTable,
+	},
+}
+
+var cmdRecreateTable = cli.Command{
+	Name:      "recreate-table",
+	Usage:     "Recreate tables from XORM definitions and copy the data.",
+	ArgsUsage: "[TABLE]... : (TABLEs to recreate - leave blank for all)",
+	Description: `The database definitions Gitea uses change across versions, sometimes changing default values and leaving old unused columns.
+
+This command will cause Xorm to recreate tables, copying over the data and deleting the old table.
+
+You should back-up your database before doing this and ensure that your database is up-to-date first.`,
+	Action: runRecreateTable,
 }
 
 type check struct {
@@ -127,6 +142,37 @@ var checklist = []check{
 		f:         runDoctorUserStarNum,
 	},
 	// more checks please append here
+}
+
+func runRecreateTable(ctx *cli.Context) error {
+	// Redirect the default golog to here
+	golog.SetFlags(0)
+	golog.SetPrefix("")
+	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
+
+	setting.EnableXORMLog = false
+	if err := initDBDisableConsole(true); err != nil {
+		fmt.Println(err)
+		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
+		return nil
+	}
+
+	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+		return err
+	}
+
+	args := ctx.Args()
+	names := make([]string, 0, ctx.NArg())
+	for i := 0; i < ctx.NArg(); i++ {
+		names = append(names, args.Get(i))
+	}
+
+	beans, err := models.NamesToBean(names...)
+	if err != nil {
+		return err
+	}
+
+	return models.NewEngine(context.Background(), migrations.RecreateTables(beans...))
 }
 
 func runDoctor(ctx *cli.Context) error {

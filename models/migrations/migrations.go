@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -317,6 +318,153 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	return nil
 }
 
+// RecreateTables will recreate the tables for the provided beans using the newly provided bean definition and move all data to that new table
+// WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
+func RecreateTables(beans ...interface{}) func(*xorm.Engine) error {
+	return func(x *xorm.Engine) error {
+		sess := x.NewSession()
+		defer sess.Close()
+		if err := sess.Begin(); err != nil {
+			return err
+		}
+		for _, bean := range beans {
+			log.Info("Recreating Table: %s for Bean: %s", x.TableName(bean), reflect.Indirect(reflect.ValueOf(bean)).Type().Name())
+			if err := recreateTable(sess, bean); err != nil {
+				return err
+			}
+		}
+		return sess.Commit()
+	}
+}
+
+// recreateTable will recreate the table using the newly provided bean definition and move all data to that new table
+// WARNING: YOU MUST PROVIDE THE FULL BEAN DEFINITION
+// WARNING: YOU MUST COMMIT THE SESSION AT THE END
+func recreateTable(sess *xorm.Session, bean interface{}) error {
+	// TODO: This will not work if there are foreign keys
+
+	tableName := sess.Engine().TableName(bean)
+	tempTableName := fmt.Sprintf("temporary__%s__temporary", tableName)
+
+	// We need to move the old table away and create a new one with the correct columns
+	// We will need to do this in stages to prevent data loss
+	//
+	// First let's update the old table to ensure it has all the necessary columns
+	if err := sess.CreateTable(bean); err != nil {
+		return err
+	}
+
+	// Now we create the temporary table
+	if err := sess.Table(tempTableName).CreateTable(bean); err != nil {
+		return err
+	}
+
+	// Work out the column names from the bean - these are the columns to select from the old table and install into the new table
+	table, err := sess.Engine().TableInfo(bean)
+	if err != nil {
+		return err
+	}
+	newTableColumns := table.Columns()
+	if len(newTableColumns) == 0 {
+		return fmt.Errorf("no columns in new table")
+	}
+
+	if setting.Database.UseMSSQL {
+		sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT %s ON", tempTableName))
+	}
+
+	sqlStringBuilder := &strings.Builder{}
+	_, _ = sqlStringBuilder.WriteString("INSERT INTO ")
+	_, _ = sqlStringBuilder.WriteString(tempTableName)
+	if setting.Database.UseMSSQL {
+		_, _ = sqlStringBuilder.WriteString(" (`")
+		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
+		_, _ = sqlStringBuilder.WriteString("`")
+		for _, column := range newTableColumns[1:] {
+			_, _ = sqlStringBuilder.WriteString(", `")
+			_, _ = sqlStringBuilder.WriteString(column.Name)
+			_, _ = sqlStringBuilder.WriteString("`")
+		}
+		_, _ = sqlStringBuilder.WriteString(")")
+	}
+	_, _ = sqlStringBuilder.WriteString(" SELECT ")
+	if newTableColumns[0].Default != "" {
+		_, _ = sqlStringBuilder.WriteString("COALESCE(`")
+		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
+		_, _ = sqlStringBuilder.WriteString("`, ")
+		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Default)
+		_, _ = sqlStringBuilder.WriteString(")")
+	} else {
+		_, _ = sqlStringBuilder.WriteString("`")
+		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
+		_, _ = sqlStringBuilder.WriteString("`")
+	}
+
+	for _, column := range newTableColumns[1:] {
+		if column.Default != "" {
+			_, _ = sqlStringBuilder.WriteString(", COALESCE(`")
+			_, _ = sqlStringBuilder.WriteString(column.Name)
+			_, _ = sqlStringBuilder.WriteString("`, ")
+			_, _ = sqlStringBuilder.WriteString(column.Default)
+			_, _ = sqlStringBuilder.WriteString(")")
+		} else {
+			_, _ = sqlStringBuilder.WriteString(", `")
+			_, _ = sqlStringBuilder.WriteString(column.Name)
+			_, _ = sqlStringBuilder.WriteString("`")
+		}
+	}
+	_, _ = sqlStringBuilder.WriteString(" FROM ")
+	_, _ = sqlStringBuilder.WriteString(tableName)
+
+	if _, err := sess.Exec(sqlStringBuilder.String()); err != nil {
+		return err
+	}
+
+	if setting.Database.UseMSSQL {
+		sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT %s OFF", tempTableName))
+	}
+
+	switch {
+	case setting.Database.UseSQLite3:
+		fallthrough
+	case setting.Database.UseMySQL:
+		// SQLite and MySQL will drop all the constraints on the old table
+		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
+			return err
+		}
+
+		// SQLite and MySQL will move all the constraints from the temporary table to the new table
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
+			return err
+		}
+	case setting.Database.UsePostgreSQL:
+		// CASCADE causes postgres to drop all the constraints on the old table
+		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s` CASCADE", tableName)); err != nil {
+			return err
+		}
+
+		// CASCADE causes postgres to move all the constraints from the temporary table to the new table
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
+			return err
+		}
+	case setting.Database.UseMSSQL:
+		// MSSQL will drop all the constraints on the old table
+		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
+			return err
+		}
+
+		// MSSQL sp_rename will move all the constraints from the temporary table to the new table
+		if _, err := sess.Exec(fmt.Sprintf("sp_rename '[%s]','[%s]'", tempTableName, tableName)); err != nil {
+			return err
+		}
+
+	default:
+		log.Fatal("Unrecognized DB")
+	}
+	return nil
+}
+
+// WARNING: YOU MUST COMMIT THE SESSION AT THE END
 func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
 	if tableName == "" || len(columnNames) == 0 {
 		return nil
@@ -465,7 +613,6 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
 
-		return sess.Commit()
 	default:
 		log.Fatal("Unrecognized DB")
 	}
