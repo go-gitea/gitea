@@ -530,7 +530,7 @@ function initCommentForm() {
           break;
         case '#project_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>${
-            htmlEncode($(this).text())}</a>`);
+            htmlEscape($(this).text())}</a>`);
           break;
         case '#assignee_id':
           $list.find('.selected').html(`<a class="item" href=${$(this).data('href')}>` +
