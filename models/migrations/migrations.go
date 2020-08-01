@@ -464,8 +464,6 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			sess.Rollback()
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-
-		return sess.Commit()
 	default:
 		log.Fatal("Unrecognized DB")
 	}
