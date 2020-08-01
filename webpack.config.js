@@ -50,9 +50,6 @@ module.exports = {
     swagger: [
       resolve(__dirname, 'web_src/js/standalone/swagger.js'),
     ],
-    serviceworker: [
-      resolve(__dirname, 'web_src/js/serviceworker.js'),
-    ],
     'eventsource.sharedworker': [
       resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
     ],
@@ -61,11 +58,7 @@ module.exports = {
   devtool: false,
   output: {
     path: resolve(__dirname, 'public'),
-    filename: ({chunk}) => {
-      // serviceworker can only manage assets below it's script's directory so
-      // we have to put it in / instead of /js/
-      return chunk.name === 'serviceworker' ? '[name].js' : 'js/[name].js';
-    },
+    filename: 'js/[name].js',
     chunkFilename: 'js/[name].js',
   },
   optimization: {
