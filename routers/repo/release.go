@@ -75,11 +75,7 @@ func Releases(ctx *context.Context) {
 			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		},
 		IncludeDrafts: writeAccess,
-		IncludeTags:   true,
-	}
-
-	if !isTagList {
-		opts.IncludeTags = false
+		IncludeTags:   isTagList,
 	}
 
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
@@ -201,8 +197,7 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
 	renderAttachmentSettings(ctx)
-	tagName := ctx.Query("tag")
-	if len(tagName) > 0 {
+	if tagName := ctx.Query("tag"); len(tagName) > 0 {
 		rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 		if err != nil && !models.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
