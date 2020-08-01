@@ -655,7 +655,7 @@ func NewContext() {
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}
-	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppStaticRootPath)
+	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
