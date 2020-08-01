@@ -119,19 +119,19 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 	var err error
 	if encodings["br"] {
 		f, err = opt.FileSystem.Open(file + ".br")
-		if err != nil {
-			f, err = opt.FileSystem.Open(file)
-		} else {
+		if f != nil {
 			ctx.Resp.Header().Set("Content-Encoding", "br")
 		}
-	} else if encodings["gzip"] {
+	}
+
+	if f == nil && encodings["gzip"] {
 		f, err = opt.FileSystem.Open(file + ".gz")
-		if err != nil {
-			f, err = opt.FileSystem.Open(file)
-		} else {
+		if f != nil {
 			ctx.Resp.Header().Set("Content-Encoding", "gzip")
 		}
-	} else {
+	}
+
+	if f == nil {
 		f, err = opt.FileSystem.Open(file)
 	}
 
