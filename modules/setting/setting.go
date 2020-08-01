@@ -66,16 +66,15 @@ const (
 // settings
 var (
 	// AppVer settings
-	AppVer            string
-	AppBuiltWith      string
-	AppName           string
-	AppURL            string
-	AppSubURL         string
-	AppSubURLDepth    int // Number of slashes
-	AppPath           string
-	AppDataPath       string
-	AppWorkPath       string
-	AppStaticRootPath string
+	AppVer         string
+	AppBuiltWith   string
+	AppName        string
+	AppURL         string
+	AppSubURL      string
+	AppSubURLDepth int // Number of slashes
+	AppPath        string
+	AppDataPath    string
+	AppWorkPath    string
 
 	// Server settings
 	Protocol             Scheme
@@ -653,8 +652,8 @@ func NewContext() {
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
-	if len(AppStaticRootPath) == 0 {
-		AppStaticRootPath = AppWorkPath
+	if len(StaticRootPath) == 0 {
+		StaticRootPath = AppWorkPath
 	}
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppStaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
