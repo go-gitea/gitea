@@ -313,6 +313,7 @@ module.exports = {
       algorithm: 'brotliCompress',
       test: /\.(js|css)$/,
       compressionOptions: {
+        [constants.BROTLI_PARAM_MODE]: constants.BROTLI_MODE_TEXT,
         [constants.BROTLI_PARAM_QUALITY]: constants.BROTLI_MAX_QUALITY,
       },
     }),
