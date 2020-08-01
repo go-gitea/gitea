@@ -307,7 +307,6 @@ module.exports = {
       compressionOptions: {
         level: constants.Z_BEST_COMPRESSION,
       },
-      threshold: 10240,
     }),
     isProduction && new CompressionPlugin({
       filename: '[path].br',
@@ -316,7 +315,6 @@ module.exports = {
       compressionOptions: {
         [constants.BROTLI_PARAM_QUALITY]: constants.BROTLI_MAX_QUALITY,
       },
-      threshold: 10240,
     }),
   ].filter((plugin) => !!plugin),
   performance: {
