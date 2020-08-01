@@ -1,6 +1,5 @@
 const fastGlob = require('fast-glob');
 const wrapAnsi = require('wrap-ansi');
-const {constants} = require('zlib');
 const CompressionPlugin = require('compression-webpack-plugin');
 const CssNanoPlugin = require('cssnano-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
@@ -9,6 +8,7 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
+const {constants} = require('zlib');
 const {statSync} = require('fs');
 const {resolve, parse} = require('path');
 const {LicenseWebpackPlugin} = require('license-webpack-plugin');
