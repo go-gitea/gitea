@@ -234,15 +234,17 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		opt.Readme = "Default"
 	}
 	repo, err := repo_service.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
-		Name:          opt.Name,
-		Description:   opt.Description,
-		IssueLabels:   opt.IssueLabels,
-		Gitignores:    opt.Gitignores,
-		License:       opt.License,
-		Readme:        opt.Readme,
-		IsPrivate:     opt.Private,
-		AutoInit:      opt.AutoInit,
-		DefaultBranch: opt.DefaultBranch,
+		Name:                 opt.Name,
+		Description:          opt.Description,
+		IssueLabels:          opt.IssueLabels,
+		Gitignores:           opt.Gitignores,
+		License:              opt.License,
+		Readme:               opt.Readme,
+		IsPrivate:            opt.Private,
+		AutoInit:             opt.AutoInit,
+		DefaultBranch:        opt.DefaultBranch,
+		AdoptPreExisting:     opt.AdoptPreExisting && setting.Repository.AllowAdoptionOfUnadoptedRepositories,
+		OverwritePreExisting: opt.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories,
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {

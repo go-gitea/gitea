@@ -135,6 +135,8 @@ func Create(ctx *context.Context) {
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
+	ctx.Data["allowAdoption"] = setting.Repository.AllowAdoptionOfUnadoptedRepositories
+	ctx.Data["allowOverwrite"] = setting.Repository.AllowOverwriteOfUnadoptedRepositories
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
@@ -166,6 +168,10 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Data["Err_RepoName"] = true
+		ctx.Data["Err_AdoptOrDelete"] = true
+		ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 	case models.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
@@ -185,6 +191,8 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
+	ctx.Data["allowAdoption"] = setting.Repository.AllowAdoptionOfUnadoptedRepositories
+	ctx.Data["allowOverwrite"] = setting.Repository.AllowOverwriteOfUnadoptedRepositories
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -201,15 +209,16 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := models.GenerateRepoOptions{
-			Name:        form.RepoName,
-			Description: form.Description,
-			Private:     form.Private,
-			GitContent:  form.GitContent,
-			Topics:      form.Topics,
-			GitHooks:    form.GitHooks,
-			Webhooks:    form.Webhooks,
-			Avatar:      form.Avatar,
-			IssueLabels: form.Labels,
+			Name:                 form.RepoName,
+			Description:          form.Description,
+			Private:              form.Private,
+			GitContent:           form.GitContent,
+			Topics:               form.Topics,
+			GitHooks:             form.GitHooks,
+			Webhooks:             form.Webhooks,
+			Avatar:               form.Avatar,
+			IssueLabels:          form.Labels,
+			OverwritePreExisting: form.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories,
 		}
 
 		if !opts.IsValid() {
@@ -235,15 +244,17 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	} else {
 		repo, err = repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
-			Name:          form.RepoName,
-			Description:   form.Description,
-			Gitignores:    form.Gitignores,
-			IssueLabels:   form.IssueLabels,
-			License:       form.License,
-			Readme:        form.Readme,
-			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
-			DefaultBranch: form.DefaultBranch,
-			AutoInit:      form.AutoInit,
+			Name:                 form.RepoName,
+			Description:          form.Description,
+			Gitignores:           form.Gitignores,
+			IssueLabels:          form.IssueLabels,
+			License:              form.License,
+			Readme:               form.Readme,
+			IsPrivate:            form.Private || setting.Repository.ForcePrivate,
+			DefaultBranch:        form.DefaultBranch,
+			AutoInit:             form.AutoInit,
+			AdoptPreExisting:     form.AdoptPreExisting && setting.Repository.AllowAdoptionOfUnadoptedRepositories,
+			OverwritePreExisting: form.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories,
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
@@ -269,6 +280,7 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["pull_requests"] = ctx.Query("pull_requests") == "1"
 	ctx.Data["releases"] = ctx.Query("releases") == "1"
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
+	ctx.Data["allowOverwrite"] = setting.Repository.AllowOverwriteOfUnadoptedRepositories
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
@@ -290,6 +302,10 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Data["Err_RepoName"] = true
+		ctx.Data["Err_AdoptOrDelete"] = true
+		ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 	case models.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
@@ -316,6 +332,7 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 // MigratePost response for migrating from external git repository
 func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
+	ctx.Data["allowOverwrite"] = setting.Repository.AllowOverwriteOfUnadoptedRepositories
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -382,7 +399,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName)
+	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, form.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
 		return

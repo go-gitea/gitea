@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -18,11 +19,7 @@ import (
 func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
 	repo, err := repo_module.CreateRepository(doer, owner, opts)
 	if err != nil {
-		if repo != nil {
-			if errDelete := models.DeleteRepository(doer, owner.ID, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
+		// No need to rollback here we should do this in CreateRepository...
 		return nil, err
 	}
 
@@ -78,8 +75,10 @@ func PushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repo
 	}
 
 	repo, err := CreateRepository(authUser, owner, models.CreateRepoOptions{
-		Name:      repoName,
-		IsPrivate: true,
+		Name:                 repoName,
+		IsPrivate:            true,
+		AdoptPreExisting:     setting.Repository.AllowAdoptionOfUnadoptedRepositories,
+		OverwritePreExisting: setting.Repository.AllowOverwriteOfUnadoptedRepositories,
 	})
 	if err != nil {
 		return nil, err

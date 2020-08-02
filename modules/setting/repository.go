@@ -44,6 +44,8 @@ var (
 		PrefixArchiveFiles                      bool
 		DisableMirrors                          bool
 		DefaultBranch                           string
+		AllowAdoptionOfUnadoptedRepositories    bool
+		AllowOverwriteOfUnadoptedRepositories   bool
 
 		// Repository editor settings
 		Editor struct {

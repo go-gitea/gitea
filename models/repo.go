@@ -996,7 +996,7 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 }
 
 // CheckCreateRepository check if could created a repository
-func CheckCreateRepository(doer, u *User, name string) error {
+func CheckCreateRepository(doer, u *User, name string, overwriteOrAdopt bool) error {
 	if !doer.CanCreateRepo() {
 		return ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
@@ -1011,24 +1011,30 @@ func CheckCreateRepository(doer, u *User, name string) error {
 	} else if has {
 		return ErrRepoAlreadyExist{u.Name, name}
 	}
+
+	if !overwriteOrAdopt && com.IsExist(RepoPath(u.Name, name)) {
+		return ErrRepoFilesAlreadyExist{u.Name, name}
+	}
 	return nil
 }
 
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
-	Name           string
-	Description    string
-	OriginalURL    string
-	GitServiceType api.GitServiceType
-	Gitignores     string
-	IssueLabels    string
-	License        string
-	Readme         string
-	DefaultBranch  string
-	IsPrivate      bool
-	IsMirror       bool
-	AutoInit       bool
-	Status         RepositoryStatus
+	Name                 string
+	Description          string
+	OriginalURL          string
+	GitServiceType       api.GitServiceType
+	Gitignores           string
+	IssueLabels          string
+	License              string
+	Readme               string
+	DefaultBranch        string
+	IsPrivate            bool
+	IsMirror             bool
+	AutoInit             bool
+	Status               RepositoryStatus
+	AdoptPreExisting     bool
+	OverwritePreExisting bool
 }
 
 // GetRepoInitFile returns repository init files

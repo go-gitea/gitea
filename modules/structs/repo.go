@@ -115,6 +115,10 @@ type CreateRepoOption struct {
 	Readme string `json:"readme"`
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
+	// AdoptPreExisting adopt pre-existing file-system repository if it exists and this installation permits this
+	AdoptPreExisting bool `json:"adopt_if_exists"`
+	// DeleteIfExists delete pre-exisiting file-system repository if it exists and this installation permist this
+	OverwritePreExisting bool `json:"delete_if_exists"`
 }
 
 // EditRepoOption options when editing a repository's properties

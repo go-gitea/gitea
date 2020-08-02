@@ -45,6 +45,9 @@ type CreateRepoForm struct {
 	Webhooks     bool
 	Avatar       bool
 	Labels       bool
+
+	AdoptPreExisting     bool
+	OverwritePreExisting bool
 }
 
 // Validate validates the fields
@@ -61,16 +64,17 @@ type MigrateRepoForm struct {
 	// required: true
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true
-	RepoName     string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Mirror       bool   `json:"mirror"`
-	Private      bool   `json:"private"`
-	Description  string `json:"description" binding:"MaxSize(255)"`
-	Wiki         bool   `json:"wiki"`
-	Milestones   bool   `json:"milestones"`
-	Labels       bool   `json:"labels"`
-	Issues       bool   `json:"issues"`
-	PullRequests bool   `json:"pull_requests"`
-	Releases     bool   `json:"releases"`
+	RepoName             string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Mirror               bool   `json:"mirror"`
+	Private              bool   `json:"private"`
+	Description          string `json:"description" binding:"MaxSize(255)"`
+	Wiki                 bool   `json:"wiki"`
+	Milestones           bool   `json:"milestones"`
+	Labels               bool   `json:"labels"`
+	Issues               bool   `json:"issues"`
+	PullRequests         bool   `json:"pull_requests"`
+	Releases             bool   `json:"releases"`
+	OverwritePreExisting bool   `json:"overwrite_pre_existing"`
 }
 
 // Validate validates the fields

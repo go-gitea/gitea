@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/huandu/xstrings"
+	"github.com/unknwon/com"
 )
 
 type transformer struct {
@@ -248,8 +249,21 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 		return nil, err
 	}
 
-	repoPath := models.RepoPath(owner.Name, generateRepo.Name)
-	if err = checkInitRepository(repoPath); err != nil {
+	repoPath := generateRepo.RepoPath()
+	if com.IsExist(repoPath) {
+		if opts.OverwritePreExisting {
+			if err = os.RemoveAll(repoPath); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, models.ErrRepoFilesAlreadyExist{
+				Uname: generateRepo.OwnerName,
+				Name:  generateRepo.Name,
+			}
+		}
+	}
+
+	if err = checkInitRepository(owner.Name, generateRepo.Name); err != nil {
 		return generateRepo, err
 	}
 

@@ -18,15 +18,16 @@ import (
 
 // GenerateRepoOptions contains the template units to generate
 type GenerateRepoOptions struct {
-	Name        string
-	Description string
-	Private     bool
-	GitContent  bool
-	Topics      bool
-	GitHooks    bool
-	Webhooks    bool
-	Avatar      bool
-	IssueLabels bool
+	Name                 string
+	Description          string
+	Private              bool
+	GitContent           bool
+	Topics               bool
+	GitHooks             bool
+	Webhooks             bool
+	Avatar               bool
+	IssueLabels          bool
+	OverwritePreExisting bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
