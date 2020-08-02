@@ -49,7 +49,7 @@ func increaseLanguageField(x *xorm.Engine) error {
 			return err
 		}
 	case setting.Database.UsePostgreSQL:
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat ALTER COLUMN language %s", sqlType)); err != nil {
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat ALTER COLUMN language TYPE %s", sqlType)); err != nil {
 			return err
 		}
 	}
