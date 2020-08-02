@@ -216,9 +216,7 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 func NamesToBean(names ...string) ([]interface{}, error) {
 	beans := []interface{}{}
 	if len(names) == 0 {
-		for _, bean := range tables {
-			beans = append(beans, bean)
-		}
+		beans = append(beans, tables...)
 		return beans, nil
 	}
 	// Need to map provided names to beans...
