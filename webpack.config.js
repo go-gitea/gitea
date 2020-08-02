@@ -321,6 +321,6 @@ module.exports = {
       // exclude monaco's language chunks in stats output for brevity
       // https://github.com/microsoft/monaco-editor-webpack-plugin/issues/113
       /^js\/[0-9]+\.js$/,
-    ]
+    ],
   },
 };
