@@ -801,22 +801,22 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 
 // DeleteDeliveredHookTasks deletes delivered hook tasks of one repository, leaving the most recent delivered based on the parameter
 func DeleteDeliveredHookTasks(repoID int64, numberDeliveriesToKeep int64) error {
-	var ids = make([]int64, 0, 10)
+	var deliveryDates = make([]int64, 0, 10)
 	err := x.Table("hook_task").
 		Where("hook_task.repo_id = ? AND hook_task.is_delivered = ?", repoID, true).
-		Cols("hook_task.id").
+		Cols("hook_task.delivered").
 		Join("INNER", "repository", "hook_task.repo_id = repository.id").
 		And("repository.is_hook_task_purge_enabled = ?", true).
-		OrderBy("hook_task.id desc").
+		OrderBy("hook_task.delivered desc").
 		Limit(1, int(numberDeliveriesToKeep)).
-		Find(&ids)
+		Find(&deliveryDates)
 	if err != nil {
 		return err
 	}
 
-	if len(ids) > 0 {
+	if len(deliveryDates) > 0 {
 		deletes, err := x.
-			Where("repo_id = ? and is_delivered = ? and id <= ?", repoID, true, ids[0]).
+			Where("repo_id = ? and is_delivered = ? and delivered <= ?", repoID, true, deliveryDates[0]).
 			Delete(new(HookTask))
 		if err != nil {
 			return err
