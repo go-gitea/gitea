@@ -97,14 +97,6 @@ module.exports = {
     splitChunks: {
       chunks: 'async',
       name: (_, chunks) => chunks.map((item) => item.name).join('-'),
-      cacheGroups: {
-        // this bundles all monaco's languages into one file instead of emitting 1-65.js files
-        monaco: {
-          test: /monaco-editor/,
-          name: 'monaco',
-          chunks: 'async',
-        },
-      },
     },
   },
   module: {
@@ -325,5 +317,10 @@ module.exports = {
   },
   stats: {
     children: false,
+    excludeAssets: [
+      // exclude monaco's language chunks in stats output for brevity
+      // https://github.com/microsoft/monaco-editor-webpack-plugin/issues/113
+      /^js\/[0-9]+\.js$/,
+    ],
   },
 };
