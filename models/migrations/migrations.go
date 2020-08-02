@@ -349,12 +349,7 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	// We need to move the old table away and create a new one with the correct columns
 	// We will need to do this in stages to prevent data loss
 	//
-	// First let's update the old table to ensure it has all the necessary columns
-	if err := sess.CreateTable(bean); err != nil {
-		return err
-	}
-
-	// Now we create the temporary table
+	// First create the temporary table
 	if err := sess.Table(tempTableName).CreateTable(bean); err != nil {
 		return err
 	}
@@ -376,17 +371,15 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	sqlStringBuilder := &strings.Builder{}
 	_, _ = sqlStringBuilder.WriteString("INSERT INTO ")
 	_, _ = sqlStringBuilder.WriteString(tempTableName)
-	if setting.Database.UseMSSQL {
-		_, _ = sqlStringBuilder.WriteString(" (`")
-		_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
+	_, _ = sqlStringBuilder.WriteString(" (`")
+	_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
+	_, _ = sqlStringBuilder.WriteString("`")
+	for _, column := range newTableColumns[1:] {
+		_, _ = sqlStringBuilder.WriteString(", `")
+		_, _ = sqlStringBuilder.WriteString(column.Name)
 		_, _ = sqlStringBuilder.WriteString("`")
-		for _, column := range newTableColumns[1:] {
-			_, _ = sqlStringBuilder.WriteString(", `")
-			_, _ = sqlStringBuilder.WriteString(column.Name)
-			_, _ = sqlStringBuilder.WriteString("`")
-		}
-		_, _ = sqlStringBuilder.WriteString(")")
 	}
+	_, _ = sqlStringBuilder.WriteString(")")
 	_, _ = sqlStringBuilder.WriteString(" SELECT ")
 	if newTableColumns[0].Default != "" {
 		_, _ = sqlStringBuilder.WriteString("COALESCE(`")
@@ -413,8 +406,9 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 			_, _ = sqlStringBuilder.WriteString("`")
 		}
 	}
-	_, _ = sqlStringBuilder.WriteString(" FROM ")
+	_, _ = sqlStringBuilder.WriteString(" FROM `")
 	_, _ = sqlStringBuilder.WriteString(tableName)
+	_, _ = sqlStringBuilder.WriteString("`")
 
 	if _, err := sess.Exec(sqlStringBuilder.String()); err != nil {
 		return err
