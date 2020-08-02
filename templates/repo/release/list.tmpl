@@ -3,20 +3,17 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<h2 class="ui header">
-			<div class="ui compact left small menu">
-				<a class="{{if (not .PageIsTagList)}}active{{end}} item" href="{{.RepoLink}}/releases">{{.i18n.Tr "repo.release.releases"}}</a>
-				<a class="{{if .PageIsTagList}}active{{end}} item" href="{{.RepoLink}}/tags">{{.i18n.Tr "repo.release.tags"}}</a>
-			</div>
-			{{if .CanCreateRelease}}
-				<div class="ui right">
-					<a class="ui small green button" href="{{$.RepoLink}}/releases/new">
-						{{.i18n.Tr "repo.release.new_release"}}
-					</a>
-				</div>
-			{{end}}
+		<h2 class="ui compact small menu header">
+			<a class="{{if (not .PageIsTagList)}}active{{end}} item" href="{{.RepoLink}}/releases">{{.i18n.Tr "repo.release.releases"}}</a>
+			<a class="{{if .PageIsTagList}}active{{end}} item" href="{{.RepoLink}}/tags">{{.i18n.Tr "repo.release.tags"}}</a>
 		</h2>
+		{{if (and .CanCreateRelease (not .PageIsTagList))}}
+			<a class="ui right small green button" href="{{$.RepoLink}}/releases/new">
+				{{.i18n.Tr "repo.release.new_release"}}
+			</a>
+		{{end}}
 		{{if .PageIsTagList}}
+		<div class="ui divider"></div>
 		<h4 class="ui top attached header">
 			<div class="five wide column">
 				{{.i18n.Tr "repo.release.tags"}}
