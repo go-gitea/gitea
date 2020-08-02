@@ -256,10 +256,17 @@ func doMigrationTest(t *testing.T, version string) {
 
 	err = models.NewEngine(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)
+	currentEngine.Close()
+
+	err = models.SetEngine()
+	assert.NoError(t, err)
 
 	beans, _ := models.NamesToBean()
 
-	err = models.NewEngine(context.Background(), migrations.RecreateTables(beans...))
+	err = models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+		currentEngine = x
+		return migrations.RecreateTables(beans...)(x)
+	})
 	assert.NoError(t, err)
 
 	currentEngine.Close()
