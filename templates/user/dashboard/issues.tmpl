@@ -142,7 +142,7 @@
 									{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 								{{end}}
 								{{if .Milestone}}
-									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
+									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/milestone/{{.Milestone.ID}}">
 										{{svg "octicon-milestone" 16}} {{.Milestone.Name}}
 									</a>
 								{{end}}
