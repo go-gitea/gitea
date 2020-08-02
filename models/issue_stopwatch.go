@@ -101,6 +101,21 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 			return err
 		}
 	} else {
+		//if another stopwatch is running: stop it
+		exists, sw, err := HasUserStopwatch(user.ID)
+		if err != nil {
+			return err
+		}
+		if exists {
+			issue, err := getIssueByID(x, sw.IssueID)
+			if err != nil {
+				return err
+			}
+			if err := CreateOrStopIssueStopwatch(user, issue); err != nil {
+				return err
+			}
+		}
+
 		// Create stopwatch
 		sw = &Stopwatch{
 			UserID:  user.ID,

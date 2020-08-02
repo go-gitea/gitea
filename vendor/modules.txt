@@ -52,7 +52,7 @@ gitea.com/macaron/toolbox
 # github.com/BurntSushi/toml v0.3.1
 ## explicit
 github.com/BurntSushi/toml
-# github.com/PuerkitoBio/goquery v1.5.0
+# github.com/PuerkitoBio/goquery v1.5.1
 ## explicit
 github.com/PuerkitoBio/goquery
 # github.com/PuerkitoBio/purell v1.1.1
@@ -62,7 +62,7 @@ github.com/PuerkitoBio/urlesc
 # github.com/RoaringBitmap/roaring v0.4.23
 ## explicit
 github.com/RoaringBitmap/roaring
-# github.com/alecthomas/chroma v0.7.3
+# github.com/alecthomas/chroma v0.8.0
 ## explicit
 github.com/alecthomas/chroma
 github.com/alecthomas/chroma/formatters/html
@@ -93,10 +93,11 @@ github.com/alecthomas/chroma/lexers/v
 github.com/alecthomas/chroma/lexers/w
 github.com/alecthomas/chroma/lexers/x
 github.com/alecthomas/chroma/lexers/y
+github.com/alecthomas/chroma/lexers/z
 github.com/alecthomas/chroma/styles
 # github.com/andybalholm/brotli v0.0.0-20190621154722-5f990b63d2d6
 github.com/andybalholm/brotli
-# github.com/andybalholm/cascadia v1.0.0
+# github.com/andybalholm/cascadia v1.1.0
 github.com/andybalholm/cascadia
 # github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239
 github.com/anmitsu/go-shlex
@@ -356,7 +357,7 @@ github.com/go-redis/redis/internal/hashtag
 github.com/go-redis/redis/internal/pool
 github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
-# github.com/go-sql-driver/mysql v1.4.1
+# github.com/go-sql-driver/mysql v1.5.0
 ## explicit
 github.com/go-sql-driver/mysql
 # github.com/go-stack/stack v1.8.0
@@ -400,9 +401,9 @@ github.com/golang/gddo/httputil/header
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
-# github.com/google/go-github/v24 v24.0.1
+# github.com/google/go-github/v32 v32.1.0
 ## explicit
-github.com/google/go-github/v24/github
+github.com/google/go-github/v32/github
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
 # github.com/google/uuid v1.1.1
@@ -714,7 +715,7 @@ github.com/xi2/xz
 # github.com/yohcop/openid-go v1.0.0
 ## explicit
 github.com/yohcop/openid-go
-# github.com/yuin/goldmark v1.1.32
+# github.com/yuin/goldmark v1.2.1
 ## explicit
 github.com/yuin/goldmark
 github.com/yuin/goldmark/ast
@@ -850,7 +851,6 @@ golang.org/x/xerrors/internal
 # google.golang.org/appengine v1.6.5
 ## explicit
 google.golang.org/appengine
-google.golang.org/appengine/cloudsql
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/app_identity
 google.golang.org/appengine/internal/base
@@ -917,7 +917,7 @@ strk.kbt.io/projects/go/libravatar
 # xorm.io/builder v0.3.7
 ## explicit
 xorm.io/builder
-# xorm.io/xorm v1.0.2
+# xorm.io/xorm v1.0.4-0.20200718080127-318102c9ff87
 ## explicit
 xorm.io/xorm
 xorm.io/xorm/caches

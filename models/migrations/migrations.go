@@ -218,6 +218,10 @@ var migrations = []Migration{
 	NewMigration("Add KeepActivityPrivate to User table", addKeepActivityPrivateUserColumn),
 	// v142 -> v143
 	NewMigration("Ensure Repository.IsArchived is not null", setIsArchivedToFalse),
+	// v143 -> v144
+	NewMigration("recalculate Stars number for all user", recalculateStars),
+	// v144 -> v145
+	NewMigration("update Matrix Webhook http method to 'PUT'", updateMatrixWebhookHTTPMethod),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -66,13 +66,13 @@ func TestGetContents(t *testing.T) {
 	t.Run("Get README.md contents with GetContents()", func(t *testing.T) {
 		fileContentResponse, err := GetContents(ctx.Repo.Repository, treePath, ref, false)
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("Get REAMDE.md contents with ref as empty string (should then use the repo's default branch) with GetContents()", func(t *testing.T) {
 		fileContentResponse, err := GetContents(ctx.Repo.Repository, treePath, "", false)
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 }
 
@@ -101,13 +101,13 @@ func TestGetContentsOrListForDir(t *testing.T) {
 	t.Run("Get root dir contents with GetContentsOrList()", func(t *testing.T) {
 		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, ref)
 		assert.EqualValues(t, expectedContentsListResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("Get root dir contents with ref as empty string (should then use the repo's default branch) with GetContentsOrList()", func(t *testing.T) {
 		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, "")
 		assert.EqualValues(t, expectedContentsListResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 }
 
@@ -129,13 +129,13 @@ func TestGetContentsOrListForFile(t *testing.T) {
 	t.Run("Get README.md contents with GetContentsOrList()", func(t *testing.T) {
 		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, ref)
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 
 	t.Run("Get REAMDE.md contents with ref as empty string (should then use the repo's default branch) with GetContentsOrList()", func(t *testing.T) {
 		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, "")
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	})
 }
 

@@ -46,6 +46,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 				rel.Publisher, rel.Repo, git.TagPrefix+rel.TagName,
 				git.EmptySHA, commit.ID.String(), repository.NewPushCommits())
 			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
+			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
@@ -53,7 +54,6 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = timeutil.TimeStampNow()
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
@@ -95,8 +95,8 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 	return nil
 }
 
-// UpdateRelease updates information of a release.
-func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string) (err error) {
+// UpdateReleaseOrCreatReleaseFromTag updates information of a release or create release from tag.
+func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string, isCreate bool) (err error) {
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
@@ -110,7 +110,14 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 		log.Error("AddReleaseAttachments: %v", err)
 	}
 
-	notification.NotifyUpdateRelease(doer, rel)
+	if !isCreate {
+		notification.NotifyUpdateRelease(doer, rel)
+		return
+	}
+
+	if !rel.IsDraft {
+		notification.NotifyNewRelease(rel)
+	}
 
 	return err
 }
