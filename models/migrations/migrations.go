@@ -344,7 +344,7 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	// TODO: This will not work if there are foreign keys
 
 	tableName := sess.Engine().TableName(bean)
-	tempTableName := fmt.Sprintf("t__%s", tableName)
+	tempTableName := fmt.Sprintf("tempzzz_%s_zzztemp", tableName)
 
 	// We need to move the old table away and create a new one with the correct columns
 	// We will need to do this in stages to prevent data loss
