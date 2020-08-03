@@ -666,7 +666,7 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.HTML(200, tplPullFiles)
 }
 
-// UpdatePullRequest merge master into PR
+// UpdatePullRequest merge PR's baseBranch into headBranch
 func UpdatePullRequest(ctx *context.Context) {
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
