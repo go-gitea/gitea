@@ -23,6 +23,60 @@
   },
   "basePath": "{{AppSubUrl}}/api/v1",
   "paths": {
+    "/admin/cron": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List cron tasks",
+        "operationId": "adminCronList",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CronList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/admin/cron/{task}": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Run cron task",
+        "operationId": "adminCronList",
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/admin/orgs": {
       "get": {
         "produces": [
@@ -11878,6 +11932,36 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Cron": {
+      "description": "Cron represents a Cron task",
+      "type": "object",
+      "properties": {
+        "exec_times": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ExecTimes"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "next": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Next"
+        },
+        "prev": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Prev"
+        },
+        "schedule": {
+          "type": "string",
+          "x-go-name": "Schedule"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "DeleteEmailOption": {
       "description": "DeleteEmailOption options when deleting email addresses",
       "type": "object",
@@ -14963,6 +15047,15 @@
       "description": "ContentsResponse",
       "schema": {
         "$ref": "#/definitions/ContentsResponse"
+      }
+    },
+    "CronList": {
+      "description": "CronList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Cron"
+        }
       }
     },
     "DeployKey": {
