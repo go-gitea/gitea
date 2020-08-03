@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/org"
@@ -97,6 +98,11 @@ func Profile(ctx *context.Context) {
 	// so everyone would get the same empty heatmap
 	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate
 	ctx.Data["HeatmapUser"] = ctxUser.Name
+	// If desc is one line dont render
+	if strings.Count(strings.TrimSpace(ctx.User.Description), "\n") != 0 {
+		ctx.Data["RenderedDescription"] = string(markdown.Render([]byte(ctxUser.Description), ctx.Repo.RepoLink, map[string]string{"mode": "document"}))
+	}
+
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
 	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)
