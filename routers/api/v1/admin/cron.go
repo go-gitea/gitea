@@ -58,7 +58,7 @@ func GetCron(ctx *context.APIContext) {
 
 // PostCronTask api for getting cron tasks
 func PostCronTask(ctx *context.APIContext) {
-	// swagger:operation POST /admin/cron/{task} admin adminCronList
+	// swagger:operation POST /admin/cron/{task} admin adminCronRun
 	// ---
 	// summary: Run cron task
 	// produces:
