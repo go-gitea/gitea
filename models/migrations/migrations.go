@@ -351,12 +351,15 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	//
 	// First create the temporary table
 	if err := sess.Table(tempTableName).CreateTable(bean); err != nil {
+		log.Error("Unable to create table %s. Error: %v", tempTableName, err)
 		return err
 	}
 
 	// Work out the column names from the bean - these are the columns to select from the old table and install into the new table
 	table, err := sess.Engine().TableInfo(bean)
 	if err != nil {
+		log.Error("Unable to get table info. Error: %v", err)
+
 		return err
 	}
 	newTableColumns := table.Columns()
@@ -365,7 +368,10 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	}
 
 	if setting.Database.UseMSSQL {
-		sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", tempTableName))
+		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", tempTableName)); err != nil {
+			log.Error("Unable to set identity insert for table %s. Error: %v", tempTableName, err)
+			return err
+		}
 	}
 
 	sqlStringBuilder := &strings.Builder{}
@@ -411,11 +417,15 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	_, _ = sqlStringBuilder.WriteString("`")
 
 	if _, err := sess.Exec(sqlStringBuilder.String()); err != nil {
+		log.Error("Unable to set copy data in to temp table %s. Error: %v", tempTableName, err)
 		return err
 	}
 
 	if setting.Database.UseMSSQL {
-		sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", tempTableName))
+		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", tempTableName)); err != nil {
+			log.Error("Unable to switch off identity insert for table %s. Error: %v", tempTableName, err)
+			return err
+		}
 	}
 
 	switch {
@@ -424,31 +434,37 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	case setting.Database.UseMySQL:
 		// SQLite and MySQL will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
+			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
 			return err
 		}
 
 		// SQLite and MySQL will move all the constraints from the temporary table to the new table
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
 			return err
 		}
 	case setting.Database.UsePostgreSQL:
 		// CASCADE causes postgres to drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s` CASCADE", tableName)); err != nil {
+			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
 			return err
 		}
 
 		// CASCADE causes postgres to move all the constraints from the temporary table to the new table
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
 			return err
 		}
 	case setting.Database.UseMSSQL:
 		// MSSQL will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
+			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
 			return err
 		}
 
 		// MSSQL sp_rename will move all the constraints from the temporary table to the new table
 		if _, err := sess.Exec(fmt.Sprintf("sp_rename `%s`,`%s`", tempTableName, tableName)); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
 			return err
 		}
 
