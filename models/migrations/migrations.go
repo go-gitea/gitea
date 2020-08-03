@@ -365,13 +365,13 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	}
 
 	if setting.Database.UseMSSQL {
-		sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT %s ON", tempTableName))
+		sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", tempTableName))
 	}
 
 	sqlStringBuilder := &strings.Builder{}
-	_, _ = sqlStringBuilder.WriteString("INSERT INTO ")
+	_, _ = sqlStringBuilder.WriteString("INSERT INTO `")
 	_, _ = sqlStringBuilder.WriteString(tempTableName)
-	_, _ = sqlStringBuilder.WriteString(" (`")
+	_, _ = sqlStringBuilder.WriteString("` (`")
 	_, _ = sqlStringBuilder.WriteString(newTableColumns[0].Name)
 	_, _ = sqlStringBuilder.WriteString("`")
 	for _, column := range newTableColumns[1:] {
@@ -415,7 +415,7 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	}
 
 	if setting.Database.UseMSSQL {
-		sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT %s OFF", tempTableName))
+		sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", tempTableName))
 	}
 
 	switch {
@@ -448,7 +448,7 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 		}
 
 		// MSSQL sp_rename will move all the constraints from the temporary table to the new table
-		if _, err := sess.Exec(fmt.Sprintf("sp_rename '[%s]','[%s]'", tempTableName, tableName)); err != nil {
+		if _, err := sess.Exec(fmt.Sprintf("sp_rename `%s`,`%s`", tempTableName, tableName)); err != nil {
 			return err
 		}
 
