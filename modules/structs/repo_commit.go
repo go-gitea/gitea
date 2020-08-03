@@ -41,4 +41,5 @@ type Commit struct {
 	Author     *User         `json:"author"`
 	Committer  *User         `json:"committer"`
 	Parents    []*CommitMeta `json:"parents"`
+	Files      []string      `json:"files"`
 }

@@ -252,6 +252,14 @@ func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Comm
 		}
 	}
 
+	// Retrieve files affected by the commit
+	fileStatus, err := git.GetCommitFileStatus(repo.RepoPath(), commit.ID.String())
+		if err != nil {
+			return nil, err
+		}
+	affectedFiles :=  append(fileStatus.Added, fileStatus.Removed...)
+	affectedFiles = append(affectedFiles, fileStatus.Modified...)
+
 	return &api.Commit{
 		CommitMeta: &api.CommitMeta{
 			URL: repo.APIURL() + "/git/commits/" + commit.ID.String(),
@@ -283,5 +291,6 @@ func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Comm
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
+		Files: affectedFiles,
 	}, nil
 }
