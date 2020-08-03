@@ -109,14 +109,14 @@ func (opts *Options) handle(ctx *macaron.Context, log *log.Logger, opt *Options)
 		}
 	}
 
-	var f http.File
-	split := commaRe.Split(ctx.Req.Header.Get("Accept-Encoding"), -1)
 	encodings := make(map[string]bool)
-	for i := range split {
-		encodings[split[i]] = true
+	for _, encoding := range commaRe.Split(ctx.Req.Header.Get("Accept-Encoding"), -1) {
+		encodings[encoding] = true
 	}
 
+	var f http.File
 	var err error
+
 	if encodings["br"] {
 		f, err = opt.FileSystem.Open(file + ".br")
 		if f != nil {
