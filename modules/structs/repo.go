@@ -237,18 +237,19 @@ type MigrateRepoOption struct {
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true
-	RepoName        string `json:"repo_name" binding:"Required"`
-	Mirror          bool   `json:"mirror"`
-	Private         bool   `json:"private"`
-	Description     string `json:"description"`
-	OriginalURL     string
-	GitServiceType  GitServiceType
-	Wiki            bool
-	Issues          bool
-	Milestones      bool
-	Labels          bool
-	Releases        bool
-	Comments        bool
-	PullRequests    bool
-	MigrateToRepoID int64
+	RepoName             string `json:"repo_name" binding:"Required"`
+	Mirror               bool   `json:"mirror"`
+	Private              bool   `json:"private"`
+	Description          string `json:"description"`
+	OriginalURL          string
+	GitServiceType       GitServiceType
+	Wiki                 bool
+	Issues               bool
+	Milestones           bool
+	Labels               bool
+	Releases             bool
+	Comments             bool
+	PullRequests         bool
+	MigrateToRepoID      int64
+	OverwritePreExisting bool
 }

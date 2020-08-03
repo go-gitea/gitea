@@ -119,21 +119,22 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	var opts = migrations.MigrateOptions{
-		CloneAddr:      remoteAddr,
-		RepoName:       form.RepoName,
-		Description:    form.Description,
-		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror,
-		AuthUsername:   form.AuthUsername,
-		AuthPassword:   form.AuthPassword,
-		Wiki:           form.Wiki,
-		Issues:         form.Issues,
-		Milestones:     form.Milestones,
-		Labels:         form.Labels,
-		Comments:       true,
-		PullRequests:   form.PullRequests,
-		Releases:       form.Releases,
-		GitServiceType: gitServiceType,
+		CloneAddr:            remoteAddr,
+		RepoName:             form.RepoName,
+		Description:          form.Description,
+		Private:              form.Private || setting.Repository.ForcePrivate,
+		Mirror:               form.Mirror,
+		AuthUsername:         form.AuthUsername,
+		AuthPassword:         form.AuthPassword,
+		Wiki:                 form.Wiki,
+		Issues:               form.Issues,
+		Milestones:           form.Milestones,
+		Labels:               form.Labels,
+		Comments:             true,
+		PullRequests:         form.PullRequests,
+		Releases:             form.Releases,
+		GitServiceType:       gitServiceType,
+		OverwritePreExisting: form.OverwritePreExisting,
 	}
 	if opts.Mirror {
 		opts.Issues = false
@@ -145,13 +146,14 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	repo, err := repo_module.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
-		Name:           opts.RepoName,
-		Description:    opts.Description,
-		OriginalURL:    form.CloneAddr,
-		GitServiceType: gitServiceType,
-		IsPrivate:      opts.Private,
-		IsMirror:       opts.Mirror,
-		Status:         models.RepositoryBeingMigrated,
+		Name:                 opts.RepoName,
+		Description:          opts.Description,
+		OriginalURL:          form.CloneAddr,
+		GitServiceType:       gitServiceType,
+		IsPrivate:            opts.Private,
+		IsMirror:             opts.Mirror,
+		Status:               models.RepositoryBeingMigrated,
+		OverwritePreExisting: opts.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories,
 	})
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, remoteAddr, err)
@@ -196,6 +198,8 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 	switch {
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or explicitly overwrite them.")
 	case migrations.IsRateLimitError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):

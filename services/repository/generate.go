@@ -64,7 +64,7 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 
 		return nil
 	}); err != nil {
-		if generateRepo != nil {
+		if generateRepo != nil && generateRepo.ID > 0 {
 			if errDelete := models.DeleteRepository(doer, owner.ID, generateRepo.ID); errDelete != nil {
 				log.Error("Rollback deleteRepository: %v", errDelete)
 			}

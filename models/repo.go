@@ -1073,7 +1073,7 @@ func IsUsableRepoName(name string) error {
 }
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(ctx DBContext, doer, u *User, repo *Repository) (err error) {
+func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteOrAdopt bool) (err error) {
 	if err = IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -1083,6 +1083,15 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository) (err error
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
 		return ErrRepoAlreadyExist{u.Name, repo.Name}
+	}
+
+	repoPath := RepoPath(u.Name, repo.Name)
+	if !overwriteOrAdopt && com.IsExist(repoPath) {
+		log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
+		return ErrRepoFilesAlreadyExist{
+			Uname: u.Name,
+			Name:  repo.Name,
+		}
 	}
 
 	if _, err = ctx.e.Insert(repo); err != nil {

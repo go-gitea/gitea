@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/huandu/xstrings"
 	"github.com/unknwon/com"
@@ -244,8 +245,9 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 		IsFsckEnabled: templateRepo.IsFsckEnabled,
 		TemplateID:    templateRepo.ID,
 	}
+	overwriteOrAdopt := opts.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories
 
-	if err = models.CreateRepository(ctx, doer, owner, generateRepo); err != nil {
+	if err = models.CreateRepository(ctx, doer, owner, generateRepo, overwriteOrAdopt); err != nil {
 		return nil, err
 	}
 
