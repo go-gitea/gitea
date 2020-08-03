@@ -72,7 +72,7 @@ type FindNotificationOptions struct {
 	UserID            int64
 	RepoID            int64
 	IssueID           int64
-	Status            NotificationStatus
+	Status            []NotificationStatus
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
 }
@@ -89,8 +89,8 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"notification.issue_id": opts.IssueID})
 	}
-	if opts.Status != 0 {
-		cond = cond.And(builder.Eq{"notification.status": opts.Status})
+	if len(opts.Status) > 0 {
+		cond = cond.And(builder.In("notification.status", opts.Status))
 	}
 	if opts.UpdatedAfterUnix != 0 {
 		cond = cond.And(builder.Gte{"notification.updated_unix": opts.UpdatedAfterUnix})

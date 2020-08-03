@@ -5,6 +5,7 @@
 package cache
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/git"
@@ -34,9 +35,14 @@ func NewLastCommitCache(repoPath string, gitRepo *git.Repository, ttl int64) *La
 	}
 }
 
+func (c LastCommitCache) getCacheKey(repoPath, ref, entryPath string) string {
+	hashBytes := sha256.Sum256([]byte(fmt.Sprintf("%s:%s:%s", repoPath, ref, entryPath)))
+	return fmt.Sprintf("last_commit:%x", hashBytes)
+}
+
 // Get get the last commit information by commit id and entry path
 func (c LastCommitCache) Get(ref, entryPath string) (*object.Commit, error) {
-	v := c.Cache.Get(fmt.Sprintf("last_commit:%s:%s:%s", c.repoPath, ref, entryPath))
+	v := c.Cache.Get(c.getCacheKey(c.repoPath, ref, entryPath))
 	if vs, ok := v.(string); ok {
 		log.Trace("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, vs)
 		if commit, ok := c.commitCache[vs]; ok {
@@ -60,5 +66,5 @@ func (c LastCommitCache) Get(ref, entryPath string) (*object.Commit, error) {
 // Put put the last commit id with commit and entry path
 func (c LastCommitCache) Put(ref, entryPath, commitID string) error {
 	log.Trace("LastCommitCache save: [%s:%s:%s]", ref, entryPath, commitID)
-	return c.Cache.Put(fmt.Sprintf("last_commit:%s:%s:%s", c.repoPath, ref, entryPath), commitID, c.ttl)
+	return c.Cache.Put(c.getCacheKey(c.repoPath, ref, entryPath), commitID, c.ttl)
 }

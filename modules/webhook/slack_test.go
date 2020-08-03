@@ -20,13 +20,13 @@ func TestSlackIssuesPayloadOpened(t *testing.T) {
 
 	p.Action = api.HookIssueOpened
 	pl, err := getSlackIssuesPayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue opened: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
 
 	p.Action = api.HookIssueClosed
 	pl, err = getSlackIssuesPayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue closed: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
 }
@@ -39,7 +39,7 @@ func TestSlackIssueCommentPayload(t *testing.T) {
 	}
 
 	pl, err := getSlackIssueCommentPayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on issue <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
@@ -53,7 +53,7 @@ func TestSlackPullRequestCommentPayload(t *testing.T) {
 	}
 
 	pl, err := getSlackIssueCommentPayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on pull request <http://localhost:3000/test/repo/pulls/2|#2 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)
@@ -67,7 +67,7 @@ func TestSlackReleasePayload(t *testing.T) {
 	}
 
 	pl, err := getSlackReleasePayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Release created: <http://localhost:3000/test/repo/src/v1.0|v1.0> by <https://try.gitea.io/user1|user1>", pl.Text)
@@ -81,7 +81,7 @@ func TestSlackPullRequestPayload(t *testing.T) {
 	}
 
 	pl, err := getSlackPullRequestPayload(p, sl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, pl)
 
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#2 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)

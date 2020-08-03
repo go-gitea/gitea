@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -164,9 +165,16 @@ func NewFuncMap() []template.FuncMap {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
 			return strings.HasPrefix(mimeType, "image/")
 		},
-		"TabSizeClass": func(ec *editorconfig.Editorconfig, filename string) string {
+		"TabSizeClass": func(ec interface{}, filename string) string {
+			var (
+				value *editorconfig.Editorconfig
+				ok    bool
+			)
 			if ec != nil {
-				def, err := ec.GetDefinitionForFilename(filename)
+				if value, ok = ec.(*editorconfig.Editorconfig); !ok || value == nil {
+					return "tab-size-8"
+				}
+				def, err := value.GetDefinitionForFilename(filename)
 				if err != nil {
 					log.Error("tab size class: getting definition for filename: %v", err)
 					return "tab-size-8"
@@ -282,8 +290,8 @@ func NewFuncMap() []template.FuncMap {
 				return ""
 			}
 		},
-		"NotificationSettings": func() map[string]int {
-			return map[string]int{
+		"NotificationSettings": func() map[string]interface{} {
+			return map[string]interface{}{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
 				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
@@ -432,9 +440,19 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 	}}
 }
 
+var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
+var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
+
 // SVG render icons
 func SVG(icon string, size int) template.HTML {
-	return template.HTML(fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d" aria-hidden="true"><use xlink:href="#%s" /></svg>`, icon, size, size, icon))
+	if svgStr, ok := svg.SVGs[icon]; ok {
+		if size != 16 {
+			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
+			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
+		}
+		return template.HTML(svgStr)
+	}
+	return template.HTML("")
 }
 
 // Safe render raw as HTML
@@ -621,7 +639,9 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionApprovePullRequest:
 		return "check"
 	case models.ActionRejectPullRequest:
-		return "request-changes"
+		return "diff"
+	case models.ActionPublishRelease:
+		return "tag"
 	default:
 		return "question"
 	}
