@@ -38,11 +38,6 @@
 								<li>
 									<div class="render-content markdown">{{$.RenderedDescription|Str2html}}</div>
 								</li>
-							{{else if .Owner.Description}}
-								<li>
-									{{svg "octicon-info" 16}}
-									<span>{{.Owner.Description}}</span>
-								</li>
 							{{end}}
 							{{range .OpenIDs}}
 								{{if .Show}}
