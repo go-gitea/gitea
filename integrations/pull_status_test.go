@@ -11,7 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -48,20 +47,20 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 
 		commitID := path.Base(commitURL)
 
-		statusList := []models.CommitStatusState{
-			models.CommitStatusPending,
-			models.CommitStatusError,
-			models.CommitStatusFailure,
-			models.CommitStatusWarning,
-			models.CommitStatusSuccess,
+		statusList := []api.CommitStatusState{
+			api.CommitStatusPending,
+			api.CommitStatusError,
+			api.CommitStatusFailure,
+			api.CommitStatusWarning,
+			api.CommitStatusSuccess,
 		}
 
-		statesIcons := map[models.CommitStatusState]string{
-			models.CommitStatusPending: "circle icon yellow",
-			models.CommitStatusSuccess: "check icon green",
-			models.CommitStatusError:   "warning icon red",
-			models.CommitStatusFailure: "remove icon red",
-			models.CommitStatusWarning: "warning sign icon yellow",
+		statesIcons := map[api.CommitStatusState]string{
+			api.CommitStatusPending: "circle icon yellow",
+			api.CommitStatusSuccess: "check icon green",
+			api.CommitStatusError:   "warning icon red",
+			api.CommitStatusFailure: "remove icon red",
+			api.CommitStatusWarning: "warning sign icon yellow",
 		}
 
 		// Update commit status, and check if icon is updated as well

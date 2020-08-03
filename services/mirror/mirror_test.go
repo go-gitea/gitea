@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
 	release_service "code.gitea.io/gitea/services/release"
 
@@ -37,7 +38,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		Releases:    false,
 	}
 
-	mirrorRepo, err := models.CreateRepository(user, user, models.CreateRepoOptions{
+	mirrorRepo, err := repository.CreateRepository(user, user, models.CreateRepoOptions{
 		Name:        opts.RepoName,
 		Description: opts.Description,
 		IsPrivate:   opts.Private,
@@ -46,7 +47,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	mirror, err := models.MigrateRepositoryGitData(user, user, mirrorRepo, opts)
+	mirror, err := repository.MigrateRepositoryGitData(user, user, mirrorRepo, opts)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(repoPath)

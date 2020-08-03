@@ -1,10 +1,13 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -32,12 +35,21 @@ func ListHooks(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
-	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID)
+
+	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(500, "GetWebhooksByRepoID", err)
+		ctx.Error(http.StatusInternalServerError, "GetWebhooksByRepoID", err)
 		return
 	}
 
@@ -45,7 +57,7 @@ func ListHooks(ctx *context.APIContext) {
 	for i := range hooks {
 		apiHooks[i] = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
 	}
-	ctx.JSON(200, &apiHooks)
+	ctx.JSON(http.StatusOK, &apiHooks)
 }
 
 // GetHook get a repo's hook by id
@@ -75,13 +87,16 @@ func GetHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	repo := ctx.Repo
 	hookID := ctx.ParamsInt64(":id")
 	hook, err := utils.GetRepoHook(ctx, repo.Repository.ID, hookID)
 	if err != nil {
 		return
 	}
-	ctx.JSON(200, convert.ToHook(repo.RepoLink, hook))
+	ctx.JSON(http.StatusOK, convert.ToHook(repo.RepoLink, hook))
 }
 
 // TestHook tests a hook
@@ -111,9 +126,10 @@ func TestHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	if ctx.Repo.Commit == nil {
 		// if repo does not have any commits, then don't send a webhook
-		ctx.Status(204)
+		ctx.Status(http.StatusNoContent)
 		return
 	}
 
@@ -134,11 +150,11 @@ func TestHook(ctx *context.APIContext) {
 		Pusher: convert.ToUser(ctx.User, ctx.IsSigned, false),
 		Sender: convert.ToUser(ctx.User, ctx.IsSigned, false),
 	}); err != nil {
-		ctx.Error(500, "PrepareWebhook: ", err)
+		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // CreateHook create a hook for a repository
@@ -242,9 +258,9 @@ func DeleteHook(ctx *context.APIContext) {
 		if models.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "DeleteWebhookByRepoID", err)
+			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByRepoID", err)
 		}
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }

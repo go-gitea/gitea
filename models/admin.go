@@ -20,6 +20,8 @@ type NoticeType int
 const (
 	//NoticeRepository type
 	NoticeRepository NoticeType = iota + 1
+	// NoticeTask type
+	NoticeTask
 )
 
 // Notice represents a system notice for admin.
@@ -36,11 +38,14 @@ func (n *Notice) TrStr() string {
 }
 
 // CreateNotice creates new system notice.
-func CreateNotice(tp NoticeType, desc string) error {
-	return createNotice(x, tp, desc)
+func CreateNotice(tp NoticeType, desc string, args ...interface{}) error {
+	return createNotice(x, tp, desc, args...)
 }
 
-func createNotice(e Engine, tp NoticeType, desc string) error {
+func createNotice(e Engine, tp NoticeType, desc string, args ...interface{}) error {
+	if len(args) > 0 {
+		desc = fmt.Sprintf(desc, args...)
+	}
 	n := &Notice{
 		Type:        tp,
 		Description: desc,
@@ -50,8 +55,8 @@ func createNotice(e Engine, tp NoticeType, desc string) error {
 }
 
 // CreateRepositoryNotice creates new system notice with type NoticeRepository.
-func CreateRepositoryNotice(desc string) error {
-	return createNotice(x, NoticeRepository, desc)
+func CreateRepositoryNotice(desc string, args ...interface{}) error {
+	return createNotice(x, NoticeRepository, desc, args...)
 }
 
 // RemoveAllWithNotice removes all directories in given path and

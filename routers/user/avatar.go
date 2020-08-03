@@ -5,9 +5,12 @@
 package user
 
 import (
+	"errors"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -23,15 +26,43 @@ func Avatar(ctx *context.Context) {
 
 	log.Debug("Asked avatar for user %v and size %v", userName, size)
 
-	user, err := models.GetUserByName(userName)
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.ServerError("Requested avatar for invalid user", err)
-		} else {
-			ctx.ServerError("Retrieving user by name", err)
+	var user *models.User
+	if strings.ToLower(userName) != "ghost" {
+		user, err = models.GetUserByName(userName)
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.ServerError("Requested avatar for invalid user", err)
+			} else {
+				ctx.ServerError("Retrieving user by name", err)
+			}
+			return
 		}
-		return
+	} else {
+		user = models.NewGhostUser()
 	}
 
 	ctx.Redirect(user.RealSizedAvatarLink(size))
+}
+
+// AvatarByEmailHash redirects the browser to the appropriate Avatar link
+func AvatarByEmailHash(ctx *context.Context) {
+	hash := ctx.Params(":hash")
+	if len(hash) == 0 {
+		ctx.ServerError("invalid avatar hash", errors.New("hash cannot be empty"))
+		return
+	}
+	email, err := models.GetEmailForHash(hash)
+	if err != nil {
+		ctx.ServerError("invalid avatar hash", err)
+		return
+	}
+	if len(email) == 0 {
+		ctx.Redirect(base.DefaultAvatarLink())
+		return
+	}
+	size := ctx.QueryInt("size")
+	if size == 0 {
+		size = base.DefaultAvatarSize
+	}
+	ctx.Redirect(base.SizedAvatarLinkWithDomain(email, size))
 }

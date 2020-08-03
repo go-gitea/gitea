@@ -136,3 +136,17 @@ func TestAPIOrgDeny(t *testing.T) {
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 }
+
+func TestAPIGetAll(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	req := NewRequestf(t, "GET", "/api/v1/orgs")
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var apiOrgList []*api.Organization
+	DecodeJSON(t, resp, &apiOrgList)
+
+	assert.Len(t, apiOrgList, 7)
+	assert.Equal(t, "org25", apiOrgList[0].FullName)
+	assert.Equal(t, "public", apiOrgList[0].Visibility)
+}

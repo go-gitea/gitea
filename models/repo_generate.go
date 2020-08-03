@@ -5,16 +5,14 @@
 package models
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
+	"github.com/gobwas/glob"
 	"github.com/unknwon/com"
 )
 
@@ -36,77 +34,35 @@ func (gro GenerateRepoOptions) IsValid() bool {
 	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
 }
 
-// generateRepository initializes repository from template
-func generateRepository(e Engine, repo, templateRepo *Repository) (err error) {
-	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
+// GiteaTemplate holds information about a .gitea/template file
+type GiteaTemplate struct {
+	Path    string
+	Content []byte
 
-	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
+	globs []glob.Glob
+}
+
+// Globs parses the .gitea/template globs or returns them if they were already parsed
+func (gt GiteaTemplate) Globs() []glob.Glob {
+	if gt.globs != nil {
+		return gt.globs
 	}
 
-	defer func() {
-		if err := os.RemoveAll(tmpDir); err != nil {
-			log.Error("RemoveAll: %v", err)
+	gt.globs = make([]glob.Glob, 0)
+	lines := strings.Split(string(util.NormalizeEOL(gt.Content)), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
 		}
-	}()
-
-	if err = generateRepoCommit(e, repo, templateRepo, tmpDir); err != nil {
-		return fmt.Errorf("generateRepoCommit: %v", err)
+		g, err := glob.Compile(line, '/')
+		if err != nil {
+			log.Info("Invalid glob expression '%s' (skipped): %v", line, err)
+			continue
+		}
+		gt.globs = append(gt.globs, g)
 	}
-
-	// re-fetch repo
-	if repo, err = getRepositoryByID(e, repo.ID); err != nil {
-		return fmt.Errorf("getRepositoryByID: %v", err)
-	}
-
-	repo.DefaultBranch = "master"
-	if err = updateRepository(e, repo, false); err != nil {
-		return fmt.Errorf("updateRepository: %v", err)
-	}
-
-	return nil
-}
-
-// GenerateRepository generates a repository from a template
-func GenerateRepository(ctx DBContext, doer, owner *User, templateRepo *Repository, opts GenerateRepoOptions) (_ *Repository, err error) {
-	generateRepo := &Repository{
-		OwnerID:       owner.ID,
-		Owner:         owner,
-		Name:          opts.Name,
-		LowerName:     strings.ToLower(opts.Name),
-		Description:   opts.Description,
-		IsPrivate:     opts.Private,
-		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
-		IsFsckEnabled: templateRepo.IsFsckEnabled,
-		TemplateID:    templateRepo.ID,
-	}
-
-	if err = createRepository(ctx.e, doer, owner, generateRepo); err != nil {
-		return nil, err
-	}
-
-	repoPath := RepoPath(owner.Name, generateRepo.Name)
-	if err = checkInitRepository(repoPath); err != nil {
-		return generateRepo, err
-	}
-
-	return generateRepo, nil
-}
-
-// GenerateGitContent generates git content from a template repository
-func GenerateGitContent(ctx DBContext, templateRepo, generateRepo *Repository) error {
-	if err := generateRepository(ctx.e, generateRepo, templateRepo); err != nil {
-		return err
-	}
-
-	if err := generateRepo.updateSize(ctx.e); err != nil {
-		return fmt.Errorf("failed to update size for repository: %v", err)
-	}
-
-	if err := copyLFS(ctx.e, generateRepo, templateRepo); err != nil {
-		return fmt.Errorf("failed to copy LFS: %v", err)
-	}
-	return nil
+	return gt.globs
 }
 
 // GenerateTopics generates topics from a template repository
@@ -121,13 +77,13 @@ func GenerateTopics(ctx DBContext, templateRepo, generateRepo *Repository) error
 
 // GenerateGitHooks generates git hooks from a template repository
 func GenerateGitHooks(ctx DBContext, templateRepo, generateRepo *Repository) error {
-	generateGitRepo, err := git.OpenRepository(generateRepo.repoPath(ctx.e))
+	generateGitRepo, err := git.OpenRepository(generateRepo.RepoPath())
 	if err != nil {
 		return err
 	}
 	defer generateGitRepo.Close()
 
-	templateGitRepo, err := git.OpenRepository(templateRepo.repoPath(ctx.e))
+	templateGitRepo, err := git.OpenRepository(templateRepo.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -154,7 +110,7 @@ func GenerateGitHooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 
 // GenerateWebhooks generates webhooks from a template repository
 func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) error {
-	templateWebhooks, err := GetWebhooksByRepoID(templateRepo.ID)
+	templateWebhooks, err := GetWebhooksByRepoID(templateRepo.ID, ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -192,7 +148,7 @@ func GenerateAvatar(ctx DBContext, templateRepo, generateRepo *Repository) error
 
 // GenerateIssueLabels generates issue labels from a template repository
 func GenerateIssueLabels(ctx DBContext, templateRepo, generateRepo *Repository) error {
-	templateLabels, err := getLabelsByRepoID(ctx.e, templateRepo.ID, "")
+	templateLabels, err := getLabelsByRepoID(ctx.e, templateRepo.ID, "", ListOptions{})
 	if err != nil {
 		return err
 	}

@@ -38,6 +38,8 @@ type SearchSort interface {
 	RequiresScoring() bool
 	RequiresFields() []string
 
+	Reverse()
+
 	Copy() SearchSort
 }
 
@@ -293,6 +295,12 @@ func (so SortOrder) CacheDescending() []bool {
 	return rv
 }
 
+func (so SortOrder) Reverse() {
+	for _, soi := range so {
+		soi.Reverse()
+	}
+}
+
 // SortFieldType lets you control some internal sort behavior
 // normally leaving this to the zero-value of SortFieldAuto is fine
 type SortFieldType int
@@ -492,6 +500,15 @@ func (s *SortField) Copy() SearchSort {
 	return &rv
 }
 
+func (s *SortField) Reverse() {
+	s.Desc = !s.Desc
+	if s.Missing == SortFieldMissingFirst {
+		s.Missing = SortFieldMissingLast
+	} else {
+		s.Missing = SortFieldMissingFirst
+	}
+}
+
 // SortDocID will sort results by the document identifier
 type SortDocID struct {
 	Desc bool
@@ -533,6 +550,10 @@ func (s *SortDocID) Copy() SearchSort {
 	return &rv
 }
 
+func (s *SortDocID) Reverse() {
+	s.Desc = !s.Desc
+}
+
 // SortScore will sort results by the document match score
 type SortScore struct {
 	Desc bool
@@ -572,6 +593,10 @@ func (s *SortScore) MarshalJSON() ([]byte, error) {
 func (s *SortScore) Copy() SearchSort {
 	rv := *s
 	return &rv
+}
+
+func (s *SortScore) Reverse() {
+	s.Desc = !s.Desc
 }
 
 var maxDistance = string(numeric.MustNewPrefixCodedInt64(math.MaxInt64, 0))
@@ -703,6 +728,10 @@ func (s *SortGeoDistance) MarshalJSON() ([]byte, error) {
 func (s *SortGeoDistance) Copy() SearchSort {
 	rv := *s
 	return &rv
+}
+
+func (s *SortGeoDistance) Reverse() {
+	s.Desc = !s.Desc
 }
 
 type BytesSlice [][]byte

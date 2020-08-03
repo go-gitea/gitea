@@ -7,24 +7,58 @@
 			{{.i18n.Tr "admin.monitor.cron"}}
 		</h4>
 		<div class="ui attached table segment">
+			<form method="post" action="{{AppSubUrl}}/admin">
+				<input type="hidden" name="from" value="monitor"/>
+				{{.CsrfTokenHtml}}
+				<table class="ui very basic striped table">
+					<thead>
+						<tr>
+							<th></th>
+							<th>{{.i18n.Tr "admin.monitor.name"}}</th>
+							<th>{{.i18n.Tr "admin.monitor.schedule"}}</th>
+							<th>{{.i18n.Tr "admin.monitor.next"}}</th>
+							<th>{{.i18n.Tr "admin.monitor.previous"}}</th>
+							<th>{{.i18n.Tr "admin.monitor.execute_times"}}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{range .Entries}}
+							<tr>
+								<td><button type="submit" class="ui green button" name="op" value="{{.Name}}" title="{{$.i18n.Tr "admin.dashboard.operation_run"}}">{{svg "octicon-triangle-right" 16}}</button></td>
+								<td>{{$.i18n.Tr (printf "admin.dashboard.%s" .Name)}}</td>
+								<td>{{.Spec}}</td>
+								<td>{{DateFmtLong .Next}}</td>
+								<td>{{if gt .Prev.Year 1 }}{{DateFmtLong .Prev}}{{else}}N/A{{end}}</td>
+								<td>{{.ExecTimes}}</td>
+							</tr>
+						{{end}}
+					</tbody>
+				</table>
+			</form>
+		</div>
+
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.monitor.queues"}}
+		</h4>
+		<div class="ui attached table segment">
 			<table class="ui very basic striped table">
 				<thead>
 					<tr>
-						<th>{{.i18n.Tr "admin.monitor.name"}}</th>
-						<th>{{.i18n.Tr "admin.monitor.schedule"}}</th>
-						<th>{{.i18n.Tr "admin.monitor.next"}}</th>
-						<th>{{.i18n.Tr "admin.monitor.previous"}}</th>
-						<th>{{.i18n.Tr "admin.monitor.execute_times"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.name"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.type"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.exemplar"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.numberworkers"}}</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
-					{{range .Entries}}
+					{{range .Queues}}
 						<tr>
-							<td>{{.Description}}</td>
-							<td>{{.Spec}}</td>
-							<td>{{DateFmtLong .Next}}</td>
-							<td>{{if gt .Prev.Year 1 }}{{DateFmtLong .Prev}}{{else}}N/A{{end}}</td>
-							<td>{{.ExecTimes}}</td>
+							<td>{{.Name}}</td>
+							<td>{{.Type}}</td>
+							<td>{{.ExemplarType}}</td>
+							<td>{{$sum := .NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+							<td><a href="{{$.Link}}/queue/{{.QID}}" class="button">{{if lt $sum 0}}{{$.i18n.Tr "admin.monitor.queue.review"}}{{else}}{{$.i18n.Tr "admin.monitor.queue.review_add"}}{{end}}</a>
 						</tr>
 					{{end}}
 				</tbody>
@@ -42,6 +76,7 @@
 						<th>{{.i18n.Tr "admin.monitor.desc"}}</th>
 						<th>{{.i18n.Tr "admin.monitor.start"}}</th>
 						<th>{{.i18n.Tr "admin.monitor.execute_time"}}</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -51,11 +86,23 @@
 							<td>{{.Description}}</td>
 							<td>{{DateFmtLong .Start}}</td>
 							<td>{{TimeSince .Start $.Lang}}</td>
+							<td><a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Description}}"><i class="close icon text red"></i></a></td>
 						</tr>
 					{{end}}
 				</tbody>
 			</table>
 		</div>
 	</div>
+</div>
+<div class="ui small basic delete modal">
+	<div class="ui icon header">
+		<i class="close icon"></i>
+		{{.i18n.Tr "admin.monitor.process.cancel"}}
+	</div>
+	<div class="content">
+		<p>{{$.i18n.Tr "admin.monitor.process.cancel_notices" `<span class="name"></span>` | Safe}}</p>
+		<p>{{$.i18n.Tr "admin.monitor.process.cancel_desc"}}</p>
+	</div>
+	{{template "base/delete_modal_actions" .}}
 </div>
 {{template "base/footer" .}}

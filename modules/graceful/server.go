@@ -7,10 +7,12 @@ package graceful
 
 import (
 	"crypto/tls"
+	"io/ioutil"
 	"net"
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -47,7 +49,7 @@ type Server struct {
 
 // NewServer creates a server on network at provided address
 func NewServer(network, address string) *Server {
-	if Manager.IsChild() {
+	if GetManager().IsChild() {
 		log.Info("Restarting new server: %s:%s on PID: %d", network, address, os.Getpid())
 	} else {
 		log.Info("Starting new server: %s:%s on PID: %d", network, address, os.Getpid())
@@ -99,12 +101,25 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFuncti
 	}
 
 	config.Certificates = make([]tls.Certificate, 1)
-	var err error
-	config.Certificates[0], err = tls.LoadX509KeyPair(certFile, keyFile)
+
+	certPEMBlock, err := ioutil.ReadFile(certFile)
 	if err != nil {
 		log.Error("Failed to load https cert file %s for %s:%s: %v", certFile, srv.network, srv.address, err)
 		return err
 	}
+
+	keyPEMBlock, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		log.Error("Failed to load https key file %s for %s:%s: %v", keyFile, srv.network, srv.address, err)
+		return err
+	}
+
+	config.Certificates[0], err = tls.X509KeyPair(certPEMBlock, keyPEMBlock)
+	if err != nil {
+		log.Error("Failed to create certificate from cert file %s and key file %s for %s:%s: %v", certFile, keyFile, srv.network, srv.address, err)
+		return err
+	}
+
 	return srv.ListenAndServeTLSConfig(config, serve)
 }
 
@@ -138,12 +153,12 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 func (srv *Server) Serve(serve ServeFunction) error {
 	defer log.Debug("Serve() returning... (PID: %d)", syscall.Getpid())
 	srv.setState(stateRunning)
-	Manager.RegisterServer()
+	GetManager().RegisterServer()
 	err := serve(srv.listener)
 	log.Debug("Waiting for connections to finish... (PID: %d)", syscall.Getpid())
 	srv.wg.Wait()
 	srv.setState(stateTerminate)
-	Manager.ServerDone()
+	GetManager().ServerDone()
 	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
 	if err != nil && strings.Contains(err.Error(), "use of closed") {
 		return nil
@@ -201,9 +216,12 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 		}
 	}
 
+	closed := int32(0)
+
 	c = wrappedConn{
 		Conn:   c,
 		server: wl.server,
+		closed: &closed,
 	}
 
 	wl.server.wg.Add(1)
@@ -227,12 +245,23 @@ func (wl *wrappedListener) File() (*os.File, error) {
 type wrappedConn struct {
 	net.Conn
 	server *Server
+	closed *int32
 }
 
 func (w wrappedConn) Close() error {
-	err := w.Conn.Close()
-	if err == nil {
+	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
+		defer func() {
+			if err := recover(); err != nil {
+				select {
+				case <-GetManager().IsHammer():
+					// Likely deadlocked request released at hammertime
+					log.Warn("Panic during connection close! %v. Likely there has been a deadlocked request which has been released by forced shutdown.", err)
+				default:
+					log.Error("Panic during connection close! %v", err)
+				}
+			}
+		}()
 		w.server.wg.Done()
 	}
-	return err
+	return w.Conn.Close()
 }

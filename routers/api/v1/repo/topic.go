@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListTopics returns list of current topics for repo
@@ -33,18 +34,25 @@ func ListTopics(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicNames"
 
 	topics, err := models.FindTopics(&models.FindTopicOptions{
-		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
 		log.Error("ListTopics failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"message": "ListTopics failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -82,6 +90,8 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/invalidTopicsError"
 
 	topicNames := form.Topics
 	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topicNames)
@@ -105,9 +115,7 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	err := models.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"message": "Save topics failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -140,11 +148,16 @@ func AddTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/invalidTopicsError"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !models.ValidateTopic(topicName) {
-		ctx.Error(http.StatusUnprocessableEntity, "", "Topic name is invalid")
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+			"invalidTopics": topicName,
+			"message":       "Topic name is invalid",
+		})
 		return
 	}
 
@@ -154,9 +167,7 @@ func AddTopic(ctx *context.APIContext) {
 	})
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"message": "ListTopics failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 	if len(topics) >= 25 {
@@ -169,9 +180,7 @@ func AddTopic(ctx *context.APIContext) {
 	_, err = models.AddTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"message": "AddTopic failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -204,19 +213,23 @@ func DeleteTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/invalidTopicsError"
+
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !models.ValidateTopic(topicName) {
-		ctx.Error(http.StatusUnprocessableEntity, "", "Topic name is invalid")
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+			"invalidTopics": topicName,
+			"message":       "Topic name is invalid",
+		})
 		return
 	}
 
 	topic, err := models.DeleteTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("DeleteTopic failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"message": "DeleteTopic failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -228,7 +241,7 @@ func DeleteTopic(ctx *context.APIContext) {
 }
 
 // TopicSearch search for creating topic
-func TopicSearch(ctx *context.Context) {
+func TopicSearch(ctx *context.APIContext) {
 	// swagger:operation GET /topics/search repository topicSearch
 	// ---
 	// summary: search topics via keyword
@@ -240,27 +253,36 @@ func TopicSearch(ctx *context.Context) {
 	//     description: keywords to search
 	//     required: true
 	//     type: string
+	//   - name: page
+	//     in: query
+	//     description: page number of results to return (1-based)
+	//     type: integer
+	//   - name: limit
+	//     in: query
+	//     description: page size of results
+	//     type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicListResponse"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	if ctx.User == nil {
-		ctx.JSON(http.StatusForbidden, map[string]interface{}{
-			"message": "Only owners could change the topics.",
-		})
+		ctx.Error(http.StatusForbidden, "UserIsNil", "Only owners could change the topics.")
 		return
 	}
 
 	kw := ctx.Query("q")
 
+	listOptions := utils.GetListOptions(ctx)
+
 	topics, err := models.FindTopics(&models.FindTopicOptions{
-		Keyword: kw,
-		Limit:   10,
+		Keyword:     kw,
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		log.Error("SearchTopics failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"message": "Search topics failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gopkg.in/src-d/go-git.v4/plumbing"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // BranchPrefix base dir of the branch information file store on git
@@ -48,6 +48,9 @@ type Branch struct {
 
 // GetHEADBranch returns corresponding branch of HEAD.
 func (repo *Repository) GetHEADBranch() (*Branch, error) {
+	if repo == nil {
+		return nil, fmt.Errorf("nil repo")
+	}
 	stdout, err := NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path)
 	if err != nil {
 		return nil, err

@@ -6,28 +6,14 @@
 package models
 
 import (
-	"bufio"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path"
-	"path/filepath"
-	"strconv"
+	"io"
 	"strings"
-	"time"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"github.com/unknwon/com"
 )
-
-var pullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
 
 // PullRequestType defines pull request type
 type PullRequestType int
@@ -47,6 +33,7 @@ const (
 	PullRequestStatusChecking
 	PullRequestStatusMergeable
 	PullRequestStatusManuallyMerged
+	PullRequestStatusError
 )
 
 // PullRequest represents relation between pull request and repositories.
@@ -55,6 +42,8 @@ type PullRequest struct {
 	Type            PullRequestType
 	Status          PullRequestStatus
 	ConflictedFiles []string `xorm:"TEXT JSON"`
+	CommitsAhead    int
+	CommitsBehind   int
 
 	IssueID int64  `xorm:"INDEX"`
 	Issue   *Issue `xorm:"-"`
@@ -74,15 +63,24 @@ type PullRequest struct {
 	MergerID       int64              `xorm:"INDEX"`
 	Merger         *User              `xorm:"-"`
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
+
+	isHeadRepoLoaded bool `xorm:"-"`
 }
 
 // MustHeadUserName returns the HeadRepo's username if failed return blank
 func (pr *PullRequest) MustHeadUserName() string {
 	if err := pr.LoadHeadRepo(); err != nil {
-		log.Error("LoadHeadRepo: %v", err)
+		if !IsErrRepoNotExist(err) {
+			log.Error("LoadHeadRepo: %v", err)
+		} else {
+			log.Warn("LoadHeadRepo %d but repository does not exist: %v", pr.HeadRepoID, err)
+		}
 		return ""
 	}
-	return pr.HeadRepo.MustOwnerName()
+	if pr.HeadRepo == nil {
+		return ""
+	}
+	return pr.HeadRepo.OwnerName
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -105,38 +103,55 @@ func (pr *PullRequest) LoadAttributes() error {
 	return pr.loadAttributes(x)
 }
 
-// LoadBaseRepo loads pull request base repository from database
-func (pr *PullRequest) LoadBaseRepo() error {
-	if pr.BaseRepo == nil {
-		if pr.HeadRepoID == pr.BaseRepoID && pr.HeadRepo != nil {
-			pr.BaseRepo = pr.HeadRepo
-			return nil
+func (pr *PullRequest) loadHeadRepo(e Engine) (err error) {
+	if !pr.isHeadRepoLoaded && pr.HeadRepo == nil && pr.HeadRepoID > 0 {
+		if pr.HeadRepoID == pr.BaseRepoID {
+			if pr.BaseRepo != nil {
+				pr.HeadRepo = pr.BaseRepo
+				return nil
+			} else if pr.Issue != nil && pr.Issue.Repo != nil {
+				pr.HeadRepo = pr.Issue.Repo
+				return nil
+			}
 		}
-		var repo Repository
-		if has, err := x.ID(pr.BaseRepoID).Get(&repo); err != nil {
-			return err
-		} else if !has {
-			return ErrRepoNotExist{ID: pr.BaseRepoID}
+
+		pr.HeadRepo, err = getRepositoryByID(e, pr.HeadRepoID)
+		if err != nil && !IsErrRepoNotExist(err) { // Head repo maybe deleted, but it should still work
+			return fmt.Errorf("getRepositoryByID(head): %v", err)
 		}
-		pr.BaseRepo = &repo
+		pr.isHeadRepoLoaded = true
 	}
 	return nil
 }
 
-// LoadHeadRepo loads pull request head repository from database
+// LoadHeadRepo loads the head repository
 func (pr *PullRequest) LoadHeadRepo() error {
-	if pr.HeadRepo == nil {
-		if pr.HeadRepoID == pr.BaseRepoID && pr.BaseRepo != nil {
-			pr.HeadRepo = pr.BaseRepo
-			return nil
-		}
-		var repo Repository
-		if has, err := x.ID(pr.HeadRepoID).Get(&repo); err != nil {
-			return err
-		} else if !has {
-			return ErrRepoNotExist{ID: pr.BaseRepoID}
-		}
-		pr.HeadRepo = &repo
+	return pr.loadHeadRepo(x)
+}
+
+// LoadBaseRepo loads the target repository
+func (pr *PullRequest) LoadBaseRepo() error {
+	return pr.loadBaseRepo(x)
+}
+
+func (pr *PullRequest) loadBaseRepo(e Engine) (err error) {
+	if pr.BaseRepo != nil {
+		return nil
+	}
+
+	if pr.HeadRepoID == pr.BaseRepoID && pr.HeadRepo != nil {
+		pr.BaseRepo = pr.HeadRepo
+		return nil
+	}
+
+	if pr.Issue != nil && pr.Issue.Repo != nil {
+		pr.BaseRepo = pr.Issue.Repo
+		return nil
+	}
+
+	pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
+	if err != nil {
+		return fmt.Errorf("GetRepositoryByID(base): %v", err)
 	}
 	return nil
 }
@@ -160,16 +175,22 @@ func (pr *PullRequest) loadIssue(e Engine) (err error) {
 
 // LoadProtectedBranch loads the protected branch of the base branch
 func (pr *PullRequest) LoadProtectedBranch() (err error) {
-	if pr.BaseRepo == nil {
-		if pr.BaseRepoID == 0 {
-			return nil
+	return pr.loadProtectedBranch(x)
+}
+
+func (pr *PullRequest) loadProtectedBranch(e Engine) (err error) {
+	if pr.ProtectedBranch == nil {
+		if pr.BaseRepo == nil {
+			if pr.BaseRepoID == 0 {
+				return nil
+			}
+			pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
+			if err != nil {
+				return
+			}
 		}
-		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
-		if err != nil {
-			return
-		}
+		pr.ProtectedBranch, err = getProtectedBranchBy(e, pr.BaseRepo.ID, pr.BaseBranch)
 	}
-	pr.ProtectedBranch, err = GetProtectedBranchBy(pr.BaseRepo.ID, pr.BaseBranch)
 	return
 }
 
@@ -183,7 +204,98 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 			return ""
 		}
 	}
-	return fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.MustHeadUserName(), pr.HeadRepo.Name, pr.BaseBranch)
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
+		return ""
+	}
+
+	if pr.BaseRepoID == pr.HeadRepoID {
+		return fmt.Sprintf("Merge pull request '%s' (#%d) from %s into %s", pr.Issue.Title, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch)
+	}
+
+	return fmt.Sprintf("Merge pull request '%s' (#%d) from %s:%s into %s", pr.Issue.Title, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch)
+}
+
+// ReviewCount represents a count of Reviews
+type ReviewCount struct {
+	IssueID int64
+	Type    ReviewType
+	Count   int64
+}
+
+// GetApprovalCounts returns the approval counts by type
+// FIXME: Only returns official counts due to double counting of non-official counts
+func (pr *PullRequest) GetApprovalCounts() ([]*ReviewCount, error) {
+	return pr.getApprovalCounts(x)
+}
+
+func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
+	rCounts := make([]*ReviewCount, 0, 6)
+	sess := e.Where("issue_id = ?", pr.IssueID)
+	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ?", true).GroupBy("issue_id, type").Table("review").Find(&rCounts)
+}
+
+// GetApprovers returns the approvers of the pull request
+func (pr *PullRequest) GetApprovers() string {
+
+	stringBuilder := strings.Builder{}
+	if err := pr.getReviewedByLines(&stringBuilder); err != nil {
+		log.Error("Unable to getReviewedByLines: Error: %v", err)
+		return ""
+	}
+
+	return stringBuilder.String()
+}
+
+func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
+	maxReviewers := setting.Repository.PullRequest.DefaultMergeMessageMaxApprovers
+
+	if maxReviewers == 0 {
+		return nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	// Note: This doesn't page as we only expect a very limited number of reviews
+	reviews, err := findReviews(sess, FindReviewOptions{
+		Type:         ReviewTypeApprove,
+		IssueID:      pr.IssueID,
+		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
+	})
+	if err != nil {
+		log.Error("Unable to FindReviews for PR ID %d: %v", pr.ID, err)
+		return err
+	}
+
+	reviewersWritten := 0
+
+	for _, review := range reviews {
+		if maxReviewers > 0 && reviewersWritten > maxReviewers {
+			break
+		}
+
+		if err := review.loadReviewer(sess); err != nil && !IsErrUserNotExist(err) {
+			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %v", review.ReviewerID, pr.ID, err)
+			return err
+		} else if review.Reviewer == nil {
+			continue
+		}
+		if _, err := writer.Write([]byte("Reviewed-by: ")); err != nil {
+			return err
+		}
+		if _, err := writer.Write([]byte(review.Reviewer.NewGitSig().String())); err != nil {
+			return err
+		}
+		if _, err := writer.Write([]byte{'\n'}); err != nil {
+			return err
+		}
+		reviewersWritten++
+	}
+	return sess.Commit()
 }
 
 // GetDefaultSquashMessage returns default message used when squash and merging pull request
@@ -192,171 +304,19 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 		log.Error("LoadIssue: %v", err)
 		return ""
 	}
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return ""
+	}
+	if pr.BaseRepo.UnitEnabled(UnitTypeExternalTracker) {
+		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
+	}
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
 }
 
 // GetGitRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitRefName() string {
 	return fmt.Sprintf("refs/pull/%d/head", pr.Index)
-}
-
-// APIFormat assumes following fields have been assigned with valid values:
-// Required - Issue
-// Optional - Merger
-func (pr *PullRequest) APIFormat() *api.PullRequest {
-	return pr.apiFormat(x)
-}
-
-func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
-	var (
-		baseBranch *git.Branch
-		headBranch *git.Branch
-		baseCommit *git.Commit
-		headCommit *git.Commit
-		err        error
-	)
-	if err = pr.Issue.loadRepo(e); err != nil {
-		log.Error("loadRepo[%d]: %v", pr.ID, err)
-		return nil
-	}
-	apiIssue := pr.Issue.apiFormat(e)
-	if pr.BaseRepo == nil {
-		pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
-		if err != nil {
-			log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
-			return nil
-		}
-	}
-	if pr.HeadRepo == nil {
-		pr.HeadRepo, err = getRepositoryByID(e, pr.HeadRepoID)
-		if err != nil {
-			log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
-			return nil
-		}
-	}
-
-	if err = pr.Issue.loadRepo(e); err != nil {
-		log.Error("pr.Issue.loadRepo[%d]: %v", pr.ID, err)
-		return nil
-	}
-
-	apiPullRequest := &api.PullRequest{
-		ID:        pr.ID,
-		URL:       pr.Issue.HTMLURL(),
-		Index:     pr.Index,
-		Poster:    apiIssue.Poster,
-		Title:     apiIssue.Title,
-		Body:      apiIssue.Body,
-		Labels:    apiIssue.Labels,
-		Milestone: apiIssue.Milestone,
-		Assignee:  apiIssue.Assignee,
-		Assignees: apiIssue.Assignees,
-		State:     apiIssue.State,
-		Comments:  apiIssue.Comments,
-		HTMLURL:   pr.Issue.HTMLURL(),
-		DiffURL:   pr.Issue.DiffURL(),
-		PatchURL:  pr.Issue.PatchURL(),
-		HasMerged: pr.HasMerged,
-		MergeBase: pr.MergeBase,
-		Deadline:  apiIssue.Deadline,
-		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
-		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
-	}
-	baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch)
-	if err != nil {
-		if git.IsErrBranchNotExist(err) {
-			apiPullRequest.Base = nil
-		} else {
-			log.Error("GetBranch[%s]: %v", pr.BaseBranch, err)
-			return nil
-		}
-	} else {
-		apiBaseBranchInfo := &api.PRBranchInfo{
-			Name:       pr.BaseBranch,
-			Ref:        pr.BaseBranch,
-			RepoID:     pr.BaseRepoID,
-			Repository: pr.BaseRepo.innerAPIFormat(e, AccessModeNone, false),
-		}
-		baseCommit, err = baseBranch.GetCommit()
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				apiBaseBranchInfo.Sha = ""
-			} else {
-				log.Error("GetCommit[%s]: %v", baseBranch.Name, err)
-				return nil
-			}
-		} else {
-			apiBaseBranchInfo.Sha = baseCommit.ID.String()
-		}
-		apiPullRequest.Base = apiBaseBranchInfo
-	}
-
-	headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch)
-	if err != nil {
-		if git.IsErrBranchNotExist(err) {
-			apiPullRequest.Head = nil
-		} else {
-			log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
-			return nil
-		}
-	} else {
-		apiHeadBranchInfo := &api.PRBranchInfo{
-			Name:       pr.HeadBranch,
-			Ref:        pr.HeadBranch,
-			RepoID:     pr.HeadRepoID,
-			Repository: pr.HeadRepo.innerAPIFormat(e, AccessModeNone, false),
-		}
-		headCommit, err = headBranch.GetCommit()
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				apiHeadBranchInfo.Sha = ""
-			} else {
-				log.Error("GetCommit[%s]: %v", headBranch.Name, err)
-				return nil
-			}
-		} else {
-			apiHeadBranchInfo.Sha = headCommit.ID.String()
-		}
-		apiPullRequest.Head = apiHeadBranchInfo
-	}
-
-	if pr.Status != PullRequestStatusChecking {
-		mergeable := pr.Status != PullRequestStatusConflict && !pr.IsWorkInProgress()
-		apiPullRequest.Mergeable = mergeable
-	}
-	if pr.HasMerged {
-		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
-		apiPullRequest.MergedCommitID = &pr.MergedCommitID
-		apiPullRequest.MergedBy = pr.Merger.APIFormat()
-	}
-
-	return apiPullRequest
-}
-
-func (pr *PullRequest) getHeadRepo(e Engine) (err error) {
-	pr.HeadRepo, err = getRepositoryByID(e, pr.HeadRepoID)
-	if err != nil && !IsErrRepoNotExist(err) {
-		return fmt.Errorf("getRepositoryByID(head): %v", err)
-	}
-	return nil
-}
-
-// GetHeadRepo loads the head repository
-func (pr *PullRequest) GetHeadRepo() error {
-	return pr.getHeadRepo(x)
-}
-
-// GetBaseRepo loads the target repository
-func (pr *PullRequest) GetBaseRepo() (err error) {
-	if pr.BaseRepo != nil {
-		return nil
-	}
-
-	pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByID(base): %v", err)
-	}
-	return nil
 }
 
 // IsChecking returns true if this pull request is still checking conflict.
@@ -367,39 +327,6 @@ func (pr *PullRequest) IsChecking() bool {
 // CanAutoMerge returns true if this pull request can be merged automatically.
 func (pr *PullRequest) CanAutoMerge() bool {
 	return pr.Status == PullRequestStatusMergeable
-}
-
-// GetLastCommitStatus returns the last commit status for this pull request.
-func (pr *PullRequest) GetLastCommitStatus() (status *CommitStatus, err error) {
-	if err = pr.GetHeadRepo(); err != nil {
-		return nil, err
-	}
-
-	if pr.HeadRepo == nil {
-		return nil, ErrPullRequestHeadRepoMissing{pr.ID, pr.HeadRepoID}
-	}
-
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	defer headGitRepo.Close()
-
-	lastCommitID, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
-	if err != nil {
-		return nil, err
-	}
-
-	err = pr.LoadBaseRepo()
-	if err != nil {
-		return nil, err
-	}
-
-	statusList, err := GetLatestCommitStatus(pr.BaseRepo, lastCommitID, 0)
-	if err != nil {
-		return nil, err
-	}
-	return CalcCommitStatus(statusList), nil
 }
 
 // MergeStyle represents the approach to merge commits into base branch.
@@ -416,284 +343,75 @@ const (
 	MergeStyleSquash MergeStyle = "squash"
 )
 
-// CheckUserAllowedToMerge checks whether the user is allowed to merge
-func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
-	if doer == nil {
-		return ErrNotAllowedToMerge{
-			"Not signed in",
-		}
-	}
-
-	if pr.BaseRepo == nil {
-		if err = pr.GetBaseRepo(); err != nil {
-			return fmt.Errorf("GetBaseRepo: %v", err)
-		}
-	}
-
-	if protected, err := pr.BaseRepo.IsProtectedBranchForMerging(pr, pr.BaseBranch, doer); err != nil {
-		return fmt.Errorf("IsProtectedBranch: %v", err)
-	} else if protected {
-		return ErrNotAllowedToMerge{
-			"The branch is protected",
-		}
-	}
-
-	return nil
-}
-
 // SetMerged sets a pull request to merged and closes the corresponding issue
-func (pr *PullRequest) SetMerged() (err error) {
+func (pr *PullRequest) SetMerged() (bool, error) {
 	if pr.HasMerged {
-		return fmt.Errorf("PullRequest[%d] already merged", pr.Index)
+		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
 	if pr.MergedCommitID == "" || pr.MergedUnix == 0 || pr.Merger == nil {
-		return fmt.Errorf("Unable to merge PullRequest[%d], some required fields are empty", pr.Index)
+		return false, fmt.Errorf("Unable to merge PullRequest[%d], some required fields are empty", pr.Index)
 	}
 
 	pr.HasMerged = true
 
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
+	if err := sess.Begin(); err != nil {
+		return false, err
 	}
 
-	if err = pr.loadIssue(sess); err != nil {
-		return err
+	if _, err := sess.Exec("UPDATE `issue` SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
+		return false, err
 	}
 
-	if err = pr.Issue.loadRepo(sess); err != nil {
-		return err
-	}
-	if err = pr.Issue.Repo.getOwner(sess); err != nil {
-		return err
+	if _, err := sess.Exec("UPDATE `pull_request` SET `issue_id` = `issue_id` WHERE `id` = ?", pr.ID); err != nil {
+		return false, err
 	}
 
-	if err = pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
-		return fmt.Errorf("Issue.changeStatus: %v", err)
-	}
-	if _, err = sess.ID(pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
-		return fmt.Errorf("update pull request: %v", err)
+	pr.Issue = nil
+	if err := pr.loadIssue(sess); err != nil {
+		return false, err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
-	}
-	return nil
-}
-
-// manuallyMerged checks if a pull request got manually merged
-// When a pull request got manually merged mark the pull request as merged
-func (pr *PullRequest) manuallyMerged() bool {
-	commit, err := pr.getMergeCommit()
-	if err != nil {
-		log.Error("PullRequest[%d].getMergeCommit: %v", pr.ID, err)
-		return false
-	}
-	if commit != nil {
-		pr.MergedCommitID = commit.ID.String()
-		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
-		pr.Status = PullRequestStatusManuallyMerged
-		merger, _ := GetUserByEmail(commit.Author.Email)
-
-		// When the commit author is unknown set the BaseRepo owner as merger
-		if merger == nil {
-			if pr.BaseRepo.Owner == nil {
-				if err = pr.BaseRepo.getOwner(x); err != nil {
-					log.Error("BaseRepo.getOwner[%d]: %v", pr.ID, err)
-					return false
-				}
-			}
-			merger = pr.BaseRepo.Owner
+	if tmpPr, err := getPullRequestByID(sess, pr.ID); err != nil {
+		return false, err
+	} else if tmpPr.HasMerged {
+		if pr.Issue.IsClosed {
+			return false, nil
 		}
-		pr.Merger = merger
-		pr.MergerID = merger.ID
-
-		if err = pr.SetMerged(); err != nil {
-			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
-			return false
-		}
-		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
-		return true
-	}
-	return false
-}
-
-// getMergeCommit checks if a pull request got merged
-// Returns the git.Commit of the pull request if merged
-func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
-	if pr.BaseRepo == nil {
-		var err error
-		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
-		if err != nil {
-			return nil, fmt.Errorf("GetRepositoryByID: %v", err)
-		}
+		return false, fmt.Errorf("PullRequest[%d] already merged but it's associated issue [%d] is not closed", pr.Index, pr.IssueID)
+	} else if pr.Issue.IsClosed {
+		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
 
-	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
-	defer os.Remove(indexTmpPath)
-
-	headFile := pr.GetGitRefName()
-
-	// Check if a pull request is merged into BaseBranch
-	_, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git merge-base --is-ancestor): %d", pr.BaseRepo.ID),
-		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		git.GitExecutable, "merge-base", "--is-ancestor", headFile, pr.BaseBranch)
-
-	if err != nil {
-		// Errors are signaled by a non-zero status that is not 1
-		if strings.Contains(err.Error(), "exit status 1") {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("git merge-base --is-ancestor: %v %v", stderr, err)
+	if err := pr.Issue.loadRepo(sess); err != nil {
+		return false, err
 	}
 
-	commitIDBytes, err := ioutil.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
-	if err != nil {
-		return nil, fmt.Errorf("ReadFile(%s): %v", headFile, err)
-	}
-	commitID := string(commitIDBytes)
-	if len(commitID) < 40 {
-		return nil, fmt.Errorf(`ReadFile(%s): invalid commit-ID "%s"`, headFile, commitID)
-	}
-	cmd := commitID[:40] + ".." + pr.BaseBranch
-
-	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git rev-list --ancestry-path --merges --reverse): %d", pr.BaseRepo.ID),
-		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		git.GitExecutable, "rev-list", "--ancestry-path", "--merges", "--reverse", cmd)
-	if err != nil {
-		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v %v", stderr, err)
-	} else if len(mergeCommit) < 40 {
-		// PR was fast-forwarded, so just use last commit of PR
-		mergeCommit = commitID[:40]
+	if err := pr.Issue.Repo.getOwner(sess); err != nil {
+		return false, err
 	}
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
-	}
-	defer gitRepo.Close()
-
-	commit, err := gitRepo.GetCommit(mergeCommit[:40])
-	if err != nil {
-		return nil, fmt.Errorf("GetCommit: %v", err)
+	if _, err := pr.Issue.changeStatus(sess, pr.Merger, true, true); err != nil {
+		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
-	return commit, nil
-}
-
-// patchConflicts is a list of conflict description from Git.
-var patchConflicts = []string{
-	"patch does not apply",
-	"already exists in working directory",
-	"unrecognized input",
-	"error:",
-}
-
-// testPatch checks if patch can be merged to base repository without conflict.
-func (pr *PullRequest) testPatch(e Engine) (err error) {
-	if pr.BaseRepo == nil {
-		pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
-		if err != nil {
-			return fmt.Errorf("GetRepositoryByID: %v", err)
-		}
+	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
+		return false, fmt.Errorf("Failed to update pr[%d]: %v", pr.ID, err)
 	}
 
-	patchPath, err := pr.BaseRepo.patchPath(e, pr.Index)
-	if err != nil {
-		return fmt.Errorf("BaseRepo.PatchPath: %v", err)
+	if err := sess.Commit(); err != nil {
+		return false, fmt.Errorf("Commit: %v", err)
 	}
-
-	// Fast fail if patch does not exist, this assumes data is corrupted.
-	if !com.IsFile(patchPath) {
-		log.Trace("PullRequest[%d].testPatch: ignored corrupted data", pr.ID)
-		return nil
-	}
-
-	repoWorkingPool.CheckIn(com.ToStr(pr.BaseRepoID))
-	defer repoWorkingPool.CheckOut(com.ToStr(pr.BaseRepoID))
-
-	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
-
-	pr.Status = PullRequestStatusChecking
-
-	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
-	defer os.Remove(indexTmpPath)
-
-	var stderr string
-	_, stderr, err = process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git read-tree): %d", pr.BaseRepo.ID),
-		[]string{"GIT_DIR=" + pr.BaseRepo.RepoPath(), "GIT_INDEX_FILE=" + indexTmpPath},
-		git.GitExecutable, "read-tree", pr.BaseBranch)
-	if err != nil {
-		return fmt.Errorf("git read-tree --index-output=%s %s: %v - %s", indexTmpPath, pr.BaseBranch, err, stderr)
-	}
-
-	prUnit, err := pr.BaseRepo.getUnit(e, UnitTypePullRequests)
-	if err != nil {
-		return err
-	}
-	prConfig := prUnit.PullRequestsConfig()
-
-	args := []string{"apply", "--check", "--cached"}
-	if prConfig.IgnoreWhitespaceConflicts {
-		args = append(args, "--ignore-whitespace")
-	}
-	args = append(args, patchPath)
-	pr.ConflictedFiles = []string{}
-
-	_, stderr, err = process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git apply --check): %d", pr.BaseRepo.ID),
-		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		git.GitExecutable, args...)
-	if err != nil {
-		for i := range patchConflicts {
-			if strings.Contains(stderr, patchConflicts[i]) {
-				log.Trace("PullRequest[%d].testPatch (apply): has conflict: %s", pr.ID, stderr)
-				const prefix = "error: patch failed:"
-				pr.Status = PullRequestStatusConflict
-				pr.ConflictedFiles = make([]string, 0, 5)
-				scanner := bufio.NewScanner(strings.NewReader(stderr))
-				for scanner.Scan() {
-					line := scanner.Text()
-
-					if strings.HasPrefix(line, prefix) {
-						var found bool
-						var filepath = strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
-						for _, f := range pr.ConflictedFiles {
-							if f == filepath {
-								found = true
-								break
-							}
-						}
-						if !found {
-							pr.ConflictedFiles = append(pr.ConflictedFiles, filepath)
-						}
-					}
-					// only list 10 conflicted files
-					if len(pr.ConflictedFiles) >= 10 {
-						break
-					}
-				}
-
-				if len(pr.ConflictedFiles) > 0 {
-					log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
-				}
-
-				return nil
-			}
-		}
-
-		return fmt.Errorf("git apply --check: %v - %s", err, stderr)
-	}
-	return nil
+	return true, nil
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
+func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
 	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
 	i := 0
 	for {
-		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr, patch); err == nil {
+		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr); err == nil {
 			return nil
 		}
 		if !IsErrNewIssueInsert(err) {
@@ -707,7 +425,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
 }
 
-func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
+func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -729,20 +447,6 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 
 	pr.Index = pull.Index
 	pr.BaseRepo = repo
-	pr.Status = PullRequestStatusChecking
-	if len(patch) > 0 {
-		if err = repo.savePatch(sess, pr.Index, patch); err != nil {
-			return fmt.Errorf("SavePatch: %v", err)
-		}
-
-		if err = pr.testPatch(sess); err != nil {
-			return fmt.Errorf("testPatch: %v", err)
-		}
-	}
-	// No conflict appears after test means mergeable.
-	if pr.Status == PullRequestStatusChecking {
-		pr.Status = PullRequestStatusMergeable
-	}
 
 	pr.IssueID = pull.ID
 	if _, err = sess.Insert(pr); err != nil {
@@ -828,6 +532,19 @@ func GetPullRequestByID(id int64) (*PullRequest, error) {
 	return getPullRequestByID(x, id)
 }
 
+// GetPullRequestByIssueIDWithNoAttributes returns pull request with no attributes loaded by given issue ID.
+func GetPullRequestByIssueIDWithNoAttributes(issueID int64) (*PullRequest, error) {
+	var pr PullRequest
+	has, err := x.Where("issue_id = ?", issueID).Get(&pr)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
+	}
+	return &pr, nil
+}
+
 func getPullRequestByIssueID(e Engine, issueID int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		IssueID: issueID,
@@ -858,120 +575,10 @@ func (pr *PullRequest) UpdateCols(cols ...string) error {
 	return err
 }
 
-// UpdatePatch generates and saves a new patch.
-func (pr *PullRequest) UpdatePatch() (err error) {
-	if err = pr.GetHeadRepo(); err != nil {
-		return fmt.Errorf("GetHeadRepo: %v", err)
-	} else if pr.HeadRepo == nil {
-		log.Trace("PullRequest[%d].UpdatePatch: ignored corrupted data", pr.ID)
-		return nil
-	}
-
-	if err = pr.GetBaseRepo(); err != nil {
-		return fmt.Errorf("GetBaseRepo: %v", err)
-	}
-
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
-	}
-	defer headGitRepo.Close()
-
-	// Add a temporary remote.
-	tmpRemote := com.ToStr(time.Now().UnixNano())
-	if err = headGitRepo.AddRemote(tmpRemote, RepoPath(pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name), true); err != nil {
-		return fmt.Errorf("AddRemote: %v", err)
-	}
-	defer func() {
-		if err := headGitRepo.RemoveRemote(tmpRemote); err != nil {
-			log.Error("UpdatePatch: RemoveRemote: %s", err)
-		}
-	}()
-	pr.MergeBase, _, err = headGitRepo.GetMergeBase(tmpRemote, pr.BaseBranch, pr.HeadBranch)
-	if err != nil {
-		return fmt.Errorf("GetMergeBase: %v", err)
-	} else if err = pr.Update(); err != nil {
-		return fmt.Errorf("Update: %v", err)
-	}
-
-	patch, err := headGitRepo.GetPatch(pr.MergeBase, pr.HeadBranch)
-	if err != nil {
-		return fmt.Errorf("GetPatch: %v", err)
-	}
-
-	if err = pr.BaseRepo.SavePatch(pr.Index, patch); err != nil {
-		return fmt.Errorf("BaseRepo.SavePatch: %v", err)
-	}
-
-	return nil
-}
-
-// PushToBaseRepo pushes commits from branches of head repository to
-// corresponding branches of base repository.
-// FIXME: Only push branches that are actually updates?
-func (pr *PullRequest) PushToBaseRepo() (err error) {
-	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
-
-	headRepoPath := pr.HeadRepo.RepoPath()
-	headGitRepo, err := git.OpenRepository(headRepoPath)
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
-	}
-	defer headGitRepo.Close()
-
-	tmpRemoteName := fmt.Sprintf("tmp-pull-%d", pr.ID)
-	if err = headGitRepo.AddRemote(tmpRemoteName, pr.BaseRepo.RepoPath(), false); err != nil {
-		return fmt.Errorf("headGitRepo.AddRemote: %v", err)
-	}
-	// Make sure to remove the remote even if the push fails
-	defer func() {
-		if err := headGitRepo.RemoveRemote(tmpRemoteName); err != nil {
-			log.Error("PushToBaseRepo: RemoveRemote: %s", err)
-		}
-	}()
-
-	headFile := pr.GetGitRefName()
-
-	// Remove head in case there is a conflict.
-	file := path.Join(pr.BaseRepo.RepoPath(), headFile)
-
-	_ = os.Remove(file)
-
-	if err = git.Push(headRepoPath, git.PushOptions{
-		Remote: tmpRemoteName,
-		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
-		Force:  true,
-	}); err != nil {
-		return fmt.Errorf("Push: %v", err)
-	}
-
-	return nil
-}
-
-// AddToTaskQueue adds itself to pull request test task queue.
-func (pr *PullRequest) AddToTaskQueue() {
-	go pullRequestQueue.AddFunc(pr.ID, func() {
-		pr.Status = PullRequestStatusChecking
-		if err := pr.UpdateCols("status"); err != nil {
-			log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
-		}
-	})
-}
-
-// checkAndUpdateStatus checks if pull request is possible to leaving checking status,
-// and set to be either conflict or mergeable.
-func (pr *PullRequest) checkAndUpdateStatus() {
-	// Status is not changed to conflict means mergeable.
-	if pr.Status == PullRequestStatusChecking {
-		pr.Status = PullRequestStatusMergeable
-	}
-
-	// Make sure there is no waiting test to process before leaving the checking status.
-	if !pullRequestQueue.Exist(pr.ID) {
-		if err := pr.UpdateCols("status, conflicted_files"); err != nil {
-			log.Error("Update[%d]: %v", pr.ID, err)
-		}
-	}
+// UpdateColsIfNotMerged updates specific fields of a pull request if it has not been merged
+func (pr *PullRequest) UpdateColsIfNotMerged(cols ...string) error {
+	_, err := x.Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
+	return err
 }
 
 // IsWorkInProgress determine if the Pull Request is a Work In Progress by its title
@@ -1008,4 +615,24 @@ func (pr *PullRequest) GetWorkInProgressPrefix() string {
 		}
 	}
 	return ""
+}
+
+// UpdateCommitDivergence update Divergence of a pull request
+func (pr *PullRequest) UpdateCommitDivergence(ahead, behind int) error {
+	return pr.updateCommitDivergence(x, ahead, behind)
+}
+
+func (pr *PullRequest) updateCommitDivergence(e Engine, ahead, behind int) error {
+	if pr.ID == 0 {
+		return fmt.Errorf("pull ID is 0")
+	}
+	pr.CommitsAhead = ahead
+	pr.CommitsBehind = behind
+	_, err := e.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr)
+	return err
+}
+
+// IsSameRepo returns true if base repo and head repo is the same
+func (pr *PullRequest) IsSameRepo() bool {
+	return pr.BaseRepoID == pr.HeadRepoID
 }

@@ -16,7 +16,12 @@ func listen(server *ssh.Server) {
 
 	err := gracefulServer.ListenAndServe(server.Serve)
 	if err != nil {
-		log.Critical("Failed to start SSH server: %v", err)
+		select {
+		case <-graceful.GetManager().IsShutdown():
+			log.Critical("Failed to start SSH server: %v", err)
+		default:
+			log.Fatal("Failed to start SSH server: %v", err)
+		}
 	}
 	log.Info("SSH Listener: %s Closed", server.Addr)
 
@@ -24,5 +29,5 @@ func listen(server *ssh.Server) {
 
 // Unused informs our cleanup routine that we will not be using a ssh port
 func Unused() {
-	graceful.Manager.InformCleanup()
+	graceful.GetManager().InformCleanup()
 }

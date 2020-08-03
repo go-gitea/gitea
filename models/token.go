@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 )
 
 // AccessToken represents a personal access token.
@@ -45,7 +45,7 @@ func NewAccessToken(t *AccessToken) error {
 		return err
 	}
 	t.TokenSalt = salt
-	t.Token = base.EncodeSha1(gouuid.NewV4().String())
+	t.Token = base.EncodeSha1(gouuid.New().String())
 	t.TokenHash = hashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
 	_, err = x.Insert(t)
@@ -77,13 +77,26 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	return nil, ErrAccessTokenNotExist{token}
 }
 
+// AccessTokenByNameExists checks if a token name has been used already by a user.
+func AccessTokenByNameExists(token *AccessToken) (bool, error) {
+	return x.Table("access_token").Where("name = ?", token.Name).And("uid = ?", token.UID).Exist()
+}
+
 // ListAccessTokens returns a list of access tokens belongs to given user.
-func ListAccessTokens(uid int64) ([]*AccessToken, error) {
-	tokens := make([]*AccessToken, 0, 5)
-	return tokens, x.
+func ListAccessTokens(uid int64, listOptions ListOptions) ([]*AccessToken, error) {
+	sess := x.
 		Where("uid=?", uid).
-		Desc("id").
-		Find(&tokens)
+		Desc("id")
+
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+
+		tokens := make([]*AccessToken, 0, listOptions.PageSize)
+		return tokens, sess.Find(&tokens)
+	}
+
+	tokens := make([]*AccessToken, 0, 5)
+	return tokens, sess.Find(&tokens)
 }
 
 // UpdateAccessToken updates information of access token.

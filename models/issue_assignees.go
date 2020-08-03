@@ -19,6 +19,11 @@ type IssueAssignees struct {
 	IssueID    int64 `xorm:"INDEX"`
 }
 
+// LoadAssignees load assignees of this issue.
+func (issue *Issue) LoadAssignees() error {
+	return issue.loadAssignees(x)
+}
+
 // This loads all assignees of an issue
 func (issue *Issue) loadAssignees(e Engine) (err error) {
 	// Reset maybe preexisting assignees
@@ -76,23 +81,6 @@ func isUserAssignedToIssue(e Engine, issue *Issue, user *User) (isAssigned bool,
 	return e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
 }
 
-// MakeAssigneeList concats a string with all names of the assignees. Useful for logs.
-func MakeAssigneeList(issue *Issue) (assigneeList string, err error) {
-	err = issue.loadAssignees(x)
-	if err != nil {
-		return "", err
-	}
-
-	for in, assignee := range issue.Assignees {
-		assigneeList += assignee.Name
-
-		if len(issue.Assignees) > (in + 1) {
-			assigneeList += ", "
-		}
-	}
-	return
-}
-
 // ClearAssigneeByUserID deletes all assignments of an user
 func clearAssigneeByUserID(sess *xorm.Session, userID int64) (err error) {
 	_, err = sess.Delete(&IssueAssignees{AssigneeID: userID})
@@ -131,15 +119,16 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 		return false, nil, fmt.Errorf("loadRepo: %v", err)
 	}
 
-	// Comment
-	comment, err = createComment(sess, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:            CommentTypeAssignees,
 		Doer:            doer,
 		Repo:            issue.Repo,
 		Issue:           issue,
 		RemovedAssignee: removed,
 		AssigneeID:      assigneeID,
-	})
+	}
+	// Comment
+	comment, err = createComment(sess, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %v", err)
 	}

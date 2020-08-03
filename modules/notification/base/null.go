@@ -6,7 +6,7 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/repository"
 )
 
 // NullNotifier implements a blank notifier
@@ -31,7 +31,7 @@ func (*NullNotifier) NotifyNewIssue(issue *models.Issue) {
 }
 
 // NotifyIssueChangeStatus places a place holder function
-func (*NullNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
+func (*NullNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 }
 
 // NotifyNewPullRequest places a place holder function
@@ -43,11 +43,19 @@ func (*NullNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models.R
 }
 
 // NotifyMergePullRequest places a place holder function
-func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 }
 
 // NotifyPullRequestSynchronized places a place holder function
 func (*NullNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+}
+
+// NotifyPullRequestChangeTargetBranch places a place holder function
+func (*NullNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
+}
+
+// NotifyPullRequestPushCommits notifies when push commits to pull request's head branch
+func (*NullNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
 }
 
 // NotifyUpdateComment places a place holder function
@@ -82,6 +90,10 @@ func (*NullNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.I
 func (*NullNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 }
 
+// NotifyPullReviewRequest places a place holder function
+func (*NullNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+}
+
 // NotifyIssueClearLabels places a place holder function
 func (*NullNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
 }
@@ -112,7 +124,7 @@ func (*NullNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, 
 }
 
 // NotifyPushCommits notifies commits pushed to notifiers
-func (*NullNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+func (*NullNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
@@ -132,7 +144,7 @@ func (*NullNotifier) NotifyTransferRepository(doer *models.User, repo *models.Re
 }
 
 // NotifySyncPushCommits places a place holder function
-func (*NullNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+func (*NullNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
 }
 
 // NotifySyncCreateRef places a place holder function

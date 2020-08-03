@@ -6,12 +6,16 @@
 package gitdiff
 
 import (
+	"fmt"
 	"html/template"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+
+	"gopkg.in/ini.v1"
 
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
@@ -24,81 +28,28 @@ func assertEqual(t *testing.T, s1 string, s2 template.HTML) {
 }
 
 func TestDiffToHTML(t *testing.T) {
-	assertEqual(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML([]dmp.Diff{
+	setting.Cfg = ini.Empty()
+	assertEqual(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffInsert, Text: "bar"},
 		{Type: dmp.DiffDelete, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
 	}, DiffLineAdd))
 
-	assertEqual(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML([]dmp.Diff{
+	assertEqual(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffDelete, Text: "bar"},
 		{Type: dmp.DiffInsert, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
 	}, DiffLineDel))
-}
 
-const exampleDiff = `diff --git a/README.md b/README.md
---- a/README.md
-+++ b/README.md
-@@ -1,3 +1,6 @@
- # gitea-github-migrator
-+
-+ Build Status
-- Latest Release
- Docker Pulls
-+ cut off
-+ cut off`
-
-func TestCutDiffAroundLine(t *testing.T) {
-	result := CutDiffAroundLine(strings.NewReader(exampleDiff), 4, false, 3)
-	resultByLine := strings.Split(result, "\n")
-	assert.Len(t, resultByLine, 7)
-	// Check if headers got transferred
-	assert.Equal(t, "diff --git a/README.md b/README.md", resultByLine[0])
-	assert.Equal(t, "--- a/README.md", resultByLine[1])
-	assert.Equal(t, "+++ b/README.md", resultByLine[2])
-	// Check if hunk header is calculated correctly
-	assert.Equal(t, "@@ -2,2 +3,2 @@", resultByLine[3])
-	// Check if line got transferred
-	assert.Equal(t, "+ Build Status", resultByLine[4])
-
-	// Must be same result as before since old line 3 == new line 5
-	newResult := CutDiffAroundLine(strings.NewReader(exampleDiff), 3, true, 3)
-	assert.Equal(t, result, newResult, "Must be same result as before since old line 3 == new line 5")
-
-	newResult = CutDiffAroundLine(strings.NewReader(exampleDiff), 6, false, 300)
-	assert.Equal(t, exampleDiff, newResult)
-
-	emptyResult := CutDiffAroundLine(strings.NewReader(exampleDiff), 6, false, 0)
-	assert.Empty(t, emptyResult)
-
-	// Line is out of scope
-	emptyResult = CutDiffAroundLine(strings.NewReader(exampleDiff), 434, false, 0)
-	assert.Empty(t, emptyResult)
-}
-
-func BenchmarkCutDiffAroundLine(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		CutDiffAroundLine(strings.NewReader(exampleDiff), 3, true, 3)
-	}
-}
-
-func ExampleCutDiffAroundLine() {
-	const diff = `diff --git a/README.md b/README.md
---- a/README.md
-+++ b/README.md
-@@ -1,3 +1,6 @@
- # gitea-github-migrator
-+
-+ Build Status
-- Latest Release
- Docker Pulls
-+ cut off
-+ cut off`
-	result := CutDiffAroundLine(strings.NewReader(diff), 4, false, 3)
-	println(result)
+	assertEqual(t, "<span class=\"k\">if</span> <span class=\"p\">!</span><span class=\"nx\">nohl</span> <span class=\"o\">&amp;&amp;</span> <span class=\"added-code\"><span class=\"p\">(</span></span><span class=\"nx\">lexer</span> <span class=\"o\">!=</span> <span class=\"kc\">nil</span><span class=\"added-code\"> <span class=\"o\">||</span> <span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nx\">GuessLanguage</span><span class=\"p\">)</span></span> <span class=\"p\">{</span>", diffToHTML("", []dmp.Diff{
+		{Type: dmp.DiffEqual, Text: "<span class=\"k\">if</span> <span class=\"p\">!</span><span class=\"nx\">nohl</span> <span class=\"o\">&amp;&amp;</span> <span class=\""},
+		{Type: dmp.DiffInsert, Text: "p\">(</span><span class=\""},
+		{Type: dmp.DiffEqual, Text: "nx\">lexer</span> <span class=\"o\">!=</span> <span class=\"kc\">nil"},
+		{Type: dmp.DiffInsert, Text: "</span> <span class=\"o\">||</span> <span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nx\">GuessLanguage</span><span class=\"p\">)"},
+		{Type: dmp.DiffEqual, Text: "</span> <span class=\"p\">{</span>"},
+	}, DiffLineAdd))
 }
 
 func TestParsePatch(t *testing.T) {
@@ -194,4 +145,16 @@ func TestDiffLine_CanComment(t *testing.T) {
 func TestDiffLine_GetCommentSide(t *testing.T) {
 	assert.Equal(t, "previous", (&DiffLine{Comments: []*models.Comment{{Line: -3}}}).GetCommentSide())
 	assert.Equal(t, "proposed", (&DiffLine{Comments: []*models.Comment{{Line: 3}}}).GetCommentSide())
+}
+
+func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
+	git.Debug = true
+	for _, behavior := range []string{"-w", "--ignore-space-at-eol", "-b", ""} {
+		diffs, err := GetDiffRangeWithWhitespaceBehavior("./testdata/academic-module", "559c156f8e0178b71cb44355428f24001b08fc68", "bd7063cc7c04689c4d082183d32a604ed27a24f9",
+			setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles, behavior)
+		assert.NoError(t, err, fmt.Sprintf("Error when diff with %s", behavior))
+		for _, f := range diffs.Files {
+			assert.True(t, len(f.Sections) > 0, fmt.Sprintf("%s should have sections", f.Name))
+		}
+	}
 }

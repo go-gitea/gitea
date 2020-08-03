@@ -14,9 +14,9 @@
 				<div class="item">
 					<div class="meta">
 						{{if .IsSucceed}}
-							<span class="text green"><i class="octicon octicon-check"></i></span>
+							<span class="text green">{{svg "octicon-check" 16}}</span>
 						{{else}}
-							<span class="text red"><i class="octicon octicon-alert"></i></span>
+							<span class="text red">{{svg "octicon-alert" 16}}</span>
 						{{end}}
 						<a class="ui blue sha label toggle button" data-target="#info-{{.ID}}">{{.UUID}}</a>
 						<div class="ui right">

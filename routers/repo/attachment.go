@@ -6,6 +6,8 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
+	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -16,7 +18,6 @@ import (
 )
 
 func renderAttachmentSettings(ctx *context.Context) {
-	ctx.Data["RequireDropzone"] = true
 	ctx.Data["IsAttachmentEnabled"] = setting.AttachmentEnabled
 	ctx.Data["AttachmentAllowedTypes"] = setting.AttachmentAllowedTypes
 	ctx.Data["AttachmentMaxSize"] = setting.AttachmentMaxSize
@@ -68,12 +69,12 @@ func UploadAttachment(ctx *context.Context) {
 func DeleteAttachment(ctx *context.Context) {
 	file := ctx.Query("file")
 	attach, err := models.GetAttachmentByUUID(file)
-	if !ctx.IsSigned || (ctx.User.ID != attach.UploaderID) {
-		ctx.Error(403)
-		return
-	}
 	if err != nil {
 		ctx.Error(400, err.Error())
+		return
+	}
+	if !ctx.IsSigned || (ctx.User.ID != attach.UploaderID) {
+		ctx.Error(403)
 		return
 	}
 	err = models.DeleteAttachment(attach, true)
@@ -84,4 +85,58 @@ func DeleteAttachment(ctx *context.Context) {
 	ctx.JSON(200, map[string]string{
 		"uuid": attach.UUID,
 	})
+}
+
+// GetAttachment serve attachements
+func GetAttachment(ctx *context.Context) {
+	attach, err := models.GetAttachmentByUUID(ctx.Params(":uuid"))
+	if err != nil {
+		if models.IsErrAttachmentNotExist(err) {
+			ctx.Error(404)
+		} else {
+			ctx.ServerError("GetAttachmentByUUID", err)
+		}
+		return
+	}
+
+	repository, unitType, err := attach.LinkedRepository()
+	if err != nil {
+		ctx.ServerError("LinkedRepository", err)
+		return
+	}
+
+	if repository == nil { //If not linked
+		if !(ctx.IsSigned && attach.UploaderID == ctx.User.ID) { //We block if not the uploader
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	} else { //If we have the repository we check access
+		perm, err := models.GetUserRepoPermission(repository, ctx.User)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
+			return
+		}
+		if !perm.CanRead(unitType) {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
+	//If we have matched and access to release or issue
+	fr, err := os.Open(attach.LocalPath())
+	if err != nil {
+		ctx.ServerError("Open", err)
+		return
+	}
+	defer fr.Close()
+
+	if err := attach.IncreaseDownloadCount(); err != nil {
+		ctx.ServerError("Update", err)
+		return
+	}
+
+	if err = ServeData(ctx, attach.Name, fr); err != nil {
+		ctx.ServerError("ServeData", err)
+		return
+	}
 }

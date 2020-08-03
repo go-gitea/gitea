@@ -7,18 +7,14 @@ package models
 
 import (
 	"fmt"
-	"html"
 	"path"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/unknwon/com"
@@ -52,6 +48,8 @@ const (
 	ActionMirrorSyncDelete                         // 20
 	ActionApprovePullRequest                       // 21
 	ActionRejectPullRequest                        // 22
+	ActionCommentPull                              // 23
+	ActionPublishRelease                           // 24
 )
 
 // Action represents user operation type and other information to
@@ -123,10 +121,13 @@ func (a *Action) ShortActUserName() string {
 	return base.EllipsisString(a.GetActUserName(), 20)
 }
 
-// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME
+// GetDisplayName gets the action's display name based on DEFAULT_SHOW_FULL_NAME, or falls back to the username if it is blank.
 func (a *Action) GetDisplayName() string {
 	if setting.UI.DefaultShowFullName {
-		return a.GetActFullName()
+		trimmedFullName := strings.TrimSpace(a.GetActFullName())
+		if len(trimmedFullName) > 0 {
+			return trimmedFullName
+		}
 	}
 	return a.ShortActUserName()
 }
@@ -148,7 +149,7 @@ func (a *Action) GetActAvatar() string {
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName() string {
 	a.loadRepo()
-	return a.Repo.MustOwner().Name
+	return a.Repo.OwnerName
 }
 
 // ShortRepoUserName returns the name of the action repository owner
@@ -213,7 +214,7 @@ func (a *Action) getCommentLink(e Engine) string {
 		return "#"
 	}
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = GetCommentByID(a.CommentID)
+		a.Comment, _ = getCommentByID(e, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
@@ -285,263 +286,13 @@ func (a *Action) GetIssueContent() string {
 	return issue.Content
 }
 
-// PushCommit represents a commit in a push operation.
-type PushCommit struct {
-	Sha1           string
-	Message        string
-	AuthorEmail    string
-	AuthorName     string
-	CommitterEmail string
-	CommitterName  string
-	Timestamp      time.Time
-}
-
-// PushCommits represents list of commits in a push operation.
-type PushCommits struct {
-	Len        int
-	Commits    []*PushCommit
-	CompareURL string
-
-	avatars    map[string]string
-	emailUsers map[string]*User
-}
-
-// NewPushCommits creates a new PushCommits object.
-func NewPushCommits() *PushCommits {
-	return &PushCommits{
-		avatars:    make(map[string]string),
-		emailUsers: make(map[string]*User),
-	}
-}
-
-// ToAPIPayloadCommits converts a PushCommits object to
-// api.PayloadCommit format.
-func (pc *PushCommits) ToAPIPayloadCommits(repoPath, repoLink string) ([]*api.PayloadCommit, error) {
-	commits := make([]*api.PayloadCommit, len(pc.Commits))
-
-	if pc.emailUsers == nil {
-		pc.emailUsers = make(map[string]*User)
-	}
-	var err error
-	for i, commit := range pc.Commits {
-		authorUsername := ""
-		author, ok := pc.emailUsers[commit.AuthorEmail]
-		if !ok {
-			author, err = GetUserByEmail(commit.AuthorEmail)
-			if err == nil {
-				authorUsername = author.Name
-				pc.emailUsers[commit.AuthorEmail] = author
-			}
-		} else {
-			authorUsername = author.Name
-		}
-
-		committerUsername := ""
-		committer, ok := pc.emailUsers[commit.CommitterEmail]
-		if !ok {
-			committer, err = GetUserByEmail(commit.CommitterEmail)
-			if err == nil {
-				// TODO: check errors other than email not found.
-				committerUsername = committer.Name
-				pc.emailUsers[commit.CommitterEmail] = committer
-			}
-		} else {
-			committerUsername = committer.Name
-		}
-
-		fileStatus, err := git.GetCommitFileStatus(repoPath, commit.Sha1)
-		if err != nil {
-			return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %v", commit.Sha1, err)
-		}
-
-		commits[i] = &api.PayloadCommit{
-			ID:      commit.Sha1,
-			Message: commit.Message,
-			URL:     fmt.Sprintf("%s/commit/%s", repoLink, commit.Sha1),
-			Author: &api.PayloadUser{
-				Name:     commit.AuthorName,
-				Email:    commit.AuthorEmail,
-				UserName: authorUsername,
-			},
-			Committer: &api.PayloadUser{
-				Name:     commit.CommitterName,
-				Email:    commit.CommitterEmail,
-				UserName: committerUsername,
-			},
-			Added:     fileStatus.Added,
-			Removed:   fileStatus.Removed,
-			Modified:  fileStatus.Modified,
-			Timestamp: commit.Timestamp,
-		}
-	}
-	return commits, nil
-}
-
-// AvatarLink tries to match user in database with e-mail
-// in order to show custom avatar, and falls back to general avatar link.
-func (pc *PushCommits) AvatarLink(email string) string {
-	if pc.avatars == nil {
-		pc.avatars = make(map[string]string)
-	}
-	avatar, ok := pc.avatars[email]
-	if ok {
-		return avatar
-	}
-
-	u, ok := pc.emailUsers[email]
-	if !ok {
-		var err error
-		u, err = GetUserByEmail(email)
-		if err != nil {
-			pc.avatars[email] = base.AvatarLink(email)
-			if !IsErrUserNotExist(err) {
-				log.Error("GetUserByEmail: %v", err)
-				return ""
-			}
-		} else {
-			pc.emailUsers[email] = u
-		}
-	}
-	if u != nil {
-		pc.avatars[email] = u.RelAvatarLink()
-	}
-
-	return pc.avatars[email]
-}
-
-// getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
-// if the provided ref references a non-existent issue.
-func getIssueFromRef(repo *Repository, index int64) (*Issue, error) {
-	issue, err := GetIssueByIndex(repo.ID, index)
-	if err != nil {
-		if IsErrIssueNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return issue, nil
-}
-
-func changeIssueStatus(repo *Repository, issue *Issue, doer *User, status bool) error {
-
-	stopTimerIfAvailable := func(doer *User, issue *Issue) error {
-
-		if StopwatchExists(doer.ID, issue.ID) {
-			if err := CreateOrStopIssueStopwatch(doer, issue); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
-
-	issue.Repo = repo
-	if err := issue.ChangeStatus(doer, status); err != nil {
-		// Don't return an error when dependencies are open as this would let the push fail
-		if IsErrDependenciesLeft(err) {
-			return stopTimerIfAvailable(doer, issue)
-		}
-		return err
-	}
-
-	return stopTimerIfAvailable(doer, issue)
-}
-
-// UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, branchName string) error {
-	// Commits are appended in the reverse order.
-	for i := len(commits) - 1; i >= 0; i-- {
-		c := commits[i]
-
-		type markKey struct {
-			ID     int64
-			Action references.XRefAction
-		}
-
-		refMarked := make(map[markKey]bool)
-		var refRepo *Repository
-		var refIssue *Issue
-		var err error
-		for _, ref := range references.FindAllIssueReferences(c.Message) {
-
-			// issue is from another repo
-			if len(ref.Owner) > 0 && len(ref.Name) > 0 {
-				refRepo, err = GetRepositoryFromMatch(ref.Owner, ref.Name)
-				if err != nil {
-					continue
-				}
-			} else {
-				refRepo = repo
-			}
-			if refIssue, err = getIssueFromRef(refRepo, ref.Index); err != nil {
-				return err
-			}
-			if refIssue == nil {
-				continue
-			}
-
-			perm, err := GetUserRepoPermission(refRepo, doer)
-			if err != nil {
-				return err
-			}
-
-			key := markKey{ID: refIssue.ID, Action: ref.Action}
-			if refMarked[key] {
-				continue
-			}
-			refMarked[key] = true
-
-			// FIXME: this kind of condition is all over the code, it should be consolidated in a single place
-			canclose := perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeIssues) || refIssue.PosterID == doer.ID
-			cancomment := canclose || perm.CanRead(UnitTypeIssues)
-
-			// Don't proceed if the user can't comment
-			if !cancomment {
-				continue
-			}
-
-			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
-			if err = CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
-				return err
-			}
-
-			// Only issues can be closed/reopened this way, and user needs the correct permissions
-			if refIssue.IsPull || !canclose {
-				continue
-			}
-
-			// Only process closing/reopening keywords
-			if ref.Action != references.XRefActionCloses && ref.Action != references.XRefActionReopens {
-				continue
-			}
-
-			if !repo.CloseIssuesViaCommitInAnyBranch {
-				// If the issue was specified to be in a particular branch, don't allow commits in other branches to close it
-				if refIssue.Ref != "" {
-					if branchName != refIssue.Ref {
-						continue
-					}
-					// Otherwise, only process commits to the default branch
-				} else if branchName != repo.DefaultBranch {
-					continue
-				}
-			}
-
-			if err := changeIssueStatus(refRepo, refIssue, doer, ref.Action == references.XRefActionCloses); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser    *User
-	RequestingUserID int64
-	IncludePrivate   bool // include private actions
-	OnlyPerformedBy  bool // only actions performed by requested user
-	IncludeDeleted   bool // include deleted actions
+	RequestedUser   *User // the user we want activity for
+	Actor           *User // the user viewing the activity
+	IncludePrivate  bool  // include private actions
+	OnlyPerformedBy bool  // only actions performed by requested user
+	IncludeDeleted  bool  // include deleted actions
 }
 
 // GetFeeds returns actions according to the provided options
@@ -549,8 +300,14 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	cond := builder.NewCond()
 
 	var repoIDs []int64
+	var actorID int64
+
+	if opts.Actor != nil {
+		actorID = opts.Actor.ID
+	}
+
 	if opts.RequestedUser.IsOrganization() {
-		env, err := opts.RequestedUser.AccessibleReposEnv(opts.RequestingUserID)
+		env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}
@@ -559,6 +316,14 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		}
 
 		cond = cond.And(builder.In("repo_id", repoIDs))
+	} else {
+		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
+	}
+
+	if opts.Actor == nil || !opts.Actor.IsAdmin {
+		if opts.RequestedUser.KeepActivityPrivate && actorID != opts.RequestedUser.ID {
+			return make([]*Action, 0), nil
+		}
 	}
 
 	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})

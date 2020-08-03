@@ -6,6 +6,7 @@ package org
 
 import (
 	"fmt"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -13,42 +14,29 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
 	var members []*models.User
-	if publicOnly {
-		orgUsers, err := models.GetOrgUsersByOrgID(ctx.Org.Organization.ID)
-		if err != nil {
-			ctx.Error(500, "GetOrgUsersByOrgID", err)
-			return
-		}
 
-		memberIDs := make([]int64, 0, len(orgUsers))
-		for _, orgUser := range orgUsers {
-			if orgUser.IsPublic {
-				memberIDs = append(memberIDs, orgUser.UID)
-			}
-		}
-
-		if members, err = models.GetUsersByIDs(memberIDs); err != nil {
-			ctx.Error(500, "GetUsersByIDs", err)
-			return
-		}
-	} else {
-		if err := ctx.Org.Organization.GetMembers(); err != nil {
-			ctx.Error(500, "GetMembers", err)
-			return
-		}
-		members = ctx.Org.Organization.Members
+	members, _, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
+		OrgID:       ctx.Org.Organization.ID,
+		PublicOnly:  publicOnly,
+		ListOptions: utils.GetListOptions(ctx),
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
+		return
 	}
 
 	apiMembers := make([]*api.User, len(members))
 	for i, member := range members {
 		apiMembers[i] = convert.ToUser(member, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
-	ctx.JSON(200, apiMembers)
+
+	ctx.JSON(http.StatusOK, apiMembers)
 }
 
 // ListMembers list an organization's members
@@ -64,17 +52,26 @@ func ListMembers(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	publicOnly := true
 	if ctx.User != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
 		if err != nil {
-			ctx.Error(500, "IsOrgMember", err)
+			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
 		}
-		publicOnly = !isMember
+		publicOnly = !isMember && !ctx.User.IsAdmin
 	}
 	listMembers(ctx, publicOnly)
 }
@@ -90,11 +87,20 @@ func ListPublicMembers(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	listMembers(ctx, true)
 }
 
@@ -117,8 +123,11 @@ func IsMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: user is a member
+	//   "302":
+	//     description: redirection to /orgs/{org}/public_members/{username}
 	//   "404":
 	//     description: user is not a member
+
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -126,14 +135,14 @@ func IsMember(ctx *context.APIContext) {
 	if ctx.User != nil {
 		userIsMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
 		if err != nil {
-			ctx.Error(500, "IsOrgMember", err)
+			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
-		} else if userIsMember {
+		} else if userIsMember || ctx.User.IsAdmin {
 			userToCheckIsMember, err := ctx.Org.Organization.IsOrgMember(userToCheck.ID)
 			if err != nil {
-				ctx.Error(500, "IsOrgMember", err)
+				ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			} else if userToCheckIsMember {
-				ctx.Status(204)
+				ctx.Status(http.StatusNoContent)
 			} else {
 				ctx.NotFound()
 			}
@@ -170,12 +179,13 @@ func IsPublicMember(ctx *context.APIContext) {
 	//     description: user is a public member
 	//   "404":
 	//     description: user is not a public member
+
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
 	if userToCheck.IsPublicMember(ctx.Org.Organization.ID) {
-		ctx.Status(204)
+		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()
 	}
@@ -202,20 +212,23 @@ func PublicizeMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: membership publicized
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	userToPublicize := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
 	if userToPublicize.ID != ctx.User.ID {
-		ctx.Error(403, "", "Cannot publicize another member")
+		ctx.Error(http.StatusForbidden, "", "Cannot publicize another member")
 		return
 	}
 	err := models.ChangeOrgUserStatus(ctx.Org.Organization.ID, userToPublicize.ID, true)
 	if err != nil {
-		ctx.Error(500, "ChangeOrgUserStatus", err)
+		ctx.Error(http.StatusInternalServerError, "ChangeOrgUserStatus", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // ConcealMember make a member's membership not public
@@ -239,20 +252,23 @@ func ConcealMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	userToConceal := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
 	if userToConceal.ID != ctx.User.ID {
-		ctx.Error(403, "", "Cannot conceal another member")
+		ctx.Error(http.StatusForbidden, "", "Cannot conceal another member")
 		return
 	}
 	err := models.ChangeOrgUserStatus(ctx.Org.Organization.ID, userToConceal.ID, false)
 	if err != nil {
-		ctx.Error(500, "ChangeOrgUserStatus", err)
+		ctx.Error(http.StatusInternalServerError, "ChangeOrgUserStatus", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // DeleteMember remove a member from an organization
@@ -276,12 +292,13 @@ func DeleteMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: member removed
+
 	member := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
 	if err := ctx.Org.Organization.RemoveMember(member.ID); err != nil {
-		ctx.Error(500, "RemoveMember", err)
+		ctx.Error(http.StatusInternalServerError, "RemoveMember", err)
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }

@@ -6,3 +6,7 @@
   id: 2
   assignee_id: 1
   issue_id: 6
+-
+  id: 3
+  assignee_id: 2
+  issue_id: 6

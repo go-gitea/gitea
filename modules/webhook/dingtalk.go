@@ -132,154 +132,45 @@ func getDingtalkPushPayload(p *api.PushPayload) (*DingtalkPayload, error) {
 }
 
 func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Issue opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueClosed:
-		title = fmt.Sprintf("[%s] Issue closed: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Issue re-opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Issue edited: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueAssigned:
-		title = fmt.Sprintf("[%s] Issue assigned to %s: #%d %s", p.Repository.FullName,
-			p.Issue.Assignee.UserName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Issue unassigned: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Issue labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Issue labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	}
+	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text: title + "\r\n\r\n" + text,
+			Text: text + "\r\n\r\n" + attachmentText,
 			//Markdown:    "# " + title + "\n" + text,
-			Title:       title,
+			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view issue",
-			SingleURL:   p.Issue.URL,
+			SingleURL:   p.Issue.HTMLURL,
 		},
 	}, nil
 }
 
 func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayload, error) {
-	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
-	var content string
-	switch p.Action {
-	case api.HookIssueCommentCreated:
-		if p.IsPull {
-			title = "New comment on pull request " + title
-		} else {
-			title = "New comment on issue " + title
-		}
-		content = p.Comment.Body
-	case api.HookIssueCommentEdited:
-		if p.IsPull {
-			title = "Comment edited on pull request " + title
-		} else {
-			title = "Comment edited on issue " + title
-		}
-		content = p.Comment.Body
-	case api.HookIssueCommentDeleted:
-		if p.IsPull {
-			title = "Comment deleted on pull request " + title
-		} else {
-			title = "Comment deleted on issue " + title
-		}
-		url = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
-		content = p.Comment.Body
-	}
-
-	title = fmt.Sprintf("[%s] %s", p.Repository.FullName, title)
+	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text:        title + "\r\n\r\n" + content,
-			Title:       title,
+			Text:        text + "\r\n\r\n" + p.Comment.Body,
+			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view issue comment",
-			SingleURL:   url,
+			SingleURL:   p.Comment.HTMLURL,
 		},
 	}, nil
 }
 
 func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Pull request opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueClosed:
-		if p.PullRequest.HasMerged {
-			title = fmt.Sprintf("[%s] Pull request merged: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		} else {
-			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		}
-		text = p.PullRequest.Body
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Pull request re-opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueAssigned:
-		list := make([]string, len(p.PullRequest.Assignees))
-		for i, user := range p.PullRequest.Assignees {
-			list[i] = user.UserName
-		}
-		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			strings.Join(list, ", "),
-			p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	}
+	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text: title + "\r\n\r\n" + text,
+			Text: text + "\r\n\r\n" + attachmentText,
 			//Markdown:    "# " + title + "\n" + text,
-			Title:       title,
+			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view pull request",
 			SingleURL:   p.PullRequest.HTMLURL,
@@ -290,7 +181,7 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event models.HookEventType) (*DingtalkPayload, error) {
 	var text, title string
 	switch p.Action {
-	case api.HookIssueSynchronized:
+	case api.HookIssueReviewed:
 		action, err := parseHookPullRequestEventType(event)
 		if err != nil {
 			return nil, err
@@ -345,51 +236,18 @@ func getDingtalkRepositoryPayload(p *api.RepositoryPayload) (*DingtalkPayload, e
 }
 
 func getDingtalkReleasePayload(p *api.ReleasePayload) (*DingtalkPayload, error) {
-	var title, url string
-	switch p.Action {
-	case api.HookReleasePublished:
-		title = fmt.Sprintf("[%s] Release created", p.Release.TagName)
-		url = p.Release.URL
-		return &DingtalkPayload{
-			MsgType: "actionCard",
-			ActionCard: dingtalk.ActionCard{
-				Text:        title,
-				Title:       title,
-				HideAvatar:  "0",
-				SingleTitle: "view release",
-				SingleURL:   url,
-			},
-		}, nil
-	case api.HookReleaseUpdated:
-		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
-		url = p.Release.URL
-		return &DingtalkPayload{
-			MsgType: "actionCard",
-			ActionCard: dingtalk.ActionCard{
-				Text:        title,
-				Title:       title,
-				HideAvatar:  "0",
-				SingleTitle: "view release",
-				SingleURL:   url,
-			},
-		}, nil
+	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
 
-	case api.HookReleaseDeleted:
-		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
-		url = p.Release.URL
-		return &DingtalkPayload{
-			MsgType: "actionCard",
-			ActionCard: dingtalk.ActionCard{
-				Text:        title,
-				Title:       title,
-				HideAvatar:  "0",
-				SingleTitle: "view release",
-				SingleURL:   url,
-			},
-		}, nil
-	}
-
-	return nil, nil
+	return &DingtalkPayload{
+		MsgType: "actionCard",
+		ActionCard: dingtalk.ActionCard{
+			Text:        text,
+			Title:       text,
+			HideAvatar:  "0",
+			SingleTitle: "view release",
+			SingleURL:   p.Release.URL,
+		},
+	}, nil
 }
 
 // GetDingtalkPayload converts a ding talk webhook into a DingtalkPayload
@@ -403,15 +261,20 @@ func GetDingtalkPayload(p api.Payloader, event models.HookEventType, meta string
 		return getDingtalkDeletePayload(p.(*api.DeletePayload))
 	case models.HookEventFork:
 		return getDingtalkForkPayload(p.(*api.ForkPayload))
-	case models.HookEventIssues:
+	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getDingtalkIssuesPayload(p.(*api.IssuePayload))
-	case models.HookEventIssueComment:
-		return getDingtalkIssueCommentPayload(p.(*api.IssueCommentPayload))
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
+		pl, ok := p.(*api.IssueCommentPayload)
+		if ok {
+			return getDingtalkIssueCommentPayload(pl)
+		}
+		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
 	case models.HookEventPush:
 		return getDingtalkPushPayload(p.(*api.PushPayload))
-	case models.HookEventPullRequest:
+	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
+		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestApproved, models.HookEventPullRequestRejected, models.HookEventPullRequestComment:
+	case models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewComment:
 		return getDingtalkPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case models.HookEventRepository:
 		return getDingtalkRepositoryPayload(p.(*api.RepositoryPayload))

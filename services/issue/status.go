@@ -11,11 +11,11 @@ import (
 
 // ChangeStatus changes issue status to open or closed.
 func ChangeStatus(issue *models.Issue, doer *models.User, isClosed bool) (err error) {
-	err = issue.ChangeStatus(doer, isClosed)
+	comment, err := issue.ChangeStatus(doer, isClosed)
 	if err != nil {
 		return
 	}
 
-	notification.NotifyIssueChangeStatus(doer, issue, isClosed)
+	notification.NotifyIssueChangeStatus(doer, issue, comment, isClosed)
 	return nil
 }

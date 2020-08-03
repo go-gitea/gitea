@@ -5,6 +5,7 @@
 package webhook
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/gobwas/glob"
@@ -24,6 +26,14 @@ import (
 
 // Deliver deliver hook task
 func Deliver(t *models.HookTask) error {
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+		// There was a panic whilst delivering a hook...
+		log.Error("PANIC whilst trying to deliver webhook[%d] for repo[%d] to %s Panic: %v\nStacktrace: %s", t.ID, t.RepoID, t.URL, err, log.Stack(2))
+	}()
 	t.IsDelivered = true
 
 	var req *http.Request
@@ -67,18 +77,28 @@ func Deliver(t *models.HookTask) error {
 		if err != nil {
 			return err
 		}
+	case http.MethodPut:
+		switch t.Type {
+		case models.MATRIX:
+			req, err = getMatrixHookRequest(t)
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
+		}
 	default:
 		return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
 	}
 
 	req.Header.Add("X-Gitea-Delivery", t.UUID)
-	req.Header.Add("X-Gitea-Event", string(t.EventType))
+	req.Header.Add("X-Gitea-Event", t.EventType.Event())
 	req.Header.Add("X-Gitea-Signature", t.Signature)
 	req.Header.Add("X-Gogs-Delivery", t.UUID)
-	req.Header.Add("X-Gogs-Event", string(t.EventType))
+	req.Header.Add("X-Gogs-Event", t.EventType.Event())
 	req.Header.Add("X-Gogs-Signature", t.Signature)
 	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
-	req.Header["X-GitHub-Event"] = []string{string(t.EventType)}
+	req.Header["X-GitHub-Event"] = []string{t.EventType.Event()}
 
 	// Record delivery information.
 	t.RequestInfo = &models.HookRequest{
@@ -145,8 +165,14 @@ func Deliver(t *models.HookTask) error {
 }
 
 // DeliverHooks checks and delivers undelivered hooks.
-// TODO: shoot more hooks at same time.
-func DeliverHooks() {
+// FIXME: graceful: This would likely benefit from either a worker pool with dummy queue
+// or a full queue. Then more hooks could be sent at same time.
+func DeliverHooks(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+		return
+	default:
+	}
 	tasks, err := models.FindUndeliveredHookTasks()
 	if err != nil {
 		log.Error("DeliverHooks: %v", err)
@@ -155,33 +181,50 @@ func DeliverHooks() {
 
 	// Update hook task status.
 	for _, t := range tasks {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		if err = Deliver(t); err != nil {
 			log.Error("deliver: %v", err)
 		}
 	}
 
 	// Start listening on new hook requests.
-	for repoIDStr := range hookQueue.Queue() {
-		log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
-		hookQueue.Remove(repoIDStr)
+	for {
+		select {
+		case <-ctx.Done():
+			hookQueue.Close()
+			return
+		case repoIDStr := <-hookQueue.Queue():
+			log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
+			hookQueue.Remove(repoIDStr)
 
-		repoID, err := com.StrTo(repoIDStr).Int64()
-		if err != nil {
-			log.Error("Invalid repo ID: %s", repoIDStr)
-			continue
-		}
+			repoID, err := com.StrTo(repoIDStr).Int64()
+			if err != nil {
+				log.Error("Invalid repo ID: %s", repoIDStr)
+				continue
+			}
 
-		tasks, err := models.FindRepoUndeliveredHookTasks(repoID)
-		if err != nil {
-			log.Error("Get repository [%d] hook tasks: %v", repoID, err)
-			continue
-		}
-		for _, t := range tasks {
-			if err = Deliver(t); err != nil {
-				log.Error("deliver: %v", err)
+			tasks, err := models.FindRepoUndeliveredHookTasks(repoID)
+			if err != nil {
+				log.Error("Get repository [%d] hook tasks: %v", repoID, err)
+				continue
+			}
+			for _, t := range tasks {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+				if err = Deliver(t); err != nil {
+					log.Error("deliver: %v", err)
+				}
 			}
 		}
 	}
+
 }
 
 var (
@@ -234,5 +277,5 @@ func InitDeliverHooks() {
 		},
 	}
 
-	go DeliverHooks()
+	go graceful.GetManager().RunWithShutdownContext(DeliverHooks)
 }

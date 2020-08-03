@@ -9,8 +9,8 @@ menu:
   sidebar:
     parent: "advanced"
     name: "Customizing Gitea"
-    weight: 9
     identifier: "customizing-gitea"
+    weight: 9
 ---
 
 # Customizing Gitea
@@ -18,7 +18,8 @@ menu:
 Customizing Gitea is typically done using the `CustomPath` folder - by default this is
 the `custom` folder from the running directory, but may be different if your build has
 set this differently. This is the central place to override configuration settings,
-templates, etc. You can check the `CustomPath` using `gitea help`. You can override
+templates, etc. You can check the `CustomPath` using `gitea help`. You can also find
+the path on the _Configuration_ tab in the _Site Administration_ page. You can override
 the `CustomPath` by setting either the `GITEA_CUSTOM` environment variable or by
 using the `--custom-path` option on the `gitea` binary. (The option will override the
 environment variable.)
@@ -34,7 +35,7 @@ Again `gitea help` will allow you review this variable and you can override it u
 `--config` option on the `gitea` binary.
 
 - [Quick Cheat Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/)
-- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
 
 If the `CustomPath` folder can't be found despite checking `gitea help`, check the `GITEA_CUSTOM`
 environment variable; this can be used to override the default path to something else.
@@ -43,12 +44,6 @@ environment variable; this can be used to override the default path to something
 - [List of Environment Variables](https://docs.gitea.io/en-us/specific-variables/)
 
 **Note:** Gitea must perform a full restart to see configuration changes.
-
-## Customizing /robots.txt
-
-To make Gitea serve a custom `/robots.txt` (default: empty 404), create a file called
-`robots.txt` in the `custom` folder (or `CustomPath`) with
-[expected contents](http://www.robotstxt.org/).
 
 ## Serving custom public files
 
@@ -62,14 +57,21 @@ the url `http://gitea.domain.tld/image.png`.
 
 Place the png image at the following path: `custom/public/img/avatar_default.png`
 
-## Customizing Gitea pages
+## Customizing Gitea pages and resources
 
-The `custom/templates` folder allows changing every single page of Gitea. Templates
-to override can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source. Override by
-making a copy of the file under `custom/templates` using a full path structure
-matching source.
+Gitea's executable contains all the resources required to run: templates, images, style-sheets
+and translations. Any of them can be overridden by placing a replacement in a matching path
+inside the `custom` directory. For example, to replace the default `.gitignore` provided
+for C++ repositories, we want to replace `options/gitignore/C++`. To do this, a replacement
+must be placed in `custom/options/gitignore/C++` (see about the location of the `custom`
+directory at the top of this document).
 
-Any statement contained inside `{{` and `}}` are Gitea's template syntax and
+Every single page of Gitea can be changed. Dynamic content is generated using [go templates](https://golang.org/pkg/html/template/),
+which can be modified by placing replacements below the `custom/templates` directory.
+
+To obtain any embedded file (including templates), the [`gitea embedded` tool]({{< relref "doc/advanced/cmd-embedded.en-us.md" >}}) can be used. Alternatively, they can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source (Note: the example link is from the `master` branch. Make sure to use templates compatible with the release you are using).
+
+Be aware that any statement contained inside `{{` and `}}` are Gitea's template syntax and
 shouldn't be touched without fully understanding these components.
 
 ### Customizing startpage / homepage
@@ -80,13 +82,15 @@ Dont forget to restart your gitea to apply the changes.
 
 ### Adding links and tabs
 
-If all you want is to add extra links to the top navigation bar, or extra tabs to the repository view, you can put them in `extra_links.tmpl` and `extra_tabs.tmpl` inside your `custom/templates/custom/` directory.
+If all you want is to add extra links to the top navigation bar or footer, or extra tabs to the repository view, you can put them in `extra_links.tmpl` (links added to the navbar), `extra_links_footer.tmpl` (links added to the left side of footer), and `extra_tabs.tmpl` inside your `custom/templates/custom/` directory.
 
 For instance, let's say you are in Germany and must add the famously legally-required "Impressum"/about page, listing who is responsible for the site's content:
-just place it under your "custom/public/" directory (for instance `custom/public/impressum.html`) and put a link to it in `custom/templates/custom/extra_links.tmpl`.
+just place it under your "custom/public/" directory (for instance `custom/public/impressum.html`) and put a link to it in either `custom/templates/custom/extra_links.tmpl` or `custom/templates/custom/extra_links_footer.tmpl`.
 
 To match the current style, the link should have the class name "item", and you can use `{{AppSubUrl}}` to get the base URL:
 `<a class="item" href="{{AppSubUrl}}/impressum.html">Impressum</a>`
+
+For more information, see [Adding Legal Pages](https://docs.gitea.io/en-us/adding-legal-pages).
 
 You can add new tabs in the same way, putting them in `extra_tabs.tmpl`.
 The exact HTML needed to match the style of other tabs is in the file
@@ -104,6 +108,122 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
 
+#### Example: PlantUML
+
+You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by using a PlantUML server.
+The data is encoded and sent to the PlantUML server which generates the picture. There is an online
+demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you
+can set up your own [PlantUML server](https://plantuml.com/server) instead. To set up PlantUML rendering,
+copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
+`custom/public` folder. Then add the following to `custom/footer.tmpl`:
+
+```html
+{{if .RequireHighlightJS}}
+<script src="https://your-server.com/deflate.js"></script>
+<script src="https://your-server.com/encode.js"></script>
+<script src="https://your-server.com/plantuml_codeblock_parse.js"></script>
+<script>
+<!-- Replace call with address to your plantuml server-->
+parsePlantumlCodeBlocks("http://www.plantuml..com/plantuml")
+</script>
+{{end}}
+```
+
+You can then add blocks like the following to your markdown:
+
+    ```plantuml
+        Alice -> Bob: Authentication Request
+        Bob --> Alice: Authentication Response
+
+        Alice -> Bob: Another authentication Request
+        Alice <-- Bob: Another authentication Response
+    ```
+
+The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
+
+#### Example: STL Preview
+
+You can display STL file directly in Gitea by adding:
+```html
+<script>
+function lS(src){
+  return new Promise(function(resolve, reject) {
+    let s = document.createElement('script')
+    s.src = src
+    s.addEventListener('load', () => {
+      resolve()
+    })
+    document.body.appendChild(s)
+  });
+}
+
+if($('.view-raw>a[href$=".stl" i]').length){
+  $('body').append('<link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">');
+  Promise.all([lS("/Madeleine.js/src/lib/stats.js"),lS("/Madeleine.js/src/lib/detector.js"), lS("/Madeleine.js/src/lib/three.min.js"), lS("/Madeleine.js/src/Madeleine.js")]).then(function() {
+    $('.view-raw').attr('id', 'view-raw').attr('style', 'padding: 0;margin-bottom: -10px;');
+    new Madeleine({
+      target: 'view-raw',
+      data: $('.view-raw>a[href$=".stl" i]').attr('href'),
+      path: '/Madeleine.js/src'
+    });
+    $('.view-raw>a[href$=".stl"]').remove()
+  });
+}
+</script>
+```
+to the file `templates/custom/footer.tmpl`
+
+You also need to download the content of the library [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `custom/public/` folder.
+
+You should end-up with a folder structucture similar to:
+```
+custom/templates
+-- custom
+    `-- footer.tmpl
+custom/public
+-- Madeleine.js
+   |-- LICENSE
+   |-- README.md
+   |-- css
+   |   |-- pygment_trac.css
+   |   `-- stylesheet.css
+   |-- examples
+   |   |-- ajax.html
+   |   |-- index.html
+   |   `-- upload.html
+   |-- images
+   |   |-- bg_hr.png
+   |   |-- blacktocat.png
+   |   |-- icon_download.png
+   |   `-- sprite_download.png
+   |-- models
+   |   |-- dino2.stl
+   |   |-- ducati.stl
+   |   |-- gallardo.stl
+   |   |-- lamp.stl
+   |   |-- octocat.stl
+   |   |-- skull.stl
+   |   `-- treefrog.stl
+   `-- src
+       |-- Madeleine.js
+       |-- css
+       |   `-- Madeleine.css
+       |-- icons
+       |   |-- logo.png
+       |   |-- madeleine.eot
+       |   |-- madeleine.svg
+       |   |-- madeleine.ttf
+       |   `-- madeleine.woff
+       `-- lib
+           |-- MadeleineConverter.js
+           |-- MadeleineLoader.js
+           |-- detector.js
+           |-- stats.js
+           `-- three.min.js
+```
+
+Then restart gitea and open a STL file on your gitea instance.
+
 ## Customizing Gitea mails
 
 The `custom/templates/mail` folder allows changing the body of every mail of Gitea.
@@ -115,8 +235,6 @@ full path structure matching source.
 
 Any statement contained inside `{{` and `}}` are Gitea's template
 syntax and shouldn't be touched without fully understanding these components.
-
-
 
 ## Adding Analytics to Gitea
 
@@ -160,6 +278,18 @@ Locales may change between versions, so keeping track of your customized locales
 ### Readmes
 
 To add a custom Readme, add a markdown formatted file (without an `.md` extension) to `custom/options/readme`
+
+**NOTE:** readme templates support **variable expansion**.  
+currently there are `{Name}` (name of repository), `{Description}`, `{CloneURL.SSH}`, `{CloneURL.HTTPS}` and `{OwnerName}`
+
+### Reactions
+
+To change reaction emoji's you can set allowed reactions at app.ini
+```
+[ui]
+REACTIONS = +1, -1, laugh, confused, heart, hooray, eyes
+```
+A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gitea.com/issues/8)
 
 ## Customizing the look of Gitea
 

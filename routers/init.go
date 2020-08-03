@@ -5,6 +5,8 @@
 package routers
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,20 +15,27 @@ import (
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
+	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	pull_service "code.gitea.io/gitea/services/pull"
 
+	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
 )
 
@@ -51,11 +60,16 @@ func NewServices() {
 }
 
 // In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
-func initDBEngine() (err error) {
+func initDBEngine(ctx context.Context) (err error) {
 	log.Info("Beginning ORM engine initialization.")
 	for i := 0; i < setting.Database.DBConnectRetries; i++ {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("Aborted due to shutdown:\nin retry ORM engine initialization")
+		default:
+		}
 		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.Database.DBConnectRetries)
-		if err = models.NewEngine(migrations.Migrate); err == nil {
+		if err = models.NewEngine(ctx, migrations.Migrate); err == nil {
 			break
 		} else if i == setting.Database.DBConnectRetries-1 {
 			return err
@@ -68,10 +82,37 @@ func initDBEngine() (err error) {
 	return nil
 }
 
+// InitLocales loads the locales
+func InitLocales() {
+	localeNames, err := options.Dir("locale")
+
+	if err != nil {
+		log.Fatal("Failed to list locale files: %v", err)
+	}
+	localFiles := make(map[string][]byte)
+
+	for _, name := range localeNames {
+		localFiles[name], err = options.Locale(name)
+
+		if err != nil {
+			log.Fatal("Failed to load %s locale file. %v", name, err)
+		}
+	}
+	i18n.I18n(i18n.Options{
+		SubURL:       setting.AppSubURL,
+		Files:        localFiles,
+		Langs:        setting.Langs,
+		Names:        setting.Names,
+		DefaultLang:  "en-US",
+		Redirect:     false,
+		CookieDomain: setting.SessionConfig.Domain,
+	})
+}
+
 // GlobalInit is for global configuration reload-able.
-func GlobalInit() {
+func GlobalInit(ctx context.Context) {
 	setting.NewContext()
-	if err := git.Init(); err != nil {
+	if err := git.Init(ctx); err != nil {
 		log.Fatal("Git module init failed: %v", err)
 	}
 	setting.CheckLFSVersion()
@@ -80,13 +121,16 @@ func GlobalInit() {
 	log.Trace("Custom path: %s", setting.CustomPath)
 	log.Trace("Log path: %s", setting.LogRootPath)
 
+	// Setup i18n
+	InitLocales()
+
 	NewServices()
 
 	if setting.InstallLock {
 		highlight.NewContext()
 		external.RegisterParsers()
 		markup.Init()
-		if err := initDBEngine(); err == nil {
+		if err := initDBEngine(ctx); err == nil {
 			log.Info("ORM engine initialization successful!")
 		} else {
 			log.Fatal("ORM engine initialization failed: %v", err)
@@ -101,13 +145,19 @@ func GlobalInit() {
 		// Booting long running goroutines.
 		cron.NewContext()
 		issue_indexer.InitIssueIndexer(false)
-		models.InitRepoIndexer()
+		code_indexer.Init()
+		if err := stats_indexer.Init(); err != nil {
+			log.Fatal("Failed to initialize repository stats indexer queue: %v", err)
+		}
 		mirror_service.InitSyncMirrors()
 		webhook.InitDeliverHooks()
-		models.InitTestPullRequests()
+		if err := pull_service.Init(); err != nil {
+			log.Fatal("Failed to initialize test pull requests queue: %v", err)
+		}
 		if err := task.Init(); err != nil {
 			log.Fatal("Failed to initialize task scheduler: %v", err)
 		}
+		eventsource.GetManager().Init()
 	}
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")
@@ -129,4 +179,6 @@ func GlobalInit() {
 	if setting.InstallLock {
 		sso.Init()
 	}
+
+	svg.Init()
 }

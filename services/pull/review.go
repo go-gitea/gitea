@@ -14,11 +14,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(doer *models.User, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64) (*models.Comment, error) {
+func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*models.Comment, error) {
 
 	var (
 		existsReview bool
@@ -72,6 +71,8 @@ func CreateCodeComment(doer *models.User, issue *models.Issue, line int64, conte
 			Type:     models.ReviewTypePending,
 			Reviewer: doer,
 			Issue:    issue,
+			Official: false,
+			CommitID: latestCommitID,
 		})
 		if err != nil {
 			return nil, err
@@ -93,7 +94,7 @@ func CreateCodeComment(doer *models.User, issue *models.Issue, line int64, conte
 
 	if !isReview && !existsReview {
 		// Submit the review we've just created so the comment shows up in the issue view
-		if _, _, err = SubmitReview(doer, issue, models.ReviewTypeComment, ""); err != nil {
+		if _, _, err = SubmitReview(doer, gitRepo, issue, models.ReviewTypeComment, "", latestCommitID); err != nil {
 			return nil, err
 		}
 	}
@@ -110,8 +111,8 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
 	}
 	pr := issue.PullRequest
-	if err := pr.GetBaseRepo(); err != nil {
-		return nil, fmt.Errorf("GetHeadRepo: %v", err)
+	if err := pr.LoadBaseRepo(); err != nil {
+		return nil, fmt.Errorf("LoadHeadRepo: %v", err)
 	}
 	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
@@ -138,10 +139,10 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
 		}
 		patchBuf := new(bytes.Buffer)
-		if err := gitdiff.GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, gitdiff.RawDiffNormal, treePath, patchBuf); err != nil {
+		if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, patchBuf); err != nil {
 			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
 		}
-		patch = gitdiff.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 	}
 	return models.CreateComment(&models.CreateCommentOptions{
 		Type:      models.CommentTypeCode,
@@ -154,21 +155,40 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 		CommitSHA: commitID,
 		ReviewID:  reviewID,
 		Patch:     patch,
-		NoAction:  true,
 	})
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *models.User, issue *models.Issue, reviewType models.ReviewType, content string) (*models.Review, *models.Comment, error) {
-	review, comm, err := models.SubmitReview(doer, issue, reviewType, content)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string) (*models.Review, *models.Comment, error) {
 	pr, err := issue.GetPullRequest()
 	if err != nil {
 		return nil, nil, err
 	}
+
+	var stale bool
+	if reviewType != models.ReviewTypeApprove && reviewType != models.ReviewTypeReject {
+		stale = false
+	} else {
+		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if headCommitID == commitID {
+			stale = false
+		} else {
+			stale, err = checkIfPRContentChanged(pr, commitID, headCommitID)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+
+	review, comm, err := models.SubmitReview(doer, issue, reviewType, content, commitID, stale)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	notification.NotifyPullRequestReview(pr, review, comm)
 
 	return review, comm, nil

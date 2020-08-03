@@ -5,18 +5,42 @@
 package repo
 
 import (
+	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func createSSHAuthorizedKeysTmpPath(t *testing.T) func() {
+	tmpDir, err := ioutil.TempDir("", "tmp-ssh")
+	if err != nil {
+		assert.Fail(t, "Unable to create temporary directory: %v", err)
+		return nil
+	}
+
+	oldPath := setting.SSH.RootPath
+	setting.SSH.RootPath = tmpDir
+
+	return func() {
+		setting.SSH.RootPath = oldPath
+		os.RemoveAll(tmpDir)
+	}
+}
+
 func TestAddReadOnlyDeployKey(t *testing.T) {
+	if deferable := createSSHAuthorizedKeysTmpPath(t); deferable != nil {
+		defer deferable()
+	} else {
+		return
+	}
 	models.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/settings/keys")
@@ -39,6 +63,12 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 }
 
 func TestAddReadWriteOnlyDeployKey(t *testing.T) {
+	if deferable := createSSHAuthorizedKeysTmpPath(t); deferable != nil {
+		defer deferable()
+	} else {
+		return
+	}
+
 	models.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/settings/keys")

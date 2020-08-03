@@ -30,6 +30,7 @@ type PullRequestMeta struct {
 type RepositoryMeta struct {
 	ID       int64  `json:"id"`
 	Name     string `json:"name"`
+	Owner    string `json:"owner"`
 	FullName string `json:"full_name"`
 }
 
@@ -38,6 +39,7 @@ type RepositoryMeta struct {
 type Issue struct {
 	ID               int64      `json:"id"`
 	URL              string     `json:"url"`
+	HTMLURL          string     `json:"html_url"`
 	Index            int64      `json:"number"`
 	Poster           *User      `json:"user"`
 	OriginalAuthor   string     `json:"original_author"`
@@ -53,6 +55,7 @@ type Issue struct {
 	// type: string
 	// enum: open,closed
 	State    StateType `json:"state"`
+	IsLocked bool      `json:"is_locked"`
 	Comments int       `json:"comments"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
@@ -115,10 +118,4 @@ type EditDeadlineOption struct {
 type IssueDeadline struct {
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
-}
-
-// EditPriorityOption options for updating priority
-type EditPriorityOption struct {
-	// required:true
-	Priority int `json:"priority"`
 }

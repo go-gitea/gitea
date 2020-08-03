@@ -58,6 +58,9 @@ func handleUsernameChange(ctx *context.Context, newName string) {
 			case models.IsErrNamePatternNotAllowed(err):
 				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
 				ctx.Redirect(setting.AppSubURL + "/user/settings")
+			case models.IsErrNameCharsNotAllowed(err):
+				ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", newName))
+				ctx.Redirect(setting.AppSubURL + "/user/settings")
 			default:
 				ctx.ServerError("ChangeUserName", err)
 			}
@@ -93,6 +96,7 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.User.Location = form.Location
 	ctx.User.Language = form.Language
 	ctx.User.Description = form.Description
+	ctx.User.KeepActivityPrivate = form.KeepActivityPrivate
 	if err := models.UpdateUserSetting(ctx.User); err != nil {
 		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
@@ -196,7 +200,7 @@ func Repos(ctx *context.Context) {
 	ctxUser := ctx.User
 
 	var err error
-	if err = ctxUser.GetRepositories(1, setting.UI.User.RepoPagingNum); err != nil {
+	if err = ctxUser.GetRepositories(models.ListOptions{Page: 1, PageSize: setting.UI.User.RepoPagingNum}); err != nil {
 		ctx.ServerError("GetRepositories", err)
 		return
 	}

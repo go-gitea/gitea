@@ -25,6 +25,7 @@ type InstallForm struct {
 	SSLMode  string
 	Charset  string `binding:"Required;In(utf8,utf8mb4)"`
 	DbPath   string
+	DbSchema string
 
 	AppName      string `binding:"Required" locale:"install.app_name"`
 	RepoRootPath string `binding:"Required"`
@@ -84,7 +85,7 @@ type RegisterForm struct {
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *RegisterForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -121,7 +122,7 @@ type MustChangePasswordForm struct {
 	Retype   string
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -134,7 +135,7 @@ type SignInForm struct {
 	Remember bool
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *SignInForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -151,7 +152,7 @@ type AuthorizationForm struct {
 	CodeChallenge       string
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *AuthorizationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -163,7 +164,7 @@ type GrantApplicationForm struct {
 	State       string
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *GrantApplicationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -181,7 +182,7 @@ type AccessTokenForm struct {
 	CodeVerifier string `json:"code_verifier"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *AccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -195,14 +196,15 @@ func (f *AccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // UpdateProfileForm form for updating profile
 type UpdateProfileForm struct {
-	Name             string `binding:"AlphaDashDot;MaxSize(40)"`
-	FullName         string `binding:"MaxSize(100)"`
-	Email            string `binding:"Required;Email;MaxSize(254)"`
-	KeepEmailPrivate bool
-	Website          string `binding:"ValidUrl;MaxSize(255)"`
-	Location         string `binding:"MaxSize(50)"`
-	Language         string `binding:"Size(5)"`
-	Description      string `binding:"MaxSize(255)"`
+	Name                string `binding:"AlphaDashDot;MaxSize(40)"`
+	FullName            string `binding:"MaxSize(100)"`
+	Email               string `binding:"Required;Email;MaxSize(254)"`
+	KeepEmailPrivate    bool
+	Website             string `binding:"ValidUrl;MaxSize(255)"`
+	Location            string `binding:"MaxSize(50)"`
+	Language            string `binding:"Size(5)"`
+	Description         string `binding:"MaxSize(255)"`
+	KeepActivityPrivate bool
 }
 
 // Validate validates the fields
@@ -303,7 +305,7 @@ type NewAccessTokenForm struct {
 	Name string `binding:"Required;MaxSize(255)"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *NewAccessTokenForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -314,7 +316,7 @@ type EditOAuth2ApplicationForm struct {
 	RedirectURI string `binding:"Required" form:"redirect_uri"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *EditOAuth2ApplicationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -334,7 +336,7 @@ type TwoFactorScratchAuthForm struct {
 	Token string `binding:"Required"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *TwoFactorScratchAuthForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -344,7 +346,7 @@ type U2FRegistrationForm struct {
 	Name string `binding:"Required"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *U2FRegistrationForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -354,7 +356,7 @@ type U2FDeleteForm struct {
 	ID int64 `binding:"Required"`
 }
 
-// Validate valideates the fields
+// Validate validates the fields
 func (f *U2FDeleteForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

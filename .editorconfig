@@ -1,30 +1,28 @@
-# http://editorconfig.org
 root = true
 
 [*]
 charset = utf-8
 insert_final_newline = true
 trim_trailing_whitespace = true
+end_of_line = lf
 
-[*.go]
-indent_style = tab
-indent_size = 8
+[*.md]
+trim_trailing_whitespace = false
 
-[*.{tmpl,html}]
+[*.{go,tmpl,html}]
 indent_style = tab
 indent_size = 4
 
-[*.less]
+[*.{less,css}]
 indent_style = space
 indent_size = 4
 
-[*.{yml,json}]
-indent_style = space
-indent_size = 2
-
-[*.js]
+[*.{js,json,yml}]
 indent_style = space
 indent_size = 2
 
 [Makefile]
 indent_style = tab
+
+[*.svg]
+insert_final_newline = false

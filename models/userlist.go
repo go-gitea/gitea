@@ -97,7 +97,7 @@ func (users UserList) loadTwoFactorStatus(e Engine) (map[int64]*TwoFactor, error
 
 //APIFormat return list of users in api format
 func (users UserList) APIFormat() []*api.User {
-	var result []*api.User
+	result := make([]*api.User, 0, len(users))
 	for _, u := range users {
 		result = append(result, u.APIFormat())
 	}

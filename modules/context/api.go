@@ -7,6 +7,7 @@ package context
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -39,6 +40,13 @@ type APIValidationError struct {
 	URL     string `json:"url"`
 }
 
+// APIInvalidTopicsError is error format response to invalid topics
+// swagger:response invalidTopicsError
+type APIInvalidTopicsError struct {
+	Topics  []string `json:"invalidTopics"`
+	Message string   `json:"message"`
+}
+
 //APIEmpty is an empty response
 // swagger:response empty
 type APIEmpty struct{}
@@ -57,21 +65,45 @@ type APINotFound struct{}
 // swagger:response redirect
 type APIRedirect struct{}
 
-// Error responses error message to client with given message.
+//APIString is a string response
+// swagger:response string
+type APIString string
+
+// Error responds with an error message to client with given obj as the message.
 // If status is 500, also it prints error to log.
 func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	var message string
 	if err, ok := obj.(error); ok {
 		message = err.Error()
 	} else {
-		message = obj.(string)
+		message = fmt.Sprintf("%s", obj)
 	}
 
-	if status == 500 {
-		log.Error("%s: %s", title, message)
+	if status == http.StatusInternalServerError {
+		log.ErrorWithSkip(1, "%s: %s", title, message)
+
+		if macaron.Env == macaron.PROD {
+			message = ""
+		}
 	}
 
 	ctx.JSON(status, APIError{
+		Message: message,
+		URL:     setting.API.SwaggerURL,
+	})
+}
+
+// InternalServerError responds with an error message to the client with the error as a message
+// and the file and line of the caller.
+func (ctx *APIContext) InternalServerError(err error) {
+	log.ErrorWithSkip(1, "InternalServerError: %v", err)
+
+	var message string
+	if macaron.Env != macaron.PROD {
+		message = err.Error()
+	}
+
+	ctx.JSON(http.StatusInternalServerError, APIError{
 		Message: message,
 		URL:     setting.API.SwaggerURL,
 	})
@@ -137,7 +169,7 @@ func (ctx *APIContext) RequireCSRF() {
 	}
 }
 
-// CheckForOTP validateds OTP
+// CheckForOTP validates OTP
 func (ctx *APIContext) CheckForOTP() {
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
 	twofa, err := models.GetTwoFactorByUID(ctx.Context.User.ID)
@@ -205,6 +237,11 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	var message = "Not Found"
 	var errors []string
 	for _, obj := range objs {
+		// Ignore nil
+		if obj == nil {
+			continue
+		}
+
 		if err, ok := obj.(error); ok {
 			errors = append(errors, err.Error())
 		} else {

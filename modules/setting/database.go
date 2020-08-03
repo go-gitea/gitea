@@ -30,6 +30,7 @@ var (
 		Name              string
 		User              string
 		Passwd            string
+		Schema            string
 		SSLMode           string
 		Path              string
 		LogSQL            bool
@@ -50,7 +51,7 @@ var (
 	}
 )
 
-// GetDBTypeByName returns the dataase type as it defined on XORM according the given name
+// GetDBTypeByName returns the database type as it defined on XORM according the given name
 func GetDBTypeByName(name string) string {
 	return dbTypes[name]
 }
@@ -75,6 +76,7 @@ func InitDBConfig() {
 	if len(Database.Passwd) == 0 {
 		Database.Passwd = sec.Key("PASSWD").String()
 	}
+	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
 	Database.Charset = sec.Key("CHARSET").In("utf8", []string{"utf8", "utf8mb4"})
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
@@ -103,7 +105,7 @@ func DBConnStr() (string, error) {
 	switch Database.Type {
 	case "mysql":
 		connType := "tcp"
-		if Database.Host[0] == '/' { // looks like a unix socket
+		if len(Database.Host) > 0 && Database.Host[0] == '/' { // looks like a unix socket
 			connType = "unix"
 		}
 		tls := Database.SSLMode
@@ -124,7 +126,7 @@ func DBConnStr() (string, error) {
 		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %v", err)
 		}
-		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d", Database.Path, Database.Timeout)
+		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate", Database.Path, Database.Timeout)
 	default:
 		return "", fmt.Errorf("Unknown database type: %s", Database.Type)
 	}
@@ -161,7 +163,7 @@ func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, db
 
 // ParseMSSQLHostPort splits the host into host and port
 func ParseMSSQLHostPort(info string) (string, string) {
-	host, port := "127.0.0.1", "1433"
+	host, port := "127.0.0.1", "0"
 	if strings.Contains(info, ":") {
 		host = strings.Split(info, ":")[0]
 		port = strings.Split(info, ":")[1]

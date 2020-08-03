@@ -1,0 +1,66 @@
+Environment To Ini
+==================
+
+Multiple docker users have requested that the Gitea docker is changed
+to permit arbitrary configuration via environment variables.
+
+Gitea needs to use an ini file for configuration because the running
+environment that starts the docker may not be the same as that used
+by the hooks. An ini file also gives a good default and means that
+users do not have to completely provide a full environment.
+
+With those caveats above, this command provides a generic way of
+converting suitably structured environment variables into any ini
+value.
+
+To use the command is very simple just run it and the default gitea
+app.ini will be rewritten to take account of the variables provided,
+however there are various options to give slightly different
+behavior and these can be interrogated with the `-h` option.
+
+The environment variables should be of the form:
+
+	GITEA__SECTION_NAME__KEY_NAME
+
+Environment variables are usually restricted to a reduced character
+set "0-9A-Z_" - in order to allow the setting of sections with
+characters outside of that set, they should be escaped as following:
+"_0X2E_" for ".". The entire section and key names can be escaped as
+a UTF8 byte string if necessary. E.g. to configure:
+
+	"""
+	...
+	[log.console]
+	COLORIZE=false
+	STDERR=true
+	...
+	"""
+
+You would set the environment variables: "GITEA__LOG_0x2E_CONSOLE__COLORIZE=false"
+and "GITEA__LOG_0x2E_CONSOLE__STDERR=false". Other examples can be found
+on the configuration cheat sheet.
+
+To plug this command in to the docker, you simply compile the provided go file using:
+
+	go build environment-to-ini.go
+
+And copy the resulting `environment-to-ini` command to /app/gitea in the docker.
+
+Apply the below patch to /etc/s6/gitea.setup to wire this in.
+
+If you find this useful please comment on #7287
+
+
+diff --git a/docker/root/etc/s6/gitea/setup b/docker/root/etc/s6/gitea/setup
+index f87ce9115..565bfcba9 100755
+--- a/docker/root/etc/s6/gitea/setup
++++ b/docker/root/etc/s6/gitea/setup
+@@ -44,6 +44,8 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
+     SECRET_KEY=${SECRET_KEY:-""} \
+     envsubst < /etc/templates/app.ini > ${GITEA_CUSTOM}/conf/app.ini
+
++    /app/gitea/environment-to-ini -c ${GITEA_CUSTOM}/conf/app.ini
++
+     chown ${USER}:git ${GITEA_CUSTOM}/conf/app.ini
+ fi
+

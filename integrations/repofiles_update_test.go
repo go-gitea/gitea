@@ -201,17 +201,20 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
 		expectedFileResponse := getExpectedFileResponseForRepofilesCreate(commitID)
-		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
-		assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
-		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
-		assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+		assert.NotNil(t, expectedFileResponse)
+		if expectedFileResponse != nil {
+			assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
+			assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
+			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
+			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
+			assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+		}
 	})
 }
 
@@ -234,7 +237,7 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 
@@ -269,7 +272,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 
@@ -284,7 +287,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 			t.Fatalf("expected git.ErrNotExist, got:%v", err)
 		}
 		toEntry, err := commit.GetTreeEntryByPath(opts.TreePath)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Nil(t, fromEntry)  // Should no longer exist here
 		assert.NotNil(t, toEntry) // Should exist here
 		// assert SHA has remained the same but paths use the new file name
@@ -319,7 +322,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 

@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -54,6 +53,5 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index)
-	ctx.Redirect(url, http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 }

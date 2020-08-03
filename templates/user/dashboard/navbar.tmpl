@@ -3,7 +3,7 @@
 		<div class="item">
 			<div class="ui floating dropdown link jump">
 				<span class="text">
-					<img class="ui avatar image" src="{{.ContextUser.RelAvatarLink}}" title="{{.ContextUser.Name}}">
+					<img class="ui avatar image" src="{{.ContextUser.RelAvatarLink}}" title="{{.ContextUser.Name}}" width="28" height="28">
 					{{.ContextUser.ShortName 20}}
 					<i class="dropdown icon"></i>
 				</span>
@@ -12,20 +12,20 @@
 						{{.i18n.Tr "home.switch_dashboard_context"}}
 					</div>
 					<div class="scrolling menu items">
-						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{end}}">
-							<img class="ui avatar image" src="{{.SignedUser.RelAvatarLink}}">
+						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}">
+							<img class="ui avatar image" src="{{.SignedUser.RelAvatarLink}}" width="28" height="28">
 							{{.SignedUser.Name}}
 						</a>
 						{{range .Orgs}}
-							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else}}dashboard{{end}}">
-								<img class="ui avatar image" src="{{.RelAvatarLink}}">
+							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
+								<img class="ui avatar image" src="{{.RelAvatarLink}}" width="28" height="28">
 								{{.ShortName 20}}
 							</a>
 						{{end}}
 					</div>
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
-						<i class="octicon octicon-plus"></i>&nbsp;&nbsp;&nbsp;{{.i18n.Tr "new_org"}}
+						{{svg "octicon-plus" 16}}&nbsp;&nbsp;&nbsp;{{.i18n.Tr "new_org"}}
 					</a>
 					{{end}}
 				</div>
@@ -35,14 +35,19 @@
 		{{if .ContextUser.IsOrganization}}
 			<div class="right stackable menu">
 				<a class="{{if .PageIsNews}}active{{end}} item" style="margin-left: auto" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/dashboard">
-					<i class="octicon octicon-rss"></i>&nbsp;{{.i18n.Tr "activities"}}
+					{{svg "octicon-rss" 16}}&nbsp;{{.i18n.Tr "activities"}}
 				</a>
 				<a class="{{if .PageIsIssues}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/issues">
-					<i class="octicon octicon-issue-opened"></i>&nbsp;{{.i18n.Tr "issues"}}
+					{{svg "octicon-issue-opened" 16}}&nbsp;{{.i18n.Tr "issues"}}
 				</a>
 				<a class="{{if .PageIsPulls}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/pulls">
-					<i class="octicon octicon-git-pull-request"></i>&nbsp;{{.i18n.Tr "pull_requests"}}
+					{{svg "octicon-git-pull-request" 16}}&nbsp;{{.i18n.Tr "pull_requests"}}
 				</a>
+				{{if .ShowMilestonesDashboardPage}}
+					<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/milestones">
+						{{svg "octicon-milestone" 16}}&nbsp;{{.i18n.Tr "milestones"}}
+					</a>
+				{{end}}
 				<div class="item">
 					<a class="ui blue basic button" href="{{.ContextUser.HomeLink}}" title='{{.i18n.Tr "home.view_home" .ContextUser.Name}}'>
 						{{.i18n.Tr "home.view_home" (.ContextUser.ShortName 10)}}

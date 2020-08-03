@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"xorm.io/core"
+	xormlog "xorm.io/xorm/log"
 )
 
 // XORMLogBridge a logger bridge from Logger to xorm
@@ -19,7 +19,7 @@ type XORMLogBridge struct {
 }
 
 // NewXORMLogger inits a log bridge for xorm
-func NewXORMLogger(showSQL bool) core.ILogger {
+func NewXORMLogger(showSQL bool) xormlog.Logger {
 	return &XORMLogBridge{
 		showSQL: showSQL,
 		logger:  log.GetLogger("xorm"),
@@ -72,22 +72,22 @@ func (l *XORMLogBridge) Warnf(format string, v ...interface{}) {
 }
 
 // Level get logger level
-func (l *XORMLogBridge) Level() core.LogLevel {
+func (l *XORMLogBridge) Level() xormlog.LogLevel {
 	switch l.logger.GetLevel() {
 	case log.TRACE, log.DEBUG:
-		return core.LOG_DEBUG
+		return xormlog.LOG_DEBUG
 	case log.INFO:
-		return core.LOG_INFO
+		return xormlog.LOG_INFO
 	case log.WARN:
-		return core.LOG_WARNING
+		return xormlog.LOG_WARNING
 	case log.ERROR, log.CRITICAL:
-		return core.LOG_ERR
+		return xormlog.LOG_ERR
 	}
-	return core.LOG_OFF
+	return xormlog.LOG_OFF
 }
 
 // SetLevel set the logger level
-func (l *XORMLogBridge) SetLevel(lvl core.LogLevel) {
+func (l *XORMLogBridge) SetLevel(lvl xormlog.LogLevel) {
 }
 
 // ShowSQL set if record SQL

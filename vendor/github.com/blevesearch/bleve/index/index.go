@@ -121,6 +121,10 @@ type IndexReaderOnly interface {
 	FieldDictOnly(field string, onlyTerms [][]byte, includeCount bool) (FieldDict, error)
 }
 
+type IndexReaderContains interface {
+	FieldDictContains(field string) (FieldDictContains, error)
+}
+
 // FieldTerms contains the terms used by a document, keyed by field
 type FieldTerms map[string][]string
 
@@ -228,6 +232,10 @@ type DictEntry struct {
 type FieldDict interface {
 	Next() (*DictEntry, error)
 	Close() error
+}
+
+type FieldDictContains interface {
+	Contains(key []byte) (bool, error)
 }
 
 // DocIDReader is the interface exposing enumeration of documents identifiers.

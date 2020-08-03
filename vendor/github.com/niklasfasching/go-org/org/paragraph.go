@@ -1,6 +1,7 @@
 package org
 
 import (
+	"math"
 	"regexp"
 	"strings"
 )
@@ -27,12 +28,12 @@ func lexHorizontalRule(line string) (token, bool) {
 
 func (d *Document) parseParagraph(i int, parentStop stopFn) (int, Node) {
 	lines, start := []string{d.tokens[i].content}, i
-	i++
 	stop := func(d *Document, i int) bool {
 		return parentStop(d, i) || d.tokens[i].kind != "text" || d.tokens[i].content == ""
 	}
-	for ; !stop(d, i); i++ {
-		lines = append(lines, d.tokens[i].content)
+	for i += 1; !stop(d, i); i++ {
+		lvl := math.Max(float64(d.tokens[i].lvl-d.baseLvl), 0)
+		lines = append(lines, strings.Repeat(" ", int(lvl))+d.tokens[i].content)
 	}
 	consumed := i - start
 	return consumed, Paragraph{d.parseInline(strings.Join(lines, "\n"))}

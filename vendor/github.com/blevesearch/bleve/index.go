@@ -117,6 +117,8 @@ func (b *Batch) String() string {
 // be re-used in the future.
 func (b *Batch) Reset() {
 	b.internal.Reset()
+	b.lastDocSize = 0
+	b.totalSize = 0
 }
 
 func (b *Batch) Merge(o *Batch) {

@@ -28,10 +28,12 @@ type ClientIface interface {
 	CASNext(vb uint16, k string, exp int, state *CASState) bool
 	CAS(vb uint16, k string, f CasFunc, initexp int) (*gomemcached.MCResponse, error)
 	CollectionsGetCID(scope string, collection string) (*gomemcached.MCResponse, error)
+	CollectionEnabled() bool
 	Close() error
 	Decr(vb uint16, key string, amt, def uint64, exp int) (uint64, error)
 	Del(vb uint16, key string) (*gomemcached.MCResponse, error)
 	EnableMutationToken() (*gomemcached.MCResponse, error)
+	EnableFeatures(features Features) (*gomemcached.MCResponse, error)
 	Get(vb uint16, key string) (*gomemcached.MCResponse, error)
 	GetCollectionsManifest() (*gomemcached.MCResponse, error)
 	GetFromCollection(vb uint16, cid uint32, key string) (*gomemcached.MCResponse, error)
@@ -76,9 +78,12 @@ var Healthy uint32 = 1
 type Features []Feature
 type Feature uint16
 
-const FeatureMutationToken = Feature(0x04)
+const FeatureTcpNoDelay = Feature(0x03)
+const FeatureMutationToken = Feature(0x04) // XATTR bit in data type field with dcp mutations
 const FeatureXattr = Feature(0x06)
+const FeatureXerror = Feature(0x07)
 const FeatureCollections = Feature(0x12)
+const FeatureSnappyCompression = Feature(0x0a)
 const FeatureDataType = Feature(0x0b)
 
 type memcachedConnection interface {
@@ -96,6 +101,9 @@ type Client struct {
 	opaque  uint32
 
 	hdrBuf []byte
+
+	featureMtx       sync.RWMutex
+	sentHeloFeatures Features
 }
 
 var (
@@ -285,6 +293,10 @@ func (c *Client) EnableFeatures(features Features) (*gomemcached.MCResponse, err
 		binary.BigEndian.PutUint16(payload[len(payload)-2:], uint16(feature))
 	}
 
+	c.featureMtx.Lock()
+	c.sentHeloFeatures = features
+	c.featureMtx.Unlock()
+
 	return c.Send(&gomemcached.MCRequest{
 		Opcode: gomemcached.HELLO,
 		Key:    []byte("GoMemcached"),
@@ -361,6 +373,18 @@ func (c *Client) CollectionsGetCID(scope string, collection string) (*gomemcache
 		return res, err
 	}
 	return res, nil
+}
+
+func (c *Client) CollectionEnabled() bool {
+	c.featureMtx.RLock()
+	defer c.featureMtx.RUnlock()
+
+	for _, feature := range c.sentHeloFeatures {
+		if feature == FeatureCollections {
+			return true
+		}
+	}
+	return false
 }
 
 // Get the value for a key, and update expiry
@@ -1137,4 +1161,8 @@ func IfResStatusError(response *gomemcached.MCResponse) bool {
 		(response.Status != gomemcached.SUBDOC_BAD_MULTI &&
 			response.Status != gomemcached.SUBDOC_PATH_NOT_FOUND &&
 			response.Status != gomemcached.SUBDOC_MULTI_PATH_FAILURE_DELETED)
+}
+
+func (c *Client) Conn() io.ReadWriteCloser {
+	return c.conn
 }
