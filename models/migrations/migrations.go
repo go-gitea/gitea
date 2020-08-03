@@ -344,7 +344,7 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	// TODO: This will not work if there are foreign keys
 
 	tableName := sess.Engine().TableName(bean)
-	tempTableName := fmt.Sprintf("tempzzz%szztemp", tableName)
+	tempTableName := fmt.Sprintf("tempzzz__%s__zztemp", tableName)
 
 	// We need to move the old table away and create a new one with the correct columns
 	// We will need to do this in stages to prevent data loss
@@ -366,8 +366,12 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 	if len(newTableColumns) == 0 {
 		return fmt.Errorf("no columns in new table")
 	}
+	hasID := false
+	for _, column := range newTableColumns {
+		hasID = hasID || (column.IsPrimaryKey && column.IsAutoIncrement)
+	}
 
-	if setting.Database.UseMSSQL {
+	if hasID && setting.Database.UseMSSQL {
 		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` ON", tempTableName)); err != nil {
 			log.Error("Unable to set identity insert for table %s. Error: %v", tempTableName, err)
 			return err
@@ -421,7 +425,7 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 		return err
 	}
 
-	if setting.Database.UseMSSQL {
+	if hasID && setting.Database.UseMSSQL {
 		if _, err := sess.Exec(fmt.Sprintf("SET IDENTITY_INSERT `%s` OFF", tempTableName)); err != nil {
 			log.Error("Unable to switch off identity insert for table %s. Error: %v", tempTableName, err)
 			return err
