@@ -27,6 +27,7 @@
 //     - AuthorizationHeaderToken :
 //     - SudoParam :
 //     - SudoHeader :
+//     - TOTPHeader :
 //
 //     SecurityDefinitions:
 //     BasicAuth:
@@ -54,6 +55,11 @@
 //          name: Sudo
 //          in: header
 //          description: Sudo API request as the user provided as the key. Admin privileges are required.
+//     TOTPHeader:
+//          type: apiKey
+//          name: X-GITEA-OTP
+//          in: header
+//          description: Must be used in combination with BasicAuth if two-factor authentication is enabled.
 //
 // swagger:meta
 package v1
