@@ -252,7 +252,7 @@ func notifyWatchers(e Engine, actions ...*Action) error {
 			act.Repo.Units = nil
 
 			switch act.OpType {
-			case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionDeleteBranch:
+			case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionPublishRelease, ActionDeleteBranch:
 				if !permCode[i] {
 					continue
 				}

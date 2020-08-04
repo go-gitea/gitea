@@ -330,41 +330,38 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 	return ids
 }
 
-// GetMilestonesByRepoID returns all opened milestones of a repository.
-func GetMilestonesByRepoID(repoID int64, state api.StateType, listOptions ListOptions) (MilestoneList, error) {
-	sess := x.Where("repo_id = ?", repoID)
+// GetMilestonesOption contain options to get milestones
+type GetMilestonesOption struct {
+	ListOptions
+	RepoID   int64
+	State    api.StateType
+	Name     string
+	SortType string
+}
 
-	switch state {
+// GetMilestones returns milestones filtered by GetMilestonesOption's
+func GetMilestones(opts GetMilestonesOption) (MilestoneList, error) {
+	sess := x.Where("repo_id = ?", opts.RepoID)
+
+	switch opts.State {
 	case api.StateClosed:
 		sess = sess.And("is_closed = ?", true)
-
 	case api.StateAll:
 		break
-
-	case api.StateOpen:
-		fallthrough
-
+	// api.StateOpen:
 	default:
 		sess = sess.And("is_closed = ?", false)
 	}
 
-	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+	if len(opts.Name) != 0 {
+		sess = sess.And(builder.Like{"name", opts.Name})
 	}
 
-	miles := make([]*Milestone, 0, listOptions.PageSize)
-	return miles, sess.Asc("deadline_unix").Asc("id").Find(&miles)
-}
-
-// GetMilestones returns a list of milestones of given repository and status.
-func GetMilestones(repoID int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
-	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
-	sess := x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed)
-	if page > 0 {
-		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
 	}
 
-	switch sortType {
+	switch opts.SortType {
 	case "furthestduedate":
 		sess.Desc("deadline_unix")
 	case "leastcomplete":
@@ -375,9 +372,13 @@ func GetMilestones(repoID int64, page int, isClosed bool, sortType string) (Mile
 		sess.Asc("num_issues")
 	case "mostissues":
 		sess.Desc("num_issues")
+	case "id":
+		sess.Asc("id")
 	default:
-		sess.Asc("deadline_unix")
+		sess.Asc("deadline_unix").Asc("id")
 	}
+
+	miles := make([]*Milestone, 0, opts.PageSize)
 	return miles, sess.Find(&miles)
 }
 
