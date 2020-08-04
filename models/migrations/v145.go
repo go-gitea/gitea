@@ -14,6 +14,7 @@ import (
 
 func increaseLanguageField(x *xorm.Engine) error {
 	type LanguageStat struct {
+		RepoID   int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
 		Language string `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`
 	}
 
