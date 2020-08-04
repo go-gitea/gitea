@@ -98,7 +98,9 @@ func Profile(ctx *context.Context) {
 	// so everyone would get the same empty heatmap
 	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate
 	ctx.Data["HeatmapUser"] = ctxUser.Name
-	ctx.Data["RenderedDescription"] = string(markdown.Render([]byte(ctxUser.Description), ctx.Repo.RepoLink, map[string]string{"mode": "document"}))
+	if len(ctx.User.Description) != 0 {
+		ctx.Data["RenderedDescription"] = string(markdown.Render([]byte(ctxUser.Description), ctx.Repo.RepoLink, map[string]string{"mode": "document"}))
+	}
 
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
