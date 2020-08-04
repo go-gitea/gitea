@@ -715,6 +715,7 @@ func UpdatePullRequest(ctx *context.Context) {
 		}
 		ctx.Flash.Error(err.Error())
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		return
 	}
 
 	time.Sleep(1 * time.Second)
