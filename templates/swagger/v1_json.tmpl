@@ -67,6 +67,15 @@
         ],
         "summary": "Run cron task",
         "operationId": "adminCronRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "task to run",
+            "name": "task",
+            "in": "path",
+            "required": true
+          }
+        ],
         "responses": {
           "204": {
             "$ref": "#/responses/empty"

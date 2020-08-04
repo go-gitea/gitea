@@ -63,6 +63,12 @@ func PostCronTask(ctx *context.APIContext) {
 	// summary: Run cron task
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: task
+	//   in: path
+	//   description: task to run
+	//   type: string
+	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
