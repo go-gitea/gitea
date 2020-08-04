@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"xorm.io/xorm"
 )
 
