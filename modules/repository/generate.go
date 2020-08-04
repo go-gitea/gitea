@@ -245,7 +245,7 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 		IsFsckEnabled: templateRepo.IsFsckEnabled,
 		TemplateID:    templateRepo.ID,
 	}
-	overwriteOrAdopt := opts.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories
+	overwriteOrAdopt := opts.OverwritePreExisting && (doer.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories)
 
 	if err = models.CreateRepository(ctx, doer, owner, generateRepo, overwriteOrAdopt); err != nil {
 		return nil, err

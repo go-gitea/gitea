@@ -91,7 +91,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		IsPrivate:            opts.Private,
 		IsMirror:             opts.Mirror,
 		Status:               models.RepositoryBeingMigrated,
-		OverwritePreExisting: opts.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories,
+		OverwritePreExisting: opts.OverwritePreExisting && (doer.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories),
 	})
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()

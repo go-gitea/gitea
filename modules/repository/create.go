@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/unknwon/com"
 )
 
@@ -40,8 +41,8 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	overwriteOrAdopt := (!opts.IsMirror && opts.AdoptPreExisting && setting.Repository.AllowAdoptionOfUnadoptedRepositories) ||
-		(opts.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories)
+	overwriteOrAdopt := (!opts.IsMirror && opts.AdoptPreExisting && (doer.IsAdmin || setting.Repository.AllowAdoptionOfUnadoptedRepositories)) ||
+		(opts.OverwritePreExisting && (doer.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories))
 
 	if err := models.WithTx(func(ctx models.DBContext) error {
 		if err := models.CreateRepository(ctx, doer, u, repo, overwriteOrAdopt); err != nil {

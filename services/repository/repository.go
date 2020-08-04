@@ -72,8 +72,8 @@ func PushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repo
 	repo, err := CreateRepository(authUser, owner, models.CreateRepoOptions{
 		Name:                 repoName,
 		IsPrivate:            true,
-		AdoptPreExisting:     setting.Repository.AllowAdoptionOfUnadoptedRepositories,
-		OverwritePreExisting: setting.Repository.AllowOverwriteOfUnadoptedRepositories,
+		AdoptPreExisting:     authUser.IsAdmin || setting.Repository.AllowAdoptionOfUnadoptedRepositories,
+		OverwritePreExisting: authUser.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories,
 	})
 	if err != nil {
 		return nil, err

@@ -153,7 +153,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		IsPrivate:            opts.Private,
 		IsMirror:             opts.Mirror,
 		Status:               models.RepositoryBeingMigrated,
-		OverwritePreExisting: opts.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories,
+		OverwritePreExisting: opts.OverwritePreExisting && (ctx.User.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories),
 	})
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, remoteAddr, err)

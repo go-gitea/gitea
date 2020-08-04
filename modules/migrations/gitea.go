@@ -112,7 +112,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 			IsPrivate:            opts.Private,
 			IsMirror:             opts.Mirror,
 			Status:               models.RepositoryBeingMigrated,
-			OverwritePreExisting: opts.OverwritePreExisting && setting.Repository.AllowOverwriteOfUnadoptedRepositories,
+			OverwritePreExisting: opts.OverwritePreExisting && (g.doer.IsAdmin || setting.Repository.AllowOverwriteOfUnadoptedRepositories),
 		})
 	} else {
 		r, err = models.GetRepositoryByID(opts.MigrateToRepoID)

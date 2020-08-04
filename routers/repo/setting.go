@@ -86,7 +86,16 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				case models.IsErrRepoFilesAlreadyExist(err):
 					ctx.Data["Err_RepoName"] = true
 					ctx.Data["Err_AdoptOrDelete"] = true
-					ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
+					switch {
+					case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowOverwriteOfUnadoptedRepositories):
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_overwrite"), tplSettingsOptions, form)
+					case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tplSettingsOptions, form)
+					case setting.Repository.AllowOverwriteOfUnadoptedRepositories:
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.overwrite"), tplSettingsOptions, form)
+					default:
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
+					}
 				case models.IsErrNamePatternNotAllowed(err):
 					ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
 				default:
