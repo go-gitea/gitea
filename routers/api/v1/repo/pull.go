@@ -996,12 +996,14 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "405":
-	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -1014,7 +1016,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	if pr.HasMerged {
-		ctx.Error(http.StatusNotFound, "UpdatePullRequest", err)
+		ctx.Error(http.StatusUnprocessableEntity, "UpdatePullRequest", err)
 		return
 	}
 
@@ -1024,7 +1026,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	if pr.Issue.IsClosed {
-		ctx.Error(http.StatusNotFound, "UpdatePullRequest", err)
+		ctx.Error(http.StatusUnprocessableEntity, "UpdatePullRequest", err)
 		return
 	}
 
@@ -1044,7 +1046,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	if !allowedUpdate {
-		ctx.Status(http.StatusMethodNotAllowed)
+		ctx.Status(http.StatusForbidden)
 		return
 	}
 
