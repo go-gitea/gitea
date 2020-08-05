@@ -223,6 +223,8 @@ var migrations = []Migration{
 	NewMigration("recalculate Stars number for all user", recalculateStars),
 	// v144 -> v145
 	NewMigration("update Matrix Webhook http method to 'PUT'", updateMatrixWebhookHTTPMethod),
+	// v145 -> v146
+	NewMigration("Increase Language field to 50 in LanguageStats", increaseLanguageField),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -626,7 +628,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			sess.Rollback()
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-
+		return sess.Commit()
 	default:
 		log.Fatal("Unrecognized DB")
 	}
