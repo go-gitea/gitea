@@ -5,23 +5,56 @@
 package migrations
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
 
-func addHookTaskPurge(x *xorm.Engine) error {
-	type Repository struct {
-		ID                            int64 `xorm:"pk autoincr"`
-		IsHookTaskPurgeEnabled        bool  `xorm:"NOT NULL DEFAULT true"`
-		NumberWebhookDeliveriesToKeep int64 `xorm:"NOT NULL DEFAULT 10"`
+func increaseLanguageField(x *xorm.Engine) error {
+	type LanguageStat struct {
+		RepoID   int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Language string `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
+	if err := x.Sync2(new(LanguageStat)); err != nil {
 		return err
 	}
 
-	_, err := x.Exec("UPDATE repository SET is_hook_task_purge_enabled = ?, number_webhook_deliveries_to_keep = ?",
-		setting.Repository.DefaultIsHookTaskPurgeEnabled, setting.Repository.DefaultNumberWebhookDeliveriesToKeep)
-	return err
+	if setting.Database.UseSQLite3 {
+		// SQLite maps VARCHAR to TEXT without size so we're done
+		return nil
+	}
+
+	// need to get the correct type for the new column
+	inferredTable, err := x.TableInfo(new(LanguageStat))
+	if err != nil {
+		return err
+	}
+	column := inferredTable.GetColumn("language")
+	sqlType := x.Dialect().SQLType(column)
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	switch {
+	case setting.Database.UseMySQL:
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat MODIFY COLUMN language %s", sqlType)); err != nil {
+			return err
+		}
+	case setting.Database.UseMSSQL:
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat ALTER COLUMN language %s", sqlType)); err != nil {
+			return err
+		}
+	case setting.Database.UsePostgreSQL:
+		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat ALTER COLUMN language TYPE %s", sqlType)); err != nil {
+			return err
+		}
+	}
+
+	return sess.Commit()
 }
