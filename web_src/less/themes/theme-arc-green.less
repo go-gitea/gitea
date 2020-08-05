@@ -1260,7 +1260,8 @@ input {
     border-color: #794f31;
 }
 
-.ui.red.message {
+.ui.red.message,
+.ui.error.message {
     background-color: rgba(80, 23, 17, .6);
     color: #f9cbcb;
     box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
@@ -1922,4 +1923,13 @@ footer .container .links > * {
 
 .mermaid-chart {
     filter: invert(84%) hue-rotate(180deg);
+}
+
+.is-loading:after {
+    border-color: #4a4c58 #4a4c58 #d7d7da #d7d7da;
+}
+
+.markdown-block-error {
+    border: 1px solid rgba(121, 71, 66, .5) !important;
+    border-bottom: none !important;
 }
