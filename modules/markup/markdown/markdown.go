@@ -7,6 +7,7 @@ package markdown
 
 import (
 	"bytes"
+	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/log"
@@ -57,13 +58,33 @@ func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown
 						chromahtml.PreventSurroundingPre(true),
 					),
 					highlighting.WithWrapperRenderer(func(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
-						language, _ := c.Language()
-						if language == nil {
-							language = []byte("text")
-						}
 						if entering {
+							language, _ := c.Language()
+							if language == nil {
+								language = []byte("text")
+							}
+
+							languageStr := string(language)
+
+							preClasses := []string{}
+							if languageStr == "mermaid" {
+								preClasses = append(preClasses, "is-loading")
+							}
+
+							if len(preClasses) > 0 {
+								_, err := w.WriteString(`<pre class="` + strings.Join(preClasses, " ") + `">`)
+								if err != nil {
+									return
+								}
+							} else {
+								_, err := w.WriteString(`<pre>`)
+								if err != nil {
+									return
+								}
+							}
+
 							// include language-x class as part of commonmark spec
-							_, err := w.WriteString("<pre><code class=\"chroma language-" + string(language) + "\">")
+							_, err := w.WriteString(`<code class="chroma language-` + string(language) + `">`)
 							if err != nil {
 								return
 							}
