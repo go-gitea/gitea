@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	
+
 	"xorm.io/builder"
 )
 
