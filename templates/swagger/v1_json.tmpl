@@ -10572,9 +10572,8 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "token to be deleted",
+            "type": "string",
+            "description": "token to be deleted, identify by ID or name",
             "name": "token",
             "in": "path",
             "required": true
@@ -10583,6 +10582,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "422": {
+            "$ref": "#/responses/error"
           }
         }
       }
