@@ -570,7 +570,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ### Cron - Prune hook_task Table (`cron.prune_hook_task_table`)
 
-- `ENABLED`: **true**: Enable service.
+- `ENABLED`: **true**: Enable service. In the repository table, there are two columns to additionally override the behavior per repository: is_hook_task_purge_enabled - enable or disable purging of hook_task data by repository and number_webhook_deliveries_to_keep - the process will leave the most recently delivered webhooks, this value controls how many are kept. These settings can also be modified per repository in the Gitea UI. By default, the process is enabled for every repository and 10 webhooks are kept.
 - `RUN_AT_START`: **false**: Run prune hook_task at start time (if ENABLED).
 - `SCHEDULE`: **@every 24h**: Cron syntax for pruning hook_task table.
 
