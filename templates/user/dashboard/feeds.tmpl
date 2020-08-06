@@ -70,6 +70,10 @@
 						{{else if eq .GetOpType 23}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.comment_pull" .GetRepoLink $index .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 24}}
+							{{ $branchLink := .GetBranch | EscapePound | Escape}}
+							{{ $linkText := .Content | RenderEmoji }}
+							{{$.i18n.Tr "action.publish_release" .GetRepoLink $branchLink .ShortRepoPath $linkText | Str2html}}
 						{{end}}
 					</p>
 					{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}

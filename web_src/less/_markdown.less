@@ -495,10 +495,20 @@
     }
 }
 
-.mermaid-chart {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    margin: 1rem 0;
+.markdown-block-error {
+    margin-bottom: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    box-shadow: none !important;
+    font-size: 85% !important;
+    white-space: pre !important;
+    padding: .5rem 1rem !important;
+    text-align: left !important;
+}
+
+.markdown-block-error + pre {
+    border-top: none !important;
+    margin-top: 0 !important;
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
 }
