@@ -16,9 +16,10 @@ import (
 
 func registerUpdateMirrorTask() {
 	RegisterTaskFatal("update_mirrors", &BaseConfig{
-		Enabled:    true,
-		RunAtStart: false,
-		Schedule:   "@every 10m",
+		Enabled:         true,
+		RunAtStart:      false,
+		Schedule:        "@every 10m",
+		NoSuccessNotice: true,
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
 		return mirror_service.Update(ctx)
 	})
