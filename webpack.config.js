@@ -1,4 +1,6 @@
+const cssnano = require('cssnano');
 const fastGlob = require('fast-glob');
+const remapCss = require('remap-css');
 const wrapAnsi = require('wrap-ansi');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
@@ -7,15 +9,16 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const PostCSSPresetEnv = require('postcss-preset-env');
 const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
-const {statSync} = require('fs');
+const {statSync, readFileSync} = require('fs');
 const {resolve, parse} = require('path');
+const {ConcatSource} = require('webpack-sources');
 const {LicenseWebpackPlugin} = require('license-webpack-plugin');
 const {SourceMapDevToolPlugin} = require('webpack');
 
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
 const themes = {};
-for (const path of glob('web_src/less/themes/*.less')) {
+for (const path of glob('web_src/less/themes/theme-*.less')) {
   themes[parse(path).name] = [path];
 }
 
@@ -35,6 +38,15 @@ const filterCssImport = (url, ...args) => {
   }
 
   return true;
+};
+
+const getGiteaDarkConfig = () => {
+  const configFile = require.resolve('./web_src/less/themes/theme-gitea-dark.js');
+
+  // prevent node from caching this file to enable watch mode to always read the latest version
+  if (require.cache[configFile]) delete require.cache[configFile];
+
+  return require(configFile);
 };
 
 module.exports = {
@@ -295,6 +307,37 @@ module.exports = {
         errors: true,
       },
     }),
+    {
+      apply: (compiler) => {
+        compiler.hooks.compilation.tap('ThemeBuild', (compilation) => {
+          let css = '';
+
+          // TODO: Use processAssets instead of optimizeChunkAssets for webpack 5
+          compilation.hooks.optimizeChunkAssets.tapPromise('ThemeBuild', async () => {
+            if (!compilation.assets['css/index.css']) return;
+
+            css += compilation.assets['css/index.css'].source();
+            css += readFileSync(resolve(__dirname, 'public/vendor/plugins/simplemde/simplemde.min.css'), 'utf8');
+
+            const {mappings, ignoreSelectors} = getGiteaDarkConfig();
+            css = await remapCss([{css}], mappings, {ignoreSelectors});
+
+            if (isProduction) {
+              const result = await cssnano.process(css, {from: undefined});
+              css = result.css;
+            }
+          });
+
+          compilation.hooks.afterOptimizeChunkAssets.tap('ThemeBuild', () => {
+            if (!css) return;
+
+            compilation.updateAsset('css/theme-gitea-dark.css', (old) => {
+              return new ConcatSource(css, old);
+            });
+          });
+        });
+      },
+    },
   ],
   performance: {
     hints: false,

@@ -16,7 +16,8 @@ export function isObject(obj) {
 
 // returns whether a dark theme is enabled
 export function isDarkTheme() {
-  return document.documentElement.classList.contains('theme-arc-green');
+  const cl = document.documentElement.classList;
+  return cl.contains('theme-gitea-dark') || cl.contains('theme-arc-green');
 }
 
 // removes duplicate elements in an array

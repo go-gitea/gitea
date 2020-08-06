@@ -1,0 +1,66 @@
+@import "./chroma-dark.less";
+@import "./codemirror-dark.less";
+
+@primary-color: #4f8cc9;
+@body-bg-color: #202020;
+
+body {
+    background: @body-bg-color;
+}
+
+::selection {
+    background-color: @primary-color !important;
+    color: #fff !important;
+}
+
+::placeholder {
+    color: #666 !important;
+    opacity: 1 !important;
+}
+
+.active.item {
+    background: @body-bg-color !important;
+}
+
+.ui.header {
+    background: none !important;
+}
+
+.ui.popup,
+.ui.floating.dropdown .menu {
+    box-shadow: 0 .25rem .5rem rgba(0, 0, 0, .2) !important;
+}
+
+.repository .header-wrapper {
+    background: rgba(0, 0, 0, .2) !important;
+}
+
+/* heatmap */
+[style*="fill: rgb(244, 244, 244)"] { fill: #282828 !important; }
+[style*="fill: rgb(216, 239, 191)"] { fill: darken(@primary-color, 32%) !important; }
+[style*="fill: rgb(159, 219, 129)"] { fill: darken(@primary-color, 24%) !important; }
+[style*="fill: rgb(102, 199, 75)"] { fill: darken(@primary-color, 16%) !important; }
+[style*="fill: rgb(96, 153, 38)"] { fill: darken(@primary-color, 8%) !important; }
+[style*="fill: rgb(2, 89, 0)"] { fill: @primary-color !important; }
+
+.mermaid-chart {
+    filter: invert(84%) hue-rotate(180deg);
+}
+
+.following.bar,
+.ui.segment,
+.ui.segments,
+.ui.menu,
+.ui.dropdown .menu {
+    box-shadow: none !important;
+}
+
+.vue-tooltip-theme.tooltip .tooltip-arrow {
+    border-color: rgba(0, 0, 0, .7) !important;
+}
+
+.dropzone,
+.dropzone .dz-preview.dz-image-preview,
+.CodeMirror {
+    background: none !important;
+}
