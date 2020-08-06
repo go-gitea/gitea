@@ -47,7 +47,27 @@ func increaseLanguageField(x *xorm.Engine) error {
 			return err
 		}
 	case setting.Database.UseMSSQL:
+		// Yet again MSSQL just has to be awkward.
+		// Here we have to drop the constraints first and then rebuild them
+		constraints := make([]string, 0)
+		if err := sess.SQL(
+			"SELECT Name FROM SYS.DEFAULT_CONSTRAINTS WHERE " +
+				"PARENT_OBJECT_ID = OBJECT_ID('language_stat') AND " +
+				"PARENT_COLUMN_ID IN (SELECT column_id FROM sys.columns " +
+				"WHERE lower(NAME) = 'language' AND " +
+				"object_id = OBJECT_ID('language_stat'))").Find(&constraints); err != nil {
+			return fmt.Errorf("Find constraints: %v", err)
+		}
+		for _, constraint := range constraints {
+			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `language_stat` DROP CONSTRAINT `%s`", constraint)); err != nil {
+				return fmt.Errorf("Drop table `language_stat` constraint `%s`: %v", constraint, err)
+			}
+		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE language_stat ALTER COLUMN language %s", sqlType)); err != nil {
+			return err
+		}
+		// Finally restore the constraint
+		if err := x.Sync2(new(LanguageStat)); err != nil {
 			return err
 		}
 	case setting.Database.UsePostgreSQL:
