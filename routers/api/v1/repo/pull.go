@@ -968,3 +968,99 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 
 	return headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch
 }
+
+// UpdatePullRequest merge PR's baseBranch into headBranch
+func UpdatePullRequest(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/update repository repoUpdatePullRequest
+	// ---
+	// summary: Merge PR's baseBranch into headBranch
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	if pr.HasMerged {
+		ctx.Error(http.StatusUnprocessableEntity, "UpdatePullRequest", err)
+		return
+	}
+
+	if err = pr.LoadIssue(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
+		return
+	}
+
+	if pr.Issue.IsClosed {
+		ctx.Error(http.StatusUnprocessableEntity, "UpdatePullRequest", err)
+		return
+	}
+
+	if err = pr.LoadBaseRepo(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
+		return
+	}
+	if err = pr.LoadHeadRepo(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
+		return
+	}
+
+	allowedUpdate, err := pull_service.IsUserAllowedToUpdate(pr, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "IsUserAllowedToMerge", err)
+		return
+	}
+
+	if !allowedUpdate {
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	// default merge commit message
+	message := fmt.Sprintf("Merge branch '%s' into %s", pr.BaseBranch, pr.HeadBranch)
+
+	if err = pull_service.Update(pr, ctx.User, message); err != nil {
+		if models.IsErrMergeConflicts(err) {
+			ctx.Error(http.StatusConflict, "Update", "merge failed because of conflict")
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "pull_service.Update", err)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
