@@ -11,6 +11,8 @@ import (
 	"mime/multipart"
 	"os"
 	"path"
+	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 
@@ -130,6 +132,12 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 		}
 
 		if err := os.Remove(localPath); err != nil {
+			i := 0
+			for i < 5 && strings.Contains(err.Error(), "The process cannot access the file because it is being used by another process") {
+				<-time.After(100 * time.Millisecond)
+				err = os.Remove(localPath)
+				i++
+			}
 			return fmt.Errorf("remove upload: %v", err)
 		}
 	}
