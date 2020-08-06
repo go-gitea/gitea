@@ -67,7 +67,7 @@ func increaseLanguageField(x *xorm.Engine) error {
 			return err
 		}
 		// Finally restore the constraint
-		if err := x.Sync2(new(LanguageStat)); err != nil {
+		if err := sess.Sync2(new(LanguageStat)); err != nil {
 			return err
 		}
 	case setting.Database.UsePostgreSQL:
