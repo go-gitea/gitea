@@ -460,6 +460,16 @@
             "in": "query"
           },
           {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned.",
+            "name": "status-types",
+            "in": "query"
+          },
+          {
             "type": "string",
             "format": "date-time",
             "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
@@ -502,7 +512,7 @@
         "tags": [
           "notification"
         ],
-        "summary": "Mark notification threads as read",
+        "summary": "Mark notification threads as read, pinned or unread",
         "operationId": "notifyReadList",
         "parameters": [
           {
@@ -510,6 +520,28 @@
             "format": "date-time",
             "description": "Describes the last point that notifications were checked. Anything updated since this time will not be updated.",
             "name": "last_read_at",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "If true, mark all notifications on this repo. Default value is false",
+            "name": "all",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread.",
+            "name": "status-types",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Status to mark notifications as, Defaults to read.",
+            "name": "to-status",
             "in": "query"
           }
         ],
@@ -587,6 +619,13 @@
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "default": "read",
+            "description": "Status to mark notifications as",
+            "name": "to-status",
+            "in": "query"
           }
         ],
         "responses": {
@@ -3776,6 +3815,11 @@
             "required": true
           },
           {
+            "enum": [
+              "closed",
+              "open",
+              "all"
+            ],
             "type": "string",
             "description": "whether issue is open or closed",
             "name": "state",
@@ -3794,6 +3838,10 @@
             "in": "query"
           },
           {
+            "enum": [
+              "issues",
+              "pulls"
+            ],
             "type": "string",
             "description": "filter by type (issues / pulls) if set",
             "name": "type",
@@ -6117,6 +6165,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filter by milestone name",
+            "name": "name",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -6374,6 +6428,16 @@
             "in": "query"
           },
           {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned",
+            "name": "status-types",
+            "in": "query"
+          },
+          {
             "type": "string",
             "format": "date-time",
             "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
@@ -6416,7 +6480,7 @@
         "tags": [
           "notification"
         ],
-        "summary": "Mark notification threads as read on a specific repo",
+        "summary": "Mark notification threads as read, pinned or unread on a specific repo",
         "operationId": "notifyReadRepoList",
         "parameters": [
           {
@@ -6432,6 +6496,28 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "If true, mark all notifications on this repo. Default value is false",
+            "name": "all",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "Mark notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread.",
+            "name": "status-types",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "Status to mark notifications as. Defaults to read.",
+            "name": "to-status",
+            "in": "query"
           },
           {
             "type": "string",
@@ -7195,6 +7281,59 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}/update": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Merge PR's baseBranch into headBranch",
+        "operationId": "repoUpdatePullRequest",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request to get",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -15465,6 +15604,12 @@
       "name": "sudo",
       "in": "query"
     },
+    "TOTPHeader": {
+      "description": "Must be used in combination with BasicAuth if two-factor authentication is enabled.",
+      "type": "apiKey",
+      "name": "X-GITEA-OTP",
+      "in": "header"
+    },
     "Token": {
       "type": "apiKey",
       "name": "token",
@@ -15489,6 +15634,9 @@
     },
     {
       "SudoHeader": []
+    },
+    {
+      "TOTPHeader": []
     }
   ]
 }

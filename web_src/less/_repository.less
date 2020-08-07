@@ -14,13 +14,25 @@
             font-weight: 400;
             font-size: 1.5rem;
 
-            svg {
-                position: relative;
-                top: 5px;
+            .label {
+                vertical-align: middle;
+                margin-top: -.29165em;
             }
 
-            svg.octicon-lock {
-                margin-left: 5px;
+            &.repo-title .repo-header-icon {
+                display: inline-block;
+                position: relative;
+
+                .avatar {
+                    position: absolute;
+                    right: 0;
+                    bottom: 0;
+                    width: 16px;
+                    height: 16px;
+                    color: #fafafa;
+                    box-shadow: 0 0 0 2px;
+                    margin: 0;
+                }
             }
         }
 
@@ -245,12 +257,6 @@
     }
 
     &.file.list {
-        &.blame {
-            .ui.container:not(.flex) {
-                width: 98%;
-            }
-        }
-
         .repo-description {
             display: flex;
             justify-content: space-between;
@@ -332,8 +338,7 @@
                     }
 
                     &.octicon-file-directory,
-                    &.octicon-file-submodule,
-                    &.octicon-file-symlink-directory {
+                    &.octicon-file-submodule {
                         color: #1e70bf;
                     }
                 }
@@ -435,7 +440,7 @@
                 }
 
                 img {
-                    padding: 5px 5px 0;
+                    border-radius: 0;
                 }
             }
 
@@ -782,7 +787,7 @@
 
                 .badge.badge-commit {
                     border-color: transparent;
-                    background: radial-gradient(white 60%, transparent 60%) no-repeat;
+                    background: radial-gradient(white 40%, transparent 40%) no-repeat;
                 }
 
                 .badge {
@@ -797,19 +802,18 @@
                     margin-right: 8px;
                     color: #444;
                     align-items: center;
+                    justify-content: center;
 
                     .svg {
-                        width: 28px;
-                        height: 28px;
-                        text-align: center;
-                        line-height: 28px;
-                        padding: 4px;
+                        width: 24px;
+                        height: 24px;
+                        padding: 3px;
 
                         &.octicon-circle-slash {
                             color: #bd2c00;
                         }
 
-                        &.octicon-primitive-dot {
+                        &.octicon-dot-fill {
                             color: #6cc644;
                         }
 
@@ -951,7 +955,8 @@
 
                         &.action {
                             margin-top: 6px;
-                            margin-left: 10px;
+                            padding-left: 10px;
+                            padding-right: 3px;
                         }
                     }
                 }
@@ -1479,8 +1484,12 @@
                 margin-right: 0;
             }
 
+            .svg {
+                margin: 0 .25em 0 0;
+            }
+
             > div {
-                display: inline-flex;
+                display: flex;
                 align-items: center;
             }
         }
@@ -1659,7 +1668,6 @@
             .lines-num {
                 text-align: right;
                 color: #a6a6a6;
-                background: #fafafa;
                 width: 1%;
                 min-width: 50px;
                 user-select: none;
@@ -1668,10 +1676,6 @@
                     display: block;
                     text-align: center;
                 }
-            }
-
-            .lines-num-old {
-                border-right: 1px solid #dddddd;
             }
         }
 
@@ -1684,10 +1688,12 @@
             }
 
             .lines-num {
-                border-color: #d4d4d5;
-                border-right-width: 1px;
-                border-right-style: solid;
                 padding: 0 5px !important;
+            }
+
+            .tag-code .lines-num,
+            .tag-code td {
+                padding: 0 !important;
             }
 
             tbody {
@@ -1723,14 +1729,23 @@
 
         .code-diff-unified tbody tr {
             &.del-code td {
-                background-color: #ffe0e0 !important;
-                border-color: #f1c0c0 !important;
+                background-color: #ffeef0;
+                border-color: #f1c0c0;
             }
 
             &.add-code td {
-                background-color: #d6fcd6 !important;
-                border-color: #c1e9c1 !important;
+                background-color: #e6ffed;
+                border-color: #bef5cb;
             }
+
+            &.del-code td.lines-num {
+                background-color: #ffe5e4;
+            }
+
+            &.add-code td.lines-num {
+                background-color: #cdffd8;
+            }
+
         }
 
         .code-diff-split {
@@ -1749,28 +1764,35 @@
                 &.del-code td:nth-child(4),
                 &.del-code td:nth-child(5),
                 &.del-code td:nth-child(6) {
-                    background-color: #fafafa;
+                    background-color: #fafbfc;
+                    border-right-color: #eaecef;
                 }
 
-                &.del-code td:nth-child(1),
-                &.del-code td:nth-child(2),
-                &.del-code td:nth-child(3),
-                td.del-code {
-                    background-color: #ffe0e0 !important;
-                    border-color: #f1c0c0 !important;
+                &.del-code {
+                    background-color: #ffeef0;
                 }
 
-                &.add-code td:nth-child(4),
-                &.add-code td:nth-child(5),
-                &.add-code td:nth-child(6),
-                td.add-code {
-                    background-color: #d6fcd6 !important;
-                    border-color: #c1e9c1 !important;
+                &.del-code td.add-code {
+                    background-color: #e6ffed;
+                }
+                &.del-code td.lines-num-new.add-code {
+                    background-color: #cdffd8;
+                    border-color: #bef5cb;
+                }
+
+                &.add-code {
+                    background-color: #e6ffed;
+                    border-color: #bef5cb;
+                }
+
+                &.add-code td.lines-num-new {
+                    background-color: #cdffd8;
                 }
 
                 td:nth-child(4) {
                     border-left-width: 1px;
                     border-left-style: solid;
+                    border-left-color: #f6f8fa;
                 }
             }
         }
@@ -1778,7 +1800,8 @@
         &.file-content {
             img {
                 max-width: 100%;
-                padding: 5px 5px 0;
+                padding: 0;
+                border-radius: 0;
             }
             img.emoji {
                 padding: 0;
@@ -2365,7 +2388,7 @@
         .select-reaction {
             display: flex;
             align-items: center;
-            padding: .5rem;
+            padding: 0 .5rem;
 
             &:not(.active) a {
                 display: none;
@@ -2781,7 +2804,10 @@
 }
 
 #transfer-repo-modal,
-#delete-repo-modal {
+#delete-repo-modal,
+#delete-wiki-modal,
+#convert-fork-repo-modal,
+#convert-mirror-repo-modal {
     .ui.message {
         width: 100% !important;
     }
@@ -2982,16 +3008,15 @@ tbody.commit-list {
     margin: 0 !important;
 }
 
-.tag-code,
-.tag-code td {
-    background-color: #f0f0f0 !important;
-    border-color: #d3cfcf !important;
-    padding-top: 8px;
-    padding-bottom: 8px;
+.tag-code {
+    height: 28px;
 }
 
-td.blob-excerpt {
-    background-color: #fafafa;
+.tag-code,
+.tag-code td {
+    background-color: #f0f9ff;
+    border-color: #f1f8ff !important;
+    vertical-align: middle;
 }
 
 .issue-keyword {
@@ -3041,11 +3066,11 @@ td.blob-excerpt {
 }
 
 .removed-code {
-    background-color: #ff9999;
+    background-color: #fdb8c0;
 }
 
 .added-code {
-    background-color: #99ff99;
+    background-color: #acf2bd;
 }
 
 .repository .ui.menu.new-menu {
