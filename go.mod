@@ -20,7 +20,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/RoaringBitmap/roaring v0.4.23 // indirect
-	github.com/alecthomas/chroma v0.7.3
+	github.com/alecthomas/chroma v0.8.0
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/blevesearch/bleve v1.0.7
 	github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/golang/protobuf v1.4.1 // indirect
-	github.com/google/go-github/v24 v24.0.1
+	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/context v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.6.6 // indirect
@@ -100,7 +100,7 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/xanzy/go-gitlab v0.31.0
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.1.32
+	github.com/yuin/goldmark v1.2.1
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
