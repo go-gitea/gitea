@@ -181,7 +181,7 @@ var (
 	removedCodePrefix = []byte(`<span class="removed-code">`)
 	codeTagSuffix     = []byte(`</span>`)
 )
-var re = regexp.MustCompile(`<span class="[a-z]*$`)
+var addSpanRegex = regexp.MustCompile(`<span class="[a-z]*$`)
 
 func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
@@ -197,7 +197,7 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 				diffs[i].Text = addSpan + diffs[i].Text
 				addSpan = ""
 			}
-			m := re.FindStringSubmatchIndex(diffs[i].Text)
+			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
 			if m != nil {
 				addSpan = diffs[i].Text[m[0]:m[1]]
 				buf.WriteString(strings.TrimSuffix(diffs[i].Text, addSpan))
@@ -215,7 +215,7 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 				buf.WriteString("</span>")
 				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
 			}
-			m := re.FindStringSubmatchIndex(diffs[i].Text)
+			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
 			if m != nil {
 				addSpan = diffs[i].Text[m[0]:m[1]]
 				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, addSpan)
@@ -232,7 +232,7 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 				buf.WriteString("</span>")
 				diffs[i].Text = strings.TrimPrefix(diffs[i].Text, "</span>")
 			}
-			m := re.FindStringSubmatchIndex(diffs[i].Text)
+			m := addSpanRegex.FindStringSubmatchIndex(diffs[i].Text)
 			if m != nil {
 				addSpan = diffs[i].Text[m[0]:m[1]]
 				diffs[i].Text = strings.TrimSuffix(diffs[i].Text, addSpan)
