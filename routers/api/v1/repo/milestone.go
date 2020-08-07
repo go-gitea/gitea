@@ -1,4 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -10,8 +11,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListMilestones list milestones for a repository
@@ -36,19 +39,36 @@ func ListMilestones(ctx *context.APIContext) {
 	//   in: query
 	//   description: Milestone state, Recognised values are open, closed and all. Defaults to "open"
 	//   type: string
+	// - name: name
+	//   in: query
+	//   description: filter by milestone name
+	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
 
-	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")))
+	milestones, err := models.GetMilestones(models.GetMilestonesOption{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+		State:       api.StateType(ctx.Query("state")),
+		Name:        ctx.Query("name"),
+	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetMilestonesByRepoID", err)
+		ctx.Error(http.StatusInternalServerError, "GetMilestones", err)
 		return
 	}
 
 	apiMilestones := make([]*api.Milestone, len(milestones))
 	for i := range milestones {
-		apiMilestones[i] = milestones[i].APIFormat()
+		apiMilestones[i] = convert.ToAPIMilestone(milestones[i])
 	}
 	ctx.JSON(http.StatusOK, &apiMilestones)
 }
@@ -90,7 +110,7 @@ func GetMilestone(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.JSON(http.StatusOK, milestone.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToAPIMilestone(milestone))
 }
 
 // CreateMilestone create a milestone for a repository
@@ -133,11 +153,16 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 		DeadlineUnix: timeutil.TimeStamp(form.Deadline.Unix()),
 	}
 
+	if form.State == "closed" {
+		milestone.IsClosed = true
+		milestone.ClosedDateUnix = timeutil.TimeStampNow()
+	}
+
 	if err := models.NewMilestone(milestone); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewMilestone", err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, milestone.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToAPIMilestone(milestone))
 }
 
 // EditMilestone modify a milestone for a repository
@@ -194,11 +219,16 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 		milestone.DeadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
-	if err := models.UpdateMilestone(milestone); err != nil {
+	var oldIsClosed = milestone.IsClosed
+	if form.State != nil {
+		milestone.IsClosed = *form.State == string(api.StateClosed)
+	}
+
+	if err := models.UpdateMilestone(milestone, oldIsClosed); err != nil {
 		ctx.ServerError("UpdateMilestone", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, milestone.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToAPIMilestone(milestone))
 }
 
 // DeleteMilestone delete a milestone for a repository

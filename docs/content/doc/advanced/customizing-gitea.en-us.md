@@ -35,7 +35,7 @@ Again `gitea help` will allow you review this variable and you can override it u
 `--config` option on the `gitea` binary.
 
 - [Quick Cheat Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/)
-- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
 
 If the `CustomPath` folder can't be found despite checking `gitea help`, check the `GITEA_CUSTOM`
 environment variable; this can be used to override the default path to something else.
@@ -57,14 +57,21 @@ the url `http://gitea.domain.tld/image.png`.
 
 Place the png image at the following path: `custom/public/img/avatar_default.png`
 
-## Customizing Gitea pages
+## Customizing Gitea pages and resources
 
-The `custom/templates` folder allows changing every single page of Gitea. Templates
-to override can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source (Note: the example link is from `master` branch. Make sure to copy templates from same release you are using). Override by
-making a copy of the file under `custom/templates` using a full path structure
-matching source.
+Gitea's executable contains all the resources required to run: templates, images, style-sheets
+and translations. Any of them can be overridden by placing a replacement in a matching path
+inside the `custom` directory. For example, to replace the default `.gitignore` provided
+for C++ repositories, we want to replace `options/gitignore/C++`. To do this, a replacement
+must be placed in `custom/options/gitignore/C++` (see about the location of the `custom`
+directory at the top of this document).
 
-Any statement contained inside `{{` and `}}` are Gitea's template syntax and
+Every single page of Gitea can be changed. Dynamic content is generated using [go templates](https://golang.org/pkg/html/template/),
+which can be modified by placing replacements below the `custom/templates` directory.
+
+To obtain any embedded file (including templates), the [`gitea embedded` tool]({{< relref "doc/advanced/cmd-embedded.en-us.md" >}}) can be used. Alternatively, they can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source (Note: the example link is from the `master` branch. Make sure to use templates compatible with the release you are using).
+
+Be aware that any statement contained inside `{{` and `}}` are Gitea's template syntax and
 shouldn't be touched without fully understanding these components.
 
 ### Customizing startpage / homepage
@@ -101,50 +108,11 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
 
-#### Example: Mermaid.js
-
-If you would like to add [mermaid.js](https://mermaid-js.github.io/mermaid) support to Gitea's markdown you simply add:
-
-```html
-{{if .RequireHighlightJS}}
-<script src="https://unpkg.com/mermaid@8.4.5/dist/mermaid.min.js"></script>
-<!-- or wherever you have placed it -->
-<script>mermaid.init(".language-mermaid")</script>
-{{end}}
-```
-
-to `custom/footer.tmpl`. You then can add blocks
-like below to your markdown:
-
-    ```mermaid
-        stateDiagram
-        [*] --> Active
-
-        state Active {
-            [*] --> NumLockOff
-            NumLockOff --> NumLockOn : EvNumLockPressed
-            NumLockOn --> NumLockOff : EvNumLockPressed
-            --
-            [*] --> CapsLockOff
-            CapsLockOff --> CapsLockOn : EvCapsLockPressed
-            CapsLockOn --> CapsLockOff : EvCapsLockPressed
-            --
-            [*] --> ScrollLockOff
-            ScrollLockOff --> ScrollLockOn : EvCapsLockPressed
-            ScrollLockOn --> ScrollLockOff : EvCapsLockPressed
-        }
-    ```
-
-If you want to use Mermaid.js outside of markdown, e.g. in other templates or HTML files,
-you would need to remove `{{if .RequireHighlightJS}}` and `{{end}}`.
-
-Mermaid will detect and use tags with `class="language-mermaid"`.
-
 #### Example: PlantUML
 
 You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by using a PlantUML server.
-The data is encoded and sent to the PlantUML server which generates the picture. There is an online 
-demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you 
+The data is encoded and sent to the PlantUML server which generates the picture. There is an online
+demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you
 can set up your own [PlantUML server](https://plantuml.com/server) instead. To set up PlantUML rendering,
 copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
 `custom/public` folder. Then add the following to `custom/footer.tmpl`:
@@ -166,12 +134,95 @@ You can then add blocks like the following to your markdown:
     ```plantuml
         Alice -> Bob: Authentication Request
         Bob --> Alice: Authentication Response
-        
+
         Alice -> Bob: Another authentication Request
         Alice <-- Bob: Another authentication Response
     ```
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
+
+#### Example: STL Preview
+
+You can display STL file directly in Gitea by adding:
+```html
+<script>
+function lS(src){
+  return new Promise(function(resolve, reject) {
+    let s = document.createElement('script')
+    s.src = src
+    s.addEventListener('load', () => {
+      resolve()
+    })
+    document.body.appendChild(s)
+  });
+}
+
+if($('.view-raw>a[href$=".stl" i]').length){
+  $('body').append('<link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">');
+  Promise.all([lS("/Madeleine.js/src/lib/stats.js"),lS("/Madeleine.js/src/lib/detector.js"), lS("/Madeleine.js/src/lib/three.min.js"), lS("/Madeleine.js/src/Madeleine.js")]).then(function() {
+    $('.view-raw').attr('id', 'view-raw').attr('style', 'padding: 0;margin-bottom: -10px;');
+    new Madeleine({
+      target: 'view-raw',
+      data: $('.view-raw>a[href$=".stl" i]').attr('href'),
+      path: '/Madeleine.js/src'
+    });
+    $('.view-raw>a[href$=".stl"]').remove()
+  });
+}
+</script>
+```
+to the file `templates/custom/footer.tmpl`
+
+You also need to download the content of the library [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `custom/public/` folder.
+
+You should end-up with a folder structucture similar to:
+```
+custom/templates
+-- custom
+    `-- footer.tmpl
+custom/public
+-- Madeleine.js
+   |-- LICENSE
+   |-- README.md
+   |-- css
+   |   |-- pygment_trac.css
+   |   `-- stylesheet.css
+   |-- examples
+   |   |-- ajax.html
+   |   |-- index.html
+   |   `-- upload.html
+   |-- images
+   |   |-- bg_hr.png
+   |   |-- blacktocat.png
+   |   |-- icon_download.png
+   |   `-- sprite_download.png
+   |-- models
+   |   |-- dino2.stl
+   |   |-- ducati.stl
+   |   |-- gallardo.stl
+   |   |-- lamp.stl
+   |   |-- octocat.stl
+   |   |-- skull.stl
+   |   `-- treefrog.stl
+   `-- src
+       |-- Madeleine.js
+       |-- css
+       |   `-- Madeleine.css
+       |-- icons
+       |   |-- logo.png
+       |   |-- madeleine.eot
+       |   |-- madeleine.svg
+       |   |-- madeleine.ttf
+       |   `-- madeleine.woff
+       `-- lib
+           |-- MadeleineConverter.js
+           |-- MadeleineLoader.js
+           |-- detector.js
+           |-- stats.js
+           `-- three.min.js
+```
+
+Then restart gitea and open a STL file on your gitea instance.
 
 ## Customizing Gitea mails
 
@@ -227,6 +278,9 @@ Locales may change between versions, so keeping track of your customized locales
 ### Readmes
 
 To add a custom Readme, add a markdown formatted file (without an `.md` extension) to `custom/options/readme`
+
+**NOTE:** readme templates support **variable expansion**.  
+currently there are `{Name}` (name of repository), `{Description}`, `{CloneURL.SSH}`, `{CloneURL.HTTPS}` and `{OwnerName}`
 
 ### Reactions
 

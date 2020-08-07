@@ -6,14 +6,11 @@ package base
 
 import (
 	"crypto/md5"
-	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"io"
-	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -29,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/dustin/go-humanize"
 	"github.com/unknwon/com"
 )
 
@@ -73,18 +71,6 @@ func BasicAuthDecode(encoded string) (string, string, error) {
 // BasicAuthEncode encode basic auth string
 func BasicAuthEncode(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-}
-
-// GetRandomBytesAsBase64 generates a random base64 string from n bytes
-func GetRandomBytesAsBase64(n int) string {
-	bytes := make([]byte, 32)
-	_, err := io.ReadFull(rand.Reader, bytes)
-
-	if err != nil {
-		log.Fatal("Error reading random bytes: %v", err)
-	}
-
-	return base64.RawURLEncoding.EncodeToString(bytes)
 }
 
 // VerifyTimeLimitCode verify time limit code
@@ -207,47 +193,43 @@ func SizedAvatarLink(email string, size int) string {
 	return avatarURL.String()
 }
 
-// AvatarLink returns relative avatar link to the site domain by given email,
-// which includes app sub-url as prefix. However, it is possible
-// to return full URL if user enables Gravatar-like service.
-func AvatarLink(email string) string {
-	return SizedAvatarLink(email, DefaultAvatarSize)
-}
-
-// Storage space size types
-const (
-	Byte  = 1
-	KByte = Byte * 1024
-	MByte = KByte * 1024
-	GByte = MByte * 1024
-	TByte = GByte * 1024
-	PByte = TByte * 1024
-	EByte = PByte * 1024
-)
-
-func logn(n, b float64) float64 {
-	return math.Log(n) / math.Log(b)
-}
-
-func humanateBytes(s uint64, base float64, sizes []string) string {
-	if s < 10 {
-		return fmt.Sprintf("%dB", s)
-	}
-	e := math.Floor(logn(float64(s), base))
-	suffix := sizes[int(e)]
-	val := float64(s) / math.Pow(base, math.Floor(e))
-	f := "%.0f"
-	if val < 10 {
-		f = "%.1f"
+// SizedAvatarLinkWithDomain returns a sized link to the avatar for the given email
+// address.
+func SizedAvatarLinkWithDomain(email string, size int) string {
+	var avatarURL *url.URL
+	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
+		var err error
+		avatarURL, err = libravatarURL(email)
+		if err != nil {
+			return DefaultAvatarLink()
+		}
+	} else if !setting.DisableGravatar {
+		// copy GravatarSourceURL, because we will modify its Path.
+		copyOfGravatarSourceURL := *setting.GravatarSourceURL
+		avatarURL = &copyOfGravatarSourceURL
+		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
+	} else {
+		return DefaultAvatarLink()
 	}
 
-	return fmt.Sprintf(f+"%s", val, suffix)
+	vals := avatarURL.Query()
+	vals.Set("d", "identicon")
+	if size != DefaultAvatarSize {
+		vals.Set("s", strconv.Itoa(size))
+	}
+	avatarURL.RawQuery = vals.Encode()
+	return avatarURL.String()
 }
 
 // FileSize calculates the file size and generate user-friendly string.
 func FileSize(s int64) string {
-	sizes := []string{"B", "KB", "MB", "GB", "TB", "PB", "EB"}
-	return humanateBytes(uint64(s), 1024, sizes)
+	return humanize.IBytes(uint64(s))
+}
+
+// PrettyNumber produces a string form of the given number in base 10 with
+// commas after every three orders of magnitud
+func PrettyNumber(v int64) string {
+	return humanize.Comma(v)
 }
 
 // Subtract deals with subtraction of all types of number.
@@ -405,7 +387,7 @@ func EntryIcon(entry *git.TreeEntry) string {
 			return "file-symlink-file"
 		}
 		if te.IsDir() {
-			return "file-symlink-directory"
+			return "file-submodule"
 		}
 		return "file-symlink-file"
 	case entry.IsDir():
@@ -414,7 +396,7 @@ func EntryIcon(entry *git.TreeEntry) string {
 		return "file-submodule"
 	}
 
-	return "file-text"
+	return "file"
 }
 
 // SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value

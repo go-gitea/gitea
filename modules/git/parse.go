@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // ParseTreeEntries parses the output of a `git ls-tree` command.

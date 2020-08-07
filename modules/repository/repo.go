@@ -27,9 +27,9 @@ import (
 */
 var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
 
-// wikiRemoteURL returns accessible repository URL for wiki if exists.
+// WikiRemoteURL returns accessible repository URL for wiki if exists.
 // Otherwise, it returns an empty string.
-func wikiRemoteURL(remote string) string {
+func WikiRemoteURL(remote string) string {
 	remote = strings.TrimSuffix(remote, ".git")
 	for _, suffix := range commonWikiURLSuffixes {
 		wikiURL := remote + suffix
@@ -71,7 +71,7 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 
 	if opts.Wiki {
 		wikiPath := models.WikiPath(u.Name, opts.RepoName)
-		wikiRemotePath := wikiRemoteURL(opts.CloneAddr)
+		wikiRemotePath := WikiRemoteURL(opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := os.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
@@ -183,9 +183,10 @@ func CleanUpMigrateInfo(repo *models.Repository) (*models.Repository, error) {
 // SyncReleasesWithTags synchronizes release table with repository tags
 func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) error {
 	existingRelTags := make(map[string]struct{})
-	opts := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
+	opts := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true, ListOptions: models.ListOptions{PageSize: 50}}
 	for page := 1; ; page++ {
-		rels, err := models.GetReleasesByRepoID(repo.ID, opts, page, 100)
+		opts.Page = page
+		rels, err := models.GetReleasesByRepoID(repo.ID, opts)
 		if err != nil {
 			return fmt.Errorf("GetReleasesByRepoID: %v", err)
 		}

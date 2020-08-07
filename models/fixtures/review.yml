@@ -60,6 +60,8 @@
   reviewer_id: 4
   issue_id: 3
   content: "New review 5"
+  commit_id: 8091a55037cd59e47293aca02981b5a67076b364
+  stale: true
   updated_unix: 946684813
   created_unix: 946684813
 -
@@ -77,5 +79,6 @@
   reviewer_id: 100
   issue_id: 3
   content: "a deleted user's review"
+  official: true
   updated_unix: 946684815
   created_unix: 946684815

@@ -110,7 +110,7 @@ func GenerateGitHooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 
 // GenerateWebhooks generates webhooks from a template repository
 func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) error {
-	templateWebhooks, err := GetWebhooksByRepoID(templateRepo.ID)
+	templateWebhooks, err := GetWebhooksByRepoID(templateRepo.ID, ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func GenerateAvatar(ctx DBContext, templateRepo, generateRepo *Repository) error
 
 // GenerateIssueLabels generates issue labels from a template repository
 func GenerateIssueLabels(ctx DBContext, templateRepo, generateRepo *Repository) error {
-	templateLabels, err := getLabelsByRepoID(ctx.e, templateRepo.ID, "")
+	templateLabels, err := getLabelsByRepoID(ctx.e, templateRepo.ID, "", ListOptions{})
 	if err != nil {
 		return err
 	}

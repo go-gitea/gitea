@@ -38,7 +38,7 @@ func Teams(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 
 	for _, t := range org.Teams {
-		if err := t.GetMembers(); err != nil {
+		if err := t.GetMembers(&models.SearchMembersOptions{}); err != nil {
 			ctx.ServerError("GetMembers", err)
 			return
 		}
@@ -246,7 +246,7 @@ func TeamMembers(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamMembers"] = true
-	if err := ctx.Org.Team.GetMembers(); err != nil {
+	if err := ctx.Org.Team.GetMembers(&models.SearchMembersOptions{}); err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
@@ -258,7 +258,7 @@ func TeamRepositories(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamRepos"] = true
-	if err := ctx.Org.Team.GetRepositories(); err != nil {
+	if err := ctx.Org.Team.GetRepositories(&models.SearchTeamOptions{}); err != nil {
 		ctx.ServerError("GetRepositories", err)
 		return
 	}

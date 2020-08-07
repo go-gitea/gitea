@@ -5,10 +5,12 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // StartIssueStopwatch creates a stopwatch for the given issue.
@@ -172,19 +174,21 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*models.I
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
-		return nil, err
+		return nil, errors.New("Unable to write to PRs")
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
 		ctx.Status(http.StatusForbidden)
-		return nil, err
+		return nil, errors.New("Cannot use time tracker")
 	}
 
 	if models.StopwatchExists(ctx.User.ID, issue.ID) != shouldExist {
 		if shouldExist {
 			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot stop/cancel a non existent stopwatch")
+			err = errors.New("cannot stop/cancel a non existent stopwatch")
 		} else {
 			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot start a stopwatch again if it already exists")
+			err = errors.New("cannot start a stopwatch again if it already exists")
 		}
 		return nil, err
 	}
@@ -197,6 +201,15 @@ func GetStopwatches(ctx *context.APIContext) {
 	// swagger:operation GET /user/stopwatches user userGetStopWatches
 	// ---
 	// summary: Get list of all existing stopwatches
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// consumes:
 	// - application/json
 	// produces:
@@ -205,7 +218,7 @@ func GetStopwatches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/StopWatchList"
 
-	sws, err := models.GetUserStopwatches(ctx.User.ID)
+	sws, err := models.GetUserStopwatches(ctx.User.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserStopwatches", err)
 		return

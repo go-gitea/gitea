@@ -6,6 +6,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListTeams list all the teams of an organization
@@ -30,12 +32,22 @@ func ListTeams(ctx *context.APIContext) {
 	//   description: name of the organization
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
 	org := ctx.Org.Organization
-	if err := org.GetTeams(); err != nil {
+	if err := org.GetTeams(&models.SearchTeamOptions{
+		ListOptions: utils.GetListOptions(ctx),
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeams", err)
 		return
 	}
@@ -59,11 +71,20 @@ func ListUserTeams(ctx *context.APIContext) {
 	// summary: List all the teams a user belongs to
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	teams, err := models.GetUserTeams(ctx.User.ID)
+	teams, err := models.GetUserTeams(ctx.User.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserTeams", err)
 		return
@@ -284,6 +305,14 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
@@ -292,12 +321,14 @@ func GetTeamMembers(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 		return
-	} else if !isMember {
+	} else if !isMember && !ctx.User.IsAdmin {
 		ctx.NotFound()
 		return
 	}
 	team := ctx.Org.Team
-	if err := team.GetMembers(); err != nil {
+	if err := team.GetMembers(&models.SearchMembersOptions{
+		ListOptions: utils.GetListOptions(ctx),
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamMembers", err)
 		return
 	}
@@ -436,12 +467,22 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
 	team := ctx.Org.Team
-	if err := team.GetRepositories(); err != nil {
+	if err := team.GetRepositories(&models.SearchTeamOptions{
+		ListOptions: utils.GetListOptions(ctx),
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 	}
 	repos := make([]*api.Repository, len(team.Repos))
@@ -589,13 +630,13 @@ func SearchTeam(ctx *context.APIContext) {
 	//   in: query
 	//   description: include search within team description (defaults to true)
 	//   type: boolean
-	// - name: limit
-	//   in: query
-	//   description: limit size of results
-	//   type: integer
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -610,16 +651,17 @@ func SearchTeam(ctx *context.APIContext) {
 	//           items:
 	//             "$ref": "#/definitions/Team"
 
+	listOptions := utils.GetListOptions(ctx)
+
 	opts := &models.SearchTeamOptions{
 		UserID:      ctx.User.ID,
 		Keyword:     strings.TrimSpace(ctx.Query("q")),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: (ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc")),
-		PageSize:    ctx.QueryInt("limit"),
-		Page:        ctx.QueryInt("page"),
+		ListOptions: listOptions,
 	}
 
-	teams, _, err := models.SearchTeam(opts)
+	teams, maxResults, err := models.SearchTeam(opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -642,6 +684,8 @@ func SearchTeam(ctx *context.APIContext) {
 		apiTeams[i] = convert.ToTeam(teams[i])
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
 		"data": apiTeams,

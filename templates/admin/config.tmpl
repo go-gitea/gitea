@@ -228,6 +228,8 @@
 						<dd>{{.Mailer.SendmailPath}}</dd>
 						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_args"}}</dt>
 						<dd>{{.Mailer.SendmailArgs}}</dd>
+						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_timeout"}}</dt>
+						<dd>{{.Mailer.SendmailTimeout}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
 					{{end}}
 					<dt>{{.i18n.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>
@@ -281,8 +283,6 @@
 				<dd>{{.SessionConfig.Maxlifetime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
 				<dt>{{.i18n.Tr "admin.config.https_only"}}</dt>
 				<dd><i class="fa fa{{if .SessionConfig.Secure}}-check{{end}}-square-o"></i></dd>
-				<dt>{{.i18n.Tr "admin.config.cookie_life_time"}}</dt>
-				<dd>{{.SessionConfig.CookieLifeTime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
 			</dl>
 		</div>
 

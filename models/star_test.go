@@ -33,7 +33,7 @@ func TestRepository_GetStargazers(t *testing.T) {
 	// repo with stargazers
 	assert.NoError(t, PrepareTestDatabase())
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
-	gazers, err := repo.GetStargazers(0)
+	gazers, err := repo.GetStargazers(ListOptions{Page: 0})
 	assert.NoError(t, err)
 	if assert.Len(t, gazers, 1) {
 		assert.Equal(t, int64(2), gazers[0].ID)
@@ -44,7 +44,7 @@ func TestRepository_GetStargazers2(t *testing.T) {
 	// repo with stargazers
 	assert.NoError(t, PrepareTestDatabase())
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
-	gazers, err := repo.GetStargazers(0)
+	gazers, err := repo.GetStargazers(ListOptions{Page: 0})
 	assert.NoError(t, err)
 	assert.Len(t, gazers, 0)
 }

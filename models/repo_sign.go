@@ -103,14 +103,15 @@ func SignInitialCommit(repoPath string, u *User) (bool, string, error) {
 		return false, "", &ErrWontSign{noKey}
 	}
 
+Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
 			return false, "", &ErrWontSign{never}
 		case always:
-			break
+			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID)
+			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {
 				return false, "", err
 			}
@@ -119,7 +120,7 @@ func SignInitialCommit(repoPath string, u *User) (bool, string, error) {
 			}
 		case twofa:
 			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil {
+			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
 				return false, "", err
 			}
 			if twofaModel == nil {
@@ -138,14 +139,15 @@ func (repo *Repository) SignWikiCommit(u *User) (bool, string, error) {
 		return false, "", &ErrWontSign{noKey}
 	}
 
+Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
 			return false, "", &ErrWontSign{never}
 		case always:
-			break
+			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID)
+			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {
 				return false, "", err
 			}
@@ -154,7 +156,7 @@ func (repo *Repository) SignWikiCommit(u *User) (bool, string, error) {
 			}
 		case twofa:
 			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil {
+			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
 				return false, "", err
 			}
 			if twofaModel == nil {
@@ -190,14 +192,15 @@ func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string
 		return false, "", &ErrWontSign{noKey}
 	}
 
+Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
 			return false, "", &ErrWontSign{never}
 		case always:
-			break
+			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID)
+			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {
 				return false, "", err
 			}
@@ -206,7 +209,7 @@ func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string
 			}
 		case twofa:
 			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil {
+			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
 				return false, "", err
 			}
 			if twofaModel == nil {

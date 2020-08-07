@@ -17,14 +17,17 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
-	"github.com/unknwon/com"
+	"xorm.io/builder"
 )
 
 const (
@@ -53,7 +56,7 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	if err := ctx.User.GetOrganizations(true); err != nil {
+	if err := ctx.User.GetOrganizations(&models.SearchOrganizationsOptions{All: true}); err != nil {
 		ctx.ServerError("GetOrganizations", err)
 		return nil
 	}
@@ -109,7 +112,9 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
-	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
+	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
+	// so everyone would get the same empty heatmap
+	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate
 	ctx.Data["HeatmapUser"] = ctxUser.Name
 
 	var err error
@@ -172,135 +177,114 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	sortType := ctx.Query("sort")
-	page := ctx.QueryInt("page")
+	var (
+		repoOpts = models.SearchRepoOptions{
+			Actor:         ctxUser,
+			OwnerID:       ctxUser.ID,
+			Private:       true,
+			AllPublic:     false,                 // Include also all public repositories of users and public organisations
+			AllLimited:    false,                 // Include also all public repositories of limited organisations
+			HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
+		}
+
+		userRepoCond = models.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
+		repoCond     = userRepoCond
+		repoIDs      []int64
+
+		reposQuery   = ctx.Query("repos")
+		isShowClosed = ctx.Query("state") == "closed"
+		sortType     = ctx.Query("sort")
+		page         = ctx.QueryInt("page")
+	)
+
 	if page <= 1 {
 		page = 1
 	}
 
-	reposQuery := ctx.Query("repos")
-	isShowClosed := ctx.Query("state") == "closed"
-
-	// Get repositories.
-	var err error
-	var userRepoIDs []int64
-	if ctxUser.IsOrganization() {
-		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("AccessibleReposEnv", err)
-			return
-		}
-		userRepoIDs, err = env.RepoIDs(1, ctxUser.NumRepos)
-		if err != nil {
-			ctx.ServerError("env.RepoIDs", err)
-			return
-		}
-		userRepoIDs, err = models.FilterOutRepoIdsWithoutUnitAccess(ctx.User, userRepoIDs, models.UnitTypeIssues, models.UnitTypePullRequests)
-		if err != nil {
-			ctx.ServerError("FilterOutRepoIdsWithoutUnitAccess", err)
-			return
-		}
-	} else {
-		userRepoIDs, err = ctxUser.GetAccessRepoIDs(models.UnitTypeIssues, models.UnitTypePullRequests)
-		if err != nil {
-			ctx.ServerError("ctxUser.GetAccessRepoIDs", err)
-			return
-		}
-	}
-	if len(userRepoIDs) == 0 {
-		userRepoIDs = []int64{-1}
-	}
-
-	var repoIDs []int64
 	if len(reposQuery) != 0 {
 		if issueReposQueryPattern.MatchString(reposQuery) {
 			// remove "[" and "]" from string
 			reposQuery = reposQuery[1 : len(reposQuery)-1]
 			//for each ID (delimiter ",") add to int to repoIDs
-			reposSet := false
+
 			for _, rID := range strings.Split(reposQuery, ",") {
 				// Ensure nonempty string entries
 				if rID != "" && rID != "0" {
-					reposSet = true
 					rIDint64, err := strconv.ParseInt(rID, 10, 64)
 					// If the repo id specified by query is not parseable or not accessible by user, just ignore it.
-					if err == nil && com.IsSliceContainsInt64(userRepoIDs, rIDint64) {
+					if err == nil {
 						repoIDs = append(repoIDs, rIDint64)
 					}
 				}
 			}
-			if reposSet && len(repoIDs) == 0 {
-				// force an empty result
-				repoIDs = []int64{-1}
+			if len(repoIDs) > 0 {
+				// Don't just let repoCond = builder.In("id", repoIDs) because user may has no permission on repoIDs
+				// But the original repoCond has a limitation
+				repoCond = repoCond.And(builder.In("id", repoIDs))
 			}
 		} else {
 			log.Warn("issueReposQueryPattern not match with query")
 		}
 	}
 
-	if len(repoIDs) == 0 {
-		repoIDs = userRepoIDs
-	}
-
-	counts, err := models.CountMilestonesByRepoIDs(userRepoIDs, isShowClosed)
+	counts, err := models.CountMilestonesByRepoCond(userRepoCond, isShowClosed)
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
 	}
 
-	milestones, err := models.GetMilestonesByRepoIDs(repoIDs, page, isShowClosed, sortType)
+	milestones, err := models.SearchMilestones(repoCond, page, isShowClosed, sortType)
 	if err != nil {
 		ctx.ServerError("GetMilestonesByRepoIDs", err)
 		return
 	}
 
-	showReposMap := make(map[int64]*models.Repository, len(counts))
-	for rID := range counts {
-		if rID == -1 {
-			break
-		}
-		repo, err := models.GetRepositoryByID(rID)
-		if err != nil {
-			if models.IsErrRepoNotExist(err) {
-				ctx.NotFound("GetRepositoryByID", err)
-				return
-			} else if err != nil {
-				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", rID, err))
-				return
-			}
-		}
-		showReposMap[rID] = repo
-	}
-
-	showRepos := models.RepositoryListOfMap(showReposMap)
-	sort.Sort(showRepos)
-	if err = showRepos.LoadAttributes(); err != nil {
-		ctx.ServerError("LoadAttributes", err)
+	showRepos, _, err := models.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
+	if err != nil {
+		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
 	}
+	sort.Sort(showRepos)
 
-	for _, m := range milestones {
-		m.Repo = showReposMap[m.RepoID]
-		m.RenderedContent = string(markdown.Render([]byte(m.Content), m.Repo.Link(), m.Repo.ComposeMetas()))
-		if m.Repo.IsTimetrackerEnabled() {
-			err := m.LoadTotalTrackedTime()
+	for i := 0; i < len(milestones); {
+		for _, repo := range showRepos {
+			if milestones[i].RepoID == repo.ID {
+				milestones[i].Repo = repo
+				break
+			}
+		}
+		if milestones[i].Repo == nil {
+			log.Warn("Cannot find milestone %d 's repository %d", milestones[i].ID, milestones[i].RepoID)
+			milestones = append(milestones[:i], milestones[i+1:]...)
+			continue
+		}
+
+		milestones[i].RenderedContent = string(markdown.Render([]byte(milestones[i].Content), milestones[i].Repo.Link(), milestones[i].Repo.ComposeMetas()))
+		if milestones[i].Repo.IsTimetrackerEnabled() {
+			err := milestones[i].LoadTotalTrackedTime()
 			if err != nil {
 				ctx.ServerError("LoadTotalTrackedTime", err)
 				return
 			}
 		}
+		i++
 	}
 
-	milestoneStats, err := models.GetMilestonesStats(repoIDs)
+	milestoneStats, err := models.GetMilestonesStatsByRepoCond(repoCond)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
 	}
 
-	totalMilestoneStats, err := models.GetMilestonesStats(userRepoIDs)
-	if err != nil {
-		ctx.ServerError("GetMilestoneStats", err)
-		return
+	var totalMilestoneStats *models.MilestonesStats
+	if len(repoIDs) == 0 {
+		totalMilestoneStats = milestoneStats
+	} else {
+		totalMilestoneStats, err = models.GetMilestonesStatsByRepoCond(userRepoCond)
+		if err != nil {
+			ctx.ServerError("GetMilestoneStats", err)
+			return
+		}
 	}
 
 	var pagerCount int
@@ -319,7 +303,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Counts"] = counts
 	ctx.Data["MilestoneStats"] = milestoneStats
 	ctx.Data["SortType"] = sortType
-	if len(repoIDs) != len(userRepoIDs) {
+	if milestoneStats.Total() != totalMilestoneStats.Total() {
 		ctx.Data["RepoIDs"] = repoIDs
 	}
 	ctx.Data["IsShowClosed"] = isShowClosed
@@ -449,7 +433,6 @@ func Issues(ctx *context.Context) {
 	}
 
 	opts := &models.IssuesOptions{
-		IsClosed: util.OptionalBoolOf(isShowClosed),
 		IsPull:   util.OptionalBoolOf(isPullList),
 		SortType: sortType,
 	}
@@ -465,10 +448,39 @@ func Issues(ctx *context.Context) {
 		opts.MentionedID = ctxUser.ID
 	}
 
-	counts, err := models.CountIssuesByRepo(opts)
-	if err != nil {
-		ctx.ServerError("CountIssuesByRepo", err)
-		return
+	var forceEmpty bool
+	var issueIDsFromSearch []int64
+	var keyword = strings.Trim(ctx.Query("q"), " ")
+
+	if len(keyword) > 0 {
+		searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
+		if err != nil {
+			ctx.ServerError("GetRepoIDsForIssuesOptions", err)
+			return
+		}
+		issueIDsFromSearch, err = issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
+		if err != nil {
+			ctx.ServerError("SearchIssuesByKeyword", err)
+			return
+		}
+		if len(issueIDsFromSearch) > 0 {
+			opts.IssueIDs = issueIDsFromSearch
+		} else {
+			forceEmpty = true
+		}
+	}
+
+	ctx.Data["Keyword"] = keyword
+
+	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
+
+	var counts map[int64]int64
+	if !forceEmpty {
+		counts, err = models.CountIssuesByRepo(opts)
+		if err != nil {
+			ctx.ServerError("CountIssuesByRepo", err)
+			return
+		}
 	}
 
 	opts.Page = page
@@ -488,9 +500,20 @@ func Issues(ctx *context.Context) {
 		opts.RepoIDs = repoIDs
 	}
 
-	issues, err := models.Issues(opts)
+	var issues []*models.Issue
+	if !forceEmpty {
+		issues, err = models.Issues(opts)
+		if err != nil {
+			ctx.ServerError("Issues", err)
+			return
+		}
+	} else {
+		issues = []*models.Issue{}
+	}
+
+	approvalCounts, err := models.IssueList(issues).GetApprovalCounts()
 	if err != nil {
-		ctx.ServerError("Issues", err)
+		ctx.ServerError("ApprovalCounts", err)
 		return
 	}
 
@@ -534,49 +557,103 @@ func Issues(ctx *context.Context) {
 		issue.Repo = showReposMap[issue.RepoID]
 
 		if isPullList {
-			commitStatus[issue.PullRequest.ID], _ = issue.PullRequest.GetLastCommitStatus()
+			commitStatus[issue.PullRequest.ID], _ = pull_service.GetLastCommitStatus(issue.PullRequest)
 		}
 	}
 
-	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
+	userIssueStatsOpts := models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
 		IsClosed:    isShowClosed,
-	})
+	}
+	if len(repoIDs) > 0 {
+		userIssueStatsOpts.UserRepoIDs = repoIDs
+	}
+	userIssueStats, err := models.GetUserIssueStats(userIssueStatsOpts)
 	if err != nil {
-		ctx.ServerError("GetUserIssueStats", err)
+		ctx.ServerError("GetUserIssueStats User", err)
 		return
 	}
 
-	allIssueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
-		UserID:      ctxUser.ID,
-		UserRepoIDs: userRepoIDs,
-		FilterMode:  filterMode,
-		IsPull:      isPullList,
-		IsClosed:    isShowClosed,
-	})
-	if err != nil {
-		ctx.ServerError("GetUserIssueStats All", err)
-		return
+	var shownIssueStats *models.IssueStats
+	if !forceEmpty {
+		statsOpts := models.UserIssueStatsOptions{
+			UserID:      ctxUser.ID,
+			UserRepoIDs: userRepoIDs,
+			FilterMode:  filterMode,
+			IsPull:      isPullList,
+			IsClosed:    isShowClosed,
+			IssueIDs:    issueIDsFromSearch,
+		}
+		if len(repoIDs) > 0 {
+			statsOpts.RepoIDs = repoIDs
+		}
+		shownIssueStats, err = models.GetUserIssueStats(statsOpts)
+		if err != nil {
+			ctx.ServerError("GetUserIssueStats Shown", err)
+			return
+		}
+	} else {
+		shownIssueStats = &models.IssueStats{}
+	}
+
+	var allIssueStats *models.IssueStats
+	if !forceEmpty {
+		allIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
+			UserID:      ctxUser.ID,
+			UserRepoIDs: userRepoIDs,
+			FilterMode:  filterMode,
+			IsPull:      isPullList,
+			IsClosed:    isShowClosed,
+			IssueIDs:    issueIDsFromSearch,
+		})
+		if err != nil {
+			ctx.ServerError("GetUserIssueStats All", err)
+			return
+		}
+	} else {
+		allIssueStats = &models.IssueStats{}
 	}
 
 	var shownIssues int
 	var totalIssues int
 	if !isShowClosed {
-		shownIssues = int(issueStats.OpenCount)
+		shownIssues = int(shownIssueStats.OpenCount)
 		totalIssues = int(allIssueStats.OpenCount)
 	} else {
-		shownIssues = int(issueStats.ClosedCount)
+		shownIssues = int(shownIssueStats.ClosedCount)
 		totalIssues = int(allIssueStats.ClosedCount)
 	}
 
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
+		issue_service.GetRefEndNamesAndURLs(issues, ctx.Query("RepoLink"))
+
 	ctx.Data["Issues"] = issues
+	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
+		counts, ok := approvalCounts[issueID]
+		if !ok || len(counts) == 0 {
+			return 0
+		}
+		reviewTyp := models.ReviewTypeApprove
+		if typ == "reject" {
+			reviewTyp = models.ReviewTypeReject
+		} else if typ == "waiting" {
+			reviewTyp = models.ReviewTypeRequest
+		}
+		for _, count := range counts {
+			if count.Type == reviewTyp {
+				return count.Count
+			}
+		}
+		return 0
+	}
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts
-	ctx.Data["IssueStats"] = issueStats
+	ctx.Data["IssueStats"] = userIssueStats
+	ctx.Data["ShownIssueStats"] = shownIssueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoIDs"] = repoIDs
@@ -595,6 +672,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["ReposParam"] = string(reposParam)
 
 	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "q", "Keyword")
 	pager.AddParam(ctx, "type", "ViewType")
 	pager.AddParam(ctx, "repos", "ReposParam")
 	pager.AddParam(ctx, "sort", "SortType")
@@ -609,7 +687,7 @@ func Issues(ctx *context.Context) {
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListPublicKeys(uid)
+	keys, err := models.ListPublicKeys(uid, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -625,7 +703,7 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListGPGKeys(uid)
+	keys, err := models.ListGPGKeys(uid, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return

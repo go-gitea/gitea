@@ -144,8 +144,12 @@ func GetWatchers(repoID int64) ([]*Watch, error) {
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
+	return getRepoWatchersIDs(x, repoID)
+}
+
+func getRepoWatchersIDs(e Engine, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, x.Table("watch").
+	return ids, e.Table("watch").
 		Where("watch.repo_id=?", repoID).
 		And("watch.mode<>?", RepoWatchModeDont).
 		Select("user_id").
@@ -153,14 +157,18 @@ func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
 }
 
 // GetWatchers returns range of users watching given repository.
-func (repo *Repository) GetWatchers(page int) ([]*User, error) {
-	users := make([]*User, 0, ItemsPerPage)
+func (repo *Repository) GetWatchers(opts ListOptions) ([]*User, error) {
 	sess := x.Where("watch.repo_id=?", repo.ID).
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", RepoWatchModeDont)
-	if page > 0 {
-		sess = sess.Limit(ItemsPerPage, (page-1)*ItemsPerPage)
+	if opts.Page > 0 {
+		sess = opts.setSessionPagination(sess)
+		users := make([]*User, 0, opts.PageSize)
+
+		return users, sess.Find(&users)
 	}
+
+	users := make([]*User, 0, 8)
 	return users, sess.Find(&users)
 }
 
@@ -244,7 +252,7 @@ func notifyWatchers(e Engine, actions ...*Action) error {
 			act.Repo.Units = nil
 
 			switch act.OpType {
-			case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionDeleteBranch:
+			case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionPublishRelease, ActionDeleteBranch:
 				if !permCode[i] {
 					continue
 				}

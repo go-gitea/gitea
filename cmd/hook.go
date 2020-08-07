@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
 )
@@ -45,18 +46,33 @@ var (
 		Usage:       "Delegate pre-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookPreReceive,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 	}
 	subcmdHookUpdate = cli.Command{
 		Name:        "update",
 		Usage:       "Delegate update Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookUpdate,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 	}
 	subcmdHookPostReceive = cli.Command{
 		Name:        "post-receive",
 		Usage:       "Delegate post-receive Git hook",
 		Description: "This command should only be called by Git",
 		Action:      runHookPostReceive,
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name: "debug",
+			},
+		},
 	}
 )
 
@@ -113,15 +129,8 @@ func (d *delayWriter) Close() error {
 	if d == nil {
 		return nil
 	}
-	stopped := d.timer.Stop()
-	if stopped {
-		return nil
-	}
-	select {
-	case <-d.timer.C:
-	default:
-	}
-	if d.buf == nil {
+	stopped := util.StopTimer(d.timer)
+	if stopped || d.buf == nil {
 		return nil
 	}
 	_, err := d.internal.Write(d.buf.Bytes())
@@ -144,7 +153,7 @@ func runHookPreReceive(c *cli.Context) error {
 		return nil
 	}
 
-	setup("hooks/pre-receive.log", false)
+	setup("hooks/pre-receive.log", c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
@@ -279,7 +288,7 @@ func runHookPostReceive(c *cli.Context) error {
 		return nil
 	}
 
-	setup("hooks/post-receive.log", false)
+	setup("hooks/post-receive.log", c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {

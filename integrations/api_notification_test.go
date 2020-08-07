@@ -55,7 +55,7 @@ func TestAPINotification(t *testing.T) {
 	assert.EqualValues(t, false, apiNL[2].Pinned)
 
 	// -- GET /repos/{owner}/{repo}/notifications --
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?token=%s", user2.Name, repo1.Name, token))
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?status-types=unread&token=%s", user2.Name, repo1.Name, token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiNL)
 
@@ -81,12 +81,18 @@ func TestAPINotification(t *testing.T) {
 	assert.EqualValues(t, thread5.Issue.APIURL(), apiN.Subject.URL)
 	assert.EqualValues(t, thread5.Repository.HTMLURL(), apiN.Repository.HTMLURL)
 
+	new := struct {
+		New int64 `json:"new"`
+	}{}
+
 	// -- check notifications --
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/new?token=%s", token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &new)
+	assert.True(t, new.New > 0)
 
 	// -- mark notifications as read --
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?token=%s", token))
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?status-types=unread&token=%s", token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiNL)
 	assert.Len(t, apiNL, 2)
@@ -95,7 +101,7 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?last_read_at=%s&token=%s", user2.Name, repo1.Name, lastReadAt, token))
 	resp = session.MakeRequest(t, req, http.StatusResetContent)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?token=%s", token))
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?status-types=unread&token=%s", token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiNL)
 	assert.Len(t, apiNL, 1)
@@ -110,5 +116,7 @@ func TestAPINotification(t *testing.T) {
 
 	// -- check notifications --
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/new?token=%s", token))
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &new)
+	assert.True(t, new.New == 0)
 }

@@ -51,13 +51,61 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 		return
 	}
 
-	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
-
-	if comment != nil {
-		ctx.Redirect(comment.HTMLURL())
-	} else {
+	if comment == nil {
+		log.Trace("Comment not created: %-v #%d[%d]", ctx.Repo.Repository, issue.Index, issue.ID)
 		ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
+		return
 	}
+
+	log.Trace("Comment created: %-v #%d[%d] Comment[%d]", ctx.Repo.Repository, issue.Index, issue.ID, comment.ID)
+	ctx.Redirect(comment.HTMLURL())
+}
+
+// UpdateResolveConversation add or remove an Conversation resolved mark
+func UpdateResolveConversation(ctx *context.Context) {
+	action := ctx.Query("action")
+	commentID := ctx.QueryInt64("comment_id")
+
+	comment, err := models.GetCommentByID(commentID)
+	if err != nil {
+		ctx.ServerError("GetIssueByID", err)
+		return
+	}
+
+	if err = comment.LoadIssue(); err != nil {
+		ctx.ServerError("comment.LoadIssue", err)
+		return
+	}
+
+	var permResult bool
+	if permResult, err = models.CanMarkConversation(comment.Issue, ctx.User); err != nil {
+		ctx.ServerError("CanMarkConversation", err)
+		return
+	}
+	if !permResult {
+		ctx.Error(403)
+		return
+	}
+
+	if !comment.Issue.IsPull {
+		ctx.Error(400)
+		return
+	}
+
+	if action == "Resolve" || action == "UnResolve" {
+		err = models.MarkConversation(comment, ctx.User, action == "Resolve")
+		if err != nil {
+			ctx.ServerError("MarkConversation", err)
+			return
+		}
+	} else {
+		ctx.Error(400)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist

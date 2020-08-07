@@ -3,7 +3,6 @@ package parser
 import (
 	"fmt"
 	"strings"
-	"unicode"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
@@ -11,7 +10,7 @@ import (
 )
 
 // A DelimiterProcessor interface provides a set of functions about
-// Deliiter nodes.
+// Delimiter nodes.
 type DelimiterProcessor interface {
 	// IsDelimiter returns true if given character is a delimiter, otherwise false.
 	IsDelimiter(byte) bool
@@ -38,7 +37,7 @@ type Delimiter struct {
 	// See https://spec.commonmark.org/0.29/#can-open-emphasis for details.
 	CanClose bool
 
-	// Length is a remaining length of this delmiter.
+	// Length is a remaining length of this delimiter.
 	Length int
 
 	// OriginalLength is a original length of this delimiter.
@@ -128,10 +127,10 @@ func ScanDelimiter(line []byte, before rune, min int, processor DelimiterProcess
 		}
 
 		canOpen, canClose := false, false
-		beforeIsPunctuation := unicode.IsPunct(before)
-		beforeIsWhitespace := unicode.IsSpace(before)
-		afterIsPunctuation := unicode.IsPunct(after)
-		afterIsWhitespace := unicode.IsSpace(after)
+		beforeIsPunctuation := util.IsPunctRune(before)
+		beforeIsWhitespace := util.IsSpaceRune(before)
+		afterIsPunctuation := util.IsPunctRune(after)
+		afterIsWhitespace := util.IsSpaceRune(after)
 
 		isLeft := !afterIsWhitespace &&
 			(!afterIsPunctuation || beforeIsWhitespace || beforeIsPunctuation)

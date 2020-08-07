@@ -51,27 +51,41 @@ func TestGiteaUploadRepo(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)
 	assert.True(t, repo.HasWiki())
 
-	milestones, err := models.GetMilestones(repo.ID, 0, false, "")
+	milestones, err := models.GetMilestones(models.GetMilestonesOption{
+		RepoID: repo.ID,
+		State:  structs.StateOpen,
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(milestones))
 
-	milestones, err = models.GetMilestones(repo.ID, 0, true, "")
+	milestones, err = models.GetMilestones(models.GetMilestonesOption{
+		RepoID: repo.ID,
+		State:  structs.StateClosed,
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, len(milestones))
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "")
+	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 11, len(labels))
 
 	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+		ListOptions: models.ListOptions{
+			PageSize: 10,
+			Page:     0,
+		},
 		IncludeTags: true,
-	}, 0, 10)
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 8, len(releases))
 
 	releases, err = models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+		ListOptions: models.ListOptions{
+			PageSize: 10,
+			Page:     0,
+		},
 		IncludeTags: false,
-	}, 0, 10)
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(releases))
 

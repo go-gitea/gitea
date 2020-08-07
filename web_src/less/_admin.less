@@ -6,8 +6,6 @@
         font-size: 13px;
 
         &:not(.striped) {
-            padding-top: 5px;
-
             thead {
                 th:last-child {
                     padding-right: 5px !important;
@@ -28,11 +26,15 @@
                 }
             }
         }
+
+        form tbody button[type='submit'] {
+            padding: 5px 8px;
+        }
     }
 
     .ui.header,
     .ui.segment {
-        box-shadow: 0 1px 2px 0 rgba(34, 36, 38, 0.15);
+        box-shadow: 0 1px 2px 0 rgba(34, 36, 38, .15);
     }
 
     &.user {
@@ -70,5 +72,22 @@
     pre {
         white-space: pre-wrap;
         word-wrap: break-word;
+    }
+
+    #notice-table {
+        .notice-description {
+            @media only screen and (max-width: 767px) {
+                max-width: 80vw;
+            }
+            @media only screen and (max-width: 991px) and (min-width: 768px) {
+                max-width: 360px;
+            }
+            @media only screen and (min-width: 992px) and (max-width: 1199.98px) {
+                max-width: 510px;
+            }
+            @media only screen and (min-width: 1200px) {
+                max-width: 640px;
+            }
+        }
     }
 }

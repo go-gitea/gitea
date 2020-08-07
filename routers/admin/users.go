@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -33,8 +34,10 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:          models.UserTypeIndividual,
-		PageSize:      setting.UI.Admin.UserPagingNum,
+		Type: models.UserTypeIndividual,
+		ListOptions: models.ListOptions{
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
 		SearchByEmail: true,
 	}, tplUsers)
 }
@@ -121,6 +124,9 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 		case models.IsErrNamePatternNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplUserNew, &form)
+		case models.IsErrNameCharsNotAllowed(err):
+			ctx.Data["Err_UserName"] = true
+			ctx.RenderWithErr(ctx.Tr("user.form.name_chars_not_allowed", err.(models.ErrNameCharsNotAllowed).Name), tplUserNew, &form)
 		default:
 			ctx.ServerError("CreateUser", err)
 		}
@@ -237,7 +243,13 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	u.AllowGitHook = form.AllowGitHook
 	u.AllowImportLocal = form.AllowImportLocal
 	u.AllowCreateOrganization = form.AllowCreateOrganization
-	u.ProhibitLogin = form.ProhibitLogin
+
+	// skip self Prohibit Login
+	if ctx.User.ID == u.ID {
+		u.ProhibitLogin = false
+	} else {
+		u.ProhibitLogin = form.ProhibitLogin
+	}
 
 	if err := models.UpdateUser(u); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {

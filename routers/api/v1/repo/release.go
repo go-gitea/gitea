@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
@@ -59,20 +59,6 @@ func GetRelease(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, release.APIFormat())
 }
 
-func getPagesInfo(ctx *context.APIContext) (int, int) {
-	page := ctx.QueryInt("page")
-	if page == 0 {
-		page = 1
-	}
-	perPage := ctx.QueryInt("per_page")
-	if perPage == 0 {
-		perPage = setting.API.DefaultPagingNum
-	} else if perPage > setting.API.MaxResponseItems {
-		perPage = setting.API.MaxResponseItems
-	}
-	return page, perPage
-}
-
 // ListReleases list a repository's releases
 func ListReleases(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoListReleases
@@ -91,23 +77,32 @@ func ListReleases(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: page
-	//   in: query
-	//   description: page wants to load
-	//   type: integer
 	// - name: per_page
 	//   in: query
-	//   description: items count every page wants to load
+	//   description: page size of results, deprecated - use limit
+	//   type: integer
+	//   deprecated: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
+	listOptions := utils.GetListOptions(ctx)
+	if ctx.QueryInt("per_page") != 0 {
+		listOptions.PageSize = ctx.QueryInt("per_page")
+	}
 
-	page, limit := getPagesInfo(ctx)
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+		ListOptions:   listOptions,
 		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
 		IncludeTags:   false,
-	}, page, limit)
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReleasesByRepoID", err)
 		return
@@ -199,8 +194,8 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		rel.Repo = ctx.Repo.Repository
 		rel.Publisher = ctx.User
 
-		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
-			ctx.ServerError("UpdateRelease", err)
+		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, nil, true); err != nil {
+			ctx.ServerError("UpdateReleaseOrCreatReleaseFromTag", err)
 			return
 		}
 	}
@@ -271,8 +266,8 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	if form.IsPrerelease != nil {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
-	if err := releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateRelease", err)
+	if err := releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, nil, false); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateReleaseOrCreatReleaseFromTag", err)
 		return
 	}
 

@@ -6,28 +6,19 @@
 package repo
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
-	"code.gitea.io/gitea/modules/notification"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
-	mirror_service "code.gitea.io/gitea/services/mirror"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -87,18 +78,18 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: include private repositories this user has access to (defaults to true)
 	//   type: boolean
+	// - name: is_private
+	//   in: query
+	//   description: show only pubic, private or all repositories (defaults to all)
+	//   type: boolean
 	// - name: template
 	//   in: query
 	//   description: include template repositories this user has access to (defaults to true)
 	//   type: boolean
-	// - name: page
+	// - name: archived
 	//   in: query
-	//   description: page number of results to return (1-based)
-	//   type: integer
-	// - name: limit
-	//   in: query
-	//   description: page size of results, maximum page size is 50
-	//   type: integer
+	//   description: show only archived, non-archived or all repositories (defaults to all)
+	//   type: boolean
 	// - name: mode
 	//   in: query
 	//   description: type of repository to search for. Supported values are
@@ -119,6 +110,14 @@ func Search(ctx *context.APIContext) {
 	//   description: sort order, either "asc" (ascending) or "desc" (descending).
 	//                Default is "asc", ignored if "sort" is not specified.
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SearchResults"
@@ -126,12 +125,11 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	opts := &models.SearchRepoOptions{
+		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.User,
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
 		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
-		Page:               ctx.QueryInt("page"),
-		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
@@ -164,6 +162,14 @@ func Search(ctx *context.APIContext) {
 	default:
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
 		return
+	}
+
+	if ctx.Query("archived") != "" {
+		opts.Archived = util.OptionalBoolOf(ctx.QueryBool("archived"))
+	}
+
+	if ctx.Query("is_private") != "" {
+		opts.IsPrivate = util.OptionalBoolOf(ctx.QueryBool("is_private"))
 	}
 
 	var sortMode = ctx.Query("sort")
@@ -214,7 +220,7 @@ func Search(ctx *context.APIContext) {
 		results[i] = repo.APIFormat(accessMode)
 	}
 
-	ctx.SetLinkHeader(int(count), setting.API.MaxResponseItems)
+	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
@@ -228,14 +234,15 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		opt.Readme = "Default"
 	}
 	repo, err := repo_service.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
-		Name:        opt.Name,
-		Description: opt.Description,
-		IssueLabels: opt.IssueLabels,
-		Gitignores:  opt.Gitignores,
-		License:     opt.License,
-		Readme:      opt.Readme,
-		IsPrivate:   opt.Private,
-		AutoInit:    opt.AutoInit,
+		Name:          opt.Name,
+		Description:   opt.Description,
+		IssueLabels:   opt.IssueLabels,
+		Gitignores:    opt.Gitignores,
+		License:       opt.License,
+		Readme:        opt.Readme,
+		IsPrivate:     opt.Private,
+		AutoInit:      opt.AutoInit,
+		DefaultBranch: opt.DefaultBranch,
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
@@ -366,196 +373,6 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 		}
 	}
 	CreateUserRepo(ctx, org, opt)
-}
-
-// Migrate migrate remote git repository to gitea
-func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
-	// swagger:operation POST /repos/migrate repository repoMigrate
-	// ---
-	// summary: Migrate a remote git repository
-	// consumes:
-	// - application/json
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: body
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/MigrateRepoForm"
-	// responses:
-	//   "201":
-	//     "$ref": "#/responses/Repository"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
-
-	ctxUser := ctx.User
-	// Not equal means context user is an organization,
-	// or is another user/organization if current user is admin.
-	if form.UID != ctxUser.ID {
-		org, err := models.GetUserByID(form.UID)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "", err)
-			} else {
-				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
-			}
-			return
-		}
-		ctxUser = org
-	}
-
-	if ctx.HasError() {
-		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
-		return
-	}
-
-	if !ctx.User.IsAdmin {
-		if !ctxUser.IsOrganization() && ctx.User.ID != ctxUser.ID {
-			ctx.Error(http.StatusForbidden, "", "Given user is not an organization.")
-			return
-		}
-
-		if ctxUser.IsOrganization() {
-			// Check ownership of organization.
-			isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
-				return
-			} else if !isOwner {
-				ctx.Error(http.StatusForbidden, "", "Given user is not owner of organization.")
-				return
-			}
-		}
-	}
-
-	remoteAddr, err := form.ParseRemoteAddr(ctx.User)
-	if err != nil {
-		if models.IsErrInvalidCloneAddr(err) {
-			addrErr := err.(models.ErrInvalidCloneAddr)
-			switch {
-			case addrErr.IsURLError:
-				ctx.Error(http.StatusUnprocessableEntity, "", err)
-			case addrErr.IsPermissionDenied:
-				ctx.Error(http.StatusUnprocessableEntity, "", "You are not allowed to import local repositories.")
-			case addrErr.IsInvalidPath:
-				ctx.Error(http.StatusUnprocessableEntity, "", "Invalid local path, it does not exist or not a directory.")
-			default:
-				ctx.Error(http.StatusInternalServerError, "ParseRemoteAddr", "Unknown error type (ErrInvalidCloneAddr): "+err.Error())
-			}
-		} else {
-			ctx.Error(http.StatusInternalServerError, "ParseRemoteAddr", err)
-		}
-		return
-	}
-
-	var gitServiceType = api.PlainGitService
-	u, err := url.Parse(remoteAddr)
-	if err == nil && strings.EqualFold(u.Host, "github.com") {
-		gitServiceType = api.GithubService
-	}
-
-	var opts = migrations.MigrateOptions{
-		CloneAddr:      remoteAddr,
-		RepoName:       form.RepoName,
-		Description:    form.Description,
-		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror,
-		AuthUsername:   form.AuthUsername,
-		AuthPassword:   form.AuthPassword,
-		Wiki:           form.Wiki,
-		Issues:         form.Issues,
-		Milestones:     form.Milestones,
-		Labels:         form.Labels,
-		Comments:       true,
-		PullRequests:   form.PullRequests,
-		Releases:       form.Releases,
-		GitServiceType: gitServiceType,
-	}
-	if opts.Mirror {
-		opts.Issues = false
-		opts.Milestones = false
-		opts.Labels = false
-		opts.Comments = false
-		opts.PullRequests = false
-		opts.Releases = false
-	}
-
-	repo, err := repo_module.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
-		Name:           opts.RepoName,
-		Description:    opts.Description,
-		OriginalURL:    form.CloneAddr,
-		GitServiceType: gitServiceType,
-		IsPrivate:      opts.Private,
-		IsMirror:       opts.Mirror,
-		Status:         models.RepositoryBeingMigrated,
-	})
-	if err != nil {
-		handleMigrateError(ctx, ctxUser, remoteAddr, err)
-		return
-	}
-
-	opts.MigrateToRepoID = repo.ID
-
-	defer func() {
-		if e := recover(); e != nil {
-			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
-
-			err = errors.New(buf.String())
-		}
-
-		if err == nil {
-			repo.Status = models.RepositoryReady
-			if err := models.UpdateRepositoryCols(repo, "status"); err == nil {
-				notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
-				return
-			}
-		}
-
-		if repo != nil {
-			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
-				log.Error("DeleteRepository: %v", errDelete)
-			}
-		}
-	}()
-
-	if _, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, ctxUser.Name, opts); err != nil {
-		handleMigrateError(ctx, ctxUser, remoteAddr, err)
-		return
-	}
-
-	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
-	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeAdmin))
-}
-
-func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteAddr string, err error) {
-	switch {
-	case models.IsErrRepoAlreadyExist(err):
-		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
-	case migrations.IsRateLimitError(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
-	case migrations.IsTwoFactorAuthError(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit required two factors authentication.")
-	case models.IsErrReachLimitOfRepo(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
-	case models.IsErrNameReserved(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
-	case models.IsErrNamePatternNotAllowed(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
-	default:
-		err = util.URLSanitizedError(err, remoteAddr)
-		if strings.Contains(err.Error(), "Authentication failed") ||
-			strings.Contains(err.Error(), "Bad credentials") ||
-			strings.Contains(err.Error(), "could not read Username") {
-			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Authentication failed: %v.", err))
-		} else if strings.Contains(err.Error(), "fatal:") {
-			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Migration failed: %v.", err))
-		} else {
-			ctx.Error(http.StatusInternalServerError, "MigrateRepository", err)
-		}
-	}
 }
 
 // Get one repository
@@ -982,39 +799,4 @@ func Delete(ctx *context.APIContext) {
 
 	log.Trace("Repository deleted: %s/%s", owner.Name, repo.Name)
 	ctx.Status(http.StatusNoContent)
-}
-
-// MirrorSync adds a mirrored repository to the sync queue
-func MirrorSync(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/mirror-sync repository repoMirrorSync
-	// ---
-	// summary: Sync a mirrored repository
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo to sync
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo to sync
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/empty"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-
-	repo := ctx.Repo.Repository
-
-	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Error(http.StatusForbidden, "MirrorSync", "Must have write access")
-	}
-
-	mirror_service.StartToMirror(repo.ID)
-
-	ctx.Status(http.StatusOK)
 }

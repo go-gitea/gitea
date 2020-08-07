@@ -13,10 +13,6 @@ menu:
     identifier: "authentication"
 ---
 
----
-name: Authentication
----
-
 # Authentication
 
 ## LDAP (Lightweight Directory Access Protocol)
@@ -100,7 +96,7 @@ Both the LDAP via BindDN and the simple auth LDAP share the following fields:
     the LDAP server. The default period is every 24 hours but that can be
     changed in the app.ini file.  See the *cron.sync_external_users* section in
     the [sample
-    app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.ini.sample)
+    app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
     for detailed comments about that section.  The *User Search Base* and *User
     Filter* settings described above will limit which users can use Gitea and
     which users will be synchronized.  When initially run the task will create
@@ -242,9 +238,9 @@ Before activating SSPI single sign-on authentication (SSO) you have to prepare y
 
 - Sign in to a client computer in the same domain with any domain user (client computer, different from the server running `gitea.exe`)
 
-- If you are using Chrome, Edge or Internet Explorer, add the URL of the web app to the Local intranet sites (`Internet Options -> Security -> Local intranet -> Sites`)
+- If you are using Chrome or Edge, add the URL of the web app to the Local intranet sites (`Internet Options -> Security -> Local intranet -> Sites`)
 
-- Start Chrome, Edge or Internet Explorer and navigate to the FQDN URL of gitea (eg. `http://host.domain.local:3000`)
+- Start Chrome or Edge and navigate to the FQDN URL of gitea (eg. `http://host.domain.local:3000`)
 
 - Click the `Sign In` button on the dashboard and choose SSPI to be automatically logged in with the same user that is currently logged on to the computer
 
