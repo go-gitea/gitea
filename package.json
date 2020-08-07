@@ -18,6 +18,7 @@
     "css-loader": "4.0.0",
     "cssnano-webpack-plugin": "1.0.3",
     "dropzone": "5.7.2",
+    "escape-goat": "3.0.0",
     "fast-glob": "3.2.4",
     "file-loader": "6.0.0",
     "fomantic-ui": "2.8.6",
