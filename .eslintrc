@@ -11,7 +11,6 @@ parserOptions:
 plugins:
   - eslint-plugin-unicorn
   - eslint-plugin-import
-  - eslint-plugin-sonarjs
 
 env:
   browser: true
@@ -33,6 +32,10 @@ overrides:
       worker: true
     rules:
       no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
+  - files: ["build/generate-images.js"]
+    rules:
+      import/no-unresolved: [0]
+      import/no-extraneous-dependencies: [0]
 
 rules:
   accessor-pairs: [2]
@@ -307,31 +310,6 @@ rules:
   semi-spacing: [2, {before: false, after: true}]
   semi-style: [2, last]
   semi: [2, always, {omitLastInOneLineBlock: true}]
-  sonarjs/cognitive-complexity: [0]
-  sonarjs/max-switch-cases: [0]
-  sonarjs/no-all-duplicated-branches: [2]
-  sonarjs/no-collapsible-if: [0]
-  sonarjs/no-collection-size-mischeck: [2]
-  sonarjs/no-duplicate-string: [0]
-  sonarjs/no-duplicated-branches: [0]
-  sonarjs/no-element-overwrite: [2]
-  sonarjs/no-extra-arguments: [0]
-  sonarjs/no-identical-conditions: [2]
-  sonarjs/no-identical-expressions: [0]
-  sonarjs/no-identical-functions: [0]
-  sonarjs/no-inverted-boolean-check: [2]
-  sonarjs/no-one-iteration-loop: [2]
-  sonarjs/no-redundant-boolean: [2]
-  sonarjs/no-redundant-jump: [0]
-  sonarjs/no-same-line-conditional: [2]
-  sonarjs/no-small-switch: [0]
-  sonarjs/no-unused-collection: [2]
-  sonarjs/no-use-of-empty-return-value: [2]
-  sonarjs/no-useless-catch: [0]
-  sonarjs/prefer-immediate-return: [0]
-  sonarjs/prefer-object-literal: [2]
-  sonarjs/prefer-single-boolean-return: [0]
-  sonarjs/prefer-while: [2]
   sort-imports: [0]
   sort-keys: [0]
   sort-vars: [0]
@@ -367,6 +345,7 @@ rules:
   unicorn/no-nested-ternary: [0]
   unicorn/no-new-buffer: [0]
   unicorn/no-null: [0]
+  unicorn/no-object-as-default-parameter: [2]
   unicorn/no-process-exit: [0]
   unicorn/no-reduce: [2]
   unicorn/no-unreadable-array-destructuring: [0]
@@ -376,6 +355,7 @@ rules:
   unicorn/no-zero-fractions: [2]
   unicorn/number-literal-case: [0]
   unicorn/prefer-add-event-listener: [2]
+  unicorn/prefer-array-find: [2]
   unicorn/prefer-dataset: [2]
   unicorn/prefer-event-key: [2]
   unicorn/prefer-includes: [2]

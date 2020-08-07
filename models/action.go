@@ -49,6 +49,7 @@ const (
 	ActionApprovePullRequest                       // 21
 	ActionRejectPullRequest                        // 22
 	ActionCommentPull                              // 23
+	ActionPublishRelease                           // 24
 )
 
 // Action represents user operation type and other information to
