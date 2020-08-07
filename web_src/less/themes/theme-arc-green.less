@@ -919,8 +919,14 @@ a.ui.basic.green.label:hover {
 
 .ui.active.button:active,
 .ui.button:active,
-.ui.button:focus {
+.ui.button:focus,
+.ui.active.button {
     background-color: #2e3e4e;
+    color: #dbdbdb;
+}
+
+.ui.active.button:hover {
+    background-color: #475e75;
     color: #dbdbdb;
 }
 
@@ -1919,6 +1925,45 @@ footer .container .links > * {
 
 .repository .repo-header .ui.huge.breadcrumb.repo-title .repo-header-icon .avatar {
     color: #2a2e3a;
+}
+
+#git-graph-container.monochrome #rel-container .flow-group {
+    stroke: dimgrey;
+    fill: dimgrey;
+}
+
+#git-graph-container.monochrome #rel-container .flow-group.highlight {
+    stroke: darkgrey;
+    fill: darkgrey;
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group {
+    &.flow-color-16-5 {
+        stroke: #5543b1;
+        fill: #5543b1;
+    }
+}
+
+#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight {
+    &.flow-color-16-5 {
+        stroke: #7058e6;
+        fill: #7058e6;
+    }
+}
+
+#git-graph-container #rev-list li.highlight,
+#git-graph-container #rev-list li.hover {
+    background-color: rgba(255, 255, 255, .05);
+}
+
+#git-graph-container #rev-list li.highlight.hover {
+    background-color: rgba(255, 255, 255, .1);
+}
+
+#git-graph-container .ui.buttons button#flow-color-monochrome.ui.button {
+    border-left-color: rgb(76, 80, 92);
+    border-left-style: solid;
+    border-left-width: 1px;
 }
 
 .mermaid-chart {
