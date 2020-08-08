@@ -206,8 +206,8 @@ func (sw *Stopwatch) APIFormat() (api.StopWatch, error) {
 		return api.StopWatch{}, err
 	}
 	return api.StopWatch{
-		Created:    sw.CreatedUnix.AsTime(),
-		IssueIndex: issue.Index,
+		Created:       sw.CreatedUnix.AsTime(),
+		IssueIndex:    issue.Index,
 		IssueTitle:    issue.Title,
 		RepoOwnerName: repo.OwnerName,
 		RepoName:      repo.Name,
