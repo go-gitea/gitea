@@ -48,6 +48,7 @@ type Project struct {
 	IsClosed    bool   `xorm:"INDEX"`
 	BoardType   ProjectBoardType
 	Type        ProjectType
+	Repo        *Repository `xorm:"-"`
 
 	RenderedContent string `xorm:"-"`
 
@@ -320,13 +321,37 @@ func UpdateBoards(boards []ProjectBoard) error {
 }
 
 // Update given issue priority and column
-func UpdateBoardIssues(issues []ProjectIssue) error {
-	for _, issue := range issues {
-		if _, err := x.ID(issue.ID).Cols("priority", "project_board_id").Update(&issue); err != nil {
-			log.Info("failed updating cards priorities %s", err)
-			return err
+func UpdateBoardIssues(issues []ProjectIssue) (error, []ProjectIssue) {
+	var updatedIssues []ProjectIssue
+	for _, pissue := range issues {
+		if pissue.ID != 0 {
+			if _, err := x.ID(pissue.ID).Cols("priority", "project_board_id").Update(&pissue); err != nil {
+				log.Info("failed updating cards priorities %s", err)
+				return err, updatedIssues
+			} else {
+				updatedIssues = append(updatedIssues, pissue)
+			}
+		} else {
+			if _, err := x.Insert(&pissue); err != nil {
+				log.Info("failed inserting cards priorities %s", err)
+				return err, updatedIssues
+			} else {
+				updatedIssues = append(updatedIssues, pissue)
+			}
 		}
+	}
+	return nil, updatedIssues
+}
 
+func (p *Project) LoadRepository() error {
+	var repo = Repository{}
+	if p.Type == ProjectTypeRepository {
+		_, err := x.ID(p.RepoID).Get(&repo)
+		p.Repo = &repo
+		if err != nil {
+			log.Info("failed getting repo %w", err)
+		}
+		return err
 	}
 	return nil
 }

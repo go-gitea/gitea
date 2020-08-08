@@ -11,7 +11,14 @@
 			</div>
 			<div class="column right aligned">
 				{{if and .CanWriteProjects (not .Repository.IsArchived) .PageIsProjects}}
-					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
+				<button class="ui green button show-modal item"
+                   data-modal="#new-board-item">
+                   <i class="add icon"></i>
+                   {{.i18n.Tr "new_project_board"}}</button>
+				<button class="ui green button show-modal item" 
+                   id="new-project-issue-item">
+                   <i class="add icon"></i>
+                   {{.i18n.Tr "add_project_issue"}}</button>
 				{{end}}
 				<div class="ui small modal" id="new-board-item">
 					<div class="header">
@@ -68,9 +75,9 @@
 		<div class="ui divider"></div>
 	</div>
 	<div class="ui container fluid padded" id="project-board">
-
-		<div class="board" id="board-container" data-url="{{.RepoLink}}/projects/{{$.Project.ID}}">
-			<div class="ui segment ignore-elements hide" id="current-card-details"></div>
+		<div id="current-card-details-input"></div>
+		<div class="board" id="board-container" data-repourl="{{.RepoLink}}" data-projectid="{{.Project.ID}}" data-url="{{.RepoLink}}/projects/{{$.Project.ID}}">
+			<div class="ui segment ignore-elements" id="current-card-details"></div>
 			{{ range $board := .Boards }}
 
 			<div class="ui segment board-column {{if eq .ID 0}}ignore-elements{{end}}"
@@ -156,7 +163,7 @@
 									{{else}}{{svg "octicon-issue-opened"}}
 									{{end}}
 								</span>
-								<a class="project-board-title" href="{{$.RepoLink}}/{{if .Issue.IsPull}}pulls{{else}}issues{{end}}/{{.IssueID}}" data-url="{{$.RepoLink}}/{{if .Issue.IsPull}}pulls{{else}}issues{{end}}/{{.IssueID}}/sidebar/true">#{{.IssueID}} {{.Issue.Title}}</a>
+								<a class="project-board-title" href="{{$.RepoLink}}/{{if .Issue.IsPull}}pulls{{else}}issues{{end}}/{{.Issue.Index}}" data-url="{{$.RepoLink}}/{{if .Issue.IsPull}}pulls{{else}}issues{{end}}/{{.Issue.Index}}/sidebar/true">#{{.Issue.Index}} {{.Issue.Title}}</a>
 							</div>
 							<div class="meta">
 								{{ if .Issue.MilestoneID }}

@@ -1100,6 +1100,7 @@ type IssuesOptions struct {
 	ExcludedLabelNames []string
 	SortType           string
 	IssueIDs           []int64
+	NotInProjectID     int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
 }
@@ -1182,12 +1183,17 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
 			And("project_issue.project_id=?", opts.ProjectID).OrderBy("priority")
 	}
-
 	if opts.ProjectBoardID != 0 {
 		if opts.ProjectBoardID > 0 {
 			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}).OrderBy("priority"))
 		} else {
 			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}).OrderBy("priority"))
+		}
+	}
+
+	if opts.NotInProjectID != 0 {
+		if opts.NotInProjectID > 0 {
+			sess.NotIn("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_id": opts.NotInProjectID}).OrderBy("priority"))
 		}
 	}
 

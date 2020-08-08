@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/modules/log"
 	"xorm.io/xorm"
 )
 
@@ -143,10 +144,9 @@ func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
 }
 
 func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProjectID int64) error {
-
 	oldProjectID := issue.projectID(e)
-
 	if _, err := e.Where("project_issue.issue_id=?", issue.ID).Delete(&ProjectIssue{}); err != nil {
+		log.Info("failed deleting project issue %w", err)
 		return err
 	}
 
@@ -167,11 +167,21 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 		}
 	}
 
-	_, err := e.Insert(&ProjectIssue{
-		IssueID:   issue.ID,
-		ProjectID: newProjectID,
-	})
-	return err
+	var projectIssues []ProjectIssue
+	if newProjectID != 0 {
+		err := e.Where("issue_id = ? and project_id = ?", issue.ID, newProjectID).Find(&projectIssues)
+		if err != nil {
+			return err
+		}
+		if len(projectIssues) == 0 {
+			_, err := e.Insert(&ProjectIssue{
+				IssueID:   issue.ID,
+				ProjectID: newProjectID,
+			})
+			return err
+		}
+	}
+	return nil
 }
 
 //  ____            _           _   ____                      _

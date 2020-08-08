@@ -186,15 +186,16 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
       },
       success: resolve
     }).done(data => {
-      console.log('done', data);
-      console.log(url, action, issueIds, elementId, isAdd);
       let projectID = $('[data-project]').data('project');
-
+      console.log({url: url, action: action, issueIds: issueIds, elementId: elementId, isAdd: isAdd})
       if (projectID === elementId) {
-        console.log('same project, don\'t remove!');
+        //same project, don't remove
       } else {
-        $(`.board-card[data-issueid=${elementId}]`).remove();
-        console.log('different project, please remove!');
+        if(url.endsWith("/projects")){
+          $(`.board-card[data-issueid=${issueIds}]`).remove();
+          $('#current-card-details').hide();
+          //different project, removing
+        }
       }
     });
   }));
@@ -828,6 +829,8 @@ async function initRepository() {
   $('body').keyup(e => {
     if (e.keyCode === 27) {
       $('#current-card-details').hide();
+      $('#current-card-details').html('');
+      $('#current-card-details-input').html('');
     }
   });
 
@@ -2403,10 +2406,12 @@ function initTemplateSearch() {
 
 $(document).ready(async () => {
   // Show issue or pr in board sidebar
-  $('.draggable-cards [data-url]').on("click", e => {
+  $('.board-column').on('click', '.draggable-cards [data-url]', e => {
     e.preventDefault();
+    $("#current-card-details").html("");
+    $("#current-card-details-input").html("");
     let data = $(e.currentTarget).data();
-    $('#current-card-details').css('visibility', 'visible');
+      $('#current-card-details').css('visibility', 'visible');
     $('#current-card-details').show();
     reloadIssuesActions(data);
   });

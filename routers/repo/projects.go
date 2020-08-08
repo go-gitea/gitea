@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -265,6 +266,7 @@ func ViewProject(ctx *context.Context) {
 		}
 		return
 	}
+
 	if project.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("", nil)
 		return
@@ -298,7 +300,10 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Boards"] = allBoards
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["RequiresDraggable"] = true
-
+	project.LoadRepository()
+	if project.Repo != nil && project.Repo.ID != 0 {
+		ctx.Data["Repo"] = project.Repo
+	}
 	ctx.HTML(200, tplProjectsView)
 }
 
@@ -624,8 +629,10 @@ func UpdateBoardIssuePriority(ctx *context.Context, form auth.UpdateIssuePriorit
 		return
 	}
 
-	issues := form
-	models.UpdateBoardIssues(form.Issues)
+	err, issues := models.UpdateBoardIssues(form.Issues)
+	if err != nil {
+		log.Info("failed updating issues %v", err)
+	}
 
 	ctx.JSON(200, issues)
 }

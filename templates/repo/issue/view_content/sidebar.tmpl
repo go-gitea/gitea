@@ -1,7 +1,7 @@
 <div class="four wide column">
 	<div class="ui segment metas">
         {{if eq .Sidebar true}}
-        <h3>#{{.Issue.ID}} {{.Issue.Title}}</h3>
+        <h3>#{{.Issue.Index}} {{.Issue.Title}}</h3>
         {{end}}
 		{{template "repo/issue/branch_selector_field" .}}
 
