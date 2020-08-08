@@ -5,7 +5,6 @@
 package util
 
 import (
-	"errors"
 	"os"
 	"syscall"
 	"time"
@@ -44,7 +43,7 @@ func RemoveAll(name string) error {
 		if err == nil {
 			break
 		}
-		unwrapped := errors.Unwrap(err)
+		unwrapped := err.(*os.PathError).Err
 		if unwrapped == syscall.EBUSY || unwrapped == syscall.ENOTEMPTY || unwrapped == syscall.EPERM {
 			// try again
 			<-time.After(100 * time.Millisecond)
