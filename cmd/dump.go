@@ -244,7 +244,11 @@ func runDump(ctx *cli.Context) error {
 	if err != nil {
 		fatal("Failed to create tmp file: %v", err)
 	}
-	defer util.Remove(dbDump.Name())
+	defer func() {
+		if err := util.Remove(dbDump.Name()); err != nil {
+			log.Warn("Unable to remove temporary file: %s: Error: %v", dbDump.Name(), err)
+		}
+	}()
 
 	targetDBType := ctx.String("database")
 	if len(targetDBType) > 0 && targetDBType != setting.Database.Type {

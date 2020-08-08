@@ -71,7 +71,12 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 			log.Error("%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
-		defer util.Remove(f.Name())
+		tmpPath := f.Name()
+		defer func() {
+			if err := util.Remove(tmpPath); err != nil {
+				log.Warn("Unable to remove temporary file: %s: Error: %v", tmpPath, err)
+			}
+		}()
 
 		_, err = io.Copy(f, rd)
 		if err != nil {

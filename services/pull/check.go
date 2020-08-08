@@ -83,7 +83,11 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %v", pr.BaseRepo.RepoPath(), err)
 	}
-	defer util.RemoveAll(indexTmpPath)
+	defer func() {
+		if err := util.RemoveAll(indexTmpPath); err != nil {
+			log.Warn("Unable to remove temporary index path: %s: Error: %v", indexTmpPath, err)
+		}
+	}()
 
 	headFile := pr.GetGitRefName()
 

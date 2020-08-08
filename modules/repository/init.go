@@ -189,8 +189,11 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 		if err != nil {
 			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 		}
-
-		defer util.RemoveAll(tmpDir)
+		defer func() {
+			if err := util.RemoveAll(tmpDir); err != nil {
+				log.Warn("Unable to remove temporary directory: %s: Error: %v", tmpDir, err)
+			}
+		}()
 
 		if err = prepareRepoCommit(ctx, repo, tmpDir, repoPath, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %v", err)
