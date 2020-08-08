@@ -1,0 +1,62 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package util
+
+import (
+	"errors"
+	"os"
+	"syscall"
+	"time"
+)
+
+// Remove removes the named file or (empty) directory with at most 5 attempts.Remove
+func Remove(name string) error {
+	var err error
+	for i := 0; i < 5; i++ {
+		err = os.Remove(name)
+		if err == nil {
+			break
+		}
+		unwrapped := errors.Unwrap(err)
+		if unwrapped == syscall.EBUSY || unwrapped == syscall.ENOTEMPTY || unwrapped == syscall.EPERM {
+			// try again
+			<-time.After(100 * time.Millisecond)
+			continue
+		}
+
+		// TODO: Consider handling EMFILE?
+
+		if unwrapped == syscall.ENOENT {
+			// it's already gone
+			return nil
+		}
+	}
+	return err
+}
+
+// RemoveAll removes the named file or (empty) directory with at most 5 attempts.Remove
+func RemoveAll(name string) error {
+	var err error
+	for i := 0; i < 5; i++ {
+		err = os.RemoveAll(name)
+		if err == nil {
+			break
+		}
+		unwrapped := errors.Unwrap(err)
+		if unwrapped == syscall.EBUSY || unwrapped == syscall.ENOTEMPTY || unwrapped == syscall.EPERM {
+			// try again
+			<-time.After(100 * time.Millisecond)
+			continue
+		}
+
+		// TODO: Consider handling EMFILE?
+
+		if unwrapped == syscall.ENOENT {
+			// it's already gone
+			return nil
+		}
+	}
+	return err
+}

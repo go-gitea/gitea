@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
@@ -189,7 +190,7 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 		}
 
-		defer os.RemoveAll(tmpDir)
+		defer util.RemoveAll(tmpDir)
 
 		if err = prepareRepoCommit(ctx, repo, tmpDir, repoPath, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %v", err)

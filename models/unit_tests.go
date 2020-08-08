@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
@@ -68,7 +69,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	}
 
 	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
-		fatalTestError("os.RemoveAll: %v\n", err)
+		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	if err = com.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
 		fatalTestError("com.CopyDir: %v\n", err)
@@ -76,10 +77,10 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 
 	exitStatus := m.Run()
 	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
-		fatalTestError("os.RemoveAll: %v\n", err)
+		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	if err = removeAllWithRetry(setting.AppDataPath); err != nil {
-		fatalTestError("os.RemoveAll: %v\n", err)
+		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
 }
@@ -106,7 +107,7 @@ func CreateTestEngine(fixturesDir string) error {
 func removeAllWithRetry(dir string) error {
 	var err error
 	for i := 0; i < 20; i++ {
-		err = os.RemoveAll(dir)
+		err = util.RemoveAll(dir)
 		if err == nil {
 			break
 		}

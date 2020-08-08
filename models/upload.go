@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	gouuid "github.com/google/uuid"
 	"github.com/unknwon/com"
@@ -131,11 +132,11 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 			continue
 		}
 
-		if err := os.Remove(localPath); err != nil {
+		if err := util.Remove(localPath); err != nil {
 			i := 0
 			for i < 5 && strings.Contains(err.Error(), "The process cannot access the file because it is being used by another process") {
 				<-time.After(100 * time.Millisecond)
-				err = os.Remove(localPath)
+				err = util.Remove(localPath)
 				i++
 			}
 			return fmt.Errorf("remove upload: %v", err)
