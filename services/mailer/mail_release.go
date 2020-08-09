@@ -55,7 +55,7 @@ func MailNewRelease(rel *models.Release) {
 		return
 	}
 
-	msgs := make([]*Message,0, len(recipients))
+	msgs := make([]*Message, 0, len(recipients))
 	publisherName := rel.Publisher.DisplayName()
 	relURL := "<" + rel.HTMLURL() + ">"
 	for _, to := range tos {
@@ -66,5 +66,4 @@ func MailNewRelease(rel *models.Release) {
 	}
 
 	SendAsyncs(msgs)
-	return
 }
