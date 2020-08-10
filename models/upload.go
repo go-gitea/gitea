@@ -11,8 +11,6 @@ import (
 	"mime/multipart"
 	"os"
 	"path"
-	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
