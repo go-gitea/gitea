@@ -357,6 +357,16 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 		return err
 	}
 
+	if err := sess.Table(tempTableName).CreateUniques(bean); err != nil {
+		log.Error("Unable to create uniques for table %s. Error: %v", tempTableName, err)
+		return err
+	}
+
+	if err := sess.Table(tempTableName).CreateIndexes(bean); err != nil {
+		log.Error("Unable to create indexes for table %s. Error: %v", tempTableName, err)
+		return err
+	}
+
 	// Work out the column names from the bean - these are the columns to select from the old table and install into the new table
 	table, err := sess.Engine().TableInfo(bean)
 	if err != nil {
