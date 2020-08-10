@@ -61,7 +61,7 @@ func increaseLanguageField(x *xorm.Engine) error {
 			return fmt.Errorf("Find constraints: %v", err)
 		}
 		for _, constraint := range constraints {
-			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `language_stat` DROP CONSTRAINT `%s`", constraint)); err != nil {
+			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX [%s] ON `language_stat`", constraint)); err != nil {
 				return fmt.Errorf("Drop table `language_stat` constraint `%s`: %v", constraint, err)
 			}
 		}
