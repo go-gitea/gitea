@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// Remove removes the named file or (empty) directory with at most 5 attempts.Remove
+// Remove removes the named file or (empty) directory with at most 5 attempts.
 func Remove(name string) error {
 	var err error
 	for i := 0; i < 5; i++ {
