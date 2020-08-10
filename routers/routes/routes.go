@@ -512,11 +512,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/attachments/:uuid", repo.GetAttachment)
 	}, ignSignIn)
 
-	m.Group("/attachments", func() {
-		m.Post("", repo.UploadAttachment)
-		m.Post("/delete", repo.DeleteAttachment)
-	}, reqSignIn)
-
 	m.Group("/:username", func() {
 		m.Post("/action/:action", user.Action)
 	}, reqSignIn)
@@ -755,6 +750,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/lock", reqRepoIssueWriter, bindIgnErr(auth.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
 				m.Get("/attachments", repo.GetIssueAttachments)
+				m.Get("/attachments/:uuid", repo.GetAttachment)
 			}, context.RepoMustNotBeArchived())
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
@@ -764,6 +760,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
 			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.UpdateResolveConversation)
+			m.Post("/attachments", repo.UploadIssueAttachment)
+			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/:id", func() {
 			m.Post("", repo.UpdateCommentContent)
@@ -826,11 +824,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
+			m.Get("/attachments/:uuid", repo.GetAttachment)
 		}, repo.MustBeNotEmpty, context.RepoRefByType(context.RepoRefTag))
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
 			m.Post("/delete", repo.DeleteRelease)
+			m.Post("/attachments", repo.UploadReleaseAttachment)
+			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)

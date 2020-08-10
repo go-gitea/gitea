@@ -27,7 +27,7 @@
 			</div>
 			<div class="field">
 				<div class="files"></div>
-				<div class="ui dropzone" id="dropzone" data-upload-url="{{.RepoLink}}/upload-file" data-remove-url="{{.RepoLink}}/upload-remove" data-csrf="{{.CsrfToken}}" data-accepts="{{.UploadAllowedTypes}}" data-max-file="{{.UploadMaxFiles}}" data-max-size="{{.UploadMaxSize}}" data-default-message="{{.i18n.Tr "dropzone.default_message"}}" data-invalid-input-type="{{.i18n.Tr "dropzone.invalid_input_type"}}" data-file-too-big="{{.i18n.Tr "dropzone.file_too_big"}}" data-remove-file="{{.i18n.Tr "dropzone.remove_file"}}"></div>
+				{{template "repo/upload" .}}
 			</div>
 			{{template "repo/editor/commit_form" .}}
 		</form>
