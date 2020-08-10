@@ -17,9 +17,9 @@
 	<h4>Title: {{.Release.Title}}</h4>
 	<p>
 		Note: <br>
-		{{- if eq .Release.Note ""}}
+		{{- if eq .Release.RenderedNote ""}}
 		{{else}}
-			{{.Release.Note | Str2html}}
+			{{.Release.RenderedNote | Str2html}}
 		{{end -}}
 	</p>
 	<br><br>

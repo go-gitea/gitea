@@ -40,7 +40,7 @@ func MailNewRelease(rel *models.Release) {
 		}
 	}
 
-	rel.Note = markdown.RenderString(rel.Note, rel.Repo.Link(), rel.Repo.ComposeMetas())
+	rel.RenderedNote = markdown.RenderString(rel.Note, rel.Repo.Link(), rel.Repo.ComposeMetas())
 	subject := fmt.Sprintf("%s in %s released", rel.TagName, rel.Repo.FullName())
 
 	mailMeta := map[string]interface{}{
