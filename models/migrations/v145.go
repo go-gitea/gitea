@@ -57,12 +57,6 @@ func increaseLanguageField(x *xorm.Engine) error {
       			ON t.object_id = i.object_id
 			INNER JOIN sys.columns c
 				ON t.object_id = c.object_id AND ic.column_id = c.column_id
-			INNER JOIN sys.objects AS syso 
-				ON syso.object_id = t.object_id AND syso.is_ms_shipped = 0 
-			INNER JOIN sys.schemas AS sh
-				ON sh.schema_id = t.schema_id 
-			INNER JOIN information_schema.schemata sch
-				ON sch.schema_name = sh.name
 			WHERE t.name = 'language_stat' AND c.name = 'language'`).Find(&constraints); err != nil {
 			return fmt.Errorf("Find constraints: %v", err)
 		}
