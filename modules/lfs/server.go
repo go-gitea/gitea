@@ -205,7 +205,7 @@ func getContentHandler(ctx *context.Context) {
 		decodedFilename, err := base64.RawURLEncoding.DecodeString(filename)
 		if err == nil {
 			ctx.Resp.Header().Set("Content-Disposition", "attachment; filename=\""+string(decodedFilename)+"\"")
-			ctx.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+			ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 		}
 	}
 
