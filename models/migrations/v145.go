@@ -50,12 +50,20 @@ func increaseLanguageField(x *xorm.Engine) error {
 		// Yet again MSSQL just has to be awkward.
 		// Here we have to drop the constraints first and then rebuild them
 		constraints := make([]string, 0)
-		if err := sess.SQL(
-			"SELECT Name FROM SYS.DEFAULT_CONSTRAINTS WHERE " +
-				"PARENT_OBJECT_ID = OBJECT_ID('language_stat') AND " +
-				"PARENT_COLUMN_ID IN (SELECT column_id FROM sys.columns " +
-				"WHERE lower(NAME) = 'language' AND " +
-				"object_id = OBJECT_ID('language_stat'))").Find(&constraints); err != nil {
+		if err := sess.SQL(`SELECT i.name AS Name
+			FROM sys.indexes i INNER JOIN sys.index_columns ic
+      			ON i.index_id = ic.index_id AND i.object_id = ic.object_id
+   			INNER JOIN sys.tables AS t 
+      			ON t.object_id = i.object_id
+			INNER JOIN sys.columns c
+				ON t.object_id = c.object_id AND ic.column_id = c.column_id
+			INNER JOIN sys.objects AS syso 
+				ON syso.object_id = t.object_id AND syso.is_ms_shipped = 0 
+			INNER JOIN sys.schemas AS sh
+				ON sh.schema_id = t.schema_id 
+			INNER JOIN information_schema.schemata sch
+				ON sch.schema_name = sh.name
+			WHERE t.name = 'language_stat' AND c.name = 'language'`).Find(&constraints); err != nil {
 			return fmt.Errorf("Find constraints: %v", err)
 		}
 		for _, constraint := range constraints {
