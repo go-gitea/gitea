@@ -183,7 +183,7 @@ func getContentHandler(ctx *context.Context) {
 			}
 
 			ctx.Resp.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", fromByte, toByte, meta.Size-fromByte))
-			ctx.Header().Set("Access-Control-Expose-Headers", "Content-Range")
+			ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Range")
 		}
 	}
 
