@@ -19,7 +19,7 @@ func Remove(name string) error {
 			break
 		}
 		unwrapped := err.(*os.PathError).Err
-		if unwrapped == syscall.EBUSY || unwrapped == syscall.ENOTEMPTY || unwrapped == syscall.EPERM {
+		if unwrapped == syscall.EBUSY || unwrapped == syscall.ENOTEMPTY || unwrapped == syscall.EPERM || unwrapped == syscall.EMFILE || unwrapped == syscall.ENFILE {
 			// try again
 			<-time.After(100 * time.Millisecond)
 			continue
@@ -44,7 +44,7 @@ func RemoveAll(name string) error {
 			break
 		}
 		unwrapped := err.(*os.PathError).Err
-		if unwrapped == syscall.EBUSY || unwrapped == syscall.ENOTEMPTY || unwrapped == syscall.EPERM {
+		if unwrapped == syscall.EBUSY || unwrapped == syscall.ENOTEMPTY || unwrapped == syscall.EPERM || unwrapped == syscall.EMFILE || unwrapped == syscall.ENFILE {
 			// try again
 			<-time.After(100 * time.Millisecond)
 			continue
