@@ -238,14 +238,13 @@ steps:
         - push
         - pull_request
 
-  - name: coverage
+  - name: coverage-codecov
     pull: always
-    image: robertstettner/drone-codecov
+    image: plugins/codecov
     settings:
       files:
         - coverage.all
-    environment:
-      CODECOV_TOKEN:
+      token:
         from_secret: codecov_token
     depends_on:
       - generate-coverage
