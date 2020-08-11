@@ -25,8 +25,6 @@ func Remove(name string) error {
 			continue
 		}
 
-		// TODO: Consider handling EMFILE?
-
 		if unwrapped == syscall.ENOENT {
 			// it's already gone
 			return nil
@@ -49,8 +47,6 @@ func RemoveAll(name string) error {
 			<-time.After(100 * time.Millisecond)
 			continue
 		}
-
-		// TODO: Consider handling EMFILE?
 
 		if unwrapped == syscall.ENOENT {
 			// it's already gone
