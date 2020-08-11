@@ -181,7 +181,7 @@ var (
 	removedCodePrefix = []byte(`<span class="removed-code">`)
 	codeTagSuffix     = []byte(`</span>`)
 )
-var addSpanRegex = regexp.MustCompile(`<span class="[a-z]*$`)
+var addSpanRegex = regexp.MustCompile(`<span [class="[a-z]*]*$`)
 
 func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
