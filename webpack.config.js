@@ -1,6 +1,6 @@
 const fastGlob = require('fast-glob');
 const wrapAnsi = require('wrap-ansi');
-const CssNanoPlugin = require('cssnano-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
@@ -80,9 +80,9 @@ module.exports = {
           },
         },
       }),
-      new CssNanoPlugin({
+      new CssMinimizerPlugin({
         sourceMap: true,
-        cssnanoOptions: {
+        minimizerOptions: {
           preset: [
             'default',
             {
