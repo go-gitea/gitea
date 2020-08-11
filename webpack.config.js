@@ -113,9 +113,7 @@ module.exports = {
           {
             loader: 'worker-loader',
             options: {
-              name: '[name].js',
-              inline: true,
-              fallback: false,
+              inline: 'no-fallback',
             },
           },
         ],
@@ -151,7 +149,6 @@ module.exports = {
                     regenerator: true,
                   }
                 ],
-                '@babel/plugin-proposal-object-rest-spread',
               ],
               generatorOpts: {
                 compact: false,
