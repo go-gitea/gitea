@@ -166,6 +166,7 @@ var (
 		RepoSearchPagingNum   int
 		MembersPagingNum      int
 		FeedMaxCommitNum      int
+		FeedPagingNum         int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
 		ReactionMaxUserNum    int
@@ -207,6 +208,7 @@ var (
 		RepoSearchPagingNum: 10,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
+		FeedPagingNum:       20,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
