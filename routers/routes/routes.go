@@ -1043,11 +1043,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		ctx.Redirect(path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
 	})
 
-	// Progressive Web App
-	m.Get("/manifest.json", templates.JSONRenderer(), func(ctx *context.Context) {
-		ctx.HTML(200, "pwa/manifest_json")
-	})
-
 	// prometheus metrics endpoint
 	if setting.Metrics.Enabled {
 		c := metrics.NewCollector()
