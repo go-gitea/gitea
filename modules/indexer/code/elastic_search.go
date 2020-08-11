@@ -7,7 +7,6 @@ package code
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -26,14 +25,18 @@ import (
 	"github.com/olivere/elastic/v7"
 )
 
+const (
+	esRepoIndexerLatestVersion = 1
+)
+
 var (
 	_ Indexer = &ElasticSearchIndexer{}
 )
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
-	client      *elastic.Client
-	indexerName string
+	client           *elastic.Client
+	indexerAliasName string
 }
 
 type elasticLogger struct {
@@ -69,8 +72,8 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bo
 	}
 
 	indexer := &ElasticSearchIndexer{
-		client:      client,
-		indexerName: indexerName,
+		client:           client,
+		indexerAliasName: indexerName,
 	}
 	exists, err := indexer.init()
 
@@ -106,28 +109,62 @@ const (
 	}`
 )
 
+func (b *ElasticSearchIndexer) realIndexerName() string {
+	return fmt.Sprintf("%s_%d", b.indexerAliasName, esRepoIndexerLatestVersion)
+}
+
 // Init will initialize the indexer
 func (b *ElasticSearchIndexer) init() (bool, error) {
 	ctx := context.Background()
-	exists, err := b.client.IndexExists(b.indexerName).Do(ctx)
+	exists, err := b.client.IndexExists(b.realIndexerName()).Do(ctx)
 	if err != nil {
 		return false, err
 	}
-	if exists {
-		return true, nil
+	if !exists {
+		var mapping = defaultMapping
+
+		createIndex, err := b.client.CreateIndex(b.realIndexerName()).BodyString(mapping).Do(ctx)
+		if err != nil {
+			return false, err
+		}
+		if !createIndex.Acknowledged {
+			return false, fmt.Errorf("create index %s with %s failed", b.realIndexerName(), mapping)
+		}
 	}
 
-	var mapping = defaultMapping
-
-	createIndex, err := b.client.CreateIndex(b.indexerName).BodyString(mapping).Do(ctx)
+	// check version
+	r, err := b.client.Aliases().Do(ctx)
 	if err != nil {
 		return false, err
 	}
-	if !createIndex.Acknowledged {
-		return false, errors.New("init failed")
+
+	realIndexerNames := r.IndicesByAlias(b.indexerAliasName)
+	if len(realIndexerNames) < 1 {
+		res, err := b.client.Alias().
+			Add(b.realIndexerName(), b.indexerAliasName).
+			Do(ctx)
+		if err != nil {
+			return false, err
+		}
+		if !res.Acknowledged {
+			return false, fmt.Errorf("")
+		}
+	} else if len(realIndexerNames) >= 1 && realIndexerNames[0] < b.realIndexerName() {
+		log.Warn("Found older gitea indexer named %s, but we will create a new one %s and keep the old NOT DELETED. You can delete the old version after the upgrade succeed.",
+			realIndexerNames[0], b.realIndexerName())
+		res, err := b.client.Alias().
+			Remove(realIndexerNames[0], b.indexerAliasName).
+			Add(b.realIndexerName(), b.indexerAliasName).
+			Do(ctx)
+		if err != nil {
+			return false, err
+		}
+		if !res.Acknowledged {
+			return false, fmt.Errorf("")
+		}
 	}
 
-	return false, nil
+	return exists, nil
 }
 
 func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
@@ -155,7 +192,7 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 
 	return []elastic.BulkableRequest{
 		elastic.NewBulkIndexRequest().
-			Index(b.indexerName).
+			Index(b.indexerAliasName).
 			Id(id).
 			Doc(map[string]interface{}{
 				"repo_id":    repo.ID,
@@ -171,7 +208,7 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repositor
 	id := filenameIndexerID(repo.ID, filename)
 	return []elastic.BulkableRequest{
 		elastic.NewBulkDeleteRequest().
-			Index(b.indexerName).
+			Index(b.indexerAliasName).
 			Id(id),
 	}, nil
 }
@@ -201,7 +238,7 @@ func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, change
 
 	if len(reqs) > 0 {
 		_, err := b.client.Bulk().
-			Index(b.indexerName).
+			Index(b.indexerAliasName).
 			Add(reqs...).
 			Do(context.Background())
 		return err
@@ -211,7 +248,7 @@ func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, change
 
 // Delete deletes indexes by ids
 func (b *ElasticSearchIndexer) Delete(repoID int64) error {
-	_, err := b.client.DeleteByQuery(b.indexerName).
+	_, err := b.client.DeleteByQuery(b.indexerAliasName).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(context.Background())
 	return err
@@ -310,7 +347,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 
 	if len(language) == 0 {
 		searchResult, err := b.client.Search().
-			Index(b.indexerName).
+			Index(b.indexerAliasName).
 			Aggregation("language", aggregation).
 			Query(query).
 			Highlight(elastic.NewHighlight().Field("content")).
@@ -326,7 +363,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 
 	langQuery := elastic.NewMatchQuery("language", language)
 	countResult, err := b.client.Search().
-		Index(b.indexerName).
+		Index(b.indexerAliasName).
 		Aggregation("language", aggregation).
 		Query(query).
 		Size(0). // We only needs stats information
@@ -337,7 +374,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 
 	query = query.Must(langQuery)
 	searchResult, err := b.client.Search().
-		Index(b.indexerName).
+		Index(b.indexerAliasName).
 		Query(query).
 		Highlight(elastic.NewHighlight().Field("content")).
 		Sort("repo_id", true).
