@@ -89,7 +89,6 @@ async function main() {
   const svg = await readFile(resolve(__dirname, '../assets/logo.svg'), 'utf8');
   await generateSvgFavicon(svg, resolve(__dirname, '../public/img/favicon.svg'));
   await generate(svg, resolve(__dirname, '../public/img/gitea-lg.png'), {size: 880});
-  await generate(svg, resolve(__dirname, '../public/img/gitea-512.png'), {size: 512});
   await generate(svg, resolve(__dirname, '../public/img/gitea-192.png'), {size: 192});
   await generate(svg, resolve(__dirname, '../public/img/gitea-sm.png'), {size: 120});
   await generate(svg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200});
