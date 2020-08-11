@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 
 	"github.com/urfave/cli"
 )
@@ -157,10 +158,6 @@ func runRecreateTable(ctx *cli.Context) error {
 		return nil
 	}
 
-	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
-		return err
-	}
-
 	args := ctx.Args()
 	names := make([]string, 0, ctx.NArg())
 	for i := 0; i < ctx.NArg(); i++ {
@@ -171,8 +168,19 @@ func runRecreateTable(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	recreateTables := migrations.RecreateTables(beans...)
 
-	return models.NewEngine(context.Background(), migrations.RecreateTables(beans...))
+	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+		return err
+	}
+
+	return models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+		if err := migrations.EnsureUpToDate(x); err != nil {
+			return err
+		}
+		return recreateTables(x)
+	})
+
 }
 
 func runDoctor(ctx *cli.Context) error {

@@ -329,6 +329,7 @@ func RecreateTables(beans ...interface{}) func(*xorm.Engine) error {
 		if err := sess.Begin(); err != nil {
 			return err
 		}
+		sess = sess.StoreEngine("InnoDB")
 		for _, bean := range beans {
 			log.Info("Recreating Table: %s for Bean: %s", x.TableName(bean), reflect.Indirect(reflect.ValueOf(bean)).Type().Name())
 			if err := recreateTable(sess, bean); err != nil {
