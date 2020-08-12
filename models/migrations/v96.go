@@ -5,10 +5,10 @@
 package migrations
 
 import (
-	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -58,7 +58,7 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 		}
 
 		for _, attachment := range attachements {
-			if err := os.RemoveAll(AttachmentLocalPath(attachment.UUID)); err != nil {
+			if err := util.RemoveAll(AttachmentLocalPath(attachment.UUID)); err != nil {
 				return err
 			}
 		}
