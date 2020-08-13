@@ -5,9 +5,12 @@
 package migrations
 
 import (
-	"os"
+	"fmt"
+	"path"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -27,7 +30,10 @@ func removeAttachmentMissedRepo(x *xorm.Engine) error {
 		}
 
 		for i := 0; i < len(attachments); i++ {
-			os.RemoveAll(models.AttachmentLocalPath(attachments[i].UUID))
+			uuid := attachments[i].UUID
+			if err = util.RemoveAll(path.Join(setting.AttachmentPath, uuid[0:1], uuid[1:2], uuid)); err != nil {
+				fmt.Printf("Error: %v", err)
+			}
 		}
 
 		if len(attachments) < 50 {

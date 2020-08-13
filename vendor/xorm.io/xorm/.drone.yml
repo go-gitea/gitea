@@ -3,12 +3,13 @@ kind: pipeline
 name: testing
 steps:
 - name: test-vet
-  image: golang:1.11
+  image: golang:1.11 # The lowest golang requirement
   environment:
     GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
   commands:
-    - go vet
+    - make vet
+    - make test
   when:
     event:
     - push
@@ -23,10 +24,6 @@ steps:
   - make test-sqlite
   - TEST_CACHE_ENABLE=true make test-sqlite
   - TEST_QUOTE_POLICY=reserved make test-sqlite
-  - go test ./caches/... ./contexts/... ./convert/... ./core/... ./dialects/... \
-    ./log/... ./migrate/... ./names/... ./schemas/... ./tags/... \
-    ./internal/json/... ./internal/statements/... ./internal/utils/... \
-
   when:
     event:
     - push
@@ -167,6 +164,7 @@ steps:
   - make test-mssql
   - TEST_CACHE_ENABLE=true make test-mssql
   - TEST_QUOTE_POLICY=reserved make test-mssql
+  - TEST_MSSQL_DEFAULT_VARCHAR=NVARCHAR TEST_MSSQL_DEFAULT_CHAR=NCHAR make test-mssql
   when:
     event:
     - push

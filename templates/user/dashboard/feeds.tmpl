@@ -70,6 +70,10 @@
 						{{else if eq .GetOpType 23}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.comment_pull" .GetRepoLink $index .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 24}}
+							{{ $branchLink := .GetBranch | EscapePound | Escape}}
+							{{ $linkText := .Content | RenderEmoji }}
+							{{$.i18n.Tr "action.publish_release" .GetRepoLink $branchLink .ShortRepoPath $linkText | Str2html}}
 						{{end}}
 					</p>
 					{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}
@@ -79,7 +83,8 @@
 								{{ $repoLink := .GetRepoLink}}
 								{{if $push.Commits}}
 									{{range $push.Commits}}
-										<li><img class="img-8" src="{{$push.AvatarLink .AuthorEmail}}"> <a class="commit-id" href="{{$repoLink}}/commit/{{.Sha1}}">{{ShortSha .Sha1}}</a> <span class="text truncate light grey">{{.Message}}</span></li>
+										{{ $commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
+										<li><img class="img-8" src="{{$push.AvatarLink .AuthorEmail}}"> <a class="commit-id" href="{{$commitLink}}">{{ShortSha .Sha1}}</a> <span class="text truncate light grey">{{RenderCommitMessage .Message $repoLink $.ComposeMetas}}</span></li>
 									{{end}}
 								{{end}}
 								{{if and (gt $push.Len 1) $push.CompareURL}}<li><a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.i18n.Tr "action.compare_commits" $push.Len}} »</a></li>{{end}}

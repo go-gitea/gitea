@@ -145,13 +145,15 @@ func getEngine() (*xorm.Engine, error) {
 	}
 	if setting.Database.Type == "mysql" {
 		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
+	} else if setting.Database.Type == "mssql" {
+		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
 	engine.SetSchema(setting.Database.Schema)
 	return engine, nil
 }
 
 // NewTestEngine sets a new test xorm.Engine
-func NewTestEngine(x *xorm.Engine) (err error) {
+func NewTestEngine() (err error) {
 	x, err = getEngine()
 	if err != nil {
 		return fmt.Errorf("Connect to database: %v", err)
@@ -182,6 +184,10 @@ func SetEngine() (err error) {
 }
 
 // NewEngine initializes a new xorm.Engine
+// This function must never call .Sync2() if the provided migration function fails.
+// When called from the "doctor" command, the migration function is a version check
+// that prevents the doctor from fixing anything in the database if the migration level
+// is different from the expected value.
 func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
 	if err = SetEngine(); err != nil {
 		return err

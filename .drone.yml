@@ -160,7 +160,7 @@ steps:
 
   - name: tag-pre-condition
     pull: always
-    image: alpine/git
+    image: drone/git
     commands:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
@@ -238,14 +238,13 @@ steps:
         - push
         - pull_request
 
-  - name: coverage
+  - name: coverage-codecov
     pull: always
-    image: robertstettner/drone-codecov
+    image: plugins/codecov
     settings:
       files:
         - coverage.all
-    environment:
-      CODECOV_TOKEN:
+      token:
         from_secret: codecov_token
     depends_on:
       - generate-coverage
@@ -366,7 +365,7 @@ steps:
 
   - name: update
     pull: default
-    image: alpine:3.11
+    image: alpine:3.12
     commands:
       - ./build/update-locales.sh
 

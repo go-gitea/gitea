@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/dev"
+	"code.gitea.io/gitea/routers/events"
 	"code.gitea.io/gitea/routers/org"
 	"code.gitea.io/gitea/routers/private"
 	"code.gitea.io/gitea/routers/repo"
@@ -339,6 +340,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		})
 	}, reqSignOut)
+
+	m.Any("/user/events", reqSignIn, events.Events)
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
@@ -710,7 +713,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/:id", repo.MilestoneIssuesAndPulls)
 		}, reqRepoIssuesOrPullsReader, context.RepoRef())
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
-			Get(repo.SetDiffViewStyle, repo.CompareDiff).
+			Get(ignSignIn, repo.SetDiffViewStyle, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
 	}, context.RepoAssignment(), context.UnitTypes())
 
@@ -854,6 +857,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/?:page", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
 			m.Get("/:page/_revision", repo.WikiRevision)
+			m.Get("/commit/:sha([a-f0-9]{7,40})$", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
+			m.Get("/commit/:sha([a-f0-9]{7,40})\\.:ext(patch|diff)", repo.RawDiff)
 
 			m.Group("", func() {
 				m.Combo("/_new").Get(repo.NewWiki).
@@ -862,7 +867,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Post(bindIgnErr(auth.NewWikiForm{}), repo.EditWikiPost)
 				m.Post("/:page/delete", repo.DeleteWikiPagePost)
 			}, context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter)
-		}, repo.MustEnableWiki, context.RepoRef())
+		}, repo.MustEnableWiki, context.RepoRef(), func(ctx *context.Context) {
+			ctx.Data["PageIsWiki"] = true
+		})
 
 		m.Group("/wiki", func() {
 			m.Get("/raw/*", repo.WikiRaw)
@@ -1042,10 +1049,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 	// Progressive Web App
 	m.Get("/manifest.json", templates.JSONRenderer(), func(ctx *context.Context) {
 		ctx.HTML(200, "pwa/manifest_json")
-	})
-
-	m.Get("/serviceworker.js", templates.JSRenderer(), func(ctx *context.Context) {
-		ctx.HTML(200, "pwa/serviceworker_js")
 	})
 
 	// prometheus metrics endpoint

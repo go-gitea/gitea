@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
@@ -147,7 +149,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 	}
 
 	if len(defaultBranch) == 0 {
-		defaultBranch = "master"
+		defaultBranch = setting.Repository.DefaultBranch
 	}
 
 	if stdout, err := git.NewCommand("push", "origin", "master:"+defaultBranch).
@@ -187,8 +189,11 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 		if err != nil {
 			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 		}
-
-		defer os.RemoveAll(tmpDir)
+		defer func() {
+			if err := util.RemoveAll(tmpDir); err != nil {
+				log.Warn("Unable to remove temporary directory: %s: Error: %v", tmpDir, err)
+			}
+		}()
 
 		if err = prepareRepoCommit(ctx, repo, tmpDir, repoPath, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %v", err)
@@ -213,6 +218,13 @@ func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo 
 	repo.DefaultBranch = "master"
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
+		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			return fmt.Errorf("openRepository: %v", err)
+		}
+		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+			return fmt.Errorf("setDefaultBranch: %v", err)
+		}
 	}
 
 	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {

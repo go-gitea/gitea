@@ -64,8 +64,8 @@
 									Ghost
 								{{end}}
 								</span>
-								{{if .CreatedUnix}}<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span>{{end}}
-								<span class="ahead">{{$.i18n.Tr "repo.release.ahead" .NumCommitsBehind .Target | Str2html}}</span>
+								{{if .CreatedUnix}}<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span> | {{end}}
+								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | EscapePound}}...{{.Target}}">{{$.i18n.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.i18n.Tr "repo.release.ahead.target" .Target}}</span>
 							</p>
 							<div class="markdown desc">
 								{{Str2html .Note}}

@@ -5,10 +5,10 @@
 package migrations
 
 import (
-	"os"
+	"path"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -21,6 +21,12 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 		IssueID   int64  `xorm:"INDEX"`
 		ReleaseID int64  `xorm:"INDEX"`
 		CommentID int64
+	}
+
+	// AttachmentLocalPath returns where attachment is stored in local file
+	// system based on given UUID.
+	AttachmentLocalPath := func(uuid string) string {
+		return path.Join(setting.AttachmentPath, uuid[0:1], uuid[1:2], uuid)
 	}
 
 	sess := x.NewSession()
@@ -52,7 +58,7 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 		}
 
 		for _, attachment := range attachements {
-			if err := os.RemoveAll(models.AttachmentLocalPath(attachment.UUID)); err != nil {
+			if err := util.RemoveAll(AttachmentLocalPath(attachment.UUID)); err != nil {
 				return err
 			}
 		}

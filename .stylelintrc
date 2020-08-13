@@ -1,8 +1,5 @@
 extends: stylelint-config-standard
 
-ignoreFiles:
-  - web_src/less/vendor/**/*
-
 rules:
   at-rule-empty-line-before: null
   block-closing-brace-empty-line-before: null
@@ -14,3 +11,4 @@ rules:
   number-leading-zero: never
   rule-empty-line-before: null
   selector-pseudo-element-colon-notation: null
+  shorthand-property-no-redundant-values: true

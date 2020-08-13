@@ -131,6 +131,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["readme"] = "Default"
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
@@ -256,6 +257,7 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["DisableMirrors"] = setting.Repository.DisableMirrors
 	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
 	ctx.Data["wiki"] = ctx.Query("wiki") == "1"
 	ctx.Data["milestones"] = ctx.Query("milestones") == "1"
@@ -357,7 +359,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		RepoName:       form.RepoName,
 		Description:    form.Description,
 		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror,
+		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		Wiki:           form.Wiki,

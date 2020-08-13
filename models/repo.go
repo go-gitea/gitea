@@ -11,11 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"unicode/utf8"
 
 	// Needed for jpeg support
 	_ "image/jpeg"
 	"image/png"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"path"
@@ -174,9 +176,10 @@ type Repository struct {
 	*Mirror    `xorm:"-"`
 	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
-	RenderingMetas  map[string]string `xorm:"-"`
-	Units           []*RepoUnit       `xorm:"-"`
-	PrimaryLanguage *LanguageStat     `xorm:"-"`
+	RenderingMetas         map[string]string `xorm:"-"`
+	DocumentRenderingMetas map[string]string `xorm:"-"`
+	Units                  []*RepoUnit       `xorm:"-"`
+	PrimaryLanguage        *LanguageStat     `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -208,19 +211,9 @@ func (repo *Repository) SanitizedOriginalURL() string {
 
 // ColorFormat returns a colored string to represent this repo
 func (repo *Repository) ColorFormat(s fmt.State) {
-	var ownerName interface{}
-
-	if repo.OwnerName != "" {
-		ownerName = repo.OwnerName
-	} else if repo.Owner != nil {
-		ownerName = repo.Owner.Name
-	} else {
-		ownerName = log.NewColoredIDValue(strconv.FormatInt(repo.OwnerID, 10))
-	}
-
 	log.ColorFprintf(s, "%d:%s/%s",
 		log.NewColoredIDValue(repo.ID),
-		ownerName,
+		repo.OwnerName,
 		repo.Name)
 }
 
@@ -262,6 +255,17 @@ func (repo *Repository) FullName() string {
 // HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL() string {
 	return setting.AppURL + repo.FullName()
+}
+
+// CommitLink make link to by commit full ID
+// note: won't check whether it's an right id
+func (repo *Repository) CommitLink(commitID string) (result string) {
+	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
+		result = ""
+	} else {
+		result = repo.HTMLURL() + "/commit/" + commitID
+	}
+	return
 }
 
 // APIURL returns the repository API URL
@@ -394,6 +398,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		AllowRebaseMerge:          allowRebaseMerge,
 		AllowSquash:               allowSquash,
 		AvatarURL:                 repo.avatarLink(e),
+		Internal:                  !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 	}
 }
 
@@ -534,11 +539,12 @@ func (repo *Repository) mustOwner(e Engine) *User {
 
 // ComposeMetas composes a map of metas for properly rendering issue links and external issue trackers.
 func (repo *Repository) ComposeMetas() map[string]string {
-	if repo.RenderingMetas == nil {
+	if len(repo.RenderingMetas) == 0 {
 		metas := map[string]string{
 			"user":     repo.OwnerName,
 			"repo":     repo.Name,
 			"repoPath": repo.RepoPath(),
+			"mode":     "comment",
 		}
 
 		unit, err := repo.GetUnit(UnitTypeExternalTracker)
@@ -568,6 +574,19 @@ func (repo *Repository) ComposeMetas() map[string]string {
 		repo.RenderingMetas = metas
 	}
 	return repo.RenderingMetas
+}
+
+// ComposeDocumentMetas composes a map of metas for properly rendering documents
+func (repo *Repository) ComposeDocumentMetas() map[string]string {
+	if len(repo.DocumentRenderingMetas) == 0 {
+		metas := map[string]string{}
+		for k, v := range repo.ComposeMetas() {
+			metas[k] = v
+		}
+		metas["mode"] = "document"
+		repo.DocumentRenderingMetas = metas
+	}
+	return repo.DocumentRenderingMetas
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
@@ -781,6 +800,14 @@ func (repo *Repository) updateSize(e Engine) error {
 		return fmt.Errorf("updateSize: %v", err)
 	}
 
+	objs, err := repo.GetLFSMetaObjects(-1, 0)
+	if err != nil {
+		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+	}
+	for _, obj := range objs {
+		size += obj.Size
+	}
+
 	repo.Size = size
 	_, err = e.ID(repo.ID).Cols("size").Update(repo)
 	return err
@@ -943,12 +970,21 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	}
 
 	cl := new(CloneLink)
+
+	// if we have a ipv6 literal we need to put brackets around it
+	// for the git cloning to work.
+	sshDomain := setting.SSH.Domain
+	ip := net.ParseIP(setting.SSH.Domain)
+	if ip != nil && ip.To4() == nil {
+		sshDomain = "[" + setting.SSH.Domain + "]"
+	}
+
 	if setting.SSH.Port != 22 {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", sshUser, setting.SSH.Domain, setting.SSH.Port, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), repo.OwnerName, repoName)
 	} else if setting.Repository.UseCompatSSHURI {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, setting.SSH.Domain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
 	} else {
-		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, setting.SSH.Domain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
 	}
 	cl.HTTPS = ComposeHTTPSCloneURL(repo.OwnerName, repoName)
 	return cl
@@ -1241,7 +1277,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	if newOwner.IsOrganization() {
-		if err := newOwner.GetTeams(&SearchTeamOptions{}); err != nil {
+		if err := newOwner.getTeams(sess); err != nil {
 			return fmt.Errorf("GetTeams: %v", err)
 		}
 		for _, t := range newOwner.Teams {
@@ -1369,11 +1405,11 @@ func GetRepositoriesByForkID(forkID int64) ([]*Repository, error) {
 func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err error) {
 	repo.LowerName = strings.ToLower(repo.Name)
 
-	if len(repo.Description) > 255 {
-		repo.Description = repo.Description[:255]
+	if utf8.RuneCountInString(repo.Description) > 255 {
+		repo.Description = string([]rune(repo.Description)[:255])
 	}
-	if len(repo.Website) > 255 {
-		repo.Website = repo.Website[:255]
+	if utf8.RuneCountInString(repo.Website) > 255 {
+		repo.Website = string([]rune(repo.Website)[:255])
 	}
 
 	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
@@ -1404,7 +1440,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
 		if repo.IsPrivate && com.IsExist(daemonExportFile) {
-			if err = os.Remove(daemonExportFile); err != nil {
+			if err = util.Remove(daemonExportFile); err != nil {
 				log.Error("Failed to remove %s: %v", daemonExportFile, err)
 			}
 		} else if !repo.IsPrivate && !com.IsExist(daemonExportFile) {
@@ -1420,7 +1456,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 			return fmt.Errorf("getRepositoriesByForkID: %v", err)
 		}
 		for i := range forkRepos {
-			forkRepos[i].IsPrivate = repo.IsPrivate
+			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
 			if err = updateRepository(e, forkRepos[i], true); err != nil {
 				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
 			}
@@ -1551,6 +1587,10 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		releaseAttachments = append(releaseAttachments, attachments[i].LocalPath())
 	}
 
+	if _, err = sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
+		return err
+	}
+
 	if err = deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
@@ -1575,67 +1615,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repoID})
-	// Delete comments and attachments
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Comment{}); err != nil {
-		return err
-	}
-
-	// Dependencies for issues in this repository
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	// Delete dependencies for issues in other repositories
-	if _, err = sess.In("dependency_id", deleteCond).
-		Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueUser{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Reaction{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueWatch{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Stopwatch{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&TrackedTime{}); err != nil {
-		return err
-	}
-
-	attachments = attachments[:0]
-	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
-		Where("issue.repo_id = ?", repoID).
-		Find(&attachments); err != nil {
-		return err
-	}
-	attachmentPaths := make([]string, 0, len(attachments))
-	for j := range attachments {
-		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
-	}
-
-	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Attachment{}); err != nil {
-		return err
-	}
-
-	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+	// Delete Issues and related objects
+	var attachmentPaths []string
+	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
 		return err
 	}
 
@@ -1726,7 +1708,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if len(repo.Avatar) > 0 {
 		avatarPath := repo.CustomAvatarPath()
 		if com.IsExist(avatarPath) {
-			if err := os.Remove(avatarPath); err != nil {
+			if err := util.Remove(avatarPath); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 			}
 		}
@@ -1798,22 +1780,28 @@ func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, error) {
+func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
 
-	sess := x.
-		Where("owner_id = ?", opts.Actor.ID).
-		OrderBy(opts.OrderBy.String())
+	var cond = builder.NewCond()
+	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
-		sess.And("is_private=?", false)
+		cond = cond.And(builder.Eq{"is_private": false})
 	}
 
-	sess = opts.setSessionPagination(sess)
+	sess := x.NewSession()
+	defer sess.Close()
 
+	count, err := sess.Where(cond).Count(new(Repository))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, opts.setSessionPagination(sess).Find(&repos)
+	return repos, count, opts.setSessionPagination(sess).Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.
@@ -1853,35 +1841,44 @@ func GetPrivateRepositoryCount(u *User) (int64, error) {
 }
 
 // DeleteRepositoryArchives deletes all repositories' archives.
-func DeleteRepositoryArchives() error {
+func DeleteRepositoryArchives(ctx context.Context) error {
 	return x.
 		Where("id > 0").
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
-				return os.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
+				select {
+				case <-ctx.Done():
+					return ErrCancelledf("before deleting repository archives for %s", repo.FullName())
+				default:
+				}
+				return util.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
 			})
 }
 
 // DeleteOldRepositoryArchives deletes old repository archives.
-func DeleteOldRepositoryArchives(ctx context.Context) {
+func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) error {
 	log.Trace("Doing: ArchiveCleanup")
 
 	if err := x.Where("id > 0").Iterate(new(Repository), func(idx int, bean interface{}) error {
-		return deleteOldRepositoryArchives(ctx, idx, bean)
+		return deleteOldRepositoryArchives(ctx, olderThan, idx, bean)
 	}); err != nil {
-		log.Error("ArchiveClean: %v", err)
+		log.Trace("Error: ArchiveClean: %v", err)
+		return err
 	}
+
+	log.Trace("Finished: ArchiveCleanup")
+	return nil
 }
 
-func deleteOldRepositoryArchives(ctx context.Context, idx int, bean interface{}) error {
+func deleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration, idx int, bean interface{}) error {
 	repo := bean.(*Repository)
 	basePath := filepath.Join(repo.RepoPath(), "archives")
 
 	for _, ty := range []string{"zip", "targz"} {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("Aborted due to shutdown:\nin delete of old repository archives %v\nat delete file %s", repo, ty)
+			return ErrCancelledf("before deleting old repository archives with filetype %s for %s", ty, repo.FullName())
 		default:
 		}
 
@@ -1904,17 +1901,17 @@ func deleteOldRepositoryArchives(ctx context.Context, idx int, bean interface{})
 			return err
 		}
 
-		minimumOldestTime := time.Now().Add(-setting.Cron.ArchiveCleanup.OlderThan)
+		minimumOldestTime := time.Now().Add(-olderThan)
 		for _, info := range files {
 			if info.ModTime().Before(minimumOldestTime) && !info.IsDir() {
 				select {
 				case <-ctx.Done():
-					return fmt.Errorf("Aborted due to shutdown:\nin delete of old repository archives %v\nat delete file %s - %s", repo, ty, info.Name())
+					return ErrCancelledf("before deleting old repository archive file %s with filetype %s for %s", info.Name(), ty, repo.FullName())
 				default:
 				}
 				toDelete := filepath.Join(path, info.Name())
 				// This is a best-effort purge, so we do not check error codes to confirm removal.
-				if err = os.Remove(toDelete); err != nil {
+				if err = util.Remove(toDelete); err != nil {
 					log.Trace("Unable to delete %s, but proceeding: %v", toDelete, err)
 				}
 			}
@@ -1936,13 +1933,13 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 		return
 	}
 	for _, result := range results {
+		id := com.StrTo(result["id"]).MustInt64()
 		select {
 		case <-ctx.Done():
-			log.Warn("CheckRepoStats: Aborting due to shutdown")
+			log.Warn("CheckRepoStats: Cancelled before checking %s for Repo[%d]", checker.desc, id)
 			return
 		default:
 		}
-		id := com.StrTo(result["id"]).MustInt64()
 		log.Trace("Updating %s: %d", checker.desc, id)
 		_, err = x.Exec(checker.correctSQL, id, id)
 		if err != nil {
@@ -1952,7 +1949,7 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 }
 
 // CheckRepoStats checks the repository stats
-func CheckRepoStats(ctx context.Context) {
+func CheckRepoStats(ctx context.Context) error {
 	log.Trace("Doing: CheckRepoStats")
 
 	checkers := []*repoChecker{
@@ -1987,13 +1984,13 @@ func CheckRepoStats(ctx context.Context) {
 			"issue count 'num_comments'",
 		},
 	}
-	for i := range checkers {
+	for _, checker := range checkers {
 		select {
 		case <-ctx.Done():
-			log.Warn("CheckRepoStats: Aborting due to shutdown")
-			return
+			log.Warn("CheckRepoStats: Cancelled before %s", checker.desc)
+			return ErrCancelledf("before checking %s", checker.desc)
 		default:
-			repoStatsCheck(ctx, checkers[i])
+			repoStatsCheck(ctx, checker)
 		}
 	}
 
@@ -2004,13 +2001,13 @@ func CheckRepoStats(ctx context.Context) {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
 			select {
 			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Aborting due to shutdown")
-				return
+				log.Warn("CheckRepoStats: Cancelled during %s for repo ID %d", desc, id)
+				return ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
-			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating %s: %d", desc, id)
 			_, err = x.Exec("UPDATE `repository` SET num_closed_issues=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
 			if err != nil {
@@ -2027,13 +2024,13 @@ func CheckRepoStats(ctx context.Context) {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
 			select {
 			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Aborting due to shutdown")
-				return
+				log.Warn("CheckRepoStats: Cancelled")
+				return ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
-			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating %s: %d", desc, id)
 			_, err = x.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
 			if err != nil {
@@ -2050,13 +2047,13 @@ func CheckRepoStats(ctx context.Context) {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {
 		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
 			select {
 			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Aborting due to shutdown")
-				return
+				log.Warn("CheckRepoStats: Cancelled")
+				return ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
-			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating repository count 'num_forks': %d", id)
 
 			repo, err := GetRepositoryByID(id)
@@ -2079,12 +2076,13 @@ func CheckRepoStats(ctx context.Context) {
 		}
 	}
 	// ***** END: Repository.NumForks *****
+	return nil
 }
 
 // SetArchiveRepoState sets if a repo is archived
 func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
 	repo.IsArchived = isArchived
-	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").Update(repo)
+	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").NoAutoTime().Update(repo)
 	return
 }
 
@@ -2189,12 +2187,17 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 }
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
-func RemoveRandomAvatars() error {
+func RemoveRandomAvatars(ctx context.Context) error {
 	return x.
 		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repository := bean.(*Repository)
+				select {
+				case <-ctx.Done():
+					return ErrCancelledf("before random avatars removed for %s", repository.FullName())
+				default:
+				}
 				stringifiedID := strconv.FormatInt(repository.ID, 10)
 				if repository.Avatar == stringifiedID {
 					return repository.DeleteAvatar()
@@ -2277,7 +2280,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 	}
 
 	if len(oldAvatarPath) > 0 && oldAvatarPath != repo.CustomAvatarPath() {
-		if err := os.Remove(oldAvatarPath); err != nil {
+		if err := util.Remove(oldAvatarPath); err != nil {
 			return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %v", oldAvatarPath, err)
 		}
 	}
@@ -2308,7 +2311,7 @@ func (repo *Repository) DeleteAvatar() error {
 	}
 
 	if _, err := os.Stat(avatarPath); err == nil {
-		if err := os.Remove(avatarPath); err != nil {
+		if err := util.Remove(avatarPath); err != nil {
 			return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
 		}
 	} else {
@@ -2352,4 +2355,39 @@ func updateRepositoryCols(e Engine, repo *Repository, cols ...string) error {
 // UpdateRepositoryCols updates repository's columns
 func UpdateRepositoryCols(repo *Repository, cols ...string) error {
 	return updateRepositoryCols(x, repo, cols...)
+}
+
+// DoctorUserStarNum recalculate Stars number for all user
+func DoctorUserStarNum() (err error) {
+	const batchSize = 100
+	sess := x.NewSession()
+	defer sess.Close()
+
+	for start := 0; ; start += batchSize {
+		users := make([]User, 0, batchSize)
+		if err = sess.Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
+			return
+		}
+		if len(users) == 0 {
+			break
+		}
+
+		if err = sess.Begin(); err != nil {
+			return
+		}
+
+		for _, user := range users {
+			if _, err = sess.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+				return
+			}
+		}
+
+		if err = sess.Commit(); err != nil {
+			return
+		}
+	}
+
+	log.Debug("recalculate Stars number for all user finished")
+
+	return
 }
