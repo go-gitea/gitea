@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"path"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -13,10 +12,6 @@ import (
 
 	"xorm.io/xorm"
 )
-
-func relativePath(uuid string) string {
-	return path.Join(uuid[0:1], uuid[1:2], uuid)
-}
 
 func deleteOrphanedAttachments(x *xorm.Engine) error {
 	type Attachment struct {
