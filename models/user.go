@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
@@ -581,7 +582,7 @@ func (u *User) UploadAvatar(data []byte) error {
 func (u *User) DeleteAvatar() error {
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, u.CustomAvatarPath())
 	if len(u.Avatar) > 0 {
-		if err := os.Remove(u.CustomAvatarPath()); err != nil {
+		if err := util.Remove(u.CustomAvatarPath()); err != nil {
 			return fmt.Errorf("Failed to remove %s: %v", u.CustomAvatarPath(), err)
 		}
 	}
@@ -879,7 +880,7 @@ func (u *User) IsGhost() bool {
 }
 
 var (
-	reservedUsernames = []string{
+	reservedUsernames = append([]string{
 		".",
 		"..",
 		".well-known",
@@ -889,17 +890,13 @@ var (
 		"attachments",
 		"avatars",
 		"commits",
-		"css",
 		"debug",
 		"error",
 		"explore",
-		"fomantic",
 		"ghost",
 		"help",
-		"img",
 		"install",
 		"issues",
-		"js",
 		"less",
 		"login",
 		"manifest.json",
@@ -917,8 +914,8 @@ var (
 		"stars",
 		"template",
 		"user",
-		"vendor",
-	}
+	}, public.KnownPublicEntries...)
+
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
 
@@ -1285,14 +1282,14 @@ func deleteUser(e *xorm.Session, u *User) error {
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
 
-	if err := os.RemoveAll(path); err != nil {
+	if err := util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarPath()
 		if com.IsExist(avatarPath) {
-			if err := os.Remove(avatarPath); err != nil {
+			if err := util.Remove(avatarPath); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 			}
 		}
@@ -1559,8 +1556,8 @@ func GetUserByEmailContext(ctx DBContext, email string) (*User, error) {
 	// Finally, if email address is the protected email address:
 	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
 		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
-		user := &User{LowerName: username}
-		has, err := ctx.e.Get(user)
+		user := &User{}
+		has, err := ctx.e.Where("lower_name=?", username).Get(user)
 		if err != nil {
 			return nil, err
 		}

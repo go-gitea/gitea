@@ -13,8 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 	"xorm.io/xorm"
 )
 
@@ -97,7 +98,7 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 
 // NewAttachment creates a new attachment object.
 func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
-	attach.UUID = gouuid.NewV4().String()
+	attach.UUID = gouuid.New().String()
 
 	localPath := attach.LocalPath()
 	if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
@@ -136,9 +137,8 @@ func GetAttachmentByID(id int64) (*Attachment, error) {
 }
 
 func getAttachmentByID(e Engine, id int64) (*Attachment, error) {
-	attach := &Attachment{ID: id}
-
-	if has, err := e.Get(attach); err != nil {
+	attach := &Attachment{}
+	if has, err := e.ID(id).Get(attach); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrAttachmentNotExist{ID: id, UUID: ""}
@@ -147,8 +147,8 @@ func getAttachmentByID(e Engine, id int64) (*Attachment, error) {
 }
 
 func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
-	attach := &Attachment{UUID: uuid}
-	has, err := e.Get(attach)
+	attach := &Attachment{}
+	has, err := e.Where("uuid=?", uuid).Get(attach)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -238,7 +238,7 @@ func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
 
 	if remove {
 		for i, a := range attachments {
-			if err := os.Remove(a.LocalPath()); err != nil {
+			if err := util.Remove(a.LocalPath()); err != nil {
 				return i, err
 			}
 		}

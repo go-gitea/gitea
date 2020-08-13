@@ -314,3 +314,22 @@ func (a *actionNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Rep
 		log.Error("notifyWatchers: %v", err)
 	}
 }
+
+func (a *actionNotifier) NotifyNewRelease(rel *models.Release) {
+	if err := rel.LoadAttributes(); err != nil {
+		log.Error("NotifyNewRelease: %v", err)
+		return
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: rel.PublisherID,
+		ActUser:   rel.Publisher,
+		OpType:    models.ActionPublishRelease,
+		RepoID:    rel.RepoID,
+		Repo:      rel.Repo,
+		IsPrivate: rel.Repo.IsPrivate,
+		Content:   rel.Title,
+		RefName:   rel.TagName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}

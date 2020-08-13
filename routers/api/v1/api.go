@@ -27,6 +27,7 @@
 //     - AuthorizationHeaderToken :
 //     - SudoParam :
 //     - SudoHeader :
+//     - TOTPHeader :
 //
 //     SecurityDefinitions:
 //     BasicAuth:
@@ -54,6 +55,11 @@
 //          name: Sudo
 //          in: header
 //          description: Sudo API request as the user provided as the key. Admin privileges are required.
+//     TOTPHeader:
+//          type: apiKey
+//          name: X-GITEA-OTP
+//          in: header
+//          description: Must be used in combination with BasicAuth if two-factor authentication is enabled.
 //
 // swagger:meta
 package v1
@@ -73,6 +79,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/repo"
+	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
 
@@ -513,8 +520,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 		m.Group("/settings", func() {
-			m.Get("/allowed_reactions", misc.SettingGetsAllowedReactions)
-			m.Get("/repository", misc.GetGeneralRepoSettings)
+			m.Get("/ui", settings.GetGeneralUISettings)
+			m.Get("/repository", settings.GetGeneralRepoSettings)
 		})
 
 		// Notifications
@@ -799,6 +806,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 							Patch(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Get(".diff", repo.DownloadPullDiff)
 						m.Get(".patch", repo.DownloadPullPatch)
+						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
 						m.Group("/reviews", func() {

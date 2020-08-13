@@ -356,9 +356,46 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.ServerError("DeleteMirrorByRepoID", err)
 			return
 		}
-		log.Trace("Repository converted from mirror to regular: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 		ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
-		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name)
+		ctx.Redirect(repo.Link())
+
+	case "convert_fork":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(404)
+			return
+		}
+		if err := repo.GetOwner(); err != nil {
+			ctx.ServerError("Convert Fork", err)
+			return
+		}
+		if repo.Name != form.RepoName {
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+			return
+		}
+
+		if !repo.IsFork {
+			ctx.Error(404)
+			return
+		}
+
+		if !ctx.Repo.Owner.CanCreateRepo() {
+			ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()))
+			ctx.Redirect(repo.Link() + "/settings")
+			return
+		}
+
+		repo.IsFork = false
+		repo.ForkID = 0
+		if err := models.UpdateRepository(repo, false); err != nil {
+			log.Error("Unable to update repository %-v whilst converting from fork", repo)
+			ctx.ServerError("Convert Fork", err)
+			return
+		}
+
+		log.Trace("Repository converted from fork to regular: %s", repo.FullName())
+		ctx.Flash.Success(ctx.Tr("repo.settings.convert_fork_succeed"))
+		ctx.Redirect(repo.Link())
 
 	case "transfer":
 		if !ctx.Repo.IsOwner() {

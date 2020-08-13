@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -109,39 +108,22 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.Data["HighlightClass"] = highlight.FileNameToHighlightClass(entry.Name())
-	if !markup.IsReadmeFile(blob.Name()) {
-		ctx.Data["RequireHighlightJS"] = true
-	}
+
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
 	ctx.Data["PageIsViewCode"] = true
 
 	ctx.Data["IsBlame"] = true
 
-	if ctx.Repo.CanEnableEditor() {
-		// Check LFS Lock
-		lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
-		if err != nil {
-			ctx.ServerError("GetTreePathLock", err)
-			return
-		}
-		if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
-			ctx.Data["CanDeleteFile"] = false
-			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
-		} else {
-			ctx.Data["CanDeleteFile"] = true
-			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
-		}
-	} else if !ctx.Repo.IsViewBranch {
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
-	}
-
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
 
-	blameReader, err := git.CreateBlameReader(models.RepoPath(userName, repoName), commitID, fileName)
+	ctx.Data["NumLines"], err = blob.GetBlobLineCount()
+	if err != nil {
+		ctx.NotFound("GetBlobLineCount", err)
+		return
+	}
+
+	blameReader, err := git.CreateBlameReader(ctx.Req.Context(), models.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
@@ -245,16 +227,16 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 			//Line number
 			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
-				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" class="bottom-line">%d</span>`, i, i))
+				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" data-line-number="%d" class="bottom-line"></span>`, i, i))
 			} else {
-				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i, i))
+				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" data-line-number="%d"></span>`, i, i))
 			}
 
-			//Code line
-			line = gotemplate.HTMLEscapeString(line)
 			if i != len(lines)-1 {
 				line += "\n"
 			}
+			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
+			line = highlight.Code(fileName, line)
 			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
 				codeLines.WriteString(fmt.Sprintf(`<li class="L%d bottom-line" rel="L%d">%s</li>`, i, i, line))
 			} else {

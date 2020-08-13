@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
@@ -37,7 +38,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	context2 "github.com/gorilla/context"
 	"github.com/unknwon/com"
-	"gopkg.in/testfixtures.v2"
 	"xorm.io/xorm"
 )
 
@@ -96,14 +96,12 @@ func runPR() {
 	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
-	var helper testfixtures.Helper = &testfixtures.SQLite{}
 	models.NewEngine(context.Background(), func(_ *xorm.Engine) error {
 		return nil
 	})
 	models.HasEngine = true
 	//x.ShowSQL(true)
 	err = models.InitFixtures(
-		helper,
 		path.Join(curDir, "models/fixtures/"),
 	)
 	if err != nil {
@@ -111,8 +109,8 @@ func runPR() {
 		os.Exit(1)
 	}
 	models.LoadFixtures()
-	os.RemoveAll(setting.RepoRootPath)
-	os.RemoveAll(models.LocalCopyPath())
+	util.RemoveAll(setting.RepoRootPath)
+	util.RemoveAll(models.LocalCopyPath())
 	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
@@ -144,20 +142,20 @@ func runPR() {
 
 	log.Printf("[PR] Cleaning up ...\n")
 	/*
-		if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
-			fmt.Printf("os.RemoveAll: %v\n", err)
+		if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
+			fmt.Printf("util.RemoveAll: %v\n", err)
 			os.Exit(1)
 		}
-		if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
+		if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
 			fmt.Printf("Unable to remove repo indexer: %v\n", err)
 			os.Exit(1)
 		}
 	*/
-	if err = os.RemoveAll(setting.RepoRootPath); err != nil {
-		log.Fatalf("os.RemoveAll: %v\n", err)
+	if err = util.RemoveAll(setting.RepoRootPath); err != nil {
+		log.Fatalf("util.RemoveAll: %v\n", err)
 	}
-	if err = os.RemoveAll(setting.AppDataPath); err != nil {
-		log.Fatalf("os.RemoveAll: %v\n", err)
+	if err = util.RemoveAll(setting.AppDataPath); err != nil {
+		log.Fatalf("util.RemoveAll: %v\n", err)
 	}
 }
 
@@ -201,7 +199,9 @@ func main() {
 	}
 	remoteUpstream := "origin" //Default
 	for _, r := range remotes {
-		if r.Config().URLs[0] == "https://github.com/go-gitea/gitea" || r.Config().URLs[0] == "git@github.com:go-gitea/gitea.git" { //fetch at index 0
+		if r.Config().URLs[0] == "https://github.com/go-gitea/gitea.git" ||
+			r.Config().URLs[0] == "https://github.com/go-gitea/gitea" ||
+			r.Config().URLs[0] == "git@github.com:go-gitea/gitea.git" { //fetch at index 0
 			remoteUpstream = r.Config().Name
 			break
 		}

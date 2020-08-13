@@ -166,6 +166,7 @@ var (
 		RepoSearchPagingNum   int
 		MembersPagingNum      int
 		FeedMaxCommitNum      int
+		FeedPagingNum         int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
 		ReactionMaxUserNum    int
@@ -207,6 +208,7 @@ var (
 		RepoSearchPagingNum: 10,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
+		FeedPagingNum:       20,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
@@ -289,7 +291,6 @@ var (
 	LogLevel           string
 	StacktraceLogLevel string
 	LogRootPath        string
-	LogDescriptions    = make(map[string]*LogDescription)
 	RedirectMacaronLog bool
 	DisableRouterLog   bool
 	RouterLogLevel     log.Level
@@ -627,9 +628,8 @@ func NewContext() {
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
-	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
-	urlHostname := strings.SplitN(appURL.Host, ":", 2)[0]
-	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
+	urlHostname := appURL.Hostname()
+	if urlHostname != Domain && net.ParseIP(urlHostname) == nil && urlHostname != "" {
 		Domain = urlHostname
 	}
 
@@ -644,18 +644,20 @@ func NewContext() {
 	default:
 		defaultLocalURL = string(Protocol) + "://"
 		if HTTPAddr == "0.0.0.0" {
-			defaultLocalURL += "localhost"
+			defaultLocalURL += net.JoinHostPort("localhost", HTTPPort) + "/"
 		} else {
-			defaultLocalURL += HTTPAddr
+			defaultLocalURL += net.JoinHostPort(HTTPAddr, HTTPPort) + "/"
 		}
-		defaultLocalURL += ":" + HTTPPort + "/"
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
-	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	if len(StaticRootPath) == 0 {
+		StaticRootPath = AppWorkPath
+	}
+	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
