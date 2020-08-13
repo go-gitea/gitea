@@ -734,6 +734,7 @@ function initArchiveLinks() {
       return;
     }
 
+    event.preventDefault();
     getArchive($(event.target), url, true);
   });
 }
