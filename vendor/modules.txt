@@ -401,9 +401,9 @@ github.com/golang/gddo/httputil/header
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
-# github.com/google/go-github/v24 v24.0.1
+# github.com/google/go-github/v32 v32.1.0
 ## explicit
-github.com/google/go-github/v24/github
+github.com/google/go-github/v32/github
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
 # github.com/google/uuid v1.1.1
@@ -741,7 +741,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
+# golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 ## explicit
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert

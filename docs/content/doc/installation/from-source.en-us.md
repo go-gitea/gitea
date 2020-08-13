@@ -143,7 +143,7 @@ Gitea will search for a number of things from the `CustomPath`. By default this 
 the `custom/` directory in the current working directory when running Gitea. It will also
 look for its configuration file `CustomConf` in `$CustomPath/conf/app.ini`, and will use the
 current working directory as the relative base path `AppWorkPath` for a number configurable
-values.
+values. Finally the static files will be served from `StaticRootPath` which defaults to the `AppWorkPath`.
 
 These values, although useful when developing, may conflict with downstream users preferences.
 
@@ -154,6 +154,7 @@ using the `LDFLAGS` environment variable for `make`. The appropriate settings ar
 * To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
 * For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
 * For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
+* For `StaticRootPath` you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.

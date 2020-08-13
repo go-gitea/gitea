@@ -222,6 +222,7 @@ func Search(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
 		Data: results,
