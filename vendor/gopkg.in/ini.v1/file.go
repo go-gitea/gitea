@@ -25,7 +25,7 @@ import (
 	"sync"
 )
 
-// File represents a combination of a or more INI file(s) in memory.
+// File represents a combination of one or more INI files in memory.
 type File struct {
 	options     LoadOptions
 	dataSources []dataSource
@@ -36,8 +36,12 @@ type File struct {
 
 	// To keep data in order.
 	sectionList []string
+	// To keep track of the index of a section with same name.
+	// This meta list is only used with non-unique section names are allowed.
+	sectionIndexes []int
+
 	// Actual data is stored here.
-	sections map[string]*Section
+	sections map[string][]*Section
 
 	NameMapper
 	ValueMapper
@@ -48,27 +52,37 @@ func newFile(dataSources []dataSource, opts LoadOptions) *File {
 	if len(opts.KeyValueDelimiters) == 0 {
 		opts.KeyValueDelimiters = "=:"
 	}
+	if len(opts.KeyValueDelimiterOnWrite) == 0 {
+		opts.KeyValueDelimiterOnWrite = "="
+	}
+
 	return &File{
 		BlockMode:   true,
 		dataSources: dataSources,
-		sections:    make(map[string]*Section),
-		sectionList: make([]string, 0, 10),
+		sections:    make(map[string][]*Section),
 		options:     opts,
 	}
 }
 
 // Empty returns an empty file object.
-func Empty() *File {
-	// Ignore error here, we sure our data is good.
-	f, _ := Load([]byte(""))
+func Empty(opts ...LoadOptions) *File {
+	var opt LoadOptions
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
+	// Ignore error here, we are sure our data is good.
+	f, _ := LoadSources(opt, []byte(""))
 	return f
 }
 
 // NewSection creates a new section.
 func (f *File) NewSection(name string) (*Section, error) {
 	if len(name) == 0 {
-		return nil, errors.New("error creating new section: empty section name")
-	} else if f.options.Insensitive && name != DefaultSection {
+		return nil, errors.New("empty section name")
+	}
+
+	if f.options.Insensitive && name != DefaultSection {
 		name = strings.ToLower(name)
 	}
 
@@ -77,13 +91,20 @@ func (f *File) NewSection(name string) (*Section, error) {
 		defer f.lock.Unlock()
 	}
 
-	if inSlice(name, f.sectionList) {
-		return f.sections[name], nil
+	if !f.options.AllowNonUniqueSections && inSlice(name, f.sectionList) {
+		return f.sections[name][0], nil
 	}
 
 	f.sectionList = append(f.sectionList, name)
-	f.sections[name] = newSection(f, name)
-	return f.sections[name], nil
+
+	// NOTE: Append to indexes must happen before appending to sections,
+	// otherwise index will have off-by-one problem.
+	f.sectionIndexes = append(f.sectionIndexes, len(f.sections[name]))
+
+	sec := newSection(f, name)
+	f.sections[name] = append(f.sections[name], sec)
+
+	return sec, nil
 }
 
 // NewRawSection creates a new section with an unparseable body.
@@ -110,6 +131,16 @@ func (f *File) NewSections(names ...string) (err error) {
 
 // GetSection returns section by given name.
 func (f *File) GetSection(name string) (*Section, error) {
+	secs, err := f.SectionsByName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return secs[0], err
+}
+
+// SectionsByName returns all sections with given name.
+func (f *File) SectionsByName(name string) ([]*Section, error) {
 	if len(name) == 0 {
 		name = DefaultSection
 	}
@@ -122,11 +153,12 @@ func (f *File) GetSection(name string) (*Section, error) {
 		defer f.lock.RUnlock()
 	}
 
-	sec := f.sections[name]
-	if sec == nil {
-		return nil, fmt.Errorf("section '%s' does not exist", name)
+	secs := f.sections[name]
+	if len(secs) == 0 {
+		return nil, fmt.Errorf("section %q does not exist", name)
 	}
-	return sec, nil
+
+	return secs, nil
 }
 
 // Section assumes named section exists and returns a zero-value when not.
@@ -141,6 +173,19 @@ func (f *File) Section(name string) *Section {
 	return sec
 }
 
+// SectionWithIndex assumes named section exists and returns a new section when not.
+func (f *File) SectionWithIndex(name string, index int) *Section {
+	secs, err := f.SectionsByName(name)
+	if err != nil || len(secs) <= index {
+		// NOTE: It's OK here because the only possible error is empty section name,
+		// but if it's empty, this piece of code won't be executed.
+		newSec, _ := f.NewSection(name)
+		return newSec
+	}
+
+	return secs[index]
+}
+
 // Sections returns a list of Section stored in the current instance.
 func (f *File) Sections() []*Section {
 	if f.BlockMode {
@@ -150,7 +195,7 @@ func (f *File) Sections() []*Section {
 
 	sections := make([]*Section, len(f.sectionList))
 	for i, name := range f.sectionList {
-		sections[i] = f.sections[name]
+		sections[i] = f.sections[name][f.sectionIndexes[i]]
 	}
 	return sections
 }
@@ -167,24 +212,70 @@ func (f *File) SectionStrings() []string {
 	return list
 }
 
-// DeleteSection deletes a section.
+// DeleteSection deletes a section or all sections with given name.
 func (f *File) DeleteSection(name string) {
-	if f.BlockMode {
-		f.lock.Lock()
-		defer f.lock.Unlock()
+	secs, err := f.SectionsByName(name)
+	if err != nil {
+		return
+	}
+
+	for i := 0; i < len(secs); i++ {
+		// For non-unique sections, it is always needed to remove the first one so
+		// in the next iteration, the subsequent section continue having index 0.
+		// Ignoring the error as index 0 never returns an error.
+		_ = f.DeleteSectionWithIndex(name, 0)
+	}
+}
+
+// DeleteSectionWithIndex deletes a section with given name and index.
+func (f *File) DeleteSectionWithIndex(name string, index int) error {
+	if !f.options.AllowNonUniqueSections && index != 0 {
+		return fmt.Errorf("delete section with non-zero index is only allowed when non-unique sections is enabled")
 	}
 
 	if len(name) == 0 {
 		name = DefaultSection
 	}
-
-	for i, s := range f.sectionList {
-		if s == name {
-			f.sectionList = append(f.sectionList[:i], f.sectionList[i+1:]...)
-			delete(f.sections, name)
-			return
-		}
+	if f.options.Insensitive {
+		name = strings.ToLower(name)
 	}
+
+	if f.BlockMode {
+		f.lock.Lock()
+		defer f.lock.Unlock()
+	}
+
+	// Count occurrences of the sections
+	occurrences := 0
+
+	sectionListCopy := make([]string, len(f.sectionList))
+	copy(sectionListCopy, f.sectionList)
+
+	for i, s := range sectionListCopy {
+		if s != name {
+			continue
+		}
+
+		if occurrences == index {
+			if len(f.sections[name]) <= 1 {
+				delete(f.sections, name) // The last one in the map
+			} else {
+				f.sections[name] = append(f.sections[name][:index], f.sections[name][index+1:]...)
+			}
+
+			// Fix section lists
+			f.sectionList = append(f.sectionList[:i], f.sectionList[i+1:]...)
+			f.sectionIndexes = append(f.sectionIndexes[:i], f.sectionIndexes[i+1:]...)
+
+		} else if occurrences > index {
+			// Fix the indices of all following sections with this name.
+			f.sectionIndexes[i-1]--
+		}
+
+		occurrences++
+	}
+
+	return nil
 }
 
 func (f *File) reload(s dataSource) error {
@@ -203,7 +294,7 @@ func (f *File) Reload() (err error) {
 		if err = f.reload(s); err != nil {
 			// In loose mode, we create an empty default section for nonexistent files.
 			if os.IsNotExist(err) && f.options.Loose {
-				f.parse(bytes.NewBuffer(nil))
+				_ = f.parse(bytes.NewBuffer(nil))
 				continue
 			}
 			return err
@@ -230,16 +321,16 @@ func (f *File) Append(source interface{}, others ...interface{}) error {
 }
 
 func (f *File) writeToBuffer(indent string) (*bytes.Buffer, error) {
-	equalSign := DefaultFormatLeft + "=" + DefaultFormatRight
+	equalSign := DefaultFormatLeft + f.options.KeyValueDelimiterOnWrite + DefaultFormatRight
 
 	if PrettyFormat || PrettyEqual {
-		equalSign = " = "
+		equalSign = fmt.Sprintf(" %s ", f.options.KeyValueDelimiterOnWrite)
 	}
 
 	// Use buffer to make sure target is safe until finish encoding.
 	buf := bytes.NewBuffer(nil)
 	for i, sname := range f.sectionList {
-		sec := f.Section(sname)
+		sec := f.SectionWithIndex(sname, f.sectionIndexes[i])
 		if len(sec.Comment) > 0 {
 			// Support multiline comments
 			lines := strings.Split(sec.Comment, LineBreak)
@@ -282,7 +373,7 @@ func (f *File) writeToBuffer(indent string) (*bytes.Buffer, error) {
 		}
 
 		// Count and generate alignment length and buffer spaces using the
-		// longest key. Keys may be modifed if they contain certain characters so
+		// longest key. Keys may be modified if they contain certain characters so
 		// we need to take that into account in our calculation.
 		alignLength := 0
 		if PrettyFormat {

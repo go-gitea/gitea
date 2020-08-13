@@ -118,6 +118,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 			dstStorage, err = storage.NewLocalStorage(p)
 		case "minio":
 			dstStorage, err = storage.NewMinioStorage(
+				context.Background(),
 				ctx.String("minio-endpoint"),
 				ctx.String("minio-access-key-id"),
 				ctx.String("minio-secret-access-key"),

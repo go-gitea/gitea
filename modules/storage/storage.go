@@ -5,6 +5,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -51,6 +52,7 @@ func Init() error {
 	case "minio":
 		minio := setting.Attachment.Minio
 		Attachments, err = NewMinioStorage(
+			context.Background(),
 			minio.Endpoint,
 			minio.AccessKeyID,
 			minio.SecretAccessKey,

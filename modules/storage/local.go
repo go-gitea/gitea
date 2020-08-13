@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -33,11 +35,7 @@ func NewLocalStorage(bucket string) (*LocalStorage, error) {
 
 // Open a file
 func (l *LocalStorage) Open(path string) (io.ReadCloser, error) {
-	f, err := os.Open(filepath.Join(l.dir, path))
-	if err != nil {
-		return nil, err
-	}
-	return f, nil
+	return os.Open(filepath.Join(l.dir, path))
 }
 
 // Save a file
@@ -48,7 +46,7 @@ func (l *LocalStorage) Save(path string, r io.Reader) (int64, error) {
 	}
 
 	// always override
-	if err := os.RemoveAll(p); err != nil {
+	if err := util.Remove(p); err != nil {
 		return 0, err
 	}
 
@@ -63,7 +61,7 @@ func (l *LocalStorage) Save(path string, r io.Reader) (int64, error) {
 // Delete delete a file
 func (l *LocalStorage) Delete(path string) error {
 	p := filepath.Join(l.dir, path)
-	return os.Remove(p)
+	return util.Remove(p)
 }
 
 // URL gets the redirect URL to a file

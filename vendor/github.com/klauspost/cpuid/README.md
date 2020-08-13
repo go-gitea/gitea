@@ -2,7 +2,7 @@
 Package cpuid provides information about the CPU running the current program.
 
 CPU features are detected on startup, and kept for fast access through the life of the application.
-Currently x86 / x64 (AMD64) is supported, and no external C (cgo) code is used, which should make the library very easy to use.
+Currently x86 / x64 (AMD64/i386) and ARM (ARM64) is supported, and no external C (cgo) code is used, which should make the library very easy to use.
 
 You can access the CPU information by accessing the shared CPU variable of the cpuid library.
 
@@ -12,11 +12,12 @@ Package home: https://github.com/klauspost/cpuid
 
 [1]: https://godoc.org/github.com/klauspost/cpuid?status.svg
 [2]: https://godoc.org/github.com/klauspost/cpuid
-[3]: https://travis-ci.org/klauspost/cpuid.svg
+[3]: https://travis-ci.org/klauspost/cpuid.svg?branch=master
 [4]: https://travis-ci.org/klauspost/cpuid
 
 # features
-## CPU Instructions
+
+## x86 CPU Instructions
 *  **CMOV** (i686 CMOV)
 *  **NX** (NX (No-Execute) bit)
 *  **AMD3DNOW** (AMD 3DNOW)
@@ -82,6 +83,39 @@ Package home: https://github.com/klauspost/cpuid
 *  **ATOM** (Atom processor, some SSSE3 instructions are slower)
 *  **Cache line** (Probable size of a cache line).
 *  **L1, L2, L3 Cache size** on newer Intel/AMD CPUs.
+
+## ARM CPU features
+
+# ARM FEATURE DETECTION DISABLED!
+
+See [#52](https://github.com/klauspost/cpuid/issues/52).
+ 
+Currently only `arm64` platforms are implemented. 
+
+*  **FP**  Single-precision and double-precision floating point
+*  **ASIMD**  Advanced SIMD
+*  **EVTSTRM**  Generic timer
+*  **AES**  AES instructions
+*  **PMULL**  Polynomial Multiply instructions (PMULL/PMULL2)
+*  **SHA1**  SHA-1 instructions (SHA1C, etc)
+*  **SHA2**      SHA-2 instructions (SHA256H, etc)
+*  **CRC32**   CRC32/CRC32C instructions
+*  **ATOMICS**   Large System Extensions (LSE)
+*  **FPHP** Half-precision floating point
+*  **ASIMDHP**  Advanced SIMD half-precision floating point
+*  **ARMCPUID**  Some CPU ID registers readable at user-level
+*  **ASIMDRDM**  Rounding Double Multiply Accumulate/Subtract (SQRDMLAH/SQRDMLSH)
+*  **JSCVT** Javascript-style double->int convert (FJCVTZS)
+*  **FCMA**  Floating point complex number addition and multiplication
+*  **LRCPC**  Weaker release consistency (LDAPR, etc)
+*  **DCPOP**  Data cache clean to Point of Persistence (DC CVAP)
+*  **SHA3**  SHA-3 instructions (EOR3, RAXI, XAR, BCAX)
+*  **SM3** SM3 instructions
+*  **SM4**  SM4 instructions
+*  **ASIMDDP**  SIMD Dot Product
+*  **SHA512**  SHA512 instructions
+*  **SVE** Scalable Vector Extension
+*  **GPA**  Generic Pointer Authentication
 
 ## Cpu Vendor/VM
 * **Intel**
