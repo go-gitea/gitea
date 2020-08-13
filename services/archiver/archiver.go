@@ -6,6 +6,7 @@
 package archiver
 
 import (
+	"context"
 	"io"
 	"io/ioutil"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -74,21 +76,41 @@ func (aReq *ArchiveRequest) IsComplete() bool {
 // It returns whether the archive was actually completed, as the channel could
 // have also been closed due to an error.
 func (aReq *ArchiveRequest) WaitForCompletion() bool {
-	<-aReq.cchan
+	compchan := make(chan struct{})
+	go graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
+		defer close(compchan)
+		select {
+		case <-aReq.cchan:
+		case <-ctx.Done():
+		}
+	})
+
+	// Callback will always close compchan upon return, whether we're shutting
+	// down or not.
+	<-compchan
 	return aReq.IsComplete()
 }
 
 // TimedWaitForCompletion will wait for this request to complete, with timeout
 // happening after the specified Duration.  It returns whether the archive is
 // now complete and whether we hit the timeout or not.  The latter may not be
-// useful if the request is complete.
+// useful if the request is complete or we started to shutdown.
 func (aReq *ArchiveRequest) TimedWaitForCompletion(dur time.Duration) (bool, bool) {
-	select {
-	case <-time.After(dur):
-		return aReq.IsComplete(), true
-	case <-aReq.cchan:
-		return aReq.IsComplete(), false
-	}
+	compchan := make(chan bool)
+	go graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
+		defer close(compchan)
+		select {
+		case <-time.After(dur):
+			compchan <- true
+		case <-aReq.cchan:
+			compchan <- false
+		case <-ctx.Done():
+			compchan <- false
+		}
+	})
+
+	timeout := <-compchan
+	return aReq.IsComplete(), timeout
 }
 
 // The caller must hold the archiveMutex across calls to getArchiveRequest.
