@@ -467,7 +467,7 @@ func hashAndVerify(sig *packet.Signature, payload string, k *GPGKey, committer, 
 		return &CommitVerification{ //Everything is ok
 			CommittingUser: committer,
 			Verified:       true,
-			Reason:         fmt.Sprintf("%s <%s> / %s", signer.Name, signer.Email, k.KeyID),
+			Reason:         fmt.Sprintf("%s / %s", signer.Name, k.KeyID),
 			SigningUser:    signer,
 			SigningKey:     k,
 			SigningEmail:   email,
