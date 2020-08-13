@@ -382,7 +382,7 @@ var (
 	Cfg           *ini.File
 	CustomPath    string // Custom directory path
 	CustomConf    string
-	PIDFile       string = "/var/run/gitea.pid"
+	PIDFile       = "/var/run/gitea.pid"
 	WritePIDFile  bool
 	ProdMode      bool
 	RunUser       string
