@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -105,7 +105,7 @@ func getArchiveRequest(repo *git.Repository, commit *git.Commit, archiveType git
 // DeriveRequestFrom creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to ArchiveRepository()
 // if it's determined that the request still needs to be satisfied.
-func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
+func DeriveRequestFrom(ctx *gitea_context.Context, uri string) *ArchiveRequest {
 	if ctx.Repo == nil || ctx.Repo.GitRepo == nil {
 		log.Trace("Repo not initialized")
 		return nil
