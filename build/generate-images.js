@@ -6,6 +6,7 @@ const {fabric} = require('fabric');
 const {DOMParser, XMLSerializer} = require('xmldom');
 const {readFile, writeFile} = require('fs').promises;
 const {resolve} = require('path');
+const Svgo = require('svgo');
 
 function exit(err) {
   if (err) console.error(err);
@@ -18,6 +19,25 @@ function loadSvg(svg) {
       resolve({objects, options});
     });
   });
+}
+
+async function generateSvgFavicon(svg, outputFile) {
+  const svgo = new Svgo({
+    plugins: [
+      {removeDimensions: true},
+      {
+        addAttributesToSVGElement: {
+          attributes: [
+            {'width': '32'},
+            {'height': '32'},
+          ],
+        },
+      },
+    ],
+  });
+
+  const {data} = await svgo.optimize(svg);
+  await writeFile(outputFile, data);
 }
 
 async function generate(svg, outputFile, {size, bg, removeDetail} = {}) {
@@ -67,6 +87,7 @@ async function generate(svg, outputFile, {size, bg, removeDetail} = {}) {
 
 async function main() {
   const svg = await readFile(resolve(__dirname, '../assets/logo.svg'), 'utf8');
+  await generateSvgFavicon(svg, resolve(__dirname, '../public/img/favicon.svg'));
   await generate(svg, resolve(__dirname, '../public/img/gitea-lg.png'), {size: 880});
   await generate(svg, resolve(__dirname, '../public/img/gitea-512.png'), {size: 512});
   await generate(svg, resolve(__dirname, '../public/img/gitea-192.png'), {size: 192});

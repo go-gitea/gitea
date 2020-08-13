@@ -25,7 +25,7 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.14.x
+XGO_VERSION := go-1.15.x
 MIN_GO_VERSION := 001012000
 MIN_NODE_VERSION := 010013000
 
