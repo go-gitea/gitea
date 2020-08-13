@@ -7,7 +7,6 @@ package repo
 import (
 	"io/ioutil"
 	"net/http"
-	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,7 +31,7 @@ func createSSHAuthorizedKeysTmpPath(t *testing.T) func() {
 
 	return func() {
 		setting.SSH.RootPath = oldPath
-		os.RemoveAll(tmpDir)
+		util.RemoveAll(tmpDir)
 	}
 }
 
