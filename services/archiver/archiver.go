@@ -295,11 +295,7 @@ func ArchiveRepository(request *ArchiveRequest) *ArchiveRequest {
 			log.Error("ArchiveRepository: Failed to find request for removal.")
 			return
 		}
-		lastidx := len(archiveInProgress) - 1
-		if idx != lastidx {
-			archiveInProgress[idx] = archiveInProgress[lastidx]
-		}
-		archiveInProgress = archiveInProgress[:lastidx]
+		archiveInProgress = append(archiveInProgress[:idx], archiveInProgress[idx+1:]...)
 	}()
 
 	return request
