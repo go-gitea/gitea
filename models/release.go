@@ -354,8 +354,8 @@ func DeleteReleaseByID(id int64) error {
 
 // UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID
 func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := x.Table(RealTableName("release")).
-		Where("repo_id IN (SELECT id FROM "+RealTableName("repository")+" WHERE original_service_type = ?)", gitServiceType).
+	_, err := x.Table(tbRelease).
+		Where("repo_id IN (SELECT id FROM "+tbRepository+" WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
 		Update(map[string]interface{}{
 			"publisher_id":       posterID,

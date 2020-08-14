@@ -158,9 +158,9 @@ func (t *Team) getRepositories(e Engine) error {
 	if t.Repos != nil {
 		return nil
 	}
-	return e.Join("INNER", rTeamRepo, rRepository+".id = "+rTeamRepo+".repo_id").
-		Where(rTeamRepo+".team_id=?", t.ID).
-		OrderBy(rRepository + ".name").
+	return e.Join("INNER", tbTeamRepo, tbRepository+".id = "+tbTeamRepo+".repo_id").
+		Where(tbTeamRepo+".team_id=?", t.ID).
+		OrderBy(tbRepository + ".name").
 		Find(&t.Repos)
 }
 
@@ -524,7 +524,7 @@ func NewTeam(t *Team) (err error) {
 	}
 
 	// Update organization number of teams.
-	if _, err = sess.Exec("UPDATE "+rUser+" SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
+	if _, err = sess.Exec("UPDATE "+tbUser+" SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
 		errRollback := sess.Rollback()
 		if errRollback != nil {
 			log.Error("NewTeam sess.Rollback: %v", errRollback)
@@ -598,7 +598,7 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 	}
 
 	var teamNames []string
-	err := x.Table(rTeam).
+	err := x.Table(tbTeam).
 		Select("lower_name").
 		In("id", teamIDs).
 		Asc("name").
@@ -725,7 +725,7 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 	// Update organization number of teams.
-	if _, err := sess.Exec("UPDATE "+rUser+" SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
+	if _, err := sess.Exec("UPDATE "+tbUser+" SET num_teams=num_teams-1 WHERE id=?", t.OrgID); err != nil {
 		return err
 	}
 
@@ -752,7 +752,7 @@ func isTeamMember(e Engine, orgID, teamID, userID int64) (bool, error) {
 		Where("org_id=?", orgID).
 		And("team_id=?", teamID).
 		And("uid=?", userID).
-		Table(rTeamUser).
+		Table(tbTeamUser).
 		Exist()
 }
 
@@ -794,8 +794,8 @@ func GetTeamMembers(teamID int64) ([]*User, error) {
 
 func getUserTeams(e Engine, userID int64, listOptions ListOptions) (teams []*Team, err error) {
 	sess := e.
-		Join("INNER", rTeamUser, rTeamUser+".team_id = "+rTeam+".id").
-		Where(rTeamUser+".uid=?", userID)
+		Join("INNER", tbTeamUser, tbTeamUser+".team_id = "+tbTeam+".id").
+		Where(tbTeamUser+".uid=?", userID)
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
 	}
@@ -804,19 +804,19 @@ func getUserTeams(e Engine, userID int64, listOptions ListOptions) (teams []*Tea
 
 func getUserOrgTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {
 	return teams, e.
-		Join("INNER", rTeamUser, rTeamUser+".team_id = "+rTeam+".id").
-		Where(rTeam+".org_id = ?", orgID).
-		And(rTeamUser+".uid=?", userID).
+		Join("INNER", tbTeamUser, tbTeamUser+".team_id = "+tbTeam+".id").
+		Where(tbTeam+".org_id = ?", orgID).
+		And(tbTeamUser+".uid=?", userID).
 		Find(&teams)
 }
 
 func getUserRepoTeams(e Engine, orgID, userID, repoID int64) (teams []*Team, err error) {
 	return teams, e.
-		Join("INNER", rTeamUser, rTeamUser+".team_id = "+rTeam+".id").
-		Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeam+".id").
-		Where(rTeam+".org_id = ?", orgID).
-		And(rTeamUser+".uid=?", userID).
-		And(rTeamRepo+".repo_id=?", repoID).
+		Join("INNER", tbTeamUser, tbTeamUser+".team_id = "+tbTeam+".id").
+		Join("INNER", tbTeamRepo, tbTeamRepo+".team_id = "+tbTeam+".id").
+		Where(tbTeam+".org_id = ?", orgID).
+		And(tbTeamUser+".uid=?", userID).
+		And(tbTeamRepo+".repo_id=?", repoID).
 		Find(&teams)
 }
 
@@ -966,7 +966,7 @@ func isUserInTeams(e Engine, userID int64, teamIDs []int64) (bool, error) {
 func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (int64, error) {
 	var ids []int64
 	if err := x.In("uid", userIDs).In("team_id", teamIDs).
-		Table(rTeamUser).
+		Table(tbTeamUser).
 		Cols("uid").GroupBy("uid").Find(&ids); err != nil {
 		return 0, err
 	}
@@ -1022,10 +1022,10 @@ func removeTeamRepo(e Engine, teamID, repoID int64) error {
 // GetTeamsWithAccessToRepo returns all teams in an organization that have given access level to the repository.
 func GetTeamsWithAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, error) {
 	teams := make([]*Team, 0, 5)
-	return teams, x.Where(rTeam+".authorize >= ?", mode).
-		Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeam+".id").
-		And(rTeamRepo+".org_id = ?", orgID).
-		And(rTeamRepo+".repo_id = ?", repoID).
+	return teams, x.Where(tbTeam+".authorize >= ?", mode).
+		Join("INNER", tbTeamRepo, tbTeamRepo+".team_id = "+tbTeam+".id").
+		And(tbTeamRepo+".org_id = ?", orgID).
+		And(tbTeamRepo+".repo_id = ?", repoID).
 		Find(&teams)
 }
 

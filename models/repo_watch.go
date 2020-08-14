@@ -91,7 +91,7 @@ func watchRepoMode(e Engine, watch Watch, mode RepoWatchMode) (err error) {
 		return err
 	}
 	if repodiff != 0 {
-		_, err = e.Exec("UPDATE "+rRepository+" SET num_watches = num_watches + ? WHERE id = ?", repodiff, watch.RepoID)
+		_, err = e.Exec("UPDATE "+tbRepository+" SET num_watches = num_watches + ? WHERE id = ?", repodiff, watch.RepoID)
 	}
 	return err
 }
@@ -127,11 +127,11 @@ func WatchRepo(userID, repoID int64, watch bool) (err error) {
 
 func getWatchers(e Engine, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
-	return watches, e.Where(rWatch+".repo_id=?", repoID).
-		And(rWatch+".mode<>?", RepoWatchModeDont).
-		And(rUser+".is_active=?", true).
-		And(rUser+".prohibit_login=?", false).
-		Join("INNER", rUser, rUser+".id = "+rWatch+".user_id").
+	return watches, e.Where(tbWatch+".repo_id=?", repoID).
+		And(tbWatch+".mode<>?", RepoWatchModeDont).
+		And(tbUser+".is_active=?", true).
+		And(tbUser+".prohibit_login=?", false).
+		Join("INNER", tbUser, tbUser+".id = "+tbWatch+".user_id").
 		Find(&watches)
 }
 
@@ -149,18 +149,18 @@ func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
 
 func getRepoWatchersIDs(e Engine, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, e.Table(rWatch).
-		Where(rWatch+".repo_id=?", repoID).
-		And(rWatch+".mode<>?", RepoWatchModeDont).
+	return ids, e.Table(tbWatch).
+		Where(tbWatch+".repo_id=?", repoID).
+		And(tbWatch+".mode<>?", RepoWatchModeDont).
 		Select("user_id").
 		Find(&ids)
 }
 
 // GetWatchers returns range of users watching given repository.
 func (repo *Repository) GetWatchers(opts ListOptions) ([]*User, error) {
-	sess := x.Where(rWatch+".repo_id=?", repo.ID).
-		Join("LEFT", rWatch, rUser+".id="+rWatch+".user_id").
-		And(rWatch+".mode<>?", RepoWatchModeDont)
+	sess := x.Where(tbWatch+".repo_id=?", repo.ID).
+		Join("LEFT", tbWatch, tbUser+".id="+tbWatch+".user_id").
+		And(tbWatch+".mode<>?", RepoWatchModeDont)
 	if opts.Page > 0 {
 		sess = opts.setSessionPagination(sess)
 		users := make([]*User, 0, opts.PageSize)

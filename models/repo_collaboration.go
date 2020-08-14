@@ -146,7 +146,7 @@ func (repo *Repository) changeCollaborationAccessMode(e Engine, uid int64, mode 
 		Cols("mode").
 		Update(collaboration); err != nil {
 		return fmt.Errorf("update collaboration: %v", err)
-	} else if _, err = e.Exec("UPDATE "+rAccess+" SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
+	} else if _, err = e.Exec("UPDATE "+tbAccess+" SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
 		return fmt.Errorf("update access table: %v", err)
 	}
 
@@ -214,7 +214,7 @@ func (repo *Repository) reconsiderIssueAssignees(e Engine, uid int64) error {
 	}
 
 	if _, err := e.Where(builder.Eq{"assignee_id": uid}).
-		In("issue_id", builder.Select("id").From(rIssue).Where(builder.Eq{"repo_id": repo.ID})).
+		In("issue_id", builder.Select("id").From(tbIssue).Where(builder.Eq{"repo_id": repo.ID})).
 		Delete(&IssueAssignees{}); err != nil {
 		return fmt.Errorf("Could not delete assignee[%d] %v", uid, err)
 	}
@@ -236,9 +236,9 @@ func (repo *Repository) reconsiderWatches(e Engine, uid int64) error {
 
 func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
 	return teams, e.
-		Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeam+".id").
-		Where(rTeam+".org_id = ?", repo.OwnerID).
-		And(rTeamRepo+".repo_id=?", repo.ID).
+		Join("INNER", tbTeamRepo, tbTeamRepo+".team_id = "+tbTeam+".id").
+		Where(tbTeam+".org_id = ?", repo.OwnerID).
+		And(tbTeamRepo+".repo_id=?", repo.ID).
 		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
 		Find(&teams)
 }
@@ -253,11 +253,11 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	teamMember, err := x.Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeamUser+".team_id").
-		Join("INNER", rTeamUnit, rTeamUnit+".team_id = "+rTeamUser+".team_id").
-		Where(rTeamRepo+".repo_id = ?", repo.ID).
-		And(rTeamUnit+".`type` = ?", UnitTypeCode).
-		And(rTeamUser+".uid = ?", userID).Table(rTeamUser).Exist(&TeamUser{})
+	teamMember, err := x.Join("INNER", tbTeamRepo, tbTeamRepo+".team_id = "+tbTeamUser+".team_id").
+		Join("INNER", tbTeamUnit, tbTeamUnit+".team_id = "+tbTeamUser+".team_id").
+		Where(tbTeamRepo+".repo_id = ?", repo.ID).
+		And(tbTeamUnit+".`type` = ?", UnitTypeCode).
+		And(tbTeamUser+".uid = ?", userID).Table(tbTeamUser).Exist(&TeamUser{})
 	if err != nil {
 		return false, err
 	}

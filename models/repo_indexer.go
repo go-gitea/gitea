@@ -33,15 +33,15 @@ type RepoIndexerStatus struct {
 func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageSize int) ([]int64, error) {
 	ids := make([]int64, 0, 50)
 	cond := builder.Cond(builder.IsNull{
-		rRepoIndexerStatus + ".id",
+		tbRepoIndexerStatus + ".id",
 	}).And(builder.Eq{
-		rRepository + ".is_empty": false,
+		tbRepository + ".is_empty": false,
 	})
-	sess := x.Table(rRepository).
-		Join("LEFT OUTER", rRepoIndexerStatus, rRepository+".id = "+rRepoIndexerStatus+".repo_id AND "+rRepoIndexerStatus+".indexer_type = ?", indexerType)
+	sess := x.Table(tbRepository).
+		Join("LEFT OUTER", tbRepoIndexerStatus, tbRepository+".id = "+tbRepoIndexerStatus+".repo_id AND "+tbRepoIndexerStatus+".indexer_type = ?", indexerType)
 	if maxRepoID > 0 {
 		cond = builder.And(cond, builder.Lte{
-			rRepository + ".id": maxRepoID,
+			tbRepository + ".id": maxRepoID,
 		})
 	}
 	if page >= 0 && pageSize > 0 {
@@ -52,7 +52,7 @@ func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageS
 		sess.Limit(pageSize, start)
 	}
 
-	sess.Where(cond).Cols(rRepository + ".id").Desc(rRepository + ".id")
+	sess.Where(cond).Cols(tbRepository + ".id").Desc(tbRepository + ".id")
 	err := sess.Find(&ids)
 	return ids, err
 }

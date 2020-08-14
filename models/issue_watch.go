@@ -90,7 +90,7 @@ func GetIssueWatchersIDs(issueID int64, watching bool) ([]int64, error) {
 
 func getIssueWatchersIDs(e Engine, issueID int64, watching bool) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, e.Table(rIssueWatch).
+	return ids, e.Table(tbIssueWatch).
 		Where("issue_id=?", issueID).
 		And("is_watching = ?", watching).
 		Select("user_id").
@@ -104,11 +104,11 @@ func GetIssueWatchers(issueID int64, listOptions ListOptions) (IssueWatchList, e
 
 func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWatchList, error) {
 	sess := e.
-		Where(rIssueWatch+".issue_id = ?", issueID).
-		And(rIssueWatch+".is_watching = ?", true).
-		And(rUser+".is_active = ?", true).
-		And(rUser+".prohibit_login = ?", false).
-		Join("INNER", rUser, rUser+".id = "+rIssueWatch+".user_id")
+		Where(tbIssueWatch+".issue_id = ?", issueID).
+		And(tbIssueWatch+".is_watching = ?", true).
+		And(tbUser+".is_active = ?", true).
+		And(tbUser+".prohibit_login = ?", false).
+		Join("INNER", tbUser, tbUser+".id = "+tbIssueWatch+".user_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -121,8 +121,8 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWa
 
 func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
 	_, err := e.
-		Join("INNER", rIssue, rIssue+".id = "+rIssueWatch+".issue_id AND "+rIssue+".repo_id = ?", repoID).
-		Where(rIssueWatch+".user_id = ?", userID).
+		Join("INNER", tbIssue, tbIssue+".id = "+tbIssueWatch+".issue_id AND "+tbIssue+".repo_id = ?", repoID).
+		Where(tbIssueWatch+".user_id = ?", userID).
 		Delete(new(IssueWatch))
 	return err
 }

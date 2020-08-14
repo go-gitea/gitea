@@ -561,11 +561,11 @@ func (repo *Repository) ComposeMetas() map[string]string {
 		repo.MustOwner()
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
-			_ = x.Table(rTeamRepo).
-				Join("INNER", rTeam, rTeam+".id = "+rTeamRepo+".team_id").
-				Where(rTeamRepo+".repo_id = ?", repo.ID).
-				Select(rTeam + ".lower_name").
-				OrderBy(rTeam + ".lower_name").
+			_ = x.Table(tbTeamRepo).
+				Join("INNER", tbTeam, tbTeam+".id = "+tbTeamRepo+".team_id").
+				Where(tbTeamRepo+".repo_id = ?", repo.ID).
+				Select(tbTeam + ".lower_name").
+				OrderBy(tbTeam + ".lower_name").
 				Find(&teams)
 			metas["teams"] = "," + strings.Join(teams, ",") + ","
 			metas["org"] = strings.ToLower(repo.OwnerName)
@@ -646,7 +646,7 @@ func (repo *Repository) getReviewersPrivate(e Engine, doerID, posterID int64) (u
 	users = make([]*User, 0, 20)
 
 	if err = e.
-		SQL("SELECT * FROM "+rUser+" WHERE id in (SELECT user_id FROM "+rAccess+" WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?)) ORDER BY name",
+		SQL("SELECT * FROM "+tbUser+" WHERE id in (SELECT user_id FROM "+tbAccess+" WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?)) ORDER BY name",
 			repo.ID, AccessModeRead,
 			doerID, posterID).
 		Find(&users); err != nil {
@@ -660,11 +660,11 @@ func (repo *Repository) getReviewersPublic(e Engine, doerID, posterID int64) (_ 
 
 	users := make([]*User, 0)
 
-	SQLCmd := "SELECT * FROM " + rUser + " WHERE id IN ( " +
-		"SELECT user_id FROM " + rAccess +
+	SQLCmd := "SELECT * FROM " + tbUser + " WHERE id IN ( " +
+		"SELECT user_id FROM " + tbAccess +
 		" WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?) " +
 		"UNION " +
-		"SELECT user_id FROM " + rWatch +
+		"SELECT user_id FROM " + tbWatch +
 		" WHERE repo_id = ? AND user_id NOT IN ( ?, ?) AND mode IN (?, ?) " +
 		") ORDER BY name"
 
@@ -1210,7 +1210,7 @@ func RepoPath(userName, repoName string) string {
 
 // IncrementRepoForkNum increment repository fork number
 func IncrementRepoForkNum(ctx DBContext, repoID int64) error {
-	_, err := ctx.e.Exec("UPDATE "+rRepository+" SET num_forks=num_forks+1 WHERE id=?", repoID)
+	_, err := ctx.e.Exec("UPDATE "+tbRepository+" SET num_forks=num_forks+1 WHERE id=?", repoID)
 	return err
 }
 
@@ -1295,9 +1295,9 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Update repository count.
-	if _, err = sess.Exec("UPDATE "+rUser+" SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
+	if _, err = sess.Exec("UPDATE "+tbUser+" SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
 		return fmt.Errorf("increase new owner repository count: %v", err)
-	} else if _, err = sess.Exec("UPDATE "+rUser+" SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
+	} else if _, err = sess.Exec("UPDATE "+tbUser+" SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
@@ -1494,7 +1494,7 @@ func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 
 // UpdateRepositoryUpdatedTime updates a repository's updated time
 func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
-	_, err := x.Exec("UPDATE "+rRepository+" SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
+	_, err := x.Exec("UPDATE "+tbRepository+" SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
 	return err
 }
 
@@ -1579,8 +1579,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	attachments := make([]*Attachment, 0, 20)
-	if err = sess.Join("INNER", rRelease, rRelease+".id = "+rAttachment+".release_id").
-		Where(rRelease+".repo_id = ?", repoID).
+	if err = sess.Join("INNER", tbRelease, tbRelease+".id = "+tbAttachment+".release_id").
+		Where(tbRelease+".repo_id = ?", repoID).
 		Find(&attachments); err != nil {
 		return err
 	}
@@ -1589,7 +1589,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		releaseAttachments = append(releaseAttachments, attachments[i].LocalPath())
 	}
 
-	if _, err = sess.Exec("UPDATE "+rUser+" SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM "+rStar+" WHERE repo_id = ?)", repo.ID); err != nil {
+	if _, err = sess.Exec("UPDATE "+tbUser+" SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM "+tbStar+" WHERE repo_id = ?)", repo.ID); err != nil {
 		return err
 	}
 
@@ -1628,12 +1628,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if repo.IsFork {
-		if _, err = sess.Exec("UPDATE "+rRepository+" SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
+		if _, err = sess.Exec("UPDATE "+tbRepository+" SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
 			return fmt.Errorf("decrease fork count: %v", err)
 		}
 	}
 
-	if _, err = sess.Exec("UPDATE "+rUser+" SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+	if _, err = sess.Exec("UPDATE "+tbUser+" SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
 		return err
 	}
 
@@ -1676,7 +1676,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if repo.NumForks > 0 {
-		if _, err = sess.Exec("UPDATE "+rRepository+" SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
+		if _, err = sess.Exec("UPDATE "+tbRepository+" SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
 			log.Error("reset 'fork_id' and 'is_fork': %v", err)
 		}
 	}
@@ -1726,10 +1726,10 @@ func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error
 
 func getRepositoryByOwnerAndName(e Engine, ownerName, repoName string) (*Repository, error) {
 	var repo Repository
-	has, err := e.Table(rRepository).Select(rRepository+".*").
-		Join("INNER", rUser, rUser+".id = "+rRepository+".owner_id").
-		Where(rRepository+".lower_name = ?", strings.ToLower(repoName)).
-		And(rUser+".lower_name = ?", strings.ToLower(ownerName)).
+	has, err := e.Table(tbRepository).Select(tbRepository+".*").
+		Join("INNER", tbUser, tbUser+".id = "+tbRepository+".owner_id").
+		Where(tbRepository+".lower_name = ?", strings.ToLower(repoName)).
+		And(tbUser+".lower_name = ?", strings.ToLower(ownerName)).
 		Get(&repo)
 	if err != nil {
 		return nil, err
@@ -1957,32 +1957,32 @@ func CheckRepoStats(ctx context.Context) error {
 	checkers := []*repoChecker{
 		// Repository.NumWatches
 		{
-			"SELECT repo.id FROM " + rRepository + " repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM " + rWatch + " WHERE repo_id=repo.id AND mode<>2)",
-			"UPDATE " + rRepository + " SET num_watches=(SELECT COUNT(*) FROM " + rWatch + " WHERE repo_id=? AND mode<>2) WHERE id=?",
+			"SELECT repo.id FROM " + tbRepository + " repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM " + tbWatch + " WHERE repo_id=repo.id AND mode<>2)",
+			"UPDATE " + tbRepository + " SET num_watches=(SELECT COUNT(*) FROM " + tbWatch + " WHERE repo_id=? AND mode<>2) WHERE id=?",
 			"repository count 'num_watches'",
 		},
 		// Repository.NumStars
 		{
-			"SELECT repo.id FROM " + rRepository + " repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM " + rStar + " WHERE repo_id=repo.id)",
-			"UPDATE " + rRepository + " SET num_stars=(SELECT COUNT(*) FROM " + rStar + " WHERE repo_id=?) WHERE id=?",
+			"SELECT repo.id FROM " + tbRepository + " repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM " + tbStar + " WHERE repo_id=repo.id)",
+			"UPDATE " + tbRepository + " SET num_stars=(SELECT COUNT(*) FROM " + tbStar + " WHERE repo_id=?) WHERE id=?",
 			"repository count 'num_stars'",
 		},
 		// Label.NumIssues
 		{
-			"SELECT " + rLabel + ".id FROM " + rLabel + " WHERE " + rLabel + ".num_issues!=(SELECT COUNT(*) FROM " + rIssueLabel + " WHERE label_id=" + rLabel + ".id)",
-			"UPDATE " + rLabel + " SET num_issues=(SELECT COUNT(*) FROM " + rIssueLabel + " WHERE label_id=?) WHERE id=?",
+			"SELECT " + tbLabel + ".id FROM " + tbLabel + " WHERE " + tbLabel + ".num_issues!=(SELECT COUNT(*) FROM " + tbIssueLabel + " WHERE label_id=" + tbLabel + ".id)",
+			"UPDATE " + tbLabel + " SET num_issues=(SELECT COUNT(*) FROM " + tbIssueLabel + " WHERE label_id=?) WHERE id=?",
 			"label count 'num_issues'",
 		},
 		// User.NumRepos
 		{
-			"SELECT " + rUser + ".id FROM " + rUser + " WHERE " + rUser + ".num_repos!=(SELECT COUNT(*) FROM `" + rRepository + "` WHERE owner_id=" + rUser + ".id)",
-			"UPDATE " + rUser + " SET num_repos=(SELECT COUNT(*) FROM " + rRepository + " WHERE owner_id=?) WHERE id=?",
+			"SELECT " + tbUser + ".id FROM " + tbUser + " WHERE " + tbUser + ".num_repos!=(SELECT COUNT(*) FROM `" + tbRepository + "` WHERE owner_id=" + tbUser + ".id)",
+			"UPDATE " + tbUser + " SET num_repos=(SELECT COUNT(*) FROM " + tbRepository + " WHERE owner_id=?) WHERE id=?",
 			"user count 'num_repos'",
 		},
 		// Issue.NumComments
 		{
-			"SELECT " + rIssue + ".id FROM " + rIssue + " WHERE " + rIssue + ".num_comments!=(SELECT COUNT(*) FROM " + rComment + " WHERE issue_id=" + rIssue + ".id AND type=0)",
-			"UPDATE " + rIssue + " SET num_comments=(SELECT COUNT(*) FROM " + rComment + " WHERE issue_id=? AND type=0) WHERE id=?",
+			"SELECT " + tbIssue + ".id FROM " + tbIssue + " WHERE " + tbIssue + ".num_comments!=(SELECT COUNT(*) FROM " + tbComment + " WHERE issue_id=" + tbIssue + ".id AND type=0)",
+			"UPDATE " + tbIssue + " SET num_comments=(SELECT COUNT(*) FROM " + tbComment + " WHERE issue_id=? AND type=0) WHERE id=?",
 			"issue count 'num_comments'",
 		},
 	}
@@ -1998,7 +1998,7 @@ func CheckRepoStats(ctx context.Context) error {
 
 	// ***** START: Repository.NumClosedIssues *****
 	desc := "repository count 'num_closed_issues'"
-	results, err := x.Query("SELECT repo.id FROM "+rRepository+" repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM "+rIssue+" WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false)
+	results, err := x.Query("SELECT repo.id FROM "+tbRepository+" repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM "+tbIssue+" WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false)
 	if err != nil {
 		log.Error("Select %s: %v", desc, err)
 	} else {
@@ -2011,7 +2011,7 @@ func CheckRepoStats(ctx context.Context) error {
 			default:
 			}
 			log.Trace("Updating %s: %d", desc, id)
-			_, err = x.Exec("UPDATE "+rRepository+" SET num_closed_issues=(SELECT COUNT(*) FROM "+rIssue+" WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
+			_, err = x.Exec("UPDATE "+tbRepository+" SET num_closed_issues=(SELECT COUNT(*) FROM "+tbIssue+" WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
 			if err != nil {
 				log.Error("Update %s[%d]: %v", desc, id, err)
 			}
@@ -2021,7 +2021,7 @@ func CheckRepoStats(ctx context.Context) error {
 
 	// ***** START: Repository.NumClosedPulls *****
 	desc = "repository count 'num_closed_pulls'"
-	results, err = x.Query("SELECT repo.id FROM "+rRepository+" repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM "+rIssue+" WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true)
+	results, err = x.Query("SELECT repo.id FROM "+tbRepository+" repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM "+tbIssue+" WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true)
 	if err != nil {
 		log.Error("Select %s: %v", desc, err)
 	} else {
@@ -2034,7 +2034,7 @@ func CheckRepoStats(ctx context.Context) error {
 			default:
 			}
 			log.Trace("Updating %s: %d", desc, id)
-			_, err = x.Exec("UPDATE "+rRepository+" SET num_closed_pulls=(SELECT COUNT(*) FROM "+rIssue+" WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
+			_, err = x.Exec("UPDATE "+tbRepository+" SET num_closed_pulls=(SELECT COUNT(*) FROM "+tbIssue+" WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
 			if err != nil {
 				log.Error("Update %s[%d]: %v", desc, id, err)
 			}
@@ -2044,7 +2044,7 @@ func CheckRepoStats(ctx context.Context) error {
 
 	// FIXME: use checker when stop supporting old fork repo format.
 	// ***** START: Repository.NumForks *****
-	results, err = x.Query("SELECT repo.id FROM " + rRepository + " repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM " + rRepository + " WHERE fork_id=repo.id)")
+	results, err = x.Query("SELECT repo.id FROM " + tbRepository + " repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM " + tbRepository + " WHERE fork_id=repo.id)")
 	if err != nil {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {
@@ -2064,7 +2064,7 @@ func CheckRepoStats(ctx context.Context) error {
 				continue
 			}
 
-			rawResult, err := x.Query("SELECT COUNT(*) FROM "+rRepository+" WHERE fork_id=?", repo.ID)
+			rawResult, err := x.Query("SELECT COUNT(*) FROM "+tbRepository+" WHERE fork_id=?", repo.ID)
 			if err != nil {
 				log.Error("Select count of forks[%d]: %v", repo.ID, err)
 				continue
@@ -2379,7 +2379,7 @@ func DoctorUserStarNum() (err error) {
 		}
 
 		for _, user := range users {
-			if _, err = sess.Exec("UPDATE "+rUser+" SET num_stars=(SELECT COUNT(*) FROM "+rStar+" WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+			if _, err = sess.Exec("UPDATE "+tbUser+" SET num_stars=(SELECT COUNT(*) FROM "+tbStar+" WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
 				return
 			}
 		}

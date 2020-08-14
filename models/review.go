@@ -308,7 +308,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 
 		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
 			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
-			if _, err := sess.Exec("UPDATE "+rReview+" SET official=? WHERE issue_id=? AND reviewer_id=?",
+			if _, err := sess.Exec("UPDATE "+tbReview+" SET official=? WHERE issue_id=? AND reviewer_id=?",
 				false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
 			}
@@ -341,7 +341,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 
 		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
 			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
-			if _, err := sess.Exec("UPDATE "+rReview+" SET official=? WHERE issue_id=? AND reviewer_id=?",
+			if _, err := sess.Exec("UPDATE "+tbReview+" SET official=? WHERE issue_id=? AND reviewer_id=?",
 				false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
 			}
@@ -390,7 +390,7 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 	}
 
 	// Get latest review of each reviwer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM "+rReview+" WHERE id IN (SELECT max(id) as id FROM "+rReview+" WHERE issue_id = ? AND type in (?, ?, ?) GROUP BY issue_id, reviewer_id) ORDER BY "+rReview+".updated_unix ASC",
+	if err := sess.SQL("SELECT * FROM "+tbReview+" WHERE id IN (SELECT max(id) as id FROM "+tbReview+" WHERE issue_id = ? AND type in (?, ?, ?) GROUP BY issue_id, reviewer_id) ORDER BY "+tbReview+".updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviewsUnfiltered); err != nil {
 		return nil, err
@@ -418,7 +418,7 @@ func GetReviewerByIssueIDAndUserID(issueID, userID int64) (review *Review, err e
 func getReviewerByIssueIDAndUserID(e Engine, issueID, userID int64) (review *Review, err error) {
 	review = new(Review)
 
-	if _, err := e.SQL("SELECT * FROM "+rReview+" WHERE id IN (SELECT max(id) as id FROM "+rReview+" WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
+	if _, err := e.SQL("SELECT * FROM "+tbReview+" WHERE id IN (SELECT max(id) as id FROM "+tbReview+" WHERE issue_id = ? AND reviewer_id = ? AND type in (?, ?, ?))",
 		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Get(review); err != nil {
 		return nil, err
@@ -429,14 +429,14 @@ func getReviewerByIssueIDAndUserID(e Engine, issueID, userID int64) (review *Rev
 
 // MarkReviewsAsStale marks existing reviews as stale
 func MarkReviewsAsStale(issueID int64) (err error) {
-	_, err = x.Exec("UPDATE "+rReview+" SET stale=? WHERE issue_id=?", true, issueID)
+	_, err = x.Exec("UPDATE "+tbReview+" SET stale=? WHERE issue_id=?", true, issueID)
 
 	return
 }
 
 // MarkReviewsAsNotStale marks existing reviews as not stale for a giving commit SHA
 func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
-	_, err = x.Exec("UPDATE "+rReview+" SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
+	_, err = x.Exec("UPDATE "+tbReview+" SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
 
 	return
 }
@@ -517,7 +517,7 @@ func AddReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Commen
 	}
 
 	if official {
-		if _, err := sess.Exec("UPDATE "+rReview+" SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, reviewer.ID); err != nil {
+		if _, err := sess.Exec("UPDATE "+tbReview+" SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, reviewer.ID); err != nil {
 			return nil, err
 		}
 	}
@@ -588,7 +588,7 @@ func RemoveReviewRequest(issue *Issue, reviewer *User, doer *User) (comment *Com
 		}
 
 		if review != nil {
-			if _, err := sess.Exec("UPDATE "+rReview+" SET official=? WHERE id=?", true, review.ID); err != nil {
+			if _, err := sess.Exec("UPDATE "+tbReview+" SET official=? WHERE id=?", true, review.ID); err != nil {
 				return nil, err
 			}
 		}
@@ -625,7 +625,7 @@ func MarkConversation(comment *Comment, doer *User, isResolve bool) (err error) 
 			return nil
 		}
 
-		if _, err = x.Exec("UPDATE "+rComment+" SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
+		if _, err = x.Exec("UPDATE "+tbComment+" SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
 			return err
 		}
 	} else {
@@ -633,7 +633,7 @@ func MarkConversation(comment *Comment, doer *User, isResolve bool) (err error) 
 			return nil
 		}
 
-		if _, err = x.Exec("UPDATE "+rComment+" SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
+		if _, err = x.Exec("UPDATE "+tbComment+" SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
 			return err
 		}
 	}

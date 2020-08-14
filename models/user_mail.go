@@ -332,16 +332,16 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	args := make([]interface{}, 0, 5)
 
 	emailsSQL := "(SELECT id as sortid, uid, email, is_activated, 0 as is_primary " +
-		"FROM " + RealTableName("email_address") +
+		"FROM " + tbEmailAddress +
 		" UNION ALL " +
 		"SELECT id as sortid, id AS uid, email, is_active AS is_activated, 1 as is_primary " +
-		"FROM " + rUser +
+		"FROM " + tbUser +
 		"WHERE type = ?) AS emails"
 	args = append(args, UserTypeIndividual)
 
 	if len(opts.Keyword) > 0 {
 		// Note: % can be injected in the Keyword parameter, but it won't do any harm.
-		where = append(where, "(lower("+rUser+".full_name) LIKE ? OR "+rUser+".lower_name LIKE ? OR emails.email LIKE ?)")
+		where = append(where, "(lower("+tbUser+".full_name) LIKE ? OR "+tbUser+".lower_name LIKE ? OR emails.email LIKE ?)")
 		likeStr := "%" + strings.ToLower(opts.Keyword) + "%"
 		args = append(args, likeStr)
 		args = append(args, likeStr)
@@ -371,7 +371,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 		whereStr = "WHERE " + strings.Join(where, " AND ")
 	}
 
-	joinSQL := "FROM " + emailsSQL + " INNER JOIN " + rUser + " ON " + rUser + ".id = emails.uid " + whereStr
+	joinSQL := "FROM " + emailsSQL + " INNER JOIN " + tbUser + " ON " + tbUser + ".id = emails.uid " + whereStr
 
 	count, err := x.SQL("SELECT count(*) "+joinSQL, args...).Count()
 	if err != nil {
@@ -384,7 +384,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	}
 
 	querySQL := "SELECT emails.uid, emails.email, emails.is_activated, emails.is_primary, " +
-		rUser + ".name, " + rUser + ".full_name " + joinSQL + " ORDER BY " + orderby
+		tbUser + ".name, " + tbUser + ".full_name " + joinSQL + " ORDER BY " + orderby
 
 	opts.setDefaultValues()
 
@@ -476,4 +476,20 @@ func ActivateUserEmail(userID int64, email string, primary, activate bool) (err 
 		}
 	}
 	return sess.Commit()
+}
+
+// ToSerachEmailOrderBy get SearchEmailOrderBy from sortType
+func ToSerachEmailOrderBy(sortType string) (SearchEmailOrderBy, string) {
+	switch sortType {
+	case "email":
+		return SearchEmailOrderByEmail, "email"
+	case "reverseemail":
+		return SearchEmailOrderByEmailReverse, "reverseemail"
+	case "username":
+		return SearchEmailOrderBy(tbUser + SearchEmailOrderByName.String()), "username"
+	case "reverseusername":
+		return SearchEmailOrderBy(tbUser + SearchEmailOrderByNameReverse.String()), "reverseusername"
+	default:
+		return SearchEmailOrderByEmail, "email"
+	}
 }

@@ -81,7 +81,7 @@ type FindTrackedTimesOptions struct {
 
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
-	cond := builder.NewCond().And(builder.Eq{rTrackedTime + ".deleted": false})
+	cond := builder.NewCond().And(builder.Eq{tbTrackedTime + ".deleted": false})
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
@@ -89,16 +89,16 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 		cond = cond.And(builder.Eq{"user_id": opts.UserID})
 	}
 	if opts.RepositoryID != 0 {
-		cond = cond.And(builder.Eq{rIssue + ".repo_id": opts.RepositoryID})
+		cond = cond.And(builder.Eq{tbIssue + ".repo_id": opts.RepositoryID})
 	}
 	if opts.MilestoneID != 0 {
-		cond = cond.And(builder.Eq{rIssue + ".milestone_id": opts.MilestoneID})
+		cond = cond.And(builder.Eq{tbIssue + ".milestone_id": opts.MilestoneID})
 	}
 	if opts.CreatedAfterUnix != 0 {
-		cond = cond.And(builder.Gte{rTrackedTime + ".created_unix": opts.CreatedAfterUnix})
+		cond = cond.And(builder.Gte{tbTrackedTime + ".created_unix": opts.CreatedAfterUnix})
 	}
 	if opts.CreatedBeforeUnix != 0 {
-		cond = cond.And(builder.Lte{rTrackedTime + ".created_unix": opts.CreatedBeforeUnix})
+		cond = cond.And(builder.Lte{tbTrackedTime + ".created_unix": opts.CreatedBeforeUnix})
 	}
 	return cond
 }
@@ -107,7 +107,7 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 func (opts *FindTrackedTimesOptions) ToSession(e Engine) Engine {
 	sess := e
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
-		sess = e.Join("INNER", rIssue, rIssue+".id = "+rTrackedTime+".issue_id")
+		sess = e.Join("INNER", tbIssue, tbIssue+".id = "+tbTrackedTime+".issue_id")
 	}
 
 	sess = sess.Where(opts.ToCond())
@@ -288,7 +288,7 @@ func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err
 		return
 	}
 
-	_, err = opts.ToSession(e).Table(rTrackedTime).Cols("deleted").Update(&TrackedTime{Deleted: true})
+	_, err = opts.ToSession(e).Table(tbTrackedTime).Cols("deleted").Update(&TrackedTime{Deleted: true})
 	return
 }
 

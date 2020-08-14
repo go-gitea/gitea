@@ -448,8 +448,8 @@ func (u *User) AvatarLink() string {
 // GetFollowers returns range of user's followers.
 func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
 	sess := x.
-		Where(rFollow+".follow_id=?", u.ID).
-		Join("LEFT", rFollow, rUser+".id="+rFollow+".user_id")
+		Where(tbFollow+".follow_id=?", u.ID).
+		Join("LEFT", tbFollow, tbUser+".id="+tbFollow+".user_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -470,8 +470,8 @@ func (u *User) IsFollowing(followID int64) bool {
 // GetFollowing returns range of user's following.
 func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
 	sess := x.
-		Where(rFollow+".user_id=?", u.ID).
-		Join("LEFT", rFollow, rUser+".id="+rFollow+".follow_id")
+		Where(tbFollow+".user_id=?", u.ID).
+		Join("LEFT", tbFollow, tbUser+".id="+tbFollow+".follow_id")
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
@@ -656,11 +656,11 @@ func (u *User) GetRepositories(listOpts ListOptions) (err error) {
 func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
 
-	sess := x.Table(rRepository).Cols(rRepository + ".id")
+	sess := x.Table(tbRepository).Cols(tbRepository + ".id")
 
 	if len(units) > 0 {
-		sess = sess.Join("INNER", rRepoUnit, rRepository+".id = "+rRepoUnit+".repo_id")
-		sess = sess.In(rRepoUnit+".type", units)
+		sess = sess.Join("INNER", tbRepoUnit, tbRepository+".id = "+tbRepoUnit+".repo_id")
+		sess = sess.In(tbRepoUnit+".type", units)
 	}
 
 	return ids, sess.Where("owner_id = ?", u.ID).Find(&ids)
@@ -670,12 +670,12 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 // Caller shall check that units is not globally disabled
 func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
-	if err := x.Table(rRepository).
-		Cols(rRepository+".id").
-		Join("INNER", rTeamUser, rRepository+".owner_id = "+rTeamUser+".org_id").
-		Join("INNER", rTeamRepo, "(? != ? and "+rRepository+".is_private != ?) OR ("+rTeamUser+".team_id = "+rTeamRepo+".team_id AND "+rRepository+".id = "+rTeamRepo+".repo_id)", true, u.IsRestricted, true).
-		Where(rTeamUser+".uid = ?", u.ID).
-		GroupBy(rRepository + ".id").Find(&ids); err != nil {
+	if err := x.Table(tbRepository).
+		Cols(tbRepository+".id").
+		Join("INNER", tbTeamUser, tbRepository+".owner_id = "+tbTeamUser+".org_id").
+		Join("INNER", tbTeamRepo, "(? != ? and "+tbRepository+".is_private != ?) OR ("+tbTeamUser+".team_id = "+tbTeamRepo+".team_id AND "+tbRepository+".id = "+tbTeamRepo+".repo_id)", true, u.IsRestricted, true).
+		Where(tbTeamUser+".uid = ?", u.ID).
+		GroupBy(tbRepository + ".id").Find(&ids); err != nil {
 		return nil, err
 	}
 
@@ -727,14 +727,14 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	groupByStr := groupByCols.String()
 	groupByStr = groupByStr[0 : len(groupByStr)-1]
 
-	sess.Select(rUser+".*, count(repo_id) as org_count").
-		Table(rUser).
-		Join("INNER", rOrgUser, rOrgUser+".org_id="+rUser+".id").
+	sess.Select(tbUser+".*, count(repo_id) as org_count").
+		Table(tbUser).
+		Join("INNER", tbOrgUser, tbOrgUser+".org_id="+tbUser+".id").
 		Join("LEFT", builder.
 			Select("id as repo_id, owner_id as repo_owner_id").
-			From(rRepository).
-			Where(accessibleRepositoryCondition(u)), rRepository+".repo_owner_id = "+rOrgUser+".org_id").
-		And(rOrgUser+".uid=?", u.ID).
+			From(tbRepository).
+			Where(accessibleRepositoryCondition(u)), tbRepository+".repo_owner_id = "+tbOrgUser+".org_id").
+		And(tbOrgUser+".uid=?", u.ID).
 		GroupBy(groupByStr)
 	if opts.PageSize != 0 {
 		sess = opts.setSessionPagination(sess)
@@ -746,7 +746,7 @@ func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
 	orgCounts := make([]*OrgCount, 0, 10)
 
 	if err := sess.
-		Asc(rUser + ".name").
+		Asc(tbUser + ".name").
 		Find(&orgCounts); err != nil {
 		return err
 	}
@@ -1097,7 +1097,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE "+rRepository+" SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+	if _, err = sess.Exec("UPDATE "+tbRepository+" SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
 		return fmt.Errorf("Change repo owner name: %v", err)
 	}
 
@@ -1188,9 +1188,9 @@ func deleteUser(e *xorm.Session, u *User) error {
 
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
-	if err = e.Table(rWatch).Cols(rWatch+".repo_id").
-		Where(rWatch+".user_id = ?", u.ID).
-		And(rWatch+".mode <>?", RepoWatchModeDont).
+	if err = e.Table(tbWatch).Cols(tbWatch+".repo_id").
+		Where(tbWatch+".user_id = ?", u.ID).
+		And(tbWatch+".mode <>?", RepoWatchModeDont).
 		Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
@@ -1202,8 +1202,8 @@ func deleteUser(e *xorm.Session, u *User) error {
 
 	// ***** START: Star *****
 	starredRepoIDs := make([]int64, 0, 10)
-	if err = e.Table(rStar).Cols(rStar+".repo_id").
-		Where(rStar+".uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
+	if err = e.Table(tbStar).Cols(tbStar+".repo_id").
+		Where(tbStar+".uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
 	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().
 		Update(new(Repository)); err != nil {
@@ -1213,16 +1213,16 @@ func deleteUser(e *xorm.Session, u *User) error {
 
 	// ***** START: Follow *****
 	followeeIDs := make([]int64, 0, 10)
-	if err = e.Table(rFollow).Cols(rFollow+".follow_id").
-		Where(rFollow+".user_id = ?", u.ID).Find(&followeeIDs); err != nil {
+	if err = e.Table(tbFollow).Cols(tbFollow+".follow_id").
+		Where(tbFollow+".user_id = ?", u.ID).Find(&followeeIDs); err != nil {
 		return fmt.Errorf("get all followees: %v", err)
 	} else if _, err = e.Decr("num_followers").In("id", followeeIDs).Update(new(User)); err != nil {
 		return fmt.Errorf("decrease user num_followers: %v", err)
 	}
 
 	followerIDs := make([]int64, 0, 10)
-	if err = e.Table(rFollow).Cols(rFollow+".user_id").
-		Where(rFollow+".follow_id = ?", u.ID).Find(&followerIDs); err != nil {
+	if err = e.Table(tbFollow).Cols(tbFollow+".user_id").
+		Where(tbFollow+".follow_id = ?", u.ID).Find(&followerIDs); err != nil {
 		return fmt.Errorf("get all followers: %v", err)
 	} else if _, err = e.Decr("num_following").In("id", followerIDs).Update(new(User)); err != nil {
 		return fmt.Errorf("decrease user num_following: %v", err)
@@ -1439,7 +1439,7 @@ func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
 func GetUserNamesByIDs(ids []int64) ([]string, error) {
 	unames := make([]string, 0, len(ids))
 	err := x.In("id", ids).
-		Table(rUser).
+		Table(tbUser).
 		Asc("name").
 		Cols("name").
 		Find(&unames)
@@ -1614,24 +1614,24 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if opts.Actor != nil {
 		var exprCond builder.Cond
-		var rUser2 = rUser[1 : len(rUser)-1]
+		var rUser2 = tbUser[1 : len(tbUser)-1]
 		if setting.Database.UseMySQL {
-			exprCond = builder.Expr(rOrgUser + ".org_id = " + rUser2 + ".id")
+			exprCond = builder.Expr(tbOrgUser + ".org_id = " + rUser2 + ".id")
 		} else if setting.Database.UseMSSQL {
-			exprCond = builder.Expr(rOrgUser + ".org_id = [" + rUser2 + "].id")
+			exprCond = builder.Expr(tbOrgUser + ".org_id = [" + rUser2 + "].id")
 		} else {
-			exprCond = builder.Expr(rOrgUser + ".org_id = \"" + rUser2 + "\".id")
+			exprCond = builder.Expr(tbOrgUser + ".org_id = \"" + rUser2 + "\".id")
 		}
 		var accessCond = builder.NewCond()
 		if !opts.Actor.IsRestricted {
 			accessCond = builder.Or(
-				builder.In("id", builder.Select("org_id").From(rOrgUser).LeftJoin(rUser, exprCond).
+				builder.In("id", builder.Select("org_id").From(tbOrgUser).LeftJoin(tbUser, exprCond).
 					Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
 				builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 		} else {
 			// restricted users only see orgs they are a member of
-			accessCond = builder.In("id", builder.Select("org_id").From(rOrgUser).
-				LeftJoin(rUser, exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
+			accessCond = builder.In("id", builder.Select("org_id").From(tbOrgUser).
+				LeftJoin(tbUser, exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
 		}
 		cond = cond.And(accessCond)
 	}
@@ -1671,8 +1671,8 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 
 // GetStarredRepos returns the repos starred by a particular user
 func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
-	sess := x.Where(rStar+".uid=?", userID).
-		Join("LEFT", rStar, rRepository+".id="+rStar+".repo_id")
+	sess := x.Where(tbStar+".uid=?", userID).
+		Join("LEFT", tbStar, tbRepository+".id="+tbStar+".repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
 	}
@@ -1690,9 +1690,9 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 
 // GetWatchedRepos returns the repos watched by a particular user
 func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
-	sess := x.Where(rWatch+".user_id=?", userID).
-		And(rWatch+".mode<>?", RepoWatchModeDont).
-		Join("LEFT", rWatch, rRepository+".id="+rWatch+".repo_id")
+	sess := x.Where(tbWatch+".user_id=?", userID).
+		And(tbWatch+".mode<>?", RepoWatchModeDont).
+		Join("LEFT", tbWatch, tbRepository+".id="+tbWatch+".repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
 	}

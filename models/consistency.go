@@ -171,22 +171,22 @@ func (action *Action) checkForConsistency(t *testing.T) {
 
 // CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
 func CountOrphanedLabels() (int64, error) {
-	noref, err := x.Table(rLabel).Where("repo_id=? AND org_id=?", 0, 0).Count(rLabel + ".id")
+	noref, err := x.Table(tbLabel).Where("repo_id=? AND org_id=?", 0, 0).Count(tbLabel + ".id")
 	if err != nil {
 		return 0, err
 	}
 
-	norepo, err := x.Table(rLabel).
-		Join("LEFT", rRepository, rLabel+".repo_id="+rRepository+".id").
-		Where(builder.IsNull{rRepository + ".id"}).And(builder.Gt{rLabel + ".repo_id": 0}).
+	norepo, err := x.Table(tbLabel).
+		Join("LEFT", tbRepository, tbLabel+".repo_id="+tbRepository+".id").
+		Where(builder.IsNull{tbRepository + ".id"}).And(builder.Gt{tbLabel + ".repo_id": 0}).
 		Count("id")
 	if err != nil {
 		return 0, err
 	}
 
-	noorg, err := x.Table(rLabel).
-		Join("LEFT", rUser, rLabel+".org_id="+rUser+".id").
-		Where(builder.IsNull{rUser + ".id"}).And(builder.Gt{rLabel + ".org_id": 0}).
+	noorg, err := x.Table(tbLabel).
+		Join("LEFT", tbUser, tbLabel+".org_id="+tbUser+".id").
+		Where(builder.IsNull{tbUser + ".id"}).And(builder.Gt{tbLabel + ".org_id": 0}).
 		Count("id")
 	if err != nil {
 		return 0, err
@@ -198,22 +198,22 @@ func CountOrphanedLabels() (int64, error) {
 // DeleteOrphanedLabels delete labels witch are broken and not accessible via ui anymore
 func DeleteOrphanedLabels() error {
 	// delete labels with no reference
-	if _, err := x.Table(rLabel).Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
+	if _, err := x.Table(tbLabel).Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
 		return err
 	}
 
 	// delete labels with none existing repos
-	if _, err := x.In("id", builder.Select(rLabel+".id").From(rLabel).
-		Join("LEFT", rRepository, rLabel+".repo_id="+rRepository+".id").
-		Where(builder.IsNull{rRepository + "id"}).And(builder.Gt{rLabel + ".repo_id": 0})).
+	if _, err := x.In("id", builder.Select(tbLabel+".id").From(tbLabel).
+		Join("LEFT", tbRepository, tbLabel+".repo_id="+tbRepository+".id").
+		Where(builder.IsNull{tbRepository + "id"}).And(builder.Gt{tbLabel + ".repo_id": 0})).
 		Delete(Label{}); err != nil {
 		return err
 	}
 
 	// delete labels with none existing orgs
-	if _, err := x.In("id", builder.Select(rLabel+".id").From(rLabel).
-		Join("LEFT", rUser, rLabel+".org_id="+rUser+".id").
-		Where(builder.IsNull{rUser + ".id"}).And(builder.Gt{rLabel + ".org_id": 0})).
+	if _, err := x.In("id", builder.Select(tbLabel+".id").From(tbLabel).
+		Join("LEFT", tbUser, tbLabel+".org_id="+tbUser+".id").
+		Where(builder.IsNull{tbUser + ".id"}).And(builder.Gt{tbLabel + ".org_id": 0})).
 		Delete(Label{}); err != nil {
 		return err
 	}
@@ -223,9 +223,9 @@ func DeleteOrphanedLabels() error {
 
 // CountOrphanedIssues count issues without a repo
 func CountOrphanedIssues() (int64, error) {
-	return x.Table(rIssue).
-		Join("LEFT", rRepository, rIssue+".repo_id="+rRepository+".id").
-		Where(builder.IsNull{rRepository + ".id"}).
+	return x.Table(tbIssue).
+		Join("LEFT", tbRepository, tbIssue+".repo_id="+tbRepository+".id").
+		Where(builder.IsNull{tbRepository + ".id"}).
 		Count("id")
 }
 
@@ -239,9 +239,9 @@ func DeleteOrphanedIssues() error {
 
 	var ids []int64
 
-	if err := sess.Table(rIssue).Distinct(rIssue+".repo_id").
-		Join("LEFT", rRepository, rIssue+".repo_id="+rRepository+".id").
-		Where(builder.IsNull{rRepository + ".id"}).GroupBy(rIssue + ".repo_id").
+	if err := sess.Table(tbIssue).Distinct(tbIssue+".repo_id").
+		Join("LEFT", tbRepository, tbIssue+".repo_id="+tbRepository+".id").
+		Where(builder.IsNull{tbRepository + ".id"}).GroupBy(tbIssue + ".repo_id").
 		Find(&ids); err != nil {
 		return err
 	}
@@ -266,22 +266,42 @@ func DeleteOrphanedIssues() error {
 	return nil
 }
 
-// CountOrphanedObjects count subjects with have no existing refobject anymore
-func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
+// countOrphanedObjects count subjects with have no existing refobject anymore
+func countOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 	return x.Table("`"+subject+"`").
 		Join("LEFT", refobject, joinCond).
 		Where(builder.IsNull{"`" + refobject + "`.id"}).
 		Count("id")
 }
 
-// DeleteOrphanedObjects delete subjects with have no existing refobject anymore
-func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
+// CountOrphanedTrackedTime count tracked_time without existing issues/pulls
+func CountOrphanedTrackedTime() (int64, error) {
+	return countOrphanedObjects(tbTrackedTime, tbIssue, tbTrackedTime+".issue_id="+tbIssue+".id")
+}
+
+// CountPullsWithoutExistingIssues count pulls without existing issues
+func CountPullsWithoutExistingIssues() (int64, error) {
+	return countOrphanedObjects(tbPullRequest, tbIssue, tbPullRequest+".issue_id="+tbIssue+".id")
+}
+
+// deleteOrphanedObjects delete subjects with have no existing refobject anymore
+func deleteOrphanedObjects(subject, refobject, joinCond string) error {
 	_, err := x.In("id", builder.Select("`"+subject+"`.id").
 		From("`"+subject+"`").
 		Join("LEFT", "`"+refobject+"`", joinCond).
 		Where(builder.IsNull{"`" + refobject + "`.id"})).
 		Delete("`" + subject + "`")
 	return err
+}
+
+// DeleteOrphanedTrackedTime delete tracked_time without existing issues/pulls
+func DeleteOrphanedTrackedTime() error {
+	return deleteOrphanedObjects(tbTrackedTime, tbIssue, tbTrackedTime+".issue_id="+tbIssue+".id")
+}
+
+// DeletePullsWithoutExistingIssues delete pulls without existing issues
+func DeletePullsWithoutExistingIssues() error {
+	return deleteOrphanedObjects(tbPullRequest, tbIssue, tbPullRequest+".issue_id="+tbIssue+".id")
 }
 
 // CountNullArchivedRepository counts the number of repositories with is_archived is null

@@ -313,7 +313,7 @@ func GetLabelByID(id int64) (*Label, error) {
 // GetLabelsByIDs returns a list of labels by IDs
 func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
-	return labels, x.Table(rLabel).
+	return labels, x.Table(tbLabel).
 		In("id", labelIDs).
 		Asc("name").
 		Cols("id").
@@ -375,7 +375,7 @@ func GetLabelInRepoByName(repoID int64, labelName string) (*Label, error) {
 // it silently ignores label names that do not belong to the repository.
 func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error) {
 	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, x.Table(rLabel).
+	return labelIDs, x.Table(tbLabel).
 		Where("repo_id = ?", repoID).
 		In("name", labelNames).
 		Asc("name").
@@ -385,13 +385,13 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 
 // BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names
 func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
-	return builder.Select(rIssueLabel+".issue_id").
-		From(rIssueLabel).
-		InnerJoin(rLabel, rLabel+".id = "+rIssueLabel+".label_id").
+	return builder.Select(tbIssueLabel+".issue_id").
+		From(tbIssueLabel).
+		InnerJoin(tbLabel, tbLabel+".id = "+tbIssueLabel+".label_id").
 		Where(
-			builder.In(rLabel+".name", labelNames),
+			builder.In(tbLabel+".name", labelNames),
 		).
-		GroupBy(rIssueLabel + ".issue_id")
+		GroupBy(tbIssueLabel + ".issue_id")
 }
 
 // GetLabelInRepoByID returns a label by ID in given repository.
@@ -498,7 +498,7 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 	}
 	labelIDs := make([]int64, 0, len(labelNames))
 
-	return labelIDs, x.Table(rLabel).
+	return labelIDs, x.Table(tbLabel).
 		Where("org_id = ?", orgID).
 		In("name", labelNames).
 		Asc("name").
@@ -511,7 +511,7 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 // it silently ignores label names that do not belong to the organization.
 func GetLabelIDsInOrgsByNames(orgIDs []int64, labelNames []string) ([]int64, error) {
 	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, x.Table(rLabel).
+	return labelIDs, x.Table(tbLabel).
 		In("org_id", orgIDs).
 		In("name", labelNames).
 		Asc("name").
@@ -575,9 +575,9 @@ func GetLabelsByOrgID(orgID int64, sortType string, listOptions ListOptions) ([]
 func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
 	var labels []*Label
 
-	return labels, e.Where(rIssueLabel+".issue_id = ?", issueID).
-		Join("LEFT", rIssueLabel, rIssueLabel+".label_id = "+rLabel+".id").
-		Asc(rLabel + ".name").
+	return labels, e.Where(tbIssueLabel+".issue_id = ?", issueID).
+		Join("LEFT", tbIssueLabel, tbIssueLabel+".label_id = "+tbLabel+".id").
+		Asc(tbLabel + ".name").
 		Find(&labels)
 }
 
@@ -589,15 +589,15 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 func updateLabelCols(e Engine, l *Label, cols ...string) error {
 	_, err := e.ID(l.ID).
 		SetExpr("num_issues",
-			builder.Select("count(*)").From(rIssueLabel).
+			builder.Select("count(*)").From(tbIssueLabel).
 				Where(builder.Eq{"label_id": l.ID}),
 		).
 		SetExpr("num_closed_issues",
-			builder.Select("count(*)").From(rIssueLabel).
-				InnerJoin(rIssue, rIssueLabel+".issue_id = "+rIssue+".id").
+			builder.Select("count(*)").From(tbIssueLabel).
+				InnerJoin(tbIssue, tbIssueLabel+".issue_id = "+tbIssue+".id").
 				Where(builder.Eq{
-					rIssueLabel + ".label_id": l.ID,
-					rIssue + ".is_closed":     true,
+					tbIssueLabel + ".label_id": l.ID,
+					tbIssue + ".is_closed":     true,
 				}),
 		).
 		Cols(cols...).Update(l)

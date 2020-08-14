@@ -181,7 +181,7 @@ func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitSta
 func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]string, error) {
 	start := timeutil.TimeStampNow().AddDuration(-before)
 	ids := make([]int64, 0, 10)
-	if err := x.Table(rCommitStatus).
+	if err := x.Table(tbCommitStatus).
 		Where("repo_id = ?", repoID).
 		And("updated_unix >= ?", start).
 		Select("max( id ) as id").
@@ -194,7 +194,7 @@ func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]s
 	if len(ids) == 0 {
 		return contexts, nil
 	}
-	return contexts, x.Select("context").Table(rCommitStatus).In("id", ids).Find(&contexts)
+	return contexts, x.Select("context").Table(tbCommitStatus).In("id", ids).Find(&contexts)
 
 }
 

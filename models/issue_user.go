@@ -51,7 +51,7 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 
 // UpdateIssueUserByRead updates issue-user relation for reading.
 func UpdateIssueUserByRead(uid, issueID int64) error {
-	_, err := x.Exec("UPDATE "+rIssueUser+" SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
+	_, err := x.Exec("UPDATE "+tbIssueUser+" SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
 	return err
 }
 

@@ -50,23 +50,9 @@ func Emails(ctx *context.Context) {
 		count      int64
 		err        error
 		orderBy    models.SearchEmailOrderBy
-		rUser      string = "`" + models.RealTableName("user") + "`"
 	)
 
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
-	case "email":
-		orderBy = models.SearchEmailOrderBy(models.SearchEmailOrderByEmail.String())
-	case "reverseemail":
-		orderBy = models.SearchEmailOrderBy(models.SearchEmailOrderByEmailReverse.String())
-	case "username":
-		orderBy = models.SearchEmailOrderBy(rUser + models.SearchEmailOrderByName.String())
-	case "reverseusername":
-		orderBy = models.SearchEmailOrderBy(rUser + models.SearchEmailOrderByNameReverse.String())
-	default:
-		ctx.Data["SortType"] = "email"
-		orderBy = models.SearchEmailOrderBy(models.SearchEmailOrderByEmail.String())
-	}
+	orderBy, ctx.Data["SortType"] = models.ToSerachEmailOrderBy(ctx.Query("sort"))
 
 	opts.Keyword = ctx.QueryTrim("q")
 	opts.SortType = orderBy

@@ -83,7 +83,7 @@ func NewMilestone(m *Milestone) (err error) {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE "+rRepository+" SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
+	if _, err = sess.Exec("UPDATE "+tbRepository+" SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
 		return err
 	}
 	return sess.Commit()
@@ -163,10 +163,10 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 func updateMilestone(e Engine, m *Milestone) error {
 	m.Name = strings.TrimSpace(m.Name)
 	_, err := e.ID(m.ID).AllCols().
-		SetExpr("num_issues", builder.Select("count(*)").From(rIssue).Where(
+		SetExpr("num_issues", builder.Select("count(*)").From(tbIssue).Where(
 			builder.Eq{"milestone_id": m.ID},
 		)).
-		SetExpr("num_closed_issues", builder.Select("count(*)").From(rIssue).Where(
+		SetExpr("num_closed_issues", builder.Select("count(*)").From(tbIssue).Where(
 			builder.Eq{
 				"milestone_id": m.ID,
 				"is_closed":    true,
@@ -177,7 +177,7 @@ func updateMilestone(e Engine, m *Milestone) error {
 }
 
 func updateMilestoneCompleteness(e Engine, milestoneID int64) error {
-	_, err := e.Exec("UPDATE "+rMilestone+" SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
+	_, err := e.Exec("UPDATE "+tbMilestone+" SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
 		milestoneID,
 	)
 	return err
@@ -313,7 +313,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE "+rIssue+" SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
+	if _, err = sess.Exec("UPDATE "+tbIssue+" SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
 		return err
 	}
 	return sess.Commit()
@@ -387,7 +387,7 @@ func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType s
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
 	sess := x.Where("is_closed = ?", isClosed)
 	if repoCond.IsValid() {
-		sess.In("repo_id", builder.Select("id").From(rRepository).Where(repoCond))
+		sess.In("repo_id", builder.Select("id").From(tbRepository).Where(repoCond))
 	}
 	if page > 0 {
 		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
@@ -444,7 +444,7 @@ func GetMilestonesStatsByRepoCond(repoCond builder.Cond) (*MilestonesStats, erro
 
 	sess := x.Where("is_closed = ?", false)
 	if repoCond.IsValid() {
-		sess.And(builder.In("repo_id", builder.Select("id").From(rRepository).Where(repoCond)))
+		sess.And(builder.In("repo_id", builder.Select("id").From(tbRepository).Where(repoCond)))
 	}
 	stats.OpenCount, err = sess.Count(new(Milestone))
 	if err != nil {
@@ -453,7 +453,7 @@ func GetMilestonesStatsByRepoCond(repoCond builder.Cond) (*MilestonesStats, erro
 
 	sess = x.Where("is_closed = ?", true)
 	if repoCond.IsValid() {
-		sess.And(builder.In("repo_id", builder.Select("id").From(rRepository).Where(repoCond)))
+		sess.And(builder.In("repo_id", builder.Select("id").From(tbRepository).Where(repoCond)))
 	}
 	stats.ClosedCount, err = sess.Count(new(Milestone))
 	if err != nil {
@@ -484,7 +484,7 @@ func CountRepoClosedMilestones(repoID int64) (int64, error) {
 func CountMilestonesByRepoCond(repoCond builder.Cond, isClosed bool) (map[int64]int64, error) {
 	sess := x.Where("is_closed = ?", isClosed)
 	if repoCond.IsValid() {
-		sess.In("repo_id", builder.Select("id").From(rRepository).Where(repoCond))
+		sess.In("repo_id", builder.Select("id").From(tbRepository).Where(repoCond))
 	}
 
 	countsSlice := make([]*struct {
@@ -493,7 +493,7 @@ func CountMilestonesByRepoCond(repoCond builder.Cond, isClosed bool) (map[int64]
 	}, 0, 10)
 	if err := sess.GroupBy("repo_id").
 		Select("repo_id AS repo_id, COUNT(*) AS count").
-		Table(rMilestone).
+		Table(tbMilestone).
 		Find(&countsSlice); err != nil {
 		return nil, err
 	}
@@ -506,7 +506,7 @@ func CountMilestonesByRepoCond(repoCond builder.Cond, isClosed bool) (map[int64]
 }
 
 func updateRepoMilestoneNum(e Engine, repoID int64) error {
-	_, err := e.Exec("UPDATE "+rRepository+" SET num_milestones=(SELECT count(*) FROM "+rMilestone+" WHERE repo_id=?),num_closed_milestones=(SELECT count(*) FROM "+rMilestone+" WHERE repo_id=? AND is_closed=?) WHERE id=?",
+	_, err := e.Exec("UPDATE "+tbRepository+" SET num_milestones=(SELECT count(*) FROM "+tbMilestone+" WHERE repo_id=?),num_closed_milestones=(SELECT count(*) FROM "+tbMilestone+" WHERE repo_id=? AND is_closed=?) WHERE id=?",
 		repoID,
 		repoID,
 		true,
@@ -516,7 +516,7 @@ func updateRepoMilestoneNum(e Engine, repoID int64) error {
 }
 
 func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
-	if _, err = e.Exec("UPDATE "+rMilestone+" SET num_issues=(SELECT count(*) FROM "+rIssue+" WHERE milestone_id=?) WHERE id=?",
+	if _, err = e.Exec("UPDATE "+tbMilestone+" SET num_issues=(SELECT count(*) FROM "+tbIssue+" WHERE milestone_id=?) WHERE id=?",
 		milestoneID,
 		milestoneID,
 	); err != nil {
@@ -527,7 +527,7 @@ func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
 }
 
 func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
-	if _, err = e.Exec("UPDATE "+rMilestone+" SET num_closed_issues=(SELECT count(*) FROM "+rIssue+" WHERE milestone_id=? AND is_closed=?) WHERE id=?",
+	if _, err = e.Exec("UPDATE "+tbMilestone+" SET num_closed_issues=(SELECT count(*) FROM "+tbIssue+" WHERE milestone_id=? AND is_closed=?) WHERE id=?",
 		milestoneID,
 		true,
 		milestoneID,
@@ -556,10 +556,10 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
 	var trackedTimes = make(map[int64]int64, len(milestones))
 
 	// Get total tracked time by milestone_id
-	rows, err := e.Table(rIssue).
-		Join("INNER", rMilestone, rIssue+".milestone_id = "+rMilestone+".id").
-		Join("LEFT", rTrackedTime, rTrackedTime+".issue_id = "+rIssue+".id").
-		Where(rTrackedTime+".deleted = ?", false).
+	rows, err := e.Table(tbIssue).
+		Join("INNER", tbMilestone, tbIssue+".milestone_id = "+tbMilestone+".id").
+		Join("LEFT", tbTrackedTime, tbTrackedTime+".issue_id = "+tbIssue+".id").
+		Where(tbTrackedTime+".deleted = ?", false).
 		Select("milestone_id, sum(time) as time").
 		In("milestone_id", milestones.getMilestoneIDs()).
 		GroupBy("milestone_id").
@@ -591,10 +591,10 @@ func (m *Milestone) loadTotalTrackedTime(e Engine) error {
 		Time        int64
 	}
 	totalTime := &totalTimesByMilestone{MilestoneID: m.ID}
-	has, err := e.Table(rIssue).
-		Join("INNER", rMilestone, rIssue+".milestone_id = "+rMilestone+".id").
-		Join("LEFT", rTrackedTime, rTrackedTime+".issue_id = "+rIssue+".id").
-		Where(rTrackedTime+".deleted = ?", false).
+	has, err := e.Table(tbIssue).
+		Join("INNER", tbMilestone, tbIssue+".milestone_id = "+tbMilestone+".id").
+		Join("LEFT", tbTrackedTime, tbTrackedTime+".issue_id = "+tbIssue+".id").
+		Where(tbTrackedTime+".deleted = ?", false).
 		Select("milestone_id, sum(time) as time").
 		Where("milestone_id = ?", m.ID).
 		GroupBy("milestone_id").

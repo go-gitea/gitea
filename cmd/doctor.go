@@ -553,19 +553,14 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		}
 	}
 
-	var (
-		rPullRequest = models.RealTableName("pull_request")
-		rIssue       = models.RealTableName("issue")
-	)
-
 	//find pulls without existing issues
-	count, err = models.CountOrphanedObjects(rPullRequest, rIssue, rPullRequest+".issue_id="+rIssue+".id")
+	count, err = models.CountPullsWithoutExistingIssues()
 	if err != nil {
 		return nil, err
 	}
 	if count > 0 {
 		if ctx.Bool("fix") {
-			if err = models.DeleteOrphanedObjects(rPullRequest, rIssue, rPullRequest+".issue_id="+rIssue+".id"); err != nil {
+			if err = models.DeletePullsWithoutExistingIssues(); err != nil {
 				return nil, err
 			}
 			results = append(results, fmt.Sprintf("%d pull requests without existing issue deleted", count))
@@ -575,13 +570,13 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 	}
 
 	//find tracked times without existing issues/pulls
-	count, err = models.CountOrphanedObjects(models.RealTableName("tracked_time"), models.RealTableName("issue"), models.RealTableName("tracked_time")+".issue_id="+models.RealTableName("issue")+".id")
+	count, err = models.CountOrphanedTrackedTime()
 	if err != nil {
 		return nil, err
 	}
 	if count > 0 {
 		if ctx.Bool("fix") {
-			if err = models.DeleteOrphanedObjects(models.RealTableName("tracked_time"), models.RealTableName("issue"), models.RealTableName("tracked_time")+".issue_id="+models.RealTableName("issue")+".id"); err != nil {
+			if err = models.DeleteOrphanedTrackedTime(); err != nil {
 				return nil, err
 			}
 			results = append(results, fmt.Sprintf("%d tracked times without existing issue deleted", count))

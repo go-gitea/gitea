@@ -41,7 +41,7 @@ type OAuth2Application struct {
 
 // TableName sets the table name to `oauth2_application`
 func (app *OAuth2Application) TableName() string {
-	return RealTableName("oauth2_application")
+	return tbOauth2Application[1 : len(tbOauth2Application)-1]
 }
 
 // PrimaryRedirectURI returns the first redirect uri or an empty string if empty
@@ -237,8 +237,8 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 	}
 	codes := make([]*OAuth2AuthorizationCode, 0)
 	// delete correlating auth codes
-	if err := sess.Join("INNER", rOauth2Grant,
-		rOauth2AuthorizationCode+".grant_id = "+rOauth2Grant+".id AND "+rOauth2Grant+".application_id = ?", id).
+	if err := sess.Join("INNER", tbOauth2Grant,
+		tbOauth2AuthorizationCode+".grant_id = "+tbOauth2Grant+".id AND "+tbOauth2Grant+".application_id = ?", id).
 		Find(&codes); err != nil {
 		return err
 	}
@@ -300,9 +300,9 @@ type OAuth2AuthorizationCode struct {
 	ValidUntil          timeutil.TimeStamp `xorm:"index"`
 }
 
-// TableName sets the table name to `oauth2_authorization_code`
+// TableName sets the table name to `oauth2_authorization_code` with custom table name prefix
 func (code *OAuth2AuthorizationCode) TableName() string {
-	return RealTableName("oauth2_authorization_code")
+	return tbOauth2AuthorizationCode[1 : len(tbOauth2AuthorizationCode)-1]
 }
 
 // GenerateRedirectURI generates a redirect URI for a successful authorization request. State will be used if not empty.
@@ -387,7 +387,7 @@ type OAuth2Grant struct {
 
 // TableName sets the table name to `oauth2_grant`
 func (grant *OAuth2Grant) TableName() string {
-	return RealTableName("oauth2_grant")
+	return tbOauth2Grant[1 : len(tbOauth2Grant)-1]
 }
 
 // GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the databse
@@ -460,9 +460,9 @@ func getOAuth2GrantsByUserID(e Engine, uid int64) ([]*OAuth2Grant, error) {
 	var results *xorm.Rows
 	var err error
 	if results, err = e.
-		Table(rOauth2Grant).
+		Table(tbOauth2Grant).
 		Where("user_id = ?", uid).
-		Join("INNER", rOauth2Application, "application_id = "+rOauth2Application+".id").
+		Join("INNER", tbOauth2Application, "application_id = "+tbOauth2Application+".id").
 		Rows(new(joinedOAuth2Grant)); err != nil {
 		return nil, err
 	}

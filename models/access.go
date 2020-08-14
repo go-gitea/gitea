@@ -106,15 +106,15 @@ type repoAccess struct {
 }
 
 func (repoAccess) TableName() string {
-	return RealTableName("access")
+	return tbAccess[1 : len(tbAccess)-1]
 }
 
 // GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
 func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 	rows, err := x.
-		Join("INNER", rRepository, rRepository+".id = "+rAccess+".repo_id").
-		Where(rAccess+".user_id = ?", user.ID).
-		And(rRepository+".owner_id <> ?", user.ID).
+		Join("INNER", tbRepository, tbRepository+".id = "+tbAccess+".repo_id").
+		Where(tbAccess+".user_id = ?", user.ID).
+		And(tbRepository+".owner_id <> ?", user.ID).
 		Rows(new(repoAccess))
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ e
 		repos = make([]*Repository, 0, 10)
 	}
 	return repos, sess.
-		Join("INNER", rAccess, rAccess+".user_id = ? AND  "+rAccess+".repo_id = "+rRepository+".id", user.ID).
+		Join("INNER", tbAccess, tbAccess+".user_id = ? AND  "+tbAccess+".repo_id = "+tbRepository+".id", user.ID).
 		Find(&repos)
 }
 
@@ -294,11 +294,11 @@ func (repo *Repository) recalculateUserAccess(e Engine, uid int64) (err error) {
 		return err
 	} else if repo.Owner.IsOrganization() {
 		var teams []Team
-		if err := e.Join("INNER", rTeamRepo, rTeamRepo+".team_id = "+rTeam+".id").
-			Join("INNER", rTeamUser, rTeamUser+".team_id = "+rTeam+".id").
-			Where(rTeam+".org_id = ?", repo.OwnerID).
-			And(rTeamRepo+".repo_id=?", repo.ID).
-			And(rTeamUser+".uid=?", uid).
+		if err := e.Join("INNER", tbTeamRepo, tbTeamRepo+".team_id = "+tbTeam+".id").
+			Join("INNER", tbTeamUser, tbTeamUser+".team_id = "+tbTeam+".id").
+			Where(tbTeam+".org_id = ?", repo.OwnerID).
+			And(tbTeamRepo+".repo_id=?", repo.ID).
+			And(tbTeamUser+".uid=?", uid).
 			Find(&teams); err != nil {
 			return err
 		}

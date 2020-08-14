@@ -399,9 +399,9 @@ func (comments CommentList) loadAttachments(e Engine) (err error) {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.Table(rAttachment).
-			Join("INNER", rComment, rComment+".id = "+rAttachment+".comment_id").
-			In(rComment+".id", commentsIDs[:limit]).
+		rows, err := e.Table(tbAttachment).
+			Join("INNER", tbComment, tbComment+".id = "+tbAttachment+".comment_id").
+			In(tbComment+".id", commentsIDs[:limit]).
 			Rows(new(Attachment))
 		if err != nil {
 			return err
