@@ -6,7 +6,6 @@
 package archiver
 
 import (
-	"context"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,7 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
-	gitea_context "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -76,18 +75,11 @@ func (aReq *ArchiveRequest) IsComplete() bool {
 // It returns whether the archive was actually completed, as the channel could
 // have also been closed due to an error.
 func (aReq *ArchiveRequest) WaitForCompletion() bool {
-	compchan := make(chan struct{})
-	go graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
-		defer close(compchan)
-		select {
-		case <-aReq.cchan:
-		case <-ctx.Done():
-		}
-	})
+	select {
+	case <-aReq.cchan:
+	case <-graceful.GetManager().IsShutdown():
+	}
 
-	// Callback will always close compchan upon return, whether we're shutting
-	// down or not.
-	<-compchan
 	return aReq.IsComplete()
 }
 
@@ -96,20 +88,14 @@ func (aReq *ArchiveRequest) WaitForCompletion() bool {
 // now complete and whether we hit the timeout or not.  The latter may not be
 // useful if the request is complete or we started to shutdown.
 func (aReq *ArchiveRequest) TimedWaitForCompletion(dur time.Duration) (bool, bool) {
-	compchan := make(chan bool)
-	go graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
-		defer close(compchan)
-		select {
-		case <-time.After(dur):
-			compchan <- true
-		case <-aReq.cchan:
-			compchan <- false
-		case <-ctx.Done():
-			compchan <- false
-		}
-	})
+	timeout := false
+	select {
+	case <-time.After(dur):
+		timeout = true
+	case <-aReq.cchan:
+	case <-graceful.GetManager().IsShutdown():
+	}
 
-	timeout := <-compchan
 	return aReq.IsComplete(), timeout
 }
 
@@ -127,7 +113,7 @@ func getArchiveRequest(repo *git.Repository, commit *git.Commit, archiveType git
 // DeriveRequestFrom creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to ArchiveRepository()
 // if it's determined that the request still needs to be satisfied.
-func DeriveRequestFrom(ctx *gitea_context.Context, uri string) *ArchiveRequest {
+func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 	if ctx.Repo == nil || ctx.Repo.GitRepo == nil {
 		log.Trace("Repo not initialized")
 		return nil
