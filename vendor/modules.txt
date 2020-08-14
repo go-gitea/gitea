@@ -62,7 +62,7 @@ github.com/PuerkitoBio/urlesc
 # github.com/RoaringBitmap/roaring v0.4.23
 ## explicit
 github.com/RoaringBitmap/roaring
-# github.com/alecthomas/chroma v0.7.3
+# github.com/alecthomas/chroma v0.8.0
 ## explicit
 github.com/alecthomas/chroma
 github.com/alecthomas/chroma/formatters/html
@@ -93,6 +93,7 @@ github.com/alecthomas/chroma/lexers/v
 github.com/alecthomas/chroma/lexers/w
 github.com/alecthomas/chroma/lexers/x
 github.com/alecthomas/chroma/lexers/y
+github.com/alecthomas/chroma/lexers/z
 github.com/alecthomas/chroma/styles
 # github.com/andybalholm/brotli v0.0.0-20190621154722-5f990b63d2d6
 github.com/andybalholm/brotli
@@ -400,9 +401,9 @@ github.com/golang/gddo/httputil/header
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
-# github.com/google/go-github/v24 v24.0.1
+# github.com/google/go-github/v32 v32.1.0
 ## explicit
-github.com/google/go-github/v24/github
+github.com/google/go-github/v32/github
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
 # github.com/google/uuid v1.1.1
@@ -714,7 +715,7 @@ github.com/xi2/xz
 # github.com/yohcop/openid-go v1.0.0
 ## explicit
 github.com/yohcop/openid-go
-# github.com/yuin/goldmark v1.1.32
+# github.com/yuin/goldmark v1.2.1
 ## explicit
 github.com/yuin/goldmark
 github.com/yuin/goldmark/ast
@@ -740,7 +741,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
+# golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 ## explicit
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
