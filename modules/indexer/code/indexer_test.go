@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -74,10 +75,9 @@ func testIndexer(name string, t *testing.T, indexer Indexer) {
 					assert.EqualValues(t, "# repo1\n\nDescription for repo1", hit.Content)
 				}
 				assert.EqualValues(t, kw.IDs, ids)
-
 			})
 		}
 
-		//indexer.Delete(repoID)
+		assert.NoError(t, indexer.Delete(repoID))
 	})
 }

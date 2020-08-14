@@ -176,7 +176,7 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
 		return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
 	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
-		return b.addDelete(update.Filename, repo)
+		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
 	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
@@ -204,13 +204,11 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 	}, nil
 }
 
-func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repository) ([]elastic.BulkableRequest, error) {
+func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repository) elastic.BulkableRequest {
 	id := filenameIndexerID(repo.ID, filename)
-	return []elastic.BulkableRequest{
-		elastic.NewBulkDeleteRequest().
-			Index(b.indexerAliasName).
-			Id(id),
-	}, nil
+	return elastic.NewBulkDeleteRequest().
+		Index(b.indexerAliasName).
+		Id(id)
 }
 
 // Index will save the index data
@@ -227,13 +225,7 @@ func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, change
 	}
 
 	for _, filename := range changes.RemovedFilenames {
-		delReqs, err := b.addDelete(filename, repo)
-		if err != nil {
-			return err
-		}
-		if len(delReqs) > 0 {
-			reqs = append(reqs, delReqs...)
-		}
+		reqs = append(reqs, b.addDelete(filename, repo))
 	}
 
 	if len(reqs) > 0 {
