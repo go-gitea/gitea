@@ -119,13 +119,16 @@ func (h *mySQL) afterLoad(q queryable) error {
 }
 
 func (h *mySQL) getChecksum(q queryable, tableName string) (int64, error) {
-	sql := fmt.Sprintf("CHECKSUM TABLE %s", h.quoteKeyword(tableName))
+	query := fmt.Sprintf("CHECKSUM TABLE %s", h.quoteKeyword(tableName))
 	var (
 		table    string
-		checksum int64
+		checksum sql.NullInt64
 	)
-	if err := q.QueryRow(sql).Scan(&table, &checksum); err != nil {
+	if err := q.QueryRow(query).Scan(&table, &checksum); err != nil {
 		return 0, err
 	}
-	return checksum, nil
+	if !checksum.Valid {
+		return 0, fmt.Errorf("testfixtures: table %s does not exist", tableName)
+	}
+	return checksum.Int64, nil
 }
