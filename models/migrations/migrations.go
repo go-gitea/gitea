@@ -453,20 +453,16 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			tableName, strings.Replace(cols, "`", "'", -1))
 		constraints := make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
-			sess.Rollback()
 			return fmt.Errorf("Find constraints: %v", err)
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
-				sess.Rollback()
 				return fmt.Errorf("Drop table `%s` constraint `%s`: %v", tableName, constraint, err)
 			}
 		}
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
-			sess.Rollback()
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-		return sess.Commit()
 	default:
 		log.Fatal("Unrecognized DB")
 	}

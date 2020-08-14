@@ -7,12 +7,12 @@ package models
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 	"xorm.io/builder"
@@ -305,14 +305,14 @@ func deleteOrg(e *xorm.Session, u *User) error {
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
 
-	if err := os.RemoveAll(path); err != nil {
+	if err := util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarPath()
 		if com.IsExist(avatarPath) {
-			if err := os.Remove(avatarPath); err != nil {
+			if err := util.Remove(avatarPath); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 			}
 		}

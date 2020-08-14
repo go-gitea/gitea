@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	gouuid "github.com/google/uuid"
 	"xorm.io/xorm"
@@ -237,7 +238,7 @@ func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
 
 	if remove {
 		for i, a := range attachments {
-			if err := os.Remove(a.LocalPath()); err != nil {
+			if err := util.Remove(a.LocalPath()); err != nil {
 				return i, err
 			}
 		}

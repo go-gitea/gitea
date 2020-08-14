@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"xorm.io/builder"
 
 	"github.com/urfave/cli"
@@ -312,7 +313,7 @@ func runDoctorWritableDir(path string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(tmpFile.Name()); err != nil {
+	if err := util.Remove(tmpFile.Name()); err != nil {
 		fmt.Printf("Warning: can't remove temporary file: '%s'\n", tmpFile.Name())
 	}
 	tmpFile.Close()
