@@ -45,7 +45,7 @@ require (
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/go-swagger/go-swagger v0.21.0
-	github.com/go-testfixtures/testfixtures/v3 v3.2.0
+	github.com/go-testfixtures/testfixtures/v3 v3.4.0
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
@@ -68,7 +68,7 @@ require (
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/markbates/goth v1.61.2
 	github.com/mattn/go-isatty v0.0.12
-	github.com/mattn/go-sqlite3 v2.0.2+incompatible
+	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 	github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 	github.com/mgechev/revive v1.0.2
@@ -90,7 +90,7 @@ require (
 	github.com/sergi/go-diff v1.1.0
 	github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	github.com/tstranex/u2f v1.0.0

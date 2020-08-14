@@ -372,7 +372,7 @@ github.com/go-swagger/go-swagger/cmd/swagger/commands/initcmd
 github.com/go-swagger/go-swagger/codescan
 github.com/go-swagger/go-swagger/generator
 github.com/go-swagger/go-swagger/scan
-# github.com/go-testfixtures/testfixtures/v3 v3.2.0
+# github.com/go-testfixtures/testfixtures/v3 v3.4.0
 ## explicit
 github.com/go-testfixtures/testfixtures/v3
 # github.com/gobwas/glob v0.2.3
@@ -543,7 +543,7 @@ github.com/mattn/go-colorable
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.7
 github.com/mattn/go-runewidth
-# github.com/mattn/go-sqlite3 v2.0.2+incompatible
+# github.com/mattn/go-sqlite3 v1.14.0
 ## explicit
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -659,7 +659,7 @@ github.com/spf13/pflag
 github.com/spf13/viper
 # github.com/steveyen/gtreap v0.1.0
 github.com/steveyen/gtreap
-# github.com/stretchr/testify v1.4.0
+# github.com/stretchr/testify v1.5.1
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
