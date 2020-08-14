@@ -2,13 +2,16 @@
 @import "./codemirror-dark.less";
 
 @primary-color: #4f8cc9;
-@body-bg-color: #202020;
+@body-bg-color: #1e1e1e;
+@segment-bg-color: #181818;
+@form-bg-color: #141414;
 
 body {
     background: @body-bg-color;
 }
 
-::selection {
+::selection,
+.CodeMirror .CodeMirror-selected {
     background-color: @primary-color !important;
     color: #fff !important;
 }
@@ -18,12 +21,8 @@ body {
     opacity: 1 !important;
 }
 
-.active.item {
+.navbar .active.item {
     background: @body-bg-color !important;
-}
-
-.ui.header {
-    background: none !important;
 }
 
 .ui.popup,
@@ -47,20 +46,47 @@ body {
     filter: invert(84%) hue-rotate(180deg);
 }
 
-.following.bar,
 .ui.segment,
 .ui.segments,
 .ui.menu,
-.ui.dropdown .menu {
+.ui.dropdown .menu,
+.following.bar {
     box-shadow: none !important;
+}
+
+.ui.header,
+.ui.vertical.menu,
+.dropzone,
+.dropzone .dz-preview.dz-image-preview,
+.CodeMirror,
+.repos-filter .item.active {
+    background: none !important;
+}
+
+.ui.basic.buttons {
+    border: none !important;
 }
 
 .vue-tooltip-theme.tooltip .tooltip-arrow {
     border-color: rgba(0, 0, 0, .7) !important;
 }
 
-.dropzone,
-.dropzone .dz-preview.dz-image-preview,
-.CodeMirror {
-    background: none !important;
+.ui.segment {
+    background: @segment-bg-color;
+}
+
+.ui.form input,
+.ui.form select,
+.ui.form textarea,
+.ui.input textarea {
+    background: @form-bg-color !important;
+}
+
+.ui.black.labels .label,
+.ui.ui.ui.black.label {
+    color: #333;
+}
+
+.editor-toolbar a {
+    color: #aaa !important;
 }

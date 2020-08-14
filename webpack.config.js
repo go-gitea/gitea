@@ -329,7 +329,7 @@ module.exports = {
           });
 
           compilation.hooks.afterOptimizeChunkAssets.tap('ThemeBuild', () => {
-            if (!css) return;
+            if (!css || !compilation.assets['css/theme-gitea-dark.css']) return;
 
             compilation.updateAsset('css/theme-gitea-dark.css', (old) => {
               return new ConcatSource(css, old);

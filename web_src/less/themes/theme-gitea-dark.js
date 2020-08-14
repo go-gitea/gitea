@@ -3,6 +3,7 @@
 
 module.exports.ignoreSelectors = [
   /^chroma/,
+  /^.ui.inverted/,
 ];
 
 module.exports.mappings = {
@@ -11,9 +12,12 @@ module.exports.mappings = {
   '$color: rgba(0,0,0,.87)': 'rgba(255,255,255,.87)',
   '$color: rgba(0,0,0,.85)': 'rgba(255,255,255,.85)',
   '$color: rgba(0,0,0,.8)': 'rgba(255,255,255,.8)',
+  '$color: rgba(0,0,0,.7)': 'rgba(255,255,255,.7)',
   '$color: rgba(0,0,0,.6)': 'rgba(255,255,255,.6)',
   '$color: rgba(0,0,0,.5)': 'rgba(255,255,255,.5)',
   '$color: rgba(0,0,0,.4)': 'rgba(255,255,255,.4)',
+  '$color: rgba(0,0,0,.3)': 'rgba(255,255,255,.3)',
+  '$color: rgba(0,0,0,.2)': 'rgba(255,255,255,.2)',
   '$color: rgba(0,0,0,.15)': 'rgba(255,255,255,.15)',
   '$color: rgba(0,0,0,.05)': 'rgba(255,255,255,.05)',
   '$color: rgba(0,0,0,.04);': 'rgba(255,255,255,.04)',
@@ -25,9 +29,10 @@ module.exports.mappings = {
   '$color: hsla(0,0%,86.3%,.35)': 'hsla(0,0%,15%,.35)',
   '$color: hsla(0,0%,100%,.65)': '#aaa',
   '$color: hsla(0,0%,100%,.5)': '#888',
-  '$color: rgba(40,40,40,.3)': '#888',
+  '$color: rgba(40,40,40,.3)': 'rgba(215,215,215)',
 
   '$color: #000000': '#eee',
+  '$color: #1b1c1d': '#ddd',
   '$color: #303030': '#ccc',
   '$color: #333333': '#ccc',
   '$color: #404040': '#a0a0a0',
@@ -35,8 +40,8 @@ module.exports.mappings = {
   '$color: #464646': '#bbb',
   '$color: #575a68': '#909090',
   '$color: #666666': '#808080',
-  '$color: #767676': '#787878',
-  '$color: #838383': '#747474',
+  '$color: #767676': '#757575',
+  '$color: #838383': '#707070',
   '$color: #888888': '#707070',
   '$color: #95a5a6': '#666',
   '$color: #999999': '#666',
@@ -64,6 +69,7 @@ module.exports.mappings = {
   '$color: #f3f3f3': '#2a2a2a',
   '$color: #f3f4f5': '#282828',
   '$color: #f5f5f5': '#262626',
+  '$color: #f6f8fa': '#262626',
   '$color: #f7f7f7': '#242424',
   '$color: #f8f8f9': '#232323',
   '$color: #f9fafb': '#222222',
@@ -121,6 +127,7 @@ module.exports.mappings = {
   '$color: #dd1144': '#d82828',
   '$color: #db2828': '#d82828',
   '$color: #d01919': '#911',
+  '$color: #9f3a38': '#d82828',
   '$color: #d95c5c': '#d82828',
   '$color: #ff9999': '#622', /* diff remove word */
   '$color: #e0b4b4': '#d82828',
@@ -146,6 +153,10 @@ module.exports.mappings = {
 
   /* purple */
   '$color: #a333c8': '#73589a',
+
+  /* orange */
+  '$color: #f2711c': '#fb8532',
+  '$color: #ffedde': '#320',
 
   /* other stuff */
   '$background: #ffffee': 'rgba(255,255,255,.075)', /* file row hover */
