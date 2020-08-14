@@ -215,7 +215,6 @@ func addTraceMapping(connHandle uintptr, traceConf TraceConfig) {
 			traceConf, connHandle, oldEntryCopy.config))
 	}
 	traceMap[connHandle] = traceMapEntry{config: traceConf}
-	fmt.Printf("Added trace config %v: handle 0x%x.\n", traceConf, connHandle)
 }
 
 func lookupTraceMapping(connHandle uintptr) (TraceConfig, bool) {
@@ -234,7 +233,6 @@ func popTraceMapping(connHandle uintptr) (TraceConfig, bool) {
 	entryCopy, found := traceMap[connHandle]
 	if found {
 		delete(traceMap, connHandle)
-		fmt.Printf("Pop handle 0x%x: deleted trace config %v.\n", connHandle, entryCopy.config)
 	}
 	return entryCopy.config, found
 }
