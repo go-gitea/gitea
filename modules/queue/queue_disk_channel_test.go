@@ -7,10 +7,10 @@ package queue
 import (
 	"context"
 	"io/ioutil"
-	"os"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,7 +29,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 
 	tmpDir, err := ioutil.TempDir("", "persistable-channel-queue-test-data")
 	assert.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer util.RemoveAll(tmpDir)
 
 	queue, err := NewPersistableChannelQueue(handle, PersistableChannelQueueConfiguration{
 		DataDir:     tmpDir,
