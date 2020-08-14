@@ -7,6 +7,8 @@ go-sqlite3
 [![Coverage Status](https://coveralls.io/repos/mattn/go-sqlite3/badge.svg?branch=master)](https://coveralls.io/r/mattn/go-sqlite3?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mattn/go-sqlite3)](https://goreportcard.com/report/github.com/mattn/go-sqlite3)
 
+**NOTE:** The increase to v2 was an accident. There were no major changes or features.
+
 # Description
 
 sqlite3 driver conforming to the built-in database/sql interface
@@ -210,9 +212,15 @@ This library can be cross-compiled.
 
 In some cases you are required to the `CC` environment variable with the cross compiler.
 
-Additional information:
-- [#491](https://github.com/mattn/go-sqlite3/issues/491)
-- [#560](https://github.com/mattn/go-sqlite3/issues/560)
+## Cross Compiling from MAC OSX
+The simplest way to cross compile from OSX is to use [xgo](https://github.com/karalabe/xgo).
+
+Steps:
+- Install [xgo](https://github.com/karalabe/xgo) (`go get github.com/karalabe/xgo`).
+- Ensure that your project is within your `GOPATH`.
+- Run `xgo local/path/to/project`.
+
+Please refer to the project's [README](https://github.com/karalabe/xgo/blob/master/README.md) for further information.
 
 # Google Cloud Platform
 
@@ -450,6 +458,16 @@ If you want your own extension to be listed here or you want to add a reference 
 
 Spatialite is available as an extension to SQLite, and can be used in combination with this repository.
 For an example see [shaxbee/go-spatialite](https://github.com/shaxbee/go-spatialite).
+
+## extension-functions.c from SQLite3 Contrib
+
+extension-functions.c is available as an extension to SQLite, and provides the following functions:
+
+- Math: acos, asin, atan, atn2, atan2, acosh, asinh, atanh, difference, degrees, radians, cos, sin, tan, cot, cosh, sinh, tanh, coth, exp, log, log10, power, sign, sqrt, square, ceil, floor, pi.
+- String: replicate, charindex, leftstr, rightstr, ltrim, rtrim, trim, replace, reverse, proper, padl, padr, padc, strfilter.
+- Aggregate: stdev, variance, mode, median, lower_quartile, upper_quartile
+
+For an example see [dinedal/go-sqlite3-extension-functions](https://github.com/dinedal/go-sqlite3-extension-functions).
 
 # FAQ
 
