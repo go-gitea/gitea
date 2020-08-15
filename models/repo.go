@@ -17,6 +17,7 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"path"
@@ -969,12 +970,21 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	}
 
 	cl := new(CloneLink)
+
+	// if we have a ipv6 literal we need to put brackets around it
+	// for the git cloning to work.
+	sshDomain := setting.SSH.Domain
+	ip := net.ParseIP(setting.SSH.Domain)
+	if ip != nil && ip.To4() == nil {
+		sshDomain = "[" + setting.SSH.Domain + "]"
+	}
+
 	if setting.SSH.Port != 22 {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", sshUser, setting.SSH.Domain, setting.SSH.Port, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), repo.OwnerName, repoName)
 	} else if setting.Repository.UseCompatSSHURI {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, setting.SSH.Domain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
 	} else {
-		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, setting.SSH.Domain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
 	}
 	cl.HTTPS = ComposeHTTPSCloneURL(repo.OwnerName, repoName)
 	return cl
@@ -1430,7 +1440,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
 		if repo.IsPrivate && com.IsExist(daemonExportFile) {
-			if err = os.Remove(daemonExportFile); err != nil {
+			if err = util.Remove(daemonExportFile); err != nil {
 				log.Error("Failed to remove %s: %v", daemonExportFile, err)
 			}
 		} else if !repo.IsPrivate && !com.IsExist(daemonExportFile) {
@@ -1698,7 +1708,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if len(repo.Avatar) > 0 {
 		avatarPath := repo.CustomAvatarPath()
 		if com.IsExist(avatarPath) {
-			if err := os.Remove(avatarPath); err != nil {
+			if err := util.Remove(avatarPath); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 			}
 		}
@@ -1842,7 +1852,7 @@ func DeleteRepositoryArchives(ctx context.Context) error {
 					return ErrCancelledf("before deleting repository archives for %s", repo.FullName())
 				default:
 				}
-				return os.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
+				return util.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
 			})
 }
 
@@ -1901,7 +1911,7 @@ func deleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration, i
 				}
 				toDelete := filepath.Join(path, info.Name())
 				// This is a best-effort purge, so we do not check error codes to confirm removal.
-				if err = os.Remove(toDelete); err != nil {
+				if err = util.Remove(toDelete); err != nil {
 					log.Trace("Unable to delete %s, but proceeding: %v", toDelete, err)
 				}
 			}
@@ -2270,7 +2280,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 	}
 
 	if len(oldAvatarPath) > 0 && oldAvatarPath != repo.CustomAvatarPath() {
-		if err := os.Remove(oldAvatarPath); err != nil {
+		if err := util.Remove(oldAvatarPath); err != nil {
 			return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %v", oldAvatarPath, err)
 		}
 	}
@@ -2301,7 +2311,7 @@ func (repo *Repository) DeleteAvatar() error {
 	}
 
 	if _, err := os.Stat(avatarPath); err == nil {
-		if err := os.Remove(avatarPath); err != nil {
+		if err := util.Remove(avatarPath); err != nil {
 			return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
 		}
 	} else {

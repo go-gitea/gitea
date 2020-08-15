@@ -21,12 +21,11 @@ IMPORT := code.gitea.io/gitea
 export GO111MODULE=on
 
 GO ?= go
-SED_INPLACE := sed -i
 SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.14.x
+XGO_VERSION := go-1.15.x
 MIN_GO_VERSION := 001012000
 MIN_NODE_VERSION := 010013000
 
@@ -42,18 +41,16 @@ ifeq ($(HAS_GO), GO)
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
 endif
 
-
 ifeq ($(OS), Windows_NT)
 	EXECUTABLE ?= gitea.exe
 else
 	EXECUTABLE ?= gitea
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Darwin)
-		SED_INPLACE := sed -i ''
-	endif
-	ifeq ($(UNAME_S),FreeBSD)
-		SED_INPLACE := sed -i ''
-	endif
+endif
+
+ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
+	SED_INPLACE := sed -i
+else
+	SED_INPLACE := sed -i ''
 endif
 
 GOFMT ?= gofmt -s
@@ -99,12 +96,14 @@ FOMANTIC_DEST_DIR := web_src/fomantic/build
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f) $(FOMANTIC_DEST)
 WEBPACK_CONFIGS := webpack.config.js
 WEBPACK_DEST := public/js/index.js public/css/index.css
-WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/serviceworker.js
+WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack public/serviceworker.js
 
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
 SVG_DEST_DIR := public/img/svg
+
+AIR_TMP_DIR := .air
 
 TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
@@ -161,6 +160,7 @@ help:
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
 	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
+	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -305,6 +305,13 @@ lint-frontend: node_modules svg-check
 watch-frontend: node-check $(FOMANTIC_DEST) node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
+
+.PHONY: watch-backend
+watch-backend: go-check
+	@hash air > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		GO111MODULE=off $(GO) get -u github.com/cosmtrek/air; \
+	fi
+	air -c .air.conf
 
 .PHONY: test
 test:
@@ -536,7 +543,8 @@ release-windows: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	@echo "Warning: windows version is built using golang 1.14"
+	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go go-1.14.x -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -579,7 +587,7 @@ release-compress: | $(DIST_DIRS)
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS) node_modules
 	echo $(VERSION) > $(STORED_VERSION_FILE)
-	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache --exclude=./$(AIR_TMP_DIR) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: release-docs
@@ -602,6 +610,7 @@ npm-update: node-check | node_modules
 	npx updates -cu
 	rm -rf node_modules package-lock.json
 	npm install --package-lock
+	@touch node_modules
 
 .PHONY: fomantic
 fomantic: $(FOMANTIC_DEST)
@@ -628,9 +637,10 @@ svg: node-check | node_modules
 
 .PHONY: svg-check
 svg-check: svg
-	@diff=$$(git diff $(SVG_DEST_DIR)); \
+	@git add $(SVG_DEST_DIR)
+	@diff=$$(git diff --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and commit the result:"; \
+		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
@@ -647,34 +657,8 @@ update-translations:
 
 .PHONY: generate-images
 generate-images:
-	$(eval TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp'))
-	mkdir -p $(TMPDIR)/images
-	inkscape -f $(PWD)/assets/logo.svg -w 880 -h 880 -e $(PWD)/public/img/gitea-lg.png
-	inkscape -f $(PWD)/assets/logo.svg -w 512 -h 512 -e $(PWD)/public/img/gitea-512.png
-	inkscape -f $(PWD)/assets/logo.svg -w 192 -h 192 -e $(PWD)/public/img/gitea-192.png
-	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer1 -e $(TMPDIR)/images/sm-1.png
-	inkscape -f $(PWD)/assets/logo.svg -w 120 -h 120 -jC -i layer2 -e $(TMPDIR)/images/sm-2.png
-	composite -compose atop $(TMPDIR)/images/sm-2.png $(TMPDIR)/images/sm-1.png $(PWD)/public/img/gitea-sm.png
-	inkscape -f $(PWD)/assets/logo.svg -w 200 -h 200 -e $(PWD)/public/img/avatar_default.png
-	inkscape -f $(PWD)/assets/logo.svg -w 180 -h 180 -e $(PWD)/public/img/favicon.png
-	inkscape -f $(PWD)/assets/logo.svg -w 128 -h 128 -e $(TMPDIR)/images/128-raw.png
-	inkscape -f $(PWD)/assets/logo.svg -w 64 -h 64 -e $(TMPDIR)/images/64-raw.png
-	inkscape -f $(PWD)/assets/logo.svg -w 32 -h 32 -jC -i layer1 -e $(TMPDIR)/images/32-1.png
-	inkscape -f $(PWD)/assets/logo.svg -w 32 -h 32 -jC -i layer2 -e $(TMPDIR)/images/32-2.png
-	composite -compose atop $(TMPDIR)/images/32-2.png $(TMPDIR)/images/32-1.png $(TMPDIR)/images/32-raw.png
-	inkscape -f $(PWD)/assets/logo.svg -w 16 -h 16 -jC -i layer1 -e $(TMPDIR)/images/16-raw.png
-	zopflipng -m -y $(TMPDIR)/images/128-raw.png $(TMPDIR)/images/128.png
-	zopflipng -m -y $(TMPDIR)/images/64-raw.png $(TMPDIR)/images/64.png
-	zopflipng -m -y $(TMPDIR)/images/32-raw.png $(TMPDIR)/images/32.png
-	zopflipng -m -y $(TMPDIR)/images/16-raw.png $(TMPDIR)/images/16.png
-	rm -f $(TMPDIR)/images/*-*.png
-	convert $(TMPDIR)/images/16.png $(TMPDIR)/images/32.png \
-					$(TMPDIR)/images/64.png $(TMPDIR)/images/128.png \
-					$(PWD)/public/img/favicon.ico
-	convert -flatten $(PWD)/public/img/favicon.png $(PWD)/public/img/apple-touch-icon.png
-
-	rm -rf $(TMPDIR)/images
-	$(foreach file, $(shell find public/img -type f -name '*.png' ! -name 'loading.png'),zopflipng -m -y $(file) $(file);)
+	npm install --no-save --no-package-lock xmldom fabric imagemin-zopfli
+	node build/generate-images.js
 
 .PHONY: pr\#%
 pr\#%: clean-all

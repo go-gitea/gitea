@@ -6165,6 +6165,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filter by milestone name",
+            "name": "name",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -7275,6 +7281,59 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}/update": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Merge PR's baseBranch into headBranch",
+        "operationId": "repoUpdatePullRequest",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request to get",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -15545,6 +15604,12 @@
       "name": "sudo",
       "in": "query"
     },
+    "TOTPHeader": {
+      "description": "Must be used in combination with BasicAuth if two-factor authentication is enabled.",
+      "type": "apiKey",
+      "name": "X-GITEA-OTP",
+      "in": "header"
+    },
     "Token": {
       "type": "apiKey",
       "name": "token",
@@ -15569,6 +15634,9 @@
     },
     {
       "SudoHeader": []
+    },
+    {
+      "TOTPHeader": []
     }
   ]
 }

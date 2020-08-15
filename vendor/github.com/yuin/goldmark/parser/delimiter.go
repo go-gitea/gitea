@@ -3,7 +3,6 @@ package parser
 import (
 	"fmt"
 	"strings"
-	"unicode"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
@@ -128,10 +127,10 @@ func ScanDelimiter(line []byte, before rune, min int, processor DelimiterProcess
 		}
 
 		canOpen, canClose := false, false
-		beforeIsPunctuation := unicode.IsPunct(before)
-		beforeIsWhitespace := unicode.IsSpace(before)
-		afterIsPunctuation := unicode.IsPunct(after)
-		afterIsWhitespace := unicode.IsSpace(after)
+		beforeIsPunctuation := util.IsPunctRune(before)
+		beforeIsWhitespace := util.IsSpaceRune(before)
+		afterIsPunctuation := util.IsPunctRune(after)
+		afterIsWhitespace := util.IsSpaceRune(after)
 
 		isLeft := !afterIsWhitespace &&
 			(!afterIsPunctuation || beforeIsWhitespace || beforeIsPunctuation)

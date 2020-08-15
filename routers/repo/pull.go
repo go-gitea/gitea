@@ -666,7 +666,7 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.HTML(200, tplPullFiles)
 }
 
-// UpdatePullRequest merge master into PR
+// UpdatePullRequest merge PR's baseBranch into headBranch
 func UpdatePullRequest(ctx *context.Context) {
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
@@ -715,6 +715,7 @@ func UpdatePullRequest(ctx *context.Context) {
 		}
 		ctx.Flash.Error(err.Error())
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		return
 	}
 
 	time.Sleep(1 * time.Second)

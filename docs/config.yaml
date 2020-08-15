@@ -20,7 +20,7 @@ params:
   website: https://docs.gitea.io
   version: 1.12.2
   minGoVersion: 1.12
-  goVersion: 1.14
+  goVersion: 1.15
   minNodeVersion: 10.13
 
 outputs:

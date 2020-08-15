@@ -15,6 +15,7 @@ var Go = internal.Register(MustNewLexer(
 		Aliases:   []string{"go", "golang"},
 		Filenames: []string{"*.go"},
 		MimeTypes: []string{"text/x-gosrc"},
+		EnsureNL:  true,
 	},
 	Rules{
 		"root": {
