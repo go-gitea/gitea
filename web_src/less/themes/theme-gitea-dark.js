@@ -66,6 +66,7 @@ module.exports.mappings = {
   '$color: #e0e1e2': 'var(--mono-color-25)',
   '$color: #e8e8e8': 'var(--mono-color-25)',
   '$color: #eaeaea': 'var(--mono-color-23)',
+  '$color: #eaecef': 'var(--mono-color-23)',
   '$color: #ebebeb': 'var(--mono-color-23)',
   '$color: #eeeeee': 'var(--mono-color-20)',
   '$color: #f0f0f0': 'var(--mono-color-17)',

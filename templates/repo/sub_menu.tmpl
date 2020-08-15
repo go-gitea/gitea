@@ -1,4 +1,4 @@
-<div class="ui segments repository-summary">
+<div class="ui segments repository-summary{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats }} repository-summary-language-stats{{end}}">
 	<div class="ui segment sub-menu repository-menu">
 		<div class="ui two horizontal center link list">
 			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
