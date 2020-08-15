@@ -77,7 +77,7 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bo
 	}
 	exists, err := indexer.init()
 
-	return indexer, exists, err
+	return indexer, !exists, err
 }
 
 const (

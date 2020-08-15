@@ -87,7 +87,11 @@ func Init() {
 	waitChannel := make(chan time.Duration)
 	go func() {
 		start := time.Now()
-		var populate bool
+		var (
+			rIndexer Indexer
+			populate bool
+			err      error
+		)
 		switch setting.Indexer.RepoType {
 		case "bleve":
 			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoPath)
@@ -99,18 +103,16 @@ func Init() {
 				}
 			}()
 
-			bleveIndexer, created, err := NewBleveIndexer(setting.Indexer.RepoPath)
+			rIndexer, populate, err = NewBleveIndexer(setting.Indexer.RepoPath)
 			if err != nil {
-				if bleveIndexer != nil {
-					bleveIndexer.Close()
+				if rIndexer != nil {
+					rIndexer.Close()
 				}
 				cancel()
 				indexer.Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to initialize the bleve Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
 			}
-			populate = created
-			indexer.set(bleveIndexer)
 		case "elasticsearch":
 			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoConnStr)
 			defer func() {
@@ -121,21 +123,21 @@ func Init() {
 				}
 			}()
 
-			esIndexer, exists, err := NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
+			rIndexer, populate, err = NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
-				if esIndexer != nil {
-					esIndexer.Close()
+				if rIndexer != nil {
+					rIndexer.Close()
 				}
 				cancel()
 				indexer.Close()
 				close(waitChannel)
 				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
 			}
-			populate = !exists
-			indexer.set(esIndexer)
 		default:
-			log.Fatal("PID: %d Unknow Indexer type: %s", os.Getpid(), setting.Indexer.RepoType)
+			log.Fatal("PID: %d Unknown Indexer type: %s", os.Getpid(), setting.Indexer.RepoType)
 		}
+
+		indexer.set(rIndexer)
 
 		go processRepoIndexerOperationQueue(indexer)
 
