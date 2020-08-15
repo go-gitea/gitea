@@ -1,46 +1,85 @@
 @import "./chroma-dark.less";
 @import "./codemirror-dark.less";
 
-@primary-color: #4f8cc9;
-@body-bg-color: #1e1e1e;
-@segment-bg-color: #181818;
-@form-bg-color: #141414;
+:root {
+    --primary-color: #4f8cc9;
+    --primary-color-dark-1: #3b7dbf;
+    --primary-color-dark-2: #3673af;
+    --primary-color-dark-3: #2f6398;
+    --primary-color-dark-4: #254f79;
+    --primary-color-dark-5: #1e4061;
+    --primary-color-dark-6: #0f2132;
+    --primary-color-light-1: #669bd0;
+    --primary-color-light-2: #76a6d5;
+    --primary-color-light-3: #8db5dc;
+    --primary-color-light-4: #adc9e6;
+    --primary-color-light-5: #c4d9ed;
+    --primary-color-light-6: #f3f7fb;
+
+    --mono-color-7: #141414;
+    --mono-color-9: #181818;
+    --mono-color-10: #1b1b1b;
+    --mono-color-14: #242424;
+    --mono-color-15: #282828;
+    --mono-color-20: #333333;
+    --mono-color-40: #666666;
+    --mono-color-70: #aaaaaa;
+    --mono-color-100: #ffffff;
+
+    --mono-color-0-alpha-20: rgba(0, 0, 0, .2);
+    --mono-color-0-alpha-40: rgba(0, 0, 0, .4);
+}
 
 body {
-    background: @body-bg-color;
+    background: var(--mono-color-10);
+}
+
+/* code background */
+.chroma,
+.CodeMirror-code {
+    background: var(--mono-color-7);
+}
+
+.markdown .chroma {
+    background: none;
+}
+
+.markdown:not(code) code,
+.markdown:not(code) tt {
+    background: var(--mono-color-15) !important;
 }
 
 ::selection,
 .CodeMirror .CodeMirror-selected {
-    background-color: @primary-color !important;
-    color: #fff !important;
+    background-color: var(--primary-color) !important;
+    color: var(--mono-color-100) !important;
 }
 
 ::placeholder {
-    color: #666 !important;
+    color: var(--mono-color-40) !important;
     opacity: 1 !important;
 }
 
 .navbar .active.item {
-    background: @body-bg-color !important;
+    background: var(--mono-color-10) !important;
 }
 
 .ui.popup,
 .ui.floating.dropdown .menu {
-    box-shadow: 0 .25rem .5rem rgba(0, 0, 0, .2) !important;
+    box-shadow: 0 .25rem .5rem var(--mono-color-0-alpha-40) !important;
 }
 
 .repository .header-wrapper {
-    background: rgba(0, 0, 0, .2) !important;
+    background: var(--mono-color-0-alpha-20) !important;
 }
 
 /* heatmap */
-[style*="fill: rgb(244, 244, 244)"] { fill: #282828 !important; }
-[style*="fill: rgb(216, 239, 191)"] { fill: darken(@primary-color, 32%) !important; }
-[style*="fill: rgb(159, 219, 129)"] { fill: darken(@primary-color, 24%) !important; }
-[style*="fill: rgb(102, 199, 75)"] { fill: darken(@primary-color, 16%) !important; }
-[style*="fill: rgb(96, 153, 38)"] { fill: darken(@primary-color, 8%) !important; }
-[style*="fill: rgb(2, 89, 0)"] { fill: @primary-color !important; }
+[style*="fill: rgb(244, 244, 244)"] { fill: var(--mono-color-15) !important; }
+[style*="fill: rgb(216, 239, 191)"] { fill: var(--primary-color-dark-4) !important; }
+[style*="fill: rgb(159, 219, 129)"] { fill: var(--primary-color-dark-3) !important; }
+[style*="fill: rgb(102, 199, 75)"] { fill: var(--primary-color-dark-2) !important; }
+[style*="fill: rgb(96, 153, 38)"] { fill: var(--primary-color-dark-1) !important; }
+[style*="fill: rgb(2, 89, 0)"] { fill: var(--primary-color) !important; }
 
 .mermaid-chart {
     filter: invert(84%) hue-rotate(180deg);
@@ -59,7 +98,9 @@ body {
 .dropzone,
 .dropzone .dz-preview.dz-image-preview,
 .CodeMirror,
-.repos-filter .item.active {
+.explore .menu .item.active,
+.repos-filter .item.active,
+.feeds .list ul li.private {
     background: none !important;
 }
 
@@ -67,26 +108,31 @@ body {
     border: none !important;
 }
 
-.vue-tooltip-theme.tooltip .tooltip-arrow {
-    border-color: rgba(0, 0, 0, .7) !important;
-}
-
-.ui.segment {
-    background: @segment-bg-color;
+.ui.segment,
+.ui.table {
+    background: var(--mono-color-9);
 }
 
 .ui.form input,
 .ui.form select,
 .ui.form textarea,
 .ui.input textarea {
-    background: @form-bg-color !important;
+    background: var(--mono-color-7) !important;
 }
 
 .ui.black.labels .label,
 .ui.ui.ui.black.label {
-    color: #333;
+    color: var(--mono-color-20);
 }
 
 .editor-toolbar a {
-    color: #aaa !important;
+    color: var(--mono-color-70) !important;
+}
+
+.repository .milestone.list > .item .ui.progress {
+    border: 1px solid var(--mono-color-20);
+}
+
+.repository .diff-detail-box.sticky {
+    background: var(--mono-color-10);
 }

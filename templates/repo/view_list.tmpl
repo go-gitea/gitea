@@ -30,7 +30,7 @@
 				{{end}}
 				</span>
 			</th>
-			<th class="text grey right age">{{if .LatestCommit.Author}}{{TimeSince .LatestCommit.Author.When $.Lang}}{{end}}</th>
+			<th class="text right age">{{if .LatestCommit.Author}}{{TimeSince .LatestCommit.Author.When $.Lang}}{{end}}</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -81,7 +81,11 @@
 						<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>
 					</span>
 				</td>
-				<td class="text right age three wide">{{TimeSince $commit.Committer.When $.Lang}}</td>
+				<td class="text right age three wide">
+					<span class="text grey">
+						{{TimeSince $commit.Committer.When $.Lang}}
+					</span>
+				</td>
 			</tr>
 		{{end}}
 	</tbody>

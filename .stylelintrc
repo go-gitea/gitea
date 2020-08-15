@@ -5,6 +5,7 @@ rules:
   block-closing-brace-empty-line-before: null
   color-hex-length: null
   comment-empty-line-before: null
+  custom-property-empty-line-before: null
   declaration-empty-line-before: null
   indentation: 4
   no-descending-specificity: null
