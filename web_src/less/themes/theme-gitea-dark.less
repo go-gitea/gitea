@@ -43,9 +43,7 @@
     --mono-color-100: #ffffff;
 
     --mono-color-0-alpha-0: rgba(0, 0, 0, 0);
-    --mono-color-0-alpha-4: rgba(0, 0, 0, .04);
     --mono-color-0-alpha-5: rgba(0, 0, 0, .05);
-    --mono-color-0-alpha-6: rgba(0, 0, 0, .06);
     --mono-color-0-alpha-10: rgba(0, 0, 0, .1);
     --mono-color-0-alpha-15: rgba(0, 0, 0, .15);
     --mono-color-0-alpha-20: rgba(0, 0, 0, .2);
@@ -53,17 +51,13 @@
     --mono-color-0-alpha-40: rgba(0, 0, 0, .4);
     --mono-color-0-alpha-50: rgba(0, 0, 0, .5);
     --mono-color-0-alpha-60: rgba(0, 0, 0, .6);
-    --mono-color-0-alpha-65: rgba(0, 0, 0, .65);
     --mono-color-0-alpha-70: rgba(0, 0, 0, .7);
+    --mono-color-0-alpha-75: rgba(0, 0, 0, .75);
     --mono-color-0-alpha-80: rgba(0, 0, 0, .8);
     --mono-color-0-alpha-85: rgba(0, 0, 0, .85);
-    --mono-color-0-alpha-87: rgba(0, 0, 0, .87);
-    --mono-color-0-alpha-90: rgba(0, 0, 0, .9);
 
     --mono-color-100-alpha-0: rgba(255, 255, 255, 0);
-    --mono-color-100-alpha-4: rgba(255, 255, 255, .04);
     --mono-color-100-alpha-5: rgba(255, 255, 255, .05);
-    --mono-color-100-alpha-6: rgba(255, 255, 255, .06);
     --mono-color-100-alpha-10: rgba(255, 255, 255, .1);
     --mono-color-100-alpha-15: rgba(255, 255, 255, .15);
     --mono-color-100-alpha-20: rgba(255, 255, 255, .2);
@@ -71,12 +65,10 @@
     --mono-color-100-alpha-40: rgba(255, 255, 255, .4);
     --mono-color-100-alpha-50: rgba(255, 255, 255, .5);
     --mono-color-100-alpha-60: rgba(255, 255, 255, .6);
-    --mono-color-100-alpha-65: rgba(255, 255, 255, .65);
     --mono-color-100-alpha-70: rgba(255, 255, 255, .7);
+    --mono-color-100-alpha-75: rgba(255, 255, 255, .75);
     --mono-color-100-alpha-80: rgba(255, 255, 255, .8);
     --mono-color-100-alpha-85: rgba(255, 255, 255, .85);
-    --mono-color-100-alpha-87: rgba(255, 255, 255, .87);
-    --mono-color-100-alpha-90: rgba(255, 255, 255, .9);
 
     --blue-color-10: #182030;
 
@@ -180,6 +172,7 @@ body {
 .dropzone,
 .dropzone .dz-preview.dz-image-preview,
 .CodeMirror,
+.admin .menu .item.active,
 .explore .menu .item.active,
 .repos-filter .item.active,
 .feeds .list ul li.private {
@@ -198,7 +191,8 @@ body {
 .ui.form input,
 .ui.form select,
 .ui.form textarea,
-.ui.input textarea {
+.ui.input textarea,
+.ui.selection.dropdown {
     background: var(--mono-color-7) !important;
 }
 
