@@ -310,7 +310,7 @@ module.exports = {
             css += compilation.assets['css/index.css'].source();
             css += readFileSync(resolve(__dirname, 'public/vendor/plugins/simplemde/simplemde.min.css'), 'utf8');
 
-            const configFile = require.resolve(__dirname, 'web_src/less/themes/theme-gitea-dark.js');
+            const configFile = require.resolve('./web_src/less/themes/theme-gitea-dark.js');
             delete require.cache[configFile];
 
             const {mappings, ignoreSelectors} = require(configFile);
