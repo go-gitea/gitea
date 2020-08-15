@@ -19,7 +19,7 @@ var (
 
 var License = &analysis.Analyzer{
 	Name: "license",
-	Doc:  "check for a copyright header.",
+	Doc:  "check for a copyright header",
 	Run:  runLicense,
 }
 
