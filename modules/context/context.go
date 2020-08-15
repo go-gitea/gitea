@@ -222,6 +222,7 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 	ctx.Resp.Header().Set("Expires", "0")
 	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
 	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 	http.ServeContent(ctx.Resp, ctx.Req.Request, name, modtime, r)
 }
 
