@@ -40,15 +40,6 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
-const getGiteaDarkConfig = () => {
-  const configFile = require.resolve('./web_src/less/themes/theme-gitea-dark.js');
-
-  // prevent node from caching this file to enable watch mode to always read the latest version
-  if (require.cache[configFile]) delete require.cache[configFile];
-
-  return require(configFile);
-};
-
 module.exports = {
   mode: isProduction ? 'production' : 'development',
   entry: {
@@ -319,7 +310,10 @@ module.exports = {
             css += compilation.assets['css/index.css'].source();
             css += readFileSync(resolve(__dirname, 'public/vendor/plugins/simplemde/simplemde.min.css'), 'utf8');
 
-            const {mappings, ignoreSelectors} = getGiteaDarkConfig();
+            const configFile = require.resolve('./web_src/less/themes/theme-gitea-dark.js');
+            delete require.cache[configFile];
+
+            const {mappings, ignoreSelectors} = require(configFile);
             css = await remapCss([{css}], mappings, {ignoreSelectors});
 
             if (isProduction) {
