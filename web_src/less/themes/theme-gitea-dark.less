@@ -19,15 +19,92 @@
     --mono-color-7: #141414;
     --mono-color-9: #181818;
     --mono-color-10: #1b1b1b;
+    --mono-color-12: #202020;
+    --mono-color-13: #222222;
     --mono-color-14: #242424;
-    --mono-color-15: #282828;
+    --mono-color-15: #262626;
+    --mono-color-16: #282828;
+    --mono-color-17: #2a2a2a;
     --mono-color-20: #333333;
-    --mono-color-40: #666666;
-    --mono-color-70: #aaaaaa;
+    --mono-color-23: #383838;
+    --mono-color-25: #3c3c3c;
+    --mono-color-28: #424242;
+    --mono-color-32: #484848;
+    --mono-color-36: #505050;
+    --mono-color-40: #585858;
+    --mono-color-42: #666666;
+    --mono-color-46: #707070;
+    --mono-color-50: #808080;
+    --mono-color-58: #909090;
+    --mono-color-66: #a0a0a0;
+    --mono-color-72: #b0b0b0;
+    --mono-color-80: #c0c0c0;
+    --mono-color-88: #d0d0d0;
     --mono-color-100: #ffffff;
 
+    --mono-color-0-alpha-0: rgba(0, 0, 0, 0);
+    --mono-color-0-alpha-4: rgba(0, 0, 0, .04);
+    --mono-color-0-alpha-5: rgba(0, 0, 0, .05);
+    --mono-color-0-alpha-6: rgba(0, 0, 0, .06);
+    --mono-color-0-alpha-10: rgba(0, 0, 0, .1);
+    --mono-color-0-alpha-15: rgba(0, 0, 0, .15);
     --mono-color-0-alpha-20: rgba(0, 0, 0, .2);
+    --mono-color-0-alpha-30: rgba(0, 0, 0, .3);
     --mono-color-0-alpha-40: rgba(0, 0, 0, .4);
+    --mono-color-0-alpha-50: rgba(0, 0, 0, .5);
+    --mono-color-0-alpha-60: rgba(0, 0, 0, .6);
+    --mono-color-0-alpha-65: rgba(0, 0, 0, .65);
+    --mono-color-0-alpha-70: rgba(0, 0, 0, .7);
+    --mono-color-0-alpha-80: rgba(0, 0, 0, .8);
+    --mono-color-0-alpha-85: rgba(0, 0, 0, .85);
+    --mono-color-0-alpha-87: rgba(0, 0, 0, .87);
+    --mono-color-0-alpha-90: rgba(0, 0, 0, .9);
+
+    --mono-color-100-alpha-0: rgba(255, 255, 255, 0);
+    --mono-color-100-alpha-4: rgba(255, 255, 255, .04);
+    --mono-color-100-alpha-5: rgba(255, 255, 255, .05);
+    --mono-color-100-alpha-6: rgba(255, 255, 255, .06);
+    --mono-color-100-alpha-10: rgba(255, 255, 255, .1);
+    --mono-color-100-alpha-15: rgba(255, 255, 255, .15);
+    --mono-color-100-alpha-20: rgba(255, 255, 255, .2);
+    --mono-color-100-alpha-30: rgba(255, 255, 255, .3);
+    --mono-color-100-alpha-40: rgba(255, 255, 255, .4);
+    --mono-color-100-alpha-50: rgba(255, 255, 255, .5);
+    --mono-color-100-alpha-60: rgba(255, 255, 255, .6);
+    --mono-color-100-alpha-65: rgba(255, 255, 255, .65);
+    --mono-color-100-alpha-70: rgba(255, 255, 255, .7);
+    --mono-color-100-alpha-80: rgba(255, 255, 255, .8);
+    --mono-color-100-alpha-85: rgba(255, 255, 255, .85);
+    --mono-color-100-alpha-87: rgba(255, 255, 255, .87);
+    --mono-color-100-alpha-90: rgba(255, 255, 255, .9);
+
+    --blue-color-10: #182030;
+
+    --green-color-8: #002800;
+    --green-color-10: #003300;
+    --green-color-12: #083808;
+    --green-color-15: #006600;
+    --green-color-20: #225522;
+    --green-color-30: #337733;
+    --green-color-50: #55aa55;
+
+    --red-color-8: #330000;
+    --red-color-10: #380000;
+    --red-color-15: #660000;
+    --red-color-20: #662222;
+    --red-color-30: #991111;
+    --red-color-50: #d82828;
+
+    --yellow-color-8: #232002;
+    --yellow-color-10: #282418;
+    --yellow-color-15: #383418;
+    --yellow-color-30: #bba257;
+    --yellow-color-50: #ccbb44;
+
+    --purple-color-50: #73589a;
+
+    --orange-color-10: #320;
+    --orange-color-50: #fb8532;
 }
 
 body {
@@ -40,13 +117,18 @@ body {
     background: var(--mono-color-7);
 }
 
+.chroma,
+.chroma .nx /* NameOther */ {
+    color: var(--mono-color-80);
+}
+
 .markdown .chroma {
     background: none;
 }
 
 .markdown:not(code) code,
 .markdown:not(code) tt {
-    background: var(--mono-color-15) !important;
+    background: var(--mono-color-16) !important;
 }
 
 ::selection,
@@ -74,7 +156,7 @@ body {
 }
 
 /* heatmap */
-[style*="fill: rgb(244, 244, 244)"] { fill: var(--mono-color-15) !important; }
+[style*="fill: rgb(244, 244, 244)"] { fill: var(--mono-color-16) !important; }
 [style*="fill: rgb(216, 239, 191)"] { fill: var(--primary-color-dark-4) !important; }
 [style*="fill: rgb(159, 219, 129)"] { fill: var(--primary-color-dark-3) !important; }
 [style*="fill: rgb(102, 199, 75)"] { fill: var(--primary-color-dark-2) !important; }
@@ -126,7 +208,7 @@ body {
 }
 
 .editor-toolbar a {
-    color: var(--mono-color-70) !important;
+    color: var(--mono-color-66) !important;
 }
 
 .repository .milestone.list > .item .ui.progress {
