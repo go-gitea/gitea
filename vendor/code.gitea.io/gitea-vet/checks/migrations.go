@@ -18,10 +18,14 @@ var Migrations = &analysis.Analyzer{
 	Run:  checkMigrations,
 }
 
-var migrationBlacklist = []string{
-	"code.gitea.io/gitea/models",
-	"code.gitea.io/gitea/modules/structs",
-}
+var (
+	migrationDepBlockList = []string{
+		"code.gitea.io/gitea/models",
+	}
+	migrationImpBlockList = []string{
+		"code.gitea.io/gitea/modules/structs",
+	}
+)
 
 func checkMigrations(pass *analysis.Pass) (interface{}, error) {
 	if !strings.EqualFold(pass.Pkg.Path(), "code.gitea.io/gitea/models/migrations") {
@@ -40,8 +44,22 @@ func checkMigrations(pass *analysis.Pass) (interface{}, error) {
 
 	deps := strings.Split(string(depsOut), "\n")
 	for _, dep := range deps {
-		if stringInSlice(dep, migrationBlacklist) {
-			pass.Reportf(0, "code.gitea.io/gitea/models/migrations cannot depend on the following packages: %s", migrationBlacklist)
+		if stringInSlice(dep, migrationDepBlockList) {
+			pass.Reportf(0, "code.gitea.io/gitea/models/migrations cannot depend on the following packages: %s", migrationDepBlockList)
+			return nil, nil
+		}
+	}
+
+	impsCmd := exec.Command("go", "list", "-f", `{{join .Imports "\n"}}`, "code.gitea.io/gitea/models/migrations")
+	impsOut, err := impsCmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	imps := strings.Split(string(impsOut), "\n")
+	for _, imp := range imps {
+		if stringInSlice(imp, migrationImpBlockList) {
+			pass.Reportf(0, "code.gitea.io/gitea/models/migrations cannot import the following packages: %s", migrationImpBlockList)
 			return nil, nil
 		}
 	}

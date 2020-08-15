@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"golang.org/x/tools/go/ast/astutil"
+	"golang.org/x/tools/internal/lsp/fuzzy"
 )
 
 var (
@@ -50,7 +51,7 @@ func ZeroValue(fset *token.FileSet, f *ast.File, pkg *types.Package, typ types.T
 		default:
 			panic("unknown basic type")
 		}
-	case *types.Chan, *types.Interface, *types.Map, *types.Pointer, *types.Signature, *types.Slice:
+	case *types.Chan, *types.Interface, *types.Map, *types.Pointer, *types.Signature, *types.Slice, *types.Array:
 		return ast.NewIdent("nil")
 	case *types.Struct:
 		texpr := TypeExpr(fset, f, pkg, typ) // typ because we want the name here.
@@ -60,19 +61,21 @@ func ZeroValue(fset *token.FileSet, f *ast.File, pkg *types.Package, typ types.T
 		return &ast.CompositeLit{
 			Type: texpr,
 		}
-	case *types.Array:
-		texpr := TypeExpr(fset, f, pkg, u.Elem())
-		if texpr == nil {
-			return nil
-		}
-		return &ast.CompositeLit{
-			Type: &ast.ArrayType{
-				Elt: texpr,
-				Len: &ast.BasicLit{Kind: token.INT, Value: fmt.Sprintf("%v", u.Len())},
-			},
-		}
 	}
 	return nil
+}
+
+// IsZeroValue checks whether the given expression is a 'zero value' (as determined by output of
+// analysisinternal.ZeroValue)
+func IsZeroValue(expr ast.Expr) bool {
+	switch e := expr.(type) {
+	case *ast.BasicLit:
+		return e.Value == "0" || e.Value == `""`
+	case *ast.Ident:
+		return e.Name == "nil" || e.Name == "false"
+	default:
+		return false
+	}
 }
 
 func TypeExpr(fset *token.FileSet, f *ast.File, pkg *types.Package, typ types.Type) ast.Expr {
@@ -280,4 +283,139 @@ func baseIfStmt(path []ast.Node, index int) ast.Stmt {
 		break
 	}
 	return stmt.(ast.Stmt)
+}
+
+// WalkASTWithParent walks the AST rooted at n. The semantics are
+// similar to ast.Inspect except it does not call f(nil).
+func WalkASTWithParent(n ast.Node, f func(n ast.Node, parent ast.Node) bool) {
+	var ancestors []ast.Node
+	ast.Inspect(n, func(n ast.Node) (recurse bool) {
+		if n == nil {
+			ancestors = ancestors[:len(ancestors)-1]
+			return false
+		}
+
+		var parent ast.Node
+		if len(ancestors) > 0 {
+			parent = ancestors[len(ancestors)-1]
+		}
+		ancestors = append(ancestors, n)
+		return f(n, parent)
+	})
+}
+
+// FindMatchingIdents finds all identifiers in 'node' that match any of the given types.
+// 'pos' represents the position at which the identifiers may be inserted. 'pos' must be within
+// the scope of each of identifier we select. Otherwise, we will insert a variable at 'pos' that
+// is unrecognized.
+func FindMatchingIdents(typs []types.Type, node ast.Node, pos token.Pos, info *types.Info, pkg *types.Package) map[types.Type][]*ast.Ident {
+	matches := map[types.Type][]*ast.Ident{}
+	// Initialize matches to contain the variable types we are searching for.
+	for _, typ := range typs {
+		if typ == nil {
+			continue
+		}
+		matches[typ] = []*ast.Ident{}
+	}
+	seen := map[types.Object]struct{}{}
+	ast.Inspect(node, func(n ast.Node) bool {
+		if n == nil {
+			return false
+		}
+		// Prevent circular definitions. If 'pos' is within an assignment statement, do not
+		// allow any identifiers in that assignment statement to be selected. Otherwise,
+		// we could do the following, where 'x' satisfies the type of 'f0':
+		//
+		// x := fakeStruct{f0: x}
+		//
+		assignment, ok := n.(*ast.AssignStmt)
+		if ok && pos > assignment.Pos() && pos <= assignment.End() {
+			return false
+		}
+		if n.End() > pos {
+			return n.Pos() <= pos
+		}
+		ident, ok := n.(*ast.Ident)
+		if !ok || ident.Name == "_" {
+			return true
+		}
+		obj := info.Defs[ident]
+		if obj == nil || obj.Type() == nil {
+			return true
+		}
+		if _, ok := obj.(*types.TypeName); ok {
+			return true
+		}
+		// Prevent duplicates in matches' values.
+		if _, ok = seen[obj]; ok {
+			return true
+		}
+		seen[obj] = struct{}{}
+		// Find the scope for the given position. Then, check whether the object
+		// exists within the scope.
+		innerScope := pkg.Scope().Innermost(pos)
+		if innerScope == nil {
+			return true
+		}
+		_, foundObj := innerScope.LookupParent(ident.Name, pos)
+		if foundObj != obj {
+			return true
+		}
+		// The object must match one of the types that we are searching for.
+		if idents, ok := matches[obj.Type()]; ok {
+			matches[obj.Type()] = append(idents, ast.NewIdent(ident.Name))
+		}
+		// If the object type does not exactly match any of the target types, greedily
+		// find the first target type that the object type can satisfy.
+		for typ := range matches {
+			if obj.Type() == typ {
+				continue
+			}
+			if equivalentTypes(obj.Type(), typ) {
+				matches[typ] = append(matches[typ], ast.NewIdent(ident.Name))
+			}
+		}
+		return true
+	})
+	return matches
+}
+
+func equivalentTypes(want, got types.Type) bool {
+	if want == got || types.Identical(want, got) {
+		return true
+	}
+	// Code segment to help check for untyped equality from (golang/go#32146).
+	if rhs, ok := want.(*types.Basic); ok && rhs.Info()&types.IsUntyped > 0 {
+		if lhs, ok := got.Underlying().(*types.Basic); ok {
+			return rhs.Info()&types.IsConstType == lhs.Info()&types.IsConstType
+		}
+	}
+	return types.AssignableTo(want, got)
+}
+
+// FindBestMatch employs fuzzy matching to evaluate the similarity of each given identifier to the
+// given pattern. We return the identifier whose name is most similar to the pattern.
+func FindBestMatch(pattern string, idents []*ast.Ident) ast.Expr {
+	fuzz := fuzzy.NewMatcher(pattern)
+	var bestFuzz ast.Expr
+	highScore := float32(-1) // minimum score is -1 (no match)
+	for _, ident := range idents {
+		// TODO: Improve scoring algorithm.
+		score := fuzz.Score(ident.Name)
+		if score > highScore {
+			highScore = score
+			bestFuzz = ident
+		} else if score == -1 {
+			// Order matters in the fuzzy matching algorithm. If we find no match
+			// when matching the target to the identifier, try matching the identifier
+			// to the target.
+			revFuzz := fuzzy.NewMatcher(ident.Name)
+			revScore := revFuzz.Score(pattern)
+			if revScore > highScore {
+				highScore = revScore
+				bestFuzz = ident
+			}
+		}
+	}
+	return bestFuzz
 }
