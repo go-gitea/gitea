@@ -609,12 +609,12 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 	return isOwner
 }
 
-// IsUserPartOfOrg returns true if user with userID is part of the u organisation.
-func (u *User) IsUserPartOfOrg(userID int64) bool {
-	return u.isUserPartOfOrg(x, userID)
+// HasMemberWithUserID returns true if user with userID is part of the u organisation.
+func (u *User) HasMemberWithUserID(userID int64) bool {
+	return u.hasMemberWithUserID(x, userID)
 }
 
-func (u *User) isUserPartOfOrg(e Engine, userID int64) bool {
+func (u *User) hasMemberWithUserID(e Engine, userID int64) bool {
 	isMember, err := isOrganizationMember(e, u.ID, userID)
 	if err != nil {
 		log.Error("IsOrganizationMember: %v", err)
