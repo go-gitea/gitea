@@ -7,7 +7,7 @@ start_stop_daemon_args="--user ${USER} --chdir ${DIR}"
 command="/usr/local/bin/gitea"
 command_args="web -c /etc/gitea/app.ini"
 command_background=yes
-pidfile=/var/run/gitea.pid
+pidfile=/run/gitea.pid
 
 depend()
 {

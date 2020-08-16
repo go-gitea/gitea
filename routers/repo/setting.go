@@ -418,7 +418,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if newOwner.Type == models.UserTypeOrganization {
-			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !ctx.User.IsUserPartOfOrg(newOwner.ID) {
+			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !newOwner.HasMemberWithUserID(ctx.User.ID) {
 				// The user shouldn't know about this organization
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 				return
