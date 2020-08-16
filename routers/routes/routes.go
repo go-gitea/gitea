@@ -7,8 +7,10 @@ package routes
 import (
 	"bytes"
 	"encoding/gob"
+	"io"
 	"net/http"
 	"path"
+	"strings"
 	"text/template"
 	"time"
 
@@ -21,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers"
@@ -149,14 +152,53 @@ func NewMacaron() *macaron.Macaron {
 			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
-	m.Use(public.StaticHandler(
-		setting.AvatarUploadPath,
-		&public.Options{
-			Prefix:       "avatars",
-			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: setting.StaticCacheTime,
-		},
-	))
+	switch setting.Avatar.StoreType {
+	case "local":
+		m.Use(public.StaticHandler(
+			setting.Avatar.UploadPath,
+			&public.Options{
+				Prefix:       "avatars",
+				SkipLogging:  setting.DisableRouterLog,
+				ExpiresAfter: setting.StaticCacheTime,
+			},
+		))
+	case "minio":
+		m.Use(func(ctx *context.Context) {
+			req := ctx.Req.Request
+			rPath := strings.TrimPrefix(req.RequestURI, "/avatars")
+			if setting.Avatar.ServeDirect {
+				u, err := storage.Avatars.URL(rPath, path.Base(rPath))
+				if err != nil {
+					ctx.ServerError("URL", err)
+					return
+				}
+				http.Redirect(
+					ctx.Resp,
+					req,
+					u.String(),
+					301,
+				)
+			} else {
+				rPath = strings.TrimPrefix(rPath, "/")
+				//If we have matched and access to release or issue
+				fr, err := storage.Avatars.Open(rPath)
+				if err != nil {
+					ctx.ServerError("Open", err)
+					return
+				}
+				defer fr.Close()
+
+				_, err = io.Copy(ctx.Resp, fr)
+				if err != nil {
+					ctx.ServerError("io.Copy", err)
+					return
+				}
+			}
+		})
+	default:
+		log.Fatal("Unsupported avatar store type")
+	}
+
 	m.Use(public.StaticHandler(
 		setting.RepositoryAvatarUploadPath,
 		&public.Options{

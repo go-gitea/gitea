@@ -88,11 +88,18 @@ var (
 
 	// LFS represents lfs storage
 	LFS ObjectStorage
+
+	// Avatars represents avatars storage
+	Avatars ObjectStorage
 )
 
 // Init init the stoarge
 func Init() error {
 	if err := initAttachments(); err != nil {
+		return err
+	}
+
+	if err := initAvatars(); err != nil {
 		return err
 	}
 
@@ -110,6 +117,11 @@ func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
 	}
 
 	return fn(context.Background(), cfg)
+}
+
+func initAvatars() (err error) {
+	Avatars, err = initStorage(setting.Avatar.Storage)
+	return
 }
 
 func initAttachments() (err error) {

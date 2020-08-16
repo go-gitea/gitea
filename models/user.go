@@ -16,6 +16,7 @@ import (
 	"fmt"
 	_ "image/jpeg" // Needed for jpeg support
 	"image/png"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -31,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -347,9 +349,9 @@ func (u *User) GenerateActivateCode() string {
 	return u.GenerateEmailActivateCode(u.Email)
 }
 
-// CustomAvatarPath returns user custom avatar file path.
-func (u *User) CustomAvatarPath() string {
-	return filepath.Join(setting.AvatarUploadPath, u.Avatar)
+// CustomAvatarRelativePath returns user custom avatar relative path.
+func (u *User) CustomAvatarRelativePath() string {
+	return u.Avatar
 }
 
 // GenerateRandomAvatar generates a random avatar for user.
@@ -372,21 +374,22 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	if u.Avatar == "" {
 		u.Avatar = fmt.Sprintf("%d", u.ID)
 	}
-	if err = os.MkdirAll(filepath.Dir(u.CustomAvatarPath()), os.ModePerm); err != nil {
-		return fmt.Errorf("MkdirAll: %v", err)
-	}
-	fw, err := os.Create(u.CustomAvatarPath())
-	if err != nil {
-		return fmt.Errorf("Create: %v", err)
-	}
-	defer fw.Close()
 
-	if _, err := e.ID(u.ID).Cols("avatar").Update(u); err != nil {
+	pr, pw := io.Pipe()
+
+	go func() {
+		defer pw.Close()
+		if err = png.Encode(pw, img); err != nil {
+			log.Error("Encode: %v", err)
+		}
+	}()
+
+	if _, err := storage.Avatars.Save(u.CustomAvatarRelativePath(), pr); err != nil {
 		return err
 	}
 
-	if err = png.Encode(fw, img); err != nil {
-		return fmt.Errorf("Encode: %v", err)
+	if _, err := e.ID(u.ID).Cols("avatar").Update(u); err != nil {
+		return err
 	}
 
 	log.Info("New random avatar created: %d", u.ID)
@@ -413,12 +416,12 @@ func (u *User) RealSizedAvatarLink(size int) string {
 
 	switch {
 	case u.UseCustomAvatar:
-		if !com.IsFile(u.CustomAvatarPath()) {
+		if u.Avatar == "" {
 			return base.DefaultAvatarLink()
 		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:
-		if !com.IsFile(u.CustomAvatarPath()) {
+		if u.Avatar == "" {
 			if err := u.GenerateRandomAvatar(); err != nil {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
@@ -561,18 +564,16 @@ func (u *User) UploadAvatar(data []byte) error {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
-	if err := os.MkdirAll(setting.AvatarUploadPath, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", setting.AvatarUploadPath, err)
-	}
+	pr, pw := io.Pipe()
+	go func() {
+		defer pw.Close()
+		if err := png.Encode(pw, *m); err != nil {
+			log.Error("Encode: %v", err)
+		}
+	}()
 
-	fw, err := os.Create(u.CustomAvatarPath())
-	if err != nil {
-		return fmt.Errorf("Create: %v", err)
-	}
-	defer fw.Close()
-
-	if err = png.Encode(fw, *m); err != nil {
-		return fmt.Errorf("Encode: %v", err)
+	if _, err := storage.Avatars.Save(u.CustomAvatarRelativePath(), pr); err != nil {
+		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
 	}
 
 	return sess.Commit()
@@ -580,10 +581,11 @@ func (u *User) UploadAvatar(data []byte) error {
 
 // DeleteAvatar deletes the user's custom avatar.
 func (u *User) DeleteAvatar() error {
-	log.Trace("DeleteAvatar[%d]: %s", u.ID, u.CustomAvatarPath())
+	aPath := u.CustomAvatarRelativePath()
+	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
 	if len(u.Avatar) > 0 {
-		if err := util.Remove(u.CustomAvatarPath()); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", u.CustomAvatarPath(), err)
+		if err := storage.Avatars.Delete(aPath); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", aPath, err)
 		}
 	}
 
@@ -1285,17 +1287,14 @@ func deleteUser(e *xorm.Session, u *User) error {
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
-
 	if err := util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 	}
 
 	if len(u.Avatar) > 0 {
-		avatarPath := u.CustomAvatarPath()
-		if com.IsExist(avatarPath) {
-			if err := util.Remove(avatarPath); err != nil {
-				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			}
+		avatarPath := u.CustomAvatarRelativePath()
+		if err := storage.Avatars.Delete(avatarPath); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 		}
 	}
 
