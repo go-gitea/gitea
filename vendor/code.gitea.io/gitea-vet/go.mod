@@ -1,4 +1,4 @@
-module gitea.com/jolheiser/gitea-vet
+module code.gitea.io/gitea-vet
 
 go 1.14
 
