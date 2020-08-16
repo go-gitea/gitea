@@ -189,8 +189,8 @@
 					</div>
 					{{end}}
 
-					{{if .IsPull }}
-						{{if .IsClosed}}
+					{{if .IsClosed}}
+						{{if .IsPull}}
 							{{if .PullRequest.HasMerged}}
 								<div class="ui purple label">#{{.Index}}</div>
 								<a class="ui purple text">{{svg "octicon-git-pull-request" 16}}</a>
@@ -199,23 +199,18 @@
 								<a class="ui red text">{{svg "octicon-git-pull-request" 16}}</a>
 							{{end}}
 						{{else}}
-							{{if .IsRead}}
-								<div class="ui white label">#{{.Index}}</div>
-							{{else}}
-								<div class="ui green label">#{{.Index}}</div>
-							{{end}}
-							<a class="ui green text">{{svg "octicon-git-pull-request" 16}}</a>
-						{{end}}
-					{{else}}
-						{{if .IsClosed}}
 							<div class="ui red label">#{{.Index}}</div>
 							<a class="ui red text">{{svg "octicon-issue-closed" 16}}</a>
+						{{end}}
+					{{else}}
+						{{if .IsRead}}
+							<div class="ui white label">#{{.Index}}</div>
 						{{else}}
-							{{if .IsRead}}
-								<div class="ui white label">#{{.Index}}</div>
-							{{else}}
-								<div class="ui green label">#{{.Index}}</div>
-							{{end}}
+							<div class="ui green label">#{{.Index}}</div>
+						{{end}}
+						{{if .IsPull}}
+							<a class="ui green text">{{svg "octicon-git-pull-request" 16}}</a>
+						{{else}}
 							<a class="ui green text">{{svg "octicon-issue-opened" 16}}</a>
 						{{end}}
 					{{end}}
