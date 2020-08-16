@@ -154,13 +154,16 @@ help:
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
+	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
+	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
-	@echo " - watch-frontend                   watch frontend files and continuously rebuild"
-	@echo " - watch-backend                    watch backend files and continuously rebuild"
+	@echo " - check                            run various consistency checks"
+	@echo " - check-frontend                   check frontend files"
+	@echo " - check-backend                    check backend files"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -290,16 +293,25 @@ fmt-check:
 		exit 1; \
 	fi;
 
-.PHONY: lint
-lint: lint-backend lint-frontend
+.PHONY: checks
+checks: checks-frontend checks-backend
 
-.PHONY: lint-backend
-lint-backend: golangci-lint revive vet swagger-check swagger-validate test-vendor
+.PHONY: checks-frontend
+checks-frontend: svg-check
+
+.PHONY: checks-backend
+checks-backend: misspell-check test-vendor swagger-check swagger-validate
+
+.PHONY: lint
+lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
-lint-frontend: node_modules svg-check
+lint-frontend: node_modules
 	npx eslint web_src/js build webpack.config.js
 	npx stylelint web_src/less
+
+.PHONY: lint-backend
+lint-backend: golangci-lint revive vet
 
 .PHONY: watch-frontend
 watch-frontend: node-check $(FOMANTIC_DEST) node_modules
