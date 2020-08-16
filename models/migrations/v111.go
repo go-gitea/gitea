@@ -148,7 +148,7 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		if user == nil {
 			hasOrgVisible = repoOwner.Visibility == VisibleTypePublic
 		} else if !user.IsAdmin {
-			isUserPartOfOrg, err := sess.
+			hasMemberWithUserID, err := sess.
 				Where("uid=?", user.ID).
 				And("org_id=?", repoOwner.ID).
 				Table("org_user").
@@ -156,7 +156,7 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 			if err != nil {
 				hasOrgVisible = false
 			}
-			if (repoOwner.Visibility == VisibleTypePrivate || user.IsRestricted) && !isUserPartOfOrg {
+			if (repoOwner.Visibility == VisibleTypePrivate || user.IsRestricted) && !hasMemberWithUserID {
 				hasOrgVisible = false
 			}
 		}
