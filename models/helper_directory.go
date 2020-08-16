@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // LocalCopyPath returns the local repository temporary copy path.
@@ -41,7 +42,7 @@ func CreateTemporaryPath(prefix string) (string, error) {
 // RemoveTemporaryPath removes the temporary path
 func RemoveTemporaryPath(basePath string) error {
 	if _, err := os.Stat(basePath); !os.IsNotExist(err) {
-		return os.RemoveAll(basePath)
+		return util.RemoveAll(basePath)
 	}
 	return nil
 }

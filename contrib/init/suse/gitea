@@ -93,7 +93,7 @@ case "$1" in
 
 		# Return value is slightly different for the status command:
 		# 0 - service up and running
-		# 1 - service dead, but /var/run/  pid  file exists
+		# 1 - service dead, but /run/  pid  file exists
 		# 2 - service dead, but /var/lock/ lock file exists
 		# 3 - service not running (unused)
 		# 4 - service status unknown :-(
