@@ -12,7 +12,7 @@ import (
 
 var Imports = &analysis.Analyzer{
 	Name: "imports",
-	Doc:  "check for import order.",
+	Doc:  "check for import order",
 	Run:  runImports,
 }
 
@@ -22,11 +22,12 @@ func runImports(pass *analysis.Pass) (interface{}, error) {
 		for _, im := range file.Imports {
 			var lvl int
 			val := im.Path.Value
-			if importHasPrefix(val, "code.gitea.io") {
+			switch {
+			case importHasPrefix(val, "code.gitea.io"):
 				lvl = 2
-			} else if strings.Contains(val, ".") {
+			case strings.Contains(val, "."):
 				lvl = 3
-			} else {
+			default:
 				lvl = 1
 			}
 
@@ -42,13 +43,4 @@ func runImports(pass *analysis.Pass) (interface{}, error) {
 
 func importHasPrefix(s, p string) bool {
 	return strings.HasPrefix(s, "\""+p)
-}
-
-func sliceHasPrefix(s string, prefixes ...string) bool {
-	for _, p := range prefixes {
-		if importHasPrefix(s, p) {
-			return true
-		}
-	}
-	return false
 }

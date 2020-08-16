@@ -425,14 +425,23 @@ steps:
     commands:
       - git fetch --tags --force
 
-  - name: static
+  - name: static-windows
     pull: always
-    image: techknowlogick/xgo:go-1.15.x
+    image: techknowlogick/xgo:go-1.14.x
     commands:
       - apt update && apt -y install curl
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
-      - make release
+      - make frontend generate release-windows
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: static
+    pull: always
+    image: techknowlogick/xgo:go-1.15.x
+    commands:
+      - make release-linux release-darwin release-copy release-compress release-sources release-docs release-check
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
